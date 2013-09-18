@@ -41,6 +41,11 @@ public class StatCounter extends AbstractStatValue {
   }
 
   @Override
+  public int getUpdateCount() {
+    return counter;
+  }
+
+  @Override
   public String toString() {
     return String.format("%8d", counter);
   }

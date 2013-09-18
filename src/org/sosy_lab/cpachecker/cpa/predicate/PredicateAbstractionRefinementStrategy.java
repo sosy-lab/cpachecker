@@ -184,7 +184,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
       w1.put(predicateCreation);
 
-      if (itpSimplification.getNumberOfIntervals() > 0) {
+      if (itpSimplification.getUpdateCount() > 0) {
         w2.put(itpSimplification)
           .beginLevel()
           .put(simplifyDeltaConjunctions)
@@ -203,7 +203,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       basicRefinementStatistics.printStatistics(out, pResult, pReached);
 
       w0.put(numberOfRefinementsWithStrategy2);
-      if (itpSimplification.getNumberOfIntervals() > 0) {
+      if (itpSimplification.getUpdateCount() > 0) {
         w0.put(irrelevantPredsInItp);
       }
     }
@@ -431,7 +431,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     assert targetStatePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
 
     if (dumpPredicates && dumpPredicatesFile != null) {
-      Path precFile = Paths.get(String.format(dumpPredicatesFile.getPath(), precisionUpdate.getNumberOfIntervals()));
+      Path precFile = Paths.get(String.format(dumpPredicatesFile.getPath(), precisionUpdate.getUpdateCount()));
       try (Writer w = Files.openOutputFile(precFile)) {
         precisionWriter.writePredicateMap(
             ImmutableSetMultimap.copyOf(newPredicates),

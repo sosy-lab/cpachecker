@@ -67,6 +67,11 @@ public class StatInt extends AbstractStatValue {
   }
 
   @Override
+  public int getUpdateCount() {
+    return valueCount;
+  }
+
+  @Override
   public String toString() {
     return String.format("%8d (count: %d, min: %d, max: %d, avg: %.2f)",
         valueSum, valueCount, getMinValue(), getMaxValue(), getAverage());

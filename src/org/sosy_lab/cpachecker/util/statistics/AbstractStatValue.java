@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.statistics;
 
 
-public class AbstractStatValue {
+public abstract class AbstractStatValue {
 
   private final String title;
   private StatKind mainStatisticKind;
@@ -38,4 +38,9 @@ public class AbstractStatValue {
     return title;
   }
 
+  /**
+   * How many times was this statistical value updated.
+   * @return A nonnegative number.
+   */
+  public abstract int getUpdateCount();
 }

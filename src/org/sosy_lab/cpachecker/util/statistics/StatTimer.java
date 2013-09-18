@@ -46,7 +46,8 @@ public class StatTimer extends AbstractStatValue {
     timer.stop();
   }
 
-  public int getNumberOfIntervals() {
+  @Override
+  public int getUpdateCount() {
     return timer.getNumberOfIntervals();
   }
 
