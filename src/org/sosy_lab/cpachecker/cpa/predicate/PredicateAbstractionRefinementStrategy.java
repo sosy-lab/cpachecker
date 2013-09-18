@@ -180,32 +180,28 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
       StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
       StatisticsWriter w1 = w0.beginLevel();
-      StatisticsWriter w2 = w1.beginLevel();
 
-      w1.put(predicateCreation);
-
-      if (itpSimplification.getUpdateCount() > 0) {
-        w2.put(itpSimplification)
+      w1.put(predicateCreation)
+        .ifUpdatedAtLeastOnce(itpSimplification)
+          .put(itpSimplification)
           .beginLevel()
-          .put(simplifyDeltaConjunctions)
-          .put(simplifyDeltaDisjunctions)
-          .put(simplifyDeltaNegations)
-          .put(simplifyDeltaAtoms)
-          .put(simplifyDeltaVariables)
-          .put(simplifyVariablesBefore)
-          .put(simplifyVariablesAfter);
-      }
+            .put(simplifyDeltaConjunctions)
+            .put(simplifyDeltaDisjunctions)
+            .put(simplifyDeltaNegations)
+            .put(simplifyDeltaAtoms)
+            .put(simplifyDeltaVariables)
+            .put(simplifyVariablesBefore)
+            .put(simplifyVariablesAfter);
 
       w1.put(precisionUpdate)
-       .put(argUpdate)
-       .spacer();
+        .put(argUpdate)
+        .spacer();
 
       basicRefinementStatistics.printStatistics(out, pResult, pReached);
 
-      w0.put(numberOfRefinementsWithStrategy2);
-      if (itpSimplification.getUpdateCount() > 0) {
-        w0.put(irrelevantPredsInItp);
-      }
+      w0.put(numberOfRefinementsWithStrategy2)
+        .ifUpdatedAtLeastOnce(itpSimplification)
+          .put(irrelevantPredsInItp);
     }
   }
 
