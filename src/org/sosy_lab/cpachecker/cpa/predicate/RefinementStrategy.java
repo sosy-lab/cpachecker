@@ -100,7 +100,7 @@ public abstract class RefinementStrategy {
     return true;
   }
 
-  private void analyzePathPrecisions(ARGReachedSet argReached, List<ARGState> path) {
+  protected void analyzePathPrecisions(ARGReachedSet argReached, List<ARGState> path) {
     int equalPrecisions = 0;
     int differentPrecisions = 0;
 
@@ -212,8 +212,6 @@ public abstract class RefinementStrategy {
       throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
     }
 
-    analyzePathPrecisions(pReached, path);
-
     // Hook
     finishRefinementOfPath(infeasiblePartOfART, changedElements, pReached, pRepeatedCounterexample);
 
@@ -245,13 +243,16 @@ public abstract class RefinementStrategy {
    * Do any necessary work after one path has been refined.
    *
    * @param unreachableState The first state in the path which is infeasible (this identifies the path).
+   * @param path The error trace
    * @param affectedStates The list of states that were affected by the refinement (ordered from root to target state).
    * @param reached The reached set.
    * @param repeatedCounterexample Whether the counterexample has been found before.
    * @throws CPAException
    */
-  protected abstract void finishRefinementOfPath(final ARGState unreachableState,
-      List<ARGState> affectedStates, ARGReachedSet reached,
+  protected abstract void finishRefinementOfPath(
+      final ARGState unreachableState,
+      List<ARGState> affectedStates,
+      ARGReachedSet reached,
       boolean repeatedCounterexample) throws CPAException;
 
   public abstract Statistics getStatistics();

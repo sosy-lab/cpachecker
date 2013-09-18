@@ -381,6 +381,11 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
 
       ((ABMPredicateReducer)predicateCpa.getReducer()).clearCaches();
     }
+
+    @Override
+    protected void analyzePathPrecisions(ARGReachedSet argReached, List<ARGState> path) {
+      // Not implemented for ABM (different sets of reached states have to be handled)
+    }
   }
 
   @Override
