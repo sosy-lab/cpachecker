@@ -70,11 +70,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -170,7 +170,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private StatInt simplifyVariablesBefore = new StatInt(StatKind.SUM, "Variables Before");
   private StatInt simplifyVariablesAfter = new StatInt(StatKind.SUM, "Variables After");
 
-  private class Stats extends AbstractStatistics {
+  private class Stats implements Statistics {
     @Override
     public String getName() {
       return "Predicate Abstraction Refiner";
@@ -178,9 +178,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      LeveledStatisticsWriter w0 = beginLeveledOutput(out);
-      LeveledStatisticsWriter w1 = w0.beginLevel();
-      LeveledStatisticsWriter w2 = w1.beginLevel();
+      StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
+      StatisticsWriter w1 = w0.beginLevel();
+      StatisticsWriter w2 = w1.beginLevel();
 
       w1.put(predicateCreation);
 

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -75,7 +76,7 @@ public abstract class RefinementStrategy {
   protected AbstractStatistics basicRefinementStatistics = new AbstractStatistics() {
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      beginLeveledOutput(out)
+      writingStatisticsTo(out)
         .put(totalPathLengthToInfeasibility)
         .put(numberOfAffectedStates)
         .put(truePathPrefixStates)
