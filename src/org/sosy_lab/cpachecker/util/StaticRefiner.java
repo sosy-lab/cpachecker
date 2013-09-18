@@ -41,15 +41,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -97,9 +91,9 @@ abstract public class StaticRefiner {
   protected Set<CIdExpression> getVariablesOfAssume(AssumeEdge pAssume) throws CPATransferException {
     if (pAssume.getExpression() instanceof CExpression) {
       CExpression ce = (CExpression) pAssume.getExpression();
-      CollectVariablesVisitor referencedVariablesVisitor = new CollectVariablesVisitor();
+      CIdExpressionCollectorVisitor referencedVariablesVisitor = new CIdExpressionCollectorVisitor();
       ce.accept(referencedVariablesVisitor);
-      return referencedVariablesVisitor.referencedVariables;
+      return referencedVariablesVisitor.getReferencedIdExpressions();
     } else {
       throw new RuntimeException("Only C programming language supported!");
     }
@@ -196,60 +190,6 @@ abstract public class StaticRefiner {
       Thread.currentThread().interrupt();
     }
 
-    return Collections.emptyList();  }
-
-  private static class CollectVariablesVisitor extends DefaultCExpressionVisitor<Void, RuntimeException> {
-
-    private final Set<CIdExpression> referencedVariables = new HashSet<>();
-
-    @Override
-    protected Void visitDefault(CExpression pExp) {
-      return null;
-    }
-
-    @Override
-    public Void visit(CIdExpression pIastIdExpression) {
-      referencedVariables.add(pIastIdExpression);
-      return null;
-    }
-
-    @Override
-    public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
-      pIastArraySubscriptExpression.getArrayExpression().accept(this);
-      pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression pIastBinaryExpression) {
-      pIastBinaryExpression.getOperand1().accept(this);
-      pIastBinaryExpression.getOperand2().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CCastExpression pIastCastExpression) {
-      return pIastCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Void visit(CComplexCastExpression pIastCastExpression) {
-      return pIastCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Void visit(CFieldReference pIastFieldReference) {
-      return pIastFieldReference.getFieldOwner().accept(this);
-    }
-
-    @Override
-    public Void visit(CUnaryExpression pIastUnaryExpression) {
-      return pIastUnaryExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Void visit(CPointerExpression pIastUnaryExpression) {
-      return pIastUnaryExpression.getOperand().accept(this);
-    }
+    return Collections.emptyList();
   }
 }
