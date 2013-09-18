@@ -52,13 +52,11 @@ public abstract class AbstractStatistics implements Statistics {
    * @param value       Right hand side (value)
    */
   protected void put(PrintStream target, int indentLevel, String name, Object value) {
-    String indentation = indentLevel > 0 ? String.format("%" + indentLevel * 2 + "s", "") : "";
-    target.println(String.format("%-" + outputNameColWidth + "s %s", indentation + name + ":", value));
+    StatisticsUtils.write(target, indentLevel, outputNameColWidth, name, value);
   }
 
   protected void put(PrintStream target, int indentLevel, AbstractStatValue stat) {
-    String indentation = indentLevel > 0 ? String.format("%" + indentLevel * 2 + "s", "") : "";
-    target.println(String.format("%-" + outputNameColWidth + "s %s", indentation + stat.getTitle() + ":", stat.toString()));
+    StatisticsUtils.write(target, indentLevel, outputNameColWidth, stat);
   }
 
   protected void put(PrintStream pTarget, String pName, Object pValue) {
