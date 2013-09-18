@@ -753,7 +753,7 @@ cpa.predicate.mathsat5.furtherOptions = ""
 
 # Export solver queries in Smtlib format into a file (for Mathsat5).
 cpa.predicate.mathsat5.logAllQueries = false
-cpa.predicate.mathsat5.logfile = "mathsat5.%d.smt2"
+cpa.predicate.mathsat5.logfile = "mathsat5.%03d.smt2"
 
 # Set of functions that provide new memory on the heap.
 cpa.predicate.memoryAllocationFunctions = {
@@ -899,7 +899,7 @@ cpa.predicate.smtinterpol.logAllQueries = false
 cpa.predicate.smtinterpol.logInterpolationQueries = false
 
 # Export solver queries in Smtlib format into a file.
-cpa.predicate.smtinterpol.logfile = "smtinterpol.smt2"
+cpa.predicate.smtinterpol.logfile = "smtinterpol.%03d.smt2"
 
 # Whether to use MathSAT 5 or SmtInterpol as SMT solver
 cpa.predicate.solver = MATHSAT5

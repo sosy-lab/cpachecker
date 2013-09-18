@@ -66,7 +66,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
 
     @Option(description = "Export solver queries in Smtlib format into a file (for Mathsat5).")
     @FileOption(Type.OUTPUT_FILE)
-    private File logfile = new File("mathsat5.%d.smt2");
+    private File logfile = new File("mathsat5.%03d.smt2");
 
     private final ImmutableMap<String, String> furtherOptionsMap ;
 

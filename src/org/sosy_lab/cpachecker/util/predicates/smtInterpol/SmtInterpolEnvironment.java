@@ -100,7 +100,7 @@ class SmtInterpolEnvironment {
 
   @Option(name="logfile", description="Export solver queries in Smtlib format into a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File smtLogfile = new File("smtinterpol.smt2");
+  private File smtLogfile = new File("smtinterpol.%03d.smt2");
 
   /** this is a counter to get distinct logfiles for distinct environments. */
   private static int logfileCounter = 0;
@@ -154,7 +154,7 @@ class SmtInterpolEnvironment {
   }
 
   private Script createLoggingWrapper(SMTInterpol smtInterpol) {
-    String filename = getFilename(smtLogfile.getAbsolutePath());
+    String filename = getFilename(smtLogfile);
     try {
       // create a thin wrapper around Benchmark,
       // this allows to write most formulas of the solver to outputfile
@@ -205,23 +205,14 @@ class SmtInterpolEnvironment {
 
   /**  This function creates a filename with following scheme:
        first filename is unchanged, then a number is appended */
-  private String getFilename(final String oldFilename) {
-    String filename = oldFilename;
-    if (logfileCounter != 0) {
-      if (oldFilename.endsWith(".smt2")) {
-        filename = oldFilename.substring(0, oldFilename.length() - 4)
-            + "__" + logfileCounter + ".smt2";
-      } else {
-        filename += "__" + logfileCounter;
-      }
-    }
-    logfileCounter++;
-    return filename;
+  private String getFilename(final File oldFilename) {
+    String filename = oldFilename.getAbsolutePath();
+    return String.format(filename, logfileCounter++);
   }
 
   SmtInterpolInterpolatingProver getInterpolator(SmtInterpolFormulaManager mgr) {
     if (logInterpolationQueries && smtLogfile != null) {
-      String logfile = getFilename(smtLogfile.getAbsolutePath());
+      String logfile = getFilename(smtLogfile);
 
       try {
         PrintWriter out = new PrintWriter(Files.openOutputFile(Paths.get(logfile)));
