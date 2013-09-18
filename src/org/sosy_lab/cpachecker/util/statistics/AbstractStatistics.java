@@ -67,10 +67,6 @@ public abstract class AbstractStatistics implements Statistics {
     keyValueStats.put(pName, pValue);
   }
 
-  public interface LeveledStatisticsFunction {
-    public void ifTrue(LeveledStatisticsWriter leveledWriter);
-  }
-
   public class LeveledStatisticsWriter {
     private final LeveledStatisticsWriter parentLevelWriter;
     private final PrintStream target;
@@ -96,13 +92,6 @@ public abstract class AbstractStatistics implements Statistics {
       } else {
         return parentLevelWriter;
       }
-    }
-
-    public LeveledStatisticsWriter conditional(boolean condition, LeveledStatisticsFunction function) {
-      if (condition) {
-        function.ifTrue(this);
-      }
-      return this;
     }
 
     public LeveledStatisticsWriter spacer() {
