@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-import static org.sosy_lab.cpachecker.util.StatisticsUtils.*;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.*;
 
 import java.io.IOException;
 import java.io.PrintStream;

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
-import static org.sosy_lab.cpachecker.util.StatisticsUtils.div;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import java.io.File;
 import java.io.PrintStream;

@@ -62,7 +62,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.ProgramCpuTime;
-import org.sosy_lab.cpachecker.util.StatisticsUtils;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
