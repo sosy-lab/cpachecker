@@ -31,6 +31,9 @@
 /lib/native/*.jar
 /lib/native/nativeLib*
 
+# We don't have a license to redistribute it.
+/lib/native/*/libfoci.so
+
 # /lib/native/source/libmathsat5j/
 /lib/native/source/libmathsat5j/*.log
 /lib/native/source/libmathsat5j/*.o
