@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import org.sosy_lab.cpachecker.util.NativeLibraries;
+
 /** This class contains the native calls for Z3.
  *
  * Z3 uses reference-counting for all objects. If a function returns an
@@ -33,7 +35,7 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 public final class Z3NativeApi {
 
   static {
-    System.loadLibrary("z3j");
+    NativeLibraries.loadLibrary("z3j");
   }
 
   // Helper Classes,

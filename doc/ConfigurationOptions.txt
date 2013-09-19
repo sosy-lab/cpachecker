@@ -733,7 +733,7 @@ cpa.predicate.ignoreExtractConcat = true
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 cpa.predicate.interpolationSolver = no default value
-  allowed values: [MATHSAT5, SMTINTERPOL]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3]
 
 # export final loop invariants
 cpa.predicate.invariants.export = true
@@ -906,7 +906,7 @@ cpa.predicate.smtinterpol.logfile = "smtinterpol.%03d.smt2"
 
 # Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver
 cpa.predicate.solver = MATHSAT5
-  allowed values: [MATHSAT5, SMTINTERPOL, Z3]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3]
 
 # Encode program variables as INTEGER variables, instead of using REALs. Not
 # all solvers might support this.

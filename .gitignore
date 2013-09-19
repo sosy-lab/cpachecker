@@ -31,22 +31,16 @@
 /lib/native/*.jar
 /lib/native/nativeLib*
 
-# /lib/native/source/libYicesLite/
-/lib/native/source/libYicesLite/*.log
-/lib/native/source/libYicesLite/*.so
-/lib/native/source/libYicesLite/*.o
-
 # /lib/native/source/libmathsat5j/
 /lib/native/source/libmathsat5j/*.log
-/lib/native/source/libmathsat5j/*.jar
 /lib/native/source/libmathsat5j/*.o
 /lib/native/source/libmathsat5j/*.so
 
-# /lib/native/source/libmathsatj/
-/lib/native/source/libmathsatj/*.log
-/lib/native/source/libmathsatj/*.jar
-/lib/native/source/libmathsatj/*.o
-/lib/native/source/libmathsatj/*.so
+# /lib/native/source/libz3j/
+/lib/native/source/libz3j/*.log
+/lib/native/source/libz3j/*.o
+/lib/native/source/libz3j/*.so
+/lib/native/source/libz3j/org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.*
 
 # /lib/native/source/octagon-libJOct.so/
 /lib/native/source/octagon-libJOct.so/*.o

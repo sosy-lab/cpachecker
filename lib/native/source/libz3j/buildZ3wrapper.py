@@ -2,9 +2,15 @@
 
 DEBUG=False
 
+import sys
+import os.path
+
+if len(sys.argv) != 2:
+    sys.exit("Z3 directory required as single command-line argument.")
+
 # filter comments and stuff
 
-text = open("z3_api.h").read()
+text = open(os.path.join(sys.argv[1], "z3_api.h")).read()
 
 text = text[text.find("interface Z3 {")+15:]
 deprecatedBlock = False
