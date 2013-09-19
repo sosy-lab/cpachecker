@@ -733,10 +733,13 @@ cpa.predicate.ignoreExtractConcat = true
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 cpa.predicate.interpolationSolver = no default value
-  allowed values: [MATHSAT5, SMTINTERPOL]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3]
 
 # export final loop invariants
 cpa.predicate.invariants.export = true
+
+# export invariants as precision file?
+cpa.predicate.invariants.exportAsPrecision = true
 
 # file for exporting final loop invariants
 cpa.predicate.invariants.file = "invariants.txt"
@@ -901,13 +904,28 @@ cpa.predicate.smtinterpol.logInterpolationQueries = false
 # Export solver queries in Smtlib format into a file.
 cpa.predicate.smtinterpol.logfile = "smtinterpol.%03d.smt2"
 
-# Whether to use MathSAT 5 or SmtInterpol as SMT solver
+# Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver (Z3 needs the
+# FOCI library from http://www.kenmcmil.com/foci2/).
 cpa.predicate.solver = MATHSAT5
-  allowed values: [MATHSAT5, SMTINTERPOL]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3]
 
 # Encode program variables as INTEGER variables, instead of using REALs. Not
 # all solvers might support this.
 cpa.predicate.solver.useIntegers = false
+
+# log some solver actions, this may be slow!
+cpa.predicate.solver.useLogger = false
+
+# Export solver queries in Smtlib2 format.
+cpa.predicate.solver.z3.logger.logfile = "z3smtlog.%d.smt2"
+
+# Export solver queries in Smtlib2 format, there are small differences for
+# different solvers, choose target-solver.
+cpa.predicate.solver.z3.logger.target = Z3
+  allowed values: [Z3, MATHSAT5]
+
+# simplify formulas when they are asserted in a solver.
+cpa.predicate.solver.z3.simplifyFormulas = false
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks

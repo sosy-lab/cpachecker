@@ -41,34 +41,46 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3InterpolatingProver;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3TheoremProver;
 
 import com.google.common.base.Predicate;
 
 @Options(prefix="cpa.predicate")
 public class FormulaManagerFactory {
 
-  private static final String MATHSAT5 = "MATHSAT5";
-  private static final String SMTINTERPOL = "SMTINTERPOL";
+  private static enum Solvers {
+    MATHSAT5,
+    SMTINTERPOL,
+    Z3,
+    ;
+  }
+
+  @Option(name="solver.useLogger",
+      description="log some solver actions, this may be slow!")
+  private boolean useLogger = false;
 
   @Option(name="solver.useIntegers",
       description="Encode program variables as INTEGER variables, instead of "
-      + "using REALs. Not all solvers might support this.")
+          + "using REALs. Not all solvers might support this.")
   private boolean useIntegers = false;
 
-  @Option(values={MATHSAT5, SMTINTERPOL}, toUppercase=true,
-      description="Whether to use MathSAT 5 or SmtInterpol as SMT solver")
-  private String solver = MATHSAT5;
+  @Option(description="Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver (Z3 needs the FOCI library from http://www.kenmcmil.com/foci2/).")
+  private Solvers solver = Solvers.MATHSAT5;
 
-  @Option(values={MATHSAT5, SMTINTERPOL}, toUppercase=true,
-      description="Which solver to use specifically for interpolation (default is to use the main one).")
-  private String interpolationSolver = null;
+  @Option(description="Which solver to use specifically for interpolation (default is to use the main one).")
+  private Solvers interpolationSolver = null;
 
   private final LogManager logger;
 
@@ -88,35 +100,48 @@ public class FormulaManagerFactory {
       interpolationSolver = null;
     }
 
-    FormulaManager lFmgr;
-    if (solver.equals(SMTINTERPOL)) {
-      lFmgr = loadSmtInterpol().create(config, logger, useIntegers);
-
-    } else {
-      try {
-        assert solver.equals(MATHSAT5);
-
-        lFmgr = Mathsat5FormulaManager.create(logger, config, useIntegers);
-
-      } catch (UnsatisfiedLinkError e) {
-        throw new InvalidConfigurationException("The SMT solver " + solver
-            + " is not available on this machine."
-            + " You may experiment with SMTInterpol by setting cpa.predicate.solver=SMTInterpol.", e);
-      }
-    }
-
-    fmgr = lFmgr;
+    fmgr = instantiateSolver(solver, config);
 
     // Instantiate another SMT solver for interpolation if requested.
     if (interpolationSolver != null) {
-      if (interpolationSolver.equals(SMTINTERPOL)) {
-        itpFmgr = loadSmtInterpol().create(config, logger, useIntegers);
-      } else {
-        assert interpolationSolver.equals(MATHSAT5);
-        itpFmgr = Mathsat5FormulaManager.create(logger, config, useIntegers);
-      }
+      itpFmgr = instantiateSolver(interpolationSolver, config);
     } else {
       itpFmgr = null;
+    }
+  }
+
+  private FormulaManager instantiateSolver(Solvers solver, Configuration config)
+      throws InvalidConfigurationException {
+    try {
+      switch (solver) {
+      case SMTINTERPOL:
+        return loadSmtInterpol().create(config, logger, useIntegers);
+
+      case MATHSAT5:
+          return Mathsat5FormulaManager.create(logger, config, useIntegers);
+
+      case Z3:
+        try {
+          return Z3FormulaManager.create(logger, config, useIntegers);
+        } catch (UnsatisfiedLinkError e) {
+          if (e.getMessage().contains("libfoci.so")) {
+            throw new InvalidConfigurationException("Z3 needs the FOCI library which is not supplied with CPAchecker."
+                + " Please download it from http://www.kenmcmil.com/foci2/ for your architecture"
+                + " and put it into " + NativeLibraries.getNativeLibraryPath() + "/.", e);
+          } else {
+            throw e;
+          }
+        }
+
+      default:
+        throw new AssertionError("no solver selected");
+      }
+
+    } catch (UnsatisfiedLinkError e) {
+      throw new InvalidConfigurationException("The SMT solver " + solver
+          + " is not available on this machine because of missing libraries"
+          + " (" + e.getMessage() + ")."
+          + " You may experiment with SMTInterpol by setting cpa.predicate.solver=SMTInterpol.", e);
     }
   }
 
@@ -125,10 +150,25 @@ public class FormulaManagerFactory {
   }
 
   public ProverEnvironment newProverEnvironment(boolean generateModels) {
-    if (solver.equals(SMTINTERPOL)) {
-      return loadSmtInterpol().createProver(fmgr);
+    ProverEnvironment pe;
+    switch (solver) {
+    case SMTINTERPOL:
+      pe = loadSmtInterpol().createProver(fmgr);
+      break;
+    case MATHSAT5:
+      pe = new Mathsat5TheoremProver((Mathsat5FormulaManager) fmgr, generateModels);
+      break;
+    case Z3:
+      pe = new Z3TheoremProver((Z3FormulaManager) fmgr);
+      break;
+    default:
+      throw new AssertionError("no solver selected");
+    }
+
+    if (useLogger) {
+      return new LoggingProverEnvironment(logger, pe);
     } else {
-      return new Mathsat5TheoremProver((Mathsat5FormulaManager)fmgr, generateModels);
+      return pe;
     }
   }
 
@@ -142,13 +182,27 @@ public class FormulaManagerFactory {
   }
 
   private InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(
-          String solver, FormulaManager fmgr, boolean shared) {
+          Solvers solver, FormulaManager fmgr, boolean shared) {
 
-    if (solver.equals(SMTINTERPOL)) {
-      return loadSmtInterpol().createInterpolatingProver(fmgr);
+    InterpolatingProverEnvironment<?> ipe;
+    switch (solver) {
+    case SMTINTERPOL:
+      ipe = loadSmtInterpol().createInterpolatingProver(fmgr);
+      break;
+    case MATHSAT5:
+      ipe = new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);
+      break;
+    case Z3:
+      ipe = new Z3InterpolatingProver((Z3FormulaManager) fmgr);
+      break;
+    default:
+      throw new AssertionError("no solver selected");
+    }
+
+    if (useLogger) {
+      return new LoggingInterpolatingProverEnvironment<>(logger, ipe);
     } else {
-      assert solver.equals(MATHSAT5);
-      return new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);
+      return ipe;
     }
   }
 
