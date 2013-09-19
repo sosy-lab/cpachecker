@@ -340,6 +340,11 @@ public class CFAUtils {
       return nodes;
     }
 
+    public ImmutableSet<CFAEdge> getInnerLoopEdges() {
+      computeSets();
+      return innerLoopEdges;
+    }
+
     public ImmutableSet<CFANode> getLoopHeads() {
       return loopHeads;
     }
