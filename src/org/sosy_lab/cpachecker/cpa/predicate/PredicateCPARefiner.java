@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
-import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -40,7 +40,6 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -65,6 +64,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -94,21 +98,28 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   // the previously analyzed counterexample to detect repeated counterexamples
   private List<BooleanFormula> lastErrorPath = null;
 
+  // statistics
+  private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
+  private final StatTimer totalRefinement = new StatTimer("Time for refinement");
+  private final StatTimer errorPathProcessing = new StatTimer("Error path post-processing");
 
-  class Stats implements Statistics {
+  class Stats extends AbstractStatistics {
 
     private final Statistics statistics = strategy.getStatistics();
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      int numberOfRefinements = totalRefinement.getNumberOfIntervals();
+      StatisticsWriter w0 = writingStatisticsTo(out);
 
+      int numberOfRefinements = totalRefinement.getUpdateCount();
       if (numberOfRefinements > 0) {
-        out.println("Avg. length of target path (in blocks):     " + div(totalPathLength, numberOfRefinements));
-        out.println();
-        out.println("Time for refinement:                  " + totalRefinement);
+        w0.put(totalPathLength)
+          .spacer()
+          .put(totalRefinement);
+
         formulaManager.printStatistics(out, result, reached);
-        out.println("  Error path post-processing:         " + errorPathProcessing);
+
+        w0.beginLevel().put(errorPathProcessing);
       }
 
       statistics.printStatistics(out, result, reached);
@@ -119,12 +130,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       return strategy.getStatistics().getName();
     }
   }
-
-  // statistics
-  private int totalPathLength = 0; // measured in blocks
-
-  private final Timer totalRefinement = new Timer();
-  private final Timer errorPathProcessing = new Timer();
 
   private final LogManager logger;
 
@@ -174,7 +179,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
     final List<ARGState> path = transformPath(pPath);
-    totalPathLength += path.size();
+    totalPathLength.setNextValue(path.size());
 
     logger.log(Level.ALL, "Abstraction trace is", path);
 
