@@ -42,7 +42,7 @@ import com.google.common.base.Preconditions;
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-public class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<String> {
+class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<String> {
 
   protected final SmtInterpolFormulaManager mgr;
   private SmtInterpolEnvironment env;
@@ -52,7 +52,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingProverEnviro
   private static final String prefix = "term_"; // for termnames
   private static int counter = 0; // for different termnames // TODO static?
 
-  public SmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr) {
+  SmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr) {
     mgr = pMgr;
     env = mgr.createEnvironment();
     assertedFormulas = new ArrayList<>();

@@ -31,12 +31,12 @@ import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 
-public class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Term> {
+class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Term> {
 
   private SmtInterpolFormulaCreator creator;
   private SmtInterpolEnvironment env;
 
-  public SmtInterpolBooleanFormulaManager(
+  SmtInterpolBooleanFormulaManager(
       SmtInterpolFormulaCreator creator) {
     super(creator);
     this.creator = creator;

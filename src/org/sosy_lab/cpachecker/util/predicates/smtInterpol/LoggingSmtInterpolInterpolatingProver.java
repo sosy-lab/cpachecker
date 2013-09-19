@@ -32,11 +32,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 
-public class LoggingSmtInterpolInterpolatingProver extends SmtInterpolInterpolatingProver {
+class LoggingSmtInterpolInterpolatingProver extends SmtInterpolInterpolatingProver {
 
   private final PrintWriter out;
 
-  public LoggingSmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr,
+  LoggingSmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr,
       PrintWriter pOut) {
     super(pMgr);
     out = checkNotNull(pOut);

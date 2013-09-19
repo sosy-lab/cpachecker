@@ -44,13 +44,13 @@ import com.google.common.base.Preconditions;
 
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-public class SmtInterpolTheoremProver implements ProverEnvironment {
+class SmtInterpolTheoremProver implements ProverEnvironment {
 
   private final SmtInterpolFormulaManager mgr;
   private SmtInterpolEnvironment env;
   private final List<Term> assertedTerms;
 
-  public SmtInterpolTheoremProver(SmtInterpolFormulaManager pMgr) {
+  SmtInterpolTheoremProver(SmtInterpolFormulaManager pMgr) {
     this.mgr = pMgr;
 
     assertedTerms = new ArrayList<>();

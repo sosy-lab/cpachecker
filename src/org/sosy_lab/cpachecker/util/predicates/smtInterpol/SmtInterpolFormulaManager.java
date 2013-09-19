@@ -53,7 +53,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 
-public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
+class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
   private final SmtInterpolEnvironment env;
   private final SmtInterpolFormulaCreator creator;
