@@ -60,18 +60,18 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
  */
 public abstract class RefinementStrategy {
 
-  private StatInt differentNontrivialInterpolants = new StatInt(StatKind.SUM, "Different non-trivial interpolants along paths");
-  private StatInt equalNontrivialInterpolants = new StatInt(StatKind.SUM, "Equal non-trivial interpolants along paths");
+  private final StatInt differentNontrivialInterpolants = new StatInt(StatKind.SUM, "Different non-trivial interpolants along paths");
+  private final StatInt equalNontrivialInterpolants = new StatInt(StatKind.SUM, "Equal non-trivial interpolants along paths");
 
-  private StatInt truePathPrefixStates = new StatInt(StatKind.SUM, "Length (states) of path with itp 'true'");
-  private StatInt nonTrivialPathStates = new StatInt(StatKind.SUM, "Length (states) of path with itp non-trivial itp");
-  private StatInt falsePathSuffixStates = new StatInt(StatKind.SUM, "Length (states) of path with itp 'false'");
+  private final StatInt truePathPrefixStates = new StatInt(StatKind.SUM, "Length (states) of path with itp 'true'");
+  private final StatInt nonTrivialPathStates = new StatInt(StatKind.SUM, "Length (states) of path with itp non-trivial itp");
+  private final StatInt falsePathSuffixStates = new StatInt(StatKind.SUM, "Length (states) of path with itp 'false'");
 
-  private StatInt equalPrecisionsOnPaths = new StatInt(StatKind.SUM, "Equal precisions along paths");
-  private StatInt differentPrecisionsOnPaths = new StatInt(StatKind.SUM, "Different precisions along paths");
+  private final StatInt equalPrecisionsOnPaths = new StatInt(StatKind.SUM, "Equal precisions along paths");
+  private final StatInt differentPrecisionsOnPaths = new StatInt(StatKind.SUM, "Different precisions along paths");
 
-  private StatInt numberOfAffectedStates = new StatInt(StatKind.SUM, "Number of affected states");
-  private StatInt totalPathLengthToInfeasibility = new StatInt(StatKind.AVG, "Length of refined path (in blocks)");
+  private final StatInt numberOfAffectedStates = new StatInt(StatKind.SUM, "Number of affected states");
+  private final StatInt totalPathLengthToInfeasibility = new StatInt(StatKind.AVG, "Length of refined path (in blocks)");
 
   protected AbstractStatistics basicRefinementStatistics = new AbstractStatistics() {
     @Override
