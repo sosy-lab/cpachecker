@@ -23,9 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Constructor;
+import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -44,6 +48,8 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolati
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
+
+import com.google.common.base.Predicate;
 
 @Options(prefix="cpa.predicate")
 public class FormulaManagerFactory {
@@ -218,8 +224,21 @@ public class FormulaManagerFactory {
 
     classLoader = FormulaManagerFactory.class.getClassLoader();
     if (classLoader instanceof URLClassLoader) {
-      classLoader = new ChildFirstPatternClassLoader(SMTINTERPOL_CLASSES,
-          ((URLClassLoader)classLoader).getURLs(), classLoader);
+
+      // Filter out java-cup-runtime.jar from the class path,
+      // so that the class loader for SmtInterpol loads the Java CUP classes
+      // from SmtInterpol's JAR file.
+      URL[] urls = from(Arrays.asList(((URLClassLoader)classLoader).getURLs()))
+        .filter(new Predicate<URL>() {
+            @Override
+            public boolean apply(URL pInput) {
+              return !pInput.getPath().contains("java-cup");
+            }
+          })
+        .toArray(URL.class);
+
+      classLoader = new ChildFirstPatternClassLoader(SMTINTERPOL_CLASSES, urls,
+          classLoader);
     }
     smtInterpolClassLoader = new WeakReference<>(classLoader);
     return classLoader;
