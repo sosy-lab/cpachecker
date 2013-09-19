@@ -43,6 +43,6 @@ public class JMethodSummaryEdge extends FunctionSummaryEdge {
 
   @Override
   public String getCode() {
-    return expression.asStatement().toASTString();
+    return expression.toASTString();
   }
 }

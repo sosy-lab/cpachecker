@@ -199,4 +199,17 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
     return new JInterfaceType(pFullyQualifiedName, pSimpleName,
         pVisibility, pExtendedInterfaces, pEnclosingType);
   }
+
+  @Override
+  public int hashCode() {
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + super.hashCode();
+      return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+     return this == obj || super.equals(obj);
+  }
 }

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.types.java;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -79,6 +80,29 @@ public class JSimpleType implements JType {
 
   public boolean isPrimitive() {
     return isPrimitive;
+  }
+
+  @Override
+  public int hashCode() {
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(type);
+      result = prime * result + Objects.hashCode(isPrimitive);
+      return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+      if (this == obj) {
+          return true;
+      }
+
+      if (!(obj instanceof JSimpleType)) {
+          return false;
+      }
+
+      JSimpleType other = (JSimpleType) obj;
+      return type == other.type && isPrimitive == other.isPrimitive;
   }
 
 }

@@ -86,6 +86,20 @@ Design:
 - Avoid null, replace it with real objects, or (at last resort) Optional:
   https://code.google.com/p/guava-libraries/wiki/UsingAndAvoidingNullExplained
 
+Configuration options:
+- Only use the @Option scheme so your options are automatically type-checked
+  and documented.
+- Only introduce an option when its meaningful
+  (do not add options that nobody would ever want to change).
+- Preferably use one of the existing prefixes
+  (cpa.YOURCPA., analysis., parser., ...)
+  instead of adding a new one.
+- Do not use negated predicates as option name
+  (use something.enable instead something.disable,
+  something.foo instead of something.noFoo etc.).
+- Do not forget to update the file doc/ConfigurationOptions.txt
+  (done automatically by ant) and commit it together with your changes.
+
 Coding:
 - Never have public fields,
   never have non-private non-final fields,
@@ -94,6 +108,12 @@ Coding:
 - Mark fields as final, if they are never modified,
   and try to make them final, if they are modified (-> immutability).
 - Prefer enhanced for-loop over List.get(int).
+- Use arrays only with primitive types (int, long, etc.)
+  or when existing APIs require them.
+  Otherwise never use arrays of object types, use lists instead.
+  They have a much nicer API, are equally fast,
+  and allow you to use ImmutableList and Collections.unmodifiableList()
+  to avoid the need for defensive copying while still guaranteeing immutability.
 - Do not use the following classes from the JDK, they all have better replacements:
   Vector (replaced by ArrayList)
   Stack (replaced by Deque interface with implementations ArrayDeque and LinkedList)

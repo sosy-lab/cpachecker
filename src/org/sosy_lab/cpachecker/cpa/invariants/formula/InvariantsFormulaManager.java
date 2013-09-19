@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+
 /**
  * The singleton instance of this class provides operations for obtaining
  * invariants formulae.

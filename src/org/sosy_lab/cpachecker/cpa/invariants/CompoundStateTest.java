@@ -75,6 +75,11 @@ public class CompoundStateTest {
     CompoundState six = CompoundState.singleton(6);
     assertEquals(2, zeroToThree.unionWith(six).getIntervals().size());
     assertEquals(zeroToThree.unionWith(six), six.unionWith(zeroToThree));
+    assertEquals(zeroToThree, zeroToThree.unionWith(CompoundState.singleton(0)));
+    assertEquals(zeroToThree, zeroToThree.unionWith(CompoundState.singleton(1)));
+    assertEquals(zeroToThree, zeroToThree.unionWith(CompoundState.singleton(2)));
+    assertEquals(zeroToThree, zeroToThree.unionWith(CompoundState.singleton(3)));
+    assertEquals(zeroToThree, zeroToThree.unionWith(zeroToThree));
   }
 
   @Test
@@ -109,6 +114,8 @@ public class CompoundStateTest {
       assertTrue(invertedState.contains(i - 1));
       assertTrue(invertedState.contains(i + 1));
     }
+    assertEquals(CompoundState.singleton(0).extendToNegativeInfinity().unionWith(CompoundState.singleton(6)),
+        CompoundState.of(SimpleInterval.of(BigInteger.ONE, BigInteger.valueOf(5))).unionWith(CompoundState.singleton(7).extendToPositiveInfinity()).invert());
   }
 
   @Test
@@ -133,6 +140,36 @@ public class CompoundStateTest {
     CompoundState negFourToNegTwo = CompoundState.of(SimpleInterval.of(BigInteger.valueOf(-4), BigInteger.valueOf(-2)));
     CompoundState oneToTwo = CompoundState.of(SimpleInterval.of(BigInteger.ONE, BigInteger.valueOf(2)));
     assertEquals(oneToTwo.unionWith(negFourToNegTwo), negTwoToNegOne.unionWith(twoToFour).negate());
+  }
+
+  @Test
+  public void testIsSingleton() {
+    CompoundState negOne = CompoundState.singleton(-1);
+    CompoundState zero = CompoundState.singleton(0);
+    CompoundState one = CompoundState.singleton(1);
+    CompoundState ten = CompoundState.singleton(10);
+    assertTrue(negOne.isSingleton());
+    assertTrue(zero.isSingleton());
+    assertTrue(one.isSingleton());
+    assertTrue(ten.isSingleton());
+    assertFalse(CompoundState.span(one, ten).isSingleton());
+    assertFalse(zero.unionWith(ten).isSingleton());
+    assertFalse(negOne.unionWith(CompoundState.span(one, ten)).isSingleton());
+  }
+
+  @Test
+  public void containsTest() {
+    assertTrue(CompoundState.singleton(-1).contains(-1));
+    assertTrue(CompoundState.singleton(0).contains(0));
+    assertTrue(CompoundState.singleton(1).contains(1));
+    assertTrue(CompoundState.singleton(-1).contains(CompoundState.singleton(-1)));
+    assertTrue(CompoundState.singleton(0).contains(CompoundState.singleton(0)));
+    assertTrue(CompoundState.singleton(1).contains(CompoundState.singleton(1)));
+    assertTrue(CompoundState.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN)).contains(CompoundState.of(SimpleInterval.of(BigInteger.ONE, BigInteger.TEN))));
+    assertFalse(CompoundState.of(SimpleInterval.of(BigInteger.ONE, BigInteger.TEN)).contains(CompoundState.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN))));
+    assertTrue(CompoundState.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN)).contains(5));
+    assertFalse(CompoundState.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN)).contains(-1));
+    assertFalse(CompoundState.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.valueOf(4))).unionWith(SimpleInterval.of(BigInteger.valueOf(6), BigInteger.TEN)).contains(5));
   }
 
 }

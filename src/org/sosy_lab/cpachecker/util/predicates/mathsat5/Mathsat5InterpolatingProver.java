@@ -27,8 +27,8 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 
@@ -80,10 +80,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingProverEnvironme
   public boolean isUnsat() {
     Preconditions.checkState(interpolEnv != 0);
 
-    int res = msat_solve(interpolEnv);
-    assert (res != MSAT_UNKNOWN);
-
-    return res == MSAT_UNSAT;
+    return !msat_check_sat(interpolEnv);
   }
 
   @Override
@@ -100,7 +97,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingProverEnvironme
     if (!useSharedEnv) {
       itp = msat_make_copy_from(mgr.getMsatEnv(), itp, interpolEnv);
     }
-    return mgr.encapsulateTerm(BooleanFormula.class, itp);
+    return mgr.encapsulateBooleanFormula(itp);
   }
 
   @Override
@@ -115,6 +112,6 @@ public class Mathsat5InterpolatingProver implements InterpolatingProverEnvironme
   public Model getModel() throws SolverException {
     Preconditions.checkState(interpolEnv != 0);
 
-    return Mathsat5Model.createMathsatModel(interpolEnv, mgr, useSharedEnv);
+    return Mathsat5Model.createMathsatModel(interpolEnv, mgr);
   }
 }

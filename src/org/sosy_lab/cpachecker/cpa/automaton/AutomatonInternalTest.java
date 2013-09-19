@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
@@ -43,6 +42,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.io.ByteStreams;
+import com.google.common.io.CharStreams;
 
 /**
  * This class contains Tests for the AutomatonAnalysis
@@ -68,7 +68,7 @@ public class AutomatonInternalTest {
     config = Configuration.builder()
         .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
         .build();
-    logger = new LogManager(config);
+    logger = new BasicLogManager(config);
 
     ParserOptions options = CParser.Factory.getDefaultOptions();
     parser = CParser.Factory.getParser(config, logger, options, MachineModel.LINUX32);
@@ -95,7 +95,7 @@ public class AutomatonInternalTest {
       @SuppressWarnings("unchecked")
       List<Automaton> as = (List<Automaton>) symbol.value;
       for (Automaton a : as) {
-        a.writeDotFile(new PrintStream(ByteStreams.nullOutputStream()));
+        a.writeDotFile(CharStreams.nullWriter());
       }
     }
   }

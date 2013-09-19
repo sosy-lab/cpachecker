@@ -74,6 +74,7 @@ import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarationStatement;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -118,6 +119,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -148,7 +150,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structures for handling goto
   private final Map<String, CLabelNode> labelMap = new HashMap<>();
-  private final Multimap<String, CFANode> gotoLabelNeeded = ArrayListMultimap.create();
+  private final Multimap<String, Pair<CFANode, Integer>> gotoLabelNeeded = ArrayListMultimap.create();
 
   // Data structures for handling function declarations
   private FunctionEntryNode cfa = null;
@@ -166,12 +168,12 @@ class CFAFunctionBuilder extends ASTVisitor {
       + "or leave them uninitialized.")
   private boolean initializeAllVariables = false;
 
-  public CFAFunctionBuilder(Configuration config, LogManager pLogger, FunctionScope pScope, MachineModel pMachine) throws InvalidConfigurationException {
+  public CFAFunctionBuilder(Configuration config, LogManager pLogger, FunctionScope pScope, MachineModel pMachine, String staticVariablePrefix) throws InvalidConfigurationException {
     config.inject(this);
 
     logger = pLogger;
     scope = pScope;
-    astCreator = new ASTConverter(config, pScope, pLogger, pMachine);
+    astCreator = new ASTConverter(config, pScope, pLogger, pMachine, staticVariablePrefix, false);
     checkBinding = new CheckBindingVisitor(pLogger);
 
     shouldVisitDeclarations = true;
@@ -291,6 +293,22 @@ class CFAFunctionBuilder extends ASTVisitor {
         CInitializer init = ((CVariableDeclaration) newD).getInitializer();
         if (init != null) {
           init.accept(checkBinding);
+
+          // this case has to be extra, as there should never be an initializer for labels
+        } else if (((CVariableDeclaration)newD).getType() instanceof CTypedefType
+                   && ((CTypedefType)((CVariableDeclaration)newD).getType()).getName().equals("__label__")) {
+
+          scope.registerLocalLabel((CVariableDeclaration)newD);
+          CFANode nextNode = newCFANode(filelocStart);
+          BlankEdge blankEdge = new BlankEdge(sd.getRawSignature(),
+              filelocStart, prevNode, nextNode, "Local Label Declaration: " + newD.getName());
+          addToCFA(blankEdge);
+
+          prevNode = nextNode;
+          prevNode = createEdgesForSideEffects(prevNode, astCreator.getAndResetPostSideAssignments(), rawSignature, filelocStart);
+
+          return prevNode;
+
         } else if (initializeAllVariables) {
           CInitializer initializer = CDefaults.forType(newD.getType(), newD.getFileLocation());
           newD = new CVariableDeclaration(newD.getFileLocation(),
@@ -305,9 +323,18 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       } else if (newD instanceof CComplexTypeDeclaration) {
         scope.registerTypeDeclaration((CComplexTypeDeclaration)newD);
-      } else {
-        assert !(newD instanceof CFunctionDeclaration) : "Function declaration inside function";
+
+        // function declarations in local scope are no problem as long as they
+        // do not have a body
+        // if the function is already declared it will not be redeclared
+      } else if (newD instanceof CFunctionDeclaration) {
+        if (scope.lookupFunction(((CFunctionDeclaration)newD).getName()) == null) {
+          scope.registerLocalFunction((CFunctionDeclaration)newD);
+        } else {
+          return prevNode;
+        }
       }
+
 
       CFANode nextNode = newCFANode(filelocStart);
 
@@ -591,33 +618,54 @@ class CFAFunctionBuilder extends ASTVisitor {
       IASTFileLocation fileloc) {
 
     String labelName = labelStatement.getName().toString();
-    if (labelMap.containsKey(labelName)) {
+    if (labelMap.containsKey(labelName) && scope.lookupLocalLabel(labelName) == null) {
       throw new CFAGenerationRuntimeException("Duplicate label " + labelName
           + " in function " + cfa.getFunctionName(), labelStatement);
     }
 
     CFANode prevNode = locStack.pop();
 
+    CVariableDeclaration localLabel = scope.lookupLocalLabel(labelName);
+    if(localLabel != null) {
+      labelName = localLabel.getName();
+    }
+
     CLabelNode labelNode = new CLabelNode(fileloc.getStartingLineNumber(),
         cfa.getFunctionName(), labelName);
     cfaNodes.add(labelNode);
     locStack.push(labelNode);
-    labelMap.put(labelName, labelNode);
 
-    if (isReachableNode(prevNode)) {
+    if(localLabel == null) {
+      labelMap.put(labelName, labelNode);
+    } else {
+      scope.addLabelCFANode(labelNode);
+    }
+
+
+    boolean isPrevNodeReachable = isReachableNode(prevNode);
+    if (isPrevNodeReachable) {
       BlankEdge blankEdge = new BlankEdge(labelStatement.getRawSignature(),
           fileloc.getStartingLineNumber(), prevNode, labelNode, "Label: " + labelName);
       addToCFA(blankEdge);
     }
 
     // Check if any goto's previously analyzed need connections to this label
-    for (CFANode gotoNode : gotoLabelNeeded.get(labelName)) {
+    for (Pair<CFANode, Integer> gotoNode : gotoLabelNeeded.get(labelName)) {
       String description = "Goto: " + labelName;
       BlankEdge gotoEdge = new BlankEdge(description,
-          gotoNode.getLineNumber(), gotoNode, labelNode, description);
+          gotoNode.getSecond(), gotoNode.getFirst(), labelNode, description);
       addToCFA(gotoEdge);
     }
     gotoLabelNeeded.removeAll(labelName);
+
+    if (!isPrevNodeReachable && isReachableNode(labelNode)) {
+      locStack.pop();
+      CFANode node = newCFANode(fileloc.getEndingLineNumber());
+      BlankEdge blankEdge = new BlankEdge(labelStatement.getRawSignature(),
+          fileloc.getStartingLineNumber(), labelNode, node, "Label: " + labelName);
+      addToCFA(blankEdge);
+      locStack.push(node);
+    }
   }
 
   /**
@@ -630,6 +678,14 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode prevNode = locStack.pop();
     CFANode labelNode = labelMap.get(labelName);
+
+    // check if label is local label
+    CVariableDeclaration localLabel = scope.lookupLocalLabel(labelName);
+    if (localLabel != null) {
+      labelName = localLabel.getName();
+      labelNode = scope.lookupLocalLabelNode(labelName);
+    }
+
     if (labelNode != null) {
       BlankEdge gotoEdge = new BlankEdge(gotoStatement.getRawSignature(),
           fileloc.getStartingLineNumber(), prevNode, labelNode, "Goto: " + labelName);
@@ -645,7 +701,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       addToCFA(gotoEdge);
     } else {
-      gotoLabelNeeded.put(labelName, prevNode);
+      gotoLabelNeeded.put(labelName, Pair.of(prevNode, fileloc.getStartingLineNumber()));
     }
 
     CFANode nextNode = newCFANode(fileloc.getEndingLineNumber());
@@ -1385,25 +1441,48 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     final int filelocStart = fileloc.getStartingLineNumber();
 
+    // build condition edges, to caseNode with "a==2", to notCaseNode with "!(a==2)"
+    CFANode rootNode = switchCaseStack.pop();
+    final CFANode caseNode = newCFANode(filelocStart);
+    final CFANode notCaseNode = newCFANode(filelocStart);
+
     // build condition, left part, "a"
     final CExpression switchExpr =
         switchExprStack.peek();
 
-    // build condition, right part, "2"
-    final CExpression caseExpr =
-        astCreator.convertExpressionWithoutSideEffects(statement
-            .getExpression());
+    // build condition, right part, "2" or 'a' or 'a'...'c'
+    IASTExpression right = statement.getExpression();
 
-    // build condition, "a==2", TODO correct type?
-    final CBinaryExpression binExp =
-        new CBinaryExpression(ASTConverter.convert(fileloc),
-            switchExpr.getExpressionType(), switchExpr, caseExpr,
-            CBinaryExpression.BinaryOperator.EQUALS);
+    final CBinaryExpression binExp;
+    // if there is a range, this has to be handled in another way,
+    // the expression is split up, and the bounds are tested
+    if (right instanceof IASTBinaryExpression && ((IASTBinaryExpression)right).getOperator() == IASTBinaryExpression.op_ellipses) {
+      CExpression smallEnd = astCreator.convertExpressionWithoutSideEffects(((IASTBinaryExpression)right).getOperand1());
+      CExpression bigEnd = astCreator.convertExpressionWithoutSideEffects(((IASTBinaryExpression)right).getOperand2());
 
-    // build condition edges, to caseNode with "a==2", to notCaseNode with "!(a==2)"
-    final CFANode rootNode = switchCaseStack.pop();
-    final CFANode caseNode = newCFANode(filelocStart);
-    final CFANode notCaseNode = newCFANode(filelocStart);
+      FileLocation filelocation = ASTConverter.convert(fileloc);
+      CBinaryExpression firstPart = new CBinaryExpression(filelocation,
+                                                          switchExpr.getExpressionType(),
+                                                          switchExpr,
+                                                          smallEnd,
+                                                          CBinaryExpression.BinaryOperator.GREATER_EQUAL);
+      binExp = new CBinaryExpression(filelocation,
+                                     switchExpr.getExpressionType(),
+                                     switchExpr,
+                                     bigEnd,
+                                     CBinaryExpression.BinaryOperator.LESS_EQUAL);
+
+      // add the first condition edge, the second one will be added after the if clause
+      final CFANode intermediateNode = newCFANode(filelocStart);
+      addConditionEdges(firstPart, rootNode, intermediateNode, notCaseNode, filelocStart);
+      rootNode = intermediateNode;
+    } else {
+      final CExpression caseExpr = astCreator.convertExpressionWithoutSideEffects(statement.getExpression());
+      // build condition, "a==2", TODO correct type?
+      binExp = new CBinaryExpression(ASTConverter.convert(fileloc),
+                                     switchExpr.getExpressionType(), switchExpr, caseExpr,
+                                     CBinaryExpression.BinaryOperator.EQUALS);
+    }
 
     // fall-through (case before has no "break")
     final CFANode oldNode = locStack.pop();
@@ -1568,6 +1647,13 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (lastStatement instanceof IASTProblemStatement) {
       throw new CFAGenerationRuntimeException((IASTProblemStatement) lastStatement);
     }
+
+    if (lastStatement instanceof CASTDeclarationStatement && tempVar == null) {
+      locStack.push(middleNode);
+      visit(lastStatement);
+      return locStack.pop();
+    }
+
     if (!(lastStatement instanceof IASTExpressionStatement)) {
       throw new CFAGenerationRuntimeException("Unsupported statement type " + lastStatement.getClass().getSimpleName() + " at end of compound-statement expression", lastStatement);
     }

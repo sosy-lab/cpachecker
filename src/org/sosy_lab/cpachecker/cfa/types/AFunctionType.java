@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.types;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -35,7 +33,6 @@ import com.google.common.collect.ImmutableList;
 public class AFunctionType implements IAFunctionType {
 
   private final Type returnType;
-  private String name = null;
   private final List<? extends Type> parameters;
   private final boolean takesVarArgs;
 
@@ -52,16 +49,6 @@ public class AFunctionType implements IAFunctionType {
   @Override
   public Type getReturnType() {
     return returnType;
-  }
-
-  @Override
-  public String getName() {
-    return name;
-  }
-
-  protected void setName(String pName) {
-    checkState(getName() == null);
-    name = pName;
   }
 
   @Override
@@ -99,7 +86,11 @@ public class AFunctionType implements IAFunctionType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CTypes");
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(parameters);
+      result = prime * result + Objects.hashCode(returnType);
+      return result;
   }
 
   @Override
@@ -116,7 +107,7 @@ public class AFunctionType implements IAFunctionType {
 
     // We don't compare takesVarArgs here,
     // because it's not really relevant for type equality.
-    return Objects.equals(name, other.name) && Objects.equals(parameters, other.parameters)
+    return Objects.equals(parameters, other.parameters)
            && Objects.equals(returnType, other.returnType);
   }
 

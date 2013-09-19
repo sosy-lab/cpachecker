@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -50,10 +51,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -266,15 +269,8 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
     // functions may be called either as f() or as (*f)(),
     // so remove the star operator if its there
-    if (nameExp instanceof CUnaryExpression) {
-      CUnaryExpression unaryExp = (CUnaryExpression)nameExp;
-      if (unaryExp.getOperator() == UnaryOperator.STAR) {
-        // a = (*f)(b)
-        nameExp = unaryExp.getOperand();
-
-      } else {
-        throw new UnrecognizedCCodeException("unknown function call expression with operator " + unaryExp.getOperator().getOperator(), pCfaEdge, nameExp);
-      }
+    if (nameExp instanceof CPointerExpression) {
+      nameExp = ((CPointerExpression)nameExp).getOperand();
     }
 
     if (nameExp instanceof CCastExpression) {
@@ -290,7 +286,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     } else if (nameExp instanceof CArraySubscriptExpression) {
       // TODO This is a function pointer call (*a[i])()
       return null;
-    } else if (nameExp instanceof CUnaryExpression && ((CUnaryExpression)nameExp).getOperator() == UnaryOperator.STAR) {
+    } else if (nameExp instanceof CPointerExpression) {
       // TODO double dereference (**f)()
       return null;
     } else {
@@ -406,7 +402,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       // side-effect free statement
 
     } else {
-      throw new UnrecognizedCCodeException(pCfaEdge, pStatement);
+      throw new UnrecognizedCCodeException("unknown statement", pCfaEdge, pStatement);
     }
   }
 
@@ -490,8 +486,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       // a = ...
       return scopedIfNecessary((CIdExpression)lhsExpression, functionName);
 
-    } else if (lhsExpression instanceof CUnaryExpression
-        && ((CUnaryExpression)lhsExpression).getOperator() == UnaryOperator.STAR) {
+    } else if (lhsExpression instanceof CPointerExpression) {
       // *a = ...
       // TODO: Support this statement.
 
@@ -533,7 +528,13 @@ class FunctionPointerTransferRelation implements TransferRelation {
     public FunctionPointerTarget visit(CUnaryExpression pE) {
       if ((pE.getOperator() == UnaryOperator.AMPER) && (pE.getOperand() instanceof CIdExpression)) {
         return extractFunctionId((CIdExpression)pE.getOperand());
-      } else if ((pE.getOperator() == UnaryOperator.STAR) && (pE.getOperand() instanceof CIdExpression)) {
+      }
+      return visitDefault(pE);
+    }
+
+    @Override
+    public FunctionPointerTarget visit(CPointerExpression pE) {
+      if (pE.getOperand() instanceof CIdExpression) {
         return extractFunctionId((CIdExpression)pE.getOperand());
       }
       return visitDefault(pE);
@@ -568,6 +569,12 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
 
     @Override
+    public FunctionPointerTarget visit(CComplexCastExpression pE) throws UnrecognizedCCodeException {
+      // evaluation of complex numbers is not supported by now
+      return UnknownTarget.getInstance();
+    }
+
+    @Override
     protected FunctionPointerTarget visitDefault(CExpression pExp) {
       return UnknownTarget.getInstance();
     }
@@ -594,6 +601,11 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
     @Override
     public FunctionPointerTarget visit(CStringLiteralExpression pE) {
+      return targetForInvalidPointers;
+    }
+
+    @Override
+    public FunctionPointerTarget visit(CImaginaryLiteralExpression pE) {
       return targetForInvalidPointers;
     }
   }

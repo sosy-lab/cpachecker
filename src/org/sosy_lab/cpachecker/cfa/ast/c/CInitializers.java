@@ -97,7 +97,7 @@ public final class CInitializers {
       return ImmutableList.of();
     }
 
-    CExpression lhs = new CIdExpression(decl.getFileLocation(), decl.getType(),
+    CLeftHandSide lhs = new CIdExpression(decl.getFileLocation(), decl.getType(),
         decl.getName(), decl);
 
     if (init instanceof CInitializerExpression) {
@@ -151,17 +151,26 @@ public final class CInitializers {
       // is a nested brace-delimited initializer list.
       currentSubobjects.push(currentObject);
       CType currentType = currentObject.getExpressionType().getCanonicalType();
+      boolean successful;
 
       if (currentType instanceof CCompositeType && ((CCompositeType) currentType).getKind() != ComplexTypeKind.ENUM) {
-        handleInitializerForCompositeType(currentObject, Optional.<String>absent(),
+        successful = handleInitializerForCompositeType(currentObject, Optional.<String>absent(),
             (CCompositeType)currentType,
             currentSubobjects, nextSubobjects, loc, edge, null);
 
       } else if (currentType instanceof CArrayType) {
-        handleInitializerForArray(currentObject, 0L, (CArrayType)currentType,
+        successful = handleInitializerForArray(currentObject, 0L, (CArrayType)currentType,
             currentSubobjects, nextSubobjects, loc, edge, null);
       } else {
         throw new UnrecognizedCCodeException("Unexpected initializer list for type " + currentType, edge, initializerList);
+      }
+
+      if (!successful) {
+        // struct or array was empty, no initializing needed
+        if (!initializerList.getInitializers().isEmpty()) {
+          throw new UnrecognizedCCodeException("Too many values in initializer list", edge, initializerList);
+        }
+        return ImmutableList.of();
       }
     }
 
@@ -202,7 +211,8 @@ public final class CInitializers {
         // so we build the stacks if necessary.
         findFirstSubobjectWithType(initType, currentSubobjects, nextSubobjects, loc, edge);
 
-        final CExpression currentSubobject = currentSubobjects.pop();
+        assert currentSubobjects.peek() instanceof CLeftHandSide : "Object hast to be a LeftHandSide";
+        final CLeftHandSide currentSubobject = (CLeftHandSide) currentSubobjects.pop();
 
         // Do a regular assignment
         CExpressionAssignmentStatement assignment =
@@ -237,7 +247,7 @@ public final class CInitializers {
    * such that the designated field/element is the next that will be accessed.
    * Prior to that, both stacks are reset.
    * @param designators A list of designators (e.g. ".f[2][1-4].t")
-   * @param currentSubobject the "current object" with which this whole chain of initializers is associated
+   * @param currentObject the "current object" with which this whole chain of initializers is associated
    * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
    * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
    */
@@ -254,6 +264,7 @@ public final class CInitializers {
     for (CDesignator designator : designators) {
       final CExpression currentSubobject = currentSubobjects.peek();
       final CType currentType = currentSubobject.getExpressionType().getCanonicalType();
+      boolean successful;
 
       if (designator instanceof CFieldDesignator) {
         String fieldName = ((CFieldDesignator)designator).getFieldName();
@@ -262,7 +273,7 @@ public final class CInitializers {
           throw new UnrecognizedCCodeException("Designated field initializer for non-struct type", edge, designator);
         }
 
-        handleInitializerForCompositeType(currentSubobject, Optional.of(fieldName),
+        successful = handleInitializerForCompositeType(currentSubobject, Optional.of(fieldName),
             (CCompositeType)currentType,
             currentSubobjects, nextSubobjects, loc, edge, designator);
 
@@ -283,11 +294,15 @@ public final class CInitializers {
           throw new UnrecognizedCCodeException("Array designator is too large to initialize explicitly", edge, designator);
         }
 
-        handleInitializerForArray(currentSubobject, index.longValue(), arrayType,
+        successful = handleInitializerForArray(currentSubobject, index.longValue(), arrayType,
             currentSubobjects, nextSubobjects, loc, edge, designator);
 
       } else {
         throw new UnrecognizedCCodeException("Unrecognized initializer designator", edge, designator);
+      }
+
+      if (!successful) {
+        throw new UnrecognizedCCodeException("Empty struct or array is not supported as field", edge, currentSubobject);
       }
     }
   }
@@ -327,19 +342,24 @@ public final class CInitializers {
       if (targetType.equals(currentType)) {
         break;
       }
+      boolean successful;
 
       if (currentType instanceof CCompositeType && ((CCompositeType) currentType).getKind() != ComplexTypeKind.ENUM) {
-        handleInitializerForCompositeType(currentSubobject, Optional.<String>absent(),
+        successful = handleInitializerForCompositeType(currentSubobject, Optional.<String>absent(),
             (CCompositeType)currentType,
             currentSubobjects, nextSubobjects, loc, edge, null);
 
       } else if (currentType instanceof CArrayType) {
-        handleInitializerForArray(currentSubobject, 0L, (CArrayType)currentType,
+        successful = handleInitializerForArray(currentSubobject, 0L, (CArrayType)currentType,
             currentSubobjects, nextSubobjects, loc, edge, null);
 
       } else {
         // any other type is not an aggregate type
         break;
+      }
+
+      if (!successful) {
+        throw new UnrecognizedCCodeException("Empty struct or array is not supported as field", edge, currentSubobject);
       }
     }
   }
@@ -358,7 +378,7 @@ public final class CInitializers {
    * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
    * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
    */
-  private static void handleInitializerForCompositeType(final CExpression currentSubobject,
+  private static boolean handleInitializerForCompositeType(final CExpression currentSubobject,
       final Optional<String> startingFieldName, final CCompositeType structType,
       final Deque<CExpression> currentSubobjects, final Deque<Iterator<CExpression>> nextSubobjects,
       final FileLocation loc, final CFAEdge edge, final CDesignator designator)
@@ -372,6 +392,11 @@ public final class CInitializers {
                 field.getName(), currentSubobject, false);
           }
         }).iterator();
+
+    if (!fields.hasNext()) {
+      // empty struct
+      return false;
+    }
 
     CFieldReference designatedField = null;
 
@@ -407,6 +432,8 @@ public final class CInitializers {
     default:
       throw new AssertionError();
     }
+
+    return true;
   }
 
   /**
@@ -421,7 +448,7 @@ public final class CInitializers {
    * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
    * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
    */
-  private static void handleInitializerForArray(final CExpression currentSubobject,
+  private static boolean handleInitializerForArray(final CExpression currentSubobject,
       final long startIndex, final CArrayType arrayType,
       final Deque<CExpression> currentSubobjects, final Deque<Iterator<CExpression>> nextSubobjects,
       final FileLocation loc, final CFAEdge edge, final CDesignator designator)
@@ -447,6 +474,10 @@ public final class CInitializers {
       throw new UnrecognizedCCodeException("Cannot initialize arrays with variable modified type like " + arrayType, edge, designator);
     }
 
+    if (arrayIndices.isEmpty()) {
+      return false;
+    }
+
     final CType elementType = arrayType.getType();
 
     Set<Long> indexSet = ContiguousSet.create(arrayIndices, DiscreteDomain.longs());
@@ -466,5 +497,7 @@ public final class CInitializers {
 
     currentSubobjects.push(firstElement);
     nextSubobjects.push(elements);
+
+    return true;
   }
 }

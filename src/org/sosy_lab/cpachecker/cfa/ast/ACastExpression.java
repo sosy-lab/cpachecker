@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  * This is the abstract Class for  Casted Expressions.
  *
  */
-public abstract class ACastExpression extends AExpression {
+public abstract class ACastExpression extends ALeftHandSide {
 
   private final IAExpression operand;
   private final Type     castType;

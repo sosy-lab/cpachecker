@@ -27,6 +27,7 @@ import java.util.List;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -65,7 +66,7 @@ public class FMtester {
     //
 
     try {
-      logger = new LogManager(config);
+      logger = new BasicLogManager(config);
       cfac = new CFACreator(config, logger);
       CFA cfa = cfac.parseFileAndCreateCFA(testfile);
       root = cfa.getMainFunction();

@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -30,8 +34,10 @@ import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -48,6 +54,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
@@ -57,6 +65,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.arg")
@@ -87,17 +96,17 @@ public class ARGStatistics implements Statistics {
   @Option(name="errorPath.file",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathFile = Paths.get("ErrorPath.txt");
+  private Path errorPathFile = Paths.get("ErrorPath.%d.txt");
 
   @Option(name="errorPath.core",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathCoreFile = Paths.get("ErrorPathCore.txt");
+  private Path errorPathCoreFile = Paths.get("ErrorPath.%d.core.txt");
 
   @Option(name="errorPath.source",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathSourceFile = Paths.get("ErrorPath.c");
+  private Path errorPathSourceFile = Paths.get("ErrorPath.%d.c");
 
   @Option(name="errorPath.exportAsSource",
       description="translate error path to C program")
@@ -106,22 +115,22 @@ public class ARGStatistics implements Statistics {
   @Option(name="errorPath.json",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathJson = Paths.get("ErrorPath.json");
+  private Path errorPathJson = Paths.get("ErrorPath.%d.json");
 
   @Option(name="errorPath.assignment",
       description="export one variable assignment for error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathAssignment = Paths.get("ErrorPathAssignment.txt");
+  private Path errorPathAssignment = Paths.get("ErrorPath.%d.assignment.txt");
 
   @Option(name="errorPath.graph",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathGraphFile = Paths.get("ErrorPath.dot");
+  private Path errorPathGraphFile = Paths.get("ErrorPath.%d.dot");
 
   @Option(name="errorPath.automaton",
       description="export error path to file as an automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathAutomatonFile = Paths.get("ErrorPath.spc");
+  private Path errorPathAutomatonFile = Paths.get("ErrorPath.%d.spc");
 
   private final ARGCPA cpa;
 
@@ -197,143 +206,197 @@ public class ARGStatistics implements Statistics {
     }
 
     final ARGState rootState = (ARGState)pReached.getFirstState();
-    @Nullable final CounterexampleInfo counterexample = getCounterexample(pReached);
-    @Nullable final ARGPath targetPath = getTargetPath(counterexample, pReached);
-    final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge = getEdgesOfPath(targetPath);
+    final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
+    int cexIndex = 0;
 
-    if (exportErrorPath && targetPath != null) {
+    for (Map.Entry<ARGState, CounterexampleInfo> cex : getAllCounterexamples(pReached).entrySet()) {
+      final ARGState targetState = checkNotNull(cex.getKey());
+      @Nullable final CounterexampleInfo counterexample = cex.getValue();
+      final ARGPath targetPath = checkNotNull(getTargetPath(targetState, counterexample));
 
-      writeErrorPathFile(errorPathFile, targetPath);
+      final Set<Pair<ARGState, ARGState>> targetPathEdges = getEdgesOfPath(targetPath);
+      allTargetPathEdges.addAll(targetPathEdges);
 
-      if (errorPathCoreFile != null) {
-        // the shrinked errorPath only includes the nodes,
-        // that are important for the error, it is not a complete path,
-        // only some nodes of the targetPath are part of it
-        ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
-        ARGPath shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
-        writeErrorPathFile(errorPathCoreFile, shrinkedErrorPath);
-      }
-
-      writeErrorPathFile(errorPathJson, new Appender() {
-        @Override
-        public void appendTo(Appendable pAppendable) throws IOException {
-          targetPath.toJSON(pAppendable);
-        }
-      });
-
-      final Set<ARGState> pathElements;
-      Appender pathProgram = null;
-      if (counterexample != null && counterexample.getTargetPath() != null) {
-        // precise error path
-        pathElements = targetPath.getStateSet();
-
-        if (errorPathSourceFile != null) {
-          pathProgram = PathToCTranslator.translateSinglePath(targetPath);
-        }
-
-      } else {
-        // Imprecise error path.
-        // For the text export, we have no other chance,
-        // but for the C code and graph export we use all existing paths
-        // to avoid this problem.
-        ARGState lastElement = (ARGState)pReached.getLastState();
-        pathElements = ARGUtils.getAllStatesOnPathsTo(lastElement);
-
-        if (errorPathSourceFile != null) {
-          pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
-        }
-      }
-
-      if (pathProgram != null) {
-        writeErrorPathFile(errorPathSourceFile, pathProgram);
-      }
-
-      writeErrorPathFile(errorPathGraphFile, new Appender() {
-        @Override
-        public void appendTo(Appendable pAppendable) throws IOException {
-          ARGToDotWriter.write(pAppendable, rootState,
-              ARGUtils.CHILDREN_OF_STATE,
-              Predicates.in(pathElements),
-              isTargetPathEdge);
-        }
-      });
-
-      writeErrorPathFile(errorPathAutomatonFile, new Appender() {
-        @Override
-        public void appendTo(Appendable pAppendable) throws IOException {
-          ARGUtils.producePathAutomaton(pAppendable, rootState, pathElements);
-        }
-      });
-
-      if (counterexample != null) {
-        if (counterexample.getTargetPathAssignment() != null) {
-          writeErrorPathFile(errorPathAssignment, counterexample.getTargetPathAssignment());
-        }
-
-        for (Pair<Object, File> info : counterexample.getAllFurtherInformation()) {
-          if (info.getSecond() != null) {
-            writeErrorPathFile(info.getSecond().toPath(), info.getFirst());
-          }
-        }
+      if (exportErrorPath && counterexample != null) {
+        exportCounterexample(pReached, rootState, cexIndex++, counterexample,
+            targetPath, Predicates.in(targetPathEdges));
       }
     }
 
     if (exportARG) {
-      SetMultimap<ARGState, ARGState> relevantSuccessorRelation = ARGUtils.projectARG(rootState, ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
-      Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
-
-      if (argFile != null) {
-        try (Writer w = Files.openOutputFile(argFile)) {
-          ARGToDotWriter.write(w, rootState,
-              ARGUtils.CHILDREN_OF_STATE,
-              Predicates.alwaysTrue(),
-              isTargetPathEdge);
-        } catch (IOException e) {
-          cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file");
-        }
-      }
-
-      if (simplifiedArgFile != null) {
-        try (Writer w = Files.openOutputFile(simplifiedArgFile)) {
-          ARGToDotWriter.write(w, rootState,
-              relevantSuccessorFunction,
-              Predicates.alwaysTrue(),
-              Predicates.alwaysFalse());
-        } catch (IOException e) {
-          cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file");
-        }
-      }
-
-      assert (refinementGraphUnderlyingWriter == null) == (refinementGraphWriter == null);
-      if (refinementGraphUnderlyingWriter != null) {
-        try (Writer w = refinementGraphUnderlyingWriter) { // for auto-closing
-          refinementGraphWriter.writeSubgraph(rootState,
-              relevantSuccessorFunction,
-              Predicates.alwaysTrue(),
-              Predicates.alwaysFalse());
-          refinementGraphWriter.finish();
-
-        } catch (IOException e) {
-          cpa.getLogger().logUserException(Level.WARNING, e, "Could not write refinement graph to file");
-        }
-      }
+      exportARG(rootState, Predicates.in(allTargetPathEdges));
     }
   }
 
-  private CounterexampleInfo getCounterexample(ReachedSet pReached) {
-    CounterexampleInfo counterexample = cpa.getLastCounterexample();
+  private void exportCounterexample(ReachedSet pReached, final ARGState rootState,
+      final int cexIndex,
+      final CounterexampleInfo counterexample, final ARGPath targetPath,
+      final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
+
+    writeErrorPathFile(errorPathFile, cexIndex,
+        createErrorPathWithVariableAssignmentInformation(targetPath, counterexample));
+
+    if (errorPathCoreFile != null) {
+      // the shrinked errorPath only includes the nodes,
+      // that are important for the error, it is not a complete path,
+      // only some nodes of the targetPath are part of it
+      ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
+      ARGPath shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
+      writeErrorPathFile(errorPathCoreFile, cexIndex,
+          createErrorPathWithVariableAssignmentInformation(shrinkedErrorPath, counterexample));
+    }
+
+    writeErrorPathFile(errorPathJson, cexIndex, new Appender() {
+      @Override
+      public void appendTo(Appendable pAppendable) throws IOException {
+        targetPath.toJSON(pAppendable);
+      }
+    });
+
+    final Set<ARGState> pathElements;
+    Appender pathProgram = null;
+    if (counterexample != null && counterexample.getTargetPath() != null) {
+      // precise error path
+      pathElements = targetPath.getStateSet();
+
+      if (errorPathSourceFile != null) {
+        pathProgram = PathToCTranslator.translateSinglePath(targetPath);
+      }
+
+    } else {
+      // Imprecise error path.
+      // For the text export, we have no other chance,
+      // but for the C code and graph export we use all existing paths
+      // to avoid this problem.
+      ARGState lastElement = (ARGState)pReached.getLastState();
+      pathElements = ARGUtils.getAllStatesOnPathsTo(lastElement);
+
+      if (errorPathSourceFile != null) {
+        pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
+      }
+    }
+
+    if (pathProgram != null) {
+      writeErrorPathFile(errorPathSourceFile, cexIndex, pathProgram);
+    }
+
+    writeErrorPathFile(errorPathGraphFile, cexIndex, new Appender() {
+      @Override
+      public void appendTo(Appendable pAppendable) throws IOException {
+        ARGToDotWriter.write(pAppendable, rootState,
+            ARGUtils.CHILDREN_OF_STATE,
+            Predicates.in(pathElements),
+            isTargetPathEdge);
+      }
+    });
+
+    writeErrorPathFile(errorPathAutomatonFile, cexIndex, new Appender() {
+      @Override
+      public void appendTo(Appendable pAppendable) throws IOException {
+        ARGUtils.producePathAutomaton(pAppendable, rootState, pathElements);
+      }
+    });
 
     if (counterexample != null) {
-      ARGState targetState = counterexample.getTargetPath().getLast().getFirst();
-      if (!pReached.contains(targetState)) {
-        // counterexample is outdated
-        return null;
+      if (counterexample.getTargetPathModel() != null) {
+        writeErrorPathFile(errorPathAssignment, cexIndex, counterexample.getTargetPathModel());
+      }
+
+      for (Pair<Object, File> info : counterexample.getAllFurtherInformation()) {
+        if (info.getSecond() != null) {
+          writeErrorPathFile(info.getSecond().toPath(), cexIndex, info.getFirst());
+        }
       }
     }
-    return counterexample;
   }
 
-  private ARGPath getTargetPath(@Nullable final CounterexampleInfo counterexample, final ReachedSet pReached) {
+  private Appender createErrorPathWithVariableAssignmentInformation(
+      final ARGPath targetPath, final CounterexampleInfo counterexample) {
+    final Model model = counterexample.getTargetPathModel();
+    return new Appender() {
+      @Override
+      public void appendTo(Appendable out) throws IOException {
+        // Write edges mixed with assigned values.
+        Multimap<CFAEdge, Model.AssignableTerm> assignments = model.getAssignedTermsPerEdge();
+
+        for (CFAEdge edge : targetPath.asEdgesList()) {
+          out.append(edge.toString());
+          out.append(System.lineSeparator());
+          for (Model.AssignableTerm term : assignments.get(edge)) {
+            out.append('\t');
+            out.append(term.toString());
+            out.append(": ");
+            out.append(model.get(term).toString());
+            out.append(System.lineSeparator());
+          }
+        }
+      }
+    };
+  }
+
+  private void exportARG(final ARGState rootState, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
+    SetMultimap<ARGState, ARGState> relevantSuccessorRelation = ARGUtils.projectARG(rootState, ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
+    Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
+
+    if (argFile != null) {
+      try (Writer w = Files.openOutputFile(argFile)) {
+        ARGToDotWriter.write(w, rootState,
+            ARGUtils.CHILDREN_OF_STATE,
+            Predicates.alwaysTrue(),
+            isTargetPathEdge);
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
+    }
+
+    if (simplifiedArgFile != null) {
+      try (Writer w = Files.openOutputFile(simplifiedArgFile)) {
+        ARGToDotWriter.write(w, rootState,
+            relevantSuccessorFunction,
+            Predicates.alwaysTrue(),
+            Predicates.alwaysFalse());
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
+    }
+
+    assert (refinementGraphUnderlyingWriter == null) == (refinementGraphWriter == null);
+    if (refinementGraphUnderlyingWriter != null) {
+      try (Writer w = refinementGraphUnderlyingWriter) { // for auto-closing
+        refinementGraphWriter.writeSubgraph(rootState,
+            relevantSuccessorFunction,
+            Predicates.alwaysTrue(),
+            Predicates.alwaysFalse());
+        refinementGraphWriter.finish();
+
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write refinement graph to file");
+      }
+    }
+  }
+
+  private Map<ARGState, CounterexampleInfo> getAllCounterexamples(final ReachedSet pReached) {
+    Map<ARGState, CounterexampleInfo> probableCounterexample = cpa.getCounterexamples();
+    // This map may contain too many counterexamples
+    // (for target states that were in the mean time removed from the ReachedSet),
+    // as well as too feww counterexamples
+    // (for target states where we don't have a CounterexampleInfo
+    // because we did no refinement).
+    // So we create a map with all target states,
+    // adding the CounterexampleInfo where we have it (null otherwise).
+
+    Map<ARGState, CounterexampleInfo> counterexamples = new HashMap<>();
+
+    for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
+      ARGState s = (ARGState)targetState;
+      counterexamples.put(s, probableCounterexample.get(s));
+    }
+
+    return counterexamples;
+  }
+
+  private ARGPath getTargetPath(final ARGState targetState,
+      @Nullable final CounterexampleInfo counterexample) {
     ARGPath targetPath = null;
 
     if (counterexample != null) {
@@ -345,16 +408,16 @@ public class ARGStatistics implements Statistics {
       // This is imprecise if there are several paths in the ARG,
       // because we randomly select one existing path,
       // but this path may actually be infeasible.
-      ARGState lastElement = (ARGState)pReached.getLastState();
-      if (lastElement != null && lastElement.isTarget()) {
-        targetPath = ARGUtils.getOnePathTo(lastElement);
-      }
+      targetPath = ARGUtils.getOnePathTo(targetState);
     }
     return targetPath;
   }
 
-  private void writeErrorPathFile(Path file, Object content) {
+  private void writeErrorPathFile(Path file, int cexIndex, Object content) {
     if (file != null) {
+      // fill in index in file name
+      file = Paths.get(String.format(file.toString(), cexIndex));
+
       try {
         Files.writeFile(file, content);
       } catch (IOException e) {
@@ -364,11 +427,7 @@ public class ARGStatistics implements Statistics {
     }
   }
 
-  private static Predicate<Pair<ARGState, ARGState>> getEdgesOfPath(@Nullable ARGPath pPath) {
-    if (pPath == null) {
-      return Predicates.alwaysFalse();
-    }
-
+  private static Set<Pair<ARGState, ARGState>> getEdgesOfPath(ARGPath pPath) {
     Set<Pair<ARGState, ARGState>> result = new HashSet<>(pPath.size());
     Iterator<Pair<ARGState, CFAEdge>> it = pPath.iterator();
     assert it.hasNext();
@@ -378,6 +437,6 @@ public class ARGStatistics implements Statistics {
       result.add(Pair.of(lastElement, currentElement));
       lastElement = currentElement;
     }
-    return Predicates.in(result);
+    return result;
   }
 }

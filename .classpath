@@ -10,9 +10,7 @@
 	<classpathentry kind="lib" path="lib/java/runtime/java-cup-runtime.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/icu4j.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.cdt.core.jar" sourcepath="lib/java-contrib/org.eclipse.cdt.core-sources.jar"/>
-	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.core.resources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.equinox.common.jar"/>
-	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.osgi.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/junit.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/mockito-core.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/hamcrest-core.jar"/>

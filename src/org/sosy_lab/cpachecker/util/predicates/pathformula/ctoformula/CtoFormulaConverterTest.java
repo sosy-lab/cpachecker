@@ -38,7 +38,7 @@ public class CtoFormulaConverterTest {
     String fieldName = CtoFormulaConverter.makeFieldVariableName(name, msb_lsb, emptyMap);
 
     Assert.assertTrue("Expected field as output", CtoFormulaConverter.IS_FIELD_VARIABLE.apply(fieldName));
-    Assert.assertFalse("Expected no PtrMask as output", PointerAliasHandling.IS_POINTER_VARIABLE.apply(fieldName));
+    Assert.assertFalse("Expected no PtrMask as output", PointerAliasHandling.POINTER_VARIABLE.matcher(fieldName).matches());
 
     Pair<String, Pair<Integer, Integer>> data = CtoFormulaConverter.removeFieldVariable(fieldName);
 
@@ -50,9 +50,9 @@ public class CtoFormulaConverterTest {
 
   private String rawPtrTest(String name) {
 
-    String ptrName = PointerAliasHandling.makePointerMaskName(name, emptyMap);
+    String ptrName = PointerAliasHandling.makePointerMaskName(name, 1, emptyMap);
 
-    Assert.assertTrue("Expected PtrMask as output", PointerAliasHandling.IS_POINTER_VARIABLE.apply(ptrName));
+    Assert.assertTrue("Expected PtrMask as output", PointerAliasHandling.POINTER_VARIABLE.matcher(ptrName).matches());
     Assert.assertFalse("Expected no Field as output", CtoFormulaConverter.IS_FIELD_VARIABLE.apply(ptrName));
 
     String data = PointerAliasHandling.removePointerMask(ptrName);

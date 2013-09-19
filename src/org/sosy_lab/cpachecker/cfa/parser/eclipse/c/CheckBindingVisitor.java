@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatorVisitor;
@@ -46,11 +47,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -98,6 +101,12 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
   }
 
   @Override
+  public Void visit(CComplexCastExpression e) {
+    e.getOperand().accept(this);
+    return null;
+  }
+
+  @Override
   public Void visit(CFieldReference e) {
     e.getFieldOwner().accept(this);
     return null;
@@ -134,6 +143,12 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
   }
 
   @Override
+  public Void visit(CImaginaryLiteralExpression e) {
+    e.getValue().accept(this);
+    return null;
+  }
+
+  @Override
   public Void visit(CTypeIdExpression e) {
     return null;
   }
@@ -146,6 +161,12 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
 
   @Override
   public Void visit(CUnaryExpression e) {
+    e.getOperand().accept(this);
+    return null;
+  }
+
+  @Override
+  public Void visit(CPointerExpression e) {
     e.getOperand().accept(this);
     return null;
   }

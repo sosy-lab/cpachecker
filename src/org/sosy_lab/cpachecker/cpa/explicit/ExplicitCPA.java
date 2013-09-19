@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -61,7 +62,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.ExplicitStaticRefiner;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -69,7 +73,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.io.Files;
 
 @Options(prefix="cpa.explicit")
-public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, StatisticsProvider {
+public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, StatisticsProvider, ProofChecker {
 
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ExplicitCPA")
@@ -117,7 +121,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     config.inject(this);
 
     abstractDomain      = new ExplicitDomain();
-    transferRelation    = new ExplicitTransferRelation(config);
+    transferRelation    = new ExplicitTransferRelation(config, logger, machineModel);
     precision           = initializePrecision(config, cfa);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
@@ -168,11 +172,12 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
       logger.log(Level.WARNING, "Explicit-Value analysis with refinement needs " +
             "ComponentAwareExplicitPrecisionAdjustment. Please set option cpa.composite.precAdjust to 'COMPONENT'");
     }
-    ExplicitPrecision prec = new ExplicitPrecision(variableBlacklist, config, cfa.getVarClassification(), restoreMappingFromFile(cfa));
 
-    prec = new ExplicitPrecision(prec, restoreMappingFromFile(cfa));
+    // create default (empty) precision
+    ExplicitPrecision precision = new ExplicitPrecision(variableBlacklist, config, cfa.getVarClassification());
 
-    return prec;
+    // refine it with precision from file
+    return new ExplicitPrecision(precision, restoreMappingFromFile(cfa));
   }
 
   /**
@@ -303,5 +308,34 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
 
   public ExplicitCPAStatistics getStats() {
     return statistics;
+  }
+
+  @Override
+  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
+      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+    try {
+      Collection<? extends AbstractState> computedSuccessors = transferRelation.getAbstractSuccessors(pState, null, pCfaEdge);
+      boolean found;
+      for(AbstractState comp:computedSuccessors){
+        found = false;
+        for(AbstractState e:pSuccessors){
+          if(isCoveredBy(comp, e)){
+            found = true;
+            break;
+          }
+        }
+        if(!found){
+          return false;
+        }
+      }
+    } catch (CPAException e) {
+      e.printStackTrace();
+    }
+    return true;
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException {
+     return abstractDomain.isLessOrEqual(pState, pOtherState);
   }
 }

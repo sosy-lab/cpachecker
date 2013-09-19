@@ -406,20 +406,18 @@ public class SMG {
    *
    * TODO: Test
    * TODO: Consistency check: no value can point to more objects
-   * TODO: Long search (iteration) can be a performance problem
    */
   final public SMGObject getObjectPointedBy(Integer pValue) {
     if ( ! this.values.contains(pValue)) {
       throw new IllegalArgumentException("Value [" + pValue + "] not in SMG");
     }
 
-    for (SMGEdgePointsTo edge: this.pt_edges.values()) {
-      if (pValue == edge.getValue()) {
-        return edge.getObject();
-      }
+    if (this.pt_edges.containsKey(pValue)) {
+      return this.pt_edges.get(pValue).getObject();
     }
-
-    return null;
+    else {
+      return null;
+    }
   }
 
   /**

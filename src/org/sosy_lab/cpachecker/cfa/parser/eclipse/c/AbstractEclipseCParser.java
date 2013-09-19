@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
@@ -42,11 +44,11 @@ import org.eclipse.cdt.core.parser.IScannerInfo;
 import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -96,20 +98,53 @@ abstract class AbstractEclipseCParser<T> implements CParser {
   protected abstract T wrapFile(String pFilename) throws IOException;
 
   @Override
-  public ParseResult parseFile(String pFilename) throws CParserException, IOException, InvalidConfigurationException {
+  public ParseResult parseFile(List<Pair<String, String>> pFilenames) throws CParserException, IOException, InvalidConfigurationException {
 
-    return buildCFA(parse(wrapFile(pFilename)));
+    List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
+    for(Pair<String, String> pair : pFilenames) {
+      astUnits.add(Pair.of(parse(wrapFile(pair.getFirst())), pair.getSecond()));
+    }
+    return buildCFA(astUnits);
   }
 
   @Override
+  public ParseResult parseString(List<Pair<String, String>> codeFragments) throws CParserException, InvalidConfigurationException {
+
+    List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
+    for(Pair<String, String> pair : codeFragments) {
+      astUnits.add(Pair.of(parse(wrapCode(pair.getFirst())), pair.getSecond()));
+    }
+    return buildCFA(astUnits);
+  }
+
+  /**
+   * This method parses a single file where no prefix for static variables is needed.
+   */
+  @Override
+  public ParseResult parseFile(String pFilename) throws CParserException, IOException, InvalidConfigurationException {
+
+    IASTTranslationUnit unit = parse(wrapFile(pFilename));
+    String prefix = "";
+    List<Pair<IASTTranslationUnit, String>> returnParam = new ArrayList<>();
+    returnParam.add(Pair.of(unit, prefix));
+    return buildCFA(returnParam);
+  }
+
+  /**
+   * This method parses a single string, where no prefix for static variables is needed.
+   */
+  @Override
   public ParseResult parseString(String pCode) throws CParserException, InvalidConfigurationException {
 
-    return buildCFA(parse(wrapCode(pCode)));
+    IASTTranslationUnit unit = parse(wrapCode(pCode));
+    String prefix = "";
+    List<Pair<IASTTranslationUnit, String>> returnParam = new ArrayList<>();
+    returnParam.add(Pair.of(unit, prefix));
+    return buildCFA(returnParam);
   }
 
   @Override
   public CAstNode parseSingleStatement(String pCode) throws CParserException, InvalidConfigurationException {
-
     // parse
     IASTTranslationUnit ast = parse(wrapCode(pCode));
 
@@ -132,7 +167,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
       throw new CParserException("Not exactly one statement in function body: " + body);
     }
 
-    return new ASTConverter(config, new FunctionScope(), logger, machine).convert(statements[0]);
+    return new ASTConverter(config, new FunctionScope(), logger, machine, "", false).convert(statements[0]);
   }
 
   protected static final int PARSER_OPTIONS =
@@ -170,17 +205,26 @@ abstract class AbstractEclipseCParser<T> implements CParser {
 
   protected abstract IASTTranslationUnit getASTTranslationUnit(T code) throws CParserException, CFAGenerationRuntimeException, CoreException;
 
-  private ParseResult buildCFA(IASTTranslationUnit ast) throws CParserException, InvalidConfigurationException {
+  /**
+   * Builds the cfa out of a list of pairs of translation units and their appropriate prefixes for static variables
+   *
+   * @param asts a List of Pairs of translation units and the appropriate prefix for static variables
+   * @return
+   * @throws CParserException
+   * @throws InvalidConfigurationException
+   */
+  private ParseResult buildCFA(List<Pair<IASTTranslationUnit, String>> asts) throws CParserException, InvalidConfigurationException {
     cfaTimer.start();
     try {
       CFABuilder builder = new CFABuilder(config, logger, machine);
-      try {
-        ast.accept(builder);
-      } catch (CFAGenerationRuntimeException e) {
-        throw new CParserException(e);
+      for(Pair<IASTTranslationUnit, String> ast : asts) {
+        builder.analyzeTranslationUnit(ast.getFirst(), ast.getSecond());
       }
 
-      return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations(), Language.C);
+      return builder.createCFA();
+
+    } catch (CFAGenerationRuntimeException e) {
+      throw new CParserException(e);
     } finally {
       cfaTimer.stop();
     }

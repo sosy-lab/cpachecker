@@ -54,6 +54,15 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
   }
 
   @Override
+  public String toASTString() {
+    if (getOperator() == UnaryOperator.SIZEOF) {
+      return getOperator().getOperator() + "(" + getOperand().toASTString() + ")";
+    } else {
+      return getOperator().getOperator() + getOperand().toParenthesizedASTString();
+    }
+  }
+
+  @Override
   public <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }
@@ -66,7 +75,6 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
   public static enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
     PLUS   ("+"),
     MINUS  ("-"),
-    STAR   ("*"),
     AMPER  ("&"),
     TILDE  ("~"),
     NOT    ("!"),

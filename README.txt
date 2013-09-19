@@ -62,8 +62,8 @@ Verifying a Program with CPAchecker
      ARG.dot: Visualization of abstract reachability tree (Graphviz format)
      cfa*.dot: Visualization of control flow automaton (Graphviz format)
      counterexample.msat: Formula representation of the error path
-     ErrorPath.txt: A path through the program that leads to an error
-     ErrorPathAssignment.txt: Assignments for all variables on the error path.
+     ErrorPath.*.txt: A path through the program that leads to an error
+     ErrorPath.*.assignment.txt: Assignments for all variables on the error path.
      predmap.txt: Predicates used by predicate analysis to prove program safety
      reached.txt: Dump of all reached abstract states
      Statistics.txt: Time statistics (can also be printed to console with "-stats")

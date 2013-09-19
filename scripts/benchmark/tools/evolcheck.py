@@ -10,9 +10,9 @@ import benchmark.util as Util
 import benchmark.tools.template
 
 class Tool(benchmark.tools.template.BaseTool):
-  
+
     previousStatus = None
-    
+
     def getExecutable(self):
         return Util.findExecutable('evolcheck_wrapper')
 
@@ -34,13 +34,13 @@ class Tool(benchmark.tools.template.BaseTool):
                             '-o',
                             self.preprocessedFile],
                           stdout=subprocess.PIPE).wait()
-            
+
         return self.preprocessedFile
-            
+
 
     def getCmdline(self, executable, options, sourcefile):
         sourcefile = self.preprocessSourcefile(sourcefile)
-        
+
         # also append '.cc' to the predecessor-file
         if '--predecessor' in options :
             options[options.index('--predecessor') + 1] = options[options.index('--predecessor') + 1] + '.cc'
@@ -78,5 +78,5 @@ class Tool(benchmark.tools.template.BaseTool):
                 status = 'UNKNOWN'
 
         self.previousStatus = status
-                
+
         return status

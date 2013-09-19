@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.Iterables.transform;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 
 import java.util.List;
 import java.util.Objects;
@@ -96,7 +95,7 @@ public final class CEnumType implements CComplexType {
     lASTString.append(name);
 
     lASTString.append(" {\n  ");
-    Joiner.on(",\n  ").appendTo(lASTString, transform(enumerators, TO_AST_STRING));
+    Joiner.on(",\n  ").appendTo(lASTString, transform(enumerators, CEnumerator.TO_AST_STRING));
     lASTString.append("\n} ");
     lASTString.append(pDeclarator);
 
@@ -200,7 +199,12 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(isConst);
+    result = prime * result + Objects.hashCode(isVolatile);
+    result = prime * result + Objects.hashCode(name);
+    return result;
   }
 
   /**
@@ -220,7 +224,7 @@ public final class CEnumType implements CComplexType {
 
     CEnumType other = (CEnumType) obj;
 
-    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile)
+    return isConst == other.isConst && isVolatile == other.isVolatile
            && Objects.equals(name, other.name) && Objects.equals(enumerators, other.enumerators);
   }
 

@@ -109,7 +109,11 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(parameters);
+    result = prime * result + super.hashCode();
+    return result;
   }
 
   /**

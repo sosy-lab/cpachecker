@@ -107,6 +107,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
@@ -1620,8 +1621,8 @@ public class ASTConverter {
 
     FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
-    JExpression leftHandSide =
-        convertExpressionWithoutSideEffects(e.getLeftHandSide());
+    JLeftHandSide leftHandSide =
+        (JLeftHandSide) convertExpressionWithoutSideEffects(e.getLeftHandSide());
 
     BinaryOperator op = convert(e.getOperator());
 
@@ -1745,7 +1746,7 @@ public class ASTConverter {
 
     FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
-    JExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+    JLeftHandSide operand = (JLeftHandSide) convertExpressionWithoutSideEffects(e.getOperand());
 
     JExpression preOne = new JIntegerLiteralExpression(fileLoc, BigInteger.ONE);
     JBinaryExpression preExp =
@@ -1767,7 +1768,7 @@ public class ASTConverter {
 
     FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
-    JExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+    JLeftHandSide operand = (JLeftHandSide) convertExpressionWithoutSideEffects(e.getOperand());
 
     JExpression preOne = new JIntegerLiteralExpression(fileLoc, BigInteger.ONE);
     JBinaryExpression preExp = new JBinaryExpression(fileLoc, type,
@@ -2172,7 +2173,7 @@ public class ASTConverter {
     methodInvocation.setRunTimeBinding(returnType);
   }
 
-  public JExpressionAssignmentStatement getBooleanAssign(JExpression pLeftHandSide, boolean booleanLiteral) {
+  public JExpressionAssignmentStatement getBooleanAssign(JLeftHandSide pLeftHandSide, boolean booleanLiteral) {
     return new JExpressionAssignmentStatement(pLeftHandSide.getFileLocation(), pLeftHandSide,
         new JBooleanLiteralExpression(pLeftHandSide.getFileLocation(), booleanLiteral));
   }

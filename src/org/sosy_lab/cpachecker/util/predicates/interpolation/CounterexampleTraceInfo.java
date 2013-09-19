@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.*;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 import com.google.common.collect.ImmutableList;
@@ -65,7 +65,7 @@ public class CounterexampleTraceInfo {
           );
     }
 
-    static CounterexampleTraceInfo infeasibleNoItp() {
+    public static CounterexampleTraceInfo infeasibleNoItp() {
       return new CounterexampleTraceInfo(true,
           null,
           null,
@@ -74,7 +74,7 @@ public class CounterexampleTraceInfo {
           );
     }
 
-    static CounterexampleTraceInfo feasible(List<BooleanFormula> pCounterexampleFormula,
+    public static CounterexampleTraceInfo feasible(List<BooleanFormula> pCounterexampleFormula,
         Model pModel, Map<Integer, Boolean> preds) {
       return new CounterexampleTraceInfo(false,
           ImmutableList.<BooleanFormula>of(),
@@ -112,7 +112,7 @@ public class CounterexampleTraceInfo {
       return mCounterexampleFormula;
     }
 
-    public Model getCounterexample() {
+    public Model getModel() {
       checkState(!spurious);
       return mCounterexampleModel;
     }

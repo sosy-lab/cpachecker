@@ -89,8 +89,7 @@ public class ExplicitPrecision implements Precision {
   private final Optional<VariableClassification> varClass;
 
   public ExplicitPrecision(String variableBlacklist, Configuration config,
-      Optional<VariableClassification> vc,
-      Multimap<CFANode, String> mapping) throws InvalidConfigurationException {
+      Optional<VariableClassification> vc) throws InvalidConfigurationException {
     config.inject(this);
 
     blackListPattern = Pattern.compile(variableBlacklist);
@@ -369,7 +368,7 @@ public class ExplicitPrecision implements Precision {
 
     @Override
     int getSize() {
-      return rawPrecision.get(location).size();
+      return rawPrecision.size();
     }
 
     @Override

@@ -39,7 +39,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -122,9 +121,14 @@ public class CFASecondPassBuilder {
 
       for (CFAEdge edge : leavingEdges(node).toList()) {
         if (edge instanceof AStatementEdge) {
-          AStatementEdge statement = (AStatementEdge)edge;
-          IAStatement expr = statement.getStatement();
-          buildCallEdges(expr, statement);
+          AStatementEdge statementEdge = (AStatementEdge)edge;
+          if (statementEdge.getStatement() instanceof AFunctionCall) {
+            AFunctionCall call = (AFunctionCall)statementEdge.getStatement();
+
+            if (shouldCreateCallEdges(call)) {
+              createCallAndReturnEdges(statementEdge, call);
+            }
+          }
         }
 
         // if successor node is not on a different CFA, add it to the worklist
@@ -136,41 +140,18 @@ public class CFASecondPassBuilder {
     }
   }
 
-  protected void buildCallEdges(IAStatement expr, AStatementEdge statement) throws ParserException {
-    // if statement is of the form x = call(a,b); or call(a,b);
-    if (shouldCreateCallEdges(expr)) {
-      createCallAndReturnEdges(statement, (AFunctionCall)expr);
-    }
-  }
+  private boolean shouldCreateCallEdges(AFunctionCall call) {
+    AFunctionCallExpression f = call.getFunctionCallExpression();
 
-  private boolean shouldCreateCallEdges(IAStatement s) {
-    if (!(s instanceof AFunctionCall)) {
-      return false;
+    // If we have a function declaration, it is a normal call to this function,
+    // and neither a call to an undefined function,
+    // nor a function pointer call.
+    if (f.getDeclaration() != null) {
+      String name = f.getDeclaration().getName();
+      return cfa.getAllFunctionNames().contains(name);
     }
-    AFunctionCallExpression f = ((AFunctionCall)s).getFunctionCallExpression();
-    if (!isRegularCall(f)) {
-      return false;
-    }
-    return isDefined(f);
-  }
 
-  public static boolean isRegularCall(AFunctionCallExpression f) {
-    if (f.getDeclaration() == null) {
-      // There might be a function pointer shadowing a function,
-      // so we need to check this explicitly here.
-      String name = f.getFunctionNameExpression().toASTString();
-      if (name.startsWith("__builtin_")) {
-        //logger.log(Level.INFO, "Ignoring builtin function " + name);
-        return true;
-      }
-      return false;
-    }
-    return true;
-  }
-
-  protected boolean isDefined(AFunctionCallExpression f) {
-    String name = f.getFunctionNameExpression().toASTString();
-    return cfa.getAllFunctionNames().contains(name);
+    return false;
   }
 
   /**
@@ -238,7 +219,7 @@ public class CFASecondPassBuilder {
       if (summaryEdges) {
         CFunctionSummaryStatementEdge summaryStatementEdge =
             new CFunctionSummaryStatementEdge(edge.getRawStatement(),
-                ((CFunctionCall)functionCall).asStatement(), lineNumber,
+                ((CFunctionCall)functionCall), lineNumber,
                 predecessorNode, successorNode, (CFunctionCall)functionCall, fDefNode.getFunctionName());
 
         predecessorNode.addLeavingEdge(summaryStatementEdge);
@@ -299,7 +280,7 @@ public class CFASecondPassBuilder {
     }
   }
 
-  protected final boolean checkParamSizes(AFunctionCallExpression functionCallExpression,
+  private boolean checkParamSizes(AFunctionCallExpression functionCallExpression,
       IAFunctionType functionType) {
     //get the parameter expression
     List<? extends IAExpression> parameters = functionCallExpression.getParameterExpressions();

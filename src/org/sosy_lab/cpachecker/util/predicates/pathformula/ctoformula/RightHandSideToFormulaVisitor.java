@@ -80,13 +80,14 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
 
         return conv.makeFreshVariable(func, expType, ssa);
 
-      } else if (conv.nondetFunctions.contains(func)
-          || conv.nondetFunctionsPattern.matcher(func).matches()) {
-        // function call like "random()"
-        // ignore parameters and just create a fresh variable for it
+      } else if (conv.options.isNondetFunction(func)
+          || conv.options.isMemoryAllocationFunction(func)) {
+        // Function call like "random()".
+        // Also "malloc()" etc. just return a random value, so handle them similarly.
+        // Ignore parameters and just create a fresh variable for it.
         return conv.makeFreshVariable(func, expType, ssa);
 
-      } else if (conv.externModelFunctionName.equals(func)) {
+      } else if (conv.options.isExternModelFunction(func)) {
         assert (pexps.size()>0): "No external model given!";
         // the parameter comes in C syntax (with ")
         String filename = pexps.get(0).toASTString().replaceAll("\"", "");
@@ -104,13 +105,13 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(func)) {
         if (pexps.isEmpty()) {
           // function of arity 0
-          conv.log(Level.INFO, "Assuming external function " + func + " to be a constant function.");
+          conv.logger.logOnce(Level.INFO, "Assuming external function", func, "to be a constant function.");
         } else {
-          conv.log(Level.INFO, "Assuming external function " + func + " to be a pure function.");
+          conv.logger.logOnce(Level.INFO, "Assuming external function", func, "to be a pure function.");
         }
       }
     } else {
-      conv.log(Level.WARNING, CtoFormulaConverter.getLogMessage("Ignoring function call through function pointer", fexp));
+      conv.logfOnce(Level.WARNING, edge, "Ignoring function call through function pointer %s", fn);
       func = "<func>{" + CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(fn), function) + "}";
     }
 
@@ -121,8 +122,10 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
     } else {
       CFunctionDeclaration declaration = fexp.getDeclaration();
       if (declaration == null) {
-        // This should not happen
-        conv.log(Level.WARNING, "Cant get declaration of function. Ignoring the call (" + fexp.toASTString() + ").");
+        if (fn instanceof CIdExpression) {
+          // This happens only if there are undeclared functions.
+          conv.logger.logfOnce(Level.WARNING, "Cannot get declaration of function %s, ignoring calls to it.", fn);
+        }
         return conv.makeFreshVariable(func, expType, ssa); // BUG when expType = void
       }
 
@@ -149,7 +152,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
         pexp = conv.makeCastFromArrayToPointerIfNecessary(pexp, paramType);
 
         Formula arg = pexp.accept(this);
-        args.add(conv.makeCast(pexp.getExpressionType(), paramType, arg));
+        args.add(conv.makeCast(pexp.getExpressionType(), paramType, arg, edge));
       }
       assert !it1.hasNext() && !it2.hasNext();
 

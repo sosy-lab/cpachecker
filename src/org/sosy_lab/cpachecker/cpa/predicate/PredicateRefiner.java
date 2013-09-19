@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -58,11 +59,14 @@ public abstract class PredicateRefiner implements Refiner {
         config,
         logger);
 
+    PathChecker pathChecker = new PathChecker(logger, pfmgr, solver);
+
     RefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
         config,
         logger,
         fmgr,
         predicateCpa.getPredicateManager(),
+        staticRefiner,
         solver);
 
     return new PredicateCPARefiner(
@@ -70,9 +74,9 @@ public abstract class PredicateRefiner implements Refiner {
         logger,
         pCpa,
         manager,
+        pathChecker,
         fmgr,
         pfmgr,
-        strategy,
-        staticRefiner);
+        strategy);
   }
 }

@@ -28,7 +28,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
         status = 'UNKNOWN'
-        
+
         if self.allInText(['Violated property:',
                       'dereference failure: dynamic object lower bound',
                       'VERIFICATION FAILED'],

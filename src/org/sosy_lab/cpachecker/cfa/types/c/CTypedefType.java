@@ -83,7 +83,13 @@ public final class CTypedefType implements CType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(name);
+    result = prime * result + Objects.hashCode(isConst);
+    result = prime * result + Objects.hashCode(isVolatile);
+    result = prime * result + Objects.hashCode(realType);
+    return result;
   }
 
   /**
@@ -103,8 +109,8 @@ public final class CTypedefType implements CType {
 
     CTypedefType other = (CTypedefType) obj;
 
-    return Objects.equals(name, other.name) && Objects.equals(isConst, other.isConst)
-           && Objects.equals(isVolatile, other.isVolatile) && Objects.equals(realType, other.realType);
+    return Objects.equals(name, other.name) && isConst == other.isConst
+           && isVolatile == other.isVolatile && Objects.equals(realType, other.realType);
   }
 
   @Override

@@ -28,11 +28,10 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.Stack;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -42,140 +41,59 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
-import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 
+/**
+ * Abstract base class for static refinement approaches.
+ */
 @Options(prefix="staticRefiner")
 abstract public class StaticRefiner {
 
   @Option(description="collect at most this number of assumes along a path, backwards from each target (= error) location")
-  protected int maxBackscanPathAssumes = 1;
+  private int maxBackscanPathAssumes = 1;
 
+  private final Configuration config;
   private final CFA cfa;
-  private final VariableScopeProvider scope;
-  protected final Configuration config;
   protected final LogManager logger;
 
   public StaticRefiner(
       Configuration pConfig,
       LogManager pLogger,
       CFA pCfa) throws InvalidConfigurationException {
+
     this.logger = pLogger;
     this.config = pConfig;
-
-    this.cfa    = pCfa;
-    this.scope  = new VariableScopeProvider(cfa);
+    this.cfa = pCfa;
 
     pConfig.inject(this, StaticRefiner.class);
 
     if (pConfig.getProperty("specification") == null) {
-      throw new InvalidConfigurationException("No valid specification is given!");
+      throw new InvalidConfigurationException("No valid specificSportation is given!");
     }
   }
 
-  /**
-   * This method extracts a precision based only on static information derived from the CFA.
-   *
-   * @return a precision for the predicate CPA
-   * @throws CPATransferException
-   */
-  abstract public Precision extractPrecisionFromCfa() throws CPATransferException;
-
-  protected boolean isDeclaredInFunction(String function, String var) {
-    return scope.isDeclaredInFunction(function, var);
-  }
-
-  private static class VariableScopeProvider {
-    private final CFA cfa;
-    private final Multimap<String, String> declaredInFunction = HashMultimap.create();
-
-    public VariableScopeProvider(CFA pCfa) {
-      this.cfa = pCfa;
-    }
-
-    private boolean isDeclaredInFunction(String functionName, String variableName) {
-      if (declaredInFunction.isEmpty()) {
-        determinScopes();
-      }
-
-      return declaredInFunction.containsEntry(functionName, variableName);
-    }
-
-    private void determinScopes() {
-      declaredInFunction.clear();
-      CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), new CFAVisitor() {
-
-        @Override
-        public TraversalProcess visitNode(CFANode pNode) {
-          return TraversalProcess.CONTINUE;
-        }
-
-        @Override
-        public TraversalProcess visitEdge(CFAEdge pEdge) {
-          Stack<CFAEdge> stack = new Stack<>();
-          stack.add(pEdge);
-          while (!stack.isEmpty()) {
-            String function = pEdge.getPredecessor().getFunctionName();
-            CFAEdge edge = stack.pop();
-
-            if (edge instanceof MultiEdge) {
-              stack.addAll(((MultiEdge) edge).getEdges());
-            }
-
-            else if (edge instanceof CDeclarationEdge) {
-              CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
-              if (!decl.isGlobal()) {
-                if (decl instanceof CFunctionDeclaration) {
-                  CFunctionDeclaration fdecl = (CFunctionDeclaration) decl;
-                  for (CParameterDeclaration param: fdecl.getParameters()) {
-                    declaredInFunction.put(function, param.getName());
-                  }
-                }
-
-                else if (decl instanceof CVariableDeclaration) {
-                  declaredInFunction.put(function, decl.getName());
-                }
-              }
-            }
-          }
-          return TraversalProcess.CONTINUE;
-        }
-      });
-    }
-  }
-
-  protected List<String> getQualifiedVariablesOfAssume(AssumeEdge pAssume) throws CPATransferException {
+  protected Set<CIdExpression> getVariablesOfAssume(AssumeEdge pAssume) throws CPATransferException {
     if (pAssume.getExpression() instanceof CExpression) {
       CExpression ce = (CExpression) pAssume.getExpression();
-      List<String> result = ce.accept(referencedVariablesVisitor);
-      return result;
+      CIdExpressionCollectorVisitor referencedVariablesVisitor = new CIdExpressionCollectorVisitor();
+      ce.accept(referencedVariablesVisitor);
+      return referencedVariablesVisitor.getReferencedIdExpressions();
     } else {
       throw new RuntimeException("Only C programming language supported!");
     }
@@ -186,12 +104,10 @@ abstract public class StaticRefiner {
    * CFA, the list of n assume edges preceeding each target node, where n equals the
    * maxBackscanPathAssumes option.
    *
-   * @param cfa the CFA to work in
    * @return the mapping from target nodes to the corresponding preceeding assume edges
    */
-  protected ListMultimap<CFANode, AssumeEdge> getTargetLocationAssumes() {
+  protected ListMultimap<CFANode, AssumeEdge> getTargetLocationAssumes(Collection<CFANode> targetNodes) {
     ListMultimap<CFANode, AssumeEdge> result  = ArrayListMultimap.create();
-    Collection<CFANode> targetNodes           = getTargetNodesWithCPA(cfa);
     if (targetNodes.isEmpty()) {
       return result;
     }
@@ -241,7 +157,7 @@ abstract public class StaticRefiner {
    * @param cfa the CFA to operate on
    * @return the collection of target nodes
    */
-  private Collection<CFANode> getTargetNodesWithCPA(CFA cfa) {
+  protected Collection<CFANode> getTargetNodesWithCPA() {
     try {
       ReachedSetFactory lReachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration(), logger);
 
@@ -251,7 +167,6 @@ abstract public class StaticRefiner {
         .clearOption("cpa")
         .clearOption("cpas")
         .clearOption("CompositeCPA.cpas")
-        .clearOption("cpas")
         .clearOption("cpa.composite.precAdjust")
         .build();
 
@@ -269,78 +184,12 @@ abstract public class StaticRefiner {
                .toSet();
 
     } catch (CPAException | InvalidConfigurationException e) {
-      logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
+      logger.log(Level.WARNING, "Cannot find target locations of the CFA.");
       logger.logDebugException(e);
     } catch (InterruptedException e) {
-      // not handled.
+      Thread.currentThread().interrupt();
     }
-    return cfa.getAllNodes();
+
+    return Collections.emptyList();
   }
-
-  private final CExpressionVisitor<List<String>, CPATransferException> referencedVariablesVisitor = new CExpressionVisitor<List<String>, CPATransferException>() {
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression pIastIdExpression) throws CPATransferException {
-      return Lists.newArrayList(pIastIdExpression.getName());
-    }
-
-    @Override
-    public List<String>visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws CPATransferException {
-      return Lists.newArrayList();
-    }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression pIastBinaryExpression) throws CPATransferException {
-      List<String> operand1List = pIastBinaryExpression.getOperand1().accept(this);
-      List<String> operand2List = pIastBinaryExpression.getOperand2().accept(this);
-
-      operand2List.addAll(operand1List);
-
-      return operand2List;
-    }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression pIastCastExpression) throws CPATransferException {
-      return pIastCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression pIastCharLiteralExpression) throws CPATransferException {
-      return Lists.newArrayList();
-    }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference pIastFieldReference) throws CPATransferException {
-      return Lists.newArrayList(pIastFieldReference.getFieldName());
-    }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression pIastFloatLiteralExpression) throws CPATransferException {
-      return Lists.newArrayList();
-    }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression pIastIntegerLiteralExpression) throws CPATransferException {
-      return Lists.newArrayList();
-    }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression pIastStringLiteralExpression) throws CPATransferException {
-      return Lists.newArrayList();
-    }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression pIastTypeIdExpression) throws CPATransferException {
-      return Lists.newArrayList();
-    }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws CPATransferException {
-      return Lists.newArrayList();
-    }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression pIastUnaryExpression) throws CPATransferException {
-      return pIastUnaryExpression.getOperand().accept(this);
-    }
-  };
 }

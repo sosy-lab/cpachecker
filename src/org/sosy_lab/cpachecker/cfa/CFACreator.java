@@ -34,6 +34,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -63,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
+import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplifier;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -72,6 +74,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -113,6 +116,10 @@ public class CFACreator {
   @Option(name="analysis.useGlobalVars",
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
+
+  @Option(name="analysis.simplifyExpressions",
+      description="simplify pure numeral expressions like '1+2' to '3'")
+  private boolean simplifyExpressions = false;
 
   @Option(name="cfa.useMultiEdges",
       description="combine sequences of simple edges into a single edge")
@@ -230,21 +237,62 @@ public class CFACreator {
       ParseResult c;
 
       if (language == Language.C) {
-        checkIfValidFile(programDenotation);
+        checkIfValidFiles(programDenotation);
       }
 
       if (language == Language.C && usePreprocessor) {
         CPreprocessor preprocessor = new CPreprocessor(config, logger);
-        String program = preprocessor.preprocess(programDenotation);
+        if(denotesOneFile(programDenotation)) {
+          String program = preprocessor.preprocess(programDenotation);
 
-        if (program.isEmpty()) {
-          throw new CParserException("Preprocessor returned empty program");
+          if (program.isEmpty()) {
+            throw new CParserException("Preprocessor returned empty program");
+          }
+
+          c = parser.parseString(program);
+
+          // when there is more than one file which should be evaluated, the
+          // programdenotations are separated from each other and a prefix for
+          // static variables is generated
+        } else {
+          List<Pair<String, String>> programs = new ArrayList<>();
+          int counter = 0;
+          String[] paths = programDenotation.split(", ");
+          String staticVarPrefix;
+          String prog;
+          for(int i = 0; i < paths.length; i++) {
+            String[] tmp = paths[i].split("/");
+            staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
+            prog = preprocessor.preprocess(paths[i]);
+            programs.add(Pair.of(prog, staticVarPrefix));
+
+            if (prog.isEmpty()) {
+              throw new CParserException("Preprocessor returned empty program");
+            }
+          }
+          c = ((CParser)parser).parseString(programs);
         }
 
-        c = parser.parseString(program);
 
       } else {
-        c = parser.parseFile(programDenotation);
+        if(denotesOneFile(programDenotation)) {
+          c = parser.parseFile((programDenotation));
+
+          // when there is more than one file which should be evaluated, the
+          // programdenotations are separated from each other and a prefix for
+          // static variables is generated
+        } else {
+          List<Pair<String, String>> programs = new ArrayList<>();
+          int counter = 0;
+          String[] paths = programDenotation.split(", ");
+          String staticVarPrefix;
+          for(int i = 0; i < paths.length; i++) {
+            String[] tmp = paths[i].split("/");
+            staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
+            programs.add(Pair.of(paths[i], staticVarPrefix));
+          }
+          c = ((CParser)parser).parseFile(programs);
+        }
       }
 
       logger.log(Level.FINE, "Parser Finished");
@@ -313,10 +361,20 @@ public class CFACreator {
         insertGlobalDeclarations(cfa, c.getGlobalDeclarations());
       }
 
+      if (simplifyExpressions) {
+        // this replaces some edges in the CFA with new edges.
+        // all expressions, that can be evaluated, will be replaced with their result.
+        // example: a=1+2; --> a=3;
+        // TODO support for constant propagation like "define MAGIC_NUMBER 1234".
+        ExpressionSimplifier es = new ExpressionSimplifier(machineModel);
+        CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(mainFunction, es);
+        es.replaceEdges();
+      }
+
       // get information about variables, needed for some analysis (BDDCPA),
       // after this step the edges should not be modified,
       // otherwise the analysis could get wrong data
-      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa, config, logger));
+      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()));
 
       stats.processingTime.stop();
 
@@ -386,12 +444,18 @@ public class CFACreator {
     return mainFunction;
   }
 
-  private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
-    if (!denotesOneFile(fileDenotation)) {
-      throw new InvalidConfigurationException(
-        "Exactly one code file has to be given.");
-    }
+  private void checkIfValidFiles(String fileDenotation) throws InvalidConfigurationException {
 
+    if (denotesOneFile(fileDenotation)) {
+      checkIfValidFile(fileDenotation);
+    } else {
+      for(String path : fileDenotation.split(", ")) {
+        checkIfValidFile(path);
+      }
+    }
+  }
+
+  private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
     File file = new File(fileDenotation);
 
     try {

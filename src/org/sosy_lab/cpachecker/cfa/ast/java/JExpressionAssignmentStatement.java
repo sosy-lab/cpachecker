@@ -42,14 +42,14 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  */
 public class JExpressionAssignmentStatement extends AExpressionAssignmentStatement implements JAssignment, JStatement {
 
-  public JExpressionAssignmentStatement(FileLocation pFileLocation, JExpression pLeftHandSide,
+  public JExpressionAssignmentStatement(FileLocation pFileLocation, JLeftHandSide pLeftHandSide,
       JExpression pRightHandSide) {
     super(pFileLocation, pLeftHandSide, pRightHandSide);
   }
 
   @Override
-  public JExpression getLeftHandSide() {
-    return (JExpression) super.getLeftHandSide();
+  public JLeftHandSide getLeftHandSide() {
+    return (JLeftHandSide) super.getLeftHandSide();
   }
 
   @Override
@@ -60,11 +60,6 @@ public class JExpressionAssignmentStatement extends AExpressionAssignmentStateme
   @Override
   public <R, X extends Exception> R accept(JStatementVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public JStatement asStatement() {
-    return (JStatement) super.asStatement();
   }
 
   @Override

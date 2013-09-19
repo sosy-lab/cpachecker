@@ -92,6 +92,9 @@ analysis.reachedSet = PARTITIONED
 # restart the algorithm using a different CPA after unknown result
 analysis.restartAfterUnknown = false
 
+# simplify pure numeral expressions like '1+2' to '3'
+analysis.simplifyExpressions = false
+
 # stop after the first error has been found
 analysis.stopAfterError = true
 
@@ -216,16 +219,13 @@ bmc.boundingAssertions = true
 bmc.checkTargetStates = true
 
 # dump counterexample formula to file
-bmc.dumpCounterexampleFormula = "counterexample.smt2"
+bmc.dumpCounterexampleFormula = "ErrorPath.%d.smt2"
 
 # try using induction to verify programs with loops
 bmc.induction = false
 
-# configuration file for invariant generation
-bmc.invariantGenerationConfigFile = no default value
-
-# generate invariants for induction in parallel to the analysis
-bmc.parallelInvariantGeneration = false
+# Generate invariants and add them to the induction hypothesis.
+bmc.useInvariantsForInduction = false
 
 # file name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified.
@@ -287,6 +287,9 @@ cfa.variableClassification.logfile = "VariableClassification.log"
 # Print some information about the variable classification.
 cfa.variableClassification.printStatsOnStartup = false
 
+# Dump variable type mapping to a file.
+cfa.variableClassification.typeMapFile = "VariableTypeMapping.txt"
+
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
 
@@ -324,23 +327,23 @@ cpa.abm.blockHeuristic = FunctionAndLoopPartitioning.class
 cpa.abm.gatherCacheMissStatistics = false
 
 # export one variable assignment for error path to file, if one is found
-cpa.arg.errorPath.assignment = "ErrorPathAssignment.txt"
+cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
 
 # export error path to file as an automaton
-cpa.arg.errorPath.automaton = "ErrorPath.spc"
+cpa.arg.errorPath.automaton = "ErrorPath.%d.spc"
 
 # export error path to file, if one is found
-cpa.arg.errorPath.core = "ErrorPathCore.txt"
+cpa.arg.errorPath.core = "ErrorPath.%d.core.txt"
 cpa.arg.errorPath.export = true
 
 # translate error path to C program
 cpa.arg.errorPath.exportAsSource = true
 
 # export error path to file, if one is found
-cpa.arg.errorPath.file = "ErrorPath.txt"
-cpa.arg.errorPath.graph = "ErrorPath.dot"
-cpa.arg.errorPath.json = "ErrorPath.json"
-cpa.arg.errorPath.source = "ErrorPath.c"
+cpa.arg.errorPath.file = "ErrorPath.%d.txt"
+cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
+cpa.arg.errorPath.json = "ErrorPath.%d.json"
+cpa.arg.errorPath.source = "ErrorPath.%d.c"
 
 # export final ARG as .dot file
 cpa.arg.export = true
@@ -551,7 +554,11 @@ cpa.explicit.precision.sharing = "scope"
 cpa.explicit.precisionFile = no default value
 
 # whether or not to avoid restarting at assume edges after a refinement
-cpa.explicit.refiner.avoidAssumes = true
+cpa.explicit.refiner.avoidAssumes = false
+
+# whether or not to check for repeated refinements, to then reset the
+# refinement root
+cpa.explicit.refiner.checkForRepeatedRefinements = true
 
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = true
@@ -642,6 +649,10 @@ cpa.predicate.abstraction.cartesian = false
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
 
+# Identify those predicates where the result is trivially known before
+# abstraction computation and omit them.
+cpa.predicate.abstraction.identifyTrivialPredicates = false
+
 # get an initial map of predicates from a list of files (see source
 # doc/examples/predmap.txt for an example)
 cpa.predicate.abstraction.initialPredicates = ImmutableList.of()
@@ -706,6 +717,11 @@ cpa.predicate.handleFieldAccess = false
 # Handle field aliasing formulas.
 cpa.predicate.handleFieldAliasing = false
 
+# Handle pointer aliasing for pointers with unknown values (coming from
+# uninitialized variables or external function calls). This is slow and
+# provides little benefit.
+cpa.predicate.handleNondetPointerAliasing = false
+
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
@@ -713,6 +729,11 @@ cpa.predicate.handlePointerAliasing = true
 # Allows to ignore Concat and Extract Calls when Bitvector theory was
 # replaced.
 cpa.predicate.ignoreExtractConcat = true
+
+# Which solver to use specifically for interpolation (default is to use the
+# main one).
+cpa.predicate.interpolationSolver = no default value
+  allowed values: [MATHSAT5, SMTINTERPOL]
 
 # export final loop invariants
 cpa.predicate.invariants.export = true
@@ -735,10 +756,9 @@ cpa.predicate.mathsat5.furtherOptions = ""
 
 # Export solver queries in Smtlib format into a file (for Mathsat5).
 cpa.predicate.mathsat5.logAllQueries = false
-cpa.predicate.mathsat5.logfile = "mathsat5.%d.smt2"
+cpa.predicate.mathsat5.logfile = "mathsat5.%03d.smt2"
 
-# list of functions that provide new memory on the heap. This is only used,
-# when handling of pointers is enabled.
+# Set of functions that provide new memory on the heap.
 cpa.predicate.memoryAllocationFunctions = {
       "malloc", "__kmalloc", "kzalloc"
       }
@@ -747,15 +767,13 @@ cpa.predicate.memoryAllocationFunctions = {
 cpa.predicate.merge = "ABE"
   allowed values: [SEP, ABE]
 
-# list of functions that should be considered as giving a non-deterministic
-# return value
-#  Only predicate analysis honors this option. If you specify this option,
-# the default values are not added automatically to the list, so you need to
-# specify them explicitly if you need them. Mentioning a function in this
-# list has only an effect, if it is an 'external function', i.e., no source
-# is given in the code for this function.
+# Set of functions that should be considered as giving a non-deterministic
+# return value. If you specify this option, the default values are not added
+# automatically to the list, so you need to specify them explicitly if you
+# need them. Mentioning a function in this list has only an effect, if it is
+# an 'external function', i.e., no source is given in the code for this
+# function.
 cpa.predicate.nondetFunctions = {
-      "malloc", "__kmalloc", "kzalloc",
       "sscanf",
       "random"}
 
@@ -775,6 +793,10 @@ cpa.predicate.predmap.export = true
 
 # file for exporting final predicate map
 cpa.predicate.predmap.file = "predmap.txt"
+
+# Format for exporting predicates from precisions.
+cpa.predicate.predmap.predicateFormat = SMTLIB2
+  enum:     [PLAIN, SMTLIB2]
 
 # If an abstraction is computed during refinement, use only the interpolant
 # as input, not the concrete block.
@@ -802,7 +824,7 @@ cpa.predicate.refinement.doAbstractionComputation = false
 
 # where to dump the counterexample formula in case the error location is
 # reached
-cpa.predicate.refinement.dumpCounterexampleFile = "counterexample.smt2"
+cpa.predicate.refinement.dumpCounterexampleFile = "ErrorPath.%d.smt2"
 
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
@@ -869,9 +891,18 @@ cpa.predicate.replaceBitvectorWithRationalAndFunctionTheory = true
 # blocksize)
 cpa.predicate.satCheck = 0
 
+# Double check generated results like interpolants and models whether they
+# are correct
+cpa.predicate.smtinterpol.checkResults = true
+
 # Export solver queries in Smtlib format into a file.
 cpa.predicate.smtinterpol.logAllQueries = false
-cpa.predicate.smtinterpol.logfile = "smtinterpol.smt2"
+
+# Export interpolation queries in Smtlib format into a file.
+cpa.predicate.smtinterpol.logInterpolationQueries = false
+
+# Export solver queries in Smtlib format into a file.
+cpa.predicate.smtinterpol.logfile = "smtinterpol.%03d.smt2"
 
 # Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver
 cpa.predicate.solver = MATHSAT5
@@ -907,6 +938,10 @@ cpa.predicate.targetStateSatCheck = true
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
 
+# Generate invariants and strengthen the formulas during abstraction with
+# them.
+cpa.predicate.useInvariantsForAbstraction = false
+
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
 
@@ -941,6 +976,12 @@ cpa.uninitvars.stop = "sep"
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
+
+# generate invariants in parallel to the normal analysis
+invariantGeneration.async = false
+
+# configuration file for invariant generation
+invariantGeneration.config = no default value
 
 # Specify the class code path to search for java class or interface
 # definitions
@@ -993,6 +1034,9 @@ pcc.proofgen.doPCC = false
 # Qualified name for class which implements proof checking strategy to be
 # used.
 pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy"
+
+# number of cpus/cores which should be used in parallel for proof checking
+pcc.useCores = 1
 
 # print reached set to text file
 reachedSet.export = true

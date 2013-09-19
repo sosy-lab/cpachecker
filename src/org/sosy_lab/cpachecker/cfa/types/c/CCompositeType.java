@@ -127,9 +127,9 @@ public final class CCompositeType implements CComplexType {
     @Override
     public int hashCode() {
       final int prime = 31;
-      int result = 1;
-      result = prime * result + ((name == null) ? 0 : name.hashCode());
-      result = prime * result + ((type == null) ? 0 : type.hashCode());
+      int result = 7;
+      result = prime * result + Objects.hashCode(name);
+      result = prime * result + Objects.hashCode(type);
       return result;
     }
 
@@ -163,6 +163,10 @@ public final class CCompositeType implements CComplexType {
       return getType().toASTString(name) + ";";
     }
 
+    @Override
+    public String toString() {
+      return toASTString();
+    }
   }
 
   @Override
@@ -183,7 +187,13 @@ public final class CCompositeType implements CComplexType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(isConst);
+    result = prime * result + Objects.hashCode(isVolatile);
+    result = prime * result + Objects.hashCode(kind);
+    result = prime * result + Objects.hashCode(name);
+    return result;
   }
 
   /**
@@ -203,9 +213,8 @@ public final class CCompositeType implements CComplexType {
 
     CCompositeType other = (CCompositeType) obj;
 
-    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile)
-           && Objects.equals(kind, other.kind) && Objects.equals(name, other.name)
-           && Objects.equals(members, other.members);
+    return isConst == other.isConst && isVolatile == other.isVolatile
+           && kind == other.kind && Objects.equals(name, other.name);
   }
 
   @Override

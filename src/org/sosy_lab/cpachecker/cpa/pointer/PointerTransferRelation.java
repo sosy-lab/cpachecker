@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -489,38 +490,38 @@ public class PointerTransferRelation implements TransferRelation {
         handleAssume(element, unaryExpression.getOperand(), !isTrueBranch,
             assumeEdge);
 
-      } else if (unaryExpression.getOperator() == UnaryOperator.STAR) {
-        // if (*var)
-        String varName = expression.toASTString();
-        Pointer p = element.lookupPointer(varName);
-
-        if (p == null) {
-          throw new UnrecognizedCCodeException("Trying to dereference a non-pointer variable",
-              assumeEdge, expression);
-        }
-
-        boolean isNull = (p.contains(Memory.NULL_POINTER));
-        boolean isUninitialized = p.contains(Memory.UNINITIALIZED_POINTER);
-
-        if (isNull && p.getNumberOfTargets() == 1) {
-          addError("Trying to dereference a NULL pointer" , assumeEdge);
-        }
-
-        if (isUninitialized && p.getNumberOfTargets() == 1) {
-          // C actually allows this in special cases
-          addWarning("Trying to dereference an uninitialized pointer" , assumeEdge, varName);
-        }
-
-        if (isTrueBranch) {
-          // *p holds, i.e. *p != 0 holds, i.e. p cannot be NULL
-          element.pointerOpAssumeInequality(p, Memory.NULL_POINTER);
-        }
-
       } else {
 
         throw new UnrecognizedCCodeException("not expected in CIL", assumeEdge,
             expression);
       }
+    } else if (expression instanceof CPointerExpression) {
+      // if (*var)
+      String varName = expression.toASTString();
+      Pointer p = element.lookupPointer(varName);
+
+      if (p == null) {
+        throw new UnrecognizedCCodeException("Trying to dereference a non-pointer variable",
+            assumeEdge, expression);
+      }
+
+      boolean isNull = (p.contains(Memory.NULL_POINTER));
+      boolean isUninitialized = p.contains(Memory.UNINITIALIZED_POINTER);
+
+      if (isNull && p.getNumberOfTargets() == 1) {
+        addError("Trying to dereference a NULL pointer" , assumeEdge);
+      }
+
+      if (isUninitialized && p.getNumberOfTargets() == 1) {
+        // C actually allows this in special cases
+        addWarning("Trying to dereference an uninitialized pointer" , assumeEdge, varName);
+      }
+
+      if (isTrueBranch) {
+        // *p holds, i.e. *p != 0 holds, i.e. p cannot be NULL
+        element.pointerOpAssumeInequality(p, Memory.NULL_POINTER);
+      }
+
     } else if (expression instanceof CIdExpression) {
       // if (a)
       String varName = ((CIdExpression)expression).getName();
@@ -750,7 +751,7 @@ public class PointerTransferRelation implements TransferRelation {
       // func()
       // ignore
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression.asStatement());
+      throw new UnrecognizedCCodeException("unknown statement", cfaEdge, expression);
     }
 
     // check for memory leaks
@@ -794,7 +795,7 @@ public class PointerTransferRelation implements TransferRelation {
       handleAssignmentStatement(element, (CAssignment)expression, cfaEdge);
 
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+      throw new UnrecognizedCCodeException("unknown statement", cfaEdge, expression);
     }
   }
 
@@ -911,70 +912,67 @@ public class PointerTransferRelation implements TransferRelation {
 
     } else if (leftExpression instanceof CUnaryExpression) {
 
-      CUnaryExpression unaryExpression = (CUnaryExpression)leftExpression;
-      if (unaryExpression.getOperator() == UnaryOperator.STAR) {
-        // *a
-        leftDereference = true;
+        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
+            leftExpression);
 
-        leftExpression = unaryExpression.getOperand();
+    } else if (leftExpression instanceof CPointerExpression) {
+      // *a
+      leftDereference = true;
+      CPointerExpression pointerExpression = (CPointerExpression) leftExpression;
+      leftExpression = pointerExpression.getOperand();
 
-        boolean leftCast = false;
-        if (leftExpression instanceof CCastExpression) {
-          leftCast = true;
-          leftExpression = ((CCastExpression)leftExpression).getOperand();
-        }
+      boolean leftCast = false;
+      if (leftExpression instanceof CCastExpression) {
+        leftCast = true;
+        leftExpression = ((CCastExpression)leftExpression).getOperand();
+      }
 
-        if (!(leftExpression instanceof CIdExpression)) {
-          // not a variable at left hand side
-          throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
-              leftExpression);
-        }
+      if (!(leftExpression instanceof CIdExpression)) {
+        // not a variable at left hand side
+        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
+            leftExpression);
+      }
 
-        leftPointer = element.lookupPointer(leftExpression.toASTString());
-        leftVarName = leftExpression.toASTString();
-        if (leftPointer == null) {
-          element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
-          if (!leftCast) {
-            throw new UnrecognizedCCodeException("dereferencing a non-pointer",
-                cfaEdge, leftExpression);
-          } else {
-            addWarning("Casting non-pointer value "
-                + leftExpression.toASTString()
-                + " to pointer and dereferencing it", cfaEdge, leftExpression
-                .toASTString());
-          }
-
+      leftPointer = element.lookupPointer(leftExpression.toASTString());
+      leftVarName = leftExpression.toASTString();
+      if (leftPointer == null) {
+        element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
+        if (!leftCast) {
+          throw new UnrecognizedCCodeException("dereferencing a non-pointer",
+              cfaEdge, leftExpression);
         } else {
-
-          if (!leftPointer.isDereferencable()) {
-            element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
-            throw new InvalidPointerException("Unsafe deref of pointer "
-                + leftPointer.getLocation() + " = " + leftPointer);
-            }
-
-          if (!leftPointer.isSafe()) {
-            element.addProperty(ElementProperty.POTENTIALLY_UNSAFE_DEREFERENCE);
-            addWarning("Potentially unsafe deref of pointer "
-                + leftPointer.getLocation() + " = " + leftPointer, cfaEdge,
-                unaryExpression.toASTString());
-
-            // if program continues after deref, pointer did not contain NULL, INVALID or UNINITIALIZED
-            element.pointerOpAssumeInequality(leftPointer, Memory.NULL_POINTER);
-            element.pointerOpAssumeInequality(leftPointer,
-                Memory.INVALID_POINTER);
-            element.pointerOpAssumeInequality(leftPointer,
-                Memory.UNINITIALIZED_POINTER);
-          }
-
-          if (!leftPointer.isPointerToPointer()) {
-            // other pointers are not of interest to us
-            leftPointer = null;
-          }
+          addWarning("Casting non-pointer value "
+              + leftExpression.toASTString()
+              + " to pointer and dereferencing it", cfaEdge, leftExpression
+              .toASTString());
         }
 
       } else {
-        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
-            unaryExpression);
+
+        if (!leftPointer.isDereferencable()) {
+          element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
+          throw new InvalidPointerException("Unsafe deref of pointer "
+              + leftPointer.getLocation() + " = " + leftPointer);
+        }
+
+        if (!leftPointer.isSafe()) {
+          element.addProperty(ElementProperty.POTENTIALLY_UNSAFE_DEREFERENCE);
+          addWarning("Potentially unsafe deref of pointer "
+              + leftPointer.getLocation() + " = " + leftPointer, cfaEdge,
+              pointerExpression.toASTString());
+
+          // if program continues after deref, pointer did not contain NULL, INVALID or UNINITIALIZED
+          element.pointerOpAssumeInequality(leftPointer, Memory.NULL_POINTER);
+          element.pointerOpAssumeInequality(leftPointer,
+              Memory.INVALID_POINTER);
+          element.pointerOpAssumeInequality(leftPointer,
+              Memory.UNINITIALIZED_POINTER);
+        }
+
+        if (!leftPointer.isPointerToPointer()) {
+          // other pointers are not of interest to us
+          leftPointer = null;
+        }
       }
     } else {
       // TODO fields, arrays
@@ -1081,7 +1079,7 @@ public class PointerTransferRelation implements TransferRelation {
 
           if (!(typeOfOperator == BinaryOperator.PLUS
               || typeOfOperator == BinaryOperator.MINUS)) {
-            throw new UnrecognizedCCodeException(cfaEdge, binExpression);
+            throw new UnrecognizedCCodeException("unknown operator for pointer arithmetic", cfaEdge, binExpression);
           }
 
           if (op2 instanceof CLiteralExpression) {
@@ -1158,91 +1156,91 @@ public class PointerTransferRelation implements TransferRelation {
 
         }
 
-      } else if (op == UnaryOperator.STAR) {
-        // a = *b
-
-        expression = unaryExpression.getOperand();
-
-        boolean rightCast = false;
-        if (expression instanceof CCastExpression) {
-          rightCast = true;
-          expression = ((CCastExpression)expression).getOperand();
-        }
-
-        if (!(expression instanceof CIdExpression)) {
-          // not a variable at left hand side
-          throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
-              expression);
-        }
-
-        Pointer rightPointer =
-            element.lookupPointer(expression.toASTString());
-
-        if (rightPointer == null) {
-
-          if (!rightCast) {
-            throw new UnrecognizedCCodeException("dereferencing a non-pointer",
-                cfaEdge, expression);
-          } else {
-            addWarning("Casting non-pointer value "
-                + expression.toASTString()
-                + " to pointer and dereferencing it", cfaEdge, expression
-                .toASTString());
-          }
-
-        } else {
-
-          if (!rightPointer.isDereferencable()) {
-            element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
-            throw new InvalidPointerException("Unsafe deref of pointer "
-                                              + rightPointer.getLocation()
-                                              + " = " + rightPointer);
-          }
-
-          if (!rightPointer.isSafe()) {
-            element.addProperty(ElementProperty.POTENTIALLY_UNSAFE_DEREFERENCE);
-            addWarning("Potentially unsafe deref of pointer "
-                + rightPointer.getLocation() + " = " + rightPointer, cfaEdge,
-                unaryExpression.toASTString());
-
-            // if program continues after deref, pointer did not contain NULL or INVALID or UNINITIALIZED
-            element
-                .pointerOpAssumeInequality(rightPointer, Memory.NULL_POINTER);
-            element.pointerOpAssumeInequality(rightPointer,
-                Memory.INVALID_POINTER);
-            element.pointerOpAssumeInequality(rightPointer,
-                Memory.UNINITIALIZED_POINTER);
-          }
-
-          if (leftPointer != null) {
-            if (!rightPointer.isPointerToPointer()) {
-              if (element.isPointerVariable(leftPointer.getLocation())) {
-                addWarning("Assigning non-pointer value "
-                    + unaryExpression.toASTString() + " to pointer "
-                    + leftPointer.getLocation(), cfaEdge, expression
-                    .toASTString());
-
-                element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER),
-                    leftPointer, leftDereference);
-
-              } else {
-                // left hand side is a non-pointer variable which temporarily stored a pointer value
-                element.removeTemporaryTracking(leftPointer.getLocation());
-              }
-
-            } else {
-              element.pointerOp(new Pointer.DerefAndAssign(rightPointer),
-                  leftPointer, leftDereference);
-            }
-
-          } else {
-            // ignore assignment to non-pointer variable
-          }
-        }
-
       } else {
         throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
             unaryExpression);
+      }
+
+    } else if (expression instanceof CPointerExpression) {
+     // a = *b
+      CPointerExpression pointerExpression = (CPointerExpression) expression;
+      expression = pointerExpression.getOperand();
+
+      boolean rightCast = false;
+      if (expression instanceof CCastExpression) {
+        rightCast = true;
+        expression = ((CCastExpression)expression).getOperand();
+      }
+
+      if (!(expression instanceof CIdExpression)) {
+        // not a variable at left hand side
+        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
+            expression);
+      }
+
+      Pointer rightPointer =
+          element.lookupPointer(expression.toASTString());
+
+      if (rightPointer == null) {
+
+        if (!rightCast) {
+          throw new UnrecognizedCCodeException("dereferencing a non-pointer",
+              cfaEdge, expression);
+        } else {
+          addWarning("Casting non-pointer value "
+              + expression.toASTString()
+              + " to pointer and dereferencing it", cfaEdge, expression
+              .toASTString());
+        }
+
+      } else {
+
+        if (!rightPointer.isDereferencable()) {
+          element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
+          throw new InvalidPointerException("Unsafe deref of pointer "
+              + rightPointer.getLocation()
+              + " = " + rightPointer);
+        }
+
+        if (!rightPointer.isSafe()) {
+          element.addProperty(ElementProperty.POTENTIALLY_UNSAFE_DEREFERENCE);
+          addWarning("Potentially unsafe deref of pointer "
+              + rightPointer.getLocation() + " = " + rightPointer, cfaEdge,
+              pointerExpression.toASTString());
+
+          // if program continues after deref, pointer did not contain NULL or INVALID or UNINITIALIZED
+          element
+              .pointerOpAssumeInequality(rightPointer, Memory.NULL_POINTER);
+          element.pointerOpAssumeInequality(rightPointer,
+              Memory.INVALID_POINTER);
+          element.pointerOpAssumeInequality(rightPointer,
+              Memory.UNINITIALIZED_POINTER);
+        }
+
+        if (leftPointer != null) {
+          if (!rightPointer.isPointerToPointer()) {
+            if (element.isPointerVariable(leftPointer.getLocation())) {
+              addWarning("Assigning non-pointer value "
+                  + pointerExpression.toASTString() + " to pointer "
+                  + leftPointer.getLocation(), cfaEdge, expression
+                  .toASTString());
+
+              element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER),
+                  leftPointer, leftDereference);
+
+            } else {
+              // left hand side is a non-pointer variable which temporarily stored a pointer value
+              element.removeTemporaryTracking(leftPointer.getLocation());
+            }
+
+          } else {
+            element.pointerOp(new Pointer.DerefAndAssign(rightPointer),
+                leftPointer, leftDereference);
+          }
+
+        } else {
+          // ignore assignment to non-pointer variable
+        }
       }
 
     } else if (expression instanceof CIdExpression) {

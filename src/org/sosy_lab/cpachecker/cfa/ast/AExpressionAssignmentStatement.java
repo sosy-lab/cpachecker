@@ -28,10 +28,10 @@ import java.util.Objects;
 
 public abstract class AExpressionAssignmentStatement extends AStatement implements IAssignment {
 
-  private final IAExpression leftHandSide;
+  private final IALeftHandSide leftHandSide;
   private final IAExpression rightHandSide;
 
-  public AExpressionAssignmentStatement(FileLocation pFileLocation, IAExpression pLeftHandSide,
+  public AExpressionAssignmentStatement(FileLocation pFileLocation, IALeftHandSide pLeftHandSide,
       IAExpression pRightHandSide) {
     super(pFileLocation);
     leftHandSide = pLeftHandSide;
@@ -45,18 +45,13 @@ public abstract class AExpressionAssignmentStatement extends AStatement implemen
   }
 
   @Override
-  public IAExpression getLeftHandSide() {
+  public IALeftHandSide getLeftHandSide() {
     return leftHandSide;
   }
 
   @Override
   public IAExpression getRightHandSide() {
     return rightHandSide;
-  }
-
-  @Override
-  public IAStatement asStatement() {
-    return this;
   }
 
   @Override

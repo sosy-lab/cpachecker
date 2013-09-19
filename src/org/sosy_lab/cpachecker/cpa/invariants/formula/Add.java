@@ -28,7 +28,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class Add<ConstantType> implements InvariantsFormula<ConstantType> {
+public class Add<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
   /**
    * The first summand of the addition.
@@ -82,7 +82,7 @@ public class Add<ConstantType> implements InvariantsFormula<ConstantType> {
   }
 
   @Override
-  public int hashCode() {
+  protected int hashCodeInternal() {
     return getSummand1().hashCode() + getSummand2().hashCode();
   }
 

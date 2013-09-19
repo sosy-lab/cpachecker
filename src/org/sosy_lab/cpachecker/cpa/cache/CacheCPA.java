@@ -127,7 +127,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public ImmutableList<? extends ConfigurableProgramAnalysis> getWrappedCPAs() {
+  public ImmutableList<ConfigurableProgramAnalysis> getWrappedCPAs() {
     return ImmutableList.of(mCachedCPA);
   }
 }

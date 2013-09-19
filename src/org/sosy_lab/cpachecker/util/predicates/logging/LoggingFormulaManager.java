@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.logging;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -76,8 +77,8 @@ public class LoggingFormulaManager implements FormulaManager {
   }
 
   @Override
-  public <T extends Formula> T parse(Class<T> clazz, String s) throws IllegalArgumentException {
-    return wrapped.parse(clazz, s);
+  public BooleanFormula parse(String s) throws IllegalArgumentException {
+    return wrapped.parse(s);
   }
 
   @Override

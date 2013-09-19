@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
 
 /**
  * Instances of this class are parameterized compound state invariants formula
- * visitors used for determining whether a visited formula represents the same
+ * visitors used to determine whether a visited formula represents the same
  * state as the formula given as the second parameter in the context of the
  * environment provided by the visitor.
  */
@@ -301,14 +301,19 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
 
   @Override
   public Boolean visit(Variable<CompoundState> pVariable, InvariantsFormula<CompoundState> pOther) {
+    if (pVariable.equals(pOther)) {
+      return true;
+    }
     String leftVarName = pVariable.getName();
     InvariantsFormula<CompoundState> resolvedLeft = this.environment.get(leftVarName);
+    resolvedLeft = resolvedLeft == null ? CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.top()) : resolvedLeft;
     if (pOther instanceof Variable<?>) {
       String rightVarName = ((Variable<?>) pOther).getName();
       if (leftVarName.equals(rightVarName)) {
         return true;
       }
       InvariantsFormula<CompoundState> resolvedRight = this.environment.get(rightVarName);
+      resolvedRight = resolvedRight == null ? CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.top()) : resolvedRight;
       if (resolvedLeft.accept(this, resolvedRight)) {
         return true;
       }

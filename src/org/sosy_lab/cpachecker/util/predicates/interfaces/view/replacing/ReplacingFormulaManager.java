@@ -180,14 +180,12 @@ public class ReplacingFormulaManager implements FormulaManager {
   }
 
   @Override
-  public <T extends Formula> T parse(Class<T> pClazz, String pS) throws IllegalArgumentException {
-    if (replacedBitvectorTheory && BitvectorFormula.class == pClazz
-      || replacedRationalTheory && RationalFormula.class == pClazz
-      || replacedBooleanTheory && BooleanFormula.class == pClazz) {
+  public BooleanFormula parse(String pS) throws IllegalArgumentException {
+    if (replacedBooleanTheory) {
       throw new IllegalArgumentException("Can't parse a replaced theory, please change the replacement settings");
     }
 
-    return rawFormulaManager.parse(pClazz, pS);
+    return rawFormulaManager.parse(pS);
   }
 
   @Override

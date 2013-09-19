@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.abm;
 
 import static com.google.common.base.Preconditions.checkState;
-import static org.sosy_lab.cpachecker.util.StatisticsUtils.toPercent;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
 import java.io.PrintStream;
 

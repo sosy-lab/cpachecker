@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
-import static org.sosy_lab.cpachecker.util.StatisticsUtils.toPercent;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -97,6 +98,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
 
   private final FCStatistics stats = new FCStatistics();
   private final LogManager logger;
+  private final ARGCPA argCpa;
 
   private final ForcedCoveringStopOperator stop;
 
@@ -109,11 +111,11 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     logger = pLogger;
 
-    if (pCpa.getStopOperator() instanceof ForcedCoveringStopOperator) {
-      stop = (ForcedCoveringStopOperator) pCpa.getStopOperator();
-    } else {
-      throw new InvalidConfigurationException(PredicateForcedCovering.class.getSimpleName() + " needs a CPA with support for forced coverings");
+    if (!(pCpa instanceof ARGCPA)) {
+      throw new InvalidConfigurationException(PredicateForcedCovering.class.getSimpleName() + " needs an ARGCPA");
     }
+    argCpa = (ARGCPA)pCpa;
+    stop = argCpa.getStopOperator();
 
     PredicateCPA predicateCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(PredicateCPA.class);
     if (predicateCpa == null) {
@@ -152,7 +154,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     logger.log(Level.FINER, "Starting interpolation-based forced covering.");
     logger.log(Level.ALL, "Attempting to force-cover", argState);
 
-    ARGReachedSet arg = new ARGReachedSet(pReached);
+    ARGReachedSet arg = new ARGReachedSet(pReached, argCpa);
 
     List<ARGState> parentList = getAbstractionPathTo(argState);
     for (final AbstractState coveringCandidate : pReached.getReached(pState)) {

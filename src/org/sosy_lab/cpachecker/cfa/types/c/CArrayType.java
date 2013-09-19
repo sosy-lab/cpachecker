@@ -86,7 +86,13 @@ public class CArrayType extends AArrayType implements CType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(length);
+    result = prime * result + Objects.hashCode(isConst);
+    result = prime * result + Objects.hashCode(isVolatile);
+    result = prime * result + super.hashCode();
+    return result;
   }
 
 
@@ -117,7 +123,7 @@ public class CArrayType extends AArrayType implements CType {
       }
     }
 
-    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile);
+    return isConst == other.isConst && isVolatile == other.isVolatile;
   }
 
   @Override

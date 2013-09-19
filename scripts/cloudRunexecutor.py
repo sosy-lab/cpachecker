@@ -11,13 +11,13 @@ CORELIMIT = runexecutor.CORELIMIT
 def main(argv=None):
     if argv is None:
         argv = sys.argv
-        
+
         #sys.stderr.write(str(argv)+"\n")
 
     if len(argv) >= 5 and len(argv) <=6:
-        
+
         rlimits={}
-        
+
         #"  " -> replace with " " and " " -> split at this position
         argStr = argv[1]
         args = []
@@ -39,9 +39,9 @@ def main(argv=None):
                 else:
                     tmp += c
                     lastWasWhiteSpace = False
-        
+
         args.append(tmp)
-            
+
         if(not (argv[2]=="-1" or argv[2]=="None")):
             rlimits[MEMLIMIT] = int(argv[2])
         rlimits[TIMELIMIT] = int(argv[3])
@@ -62,9 +62,9 @@ def main(argv=None):
 
 def signal_handler_kill_script(signum, frame):
     runexecutor.killAllProcesses()
-        
+
 if __name__ == "__main__":
-    
+
     signal.signal(signal.SIGTERM, signal_handler_kill_script)
-    
+
     main()

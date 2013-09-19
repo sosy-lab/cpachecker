@@ -44,6 +44,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -55,7 +56,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-@Options
+@Options()
 public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvider {
 
   protected LogManager logger;
@@ -67,8 +68,16 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   @FileOption(FileOption.Type.OUTPUT_FILE)
   protected File file = new File("arg.obj");
 
+  @Option(
+      name = "pcc.useCores",
+      description = "number of cpus/cores which should be used in parallel for proof checking")
+  @IntegerOption(min=1)
+  protected int numThreads = 1;
+
   public AbstractStrategy(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
-    pConfig.inject(this);
+    pConfig.inject(this, AbstractStrategy.class);
+    numThreads = Math.max(1, numThreads);
+    numThreads = Math.min(Runtime.getRuntime().availableProcessors(), numThreads);
     logger = pLogger;
     stats = new PCStrategyStatistics();
   }

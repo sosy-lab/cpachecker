@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -32,15 +33,19 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -58,11 +63,11 @@ import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 import com.google.common.collect.Multimap;
 
@@ -71,7 +76,7 @@ import com.google.common.collect.Multimap;
  * and if this fails, optionally delegates also to {@link PredicatingExplicitRefiner}.
  */
 @Options(prefix="cpa.explicit.refiner")
-public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
+public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implements Statistics, StatisticsProvider {
   /**
    * the flag to determine if initial refinement was done already
    */
@@ -97,6 +102,29 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    */
   private int previousErrorPathID = -1;
 
+  /**
+   * the flag to determine whether or not to check for repeated refinements
+   */
+  @Option(description="whether or not to check for repeated refinements, to then reset the refinement root")
+  private boolean checkForRepeatedRefinements = true;
+
+  // statistics
+  private int numberOfExplicitRefinements           = 0;
+  private int numberOfPredicateRefinements          = 0;
+  private int numberOfSuccessfulExplicitRefinements = 0;
+
+  /**
+   * the identifier which is used to identify repeated refinements
+   */
+  private int previousRefinementId = 0;
+
+  /**
+   * the current machine model
+   */
+  private final MachineModel machineModel;
+
+  private final LogManager logger;
+
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(DelegatingExplicitRefiner.class.getSimpleName() + " could not find the ExplicitCPA");
@@ -113,82 +141,89 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     return refiner;
   }
 
+  private static PredicateCPARefiner createBackupRefiner(final Configuration config,
+        final LogManager logger, final ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
+
+    PredicateCPA predicateCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
+
+    if (predicateCpa == null) {
+      return null;
+    }
+
+    else {
+        FormulaManagerFactory factory               = predicateCpa.getFormulaManagerFactory();
+        FormulaManagerView formulaManager           = predicateCpa.getFormulaManager();
+        Solver solver                               = predicateCpa.getSolver();
+        PathFormulaManager pathFormulaManager       = predicateCpa.getPathFormulaManager();
+        PredicateStaticRefiner extractor            = predicateCpa.getStaticRefiner();
+
+        InterpolationManager manager = new InterpolationManager(
+            formulaManager,
+            pathFormulaManager,
+            solver,
+            factory,
+            config,
+            logger);
+
+        PathChecker pathChecker = new PathChecker(logger, pathFormulaManager, solver);
+
+        RefinementStrategy backupRefinementStrategy = new PredicateAbstractionRefinementStrategy(
+            config,
+            logger,
+            formulaManager,
+            predicateCpa.getPredicateManager(),
+            extractor,
+            solver);
+
+        return new PredicateCPARefiner(
+            config,
+            logger,
+            cpa,
+            manager,
+            pathChecker,
+            formulaManager,
+            pathFormulaManager,
+            backupRefinementStrategy);
+      }
+  }
+
   private static DelegatingExplicitRefiner initialiseExplicitRefiner(
       ConfigurableProgramAnalysis cpa, ExplicitCPA explicitCpa)
           throws CPAException, InvalidConfigurationException {
-    Configuration config                        = explicitCpa.getConfiguration();
-    LogManager logger                           = explicitCpa.getLogger();
-
-    PathFormulaManager pathFormulaManager;
-    PredicateCPARefiner backupRefiner    = null;
-
-    PredicateCPA predicateCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
-    if (predicateCpa != null) {
-
-      FormulaManagerFactory factory               = predicateCpa.getFormulaManagerFactory();
-      FormulaManagerView formulaManager           = predicateCpa.getFormulaManager();
-      Solver solver                               = predicateCpa.getSolver();
-      pathFormulaManager                          = predicateCpa.getPathFormulaManager();
-      PredicateStaticRefiner extractor            = predicateCpa.getStaticRefiner();
-
-      InterpolationManager manager = new InterpolationManager(
-          formulaManager,
-          pathFormulaManager,
-          solver,
-          factory,
-          config,
-          logger);
-
-      RefinementStrategy backupRefinementStrategy = new PredicateAbstractionRefinementStrategy(
-          config,
-          logger,
-          formulaManager,
-          predicateCpa.getPredicateManager(),
-          solver);
-
-      backupRefiner = new PredicateCPARefiner(
-          config,
-          logger,
-          cpa,
-          manager,
-          formulaManager,
-          pathFormulaManager,
-          backupRefinementStrategy,
-          extractor);
-
-    } else {
-      FormulaManagerFactory factory         = new FormulaManagerFactory(config, logger);
-      FormulaManagerView formulaManager     = new FormulaManagerView(factory.getFormulaManager(), config, logger);
-      pathFormulaManager                    = new PathFormulaManagerImpl(formulaManager, config, logger, explicitCpa.getMachineModel());
-    }
+    Configuration config              = explicitCpa.getConfiguration();
+    LogManager logger                 = explicitCpa.getLogger();
+    PredicateCPARefiner backupRefiner = createBackupRefiner(config, logger, cpa);
 
     return new DelegatingExplicitRefiner(
         config,
         logger,
         cpa,
-        pathFormulaManager,
         backupRefiner,
-        explicitCpa.getStaticRefiner());
+        explicitCpa.getStaticRefiner(),
+        explicitCpa.getMachineModel());
   }
 
   protected DelegatingExplicitRefiner(
-      final Configuration config,
-      final LogManager logger,
-      final ConfigurableProgramAnalysis cpa,
-      final PathFormulaManager pathFormulaManager,
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ConfigurableProgramAnalysis pCpa,
       @Nullable final PredicateCPARefiner pBackupRefiner,
-      ExplicitStaticRefiner explicitStaticRefiner) throws CPAException, InvalidConfigurationException {
-    super(cpa);
-    config.inject(this);
+      ExplicitStaticRefiner pExplicitStaticRefiner,
+      final MachineModel pMachineModel) throws CPAException, InvalidConfigurationException {
+    super(pCpa);
+    pConfig.inject(this);
 
-    interpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(config, pathFormulaManager);
+    interpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(pConfig, pLogger, pMachineModel);
     predicatingRefiner    = pBackupRefiner;
-    staticRefiner         = explicitStaticRefiner;
+    staticRefiner         = pExplicitStaticRefiner;
+    machineModel          = pMachineModel;
+    logger                = pLogger;
   }
 
   @Override
   protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath errorPath)
       throws CPAException, InterruptedException {
+
     // if path is infeasible, try to refine the precision
     if (!isPathFeasable(errorPath)) {
       if (performExplicitRefinement(reached, errorPath)) {
@@ -196,13 +231,13 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       }
     }
 
-    // if explicit analysis claims that path is feasible, or if explicit refinement failed,
-    // refine with predicate analysis if available
-    if (predicatingRefiner == null) {
-      return CounterexampleInfo.feasible(errorPath, null);
-    }
-    else {
+    if(predicatingRefiner != null) {
+      numberOfPredicateRefinements++;
       return predicatingRefiner.performRefinement(reached, errorPath);
+    }
+
+    else {
+      return CounterexampleInfo.feasible(errorPath, null);
     }
   }
 
@@ -211,9 +246,12 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    *
    * @param reached the current reached set
    * @param errorPath the current error path
+   * @returns true, if the explicit refinement was successful, else false
    * @throws CPAException when explicit interpolation fails
    */
   private boolean performExplicitRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException {
+    numberOfExplicitRefinements++;
+
     UnmodifiableReachedSet reachedSet   = reached.asReachedSet();
     Precision precision                 = reachedSet.getPrecision(reachedSet.getLastState());
     ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
@@ -223,17 +261,26 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(2);
 
     ExplicitPrecision refinedExplicitPrecision;
-    Pair<ARGState, CFAEdge> interpolationPoint;
+    Pair<ARGState, CFAEdge> refinementRoot;
 
     if (!initialStaticRefinementDone && staticRefiner != null) {
-      interpolationPoint          = errorPath.get(1);
+      refinementRoot              = errorPath.get(1);
       refinedExplicitPrecision    = staticRefiner.extractPrecisionFromCfa();
       initialStaticRefinementDone = true;
     }
     else {
       Multimap<CFANode, String> increment = interpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
+      refinementRoot                      = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
 
-      interpolationPoint        = interpolatingRefiner.determineInterpolationPoint(errorPath, increment);
+      // no increment - explicit refinement was not successful
+      if(increment.isEmpty()) {
+        return false;
+      }
+
+      // if two subsequent refinements are similar (based on some fancy heuristic), choose a different refinement root
+      if(checkForRepeatedRefinements && isRepeatedRefinement(increment, refinementRoot)) {
+        refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
+      }
 
       //      if (explicitPrecision != null) { // TODO ExplicitRefiner without ExplicitPresicion, possible?
       refinedExplicitPrecision  = new ExplicitPrecision(explicitPrecision, increment);
@@ -248,13 +295,29 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       }
     }
 
-    if (refinementSuccessful(errorPath, explicitPrecision, refinedExplicitPrecision)) {
-      reached.removeSubtree(interpolationPoint.getFirst(), refinedPrecisions, newPrecisionTypes);
+    if (explicitRefinementWasSuccessful(errorPath, explicitPrecision, refinedExplicitPrecision)) {
+      numberOfSuccessfulExplicitRefinements++;
+      reached.removeSubtree(refinementRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
       return true;
     }
     else {
       return false;
     }
+  }
+
+  /**
+   * The not-so-fancy heuristic to determine if two subsequent refinements are similar
+   *
+   * @param increment the precision increment
+   * @param refinementRoot the current refinement root
+   * @return true, if the current refinement is found to be similar to the previous one, else false
+   */
+  private boolean isRepeatedRefinement(Multimap<CFANode, String> increment, Pair<ARGState, CFAEdge> refinementRoot) {
+    int currentRefinementId = refinementRoot.getSecond().getLineNumber();
+    boolean result          = (previousRefinementId == currentRefinementId);
+    previousRefinementId    = currentRefinementId;
+
+    return result;
   }
 
   /**
@@ -268,7 +331,8 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    * @param explicitPrecision the previous precision
    * @param refinedExplicitPrecision the refined precision
    */
-  private boolean refinementSuccessful(ARGPath errorPath, ExplicitPrecision explicitPrecision, ExplicitPrecision refinedExplicitPrecision) {
+  private boolean explicitRefinementWasSuccessful(ARGPath errorPath, ExplicitPrecision explicitPrecision,
+      ExplicitPrecision refinedExplicitPrecision) {
     // new error path or precision refined -> success
     boolean success = (errorPath.toString().hashCode() != previousErrorPathID)
         || (refinedExplicitPrecision.getSize() > explicitPrecision.getSize());
@@ -280,10 +344,23 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(this);
     pStatsCollection.add(interpolatingRefiner);
     if (predicatingRefiner != null) {
       predicatingRefiner.collectStatistics(pStatsCollection);
     }
+  }
+
+  @Override
+  public String getName() {
+    return "Delegating Explicit-Interpolation-Based Refiner";
+  }
+
+  @Override
+  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    out.println("  number of explicit refinements:                      " + numberOfExplicitRefinements);
+    out.println("  number of successful explicit refinements:           " + numberOfSuccessfulExplicitRefinements);
+    out.println("  number of predicate refinements:                     " + numberOfPredicateRefinements);
   }
 
   /**
@@ -293,10 +370,10 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    * @return true, if the path is feasible, else false
    * @throws CPAException if the path check gets interrupted
    */
-  private boolean isPathFeasable(ARGPath path) throws CPAException {
+  boolean isPathFeasable(ARGPath path) throws CPAException {
     try {
       // create a new ExplicitPathChecker, which does not track any of the given variables
-      ExplictFeasibilityChecker checker = new ExplictFeasibilityChecker();
+      ExplictFeasibilityChecker checker = new ExplictFeasibilityChecker(logger, machineModel);
 
       return checker.isFeasible(path);
     }

@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -485,13 +487,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     // set result of function equal to variable on left side
-    CStatement call = summaryExpr.asStatement();
     final Partition partition = varClass.getPartitionForEdge(cfaEdge);
     final int size = partitionToBitsize(partition);
 
     // handle assignments like "y = f(x);"
-    if (call instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) call;
+    if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) summaryExpr;
       CExpression lhs = cAssignment.getLeftHandSide();
 
       // make variable (predicate) for LEFT SIDE of assignment,
@@ -507,7 +508,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       // LAST ACTION: delete varname of right side
       newRegion = removePredicate(newRegion, retVar);
 
-    } else if (call instanceof CFunctionCallStatement) {
+    } else if (summaryExpr instanceof CFunctionCallStatement) {
       final Region[] retVar = createPredicates(functionName, FUNCTION_RETURN_VARIABLE, size);
       newRegion = removePredicate(newRegion, retVar);
 
@@ -650,9 +651,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   /** This function returns a region without a variable. */
   private Region removePredicate(final Region region, @Nullable final Region... existing) {
-    if (existing == null) {
-      return region;
-    }
+    if (existing == null) { return region; }
     return rmgr.makeExists(region, existing);
   }
 
@@ -683,10 +682,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * For a boolean var the value is 1.
    *
    * Compression for IntEqual-vars:
-   * For N different values of M different variables
-   * there are N+M possible values for a var
+   * For N different values (maybe plus 2 for additional Zero and One)
+   * of M different variables there are N+M possible values for a variable
    * (one for each value and one for each (maybe uninitialized) variable).
-   * For N+1 different values we need at least log_2(N+1) bits in the representation. */
+   * For N+M different values we need at least log_2(N+M) bits in the representation. */
   private int partitionToBitsize(Partition partition) {
     if (partition == null) {
       // we know nothing about the partition, so do not track it with BDDCPA
@@ -694,9 +693,16 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     } else if (varClass.getBooleanPartitions().contains(partition)) {
       return 1;
     } else if (compressIntEqual && varClass.getIntEqualPartitions().contains(partition)) {
-      int N = partition.getValues().size();
+      final Set<BigInteger> values = partition.getValues();
+      int N = values.size();
+      if (!values.contains(BigInteger.ZERO)) {
+        N++;
+      }
+      if (!values.contains(BigInteger.ONE)) {
+        N++;
+      }
       int M = partition.getVars().size();
-      return (int) Math.ceil(Math.log(N+M) / Math.log(2));
+      return (int) Math.ceil(Math.log(N + M) / Math.log(2));
     } else {
       return bitsize;
     }
@@ -827,6 +833,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     @Override
+    public Region[] visit(CComplexCastExpression exp) {
+      // TODO complex numbers are not supported for evaluation right now
+      return null;
+    }
+
+    @Override
     public Region[] visit(CIdExpression exp) {
       return makePredicate(exp);
     }
@@ -845,9 +857,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
       // for numeral values
       BigInteger val = VariableClassification.getNumber(exp);
-      if (compress && val != null) {
-        return mapIntToRegions(val, partition);
-      }
+      if (compress && val != null) { return mapIntToRegions(val, partition); }
 
       // for vars
       Region[] operand = exp.getOperand().accept(this);
@@ -871,6 +881,22 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
         // *exp --> don't know anything
       }
       return returnValue;
+    }
+
+    @Override
+    public Region[] visit(CPointerExpression exp) {
+
+      // for numeral values
+      BigInteger val = VariableClassification.getNumber(exp);
+      if (compress && val != null) { return mapIntToRegions(val, partition); }
+
+      // for vars
+      Region[] operand = exp.getOperand().accept(this);
+      if (operand == null) { return null; }
+
+
+      // *exp --> don't know anything
+      return null;
     }
 
     @Override
@@ -918,6 +944,13 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     @Override
+    public Boolean visit(CComplexCastExpression exp) {
+      // TODO check if only the part of the operand should be evaluated which the
+      // expression casts to
+      return exp.getOperand().accept(this);
+    }
+
+    @Override
     public Boolean visit(CFieldReference exp) {
       return handle(exp, functionName);
     }
@@ -929,6 +962,11 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     @Override
     public Boolean visit(CUnaryExpression exp) {
+      return exp.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CPointerExpression exp) {
       return exp.getOperand().accept(this);
     }
 
@@ -955,7 +993,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     int numOfBooleans = varClass.getBooleanVars().size();
 
     int numOfIntEquals = 0;
-    final Set<Partition> realIntEquals= Sets.difference(intEquals, booleans);
+    final Set<Partition> realIntEquals = Sets.difference(intEquals, booleans);
     for (Partition p : realIntEquals) {
       numOfIntEquals += p.getVars().size();
     }

@@ -30,7 +30,7 @@ import com.google.common.base.Preconditions;
  *
  * @param <T> the type of the constant value.
  */
-public class Constant<T> implements InvariantsFormula<T> {
+public class Constant<T> extends AbstractFormula<T> implements InvariantsFormula<T> {
 
   /**
    * The value of the constant.
@@ -73,7 +73,7 @@ public class Constant<T> implements InvariantsFormula<T> {
   }
 
   @Override
-  public int hashCode() {
+  protected int hashCodeInternal() {
     return getValue().hashCode();
   }
 

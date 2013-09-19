@@ -33,12 +33,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
@@ -48,7 +49,6 @@ import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -89,11 +89,11 @@ public class ExplicitInterpolator {
   /**
    * This method acts as the constructor of the class.
    */
-  public ExplicitInterpolator() throws CPAException {
+  public ExplicitInterpolator(final LogManager pLogger, final MachineModel pMachineModel) throws CPAException {
     try {
       config      = Configuration.builder().build();
-      transfer    = new ExplicitTransferRelation(config);
-      precision   = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
+      transfer    = new ExplicitTransferRelation(config, pLogger, pMachineModel);
+      precision   = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
     }
     catch (InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);

@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -43,8 +46,11 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithABM {
+public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithABM, ProofChecker{
 
   private FunctionPointerDomain abstractDomain;
   private MergeOperator mergeOperator;
@@ -106,5 +112,38 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithABM {
   @Override
   public Reducer getReducer() {
     return reducer;
+  }
+
+  @Override
+  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
+      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+    Collection<? extends AbstractState> computedSuccessors =
+        transferRelation.getAbstractSuccessors(pState, null, pCfaEdge);
+    if (pSuccessors.size() != computedSuccessors.size()) {
+      return false; }
+    boolean found;
+    try {
+      for (AbstractState e1 : pSuccessors) {
+        found = false;
+        for (AbstractState e2 : computedSuccessors) {
+
+          if (abstractDomain.isLessOrEqual(e2, e1)) {
+            found = true;
+            break;
+          }
+
+        }
+        if (!found) {
+          return false; }
+      }
+    } catch (CPAException e) {
+      e.printStackTrace();
+    }
+    return true;
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException {
+    return abstractDomain.isLessOrEqual(pState, pOtherState);
   }
 }

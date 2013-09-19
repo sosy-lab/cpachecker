@@ -27,12 +27,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
@@ -67,6 +70,11 @@ class IndirectionVisitor implements CExpressionVisitor<Integer, RuntimeException
   }
 
   @Override
+  public Integer visit(CComplexCastExpression pIastCastExpression) {
+    return pIastCastExpression.getOperand().accept(this);
+  }
+
+  @Override
   public Integer visit(CFieldReference pIastFieldReference) {
     return CtoFormulaTypeUtils.getRealFieldOwner(pIastFieldReference).accept(this);
   }
@@ -92,6 +100,11 @@ class IndirectionVisitor implements CExpressionVisitor<Integer, RuntimeException
   }
 
   @Override
+  public Integer visit(CImaginaryLiteralExpression pIastLiteralExpression) {
+    return 0;
+  }
+
+  @Override
   public Integer visit(CStringLiteralExpression pIastStringLiteralExpression) {
     return 0;
   }
@@ -111,4 +124,8 @@ class IndirectionVisitor implements CExpressionVisitor<Integer, RuntimeException
     return pIastUnaryExpression.getOperand().accept(this) + 1;
   }
 
+  @Override
+  public Integer visit(CPointerExpression pIastUnaryExpression) {
+    return pIastUnaryExpression.getOperand().accept(this) + 1;
+  }
 }

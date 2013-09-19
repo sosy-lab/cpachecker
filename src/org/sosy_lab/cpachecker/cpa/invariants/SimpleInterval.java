@@ -30,7 +30,6 @@ import java.math.BigInteger;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Predicate;
 
 /**
  * This class represents simple convex ranges of BigIntegers.
@@ -99,7 +98,7 @@ public class SimpleInterval {
    * @return <code>true</code> if the interval has neither a lower nor an upper bound, <code>false</code> otherwise.
    */
   public boolean isTop() {
-    return !HAS_BOUNDS.apply(this);
+    return upperBound == null && lowerBound == null;
   }
 
   /**
@@ -188,6 +187,16 @@ public class SimpleInterval {
   public boolean containsZero() {
     return (upperBound == null || upperBound.signum() >= 0)
         && (lowerBound == null || lowerBound.signum() <= 0);
+  }
+
+  /**
+   * Checks if this interval contains the value zero.
+   * @return <code>true</code> if this interval contains the value zero,
+   * <code>false</code> otherwise.
+   */
+  public boolean contains(BigInteger pValue) {
+    return (upperBound == null || upperBound.compareTo(pValue) >= 0)
+        && (lowerBound == null || lowerBound.compareTo(pValue) <= 0);
   }
 
   /**
@@ -432,14 +441,6 @@ public class SimpleInterval {
     if (hasLowerBound() && getLowerBound().signum() > 0) { return getLowerBound(); }
     return BigInteger.ONE;
   }
-
-  static Predicate<SimpleInterval> HAS_BOUNDS = new Predicate<SimpleInterval>() {
-
-    @Override
-    public boolean apply(SimpleInterval pArg0) {
-      return pArg0.hasLowerBound() || pArg0.hasUpperBound();
-    }
-  };
 
   private static SimpleInterval INFINITE = new SimpleInterval(null, null);
 

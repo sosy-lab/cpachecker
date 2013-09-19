@@ -34,7 +34,9 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
  * {@link FormulaCompoundStateEvaluationVisitor} in order to enable the CPA
  * strategy to prevent infeasible interpretation of the analyzed code.
  */
-public class FormulaAbstractionVisitor implements FormulaEvaluationVisitor<CompoundState> {
+public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisitor<CompoundState, Map<? extends String, ? extends InvariantsFormula<CompoundState>>, CompoundState> implements FormulaEvaluationVisitor<CompoundState> {
+
+  private static final FormulaCompoundStateEvaluationVisitor EVALUATION_VISITOR = new FormulaCompoundStateEvaluationVisitor();
 
   /**
    * Compute a compound state representing possible results of adding the
@@ -48,21 +50,33 @@ public class FormulaAbstractionVisitor implements FormulaEvaluationVisitor<Compo
    * @return a state representing possible results of adding the given summand
    * compound states up.
    */
-  private CompoundState weakAdd(CompoundState a, CompoundState b) {
-    if (a.isSingleton() && a.containsZero()) {
-      return b;
+  private CompoundState weakAdd(CompoundState pA, CompoundState pB) {
+    if (pA.isSingleton() && pA.containsZero()) {
+      return pB;
     }
-    if (b.containsNegative()) {
-      if (b.containsPositive()) {
-        return CompoundState.top();
-      } else {
-        return a.extendToNegativeInfinity();
-      }
-    } else if (b.containsPositive()) {
-      return a.extendToPositiveInfinity();
-    } else {
-      return a;
+    if (pB.isSingleton() && pB.containsZero()) {
+      return pA;
     }
+    return abstractionOf(pA.add(pB));
+  }
+
+  private static CompoundState abstractionOf(CompoundState pValue) {
+    if (pValue.isBottom() || pValue.isTop()) {
+      return pValue;
+    }
+    CompoundState result = pValue.signum();
+    boolean extendToNeg = false;
+    if (!pValue.lessThan(result).isDefinitelyFalse()) {
+      extendToNeg = true;
+    }
+    if (!pValue.greaterThan(result).isDefinitelyFalse()) {
+      result = result.extendToPositiveInfinity();
+    }
+    if (extendToNeg) {
+      result = result.extendToNegativeInfinity();
+    }
+    assert result.unionWith(pValue).equals(result);
+    return result;
   }
 
   /**
@@ -90,45 +104,12 @@ public class FormulaAbstractionVisitor implements FormulaEvaluationVisitor<Compo
     if (b.isSingleton() && b.contains(1)) {
       return a;
     }
-    if (a.containsNegative() && a.containsPositive()) {
-      return CompoundState.top();
-    }
-    if (b.containsNegative()) {
-      if (b.containsPositive()) {
-        return CompoundState.top();
-      } else {
-        return weakMultiply(a.negate(), b.negate());
-      }
-    } else if (b.containsPositive()) {
-      return a.extendToPositiveInfinity();
-    } else {
-      return a.extendToNegativeInfinity();
-    }
+    return abstractionOf(a.multiply(b));
   }
 
   @Override
   public CompoundState visit(Add<CompoundState> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return weakAdd(pAdd.getSummand1().accept(this, pEnvironment), pAdd.getSummand2().accept(this, pEnvironment));
-  }
-
-  @Override
-  public CompoundState visit(BinaryAnd<CompoundState> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return CompoundState.top();
-  }
-
-  @Override
-  public CompoundState visit(BinaryNot<CompoundState> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return pNot.getFlipped().accept(this, pEnvironment).binaryNot();
-  }
-
-  @Override
-  public CompoundState visit(BinaryOr<CompoundState> pOr, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return CompoundState.top();
-  }
-
-  @Override
-  public CompoundState visit(BinaryXor<CompoundState> pXor, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return CompoundState.top();
+    return weakAdd(pAdd.getSummand1().accept(EVALUATION_VISITOR, pEnvironment), pAdd.getSummand2().accept(EVALUATION_VISITOR, pEnvironment));
   }
 
   @Override
@@ -137,69 +118,24 @@ public class FormulaAbstractionVisitor implements FormulaEvaluationVisitor<Compo
   }
 
   @Override
-  public CompoundState visit(Divide<CompoundState> pDivide, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return pDivide.getNumerator().accept(this, pEnvironment).divide(pDivide.getDenominator().accept(this, pEnvironment));
-  }
-
-  @Override
-  public CompoundState visit(Equal<CompoundState> pEqual, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return pEqual.getOperand1().accept(this, pEnvironment).logicalEquals(pEqual.getOperand2().accept(this, pEnvironment));
-  }
-
-  @Override
-  public CompoundState visit(LessThan<CompoundState> pLessThan, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return pLessThan.getOperand1().accept(this, pEnvironment).lessThan(pLessThan.getOperand2().accept(this, pEnvironment));
-  }
-
-  @Override
-  public CompoundState visit(LogicalAnd<CompoundState> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return pAnd.getOperand1().accept(this, pEnvironment).logicalAnd(pAnd.getOperand2().accept(this, pEnvironment));
-  }
-
-  @Override
-  public CompoundState visit(LogicalNot<CompoundState> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return pNot.getNegated().accept(this, pEnvironment).logicalNot();
-  }
-
-  @Override
-  public CompoundState visit(Modulo<CompoundState> pModulo, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return pModulo.getNumerator().accept(this, pEnvironment).modulo(pModulo.getDenominator().accept(this, pEnvironment));
-  }
-
-  @Override
   public CompoundState visit(Multiply<CompoundState> pMultiply, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     return weakMultiply(pMultiply.getFactor1().accept(this, pEnvironment), pMultiply.getFactor2().accept(this, pEnvironment));
-  }
-
-  @Override
-  public CompoundState visit(Negate<CompoundState> pNegate, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return pNegate.accept(this, pEnvironment).negate();
   }
 
   @Override
   public CompoundState visit(ShiftLeft<CompoundState> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     CompoundState toShift = pShiftLeft.getShifted().accept(this, pEnvironment);
     CompoundState shiftDistance = pShiftLeft.getShiftDistance().accept(this, pEnvironment);
+    CompoundState evaluation = toShift.shiftLeft(shiftDistance);
     if (!shiftDistance.containsPositive()) {
-      return toShift.shiftLeft(shiftDistance);
+      return evaluation;
     }
-    if (!toShift.containsPositive()) {
-      return CompoundState.singleton(0).extendToNegativeInfinity();
-    }
-    if (!toShift.containsNegative()) {
-      return CompoundState.singleton(0).extendToPositiveInfinity();
-    }
-    return CompoundState.top();
+    return abstractionOf(evaluation);
   }
 
   @Override
   public CompoundState visit(ShiftRight<CompoundState> pShiftRight, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return pShiftRight.getShifted().accept(this, pEnvironment).shiftRight(pShiftRight.getShiftDistance().accept(this, pEnvironment));
-  }
-
-  @Override
-  public CompoundState visit(Union<CompoundState> pUnion, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return pUnion.getOperand1().accept(this, pEnvironment).unionWith(pUnion.getOperand2().accept(this, pEnvironment));
+    return CompoundStateFormulaManager.INSTANCE.shiftLeft(pShiftRight.getShifted(), InvariantsFormulaManager.INSTANCE.negate(pShiftRight.getShiftDistance())).accept(this, pEnvironment);
   }
 
   @Override
@@ -209,6 +145,12 @@ public class FormulaAbstractionVisitor implements FormulaEvaluationVisitor<Compo
       return CompoundState.top();
     }
     return varState.accept(this, pEnvironment);
+  }
+
+  @Override
+  protected CompoundState visitDefault(InvariantsFormula<CompoundState> pFormula,
+      Map<? extends String, ? extends InvariantsFormula<CompoundState>> pParam) {
+    return abstractionOf(pFormula.accept(EVALUATION_VISITOR, pParam));
   }
 
 }

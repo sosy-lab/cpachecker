@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
@@ -148,7 +149,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
   }
 
   @Override
-  public <T extends Formula> T parse(Class<T> pClazz, String str) throws IllegalArgumentException {
+  public BooleanFormula parse(String str) throws IllegalArgumentException {
 
     // TODO do we need sorts or decls?
     // the context should know them already,
@@ -160,7 +161,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
 
     long e = parse_smtlib2_string(z3context, str, sort_symbols, sorts, decl_symbols, decls);
 
-    return encapsulate(pClazz, e);
+    return encapsulate(BooleanFormula.class, e);
   }
 
 

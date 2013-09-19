@@ -33,25 +33,20 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public class CExpressionAssignmentStatement extends AExpressionAssignmentStatement implements CAssignment, CStatement {
 
   public CExpressionAssignmentStatement(FileLocation pFileLocation,
-                                           CExpression pLeftHandSide,
+                                           CLeftHandSide pLeftHandSide,
                                            CExpression pRightHandSide) {
     super(pFileLocation, pLeftHandSide, pRightHandSide);
 
   }
 
   @Override
-  public CExpression getLeftHandSide() {
-    return (CExpression)super.getLeftHandSide();
+  public CLeftHandSide getLeftHandSide() {
+    return (CLeftHandSide)super.getLeftHandSide();
   }
 
   @Override
   public CExpression getRightHandSide() {
     return (CExpression)super.getRightHandSide();
-  }
-
-  @Override
-  public CStatement asStatement() {
-    return this;
   }
 
   @Override

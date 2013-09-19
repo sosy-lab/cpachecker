@@ -102,21 +102,21 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
         "ABM needs CPAs that are capable for ABM"); }
     Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM) pCpa).getReducer();
     if (wrappedReducer == null) { throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM"); }
-    reducer = new TimedReducer(wrappedReducer);
-    prec = new ABMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
-    transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
-    prec.setABMTransferRelation(transfer);
-    merge = new ABMMergeOperator(pCpa.getMergeOperator(), transfer);
-    stop = new ABMStopOperator(getWrappedCpa().getStopOperator());
-
-    stats = new ABMCPAStatistics(this);
-    heuristic = getPartitioningHeuristic();
 
     if (pCpa instanceof ProofChecker) {
       this.wrappedProofChecker = (ProofChecker) pCpa;
     } else {
       this.wrappedProofChecker = null;
     }
+    reducer = new TimedReducer(wrappedReducer);
+    prec = new ABMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
+    transfer = new ABMTransferRelation(config, logger, this, wrappedProofChecker, pReachedSetFactory);
+    prec.setABMTransferRelation(transfer);
+    merge = new ABMMergeOperator(pCpa.getMergeOperator(), transfer);
+    stop = new ABMStopOperator(getWrappedCpa().getStopOperator());
+
+    stats = new ABMCPAStatistics(this);
+    heuristic = getPartitioningHeuristic();
   }
 
   @Override
@@ -201,7 +201,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
-    return transfer.areAbstractSuccessors(pState, pCfaEdge, pSuccessors, wrappedProofChecker);
+    return transfer.areAbstractSuccessors(pState, pCfaEdge, pSuccessors);
   }
 
   @Override

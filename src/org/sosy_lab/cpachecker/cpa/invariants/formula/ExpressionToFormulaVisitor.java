@@ -26,13 +26,18 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -72,7 +77,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
    * The compound state invariants formula representing the top state.
    */
   private static final InvariantsFormula<CompoundState> TOP =
-      InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.top());
+      CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.top());
 
   /**
    * The variable name extractor used to extract variable names from c id
@@ -93,45 +98,70 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
 
   @Override
   protected InvariantsFormula<CompoundState> visitDefault(CExpression pExp) throws UnrecognizedCCodeException {
-    return null;
+    return TOP;
   }
 
   @Override
   public InvariantsFormula<CompoundState> visit(CIdExpression pCIdExpression) throws UnrecognizedCCodeException {
-    return InvariantsFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.extract(pCIdExpression));
+    return CompoundStateFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.extract(pCIdExpression));
+  }
+
+  @Override
+  public InvariantsFormula<CompoundState> visit(CFieldReference pCFieldReference) throws UnrecognizedCCodeException {
+    return CompoundStateFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.extract(pCFieldReference));
+  }
+
+  @Override
+  public InvariantsFormula<CompoundState> visit(CArraySubscriptExpression pCArraySubscriptExpression) throws UnrecognizedCCodeException {
+    return CompoundStateFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.extract(pCArraySubscriptExpression));
   }
 
   @Override
   public InvariantsFormula<CompoundState> visit(CIntegerLiteralExpression pE) {
-    return InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.singleton(pE.getValue()));
+    return CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.singleton(pE.getValue()));
   }
 
   @Override
   public InvariantsFormula<CompoundState> visit(CCharLiteralExpression pE) {
-    return InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.singleton(pE.getCharacter()));
+    return CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.singleton(pE.getCharacter()));
+  }
+
+  @Override
+  public InvariantsFormula<CompoundState> visit(CImaginaryLiteralExpression pE) throws UnrecognizedCCodeException {
+    return pE.getValue().accept(this);
   }
 
   @Override
   public InvariantsFormula<CompoundState> visit(CUnaryExpression pCUnaryExpression) throws UnrecognizedCCodeException {
     switch (pCUnaryExpression.getOperator()) {
     case MINUS:
-      return InvariantsFormulaManager.INSTANCE.negate(pCUnaryExpression.getOperand().accept(this));
+      return CompoundStateFormulaManager.INSTANCE.negate(pCUnaryExpression.getOperand().accept(this));
     case NOT:
-      return InvariantsFormulaManager.INSTANCE.logicalNot(pCUnaryExpression.getOperand().accept(this));
+      return CompoundStateFormulaManager.INSTANCE.logicalNot(pCUnaryExpression.getOperand().accept(this));
     case PLUS:
       return pCUnaryExpression.getOperand().accept(this);
     case TILDE:
-      return InvariantsFormulaManager.INSTANCE.binaryNot(pCUnaryExpression.getOperand().accept(this));
+      return CompoundStateFormulaManager.INSTANCE.binaryNot(pCUnaryExpression.getOperand().accept(this));
     default:
       return super.visit(pCUnaryExpression);
     }
   }
 
   @Override
+  public InvariantsFormula<CompoundState> visit(CPointerExpression pCPointerExpression) throws UnrecognizedCCodeException {
+    return CompoundStateFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.extract(pCPointerExpression));
+  }
+
+  @Override
+  public InvariantsFormula<CompoundState> visit(CCastExpression pCCastExpression) throws UnrecognizedCCodeException {
+    return pCCastExpression.getOperand().accept(this);
+  }
+
+  @Override
   public InvariantsFormula<CompoundState> visit(CBinaryExpression pCBinaryExpression) throws UnrecognizedCCodeException {
     InvariantsFormula<CompoundState> left = pCBinaryExpression.getOperand1().accept(this);
     InvariantsFormula<CompoundState> right = pCBinaryExpression.getOperand2().accept(this);
-    InvariantsFormulaManager fmgr = InvariantsFormulaManager.INSTANCE;
+    CompoundStateFormulaManager fmgr = CompoundStateFormulaManager.INSTANCE;
     switch (pCBinaryExpression.getOperator()) {
     case BINARY_AND:
       return fmgr.binaryAnd(left, right);
@@ -180,7 +210,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
   @Override
   public InvariantsFormula<CompoundState> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws UnrecognizedCCodeException {
-    return null;
+    return TOP;
   }
 
   /**
@@ -190,16 +220,16 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
   public interface VariableNameExtractor {
 
     /**
-     * Provides a variable name for the given c id expression.
+     * Provides a variable name for the given c expression.
      *
-     * @param pCIdExpression the c id expression to provide a variable name
+     * @param pCExpression the c id expression to provide a variable name
      * for.
      *
      * @return the variable name for the given c id expression.
      * @throws UnrecognizedCCodeException if the extraction process cannot be
      * completed because involved c code is unrecognized.
      */
-    String extract(CIdExpression pCIdExpression) throws UnrecognizedCCodeException;
+    String extract(CExpression pCExpression) throws UnrecognizedCCodeException;
 
   }
 }

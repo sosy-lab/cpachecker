@@ -66,17 +66,23 @@
     and not guaranteed to be supported in the future at all.
     C.f. benchmark-cpachecker.xml for an example.
 
-    There are two more top-level tags that are used only when the verifier cloud is used:
+    There are three more top-level tags that are used only when the verifier cloud is used:
+
     <requiredFiles> can be used to specify additional files that are needed
     for executing the benchmark. The tag may contain a path to a file or directory
     that is transmitted to the worker. Wildcards, environment variables etc. are resolved.
     The tag may appear several times.
+
     <require> can be used to select a specific set of worker machines. The attributes
     "cpuModel" (giving a string that needs to be contained in the worker's CPU name),
     "cpuCores" (giving the minimal number of CPU cores), and
     "memory" (giving the minimal amount of memory in MB) can be specified (all optional).
     The tag may appear several times, but each attribute may appear at most once
     (so you can specify all attributes in a single tag or spread over several occurrences).
+
+    <resultFiles> can be used to specify a file-name pattern matching all the result
+    files created by the tool that should be transported back after executing the run
+    from the worker to the user's machine.
   -->
 
   <!-- Example: -->

@@ -26,6 +26,10 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -43,11 +47,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -72,7 +76,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final ARGStatistics stats;
   private final ProofChecker wrappedProofChecker;
 
-  private CounterexampleInfo lastCounterexample = null;
+  private final Map<ARGState, CounterexampleInfo> counterexamples = new WeakHashMap<>();
 
   private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(cpa);
@@ -131,7 +135,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public StopOperator getStopOperator() {
+  public ForcedCoveringStopOperator getStopOperator() {
     return stopOperator;
   }
 
@@ -161,17 +165,33 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     super.collectStatistics(pStatsCollection);
   }
 
-  public CounterexampleInfo getLastCounterexample() {
-    return lastCounterexample;
+  Map<ARGState, CounterexampleInfo> getCounterexamples() {
+    return Collections.unmodifiableMap(counterexamples);
   }
 
-  public void clearCounterexample() {
-    lastCounterexample = null;
-  }
-
-  public void setCounterexample(CounterexampleInfo pCounterexample) {
+  public void addCounterexample(ARGState targetState, CounterexampleInfo pCounterexample) {
+    checkArgument(targetState.isTarget());
     checkArgument(!pCounterexample.isSpurious());
-    lastCounterexample = pCounterexample;
+    if (pCounterexample.getTargetPath() != null) {
+      // With ABM, the targetState and the last state of the path
+      // may actually be not identical.
+      checkArgument(pCounterexample.getTargetPath().getLast().getFirst().isTarget());
+    }
+    counterexamples.put(targetState, pCounterexample);
+  }
+
+  public void clearCounterexamples(Set<ARGState> toRemove) {
+    // Actually the goal would be that this method is not necessary
+    // because the GC automatically removes counterexamples when the ARGState
+    // is removed from the ReachedSet.
+    // However, counterexamples may reference their target state through
+    // the target path attribute, so the GC may not remove the counterexample.
+    // While this is not a problem for correctness
+    // (we check in the end which counterexamples are still valid),
+    // it may be a memory leak.
+    // Thus this method.
+
+    counterexamples.keySet().removeAll(toRemove);
   }
 
   ARGToDotWriter getRefinementGraphWriter() {

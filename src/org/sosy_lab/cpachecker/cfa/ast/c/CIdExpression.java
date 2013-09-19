@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.base.Objects;
 
-public final class CIdExpression extends AIdExpression implements CExpression {
+public final class CIdExpression extends AIdExpression implements CLeftHandSide {
 
 
   public CIdExpression(final FileLocation pFileLocation,
@@ -65,10 +65,18 @@ public final class CIdExpression extends AIdExpression implements CExpression {
   }
 
   @Override
+  public <R, X extends Exception> R accept(CLeftHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
   public int hashCode() {
     int prime = 31;
     int result = 7;
-    return prime * result + super.hashCode();
+    if (getDeclaration() != null) {
+      result = prime * result + Objects.hashCode(getDeclaration().getQualifiedName());
+    }
+    return prime * result;
   }
 
   @Override
@@ -88,6 +96,10 @@ public final class CIdExpression extends AIdExpression implements CExpression {
 
     CIdExpression other = (CIdExpression)obj;
 
-    return Objects.equal(getDeclaration().getQualifiedName(), other.getDeclaration().getQualifiedName());
+    if (getDeclaration() == null) {
+      return other.getDeclaration() == null;
+    } else {
+      return Objects.equal(getDeclaration().getQualifiedName(), other.getDeclaration().getQualifiedName());
+    }
   }
 }

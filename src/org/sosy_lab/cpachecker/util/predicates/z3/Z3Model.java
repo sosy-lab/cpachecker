@@ -29,11 +29,11 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 import java.math.BigInteger;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.util.predicates.Model.Function;
-import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
-import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
+import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.Model.Function;
+import org.sosy_lab.cpachecker.core.Model.TermType;
+import org.sosy_lab.cpachecker.core.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
@@ -233,9 +233,12 @@ public class Z3Model {
       modelFormula = newModelFormula;
     }
 
+    // TODO unused, remove and cleanup
+    mgr.encapsulate(BooleanFormula.class, modelFormula);
+
     // cleanup
     model_dec_ref(z3context, z3model);
-    return new Model(model.build(), mgr.encapsulate(BooleanFormula.class, modelFormula));
+    return new Model(model.build());
   }
 
   /* INFO:

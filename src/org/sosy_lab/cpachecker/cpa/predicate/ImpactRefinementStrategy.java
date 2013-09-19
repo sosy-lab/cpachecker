@@ -73,7 +73,8 @@ class ImpactRefinementStrategy extends RefinementStrategy {
       out.println("  ARG update:                         " + argUpdate);
       out.println();
       out.println("Number of abstractions during refinements:  " + impact.abstractionTime.getNumberOfIntervals());
-      ImpactRefinementStrategy.this.printStatistics(out);
+
+      basicRefinementStatistics.printStatistics(out, pResult, pReached);
     }
   }
 

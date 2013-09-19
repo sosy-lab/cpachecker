@@ -25,14 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 
 
-public interface AFunctionCall {
-
+public interface AFunctionCall extends IAStatement {
 
   AFunctionCallExpression getFunctionCallExpression();
-
-  /**
-   * Return "this" casted to IAStatement, i.e., this methods performs an upcast.
-   */
-  IAStatement asStatement();
-
 }

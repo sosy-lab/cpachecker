@@ -26,6 +26,7 @@ class Tool(benchmark.tools.template.BaseTool):
             logging.warning("Required JAR file for CPAchecker not found in {0}.".format(executableDir))
         return executable
 
+
     def _buildCPAchecker(self, executableDir):
         logging.info('Building CPAchecker in directory {0}.'.format(executableDir))
         ant = subprocess.Popen(['ant', '-q', 'jar'], cwd=executableDir)
@@ -33,15 +34,15 @@ class Tool(benchmark.tools.template.BaseTool):
         if ant.returncode:
             sys.exit('Failed to build CPAchecker, please fix the build first.')
 
-    def getProgrammFiles(self,executable):
+
+    def getProgrammFiles(self, executable):
         executableDir = os.path.join(os.path.dirname(executable),"../")
-        result = []
-        result.append(os.path.join(executableDir, "lib"))
-        result.append(os.path.join(executableDir, "scripts"))
-        result.append(os.path.join(executableDir, "cpachecker.jar"))
-        result.append(os.path.join(executableDir, "config"))
-           
-        return result           
+        return [os.path.join(executableDir, path) for path in ["lib", "scripts", "cpachecker.jar", "config"]]
+
+
+    def getWorkingDirectory(self, executable):
+        return os.curdir
+
 
     def getVersion(self, executable):
         process = subprocess.Popen([executable, '-help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -68,16 +69,17 @@ class Tool(benchmark.tools.template.BaseTool):
         (stdout, stderr) = gitProcess.communicate()
         stdout = Util.decodeToString(stdout).strip()
         if not (gitProcess.returncode or stderr) and stdout:
-            return version + ' ' + stdout + ('M' if self._isGitRepositoryDirty(cpacheckerDir) else '') 
-        
+            return version + ' ' + stdout + ('M' if self._isGitRepositoryDirty(cpacheckerDir) else '')
+
         # CPAchecker might be within a git repository
         gitProcess = subprocess.Popen(['git', 'log', '-1', '--pretty=format:%h', '--abbrev-commit'], env={'LANG': 'C'}, cwd=cpacheckerDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdout, stderr) = gitProcess.communicate()
         stdout = Util.decodeToString(stdout).strip()
         if not (gitProcess.returncode or stderr) and stdout:
-            return version + ' ' + stdout + ('+' if self._isGitRepositoryDirty(cpacheckerDir) else '') 
-        
+            return version + ' ' + stdout + ('+' if self._isGitRepositoryDirty(cpacheckerDir) else '')
+
         return version
+
 
     def _isGitRepositoryDirty(self, dir):
         gitProcess = subprocess.Popen(['git', 'status', '--porcelain'], env={'LANG': 'C'}, cwd=dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -85,7 +87,7 @@ class Tool(benchmark.tools.template.BaseTool):
         if not (gitProcess.returncode or stderr):
             return True if stdout else False  # True if stdout is non-empty
         return None
- 
+
 
     def getName(self):
         return 'CPAchecker'

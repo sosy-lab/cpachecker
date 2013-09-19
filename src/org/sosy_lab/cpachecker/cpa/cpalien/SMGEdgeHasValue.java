@@ -24,9 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import java.math.BigInteger;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -109,10 +106,8 @@ public class SMGEdgeHasValue extends SMGEdge {
     return true;
   }
 
-  // TODO: Fix compatibility detection based on type, not on the type size
   public boolean isCompatibleField(SMGEdgeHasValue other, MachineModel pModel) {
-    // return (this.type.equals(other.type)) && (this.offset == other.offset);
-    return pModel.getSizeof(type) == pModel.getSizeof(other.type) && (this.offset == other.offset);
+    return this.type.equals(other.type) && (this.offset == other.offset);
   }
 
   public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other, MachineModel pModel) {
@@ -164,79 +159,5 @@ public class SMGEdgeHasValue extends SMGEdge {
       return false;
     }
     return true;
-  }
-}
-
-class SMGEdgeHasValueFilter {
-
-  public static SMGEdgeHasValueFilter objectFilter(SMGObject pObject) {
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
-    filter.filterByObject(pObject);
-
-    return filter;
-  }
-
-  private SMGObject object = null;
-
-  private Integer value = null;
-  private boolean valueComplement = false;
-  private Integer offset = null;
-  private CType type = null;
-
-  public void filterByObject(SMGObject pObject) {
-    object = pObject;
-  }
-
-  public void filterHavingValue(Integer pValue) {
-    value = pValue;
-    valueComplement = false;
-  }
-
-  public void filterNotHavingValue(Integer pValue) {
-    value = pValue;
-    valueComplement = true;
-  }
-
-  public void filterAtOffset(Integer pOffset) {
-    offset = pOffset;
-  }
-
-  public void filterByType(CType pType) {
-    type = pType;
-  }
-
-  public boolean holdsFor(SMGEdgeHasValue pEdge) {
-    if (object != null && object != pEdge.getObject()) {
-      return false;
-    }
-
-    if (value != null) {
-      if (valueComplement && pEdge.getValue() == value) {
-        return false;
-      }
-      else if ( (!valueComplement) && pEdge.getValue() != value) {
-        return false;
-      }
-    }
-
-    if (offset != null && offset != pEdge.getOffset()) {
-      return false;
-    }
-
-    if (type != null && ! type.getCanonicalType().equals(pEdge.getType().getCanonicalType())) {
-      return false;
-    }
-
-    return true;
-  }
-
-  public Set<SMGEdgeHasValue> filterSet(Set<SMGEdgeHasValue> pEdges) {
-    Set<SMGEdgeHasValue> returnSet = new HashSet<>();
-    for (SMGEdgeHasValue edge : pEdges) {
-      if (this.holdsFor(edge)) {
-        returnSet.add(edge);
-      }
-    }
-    return Collections.unmodifiableSet(returnSet);
   }
 }

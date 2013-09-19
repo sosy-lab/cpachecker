@@ -126,7 +126,14 @@ public final class CElaboratedType implements CComplexType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(isConst);
+      result = prime * result + Objects.hashCode(isVolatile);
+      result = prime * result + Objects.hashCode(kind);
+      result = prime * result + Objects.hashCode(name);
+      result = prime * result + Objects.hashCode(realType);
+      return result;
   }
 
   /**
@@ -146,8 +153,8 @@ public final class CElaboratedType implements CComplexType {
 
     CElaboratedType other = (CElaboratedType) obj;
 
-    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile)
-           && Objects.equals(kind, other.kind) && Objects.equals(name, other.name)
+    return isConst == other.isConst && isVolatile == other.isVolatile
+           && kind == other.kind && Objects.equals(name, other.name)
            && Objects.equals(realType, other.realType);
   }
 

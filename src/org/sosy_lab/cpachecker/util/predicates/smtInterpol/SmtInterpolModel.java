@@ -23,22 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import java.util.Collection;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.util.predicates.Model.Function;
-import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
-import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.Model.Function;
+import org.sosy_lab.cpachecker.core.Model.TermType;
+import org.sosy_lab.cpachecker.core.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
 import com.google.common.collect.ImmutableMap;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
-import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
@@ -130,24 +129,18 @@ class SmtInterpolModel {
     }
   }
 
-  static Model createSmtInterpolModel(SmtInterpolFormulaManager mgr, Iterable<Term> terms) {
+  static Model createSmtInterpolModel(SmtInterpolFormulaManager mgr, Collection<Term> terms) {
     SmtInterpolEnvironment env = mgr.getEnv();
     // model can only return values for keys, not for terms
     Term[] keys = SmtInterpolUtil.getVars(terms);
 
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
 
-    assert env.checkSat() != LBool.UNSAT:
-            "model is not available for UNSAT"; // TODO expensive check?
+    assert env.checkSat() : "model is only available for SAT environments";
     Map<Term, Term> val = env.getValue(keys);
-
-    Term modelFormula = env.term("true");
 
     for (Term lKeyTerm : keys) {
       Term lValueTerm = val.get(lKeyTerm);
-
-      Term equivalence = env.term("=", lKeyTerm, lValueTerm);
-      modelFormula = env.term("and", modelFormula, equivalence);
 
       AssignableTerm lAssignable = toAssignable(lKeyTerm);
 
@@ -191,7 +184,7 @@ class SmtInterpolModel {
     }
     }
 
-    return new Model(model.build(), mgr.encapsulate(BooleanFormula.class, modelFormula));
+    return new Model(model.build());
   }
 
 }

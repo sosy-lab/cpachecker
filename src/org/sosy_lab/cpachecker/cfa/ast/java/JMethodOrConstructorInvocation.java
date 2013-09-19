@@ -29,14 +29,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
  * Interface that represents the union of a method and a constructor
  * Invocation.
  */
-public interface JMethodOrConstructorInvocation extends AFunctionCall {
+public interface JMethodOrConstructorInvocation extends AFunctionCall, JStatement {
 
   //TODO Investigate interface and the classes it implements, seems wrong
 
   @Override
   public JMethodInvocationExpression getFunctionCallExpression();
-
-  @Override
-  public JStatement asStatement();
-
 }

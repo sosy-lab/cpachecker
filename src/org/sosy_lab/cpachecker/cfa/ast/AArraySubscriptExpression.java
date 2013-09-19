@@ -28,7 +28,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public abstract class AArraySubscriptExpression extends AExpression {
+public abstract class AArraySubscriptExpression extends ALeftHandSide {
 
 
   private final IAExpression arrayExpression;

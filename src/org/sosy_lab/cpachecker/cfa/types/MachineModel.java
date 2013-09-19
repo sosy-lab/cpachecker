@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.cfa.types;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -488,6 +490,12 @@ public enum MachineModel {
       }
 
       @Override
+      public Integer visit(CPointerExpression pointerExpression) throws IllegalArgumentException {
+        // TODO check on validity
+        return null;
+      }
+
+      @Override
       public Integer visit(CTypeIdExpression typeIdExp) throws IllegalArgumentException {
 
         TypeIdOperator typeOperator = typeIdExp.getOperator();
@@ -504,6 +512,11 @@ public enum MachineModel {
 
       @Override
       public Integer visit(CCastExpression pE) throws IllegalArgumentException {
+        return pE.getOperand().accept(this);
+      }
+
+      @Override
+      public Integer visit(CComplexCastExpression pE) throws IllegalArgumentException {
         return pE.getOperand().accept(this);
       }
     }

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
@@ -47,6 +47,8 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
    */
   private final FormulaEvaluationVisitor<CompoundState> evaluationVisitor;
 
+  private final CachingEvaluationVisitor<CompoundState> cachingEvaluationVisitor;
+
   /**
    * Creates a new visitor for pushing information obtained from assuming given
    * states for the visited formulae into the given environment.
@@ -59,6 +61,11 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   public PushAssumptionToEnvironmentVisitor(FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor, Map<String, InvariantsFormula<CompoundState>> pEnvironment) {
     this.evaluationVisitor = pEvaluationVisitor;
     this.environment = pEnvironment;
+    this.cachingEvaluationVisitor = new CachingEvaluationVisitor<>(environment, evaluationVisitor);
+  }
+
+  private CompoundState evaluate(InvariantsFormula<CompoundState> pFormula) {
+    return pFormula.accept(this.cachingEvaluationVisitor);
   }
 
   @Override
@@ -66,12 +73,12 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = pAdd.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectWith(pParameter);
+    CompoundState parameter = evaluate(pAdd).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
-    CompoundState leftValue = pAdd.getSummand1().accept(evaluationVisitor, getUnmodifiableEnvironment());
-    CompoundState rightValue = pAdd.getSummand2().accept(evaluationVisitor, getUnmodifiableEnvironment());
+    CompoundState leftValue = evaluate(pAdd.getSummand1());
+    CompoundState rightValue = evaluate(pAdd.getSummand2());
     CompoundState pushLeftValue = parameter.add(rightValue.negate());
     CompoundState pushRightValue = parameter.add(leftValue.negate());
     if (!pAdd.getSummand1().accept(this, pushLeftValue)
@@ -86,7 +93,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    return pAnd.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectsWith(pParameter);
+    return evaluate(pAnd).intersectsWith(pParameter);
   }
 
   @Override
@@ -94,7 +101,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = pNot.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectWith(pParameter);
+    CompoundState parameter = evaluate(pNot).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
@@ -109,7 +116,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    return pOr.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectsWith(pParameter);
+    return evaluate(pOr).intersectsWith(pParameter);
   }
 
   @Override
@@ -117,7 +124,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    return pXor.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectsWith(pParameter);
+    return evaluate(pXor).intersectsWith(pParameter);
   }
 
   @Override
@@ -133,12 +140,12 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = pDivide.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectWith(pParameter);
+    CompoundState parameter = evaluate(pDivide).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
-    CompoundState leftValue = pDivide.getNumerator().accept(evaluationVisitor, getUnmodifiableEnvironment());
-    CompoundState rightValue = pDivide.getDenominator().accept(evaluationVisitor, getUnmodifiableEnvironment());
+    CompoundState leftValue = evaluate(pDivide.getNumerator());
+    CompoundState rightValue = evaluate(pDivide.getDenominator());
     CompoundState pushLeftValue = parameter.multiply(rightValue.negate());
     CompoundState pushRightValue = leftValue.divide(parameter);
     if (!pDivide.getNumerator().accept(this, pushLeftValue)
@@ -150,14 +157,14 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
 
   @Override
   public Boolean visit(Equal<CompoundState> pEqual, CompoundState pParameter) {
-    CompoundState parameter = pEqual.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectWith(pParameter);
+    CompoundState parameter = evaluate(pEqual).intersectWith(pParameter);
     // If the truth of the equation is undecided, anything is possible and
     // no information can be gained
     if (!parameter.isDefinitelyTrue() && !parameter.isDefinitelyFalse()) {
       return !parameter.isBottom();
     }
-    CompoundState leftValue = pEqual.getOperand1().accept(evaluationVisitor, getUnmodifiableEnvironment());
-    CompoundState rightValue = pEqual.getOperand2().accept(evaluationVisitor, getUnmodifiableEnvironment());
+    CompoundState leftValue = evaluate(pEqual.getOperand1());
+    CompoundState rightValue = evaluate(pEqual.getOperand2());
     // If the equation is definitely true, push right to left and vice versa
     if (parameter.isDefinitelyTrue()) {
       return pEqual.getOperand1().accept(this, rightValue)
@@ -178,7 +185,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = pLessThan.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectWith(pParameter);
+    CompoundState parameter = evaluate(pLessThan).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
@@ -187,8 +194,8 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (!parameter.isDefinitelyTrue() && !parameter.isDefinitelyFalse()) {
       return !parameter.isBottom();
     }
-    CompoundState leftValue = pLessThan.getOperand1().accept(evaluationVisitor, getUnmodifiableEnvironment());
-    CompoundState rightValue = pLessThan.getOperand2().accept(evaluationVisitor, getUnmodifiableEnvironment());
+    CompoundState leftValue = evaluate(pLessThan.getOperand1());
+    CompoundState rightValue = evaluate(pLessThan.getOperand2());
 
     final CompoundState leftPushValue;
     final CompoundState rightPushValue;
@@ -214,14 +221,50 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = pAnd.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectWith(pParameter);
+    CompoundState parameter = evaluate(pAnd).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
-    // If the parameter is evaluates to a unique boolean value, hand it on
-    if (parameter.isDefinitelyTrue() || parameter.isDefinitelyFalse()) {
+    // If the parameter is definitely true, both operands must be true
+    // If the parameter is definitely false, at least one of the operands must be false
+    if (parameter.isDefinitelyTrue()) {
       return pAnd.getOperand1().accept(this, parameter)
           && pAnd.getOperand2().accept(this, parameter);
+    } else if (parameter.isDefinitelyFalse()) {
+      Map<String, InvariantsFormula<CompoundState>> env1 = new HashMap<>(this.environment);
+      boolean push1 = pAnd.getOperand1().accept(new PushAssumptionToEnvironmentVisitor(evaluationVisitor, env1), pParameter);
+
+      // If operand1 cannot be false, operand2 must be false
+      if (!push1) {
+        return pAnd.getOperand2().accept(this, CompoundState.logicalFalse());
+      }
+
+      Map<String, InvariantsFormula<CompoundState>> env2 = new HashMap<>(this.environment);
+      boolean push2 = pAnd.getOperand2().accept(new PushAssumptionToEnvironmentVisitor(evaluationVisitor, env2), pParameter);
+      // If operand2 cannot be false, operand1 must be false
+      if (!push2) {
+        return pAnd.getOperand1().accept(this, CompoundState.logicalFalse());
+      }
+
+      // If both may be false, the effects on the environment are united
+      for (Map.Entry<String, InvariantsFormula<CompoundState>> entry : env2.entrySet()) {
+        String varName = entry.getKey();
+        InvariantsFormula<CompoundState> value1 = env1.get(varName);
+        // Only if BOTH parts produced an environment value, they can be united to a non-top value
+        if (value1 != null) {
+          InvariantsFormula<CompoundState> value2 = entry.getValue();
+          final InvariantsFormula<CompoundState> newValueFormula = CompoundStateFormulaManager.INSTANCE.union(value1, value2).accept(new PartialEvaluator(this.environment), evaluationVisitor);
+          if (newValueFormula.accept(this.evaluationVisitor, this.environment).isBottom()) {
+            this.cachingEvaluationVisitor.clearCache();
+            return false;
+          }
+          if (newValueFormula instanceof Constant<?> && ((Constant<CompoundState>) newValueFormula).getValue().isTop()) {
+            continue;
+          }
+          this.environment.put(varName, newValueFormula);
+          this.cachingEvaluationVisitor.clearCache();
+        }
+      }
     }
     return true;
   }
@@ -231,7 +274,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = pNot.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectWith(pParameter);
+    CompoundState parameter = evaluate(pNot).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
@@ -247,7 +290,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    return pModulo.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectsWith(pParameter);
+    return evaluate(pModulo).intersectsWith(pParameter);
   }
 
   @Override
@@ -255,12 +298,12 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = pMultiply.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectWith(pParameter);
+    CompoundState parameter = evaluate(pMultiply).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
-    CompoundState leftValue = pMultiply.getFactor1().accept(evaluationVisitor, getUnmodifiableEnvironment());
-    CompoundState rightValue = pMultiply.getFactor2().accept(evaluationVisitor, getUnmodifiableEnvironment());
+    CompoundState leftValue = evaluate(pMultiply.getFactor1());
+    CompoundState rightValue = evaluate(pMultiply.getFactor2());
     CompoundState pushLeftValue = parameter.divide(rightValue);
     CompoundState pushRightValue = parameter.divide(leftValue);
     if (!pMultiply.getFactor1().accept(this, pushLeftValue)
@@ -275,7 +318,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = pNegate.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectWith(pParameter);
+    CompoundState parameter = evaluate(pNegate).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
@@ -287,7 +330,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    return pShiftLeft.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectsWith(pParameter);
+    return evaluate(pShiftLeft).intersectsWith(pParameter);
   }
 
   @Override
@@ -295,12 +338,30 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    return pShiftRight.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectsWith(pParameter);
+    return evaluate(pShiftRight).intersectsWith(pParameter);
   }
 
   @Override
   public Boolean visit(Union<CompoundState> pUnion, CompoundState pParameter) {
-    return pUnion.getOperand1().accept(this, pParameter) && pUnion.getOperand2().accept(this, pParameter);
+    if (pParameter == null || pParameter.isBottom()) {
+      return false;
+    }
+    InvariantsFormula<CompoundState> operand1 = pUnion.getOperand1();
+    InvariantsFormula<CompoundState> operand2 = pUnion.getOperand2();
+    if (!evaluate(operand1).intersectsWith(pParameter)) {
+      if (!operand2.accept(this, pParameter)) {
+        return false;
+      }
+    }
+    if (!evaluate(operand2).intersectsWith(pParameter)) {
+      if (!operand1.accept(this, pParameter)) {
+        return false;
+      }
+    }
+
+    CompoundStateFormulaManager ifm = CompoundStateFormulaManager.INSTANCE;
+    InvariantsFormula<CompoundState> parameter = ifm.asConstant(pParameter);
+    return ifm.logicalOr(ifm.equal(pUnion.getOperand1(), parameter), ifm.equal(pUnion.getOperand2(), parameter)).accept(this, CompoundState.logicalTrue());
   }
 
   @Override
@@ -308,7 +369,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = pVariable.accept(evaluationVisitor, getUnmodifiableEnvironment()).intersectWith(pParameter);
+    CompoundState parameter = evaluate(pVariable).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
@@ -317,20 +378,26 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     }
     String varName = pVariable.getName();
     InvariantsFormula<CompoundState> resolved = getFromEnvironment(varName);
-    if (!(resolved instanceof Constant<?>)) {
-      return resolved.accept(this, parameter);
+    if (!resolved.accept(this, parameter)) {
+      return false;
     }
-    CompoundState resolvedValue = ((Constant<CompoundState>) resolved).getValue();
-    CompoundState newValue = resolvedValue.intersectWith(parameter);
+    final CompoundState newValue;
+    if (resolved instanceof Constant<?>) {
+      CompoundState resolvedValue = ((Constant<CompoundState>) resolved).getValue();
+      newValue = resolvedValue.intersectWith(parameter);
+    } else {
+      newValue = parameter;
+    }
     if (newValue.isBottom()) {
       return false;
     }
     if (newValue.isTop()) {
       environment.remove(varName);
     } else {
-      InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
+      CompoundStateFormulaManager ifm = CompoundStateFormulaManager.INSTANCE;
       environment.put(varName, ifm.asConstant(newValue));
     }
+    this.cachingEvaluationVisitor.clearCache();
     return true;
   }
 
@@ -344,16 +411,9 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   private InvariantsFormula<CompoundState> getFromEnvironment(String pVarName) {
     InvariantsFormula<CompoundState> result = environment.get(pVarName);
     if (result == null) {
-      return InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.top());
+      return CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.top());
     }
     return result;
-  }
-
-  /**
-   * Gets an immutable version of the environment.
-   */
-  private Map<? extends String, ? extends InvariantsFormula<CompoundState>> getUnmodifiableEnvironment() {
-    return Collections.unmodifiableMap(environment);
   }
 
 }

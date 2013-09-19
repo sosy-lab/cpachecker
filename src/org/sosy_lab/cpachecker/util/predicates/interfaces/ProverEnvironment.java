@@ -27,9 +27,9 @@ import java.util.Collection;
 
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
-import org.sosy_lab.cpachecker.util.predicates.Model;
 
 /**
  * This class provides an interface to an incremental SMT solver

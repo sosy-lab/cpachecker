@@ -25,11 +25,12 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 
 import java.util.Collection;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -42,15 +43,20 @@ import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 
 public class ExplictFeasibilityChecker {
 
+  private final MachineModel machineModel;
+  private final LogManager logger;
+
   /**
    * This method acts as the constructor of the class.
    */
-  public ExplictFeasibilityChecker() {}
+  public ExplictFeasibilityChecker(LogManager pLogger, MachineModel pMachineModel) {
+    this.machineModel = pMachineModel;
+    this.logger = pLogger;
+  }
 
   /**
    * This method checks if the given path is feasible, when not tracking the given set of variables.
@@ -60,14 +66,14 @@ public class ExplictFeasibilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean isFeasible(ARGPath path)
+  public boolean isFeasible(final ARGPath path)
       throws CPAException, InterruptedException {
     try {
       Configuration config = Configuration.builder().build();
 
-      TransferRelation transfer   = new ExplicitTransferRelation(config);
+      TransferRelation transfer   = new ExplicitTransferRelation(config, logger, machineModel);
       AbstractState next          = new ExplicitState();
-      ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
+      ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
 
       for (Pair<ARGState, CFAEdge> pathElement : path) {
         Collection<? extends AbstractState> successors = transfer.getAbstractSuccessors(

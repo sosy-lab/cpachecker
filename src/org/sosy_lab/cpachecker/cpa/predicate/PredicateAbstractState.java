@@ -74,7 +74,11 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
       super(pf, pA, pAbstractionLocations);
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
-      Preconditions.checkArgument(bfmgr.isTrue(pf.getFormula()));
+      //Preconditions.checkArgument(bfmgr.isTrue(pf.getFormula()));
+      // Check uncommented because we may pre-initialize the path formula
+      // with an invariant.
+      // This is no problem for the partial order because the invariant
+      // is always the same when the location is the same.
     }
 
     @Override
@@ -185,7 +189,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
   /** The path formula for the path from the last abstraction node to this node.
    * it is set to true on a new abstraction location and updated with a new
    * non-abstraction location */
-  private final PathFormula pathFormula;
+  private PathFormula pathFormula;
 
   /** The abstraction which is updated only on abstraction locations */
   private AbstractionFormula abstractionFormula;
@@ -231,6 +235,14 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     } else {
       throw new UnsupportedOperationException("Changing abstraction formula is only supported for abstraction elements");
     }
+  }
+
+  /**
+   * Replace the path formula part of this element.
+   * THIS IS POTENTIALLY UNSOUND!
+   */
+  public void setPathFormula(PathFormula pPathFormula) {
+    pathFormula = checkNotNull(pPathFormula);
   }
 
   public PathFormula getPathFormula() {

@@ -23,12 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
@@ -36,12 +40,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.StaticRefiner;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 
 public class ExplicitStaticRefiner extends StaticRefiner {
 
-  private ExplicitPrecision explicitPrecision;
+  private final ExplicitPrecision explicitPrecision;
 
   public ExplicitStaticRefiner(
       Configuration pConfig,
@@ -53,23 +56,17 @@ public class ExplicitStaticRefiner extends StaticRefiner {
     explicitPrecision = initialPrecision;
   }
 
-  @Override
   public ExplicitPrecision extractPrecisionFromCfa() throws CPATransferException {
     logger.log(Level.INFO, "Extracting precision from CFA...");
 
-    ListMultimap<CFANode, AssumeEdge> locAssumes  = getTargetLocationAssumes();
-    Multimap<CFANode, String> increment           = HashMultimap.create();
+    Collection<CFANode> targetNodes = getTargetNodesWithCPA();
+    Set<AssumeEdge> assumeEdges = new HashSet<>(getTargetLocationAssumes(targetNodes).values());
+    Multimap<CFANode, String> increment = HashMultimap.create();
 
-    for (CFANode targetLocation : locAssumes.keySet()) {
-      for (AssumeEdge assume : locAssumes.get(targetLocation)) {
-        String function = assume.getPredecessor().getFunctionName();
-        for (String var : getQualifiedVariablesOfAssume(assume)) {
-          if (isDeclaredInFunction(function, var)) {
-            var = function + "::" + var;
-          }
-
-          increment.put(assume.getSuccessor(), var);
-        }
+    for (AssumeEdge assume : assumeEdges) {
+      for (CIdExpression idExpr : getVariablesOfAssume(assume)) {
+        String var = idExpr.getDeclaration().getQualifiedName();
+        increment.put(assume.getSuccessor(), var);
       }
     }
 

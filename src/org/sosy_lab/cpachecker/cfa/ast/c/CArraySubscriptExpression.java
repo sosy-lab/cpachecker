@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CArraySubscriptExpression extends AArraySubscriptExpression implements CExpression {
+public final class CArraySubscriptExpression extends AArraySubscriptExpression implements CLeftHandSide {
 
 
 
@@ -60,6 +60,11 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression i
 
   @Override
   public <R, X extends Exception> R accept(CRightHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CLeftHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 

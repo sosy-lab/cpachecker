@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.List;
 
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -129,6 +132,20 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     return manager.isIfThenElse(viewManager.extractFromView(pF));
   }
 
+  public <T extends Formula> Triple<BooleanFormula, T, T> splitIfThenElse(T pF) {
+    checkArgument(isIfThenElse(pF));
+
+    FormulaManagerView fmgr = getViewManager();
+    UnsafeFormulaManager unsafe = fmgr.getUnsafeFormulaManager();
+    assert unsafe.getArity(pF) == 3;
+
+    BooleanFormula cond = wrapInView(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0)));
+    T thenBranch = fmgr.wrapInView(unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 1)));
+    T elseBranch = fmgr.wrapInView(unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 2)));
+
+    return Triple.of(cond, thenBranch, elseBranch);
+  }
+
   @Override
   public boolean isEquivalence(BooleanFormula pFormula) {
     return manager.isEquivalence(extractFromView(pFormula));
@@ -210,5 +227,52 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     protected abstract R visitOr(BooleanFormula operand1, BooleanFormula operand2);
     protected abstract R visitEquivalence(BooleanFormula operand1, BooleanFormula operand2);
     protected abstract R visitIfThenElse(BooleanFormula condition, BooleanFormula thenFormula, BooleanFormula elseFormula);
+  }
+
+  public static abstract class DefaultBooleanFormulaVisitor<R> extends BooleanFormulaVisitor<R> {
+
+    protected DefaultBooleanFormulaVisitor(FormulaManagerView pFmgr) {
+      super(pFmgr);
+    }
+
+    @Override
+    protected R visitTrue() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitFalse() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitAtom(BooleanFormula pAtom) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitNot(BooleanFormula pOperand) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitAnd(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitOr(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitIfThenElse(BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
+      throw new UnsupportedOperationException();
+    }
   }
 }

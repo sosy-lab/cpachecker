@@ -29,7 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class LogicalNot<ConstantType> implements InvariantsFormula<ConstantType> {
+public class LogicalNot<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
   /**
    * The formula logically negated by this formula.
@@ -101,7 +101,7 @@ public class LogicalNot<ConstantType> implements InvariantsFormula<ConstantType>
   }
 
   @Override
-  public int hashCode() {
+  protected int hashCodeInternal() {
     return -getNegated().hashCode();
   }
 

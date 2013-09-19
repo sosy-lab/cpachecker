@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 
@@ -148,6 +149,13 @@ public class TreeReader {
     } else if (cn.endsWith("UnaryExpression")) {
       // We assume the operator is "MINUS".
       CUnaryExpression U = (CUnaryExpression) N;
+      Rational a = TreeReader.evaluate(U.getOperand(), S);
+      try {
+        r = a.times(new Rational(-1, 1));
+      } catch (Exception e) {}
+    } else if (cn.endsWith("PointerExpression")) {
+      //TODO check, this clause was copied from UnaryExpression while introducing the PointerExpression
+      CPointerExpression U = (CPointerExpression) N;
       Rational a = TreeReader.evaluate(U.getOperand(), S);
       try {
         r = a.times(new Rational(-1, 1));

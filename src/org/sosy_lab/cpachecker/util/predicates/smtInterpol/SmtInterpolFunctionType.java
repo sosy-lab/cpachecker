@@ -33,7 +33,7 @@ class SmtInterpolFunctionType<T extends Formula> extends FunctionFormulaTypeImpl
 
   private final String funcDecl;
 
-  public SmtInterpolFunctionType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, String funcDecl) {
+  SmtInterpolFunctionType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, String funcDecl) {
     super(pReturnType, pArgumentTypes);
     this.funcDecl = (funcDecl);
   }

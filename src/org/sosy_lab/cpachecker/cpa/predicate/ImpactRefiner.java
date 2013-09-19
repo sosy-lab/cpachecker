@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -48,7 +49,6 @@ public abstract class ImpactRefiner implements Refiner {
     FormulaManagerView fmgr = predicateCpa.getFormulaManager();
     PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
     Solver solver = predicateCpa.getSolver();
-    PredicateStaticRefiner staticRefiner = predicateCpa.getStaticRefiner();
 
     InterpolationManager manager = new InterpolationManager(
         fmgr,
@@ -57,6 +57,8 @@ public abstract class ImpactRefiner implements Refiner {
         predicateCpa.getFormulaManagerFactory(),
         config,
         logger);
+
+    PathChecker pathChecker = new PathChecker(logger, pfmgr, solver);
 
     RefinementStrategy strategy = new ImpactRefinementStrategy(
         config,
@@ -70,9 +72,9 @@ public abstract class ImpactRefiner implements Refiner {
         logger,
         pCpa,
         manager,
+        pathChecker,
         fmgr,
         pfmgr,
-        strategy,
-        staticRefiner);
+        strategy);
     }
 }

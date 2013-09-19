@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 import java.io.Serializable;
-import java.util.Collections;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
@@ -33,6 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Base class for AbstractStates which wrap the abstract state of exactly
@@ -92,7 +92,7 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
   }
 
   @Override
-  public Iterable<? extends AbstractState> getWrappedStates() {
-    return Collections.singleton(wrappedState);
+  public ImmutableList<AbstractState> getWrappedStates() {
+    return ImmutableList.of(wrappedState);
   }
 }

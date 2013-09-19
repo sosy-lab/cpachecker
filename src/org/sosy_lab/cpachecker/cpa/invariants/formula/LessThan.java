@@ -29,7 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class LessThan<ConstantType> implements InvariantsFormula<ConstantType> {
+public class LessThan<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
   /**
    * The left operand of the inequation.
@@ -85,7 +85,7 @@ public class LessThan<ConstantType> implements InvariantsFormula<ConstantType> {
   }
 
   @Override
-  public int hashCode() {
+  protected int hashCodeInternal() {
     return getOperand1().hashCode() + getOperand2().hashCode();
   }
 

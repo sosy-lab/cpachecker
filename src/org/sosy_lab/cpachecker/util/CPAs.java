@@ -23,14 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.util.Iterator;
-
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
-import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterators;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.TreeTraverser;
 
 /**
  * Helper functions to work with CPAs.
@@ -63,16 +61,13 @@ public class CPAs {
    */
   public static FluentIterable<ConfigurableProgramAnalysis> asIterable(final ConfigurableProgramAnalysis pCpa) {
 
-    return new TreeIterable<>(pCpa, CPA_CHILDREN_FUNCTION);
-  }
-
-  private static final Function<ConfigurableProgramAnalysis, Iterator<? extends ConfigurableProgramAnalysis>> CPA_CHILDREN_FUNCTION =
-    new Function<ConfigurableProgramAnalysis, Iterator<? extends ConfigurableProgramAnalysis>>() {
+    return new TreeTraverser<ConfigurableProgramAnalysis>() {
       @Override
-      public Iterator<? extends ConfigurableProgramAnalysis> apply(ConfigurableProgramAnalysis cpa) {
+      public Iterable<ConfigurableProgramAnalysis> children(ConfigurableProgramAnalysis cpa) {
         return (cpa instanceof WrapperCPA)
-             ? ((WrapperCPA)cpa).getWrappedCPAs().iterator()
-             : Iterators.<ConfigurableProgramAnalysis>emptyIterator();
+             ? ((WrapperCPA)cpa).getWrappedCPAs()
+             : ImmutableList.<ConfigurableProgramAnalysis>of();
       }
-    };
+    }.preOrderTraversal(pCpa);
+  }
 }

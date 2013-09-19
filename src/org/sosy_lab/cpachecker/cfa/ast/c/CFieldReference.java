@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CFieldReference extends AExpression implements CExpression {
+public final class CFieldReference extends AExpression implements CLeftHandSide {
 
   private final String         name;
   private final CExpression owner;
@@ -56,9 +56,6 @@ public final class CFieldReference extends AExpression implements CExpression {
       boolean found = false;
       for (CCompositeTypeMemberDeclaration field : ((CCompositeType)structType).getMembers()) {
         if (field.getName().equals(name)) {
-          if (!field.getType().getCanonicalType().equals(getExpressionType().getCanonicalType())) {
-            throw new IllegalArgumentException("Illegal type " + getExpressionType() + " for access of field " + name + " in " + structType);
-          }
           found = true;
           break;
         }
@@ -94,6 +91,11 @@ public final class CFieldReference extends AExpression implements CExpression {
 
   @Override
   public <R, X extends Exception> R accept(CRightHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CLeftHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 

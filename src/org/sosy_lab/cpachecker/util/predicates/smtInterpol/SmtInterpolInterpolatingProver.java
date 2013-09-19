@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import static com.google.common.base.Predicates.*;
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,20 +33,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 
 import com.google.common.base.Preconditions;
 
-import de.uni_freiburg.informatik.ultimate.logic.AnnotatedTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
-import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-public class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<Term> {
+class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<String> {
 
-  private final SmtInterpolFormulaManager mgr;
+  protected final SmtInterpolFormulaManager mgr;
   private SmtInterpolEnvironment env;
 
   private final List<String> assertedFormulas; // Collection of termNames
@@ -51,7 +52,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingProverEnviro
   private static final String prefix = "term_"; // for termnames
   private static int counter = 0; // for different termnames // TODO static?
 
-  public SmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr) {
+  SmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr) {
     mgr = pMgr;
     env = mgr.createEnvironment();
     assertedFormulas = new ArrayList<>();
@@ -59,7 +60,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingProverEnviro
   }
 
   @Override
-  public Term push(BooleanFormula f) {
+  public String push(BooleanFormula f) {
     Preconditions.checkNotNull(env);
 
     Term t = mgr.getTerm(f);
@@ -67,81 +68,71 @@ public class SmtInterpolInterpolatingProver implements InterpolatingProverEnviro
 
     String termName = prefix + counter++;
     Term annotatedTerm = env.annotate(t, new Annotation(":named", termName));
-    env.push(1);
-    env.assertTerm(annotatedTerm);
+    pushAndAssert(annotatedTerm);
     assertedFormulas.add(termName);
     annotatedTerms.put(termName, t);
-    return annotatedTerm;
+    assert assertedFormulas.size() == annotatedTerms.size();
+    return termName;
+  }
+
+  protected void pushAndAssert(Term annotatedTerm) {
+    env.push(1);
+    env.assertTerm(annotatedTerm);
   }
 
   @Override
   public void pop() {
     Preconditions.checkNotNull(env);
-    assertedFormulas.remove(assertedFormulas.size()-1); // remove last term
+    String removed = assertedFormulas.remove(assertedFormulas.size()-1); // remove last term
+    annotatedTerms.remove(removed);
+    assert assertedFormulas.size() == annotatedTerms.size();
     env.pop(1);
   }
 
   @Override
   public boolean isUnsat() {
-    return env.checkSat() == LBool.UNSAT;
+    return !env.checkSat();
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<Term> formulasOfA) {
+  public BooleanFormula getInterpolant(List<String> pTermNamesOfA) {
     Preconditions.checkNotNull(env);
 
-    // wrap terms into annotated term, collect their names as "termNamesOfA"
-    Set<String> termNamesOfA = new HashSet<>();
-    for (int i=0; i<formulasOfA.size(); i++) {
-      final Term t = formulasOfA.get(i);
-      assert t instanceof AnnotatedTerm;
-      final Object termNameObj = ((AnnotatedTerm)t).getAnnotations()[0].getValue();
-      assert termNameObj instanceof String;
-      final String termName = (String)termNameObj;
-      termNamesOfA.add(termName);
-    }
+    Set<String> termNamesOfA = new HashSet<>(pTermNamesOfA);
 
     // calc difference: termNamesOfB := assertedFormulas - termNamesOfA
-    List<String> termNamesOfB = new ArrayList<>();
-    for (String assertedFormulaName : assertedFormulas) {
-      if (!termNamesOfA.contains(assertedFormulaName)) {
-        termNamesOfB.add(assertedFormulaName);
-      }
-    }
-
-    // get terms with names
-    Term[] groupOfA = new Term[termNamesOfA.size()];
-    int i=0;
-    for (String termName: termNamesOfA) {
-      groupOfA[i] = env.term(termName);
-      i++;
-    }
-    Term[] groupOfB = new Term[termNamesOfB.size()];
-    i=0;
-    for (String termName: termNamesOfB) {
-      groupOfB[i] = env.term(termName);
-      i++;
-    }
+    Set<String> termNamesOfB = from(assertedFormulas)
+                                 .filter(not(in(termNamesOfA)))
+                                 .toSet();
 
     // build 2 groups:  (and A1 A2 A3...) , (and B1 B2 B3...)
-    assert groupOfA.length != 0;
-    Term termA = groupOfA[0];
-    if (groupOfA.length > 1) {
-      termA = env.term("and", groupOfA);
-    }
-    assert groupOfB.length != 0;
-    Term termB = groupOfB[0];
-    if (groupOfB.length > 1) {
-      termB = env.term("and", groupOfB);
-    }
+    Term termA = buildConjunctionOfNamedTerms(termNamesOfA);
+    Term termB = buildConjunctionOfNamedTerms(termNamesOfB);
 
+    return getInterpolant(termA, termB);
+  }
+
+  protected BooleanFormula getInterpolant(Term termA, Term termB) {
     // get interpolant of groups
     Term[] itp = env.getInterpolants(new Term[] {termA, termB});
     assert itp.length == 1; // 2 groups -> 1 interpolant
 
-    BooleanFormula f = mgr.encapsulate(BooleanFormula.class, itp[0]);
+    return mgr.encapsulateBooleanFormula(itp[0]);
+  }
 
-    return f;
+  private Term buildConjunctionOfNamedTerms(Set<String> termNames) {
+    Term[] terms = new Term[termNames.size()];
+    int i=0;
+    for (String termName: termNames) {
+      terms[i] = env.term(termName);
+      i++;
+    }
+    if (terms.length > 1) {
+      return env.term("and", terms);
+    } else {
+      assert terms.length != 0;
+      return terms[0];
+    }
   }
 
   @Override
@@ -150,17 +141,15 @@ public class SmtInterpolInterpolatingProver implements InterpolatingProverEnviro
     while (!assertedFormulas.isEmpty()) { // cleanup stack
       pop();
     }
-    annotatedTerms.clear();
+    assert assertedFormulas.size() == annotatedTerms.size();
     env = null;
   }
 
   @Override
   public Model getModel() {
     Preconditions.checkNotNull(env);
-    List<Term> terms = new ArrayList<>(assertedFormulas.size());
-    for (String termname : assertedFormulas) {
-      terms.add(annotatedTerms.get(termname));
-    }
-    return SmtInterpolModel.createSmtInterpolModel(mgr, terms);
+    assert assertedFormulas.size() == annotatedTerms.size();
+
+    return SmtInterpolModel.createSmtInterpolModel(mgr, annotatedTerms.values());
   }
 }

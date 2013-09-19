@@ -46,5 +46,5 @@ public interface WrapperCPA {
    * Retrieve all wrapped CPAs contained directly in this object (not recursively).
    * @return A non-empty unmodifiable list of CPAs.
    */
-  public Iterable<? extends ConfigurableProgramAnalysis> getWrappedCPAs();
+  public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs();
 }

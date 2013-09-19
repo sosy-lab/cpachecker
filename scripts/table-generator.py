@@ -180,6 +180,21 @@ class Util:
     def json(obj):
         return tempita.html(json.dumps(obj))
 
+    @staticmethod
+    def prettylist(list):
+        if not list:
+            return ''
+
+        # Filter out duplicate values while keeping order
+        values = set()
+        uniqueList = []
+        for entry in list:
+            if not entry in values:
+                values.add(entry)
+                uniqueList.append(entry)
+
+        return uniqueList[0] if len(uniqueList) == 1 \
+            else '[' + '; '.join(uniqueList) + ']'
 
 def parseTableDefinitionFile(file):
     '''
@@ -231,16 +246,15 @@ def parseTableDefinitionFile(file):
 
     for unionTag in tableGenFile.findall('union'):
         columnsToShow = extractColumnsFromTableDefinitionFile(unionTag) or defaultColumnsToShow
-        result = RunSetResult([], {}, columnsToShow)
+        result = RunSetResult([], collections.defaultdict(list), columnsToShow)
 
         for resultTag in getResultTags(unionTag):
             filelist = Util.getFileList(os.path.join(baseDir, resultTag.get('filename'))) # expand wildcards
             for resultsFile in filelist:
                 result.append(resultsFile, parseResultsFile(resultsFile))
 
-        result.attributes['name'] = unionTag.get('title', unionTag.get('name', result.attributes['name']))
-
         if result.filelist:
+            result.attributes['name'] = unionTag.get('title', unionTag.get('name', result.attributes['name']))
             runSetResults.append(result)
 
     return runSetResults
@@ -273,22 +287,9 @@ class RunSetResult():
         return [file.get('name') for file in self.filelist if Util.getColumnValue(file, 'status')]
 
     def append(self, resultFile, resultElem):
-        def updateAttributes(newAttributes):
-            for key in newAttributes:
-                newValue = newAttributes[key]
-                if key in self.attributes:
-                    oldValue = self.attributes[key]
-                    if not isinstance(oldValue, str):
-                        if not newValue in oldValue:
-                            oldValue.append(newValue)
-                    else:
-                        if (oldValue != newValue):
-                            self.attributes[key] = [oldValue, newValue]
-                else:
-                    self.attributes[key] = newAttributes[key]
-
         self.filelist += resultElem.findall('sourcefile')
-        updateAttributes(RunSetResult._extractAttributesFromResult(resultFile, resultElem))
+        for attrib, values in RunSetResult._extractAttributesFromResult(resultFile, resultElem).items():
+            self.attributes[attrib].extend(values)
 
         if not self.columns:
             self.columns = RunSetResult._extractExistingColumnsFromResult(resultFile, resultElem)
@@ -319,29 +320,25 @@ class RunSetResult():
 
     @staticmethod
     def _extractAttributesFromResult(resultFile, resultTag):
-        attributes = { # Defaults
-                'timelimit': None,
-                'memlimit':  None,
-                'cpuCores':  None,
-                'options':   ' ',
-                'benchmarkname': resultTag.get('benchmarkname'),
-                'name':      resultTag.get('name', resultTag.get('benchmarkname')),
-                'branch':    os.path.basename(resultFile).split('#')[0] if '#' in resultFile else '',
-                }
-        attributes.update(resultTag.attrib) # Update with real values
+        attributes = collections.defaultdict(list)
+
+        # Defaults
+        attributes['name'  ] = [resultTag.get('benchmarkname')]
+        attributes['branch'] = [os.path.basename(resultFile).split('#')[0] if '#' in resultFile else '']
+
+        # Update with real values
+        for attrib, value in resultTag.attrib.items():
+            attributes[attrib] = [value]
 
         # Add system information if present
-        systemTag = resultTag.find('systeminfo')
-        if systemTag is not None:
+        for systemTag in resultTag.findall('systeminfo'):
             cpuTag = systemTag.find('cpu')
-            attributes.update({
-                'os':        systemTag.find('os').get('name'),
-                'cpu':       cpuTag.get('model'),
-                'cores':     cpuTag.get('cores'),
-                'freq':      cpuTag.get('frequency'),
-                'ram':       systemTag.find('ram').get('size'),
-                'host':      systemTag.get('hostname', 'unknown')
-                })
+            attributes['os'   ].append(systemTag.find('os').get('name'))
+            attributes['cpu'  ].append(cpuTag.get('model'))
+            attributes['cores'].append( cpuTag.get('cores'))
+            attributes['freq' ].append(cpuTag.get('frequency'))
+            attributes['ram'  ].append(systemTag.find('ram').get('size'))
+            attributes['host' ].append(systemTag.get('hostname', 'unknown'))
 
         return attributes
 
@@ -601,7 +598,7 @@ def filterRowsWithDifferences(rows):
     if len(rows[0].results) == 1:
         # table with single column
         return []
-    
+
     def allEqualResult(listOfResults):
         for result in listOfResults:
             if listOfResults[0].status != result.status:
@@ -635,6 +632,12 @@ def getTableHead(runSetResults, commonFileNamePrefix):
     # (the width of a run set in the final table)
     # It is used for calculating the column spans of the header cells.
     runSetWidths = [len(runSetResult.columns) for runSetResult in runSetResults]
+
+    for runSetResult in runSetResults:
+        # Ugly because this overwrites the entries in the map,
+        # but we don't need them anymore and this is the easiest way
+        for key in runSetResult.attributes:
+            runSetResult.attributes[key] = Util.prettylist(runSetResult.attributes[key])
 
     def getRow(rowName, format, collapse=False, onlyIf=None):
         def formatCell(attributes):
@@ -692,7 +695,7 @@ def getStats(rows):
 def getStatsOfRunSet(runResults):
     """
     This function returns the numbers of the statistics.
-    @param runResults: All the results of the execution of one run set (as list of RunResult objects) 
+    @param runResults: All the results of the execution of one run set (as list of RunResult objects)
     """
 
     # convert:

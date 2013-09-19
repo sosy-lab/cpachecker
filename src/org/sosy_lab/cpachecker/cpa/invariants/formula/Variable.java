@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 
-public class Variable<ConstantType> implements InvariantsFormula<ConstantType> {
+public class Variable<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
   private final String name;
 
@@ -53,7 +53,7 @@ public class Variable<ConstantType> implements InvariantsFormula<ConstantType> {
   }
 
   @Override
-  public int hashCode() {
+  protected int hashCodeInternal() {
     return getName().hashCode();
   }
 

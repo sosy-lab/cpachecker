@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
@@ -911,7 +912,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
 
   private void resolveBooleanAssignment(Expression condition,
-              JExpression variableExpression, CFANode prevNode,
+              JLeftHandSide variableExpression, CFANode prevNode,
                     CFANode afterResolvedBooleanExpressionNode) {
 
     resolveBooleanAssignment(astCreator.convertBooleanExpression(condition),
@@ -919,7 +920,7 @@ class CFAMethodBuilder extends ASTVisitor {
   }
 
   private void resolveBooleanAssignment(JExpression condition,
-      JExpression variableExpression, CFANode prevNode,
+      JLeftHandSide variableExpression, CFANode prevNode,
       CFANode afterResolvedBooleanExpressionNode) {
 
     int fileLocStart =

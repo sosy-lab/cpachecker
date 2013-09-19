@@ -31,11 +31,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -176,6 +178,12 @@ public class ReferencedVariablesCollector {
     }
 
     @Override
+    public Void visit(CComplexCastExpression pE) {
+      pE.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
     public Void visit(CFieldReference pE) {
       collectVar(pE.toASTString());
       pE.getFieldOwner().accept(this);
@@ -197,7 +205,6 @@ public class ReferencedVariablesCollector {
 
       switch (op) {
       case AMPER:
-      case STAR:
         collectVar(pE.toASTString());
         //$FALL-THROUGH$
       default:
@@ -205,6 +212,13 @@ public class ReferencedVariablesCollector {
       }
 
 
+      return null;
+    }
+
+    @Override
+    public Void visit(CPointerExpression pE) {
+      collectVar(pE.toASTString());
+      pE.getOperand().accept(this);
       return null;
     }
 

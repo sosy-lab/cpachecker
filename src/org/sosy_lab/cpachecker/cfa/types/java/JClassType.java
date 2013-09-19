@@ -266,4 +266,17 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
   public static JClassType createUnresolvableType() {
     return UNRESOLVABLE_TYPE;
   }
+
+  @Override
+  public int hashCode() {
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + super.hashCode();
+      return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+      return this == obj || super.equals(obj);
+    }
 }

@@ -24,21 +24,29 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
-import static org.sosy_lab.cpachecker.util.StatisticsUtils.div;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 /**
  * Abstract class for the refinement strategy that should be used after a spurious
@@ -52,20 +60,34 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
  */
 public abstract class RefinementStrategy {
 
-  // statistics
-  private int numberOfSuccessfulRefinements = 0;
-  private int totalUnchangedPrefixLength = 0; // measured in blocks
-  private int totalPathLengthToInfeasibility = 0; // measured in blocks
-  private int totalNumberOfStatesWithNonTrivialInterpolant = 0;
-  private int totalNumberOfAffectedStates = 0;
+  private final StatInt differentNontrivialInterpolants = new StatInt(StatKind.SUM, "Different non-trivial interpolants along paths");
+  private final StatInt equalNontrivialInterpolants = new StatInt(StatKind.SUM, "Equal non-trivial interpolants along paths");
 
-  protected void printStatistics(PrintStream out) {
-    out.println("Avg. number of states with itp 'true':      " + div(totalUnchangedPrefixLength, numberOfSuccessfulRefinements));
-    out.println("Avg. number of states with non-trivial itp: " + div(totalNumberOfStatesWithNonTrivialInterpolant, numberOfSuccessfulRefinements));
-    out.println("Avg. length of refined path (in blocks):    " + div(totalPathLengthToInfeasibility, numberOfSuccessfulRefinements));
-    out.println("Avg. number of affected states:             " + div(totalNumberOfAffectedStates, numberOfSuccessfulRefinements));
-  }
+  private final StatInt truePathPrefixStates = new StatInt(StatKind.SUM, "Length (states) of path with itp 'true'");
+  private final StatInt nonTrivialPathStates = new StatInt(StatKind.SUM, "Length (states) of path with itp non-trivial itp");
+  private final StatInt falsePathSuffixStates = new StatInt(StatKind.SUM, "Length (states) of path with itp 'false'");
 
+  private final StatInt equalPrecisionsOnPaths = new StatInt(StatKind.SUM, "Equal precisions along paths");
+  private final StatInt differentPrecisionsOnPaths = new StatInt(StatKind.SUM, "Different precisions along paths");
+
+  private final StatInt numberOfAffectedStates = new StatInt(StatKind.SUM, "Number of affected states");
+  private final StatInt totalPathLengthToInfeasibility = new StatInt(StatKind.AVG, "Length of refined path (in blocks)");
+
+  protected AbstractStatistics basicRefinementStatistics = new AbstractStatistics() {
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+      writingStatisticsTo(out)
+        .put(totalPathLengthToInfeasibility)
+        .put(numberOfAffectedStates)
+        .put(truePathPrefixStates)
+        .put(nonTrivialPathStates)
+        .put(falsePathSuffixStates)
+        .put(differentNontrivialInterpolants)
+        .put(equalNontrivialInterpolants)
+        .put(differentPrecisionsOnPaths)
+        .put(equalPrecisionsOnPaths);
+    }
+  };
 
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
@@ -75,36 +97,78 @@ public abstract class RefinementStrategy {
     solver = pSolver;
   }
 
+  public boolean needsInterpolants() {
+    return true;
+  }
+
+  protected void analyzePathPrecisions(ARGReachedSet argReached, List<ARGState> path) {
+    int equalPrecisions = 0;
+    int differentPrecisions = 0;
+
+    UnmodifiableReachedSet reached = argReached.asReachedSet();
+    PredicatePrecision lastPaPrec = null;
+    for (ARGState state : path) {
+      Precision prec = reached.getPrecision(state);
+      PredicatePrecision paPrec = Precisions.extractPrecisionByType(prec, PredicatePrecision.class);
+      if (lastPaPrec != null) {
+        if (lastPaPrec.equals(paPrec)) {
+          equalPrecisions++;
+        } else {
+          differentPrecisions++;
+        }
+      }
+      lastPaPrec = paPrec;
+    }
+
+    equalPrecisionsOnPaths.setNextValue(equalPrecisions);
+    differentPrecisionsOnPaths.setNextValue(differentPrecisions);
+  }
+
 
   public void performRefinement(ARGReachedSet pReached, List<ARGState> path,
       List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException {
-    numberOfSuccessfulRefinements++;
-
+    // Hook
     startRefinementOfPath();
 
+    // The last state along the path is the target (error) state
     ARGState lastElement = path.get(path.size()-1);
     assert lastElement.isTarget();
 
-    path = path.subList(0, path.size()-1); // skip last element, itp is always false there
+    // Skip the last element of the path, itp is always false there
+    path = path.subList(0, path.size()-1);
     assert pInterpolants.size() ==  path.size();
 
     List<ARGState> changedElements = new ArrayList<>();
     ARGState infeasiblePartOfART = lastElement;
     boolean previousItpWasTrue = true;
+
+    // Statistics on the current refinement
+    int truePrefixStates = 0;
+    int nonTrivialStates = 0;
+    int falseSuffixStates = 0;
+    int differentNontrivialItps = 0;
+    int equalNontrivialItps = 0;
+    int pathLengthToInfeasibility = 0;
+
+    BooleanFormula lastItp = null;
+
+    // Traverse the path
     for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(pInterpolants, path)) {
-      totalPathLengthToInfeasibility++;
+      pathLengthToInfeasibility++;
       BooleanFormula itp = interpolationPoint.getFirst();
       ARGState w = interpolationPoint.getSecond();
 
+      // ...
       if (bfmgr.isTrue(itp)) {
         // do nothing
-        totalUnchangedPrefixLength++;
+        truePrefixStates++;
         previousItpWasTrue =  true;
         continue;
       }
 
       if (bfmgr.isFalse(itp)) {
         // we have reached the part of the path that is infeasible
+        falseSuffixStates++;
         infeasiblePartOfART = w;
         if (previousItpWasTrue) {
           // If the previous itp was true, and the current one is false,
@@ -116,7 +180,18 @@ public abstract class RefinementStrategy {
         }
         break;
       }
-      totalNumberOfStatesWithNonTrivialInterpolant++;
+
+      // Compare non-trivial interpolants along path
+      if (lastItp != null) {
+        if (lastItp.equals(itp)) {
+          equalNontrivialItps++;
+        } else {
+          differentNontrivialItps++;
+        }
+      }
+      lastItp = itp;
+
+      nonTrivialStates++;
       previousItpWasTrue = false;
 
       if (!performRefinementForState(itp, w)) {
@@ -124,9 +199,9 @@ public abstract class RefinementStrategy {
       }
     }
     if (infeasiblePartOfART == lastElement) {
-      totalPathLengthToInfeasibility++;
+      pathLengthToInfeasibility++;
     }
-    totalNumberOfAffectedStates += changedElements.size();
+    numberOfAffectedStates.setNextValue(changedElements.size());
 
     if (changedElements.isEmpty() && pRepeatedCounterexample) {
       // TODO One cause for this exception is that the CPAAlgorithm sometimes
@@ -138,7 +213,16 @@ public abstract class RefinementStrategy {
       throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
     }
 
+    // Hook
     finishRefinementOfPath(infeasiblePartOfART, changedElements, pReached, pRepeatedCounterexample);
+
+    // Update global statistics
+    truePathPrefixStates.setNextValue(truePrefixStates);
+    nonTrivialPathStates.setNextValue(nonTrivialStates);
+    falsePathSuffixStates.setNextValue(falseSuffixStates);
+    differentNontrivialInterpolants.setNextValue(differentNontrivialItps);
+    equalNontrivialInterpolants.setNextValue(equalNontrivialItps);
+    totalPathLengthToInfeasibility.setNextValue(pathLengthToInfeasibility);
 
     assert !pReached.asReachedSet().contains(lastElement);
   }
@@ -160,13 +244,16 @@ public abstract class RefinementStrategy {
    * Do any necessary work after one path has been refined.
    *
    * @param unreachableState The first state in the path which is infeasible (this identifies the path).
+   * @param path The error trace
    * @param affectedStates The list of states that were affected by the refinement (ordered from root to target state).
    * @param reached The reached set.
    * @param repeatedCounterexample Whether the counterexample has been found before.
    * @throws CPAException
    */
-  protected abstract void finishRefinementOfPath(final ARGState unreachableState,
-      List<ARGState> affectedStates, ARGReachedSet reached,
+  protected abstract void finishRefinementOfPath(
+      final ARGState unreachableState,
+      List<ARGState> affectedStates,
+      ARGReachedSet reached,
       boolean repeatedCounterexample) throws CPAException;
 
   public abstract Statistics getStatistics();
