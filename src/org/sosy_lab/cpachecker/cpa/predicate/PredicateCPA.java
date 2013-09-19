@@ -86,6 +86,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       description="which merge operator to use for predicate cpa (usually ABE should be used)")
   private String mergeType = "ABE";
 
+  @Option(name="refinement.performInitialStaticRefinement",
+      description="use heuristic to extract predicates from the CFA statically on first refinement")
+  private boolean performInitialStaticRefinement = false;
+
   private final Configuration config;
   private final LogManager logger;
 
@@ -103,7 +107,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateCPAStatistics stats;
   private final PredicateAbstractState topState;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
-  private final PredicatePrecisionSweeper precisionSweeper;
+  private final PredicateStaticRefiner staticRefiner;
 
   protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk, CFA cfa) throws InvalidConfigurationException {
     config.inject(this, PredicateCPA.class);
@@ -115,6 +119,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       BlockComputer blockComputer = new BlockedCFAReducer(config);
       blk.setExplicitAbstractionNodes(blockComputer.computeAbstractionNodes(cfa));
     }
+    blk.setCFA(cfa);
 
     formulaManagerFactory = new FormulaManagerFactory(config, logger);
 
@@ -162,13 +167,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     prec = new PredicatePrecisionAdjustment(this);
     stop = new PredicateStopOperator(domain);
 
-    precisionSweeper = new PredicatePrecisionSweeper(logger, cfa);
-    precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, pathFormulaManager, abstractionManager, formulaManager, precisionSweeper);
+    staticRefiner = initializeStaticRefiner(config, logger, abstractionManager, cfa);
+    precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, pathFormulaManager, abstractionManager, formulaManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
-    stats = new PredicateCPAStatistics(this, blk, regionManager,
-        abstractionManager, cfa, precisionSweeper);
+    stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager, cfa);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
   }
@@ -218,6 +222,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return logger;
   }
 
+  public PredicateStaticRefiner getStaticRefiner() {
+    return staticRefiner;
+  }
+
   public FormulaManagerFactory getFormulaManagerFactory() {
     return formulaManagerFactory;
   }
@@ -241,7 +249,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
     precisionBootstraper.collectStatistics(pStatsCollection);
-    precisionSweeper.collectStatistics(pStatsCollection);
   }
 
   @Override
@@ -261,5 +268,17 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     } else {
       return false;
     }
+  }
+
+  private PredicateStaticRefiner initializeStaticRefiner(
+    Configuration config,
+    LogManager logger,
+    AbstractionManager abstractionManager,
+    CFA cfa) throws InvalidConfigurationException {
+    if (performInitialStaticRefinement) {
+      return new PredicateStaticRefiner(config, logger, pathFormulaManager, formulaManager, abstractionManager, cfa);
+    }
+
+    return null;
   }
 }

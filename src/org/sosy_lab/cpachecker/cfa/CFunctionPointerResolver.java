@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -67,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -273,6 +275,17 @@ public class CFunctionPointerResolver {
     CFANode end = statement.getSuccessor();
     // delete old edge
     CFACreationUtils.removeEdgeFromNodes(statement);
+
+    if (nameExp instanceof CUnaryExpression
+        && ((CUnaryExpression)nameExp).getOperator() == UnaryOperator.STAR) {
+      CExpression operand = ((CUnaryExpression)nameExp).getOperand();
+      if (operand instanceof CIdExpression
+          && operand.getExpressionType() instanceof CPointerType
+          && ((CPointerType)operand.getExpressionType()).getType() instanceof CFunctionType) {
+        // *fp is the same as fp
+        nameExp = operand;
+      }
+    }
 
     CFANode rootNode = start;
     for (FunctionEntryNode fNode : funcs) {
@@ -485,7 +498,7 @@ public class CFunctionPointerResolver {
     // Type equality is too strong.
     // After this is implemented, change the default of functionSets
     // to USED_IN_CODE, EQ_PARAM_TYPES
-    return declaredType.equals(actualType);
+    return declaredType.getCanonicalType().equals(actualType.getCanonicalType());
   }
 
   private final boolean checkParamSizes(CFunctionCallExpression functionCallExpression,

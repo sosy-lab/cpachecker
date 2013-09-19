@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SortedSetMultimap;
 
 public class MutableCFA implements CFA {
@@ -135,6 +136,11 @@ public class MutableCFA implements CFA {
 
   @Override
   public Optional<ImmutableMultimap<String, Loop>> getLoopStructure() {
+    return Optional.absent();
+  }
+
+  @Override
+  public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
     return Optional.absent();
   }
 

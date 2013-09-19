@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
 
@@ -105,9 +106,17 @@ class PointerAliasHandling extends CtoFormulaConverter {
       // lookup in ssa map: Maybe we assigned a size to this current variable
       CType savedVarType = ssa.getType(ptrMask.getName());
       if (savedVarType != null) {
+
+        //assert isDereferenceType(savedVarType)
+        //    : "The savedVar should also be a DereferenceType!";
+
+        // The previous assertion would have failed if
+        // we previously had a real type for this variable.
+        // This should not happen in correct code,
+        // but may occur for example when a function pointer
+        // with mismatching return type is called.
+
         ptrMask = ptrMask.withType(savedVarType);
-        assert isDereferenceType(savedVarType)
-            : "The savedVar should also be a DereferenceType!";
       }
     }
     return ptrMask;
@@ -366,7 +375,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
 
   BooleanFormula buildDirectSecondLevelAssignment(
       Variable lVarName,
-      CRightHandSide pRight, String function,
+      CExpression right, String function,
       Constraints constraints, SSAMapBuilder ssa) {
 
     if (!hasRepresentableDereference(lVarName)) {
@@ -374,13 +383,6 @@ class PointerAliasHandling extends CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
     }
 
-    if (!(pRight instanceof CExpression)) {
-      // The right side is something strange
-      log(Level.FINEST, "Not a CExpression on the right side, ignoring aliasing: " + pRight.toASTString());
-      return bfmgr.makeBoolean(true);
-    }
-
-    CExpression right = (CExpression)pRight;
     if (!isSupportedExpression(right)) {
       if (isTooComplexExpression(right)) {
         // The right side is too complex
@@ -416,18 +418,31 @@ class PointerAliasHandling extends CtoFormulaConverter {
           if (leftT) {
             if (rightT) {
               // Right is actually no pointer but was used as pointer before, so we can use its type.
-            }
+              CType currentLeftGuess = getGuessedType(leftPtrType);
+              CType currentRightGuess = getGuessedType(rPtrVarName.getType());
+              if (currentLeftGuess == null) {
+                if (currentRightGuess != null) {
+                  lPtrVarName =
+                    lPtrVarName.withType(setGuessedType(leftPtrType, currentRightGuess));
+                }
+              } else {
+                if (getSizeof(currentRightGuess) != getSizeof(currentLeftGuess)) {
+                  log(Level.WARNING, "Second assignment of an variable that is no pointer with different size");
+                }
+              }
 
-            // OK left is no pointer, but right is, for example:
-            // l = r; // l is unsigned int and r is *long
-            // now we assign *l to the type of *r if *l was not assigned before
-            CType currentGuess = getGuessedType(leftPtrType);
-            if (currentGuess == null) {
-              lPtrVarName =
-                  lPtrVarName.withType(setGuessedType(leftPtrType, rPtrVarName.getType()));
             } else {
-              if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
-                log(Level.WARNING, "Second assignment of an variable that is no pointer with different size");
+              // OK left is no pointer, but right is, for example:
+              // l = r; // l is unsigned int and r is *long
+              // now we assign *l to the type of *r if *l was not assigned before
+              CType currentGuess = getGuessedType(leftPtrType);
+              if (currentGuess == null) {
+                lPtrVarName =
+                    lPtrVarName.withType(setGuessedType(leftPtrType, rPtrVarName.getType()));
+              } else {
+                if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
+                  log(Level.WARNING, "Second assignment of an variable that is no pointer with different size");
+                }
               }
             }
           } else {
@@ -632,7 +647,13 @@ class ExpressionToFormulaVisitorPointers extends ExpressionToFormulaVisitor {
 
     switch (op) {
     case AMPER:
-      return makeAddressVariable(exp, function);
+      CExpression operand = CtoFormulaConverter.removeCast(exp.getOperand());
+
+      if (conv.isSupportedExpression(operand)) {
+        return makeMemLocationVariable(operand, function);
+      } else {
+        return super.visit(exp);
+      }
 
     case STAR:
       // *tmp or *(tmp->field) or *(s.a)
@@ -653,19 +674,6 @@ class ExpressionToFormulaVisitorPointers extends ExpressionToFormulaVisitor {
     default:
       return super.visit(exp);
     }
-  }
-
-  private Formula makeAddressVariable(CUnaryExpression exp, String function)
-      throws UnrecognizedCCodeException {
-
-      CExpression operand = CtoFormulaConverter.removeCast(exp.getOperand());
-      UnaryOperator op = exp.getOperator();
-
-      if (op != UnaryOperator.AMPER || !conv.isSupportedExpression(operand)) {
-        return super.visitDefault(exp);
-      }
-
-      return makeMemLocationVariable(operand, function);
   }
 
   /**
@@ -872,7 +880,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
 
     if (!(lExpr instanceof CUnaryExpression)) {
       // NOTE: rightVariable is only the changed field, set it to the complete bitvector
-      rightVariable = conv.replaceField((CFieldReference) lExpr, lPtrVar, rightVariable);
+      rightVariable = conv.replaceField((CFieldReference) lExpr, lPtrVar, Optional.of(rightVariable));
 
       // We can't make a pointermask from the right side.
       doDeepUpdate = false;
@@ -981,7 +989,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
     } else {
       // no deep update of pointers required
       Map<String, Formula> memberMaskMap = null;
-      CType expType = simplifyType(leftSide.getExpressionType());
+      CType expType = leftSide.getExpressionType().getCanonicalType();
       if (conv.handleFieldAliasing) {
         // Read comment below.
         if (expType instanceof CCompositeType) {
@@ -1130,28 +1138,30 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
   /** A direct assignment changes the value of the variable on the left side. */
   private BooleanFormula handleDirectAssignment(CAssignment assignment)
       throws UnrecognizedCCodeException {
-    CExpression lRawExpr = assignment.getLeftHandSide();
-    CExpression lExpr = CtoFormulaConverter.removeCast(lRawExpr);
+    CExpression lExpr = assignment.getLeftHandSide();
     assert (lExpr instanceof CIdExpression
         || (lExpr instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)lExpr)))
         : "We currently can't handle too complex lefthandside-Expressions";
 
     CRightHandSide right = CtoFormulaConverter.removeCast(assignment.getRightHandSide());
 
-    Variable leftVarName = conv.scopedIfNecessary(lRawExpr, ssa, function);
+    Variable leftVarName = conv.scopedIfNecessary(lExpr, ssa, function);
 
     // assignment (first level)
     // Just the assignment formula p = t
     Triple<Formula, Formula, BooleanFormula> assignmentFormulas = visitAssignment(assignment);
     Formula leftVariable = assignmentFormulas.getSecond();
-    BooleanFormula firstLevelFormula = assignmentFormulas.getThird();
+    BooleanFormula assignmentFormula = assignmentFormulas.getThird();
 
-    // assignment (second level) *p = *t if nessesary
-    Variable lVarName = conv.scopedIfNecessary(lExpr, ssa, function);
-    BooleanFormula secondLevelFormula = conv.buildDirectSecondLevelAssignment(
-        lVarName, right, function, constraints, ssa);
+    // assignment (second level) *p = *t if necessary
+    // if right hand side is a function call, there is no aliasing
+    if (right instanceof CExpression) {
+      Variable lVarName = conv.scopedIfNecessary(lExpr, ssa, function);
+      BooleanFormula secondLevelFormula = conv.buildDirectSecondLevelAssignment(
+          lVarName, (CExpression)right, function, constraints, ssa);
 
-    BooleanFormula assignmentFormula = conv.bfmgr.and(firstLevelFormula, secondLevelFormula);
+      assignmentFormula = conv.bfmgr.and(assignmentFormula, secondLevelFormula);
+    }
 
     updatePointerAliasedTo(leftVarName, leftVariable);
 
@@ -1161,8 +1171,8 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
         // If the left side is a simple CIdExpression "l = ..." than we have to see if
         // l is a structure and handle pointer aliasing for all fields.
 
-        CType simpleTypes = simplifyType(lRawExpr.getExpressionType());
-        if (simpleTypes instanceof CCompositeType) {
+        CType leftType = lExpr.getExpressionType().getCanonicalType();
+        if (leftType instanceof CCompositeType && right instanceof CExpression) {
           // There are 3 cases:
           // - the right side is of the form *r
           //     for every member we have to emit
@@ -1172,29 +1182,29 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
           // - the right side is of the form &r, this should not happen
           //     for every member we have to emit *(s.t) = *((&r).t)
           // -> Exactly this does the buildDirectSecondLevelAssignment method for us
+          // Note: No 2nd level assignment for statements like t = call();
 
-          // Note (TODO?): No 2nd level assignment for statements like t = call();
-          if (areEqual(right.getExpressionType(), simpleTypes) && right instanceof CExpression) {
-            CCompositeType structureType = (CCompositeType) simpleTypes;
-            for (CCompositeTypeMemberDeclaration member : structureType.getMembers()) {
-              // We pretend to have a assignment of the form
-              // l.t = (r).t
-              CFieldReference leftField =
-                  new CFieldReference(null, member.getType(), member.getName(), lExpr, false);
+          if (!leftType.equals(right.getExpressionType().getCanonicalType())) {
+            throw new UnrecognizedCCodeException("Struct assignment with incompatible types", edge, assignment);
+          }
 
-              CFieldReference rightField =
-                  new CFieldReference(null, member.getType(), member.getName(), (CExpression)right, false);
-              Variable leftFieldVar = conv.scopedIfNecessary(leftField, ssa, function);
-              BooleanFormula secondLevelFormulaForMember = conv.buildDirectSecondLevelAssignment(
-                  leftFieldVar, rightField, function, constraints, ssa);
-              assignmentFormula = conv.bfmgr.and(assignmentFormula, secondLevelFormulaForMember);
+          CCompositeType structureType = (CCompositeType) leftType;
+          for (CCompositeTypeMemberDeclaration member : structureType.getMembers()) {
+            // We pretend to have a assignment of the form
+            // l.t = (r).t
+            CFieldReference leftField =
+                new CFieldReference(null, member.getType(), member.getName(), lExpr, false);
 
-              // Also update all pointers aliased to the field.
-              Formula leftFieldFormula = conv.makeVariable(leftFieldVar, ssa);
-              updatePointerAliasedTo(leftFieldVar, leftFieldFormula);
-            }
-          } else {
-            conv.log(Level.SEVERE, "Can't handle aliasing of a strange assignment to a structure: " + assignment.toASTString());
+            CFieldReference rightField =
+                new CFieldReference(null, member.getType(), member.getName(), (CExpression)right, false);
+            Variable leftFieldVar = conv.scopedIfNecessary(leftField, ssa, function);
+            BooleanFormula secondLevelFormulaForMember = conv.buildDirectSecondLevelAssignment(
+                leftFieldVar, rightField, function, constraints, ssa);
+            assignmentFormula = conv.bfmgr.and(assignmentFormula, secondLevelFormulaForMember);
+
+            // Also update all pointers aliased to the field.
+            Formula leftFieldFormula = conv.makeVariable(leftFieldVar, ssa);
+            updatePointerAliasedTo(leftFieldVar, leftFieldFormula);
           }
         }
       } else {

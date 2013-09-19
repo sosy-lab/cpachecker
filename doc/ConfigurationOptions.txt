@@ -145,6 +145,10 @@ analysis.useImpactAlgorithm = false
 # use a proof check algorithm to validate a previously generated proof
 analysis.useProofCheckAlgorithm = false
 
+# do analysis and then check if reached set fulfills property specified by
+# ConfigurableProgramAnalysisWithPropertyChecker
+analysis.usePropertyCheckingAlgorithm = false
+
 # use CEGAR algorithm for lazy counter-example guided analysis
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARGCPA.
@@ -262,8 +266,17 @@ cfa.exportPerFunction = true
 # export CFA as .dot file
 cfa.file = "cfa.dot"
 
+# Also initialize local variables with default values, or leave them
+# uninitialized.
+cfa.initializeAllVariables = false
+
 # remove paths from CFA that cannot lead to a specification violation
 cfa.removeIrrelevantForSpecification = false
+
+# simplify pointer expressions like s->f to (*s).f with this option the cfa
+# is simplified until at maximum one pointer is allowed for left- and
+# rightHandSide
+cfa.simplifyPointerExpressions = false
 
 # combine sequences of simple edges into a single edge
 cfa.useMultiEdges = false
@@ -371,9 +384,6 @@ cpa.bdd.compressIntEqual = true
 # pattern should only be used for known variables, i.e. for boolean vars.
 cpa.bdd.forceTrackingPattern = ""
 
-# initialize all variables to 0 when they are declared
-cpa.bdd.initAllVars = false
-
 # declare the bits of a var from 0 to N or from N to 0
 cpa.bdd.initBitsIncreasing = true
 
@@ -388,6 +398,10 @@ cpa.bdd.initPartitionsOrdered = true
 
 # Dump tracked variables to a file.
 cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
+
+# whether or not to add newly-found variables only to the exact program
+# location or to the whole scope of the variable.
+cpa.bdd.precision.refinement.useScopedInterpolation = false
 
 # track boolean variables from cfa
 cpa.bdd.trackBoolean = true
@@ -413,12 +427,12 @@ cpa.callstack.skipRecursion = false
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
 
-# which precision adjustment strategy to use (ignorant or omniscient)
-# While an ignorant strategy keeps the domain knowledge seperated, and
-# delegates to the component precision adjustment operators, the omniscient
-# strategy may operate on global knowledge.
-cpa.composite.precAdjust = "IGNORANT"
-  allowed values: [IGNORANT, OMNISCIENT]
+# which precision adjustment strategy to use (COMPOSITE or COMPONENT)
+# While the COMPOSITE strategy keeps the domain knowledge seperated, and only
+# delegates to each component's precision adjustment operator individually,
+# the COMPONENT strategy operates with knowledge about all components.
+cpa.composite.precAdjust = "COMPOSITE"
+  allowed values: [COMPOSITE, COMPONENT]
 
 # Limit for Java heap memory used by CPAchecker (in MiB; -1 for infinite)
 cpa.conditions.global.memory.heap = -1
@@ -485,8 +499,14 @@ cpa.cpalien.runtimeCheck = NONE
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
 
+# restrict abstractions to assume edges
+cpa.explicit.blk.alwaysAtAssumes = false
+
 # restrict abstractions to function calls/returns
 cpa.explicit.blk.alwaysAtFunctions = false
+
+# restrict abstractions to join points
+cpa.explicit.blk.alwaysAtJoins = false
 
 # restrict abstractions to loop heads
 cpa.explicit.blk.alwaysAtLoops = false
@@ -521,19 +541,24 @@ cpa.explicit.precision.ignoreIntEqual = false
 # in the set of reached states
 cpa.explicit.precision.reachedSetThreshold = -1
 
-# whether or not to add newly-found variables only to the exact program
-# location (i.e. scoped=false) or to their respective scope (i.e.
-# scoped=true).
-cpa.explicit.precision.scoped = true
+# whether to track relevant variables only at the exact program location
+# (sharing=location), or within their respective (function-/global-) scope
+# (sharing=scoped).
+cpa.explicit.precision.sharing = "scope"
+  allowed values: [location, scope]
 
 # target file to hold the exported precision
 cpa.explicit.precisionFile = no default value
 
 # whether or not to avoid restarting at assume edges after a refinement
-cpa.explicit.refiner.avoidAssumes = false
+cpa.explicit.refiner.avoidAssumes = true
 
 # whether or not to do lazy-abstraction
-cpa.explicit.refiner.doLazyAbstraction = false
+cpa.explicit.refiner.doLazyAbstraction = true
+
+# use heuristic to extract a precision from the CFA statically on first
+# refinement
+cpa.explicit.refiner.performInitialStaticRefinement = false
 
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"
@@ -544,6 +569,14 @@ cpa.explicit.variableBlacklist = ""
 
 # Which strategy to use for forced coverings (empty for none)
 cpa.forcedCovering = no default value
+
+# When an invalid function pointer is called, do not assume all functions as
+# possible targets and instead call no function.
+cpa.functionpointer.ignoreInvalidFunctionPointerCalls = false
+
+# When an unknown function pointer is called, do not assume all functions as
+# possible targets and instead call no function (this is unsound).
+cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
@@ -609,9 +642,9 @@ cpa.predicate.abstraction.cartesian = false
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
 
-# get an initial map of predicates from a file (see source
+# get an initial map of predicates from a list of files (see source
 # doc/examples/predmap.txt for an example)
-cpa.predicate.abstraction.initialPredicates = no default value
+cpa.predicate.abstraction.initialPredicates = ImmutableList.of()
 
 # Apply location-specific predicates to all locations in their function
 cpa.predicate.abstraction.initialPredicates.applyFunctionWide = false
@@ -658,13 +691,6 @@ cpa.predicate.checkBlockFeasibility = false
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
-# Enable mining of predicates from the CFA (preprocessing).
-cpa.predicate.enablePrecisionMiner = false
-
-# Enable sweeping the precision: remove predicates that make statements about
-# variables that do not exist in the CFA.
-cpa.predicate.enablePrecisionSweeper = false
-
 # Name of an external function that will be interpreted as if the function
 # call would be replaced by an externally defined expression over the program
 # variables. This will only work when all variables referenced by the dimacs
@@ -687,9 +713,6 @@ cpa.predicate.handlePointerAliasing = true
 # Allows to ignore Concat and Extract Calls when Bitvector theory was
 # replaced.
 cpa.predicate.ignoreExtractConcat = true
-
-# initialize all variables to 0 when they are declared
-cpa.predicate.initAllVars = false
 
 # export final loop invariants
 cpa.predicate.invariants.export = true
@@ -743,21 +766,19 @@ cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-z]*"
 # Handle field aliasing formulas.
 cpa.predicate.omitNonPointerInFieldAliasing = true
 
+# Where to apply the found predicates to?
+cpa.predicate.precision.sharing = LOCATION
+  enum:     [GLOBAL, FUNCTION, LOCATION, LOCATION_INSTANCE]
+
 # export final predicate map
 cpa.predicate.predmap.export = true
 
 # file for exporting final predicate map
 cpa.predicate.predmap.file = "predmap.txt"
-cpa.predicate.predmap.includeSwept = true
 
 # If an abstraction is computed during refinement, use only the interpolant
 # as input, not the concrete block.
 cpa.predicate.refinement.abstractInterpolantOnly = false
-
-# DEPRECATED: Add all discovered predicates to all the locations in the
-# abstract trace. DEPRECATED: use cpa.predicate.predicateSharing instead
-# which offers more flexibility.
-cpa.predicate.refinement.addPredicatesGlobally = false
 
 # refinement will try to build 'well-scoped' predicates, by cutting spurious
 # traces as explained in Section 5.2 of the paper 'Abstractions From Proofs'
@@ -808,9 +829,9 @@ cpa.predicate.refinement.keepAllPredicates = false
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
-# Where to apply the found predicates to?
-cpa.predicate.refinement.predicateSharing = LOCATION
-  enum:     [GLOBAL, FUNCTION, LOCATION, LOCATION_INSTANCE]
+# use heuristic to extract predicates from the CFA statically on first
+# refinement
+cpa.predicate.refinement.performInitialStaticRefinement = false
 
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
@@ -833,6 +854,9 @@ cpa.predicate.refinement.splitItpAtoms = false
 # time limit for refinement (use milliseconds or specify a unit; 0 for
 # infinite)
 cpa.predicate.refinement.timelimit = 0
+
+# Use BDDs to simplify interpolants (removing irrelevant predicates)
+cpa.predicate.refinement.useBddInterpolantSimplification = false
 
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
@@ -886,13 +910,23 @@ cpa.predicate.useBitwiseAxioms = false
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
 
+# Qualified name for class which checks that the computed abstraction adheres
+# to the desired property.
+cpa.propertychecker.className = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker"
+
+# List of parameters for constructor of propertychecker.className. Parameter
+# values are specified in the order the parameters are defined in the
+# respective constructor. Every parameter value is finished with ",". The
+# empty string represents an empty parameter list.
+cpa.propertychecker.parameters = ""
+
 # which merge operator to use for ReachingDefCPA
 cpa.reachdef.merge = "JOIN"
-  allowed values: [SEP, JOIN]
+  allowed values: [SEP, JOIN, IGNORECALLSTACK]
 
 # which stop operator to use for ReachingDefCPA
 cpa.reachdef.stop = "SEP"
-  allowed values: [SEP, JOIN]
+  allowed values: [SEP, JOIN, IGNORECALLSTACK]
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
@@ -915,9 +949,15 @@ java.classpath = ""
 # use the following encoding for java files
 java.encoding = "utf8"
 
+# export TypeHierarchy as .dot file
+java.exportTypeHierarchy = true
+
 # Specify the source code path to search for java class or interface
 # definitions
 java.sourcepath = ""
+
+# export TypeHierarchy as .dot file
+java.typeHierarchyFile = "typeHierarchy.dot"
 
 # Specifies the java version of source code accepted
 java.version = JavaCore.VERSION_1_7
@@ -941,38 +981,18 @@ parser.preprocessor = "cpp"
 # not the original input file.
 parser.usePreprocessor = false
 
+pcc.checkPropertyPerElement = false
+
 # file in which proof representation needed for proof checking is stored
-# file in which ARG representation needed for proof checking is stored
 pcc.proofFile = "arg.obj"
-
-# defines proof representation, either abstract reachability graph or set of
-# reachable abstract states
-pcc.proofType = "ARG"
-  allowed values: [ARG, SET, PSET]
-
-# Flag indicating if analysis which constructed proof adjusted precisions
-# during computation.
-pcc.proofcheck.precision = true
-
-# Qualified name for class which checks that the computed abstraction adheres
-# to the desired property.
-pcc.proofcheck.propertychecker = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker"
-
-# List of parameters for constructor of pcc.proofcheck.propertychecker.
-# Parameter values are specified in the order they parameters are defined in
-# the respective constructor. Every parameter value is finished with ",". The
-# empty string represents an empty parameter list.
-pcc.proofcheck.propertychecker.parameters = ""
 
 pcc.proofgen.doPCC = false
 
-# Apply mined predicates on the corresponding scope. false = add them to the
-# global precision.
-predicate.mining.applyScoped = true
-
-# Collect at most n assumes allong a path backwards from a target (error)
-# location.
-predicate.mining.maxBackscanPathAssumes = 1
+# Qualified name for class which implements certification strategy, hence
+# proof writing, to be used.
+# Qualified name for class which implements proof checking strategy to be
+# used.
+pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy"
 
 # print reached set to text file
 reachedSet.export = true
@@ -984,6 +1004,14 @@ restartAlgorithm.configFiles = no default value
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
 specification = no default value
+
+# Apply mined predicates on the corresponding scope. false = add them to the
+# global precision.
+staticRefiner.applyScoped = true
+
+# collect at most this number of assumes along a path, backwards from each
+# target (= error) location
+staticRefiner.maxBackscanPathAssumes = 1
 
 # write some statistics to disk
 statistics.export = true

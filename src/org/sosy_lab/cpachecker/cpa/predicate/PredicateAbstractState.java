@@ -57,7 +57,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   };
 
-  static PredicateAbstractState getPredicateState(AbstractState pState) {
+  public static PredicateAbstractState getPredicateState(AbstractState pState) {
     return checkNotNull(extractStateByType(pState, PredicateAbstractState.class));
   }
 

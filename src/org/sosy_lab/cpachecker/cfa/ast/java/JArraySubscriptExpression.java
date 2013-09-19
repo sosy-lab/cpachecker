@@ -27,7 +27,16 @@ import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
+/**
+ *  This class represents the array access expression AST node type.
+ *
+ * ArrayAccess:
+ *   Expression [ Expression ]
+ *
+ *  The array expression gives the identifier of the array.
+ *  The subscript Expression gives the index of the arraycell to be read.
+ *
+ */
 public class JArraySubscriptExpression extends AArraySubscriptExpression implements JExpression {
 
   public JArraySubscriptExpression(FileLocation pFileLocation, JType pType, JExpression pArrayExpression,

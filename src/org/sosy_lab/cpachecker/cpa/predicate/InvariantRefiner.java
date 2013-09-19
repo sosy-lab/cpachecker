@@ -152,7 +152,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     //Balancer balancer = new BasicBalancer(logger);
     //Balancer balancer = new MatrixBalancer(logger);
     //Balancer balancer = new AcyclicColumnRelianceBalancer(logger);
-    Balancer balancer = new WeispfenningBalancer(logger);
+    Balancer balancer = new WeispfenningBalancer(config, logger);
 
     // Try template networks until one succeeds, or we run out of ideas.
     while (tnet != null) {

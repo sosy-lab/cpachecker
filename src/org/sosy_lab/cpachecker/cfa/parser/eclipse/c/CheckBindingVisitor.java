@@ -34,8 +34,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatorVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CEmptyDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -212,21 +212,21 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
 
   @Override
   public Void visit(CDesignatedInitializer e) throws CFAGenerationRuntimeException {
-    e.getLeftHandSide().accept(this);
+    for (CDesignator designator : e.getDesignators()) {
+      designator.accept(this);
+    }
     e.getRightHandSide().accept(this);
     return null;
   }
 
   @Override
   public Void visit(CArrayDesignator e) throws CFAGenerationRuntimeException {
-    e.getArrayDesignator().accept(this);
     e.getSubscriptExpression().accept(this);
     return null;
   }
 
   @Override
   public Void visit(CArrayRangeDesignator e) throws CFAGenerationRuntimeException {
-    e.getArrayDesignator().accept(this);
     e.getFloorExpression().accept(this);
     e.getCeilExpression().accept(this);
     return null;
@@ -234,14 +234,6 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
 
   @Override
   public Void visit(CFieldDesignator e) throws CFAGenerationRuntimeException {
-    e.getFieldOwner().accept(this);
-    return null;
-  }
-
-  @Override
-  public Void visit(CEmptyDesignator e) throws CFAGenerationRuntimeException {
-    // nothing to do here, empty designator is only the end of chained
-    // designators
     return null;
   }
 }

@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -48,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
 
 import com.google.common.collect.ImmutableSet;
@@ -69,12 +72,42 @@ public class ReachingDefTransferRelation implements TransferRelation {
     localVariablesPerFunction = localVars;
   }
 
-  public void setMainFunctionNode(CFANode pMain){
+  public void setMainFunctionNode(CFANode pMain) {
     main = pMain;
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
+      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+    if (pCfaEdge != null) {
+      return getAbstractSuccessors0(pState, pPrecision, pCfaEdge);
+    }
+    CFANode[] nodes = ReachingDefUtils.getAllNodesFromCFA();
+    if (nodes == null) {
+      throw new CPATransferException("CPA not properly initialized.");
+    }
+    Vector<AbstractState> successors = new Vector<>();
+    Vector<CFAEdge> definitions = new Vector<>();
+    CFAEdge cfaedge;
+    for (CFANode node : nodes) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+        cfaedge = node.getLeavingEdge(i);
+        if (!(cfaedge.getEdgeType() == CFAEdgeType.FunctionReturnEdge)) {
+          if (cfaedge.getEdgeType() == CFAEdgeType.StatementEdge || cfaedge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+            definitions.add(node.getLeavingEdge(i));
+          } else {
+            successors.addAll(getAbstractSuccessors0(pState, pPrecision, node.getLeavingEdge(i)));
+          }
+        }
+      }
+    }
+    for (CFAEdge edge: definitions) {
+      successors.addAll(getAbstractSuccessors0(pState, pPrecision, edge));
+    }
+    return successors;
+  }
+
+  private Collection<? extends AbstractState> getAbstractSuccessors0(AbstractState pState, Precision pPrecision,
       CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
 
     logger.log(Level.INFO, "Compute succesor for ", pState, "along edge", pCfaEdge);
@@ -88,8 +121,9 @@ public class ReachingDefTransferRelation implements TransferRelation {
     if (pCfaEdge == null) { throw new CPATransferException(
         "Expected an edge along which the successors should be computed"); }
 
-    if (pState == ReachingDefState.topElement)
+    if (pState == ReachingDefState.topElement) {
       return Collections.singleton(pState);
+    }
 
     ReachingDefState result;
 
@@ -169,11 +203,13 @@ public class ReachingDefTransferRelation implements TransferRelation {
     VariableExtractor varExtractor = new VariableExtractor(edge);
     varExtractor.resetWarning();
     String var = left.accept(varExtractor);
-    if (varExtractor.getWarning() != null)
+    if (varExtractor.getWarning() != null) {
       logger.log(Level.WARNING, varExtractor.getWarning());
+    }
 
-    if (var == null)
+    if (var == null) {
       return pState;
+    }
 
     logger.log(Level.FINE, "Edge provided a new definition of variable ", var, ". Update reaching definition.");
     if (pState.getGlobalReachingDefinitions().containsKey(var)) {

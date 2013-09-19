@@ -79,6 +79,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final ABMTransferRelation transfer;
   private final ABMPrecisionAdjustment prec;
   private final ABMMergeOperator merge;
+  private final ABMStopOperator stop;
   private final ABMCPAStatistics stats;
   private final PartitioningHeuristic heuristic;
   private final CFA cfa;
@@ -106,6 +107,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
     prec.setABMTransferRelation(transfer);
     merge = new ABMMergeOperator(pCpa.getMergeOperator(), transfer);
+    stop = new ABMStopOperator(getWrappedCpa().getStopOperator());
 
     stats = new ABMCPAStatistics(this);
     heuristic = getPartitioningHeuristic();
@@ -157,7 +159,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   @Override
   public StopOperator getStopOperator() {
-    return getWrappedCpa().getStopOperator();
+    return stop;
   }
 
   @Override

@@ -25,7 +25,10 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 
-
+/**
+ * Interface of classes that represent java statements.
+ *
+ */
 public interface JStatement extends IAStatement, JAstNode {
 
 

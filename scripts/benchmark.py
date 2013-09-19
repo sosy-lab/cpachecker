@@ -74,6 +74,7 @@ COLOR_DIC = {result.RESULT_CORRECT_SAFE:   COLOR_GREEN,
              result.RESULT_ERROR:          COLOR_MAGENTA,
              result.RESULT_WRONG_UNSAFE:   COLOR_RED,
              result.RESULT_WRONG_SAFE:     COLOR_RED,
+             result.CATEGORY_UNKNOWN:      COLOR_DEFAULT,
              None: COLOR_DEFAULT}
 
 TERMINAL_TITLE=''
@@ -233,7 +234,10 @@ class Benchmark:
                                         requireTag.get('cpuCores', None),
                                         requireTag.get('memory',   None)
                                         )
-            self.requirements = Requirements.merge(self.requirements, requirements)
+            self.requirements = Requirements.merge(self.requirements, config.cloudCpuModel)
+        
+        self.requirements = Requirements.mergeWithCpuModel(self.requirements, config.cloudCpuModel)
+        self.requirements = Requirements.mergeWithLimits(self.requirements, self.rlimits)
 
         # get benchmarks
         self.runSets = []
@@ -416,13 +420,7 @@ class RunSet:
         # sort alphabetical,
         fileList.sort()
 
-        if not fileList and baseDir:
-            # try fallback for old syntax of run definitions
-            fileList = self.expandFileNamePattern(shortFileFallback, "")
-            if fileList:
-                logging.warning("Run definition uses old-style paths. Please change the path {0} to be relative to {1}."
-                            .format(repr(shortFileFallback), repr(baseDir)))
-            else:
+        if not fileList:
                 logging.warning("No files found matching {0}."
                             .format(repr(pattern)))
 
@@ -463,6 +461,7 @@ class Run():
         self.cpuTime = 0
         self.wallTime = 0
         self.memUsage = None
+        self.host = None
         
         self.tool = self.benchmark.tool
         args = self.tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
@@ -568,7 +567,7 @@ class Requirements:
         return self._cpuCores or 1
 
     def memory(self):
-        return self._memory or 1
+        return self._memory or 15000
 
     @classmethod
     def merge(cls, r1, r2):
@@ -582,6 +581,30 @@ class Requirements:
         return cls(r1._cpuModel if r1._cpuModel is not None else r2._cpuModel,
                    r1._cpuCores or r2._cpuCores,
                    r1._memory or r2._memory)
+        
+    @classmethod
+    def mergeWithLimits(cls, r, l):
+        _cpuModel = r._cpuModel
+        _cpuCores = r._cpuCores
+        _memory = r._memory
+        
+        if(_cpuCores is None and CORELIMIT in l):
+            _cpuCores = l[CORELIMIT]
+        if(_memory is None and MEMLIMIT in l):
+            _memory = l[MEMLIMIT]
+
+        return cls(_cpuModel, _cpuCores, _memory)
+
+    @classmethod
+    def mergeWithCpuModel(cls, r, cpuModel):
+        _cpuCores = r._cpuCores
+        _memory = r._memory
+        
+        if(cpuModel is None):
+            return r
+        else:
+            return cls(cpuModel, _cpuCores, _memory)
+
 
     def __repr__(self):
         return "%s(%r)" % (self.__class__, self.__dict__)
@@ -1044,6 +1067,8 @@ class OutputHandler:
         runElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeStr}))
         if run.memUsage is not None:
             runElem.append(ET.Element("column", {"title": "memUsage", "value": str(run.memUsage)}))
+        if run.host:
+            runElem.append(ET.Element("column", {"title": "host", "value": run.host}))
 
         for column in run.columns:
             runElem.append(ET.Element("column",
@@ -1311,28 +1336,34 @@ def parseCloudResultFile(filePath):
 
 def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
 
+    runToHostMap = {}
     try:
-        file = open(filePath, 'rt')
-        outputHandler.allCreatedFiles.append(filePath)
-        
-        complete = False
-        while(not complete):
-            firstLine = file.readline()
-            if(not firstLine == "\n"):
-               name = firstLine.split("=")[-1].strip()
-               osName = file.readline().split("=")[-1].strip()
-               memory = file.readline().split("=")[-1].strip()
-               cpuName = file.readline().split("=")[-1].strip()
-               frequency = file.readline().split("=")[-1].strip()
-               cores = file.readline().split("=")[-1].strip()
-               
-               outputHandler.storeSystemInfo(osName, cpuName, cores, frequency, memory, name)
+        with open(filePath, 'rt') as file:
+            outputHandler.allCreatedFiles.append(filePath)
             
-            else:
-                complete = True
-        file.close
+            name = file.readline().split("=")[-1].strip()
+            osName = file.readline().split("=")[-1].strip()
+            memory = file.readline().split("=")[-1].strip()
+            cpuName = file.readline().split("=")[-1].strip()
+            frequency = file.readline().split("=")[-1].strip()
+            cores = file.readline().split("=")[-1].strip()
+            outputHandler.storeSystemInfo(osName, cpuName, cores, frequency, memory, name)
+
+            # skip all further hostdescriptions for now and wait for separator line
+            while file.readline() != '\n':
+                pass
+
+            for line in file:
+                line = line.strip()
+                if not line:
+                    continue # skip empty lines
+
+                runInfo = line.split('\t')
+                runToHostMap[runInfo[1].strip()] = runInfo[0].strip()
+
     except IOError:
-        logging.warning("Host information file not found: " + filePath)    
+        logging.warning("Host information file not found: " + filePath)
+    return runToHostMap
  
 def executeBenchmarkInCloud(benchmark):
     
@@ -1408,15 +1439,23 @@ def executeBenchmarkInCloud(benchmark):
     sourceFilesBaseDir = os.path.commonprefix(absSourceFiles)
     toolPathsBaseDir = os.path.commonprefix(absToolpaths)
     baseDir = os.path.commonprefix([sourceFilesBaseDir, toolPathsBaseDir, cloudRunExecutorDir])
-
+    
     if(baseDir == ""):
         sys.exit("No common base dir found.")
+        
+    #os.path.commonprefix works on charakters not on the file system
+    if(baseDir[-1]!='/'):
+        baseDir = os.path.split(baseDir)[0];
+     
+    numOfRunDefLinesAndPriorityStr = str(numOfRunDefLines)
+    if(config.cloudPriority):
+        numOfRunDefLinesAndPriorityStr += "\t" + config.cloudPriority
 
     cloudInput = "\t".join(absToolpaths) + "\n" + \
                 cloudRunExecutorDir + "\n" + \
                 baseDir + "\t" + absOutputDir + "\t" + absWorkingDir +"\n" + \
                 requirements + "\n" + \
-                str(numOfRunDefLines) + "\n" + \
+                numOfRunDefLinesAndPriorityStr + "\n" + \
                 "\n".join(runDefinitions)
 
     # install cloud and dependencies
@@ -1431,7 +1470,7 @@ def executeBenchmarkInCloud(benchmark):
     else:
         logLevel = "INFO"
     libDir = os.path.abspath("./lib/java-benchmark")
-    cloud = subprocess.Popen(["java", "-jar", libDir + "/vercip.jar", "benchmark", "--master", config.cloud, "--loglevel", logLevel], stdin=subprocess.PIPE)
+    cloud = subprocess.Popen(["java", "-jar", libDir + "/vcloud.jar", "benchmark", "--master", config.cloud, "--loglevel", logLevel], stdin=subprocess.PIPE)
     try:
         (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
     except KeyboardInterrupt:
@@ -1448,7 +1487,9 @@ def executeBenchmarkInCloud(benchmark):
 
     #Write worker host informations in xml
     filePath = os.path.join(outputDir, "hostInformation.txt")
-    parseAndSetCloudWorkerHostInformation(filePath, outputHandler)
+    runToHostMap = parseAndSetCloudWorkerHostInformation(filePath, outputHandler)
+    
+    executedAllRuns = True;
     
     #write results in runs and
     #handle output after all runs are done
@@ -1462,11 +1503,19 @@ def executeBenchmarkInCloud(benchmark):
             try:
                 stdoutFile = run.logFile + ".stdOut"
                 (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
+                
+                if(run.sourcefile in runToHostMap):
+                    run.host = runToHostMap[run.sourcefile]
+
                 if returnValue is not None:
                     # Do not delete stdOut file if there was some problem
                     os.remove(stdoutFile)
+                else:
+                    executedAllRuns = False;
+                    
             except EnvironmentError as e:
                 logging.warning("Cannot extract measured values from output for file {0}: {1}".format(run.sourcefile, e))
+                executedAllRuns = False;
                 continue
 
             outputHandler.outputBeforeRun(run)
@@ -1481,6 +1530,9 @@ def executeBenchmarkInCloud(benchmark):
         outputHandler.outputAfterRunSet(runSet, None, None)
         
     outputHandler.outputAfterBenchmark()
+    
+    if not executedAllRuns:
+         logging.warning("Not all runs were executed in the cloud!")
 
     if config.commit and not STOPPED_BY_INTERRUPT:
         Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
@@ -1586,6 +1638,16 @@ def main(argv=None):
                       dest="cloud",
                       metavar="HOST",
                       help="Use cloud with given host as master.")
+    
+    parser.add_argument("--cloudPriority",
+                      dest="cloudPriority",
+                      metavar="PRIORITY",
+                      help="Sets the priority for this benchmark used in the cloud. Possible values are IDLE, LOW, HIGH, URGENT.")
+    
+    parser.add_argument("--cloudCpuModel",
+                      dest="cloudCpuModel",
+                      metavar="CPU_MODEL",
+                      help="Only execute runs on CPU models that contain the given string.")
 
     global config, OUTPUT_PATH
     config = parser.parse_args(argv[1:])

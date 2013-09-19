@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
+
 import java.io.IOException;
 import java.io.Writer;
 import java.math.BigInteger;
@@ -330,8 +332,7 @@ public class VariableClassification {
   private void collectVars() {
     Collection<CFANode> nodes = cfa.getAllNodes();
     for (CFANode node : nodes) {
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFAEdge edge = node.getLeavingEdge(i);
+      for (CFAEdge edge : leavingEdges(node)) {
         handleEdge(edge);
       }
     }
@@ -377,7 +378,7 @@ public class VariableClassification {
       dependencies.addAll(dep, dcv.getValues(), edge, 0);
 
       exp.accept(new BoolCollectingVisitor(pre));
-      exp.accept(new IntEqualCollectingVisitor(pre, false));
+      exp.accept(new IntEqualCollectingVisitor(pre));
       exp.accept(new IntAddCollectingVisitor(pre));
 
       break;
@@ -550,7 +551,7 @@ public class VariableClassification {
         dependencies.addAll(dep, dcv.getValues(), edge, i);
 
         param.accept(new BoolCollectingVisitor(pre));
-        param.accept(new IntEqualCollectingVisitor(pre, false));
+        param.accept(new IntEqualCollectingVisitor(pre));
         param.accept(new IntAddCollectingVisitor(pre));
       }
     }
@@ -629,7 +630,7 @@ public class VariableClassification {
     Multimap<String, String> possibleBoolean = exp.accept(bcv);
     handleResult(varName, function, possibleBoolean, nonBooleanVars);
 
-    IntEqualCollectingVisitor ncv = new IntEqualCollectingVisitor(pre, true);
+    IntEqualCollectingVisitor ncv = new IntEqualCollectingVisitor(pre);
     Multimap<String, String> possibleIntEqualVars = exp.accept(ncv);
     handleResult(varName, function, possibleIntEqualVars, nonIntEqualVars);
 
@@ -878,8 +879,16 @@ public class VariableClassification {
 
       case EQUALS:
       case NOT_EQUALS: // ==, != work with boolean operands
-        operand1.putAll(operand2);
-        return operand1;
+        if (operand1.isEmpty() || operand2.isEmpty()) {
+          // one operand is Zero (or One, if allowed)
+          operand1.putAll(operand2);
+          return operand1;
+        }
+        // We compare 2 variables. There is no guarantee, that they are boolean!
+        // Example: (a!=b) && (b!=c) && (c!=a)
+        // -> FALSE for boolean, but TRUE for {1,2,3}
+
+        //$FALL-THROUGH$
 
       default: // +-*/ --> no boolean operators, a+b --> a and b are not boolean
         nonBooleanVars.putAll(operand1);
@@ -922,12 +931,8 @@ public class VariableClassification {
    * - a collection, if the expression is a number, unaryExp, == or != */
   private class IntEqualCollectingVisitor extends DependencyCollectingVisitor {
 
-    /** this flag only allows vars and values, no calculations */
-    private boolean onlyOneExp;
-
-    public IntEqualCollectingVisitor(CFANode pre, boolean onlyOneExp) {
+    public IntEqualCollectingVisitor(CFANode pre) {
       super(pre);
-      this.onlyOneExp = onlyOneExp;
     }
 
     @Override
@@ -968,7 +973,7 @@ public class VariableClassification {
       }
 
       // handle vars from operands
-      if (onlyOneExp || operand1 == null || operand2 == null) { // a+0.2 --> no simple number
+      if (operand1 == null || operand2 == null) { // a+0.2 --> no simple number
         if (operand1 != null) {
           nonIntEqualVars.putAll(operand1);
         }

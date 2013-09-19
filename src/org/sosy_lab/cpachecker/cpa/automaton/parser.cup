@@ -84,7 +84,7 @@ parser code {:
   * Parses a Specification File and returns the Automata found in the file.
   */
   public static List<Automaton> parseAutomatonFile(File pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
-    CParser cparser = CParser.Factory.getParser(pLogger, CParser.Factory.getOptions(config), pMachine);
+    CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
 
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
     try (FileInputStream input = new FileInputStream(pInputFile)) {
@@ -102,7 +102,7 @@ parser code {:
     }
   }
 
-  AutomatonASTComparator.ASTMatcher generateASTPattern(String pattern) throws InvalidAutomatonException {
+  AutomatonASTComparator.ASTMatcher generateASTPattern(String pattern) throws InvalidAutomatonException, InvalidConfigurationException {
     return AutomatonASTComparator.generatePatternAST(pattern, cparser);
   }
 :};

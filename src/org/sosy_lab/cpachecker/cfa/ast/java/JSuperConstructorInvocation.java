@@ -28,7 +28,15 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
-
+/**
+ * This class represents the super constructor invocation statement AST node type.
+ *
+ * SuperConstructorInvocation:
+ *    [ Expression . ]
+ *        [ < Type { , Type } > ]
+ *        super ( [ Expression { , Expression } ] ) ;
+ *
+ */
 public class JSuperConstructorInvocation extends JClassInstanceCreation {
 
   public JSuperConstructorInvocation(FileLocation pFileLocation, JClassType pType, JExpression pFunctionName,

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.types;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.List;
+import java.util.Objects;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -94,6 +95,29 @@ public class AFunctionType implements IAFunctionType {
     lASTString.append(")");
 
     return lASTString.toString();
+  }
+
+  @Override
+  public int hashCode() {
+    throw new UnsupportedOperationException("Do not use hashCode of CTypes");
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof AFunctionType)) {
+      return false;
+    }
+
+    AFunctionType other = (AFunctionType) obj;
+
+    // We don't compare takesVarArgs here,
+    // because it's not really relevant for type equality.
+    return Objects.equals(name, other.name) && Objects.equals(parameters, other.parameters)
+           && Objects.equals(returnType, other.returnType);
   }
 
 }

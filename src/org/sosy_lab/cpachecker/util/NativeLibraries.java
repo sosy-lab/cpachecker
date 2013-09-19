@@ -126,10 +126,18 @@ public class NativeLibraries {
   private static Path nativePath = null;
 
   public static Path getNativeLibraryPath() {
+    // We expected the libraries to be in the directory lib/native/<arch>-<os>
+    // relative to the parent of the code.
+    // When the code resides in a JAR file, the JAR file needs to be in the same
+    // directory as the "lib" directory.
+    // When the code is in .class files, those .class files need to be in a
+    // sub-directory of the one with the "lib" directory (e.g., in a "bin" directory).
+
     if (nativePath == null) {
       String arch = Architecture.guessVmArchitecture().name().toLowerCase();
       String os = OS.guessOperatingSystem().name().toLowerCase();
-      nativePath = Paths.get("lib", "native", arch + "-" + os);
+      final String pathToJar = NativeLibraries.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+      nativePath = Paths.get(pathToJar).getParent().resolve(Paths.get("lib", "native", arch + "-" + os));
     }
     return nativePath;
   }

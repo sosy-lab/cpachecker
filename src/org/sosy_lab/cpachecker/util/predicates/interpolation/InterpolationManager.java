@@ -224,11 +224,12 @@ public final class InterpolationManager {
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
       final List<BooleanFormula> pFormulas,
-      final Set<ARGState> elementsOnPath) throws CPAException, InterruptedException {
+      final Set<ARGState> elementsOnPath,
+      final boolean computeInterpolants) throws CPAException, InterruptedException {
 
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
-      return buildCounterexampleTrace0(pFormulas, elementsOnPath);
+      return buildCounterexampleTrace0(pFormulas, elementsOnPath, computeInterpolants);
     }
 
     assert executor != null;
@@ -236,7 +237,7 @@ public final class InterpolationManager {
     Callable<CounterexampleTraceInfo> tc = new Callable<CounterexampleTraceInfo>() {
       @Override
       public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
-        return buildCounterexampleTrace0(pFormulas, elementsOnPath);
+        return buildCounterexampleTrace0(pFormulas, elementsOnPath, computeInterpolants);
       }
     };
 
@@ -259,9 +260,16 @@ public final class InterpolationManager {
     }
   }
 
-  private CounterexampleTraceInfo buildCounterexampleTrace0(
+  public CounterexampleTraceInfo buildCounterexampleTrace(
       final List<BooleanFormula> pFormulas,
       final Set<ARGState> elementsOnPath) throws CPAException, InterruptedException {
+    return buildCounterexampleTrace(pFormulas, elementsOnPath, true);
+  }
+
+  private CounterexampleTraceInfo buildCounterexampleTrace0(
+      final List<BooleanFormula> pFormulas,
+      final Set<ARGState> elementsOnPath,
+      final boolean computeInterpolants) throws CPAException, InterruptedException {
 
     logger.log(Level.FINEST, "Building counterexample trace");
     cexAnalysisTimer.start();
@@ -298,7 +306,7 @@ public final class InterpolationManager {
       }
 
       try {
-        return currentInterpolator.buildCounterexampleTrace(f, elementsOnPath);
+        return currentInterpolator.buildCounterexampleTrace(f, elementsOnPath, computeInterpolants);
       } finally {
         if (!reuseInterpolationEnvironment) {
           currentInterpolator.close();
@@ -765,7 +773,8 @@ public final class InterpolationManager {
      * @throws CPAException
      */
     CounterexampleTraceInfo buildCounterexampleTrace(
-        List<BooleanFormula> f, Set<ARGState> elementsOnPath) throws CPAException, InterruptedException {
+        List<BooleanFormula> f, Set<ARGState> elementsOnPath,
+        boolean computeInterpolants) throws CPAException, InterruptedException {
 
       // Check feasibility of counterexample
       logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
@@ -805,19 +814,23 @@ public final class InterpolationManager {
       CounterexampleTraceInfo info;
       if (spurious) {
 
-        List<BooleanFormula> interpolants = getInterpolants(itpProver, itpGroupsIds);
-        if (verifyInterpolants) {
-          verifyInterpolants(interpolants, f, itpProver);
-        }
-
-        if (logger.wouldBeLogged(Level.ALL)) {
-          int i = 1;
-          for (BooleanFormula itp : interpolants) {
-            logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
+        if (computeInterpolants) {
+          List<BooleanFormula> interpolants = getInterpolants(itpProver, itpGroupsIds);
+          if (verifyInterpolants) {
+            verifyInterpolants(interpolants, f, itpProver);
           }
-        }
 
-        info = CounterexampleTraceInfo.infeasible(interpolants);
+          if (logger.wouldBeLogged(Level.ALL)) {
+            int i = 1;
+            for (BooleanFormula itp : interpolants) {
+              logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
+            }
+          }
+
+          info = CounterexampleTraceInfo.infeasible(interpolants);
+        } else {
+          info = CounterexampleTraceInfo.infeasibleNoItp();
+        }
 
       } else {
         // this is a real bug

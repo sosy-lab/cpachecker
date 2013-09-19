@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -42,12 +43,6 @@ import com.google.common.collect.Sets;
  * Extending SMG with notions specific for programs in C language:
  *  - separation of global, heap and stack objects
  *  - null object and value
- *
- * TODO: [RUNTIME-CONSISTENCY-CHECKS]
- *       Implement configurable consistency checking on various places:
- *  - none
- *  - on interesting places
- *  - on every operation (=debug)
  */
 public class CLangSMG extends SMG {
   /**
@@ -76,6 +71,8 @@ public class CLangSMG extends SMG {
    */
   private boolean has_leaks = false;
 
+  static private LogManager logger = null;
+
   /**
    * A flag setting if the class should perform additional consistency checks.
    * It should be useful only during debugging, when is should find bad
@@ -84,8 +81,9 @@ public class CLangSMG extends SMG {
    */
   static private boolean perform_checks = false;
 
-  static public void setPerformChecks(boolean pSetting) {
+  static public void setPerformChecks(boolean pSetting, LogManager logger) {
     CLangSMG.perform_checks = pSetting;
+    CLangSMG.logger = logger;
   }
 
   static public boolean performChecks() {
@@ -209,6 +207,102 @@ public class CLangSMG extends SMG {
     has_leaks = true;
   }
 
+  /**
+   * Remove a top stack frame from the SMG, along with all objects in it, and
+   * any edges leading from/to it.
+   *
+   * TODO: A testcase with (invalid) passing of an address of a dropped frame object
+   * outside, and working with them. For that, we should probably keep those as invalid, so
+   * we can spot such bug.
+   *
+   * Keeps consistency: yes
+   */
+  public void dropStackFrame() {
+    CLangStackFrame frame = stack_objects.pop();
+    for (SMGObject object : frame.getAllObjects()) {
+      this.removeObjectAndEdges(object);
+    }
+
+    if (CLangSMG.performChecks()) {
+      CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
+    }
+  }
+
+  /**
+   * Prune the SMG: remove all unreachable objects (heap ones: global and stack
+   * are always reachable) and values.
+   *
+   * TODO: Too large. Refactor into fewer pieces
+   *
+   * Keeps consistency: yes
+   */
+  public void pruneUnreachable() {
+    Set<SMGObject> seen = new HashSet<>();
+    Set<Integer> seen_values = new HashSet<>();
+    Queue<SMGObject> workqueue = new ArrayDeque<>();
+
+    // TODO: wrap to getStackObjects(), perhaps just internally?
+    for (CLangStackFrame frame : this.getStackFrames()) {
+      for (SMGObject stack_object : frame.getAllObjects()) {
+        workqueue.add(stack_object);
+      }
+    }
+
+    workqueue.addAll(this.getGlobalObjects().values());
+
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+
+    /*
+     * TODO: Refactor into generic methods for obtaining reachable/unreachable
+     * subSMGs
+     *
+     * TODO: Perhaps introduce a SubSMG class which would be a SMG tied
+     * to a certain (Clang)SMG and guaranteed to be a subset of it?
+     */
+
+    while ( ! workqueue.isEmpty()) {
+      SMGObject processed = workqueue.remove();
+      if ( ! seen.contains(processed)) {
+        seen.add(processed);
+        filter.filterByObject(processed);
+        for (SMGEdgeHasValue outbound : this.getHVEdges(filter)) {
+          SMGObject pointedObject = this.getObjectPointedBy(outbound.getValue());
+          if ( pointedObject != null && ! seen.contains(pointedObject)) {
+            workqueue.add(pointedObject);
+          }
+          if ( ! seen_values.contains(Integer.valueOf(outbound.getValue()))) {
+            seen_values.add(Integer.valueOf(outbound.getValue()));
+          }
+        }
+      }
+    }
+
+    /*
+     * TODO: Refactor into generic methods for substracting SubSMGs (see above)
+     */
+    Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(this.getObjects(), seen));
+    for (SMGObject stray_object : stray_objects) {
+      if (stray_object.notNull()) {
+        if (this.isObjectValid(stray_object)) {
+          this.setMemoryLeak();
+        }
+        this.removeObjectAndEdges(stray_object);
+        this.heap_objects.remove(stray_object);
+
+      }
+    }
+    Set<Integer> stray_values = new HashSet<>(Sets.difference(this.getValues(), seen_values));
+    for (Integer stray_value : stray_values) {
+      if (stray_value != this.getNullValue()) {
+        this.removeValue(stray_value);
+      }
+    }
+
+    if (CLangSMG.performChecks()) {
+      CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
+    }
+  }
+
   /* ********************************************* */
   /* Non-modifying functions: getters and the like */
   /* ********************************************* */
@@ -300,13 +394,6 @@ public class CLangSMG extends SMG {
   public SMGObject getFunctionReturnObject() {
     return stack_objects.peek().getReturnObject();
   }
-
-  public void dropStackFrame() {
-    CLangStackFrame frame = stack_objects.pop();
-    for (SMGObject object : frame.getAllObjects()) {
-      this.removeObjectAndEdges(object);
-    }
-  }
 }
 
 /**
@@ -387,7 +474,7 @@ final class CLangStackFrame {
   @Override
   public String toString() {
     String to_return = "<";
-    for (String key : stack_variables.keySet()){
+    for (String key : stack_variables.keySet()) {
       to_return = to_return + " " + stack_variables.get(key);
     }
     return to_return + " >";

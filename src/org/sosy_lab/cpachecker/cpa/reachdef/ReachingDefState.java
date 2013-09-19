@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -121,62 +122,136 @@ public class ReachingDefState implements AbstractState, Serializable {
   }
 
   public boolean isSubsetOf(ReachingDefState superset) {
-    if (superset == this || superset == topElement)
+    if (superset == this || superset == topElement) {
       return true;
-    if (stateOnLastFunctionCall != superset.stateOnLastFunctionCall)
+    }
+    if (stateOnLastFunctionCall != superset.stateOnLastFunctionCall && !compareStackStates(this, superset)) {
       return false;
-    boolean isLocalSubset = true;
+    }
+    boolean isLocalSubset;
     isLocalSubset = isSubsetOf(localReachDefs, superset.localReachDefs);
     return isLocalSubset && isSubsetOf(globalReachDefs, superset.globalReachDefs);
   }
 
+  private boolean compareStackStates(ReachingDefState sub, ReachingDefState sup) {
+    boolean result;
+    do {
+      if (sub.stateOnLastFunctionCall == null || sup.stateOnLastFunctionCall == null) {
+        return false;
+      }
+      result = isSubsetOf(sub.getLocalReachingDefinitions(), sup.getLocalReachingDefinitions());
+      result = result && isSubsetOf(sub.getGlobalReachingDefinitions(), sup.getGlobalReachingDefinitions());
+      sub = sub.stateOnLastFunctionCall;
+      sup = sup.stateOnLastFunctionCall;
+    } while (sub != sup && result);
+    return result;
+  }
+
   private boolean isSubsetOf(Map<String, Set<DefinitionPoint>> subset, Map<String, Set<DefinitionPoint>> superset) {
     Set<DefinitionPoint> setSub, setSuper;
-    if (subset == superset || superset == topElement)
+    if (subset == superset || superset == topElement) {
       return true;
+    }
     for (String var : subset.keySet()) {
       setSub = subset.get(var);
       setSuper = superset.get(var);
-      if(setSub == setSuper) continue;
-      if (setSuper == null || Sets.intersection(setSub, setSuper).size()!=setSub.size())
+      if (setSub == setSuper) {
+        continue;
+      }
+      if (setSuper == null || Sets.intersection(setSub, setSuper).size()!=setSub.size()) {
         return false;
+      }
     }
     return true;
   }
 
   public ReachingDefState union(ReachingDefState toJoin) {
     Map<String, Set<DefinitionPoint>> newLocal = null;
-    if (toJoin == this)
-      return this;
-    if (toJoin == topElement || this == topElement)
-      return topElement;
-    if (stateOnLastFunctionCall != toJoin.stateOnLastFunctionCall)
-      return topElement;
-    Map<String, Set<DefinitionPoint>> resultOfMapUnion;
     boolean changed = false;
+    ReachingDefState lastFunctionCall = stateOnLastFunctionCall;
+    if (toJoin == this) {
+      return this;
+    }
+    if (toJoin == topElement || this == topElement) {
+      return topElement;
+    }
+    if (stateOnLastFunctionCall != toJoin.stateOnLastFunctionCall) {
+      lastFunctionCall = mergeStackStates(stateOnLastFunctionCall, toJoin.stateOnLastFunctionCall);
+      if (lastFunctionCall == topElement) {
+        return topElement;
+      }
+      if (lastFunctionCall != stateOnLastFunctionCall) {
+        changed = true;
+      }
+    }
+    Map<String, Set<DefinitionPoint>> resultOfMapUnion;
     resultOfMapUnion = unionMaps(localReachDefs, toJoin.localReachDefs);
-    changed = resultOfMapUnion != localReachDefs;
-    newLocal = resultOfMapUnion;
+    if (resultOfMapUnion == localReachDefs) {
+      newLocal = toJoin.localReachDefs;
+    } else {
+      changed = true;
+      newLocal = resultOfMapUnion;
+    }
 
     resultOfMapUnion = unionMaps(globalReachDefs, toJoin.globalReachDefs);
-    changed = changed || resultOfMapUnion != globalReachDefs;
+    if (resultOfMapUnion == globalReachDefs) {
+      resultOfMapUnion = toJoin.globalReachDefs;
+    } else {
+      changed = true;
+    }
+
     if (changed) {
       assert (newLocal != null);
-      return new ReachingDefState(newLocal, resultOfMapUnion, stateOnLastFunctionCall);
+      return new ReachingDefState(newLocal, resultOfMapUnion, lastFunctionCall);
     }
     return toJoin;
+  }
+
+  private ReachingDefState mergeStackStates(ReachingDefState e1, ReachingDefState e2) {
+    Vector<ReachingDefState> statesToMerge = new Vector<>();
+    do {
+      if (e1.stateOnLastFunctionCall == null || e2.stateOnLastFunctionCall == null) {
+        return topElement;
+      }
+      statesToMerge.add(e1);
+      statesToMerge.add(e2);
+      e1 = e1.stateOnLastFunctionCall;
+      e2 = e2.stateOnLastFunctionCall;
+    } while (e1 != e2);
+
+    boolean changed = false;
+    Map<String, Set<DefinitionPoint>> resultOfMapUnion;
+    Map<String, Set<DefinitionPoint>> newLocal;
+    ReachingDefState newStateOnLastFunctionCall = e1;
+
+    for (int i = statesToMerge.size() - 1; i >= 0; i = i - 2) {
+      resultOfMapUnion = unionMaps(statesToMerge.get(i - 1).localReachDefs, statesToMerge.get(i).localReachDefs);
+      changed = changed || resultOfMapUnion != statesToMerge.get(i - 1).localReachDefs;
+      newLocal = resultOfMapUnion;
+
+      resultOfMapUnion = unionMaps(statesToMerge.get(i - 1).globalReachDefs, statesToMerge.get(i).globalReachDefs);
+      changed = changed || resultOfMapUnion != statesToMerge.get(i - 1).globalReachDefs;
+
+      newStateOnLastFunctionCall = new ReachingDefState(newLocal, resultOfMapUnion, newStateOnLastFunctionCall);
+    }
+
+    if (changed) { return newStateOnLastFunctionCall; }
+    return statesToMerge.get(0);
   }
 
   private Map<String, Set<DefinitionPoint>> unionMaps(Map<String, Set<DefinitionPoint>> map1,
       Map<String, Set<DefinitionPoint>> map2) {
     Map<String, Set<DefinitionPoint>> newMap = new HashMap<>();
     // every declared local variable of a function, global variable occurs in respective map, possibly undefined
-    assert (map1.keySet().equals(map1.keySet()));
+    assert (map1.keySet().equals(map2.keySet()));
+    if (map1==map2) {
+      return map1;
+    }
     Set<DefinitionPoint> unionResult;
     boolean changed = false;
     for (String var : map1.keySet()) {
       // decrease merge time, avoid building union if unnecessary
-      if(map1.get(var)== map2.get(var)){
+      if (map1.get(var)== map2.get(var)) {
         newMap.put(var, map2.get(var));
         continue;
       }
@@ -203,7 +278,7 @@ public class ReachingDefState implements AbstractState, Serializable {
   }
 
   private Object writeReplace() throws ObjectStreamException {
-    if(this==topElement){
+    if (this==topElement) {
       return proxy;
     }else{
       return this;
@@ -258,6 +333,11 @@ public class ReachingDefState implements AbstractState, Serializable {
       return instance;
     }
 
+    @Override
+    public String toString() {
+      return "?";
+    }
+
     private Object writeReplace() throws ObjectStreamException {
       return writeReplace;
     }
@@ -294,6 +374,11 @@ public class ReachingDefState implements AbstractState, Serializable {
     }
 
     @Override
+    public String toString() {
+      return "(N" + entry.getNodeNumber() + ",N" + exit.getNodeNumber() + ")";
+    }
+
+    @Override
     public int hashCode() {
       final int prime = 31;
       int result = 1;
@@ -304,23 +389,30 @@ public class ReachingDefState implements AbstractState, Serializable {
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj)
+      if (this == obj) {
         return true;
-      if (obj == null)
+      }
+      if (obj == null) {
         return false;
-      if (getClass() != obj.getClass())
+      }
+      if (getClass() != obj.getClass()) {
         return false;
+      }
       ProgramDefinitionPoint other = (ProgramDefinitionPoint) obj;
       if (entry == null) {
-        if (other.entry != null)
+        if (other.entry != null) {
           return false;
-      } else if (!entry.equals(other.entry))
+        }
+      } else if (!entry.equals(other.entry)) {
         return false;
+      }
       if (exit == null) {
-        if (other.exit != null)
+        if (other.exit != null) {
           return false;
-      } else if (!exit.equals(other.exit))
+        }
+      } else if (!exit.equals(other.exit)) {
         return false;
+      }
       return true;
     }
 

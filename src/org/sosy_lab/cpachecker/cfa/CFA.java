@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 
 public interface CFA {
 
@@ -57,6 +58,8 @@ public interface CFA {
   FunctionEntryNode getMainFunction();
 
   Optional<ImmutableMultimap<String, Loop>> getLoopStructure();
+
+  Optional<ImmutableSet<CFANode>> getAllLoopHeads();
 
   Optional<VariableClassification> getVarClassification();
 

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -44,6 +46,7 @@ final class CDereferenceType extends CtoFormulaCType {
     isVolatile = pVolatile;
     type = pType;
     guessedType = pGuessedType;
+    assert !(guessedType instanceof CDereferenceType);
   }
 
   public CType getGuessedType() {
@@ -105,5 +108,45 @@ final class CDereferenceType extends CtoFormulaCType {
   @Override
   public <R, X extends Exception> R accept(CtoFormulaTypeVisitor<R, X> pVisitor) throws X {
     return pVisitor.visit(this);
+  }
+
+  @Override
+  public int hashCode() {
+    throw new UnsupportedOperationException("Do not use hashCode of CTypes");
+  }
+
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
+
+    if (!(obj instanceof CDereferenceType) || !super.equals(obj)) {
+      return false;
+    }
+
+    CDereferenceType other = (CDereferenceType) obj;
+
+    return Objects.equals(type, other.type) && Objects.equals(isConst, other.isConst)
+           && Objects.equals(isVolatile, other.isVolatile) && Objects.equals(guessedType, other.guessedType);
+  }
+
+  @Override
+  public CDereferenceType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CDereferenceType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    CType newGuessedType = guessedType;
+    if (newGuessedType != null) {
+      newGuessedType = newGuessedType.getCanonicalType();
+    }
+    return new CDereferenceType(isConst || pForceConst, isVolatile || pForceVolatile, type.getCanonicalType(), newGuessedType);
   }
 }

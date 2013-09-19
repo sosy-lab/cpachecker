@@ -97,7 +97,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param variableNames the names of the variables to be removed
    */
   void removeAll(Collection<String> variableNames) {
-    for(String variableName : variableNames) {
+    for (String variableName : variableNames) {
       constantsMap = constantsMap.removeAndCopy(variableName);
     }
   }
@@ -434,8 +434,11 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    *
    * @param other the state to which to compute the delta
    */
-  void setDelta(ExplicitState other) {
+  void addToDelta(ExplicitState other) {
     delta = other.getDifference(this);
+    if (other.delta != null) {
+      delta.addAll(other.delta);
+    }
   }
 
   /**

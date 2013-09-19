@@ -24,30 +24,37 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 
+import static com.google.common.collect.FluentIterable.from;
+
+import java.util.List;
 import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+
 public class CDesignatedInitializer extends Initializer implements CInitializer {
 
 
-  private final CDesignator left;
+  private final List<CDesignator> designators;
   private final CInitializer right;
 
-  public CDesignatedInitializer(FileLocation pFileLocation, final CDesignator pLeft, final CInitializer pRight) {
+  public CDesignatedInitializer(FileLocation pFileLocation, final List<CDesignator> pLeft, final CInitializer pRight) {
     super(pFileLocation);
-    left = pLeft;
+    designators = ImmutableList.copyOf(pLeft);
     right = pRight;
   }
 
   @Override
   public String toASTString() {
-      return left.toASTString() + " = " + right.toASTString();
+      return Joiner.on("").join(from(designators).transform(CAstNode.TO_AST_STRING))
+          + " = " + right.toASTString();
   }
 
-  public CDesignator getLeftHandSide() {
-    return left;
+  public List<CDesignator> getDesignators() {
+    return designators;
   }
 
   public CInitializer getRightHandSide() {
@@ -66,7 +73,7 @@ public class CDesignatedInitializer extends Initializer implements CInitializer 
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(left);
+    result = prime * result + Objects.hashCode(designators);
     result = prime * result + Objects.hashCode(right);
     result = prime * result + super.hashCode();
     return result;
@@ -88,7 +95,7 @@ public class CDesignatedInitializer extends Initializer implements CInitializer 
 
     CDesignatedInitializer other = (CDesignatedInitializer) obj;
 
-    return Objects.equals(other.left, left) && Objects.equals(other.right, right);
+    return Objects.equals(other.designators, designators) && Objects.equals(other.right, right);
   }
 
 }

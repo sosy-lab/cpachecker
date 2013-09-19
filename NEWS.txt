@@ -1,6 +1,9 @@
 Changes since CPAchecker 1.2
 ----------------------------
 
+* r8060: Better resolution of relative paths, for example, paths in configuration files
+  are now relative to the directory of the configuration file.
+  Now CPAchecker should be easily runnable from any directory.
 * r7277: The -spec command-line argument does not only accept file-name values,
   but also single words. A file with a matching name from config/specification/*.spc
   will be used in this case.

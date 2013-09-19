@@ -32,18 +32,11 @@ import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 public class CArrayDesignator extends CDesignator {
 
   private final IAExpression subscriptExpression;
-  private final CDesignator arrayDesignator;
 
   public CArrayDesignator(final FileLocation pFileLocation,
-                          final CExpression pSubscriptExpression,
-                          final CDesignator pArrayDesignator) {
+                          final CExpression pSubscriptExpression) {
      super(pFileLocation);
      subscriptExpression = pSubscriptExpression;
-     arrayDesignator = pArrayDesignator;
-  }
-
-  public CDesignator getArrayDesignator() {
-    return arrayDesignator;
   }
 
   public CExpression getSubscriptExpression() {
@@ -52,7 +45,7 @@ public class CArrayDesignator extends CDesignator {
 
   @Override
   public String toASTString() {
-    return arrayDesignator.toASTString() + "[" + getSubscriptExpression().toASTString() + "]";
+    return "[" + getSubscriptExpression().toASTString() + "]";
   }
 
   @Override
@@ -72,7 +65,6 @@ public class CArrayDesignator extends CDesignator {
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(arrayDesignator);
     result = prime * result + Objects.hashCode(subscriptExpression);
     result = prime * result * super.hashCode();
     return result;
@@ -94,8 +86,7 @@ public class CArrayDesignator extends CDesignator {
 
     CArrayDesignator other = (CArrayDesignator) obj;
 
-    return Objects.equals(other.arrayDesignator, arrayDesignator)
-            && Objects.equals(other.subscriptExpression, subscriptExpression);
+    return Objects.equals(other.subscriptExpression, subscriptExpression);
   }
 
 }

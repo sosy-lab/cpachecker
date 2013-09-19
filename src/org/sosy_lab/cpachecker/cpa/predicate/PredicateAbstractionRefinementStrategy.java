@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -82,19 +83,16 @@ import com.google.common.collect.Sets;
  * abstraction (adding the predicates from the interpolant to the precision
  * and removing the relevant parts of the ARG).
  */
-@Options(prefix="cpa.predicate.refinement")
+@Options(prefix="cpa.predicate")
 public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
-  @Option(description="use only the atoms from the interpolants as predicates, "
-    + "and not the whole interpolant")
+  @Option(name="refinement.atomicPredicates",
+      description="use only the atoms from the interpolants as predicates, "
+          + "and not the whole interpolant")
   private boolean atomicPredicates = true;
 
-  @Option(description="Add all discovered predicates to all the locations in the abstract trace. "
-      + "DEPRECATED: use cpa.predicate.predicateSharing instead which offers more flexibility.")
-  @Deprecated
-  private boolean addPredicatesGlobally = false;
-
-  @Option(description="Where to apply the found predicates to?")
+  @Option(name="precision.sharing",
+      description="Where to apply the found predicates to?")
   private PredicateSharing predicateSharing = PredicateSharing.LOCATION;
   private static enum PredicateSharing {
     GLOBAL,            // at all locations
@@ -104,24 +102,33 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     ;
   }
 
-  @Option(description="During refinement, keep predicates from all removed parts " +
-                      "of the ARG. Otherwise, only predicates from the error path " +
-                      "are kept.")
+  @Option(name="refinement.keepAllPredicates",
+      description="During refinement, keep predicates from all removed parts "
+          + "of the ARG. Otherwise, only predicates from the error path are kept.")
   private boolean keepAllPredicates = false;
 
-  @Option(description="Do a complete restart (clearing the reached set) " +
-                      "after N refinements. 0 to disable, 1 for always.")
+  @Option(name="refinement.restartAfterRefinements",
+      description="Do a complete restart (clearing the reached set) "
+          + "after N refinements. 0 to disable, 1 for always.")
   @IntegerOption(min=0)
   private int restartAfterRefinements = 0;
 
-  @Option(description="During refinement, add all new predicates to the precisions " +
-                      "of all abstract states in the reached set.")
+  @Option(name="refinement.sharePredicates",
+      description="During refinement, add all new predicates to the precisions "
+          + "of all abstract states in the reached set.")
   private boolean sharePredicates = false;
 
-  @Option(description="After each refinement, dump the newly found predicates.")
+  @Option(name="refinement.useBddInterpolantSimplification",
+      description="Use BDDs to simplify interpolants "
+          + "(removing irrelevant predicates)")
+  private boolean useBddInterpolantSimplification = false;
+
+  @Option(name="refinement.dumpPredicates",
+      description="After each refinement, dump the newly found predicates.")
   private boolean dumpPredicates = false;
 
-  @Option(description="File name for the predicates dumped after refinements.")
+  @Option(name="refinement.dumpPredicatesFile",
+      description="File name for the predicates dumped after refinements.")
   @FileOption(Type.OUTPUT_FILE)
   private File dumpPredicatesFile = new File("refinement%04d-predicates.prec");
 
@@ -141,31 +148,36 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
       out.println("  Predicate creation:                 " + predicateCreation);
+      if (itpSimplification.getNumberOfIntervals() > 0) {
+        out.println("    Itp simplification with BDDs:     " + itpSimplification);
+      }
       out.println("  Precision update:                   " + precisionUpdate);
       out.println("  ARG update:                         " + argUpdate);
       out.println();
       PredicateAbstractionRefinementStrategy.this.printStatistics(out);
       out.println("Number of refs with location-based cutoff:  " + numberOfRefinementsWithStrategy2);
+      if (itpSimplification.getNumberOfIntervals() > 0) {
+        out.println("Number of irrelevant preds in interpolants: " + irrelevantPredsInItp);
+      }
     }
   }
 
   // statistics
   private int numberOfRefinementsWithStrategy2 = 0;
+  private int irrelevantPredsInItp = 0;
 
   private final Timer predicateCreation = new Timer();
   private final Timer precisionUpdate = new Timer();
   private final Timer argUpdate = new Timer();
+  private final Timer itpSimplification = new Timer();
 
-  protected PredicateAbstractionRefinementStrategy(final Configuration config,
+  public PredicateAbstractionRefinementStrategy(final Configuration config,
       final LogManager pLogger, final FormulaManagerView pFormulaManager,
       final PredicateAbstractionManager pPredAbsMgr, final Solver pSolver)
           throws CPAException, InvalidConfigurationException {
     super(pFormulaManager.getBooleanFormulaManager(), pSolver);
 
     config.inject(this, PredicateAbstractionRefinementStrategy.class);
-    if (addPredicatesGlobally) {
-      predicateSharing = PredicateSharing.GLOBAL;
-    }
 
     logger = pLogger;
     fmgr = pFormulaManager;
@@ -187,10 +199,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     checkArgument(!bfmgr.isTrue(pInterpolant));
 
     predicateCreation.start();
-    Collection<AbstractionPredicate> localPreds = convertInterpolant(pInterpolant);
+    PredicateAbstractState predicateState = getPredicateState(interpolationPoint);
+    PathFormula blockFormula = predicateState.getAbstractionFormula().getBlockFormula();
+
+    Collection<AbstractionPredicate> localPreds = convertInterpolant(pInterpolant, blockFormula);
     CFANode loc = AbstractStates.extractLocation(interpolationPoint);
-    int locInstance = getPredicateState(interpolationPoint)
-                                    .getAbstractionLocationsOnPath().get(loc);
+    int locInstance = predicateState.getAbstractionLocationsOnPath().get(loc);
 
     newPredicates.putAll(Pair.of(loc, locInstance), localPreds);
     predicateCreation.stop();
@@ -203,19 +217,36 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    * @param interpolant The interpolant formula.
    * @return A set of predicates.
    */
-  protected final Collection<AbstractionPredicate> convertInterpolant(BooleanFormula interpolant) {
+  protected final Collection<AbstractionPredicate> convertInterpolant(
+      final BooleanFormula pInterpolant, PathFormula blockFormula) {
+
+    BooleanFormula interpolant = pInterpolant;
     if (bfmgr.isTrue(interpolant)) {
       return Collections.<AbstractionPredicate>emptySet();
     }
 
     Collection<AbstractionPredicate> preds;
 
+    int allPredsCount = 0;
+    if (useBddInterpolantSimplification) {
+      itpSimplification.start();
+      // need to call extractPredicates() for registering all predicates
+      allPredsCount = predAbsMgr.extractPredicates(interpolant).size();
+      interpolant = predAbsMgr.buildAbstraction(fmgr.uninstantiate(interpolant), blockFormula).asInstantiatedFormula();
+      itpSimplification.stop();
+    }
+
     if (atomicPredicates) {
       preds = predAbsMgr.extractPredicates(interpolant);
+
+      if (useBddInterpolantSimplification) {
+        irrelevantPredsInItp += (allPredsCount-preds.size());
+      }
+
     } else {
       preds = ImmutableList.of(predAbsMgr.createPredicateFor(fmgr.uninstantiate(interpolant)));
     }
-    assert !preds.isEmpty();
+    assert !preds.isEmpty() : "Interpolant without relevant predicates: " + pInterpolant + "; simplified to " + interpolant;
 
     logger.log(Level.FINEST, "Got predicates", preds);
 

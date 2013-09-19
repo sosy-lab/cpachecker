@@ -27,51 +27,40 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Set;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateMapParser.PredicateMapParsingFailedException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableList;
 
 @Options(prefix="cpa.predicate")
 public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
   @Option(name="abstraction.initialPredicates",
-      description="get an initial map of predicates from a file (see source doc/examples/predmap.txt for an example)")
+      description="get an initial map of predicates from a list of files (see source doc/examples/predmap.txt for an example)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private File predicatesFile = null;
+  private List<File> predicatesFiles = ImmutableList.of();
 
   @Option(description="always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
 
-  @Option(description="Enable mining of predicates from the CFA (preprocessing).")
-  private boolean enablePrecisionMiner = false;
-
-  @Option(description="Enable sweeping the precision: remove predicates that make statements about variables that do not exist in the CFA.")
-  private boolean enablePrecisionSweeper = false;
-
-  private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView formulaManagerView;
   private final AbstractionManager abstractionManager;
-  private final PredicatePrecisionSweeper sweeper;
 
   private final Configuration config;
   private final LogManager logger;
@@ -81,56 +70,42 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private final PrecisionBootstrapStatistics statistics = new PrecisionBootstrapStatistics();
 
   public PredicatePrecisionBootstrapper(Configuration config, LogManager logger, CFA cfa,
-      PathFormulaManager pathFormulaManager, AbstractionManager abstractionManager, FormulaManagerView formulaManagerView,
-      PredicatePrecisionSweeper sweeper) throws InvalidConfigurationException {
+      PathFormulaManager pathFormulaManager, AbstractionManager abstractionManager, FormulaManagerView formulaManagerView) throws InvalidConfigurationException {
     this.config = config;
     this.logger = logger;
     this.cfa = cfa;
-    this.sweeper = sweeper;
 
-    this.pathFormulaManager = pathFormulaManager;
     this.abstractionManager = abstractionManager;
     this.formulaManagerView = formulaManagerView;
 
     config.inject(this);
   }
 
-  protected PredicatePrecision internalPrepareInitialPredicates() throws InvalidConfigurationException {
+  private PredicatePrecision internalPrepareInitialPredicates() throws InvalidConfigurationException {
 
-    Set<AbstractionPredicate> initialPredicates = checkBlockFeasibility
-        ? Collections.<AbstractionPredicate>singleton(abstractionManager.makeFalsePredicate())
-        : Collections.<AbstractionPredicate>emptySet();
+    PredicatePrecision result = PredicatePrecision.empty();
 
-    if (predicatesFile != null) {
-      try {
-        PredicateMapParser parser = new PredicateMapParser(config, cfa, logger, formulaManagerView, abstractionManager);
-        PredicatePrecision result = parser.parsePredicates(predicatesFile, initialPredicates);
-        return enablePrecisionSweeper ? sweeper.sweepPrecision(result) : result;
+    if (checkBlockFeasibility) {
+      result = result.addGlobalPredicates(Collections.<AbstractionPredicate>singleton(abstractionManager.makeFalsePredicate()));
+    }
 
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not read predicate map from file");
-        return PredicatePrecision.empty();
+    if (!predicatesFiles.isEmpty()) {
+      PredicateMapParser parser = new PredicateMapParser(config, cfa, logger, formulaManagerView, abstractionManager);
 
-      } catch (PredicateMapParsingFailedException e) {
-        logger.logUserException(Level.WARNING, e, "Could not read predicate map");
-        return PredicatePrecision.empty();
-      }
-    } else if (enablePrecisionMiner) {
-      try {
-        PredicateMiner precMiner = new PredicateMiner(config, logger, pathFormulaManager, formulaManagerView, abstractionManager);
-        return precMiner.minePrecisionFromCfa(cfa);
+      for (File predicatesFile : predicatesFiles) {
+        try {
+          result = result.mergeWith(parser.parsePredicates(predicatesFile));
 
-      } catch (CPATransferException e) {
-        logger.logUserException(Level.WARNING, e, "Could not mine precision from CFA");
-        return PredicatePrecision.empty();
+        } catch (IOException e) {
+          logger.logUserException(Level.WARNING, e, "Could not read predicate map from file");
+
+        } catch (PredicateMapParsingFailedException e) {
+          logger.logUserException(Level.WARNING, e, "Could not read predicate map");
+        }
       }
     }
 
-    return new PredicatePrecision(
-        ImmutableSetMultimap.<Pair<CFANode, Integer>, AbstractionPredicate>of(),
-        ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
-        ImmutableSetMultimap.<String, AbstractionPredicate>of(),
-        initialPredicates);
+    return result;
   }
 
   /**

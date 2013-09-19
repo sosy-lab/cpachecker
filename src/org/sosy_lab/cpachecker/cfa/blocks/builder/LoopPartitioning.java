@@ -77,7 +77,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
       //main function
       return true;
     }
-    if (pNode.isLoopStart()) {
+    if (isLoopHead(pNode)) {
       if (hasBlankEdgeFromLoop(pNode) || selfLoop(pNode)) {
         return false;
       }
@@ -86,10 +86,14 @@ public class LoopPartitioning extends PartitioningHeuristic {
     return false;
   }
 
-  private static boolean hasBlankEdgeFromLoop(CFANode pNode) {
+  private boolean isLoopHead(CFANode pNode) {
+    return cfa.getAllLoopHeads().get().contains(pNode);
+  }
+
+  private boolean hasBlankEdgeFromLoop(CFANode pNode) {
     for (int i = 0; i < pNode.getNumEnteringEdges(); i++) {
       CFAEdge edge = pNode.getEnteringEdge(i);
-      if (edge instanceof BlankEdge && edge.getPredecessor().isLoopStart()) {
+      if (edge instanceof BlankEdge && isLoopHead(edge.getPredecessor())) {
         return true;
       }
     }
@@ -105,7 +109,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
     if (pNode instanceof FunctionEntryNode) {
       return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
     }
-    if (pNode.isLoopStart()) {
+    if (isLoopHead(pNode)) {
       Set<CFANode> loopBody = new HashSet<>();
       if (loopHeaderToLoopBody == null) {
         initLoopMap();

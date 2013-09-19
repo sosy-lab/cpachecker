@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class ABMARGBlockStartState extends ARGState {
 
+  private static ABMARGBlockStartState dummyElem = null;
+
   private static final long serialVersionUID = -5143941913753150639L;
 
   private ARGState analyzedBlock = null;
@@ -48,5 +50,16 @@ public class ABMARGBlockStartState extends ARGState {
   @Override
   public String toString() {
     return "ABMARGBlockStartState " + super.toString();
+  }
+
+  public static ABMARGBlockStartState getDummy() {
+    return dummyElem;
+  }
+
+  public static ABMARGBlockStartState createDummy(AbstractState wrappedState) {
+    if (dummyElem == null) {
+      dummyElem = new ABMARGBlockStartState(wrappedState, null);
+    }
+    return dummyElem;
   }
 }

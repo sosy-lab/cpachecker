@@ -44,7 +44,9 @@ import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils;
 
+import com.google.common.base.Equivalence;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
@@ -110,7 +112,7 @@ public class SSAMap implements Serializable {
       checkNotNull(type);
       CType oldType = varTypes.get(name);
       if (oldType != null) {
-        Preconditions.checkArgument(oldType.equals(type)
+        Preconditions.checkArgument(oldType.getCanonicalType().equals(type.getCanonicalType())
             || type instanceof CFunctionType || oldType instanceof CFunctionType
             , "Cannot change type of variable %s in SSAMap from %s to %s", name, oldType, type);
       } else {
@@ -134,7 +136,7 @@ public class SSAMap implements Serializable {
       checkNotNull(type);
       CType oldType = Objects.firstNonNull(funcTypesBuilder, ssa.types).get(key);
       if (oldType != null) {
-        Preconditions.checkArgument(oldType.equals(type)
+        Preconditions.checkArgument(oldType.getCanonicalType().equals(type.getCanonicalType())
             || type instanceof CFunctionType || oldType instanceof CFunctionType
             , "Cannot change type of variable %s in SSAMap from %s to %s", key, oldType, type);
       } else {
@@ -244,7 +246,8 @@ public class SSAMap implements Serializable {
 
     } else {
       differences = new ArrayList<>();
-      vars = merge(s1.vars, s2.vars, MAXIMUM_ON_CONFLICT, differences);
+      vars = merge(s1.vars, s2.vars, Equivalence.equals(),
+          MAXIMUM_ON_CONFLICT, differences);
     }
 
     Multiset<Pair<String, FormulaList>> funcs;
@@ -263,7 +266,19 @@ public class SSAMap implements Serializable {
     } else {
       @SuppressWarnings("unchecked")
       ConflictHandler<Object, CType> exceptionOnConflict = (ConflictHandler<Object, CType>)EXCEPTION_ON_CONFLICT;
-      varTypes = merge(s1.varTypes, s2.varTypes, exceptionOnConflict, null);
+      varTypes = merge(s1.varTypes, s2.varTypes,
+          new Equivalence<CType>() {
+            @Override
+            protected boolean doEquivalent(CType pA, CType pB) {
+              return CtoFormulaTypeUtils.areEqual(pA, pB);
+            }
+
+            @Override
+            protected int doHash(CType pT) {
+              return pT.hashCode();
+            }
+          },
+          exceptionOnConflict, null);
     }
 
     Map<Pair<String, FormulaList>, CType> funcTypes;
@@ -311,6 +326,7 @@ public class SSAMap implements Serializable {
    */
   private static <K extends Comparable<? super K>, V> PersistentSortedMap<K, V> merge(
       PersistentSortedMap<K, V> s1, PersistentSortedMap<K, V> s2,
+      Equivalence<? super V> valueEquals,
       ConflictHandler<? super K, V> conflictHandler,
       @Nullable List<Triple<K, V, V>> collectDifferences) {
 
@@ -361,7 +377,7 @@ public class SSAMap implements Serializable {
         V value1 = e1.getValue();
         V value2 = e2.getValue();
 
-        if (!value1.equals(value2)) {
+        if (!valueEquals.equivalent(value1, value2)) {
           V newValue = conflictHandler.resolveConflict(key, value1, value2);
           result = result.putAndCopy(key, newValue);
 

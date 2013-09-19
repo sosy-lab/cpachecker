@@ -72,9 +72,9 @@ public class DefUseCPA implements ConfigurableProgramAnalysis {
     this.transferRelation = new DefUseTransferRelation();
 
     this.mergeOperator = null;
-    if (mergeType.equals("sep")){
+    if (mergeType.equals("sep")) {
       this.mergeOperator = MergeSepOperator.getInstance();
-    } else if (mergeType.equals("join")){
+    } else if (mergeType.equals("join")) {
       this.mergeOperator = new MergeJoinOperator(abstractDomain);
     }
 

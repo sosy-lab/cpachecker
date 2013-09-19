@@ -40,13 +40,20 @@ public abstract class WrappingFormula<TWrap extends Formula, TOut extends Formul
 
   public TWrap getWrapped() { return wrapped; }
   public FormulaType<TOut> getType() { return type; }
+
   @Override
-  public String toString(){
-    return "Wrapped(" + getWrapped().toString() + ")";
+  public String toString() {
+    return wrapped.toString();
   }
+
   @Override
-  public int hashCode(){
-    return getWrapped().hashCode();
+  public boolean equals(Object pObj) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public int hashCode() {
+    throw new UnsupportedOperationException();
   }
 }
 

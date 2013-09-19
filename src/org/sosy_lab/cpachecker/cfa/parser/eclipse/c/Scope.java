@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
@@ -49,6 +50,13 @@ interface Scope {
   CComplexType lookupType(String name);
 
   void registerDeclaration(CSimpleDeclaration declaration);
+
+  /**
+   * Register a type, e.g., a new struct type.
+   *
+   * @return True if the type actually needs to be declared, False if the declaration can be omitted because the type is already known.
+   */
+  boolean registerTypeDeclaration(CComplexTypeDeclaration declaration);
 
   /**
    * Take a name and return a name qualified with the current function

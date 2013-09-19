@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,7 +44,10 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -87,12 +92,15 @@ class CFABuilder extends ASTVisitor {
   private final LogManager logger;
   private final CheckBindingVisitor checkBinding;
 
+  private final Configuration config;
+
   private boolean encounteredAsm = false;
 
-  public CFABuilder(LogManager pLogger, MachineModel pMachine) {
+  public CFABuilder(Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
     logger = pLogger;
     machine = pMachine;
-    astCreator = new ASTConverter(scope, logger, pMachine);
+    this.config = config;
+    astCreator = new ASTConverter(config, scope, logger, pMachine);
     checkBinding = new CheckBindingVisitor(pLogger);
 
     shouldVisitDeclarations = true;
@@ -184,12 +192,21 @@ class CFABuilder extends ASTVisitor {
     final List<CDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
-    if (!astCreator.getAndResetPreSideAssignments().isEmpty()
+    if (!astCreator.getAndResetConditionalExpressions().isEmpty()
         || !astCreator.getAndResetPostSideAssignments().isEmpty()) {
       throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
     }
 
     String rawSignature = sd.getRawSignature();
+
+    for (CAstNode astNode : astCreator.getAndResetPreSideAssignments()) {
+      if (astNode instanceof CComplexTypeDeclaration) {
+        // already registered
+        globalDeclarations.add(Pair.of((IADeclaration)astNode, rawSignature));
+      } else {
+        throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
+      }
+    }
 
     for (CDeclaration newD : newDs) {
       boolean used = true;
@@ -239,9 +256,20 @@ class CFABuilder extends ASTVisitor {
     ImmutableMap<String, CComplexTypeDeclaration> types = scope.getTypes();
     ImmutableMap<String, CSimpleDeclaration> globalVars = scope.getGlobalVars();
 
+    FillInAllBindingsVisitor fillInAllBindingsVisitor = new FillInAllBindingsVisitor(scope);
+    for (IADeclaration decl : from(globalDeclarations).transform(Pair.<IADeclaration>getProjectionToFirst())) {
+      ((CDeclaration)decl).getType().accept(fillInAllBindingsVisitor);
+    }
+
     for (IASTFunctionDefinition declaration : functionDeclarations) {
       FunctionScope localScope = new FunctionScope(functions, types, globalVars);
-      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, localScope, machine);
+      CFAFunctionBuilder functionBuilder;
+
+      try {
+        functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine);
+      } catch (InvalidConfigurationException e) {
+        throw new CFAGenerationRuntimeException("Invalid configuration");
+      }
 
       declaration.accept(functionBuilder);
 

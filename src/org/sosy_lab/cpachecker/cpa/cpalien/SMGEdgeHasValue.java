@@ -23,16 +23,35 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class SMGEdgeHasValue extends SMGEdge {
   final private CType type;
   final private int offset;
 
+  final private CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
+  final private CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
+
   public SMGEdgeHasValue(CType pType, int pOffset, SMGObject pObject, int pValue) {
     super(pValue, pObject);
     type = pType;
+    offset = pOffset;
+  }
+
+  public SMGEdgeHasValue(int pSizeInBytes, int pOffset, SMGObject pObject, int pValue) {
+    super(pValue, pObject);
+    CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(null, dummyInt, BigInteger.valueOf(pSizeInBytes));
+    type = new CArrayType(false, false, dummyChar, arrayLen);
     offset = pOffset;
   }
 
@@ -124,20 +143,100 @@ public class SMGEdgeHasValue extends SMGEdge {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (!super.equals(obj))
+    }
+    if (!super.equals(obj)) {
       return false;
-    if (getClass() != obj.getClass())
+    }
+    if (getClass() != obj.getClass()) {
       return false;
+    }
     SMGEdgeHasValue other = (SMGEdgeHasValue) obj;
-    if (offset != other.offset)
+    if (offset != other.offset) {
       return false;
+    }
     if (type == null) {
-      if (other.type != null)
+      if (other.type != null) {
         return false;
-     } else if (!type.equals(other.type))
+      }
+    } else if (!type.getCanonicalType().equals(other.type.getCanonicalType())) {
       return false;
+    }
     return true;
+  }
+}
+
+class SMGEdgeHasValueFilter {
+
+  public static SMGEdgeHasValueFilter objectFilter(SMGObject pObject) {
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    filter.filterByObject(pObject);
+
+    return filter;
+  }
+
+  private SMGObject object = null;
+
+  private Integer value = null;
+  private boolean valueComplement = false;
+  private Integer offset = null;
+  private CType type = null;
+
+  public void filterByObject(SMGObject pObject) {
+    object = pObject;
+  }
+
+  public void filterHavingValue(Integer pValue) {
+    value = pValue;
+    valueComplement = false;
+  }
+
+  public void filterNotHavingValue(Integer pValue) {
+    value = pValue;
+    valueComplement = true;
+  }
+
+  public void filterAtOffset(Integer pOffset) {
+    offset = pOffset;
+  }
+
+  public void filterByType(CType pType) {
+    type = pType;
+  }
+
+  public boolean holdsFor(SMGEdgeHasValue pEdge) {
+    if (object != null && object != pEdge.getObject()) {
+      return false;
+    }
+
+    if (value != null) {
+      if (valueComplement && pEdge.getValue() == value) {
+        return false;
+      }
+      else if ( (!valueComplement) && pEdge.getValue() != value) {
+        return false;
+      }
+    }
+
+    if (offset != null && offset != pEdge.getOffset()) {
+      return false;
+    }
+
+    if (type != null && ! type.getCanonicalType().equals(pEdge.getType().getCanonicalType())) {
+      return false;
+    }
+
+    return true;
+  }
+
+  public Set<SMGEdgeHasValue> filterSet(Set<SMGEdgeHasValue> pEdges) {
+    Set<SMGEdgeHasValue> returnSet = new HashSet<>();
+    for (SMGEdgeHasValue edge : pEdges) {
+      if (this.holdsFor(edge)) {
+        returnSet.add(edge);
+      }
+    }
+    return Collections.unmodifiableSet(returnSet);
   }
 }

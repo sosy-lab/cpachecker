@@ -27,7 +27,16 @@ import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
+/**
+ *
+ * This class represents a Cast expression AST node type.
+ *
+ * CastExpression:
+ *   ( Type ) Expression
+ *
+ * The expression type also denotes the type the expression is casted to.
+ *
+ */
 public class JCastExpression extends ACastExpression implements JExpression {
 
   public JCastExpression(FileLocation pFileLocation, JType pCastType, JExpression pOperand) {

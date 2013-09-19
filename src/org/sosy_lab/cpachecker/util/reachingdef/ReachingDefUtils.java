@@ -53,9 +53,16 @@ import com.google.common.collect.ImmutableSet;
 
 public class ReachingDefUtils {
 
+  private static CFANode[] cfaNodes;
+
+  public static CFANode[] getAllNodesFromCFA() {
+    return cfaNodes;
+  }
+
   public static Pair<Set<String>, Map<FunctionEntryNode, Set<String>>> getAllVariables(CFANode pMainNode) {
     CFAEdge out;
     Vector<String> globalVariables = new Vector<>();
+    Vector<CFANode> nodes = new Vector<>();
 
     while (!(pMainNode instanceof FunctionEntryNode)) {
       out = pMainNode.getLeavingEdge(0);
@@ -63,6 +70,7 @@ public class ReachingDefUtils {
           && ((CDeclarationEdge) out).getDeclaration() instanceof CVariableDeclaration) {
         globalVariables.add(((CVariableDeclaration) ((CDeclarationEdge) out).getDeclaration()).getName());
       }
+      nodes.add(pMainNode);
       pMainNode = pMainNode.getLeavingEdge(0).getSuccessor();
     }
 
@@ -90,11 +98,12 @@ public class ReachingDefUtils {
 
       while (!currentWaitlist.isEmpty()) {
         currentElement = currentWaitlist.pop();
+        nodes.add(currentElement);
 
         for (int i = 0; i < currentElement.getNumLeavingEdges(); i++) {
           out = currentElement.getLeavingEdge(i);
 
-          if(out instanceof FunctionReturnEdge){
+          if (out instanceof FunctionReturnEdge) {
             continue;
           }
 
@@ -125,7 +134,8 @@ public class ReachingDefUtils {
 
       result.put(currentFunction, ImmutableSet.copyOf(localVariables));
     }
-
+    cfaNodes = new CFANode[nodes.size()];
+    nodes.toArray(cfaNodes);
     return Pair.of((Set<String>) ImmutableSet.copyOf(globalVariables), result);
   }
 
@@ -164,10 +174,11 @@ public class ReachingDefUtils {
 
     @Override
     public String visit(CFieldReference pIastFieldReference) throws UnsupportedCCodeException {
-      if (pIastFieldReference.isPointerDereference())
+      if (pIastFieldReference.isPointerDereference()) {
         throw new UnsupportedCCodeException(
             "Does not support assignment to dereferenced variable due to missing aliasing support", edgeForExpression,
             pIastFieldReference);
+      }
       warning = "Analysis may be unsound in case of aliasing.";
       return pIastFieldReference.getFieldOwner().accept(this);
     }
@@ -179,10 +190,11 @@ public class ReachingDefUtils {
 
     @Override
     public String visit(CUnaryExpression pIastUnaryExpression) throws UnsupportedCCodeException {
-      if (pIastUnaryExpression.getOperator() == UnaryOperator.STAR)
+      if (pIastUnaryExpression.getOperator() == UnaryOperator.STAR) {
         throw new UnsupportedCCodeException(
             "Does not support assignment to dereferenced variable due to missing aliasing support", edgeForExpression,
             pIastUnaryExpression);
+      }
       return pIastUnaryExpression.getOperand().accept(this);
     }
 

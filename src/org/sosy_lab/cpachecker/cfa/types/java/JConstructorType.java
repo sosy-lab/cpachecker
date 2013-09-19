@@ -23,14 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.java;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 
+public class JConstructorType extends JMethodType implements JType {
 
-public class JConstructorType extends JMethodType  {
+  private static final JConstructorType UNRESOLVABLE_TYPE = new JConstructorType(JClassType.createUnresolvableType(), new ArrayList<JType>(), false);
 
-  public JConstructorType(JClassType pReturnType, List<JParameterDeclaration> pParameters, boolean pTakesVarArgs) {
+  public JConstructorType(JClassType pReturnType, List<JType> pParameters, boolean pTakesVarArgs) {
     super(pReturnType, pParameters, pTakesVarArgs);
   }
 
@@ -39,4 +40,7 @@ public class JConstructorType extends JMethodType  {
     return (JClassType) super.getReturnType();
   }
 
+  public static JConstructorType createUnresolvableConstructorType() {
+    return UNRESOLVABLE_TYPE;
+  }
 }

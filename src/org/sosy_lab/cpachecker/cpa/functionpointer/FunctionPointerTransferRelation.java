@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -67,7 +64,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -90,6 +86,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
+import com.google.common.collect.ImmutableSet;
+
 @Options(prefix="cpa.functionpointer")
 class FunctionPointerTransferRelation implements TransferRelation {
 
@@ -98,6 +96,12 @@ class FunctionPointerTransferRelation implements TransferRelation {
   @Option(description="whether function pointers with invalid targets (e.g., 0) should be tracked in order to find calls to such pointers")
   private boolean trackInvalidFunctionPointers = false;
   private final FunctionPointerTarget invalidFunctionPointerTarget;
+
+  @Option(description="When an invalid function pointer is called, do not assume all functions as possible targets and instead call no function.")
+  private boolean ignoreInvalidFunctionPointerCalls = false;
+
+  @Option(description="When an unknown function pointer is called, do not assume all functions as possible targets and instead call no function (this is unsound).")
+  private boolean ignoreUnknownFunctionPointerCalls = false;
 
   private final LogManager logger;
 
@@ -110,6 +114,13 @@ class FunctionPointerTransferRelation implements TransferRelation {
     invalidFunctionPointerTarget = trackInvalidFunctionPointers
                                    ? InvalidTarget.getInstance()
                                    : UnknownTarget.getInstance();
+
+    if (ignoreInvalidFunctionPointerCalls && !trackInvalidFunctionPointers) {
+      throw new InvalidConfigurationException(
+          "FunctionPointerCPA cannot ignore invalid function pointer calls " +
+          "when such pointers are not tracked, " +
+          "please set cpa.functionpointer.trackInvalidFunctionPointers=true");
+    }
   }
 
   private void log(Level level, String... msg) {
@@ -126,33 +137,11 @@ class FunctionPointerTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
 
     final FunctionPointerState oldState = (FunctionPointerState)pElement;
-    Collection<FunctionPointerState> results;
-
-    if (pCfaEdge == null) {
-      CFANode node = extractLocation(oldState);
-      results = new ArrayList<>(node.getNumLeavingEdges());
-
-      for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
-        CFAEdge edge = node.getLeavingEdge(edgeIdx);
-        getAbstractSuccessorForEdge(oldState, pPrecision, edge, results);
-      }
-
-    } else {
-      results = new ArrayList<>(1);
-      getAbstractSuccessorForEdge(oldState, pPrecision, pCfaEdge, results);
-
-    }
-    return results;
-  }
-
-  private void getAbstractSuccessorForEdge(
-      FunctionPointerState oldState, Precision pPrecision, CFAEdge pCfaEdge, Collection<FunctionPointerState> results)
-      throws CPATransferException, InterruptedException {
 
     //check assumptions about function pointers, like p == &h, where p is a function pointer, h  is a function
     if (!shouldGoByEdge(oldState, pCfaEdge)) {
       //should not go by the edge
-      return;//results is a empty set
+      return ImmutableSet.of();//results is a empty set
     }
 
     // print warning if we go by the default edge of a function pointer call
@@ -176,11 +165,9 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
     // now handle the edge
     FunctionPointerState.Builder newState = oldState.createBuilder();
-    newState = handleEdge(newState, pCfaEdge);
+    handleEdge(newState, pCfaEdge);
 
-    if (newState != null) {
-      results.add(newState.build());
-    }
+    return ImmutableSet.of(newState.build());
   }
 
   private boolean shouldGoByEdge(FunctionPointerState oldState, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
@@ -195,10 +182,9 @@ class FunctionPointerTransferRelation implements TransferRelation {
           FunctionPointerState.Builder newState = oldState.createBuilder();
           FunctionPointerTarget v1 = getValue(e.getOperand1(), newState, functionName);
           FunctionPointerTarget v2 = getValue(e.getOperand2(), newState, functionName);
-          logger.log(Level.ALL, "Operand1 value is " + v1);
-          logger.log(Level.ALL, "Operand2 value is " + v2);
-          if (v1!=null && v2!=null
-              && v1 instanceof NamedFunctionTarget
+          logger.log(Level.ALL, "Operand1 value is", v1);
+          logger.log(Level.ALL, "Operand2 value is", v2);
+          if (v1 instanceof NamedFunctionTarget
               && v2 instanceof NamedFunctionTarget) {
             boolean eq = v1.equals(v2);
             if (eq != a.getTruthAssumption()) {
@@ -207,6 +193,47 @@ class FunctionPointerTransferRelation implements TransferRelation {
             } else {
               logger.log(Level.FINE, "Should go by the edge " + a);
               return true;
+            }
+          }
+          if (a.getTruthAssumption()
+              && (cfaEdge.getSuccessor().getNumLeavingEdges() > 0
+                  && cfaEdge.getSuccessor().getLeavingEdge(0).getEdgeType() == CFAEdgeType.FunctionCallEdge
+                  || cfaEdge.getSuccessor().getNumLeavingEdges() > 1
+                  && cfaEdge.getSuccessor().getLeavingEdge(1).getEdgeType() == CFAEdgeType.FunctionCallEdge)) {
+
+            // This AssumedEdge has probably been created by converting a
+            // function pointer call into a series of if-else-if-else edges,
+            // where there is a single static function call in each branch.
+            // If the user wishes, we skip these function calls by not going entering the branches.
+            // Of course we have to go into the else branches.
+
+            if (ignoreInvalidFunctionPointerCalls) {
+              if (v1 instanceof InvalidTarget && v2 instanceof NamedFunctionTarget) {
+                logger.log(Level.WARNING, "Assuming function pointer", e.getOperand1(),
+                    "with invalid target does not point to", v2,
+                    "in line", cfaEdge.getLineNumber() + ".");
+                return false;
+              }
+              if (v2 instanceof InvalidTarget && v1 instanceof NamedFunctionTarget) {
+                logger.log(Level.WARNING, "Assuming function pointer", e.getOperand2(),
+                    "with invalid target does not point to", v1,
+                    "in line", cfaEdge.getLineNumber() + ".");
+                return false;
+              }
+            }
+            if (ignoreUnknownFunctionPointerCalls) {
+              if (v1 instanceof UnknownTarget && v2 instanceof NamedFunctionTarget) {
+                logger.log(Level.WARNING, "Assuming function pointer", e.getOperand1(),
+                    "with unknown target does not point to", v2,
+                    "in line", cfaEdge.getLineNumber() + ".");
+                return false;
+              }
+              if (v2 instanceof UnknownTarget && v1 instanceof NamedFunctionTarget) {
+                logger.log(Level.WARNING, "Assuming function pointer", e.getOperand2(),
+                    "with unknown target does not point to", v1,
+                    "in line", cfaEdge.getLineNumber() + ".");
+                return false;
+              }
             }
           }
         }
@@ -271,7 +298,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
   }
 
-  private FunctionPointerState.Builder handleEdge(FunctionPointerState.Builder newState, CFAEdge pCfaEdge) throws CPATransferException {
+  private void handleEdge(final FunctionPointerState.Builder newState, CFAEdge pCfaEdge) throws CPATransferException {
 
     switch (pCfaEdge.getEdgeType()) {
 
@@ -320,7 +347,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
       case MultiEdge: {
         for (CFAEdge currentEdge : ((MultiEdge)pCfaEdge).getEdges()) {
-          newState = handleEdge(newState, currentEdge);
+          handleEdge(newState, currentEdge);
         }
         break;
       }
@@ -328,8 +355,6 @@ class FunctionPointerTransferRelation implements TransferRelation {
       default:
         throw new UnrecognizedCFAEdgeException(pCfaEdge);
     }
-
-    return newState;
   }
 
   private void handleDeclaration(FunctionPointerState.Builder pNewState, CDeclarationEdge declEdge) throws UnrecognizedCCodeException {

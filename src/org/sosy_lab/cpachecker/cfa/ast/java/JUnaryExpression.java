@@ -27,7 +27,17 @@ import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
+/**
+ *
+ * This class represents the prefix expression AST node type.
+ *
+ * PrefixExpression:
+ *   PrefixOperator Expression
+ *
+ *  This class does not represent increments or decrements, they are transformed
+ *  to {@link JBinaryExpression}.
+ *
+ */
 public class JUnaryExpression extends AUnaryExpression implements JExpression {
 
   public JUnaryExpression(FileLocation pFileLocation, JType pType, JExpression pOperand, UnaryOperator pOperator) {

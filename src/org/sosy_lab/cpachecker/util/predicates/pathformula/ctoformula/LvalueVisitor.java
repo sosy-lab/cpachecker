@@ -40,6 +40,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 
+import com.google.common.base.Optional;
+
 class LvalueVisitor extends
     DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
@@ -107,8 +109,8 @@ class LvalueVisitor extends
     Formula newStructure = owner.accept(this);
 
     // Other fields did not change.
-    Formula oldRestS = conv.withoutField(fexp, oldStructure);
-    Formula newRestS = conv.withoutField(fexp, newStructure);
+    Formula oldRestS = conv.replaceField(fexp, oldStructure, Optional.<Formula>absent());
+    Formula newRestS = conv.replaceField(fexp, newStructure, Optional.<Formula>absent());
     constraints.addConstraint(conv.fmgr.makeEqual(oldRestS, newRestS));
 
     Formula fieldFormula = conv.accessField(fexp, newStructure);

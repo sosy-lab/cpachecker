@@ -109,7 +109,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
 
   @Override
   protected void handleOutput(String pLine) throws CounterexampleAnalysisFailed {
-    if (pLine.contains("unwinding assertion")){
+    if (pLine.contains("unwinding assertion")) {
       unwindingAssertionFailed = true;
     }
     super.handleOutput(pLine);

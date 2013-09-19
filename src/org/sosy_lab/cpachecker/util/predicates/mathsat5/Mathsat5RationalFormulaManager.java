@@ -192,7 +192,7 @@ class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManager<Long
       if (n.startsWith("(")) {
         n = n.substring(1, n.length() - 1);
       }
-      if (n.equals("-1")){
+      if (n.equals("-1")) {
         return true;
       }
     }

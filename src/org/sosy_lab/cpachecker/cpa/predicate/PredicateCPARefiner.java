@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -68,6 +69,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -89,6 +91,12 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       description="where to dump the counterexample formula in case the error location is reached")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File dumpCounterexampleFile = new File("counterexample.smt2");
+
+  private boolean lastRefinementUsedHeuristics = false;
+
+  private int heuristicsCount = 0;
+  // the previously analyzed counterexample to detect repeated counterexamples
+  private List<BooleanFormula> lastErrorPath = null;
 
 
   class Stats implements Statistics {
@@ -127,17 +135,15 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final PathFormulaManager pfmgr;
   private final InterpolationManager formulaManager;
   private final RefinementStrategy strategy;
-
-
-  // the previously analyzed counterexample to detect repeated counterexamples
-  private List<BooleanFormula> lastErrorPath = null;
+  private final PredicateStaticRefiner extractor;
 
   public PredicateCPARefiner(final Configuration config, final LogManager pLogger,
       final ConfigurableProgramAnalysis pCpa,
       final InterpolationManager pInterpolationManager,
       final FormulaManagerView pFormulaManager,
       final PathFormulaManager pPathFormulaManager,
-      final RefinementStrategy pStrategy) throws CPAException, InvalidConfigurationException {
+      final RefinementStrategy pStrategy,
+      final PredicateStaticRefiner pExtractor) throws CPAException, InvalidConfigurationException {
 
     super(pCpa);
 
@@ -147,6 +153,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     formulaManager = pInterpolationManager;
     pfmgr = pPathFormulaManager;
     strategy = pStrategy;
+    extractor = pExtractor;
 
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
   }
@@ -178,17 +185,33 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     final List<BooleanFormula> formulas = getFormulasForPath(path, pPath.getFirst().getFirst());
     assert path.size() == formulas.size();
 
+    boolean refineUsingInterpolation = (extractor == null) || (heuristicsCount > 0);
+
     // build the counterexample
-    final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);
+    final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath, refineUsingInterpolation);
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      boolean repeatedCounterexample = formulas.equals(lastErrorPath);
+      boolean repeatedCounterexample = !lastRefinementUsedHeuristics && formulas.equals(lastErrorPath);
       lastErrorPath = formulas;
 
-      strategy.performRefinement(pReached, path, counterexample.getInterpolants(), repeatedCounterexample);
+      if (!refineUsingInterpolation) {
+        UnmodifiableReachedSet reached = pReached.asReachedSet();
+        ARGState root = (ARGState)reached.getFirstState();
+        ARGState refinementRoot = Iterables.getLast(root.getChildren());
+
+        PredicatePrecision heuristicPrecision = extractor.extractPrecisionFromCfa();
+
+        pReached.removeSubtree(refinementRoot, heuristicPrecision, PredicatePrecision.class);
+
+        heuristicsCount++;
+        lastRefinementUsedHeuristics = true;
+      } else {
+        lastRefinementUsedHeuristics = false;
+        strategy.performRefinement(pReached, path, counterexample.getInterpolants(), repeatedCounterexample);
+      }
 
       totalRefinement.stop();
       return CounterexampleInfo.spurious();

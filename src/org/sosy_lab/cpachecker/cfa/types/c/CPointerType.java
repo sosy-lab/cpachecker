@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import java.util.Objects;
 
 
 public final class CPointerType implements CType {
@@ -92,8 +93,34 @@ public final class CPointerType implements CType {
     throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
   @Override
   public boolean equals(Object obj) {
-    return CTypeUtils.equals(this, obj);
+    if (obj == this) {
+      return true;
+    }
+
+    if (!(obj instanceof CPointerType)) {
+      return false;
+    }
+
+    CPointerType other = (CPointerType) obj;
+
+    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile)
+           && Objects.equals(type, other.type);
+  }
+
+  @Override
+  public CPointerType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CPointerType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return new CPointerType(isConst || pForceConst, isVolatile || pForceVolatile, type.getCanonicalType());
   }
 }
