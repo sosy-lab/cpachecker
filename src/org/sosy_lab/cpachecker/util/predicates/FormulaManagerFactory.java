@@ -41,6 +41,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
@@ -75,7 +76,7 @@ public class FormulaManagerFactory {
           + "using REALs. Not all solvers might support this.")
   private boolean useIntegers = false;
 
-  @Option(description="Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver")
+  @Option(description="Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver (Z3 needs the FOCI library from http://www.kenmcmil.com/foci2/).")
   private Solvers solver = Solvers.MATHSAT5;
 
   @Option(description="Which solver to use specifically for interpolation (default is to use the main one).")
@@ -111,24 +112,36 @@ public class FormulaManagerFactory {
 
   private FormulaManager instantiateSolver(Solvers solver, Configuration config)
       throws InvalidConfigurationException {
-    switch (solver) {
-    case SMTINTERPOL:
-      return loadSmtInterpol().create(config, logger, useIntegers);
+    try {
+      switch (solver) {
+      case SMTINTERPOL:
+        return loadSmtInterpol().create(config, logger, useIntegers);
 
-    case MATHSAT5:
-      try {
-        return Mathsat5FormulaManager.create(logger, config, useIntegers);
-      } catch (UnsatisfiedLinkError e) {
-        throw new InvalidConfigurationException("The SMT solver " + solver
-            + " is not available on this machine."
-            + " You may experiment with SMTInterpol by setting cpa.predicate.solver=SMTInterpol.", e);
+      case MATHSAT5:
+          return Mathsat5FormulaManager.create(logger, config, useIntegers);
+
+      case Z3:
+        try {
+          return Z3FormulaManager.create(logger, config, useIntegers);
+        } catch (UnsatisfiedLinkError e) {
+          if (e.getMessage().contains("libfoci.so")) {
+            throw new InvalidConfigurationException("Z3 needs the FOCI library which is not supplied with CPAchecker."
+                + " Please download it from http://www.kenmcmil.com/foci2/ for your architecture"
+                + " and put it into " + NativeLibraries.getNativeLibraryPath() + "/.", e);
+          } else {
+            throw e;
+          }
+        }
+
+      default:
+        throw new AssertionError("no solver selected");
       }
 
-    case Z3:
-      return Z3FormulaManager.create(logger, config, useIntegers);
-
-    default:
-      throw new AssertionError("no solver selected");
+    } catch (UnsatisfiedLinkError e) {
+      throw new InvalidConfigurationException("The SMT solver " + solver
+          + " is not available on this machine because of missing libraries"
+          + " (" + e.getMessage() + ")."
+          + " You may experiment with SMTInterpol by setting cpa.predicate.solver=SMTInterpol.", e);
     }
   }
 

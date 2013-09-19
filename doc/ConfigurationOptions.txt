@@ -904,7 +904,8 @@ cpa.predicate.smtinterpol.logInterpolationQueries = false
 # Export solver queries in Smtlib format into a file.
 cpa.predicate.smtinterpol.logfile = "smtinterpol.%03d.smt2"
 
-# Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver
+# Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver (Z3 needs the
+# FOCI library from http://www.kenmcmil.com/foci2/).
 cpa.predicate.solver = MATHSAT5
   enum:     [MATHSAT5, SMTINTERPOL, Z3]
 
