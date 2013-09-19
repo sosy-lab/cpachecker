@@ -1,4 +1,4 @@
-<!ELEMENT benchmark ((rundefinition | option | sourcefiles | requiredfiles | require )*, columns?)>
+<!ELEMENT benchmark ((rundefinition | option | sourcefiles | requiredfiles | resultfiles | require )*, columns?)>
 <!ELEMENT rundefinition (sourcefiles | option)*>
 
 <!ELEMENT sourcefiles (include | includesfile | exclude | option)*>
@@ -7,6 +7,7 @@
 <!ELEMENT exclude (#PCDATA)>
 
 <!ELEMENT requiredfiles (#PCDATA)>
+<!ELEMENT resultfiles (#PCDATA)>
 <!ELEMENT require>
 
 <!ELEMENT option (#PCDATA)>
