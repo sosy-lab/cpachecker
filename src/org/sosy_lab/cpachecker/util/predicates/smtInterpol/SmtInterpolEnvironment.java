@@ -90,7 +90,7 @@ class SmtInterpolEnvironment {
   }
 
   @Option(description="Double check generated results like interpolants and models whether they are correct")
-  private boolean checkResults = true;
+  private boolean checkResults = false;
 
   @Option(description="Export solver queries in Smtlib format into a file.")
   private boolean logAllQueries = false;
