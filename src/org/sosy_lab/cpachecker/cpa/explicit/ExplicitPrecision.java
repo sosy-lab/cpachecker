@@ -213,9 +213,9 @@ public class ExplicitPrecision implements Precision {
 
     Pair<String, String> var = splitVar(variable);
 
-    final boolean isBoolean = varClass.get().getBooleanVars().containsEntry(var.getFirst(), var.getSecond());
-    final boolean isIntEqual = varClass.get().getIntEqualVars().containsEntry(var.getFirst(), var.getSecond());
-    final boolean isIntAdd = varClass.get().getIntAddVars().containsEntry(var.getFirst(), var.getSecond());
+    final boolean isBoolean = varClass.get().getIntBoolVars().containsEntry(var.getFirst(), var.getSecond());
+    final boolean isIntEqual = varClass.get().getIntEqBoolVars().containsEntry(var.getFirst(), var.getSecond());
+    final boolean isIntAdd = varClass.get().getIntAddEqBoolVars().containsEntry(var.getFirst(), var.getSecond());
 
     final boolean isIgnoredBoolean = ignoreBoolean && isBoolean;
 

@@ -133,21 +133,21 @@ public class VariableClassification {
 
   private Multimap<String, String> allVars = null;
 
-  private Multimap<String, String> nonBooleanVars;
-  private Multimap<String, String> nonIntEqualVars;
+  private Multimap<String, String> nonIntBoolVars;
+  private Multimap<String, String> nonIntEqVars;
   private Multimap<String, String> nonIntAddVars;
 
   private Dependencies dependencies;
 
-  private Multimap<String, String> booleanVars;
-  private Multimap<String, String> intEqualVars;
-  private Multimap<String, String> intAddVars;
+  private Multimap<String, String> intBoolVars;
+  private Multimap<String, String> intEqBoolVars;
+  private Multimap<String, String> intAddEqBoolVars;
   private Multimap<String, String> loopExitConditionVariables;
   private Multimap<String, String> loopExitIncDecConditionVariables;
 
-  private Set<Partition> booleanPartitions;
-  private Set<Partition> intEqualPartitions;
-  private Set<Partition> intAddPartitions;
+  private Set<Partition> intBoolPartitions;
+  private Set<Partition> intEqBoolPartitions;
+  private Set<Partition> intAddEqBoolPartitions;
 
   private final CFA cfa;
   private final ImmutableMultimap<String, Loop> loopStructure;
@@ -168,21 +168,21 @@ public class VariableClassification {
   }
 
   private void printStats() {
-    final Set<Partition> booleans = getBooleanPartitions();
-    final Set<Partition> intEquals = getIntEqualPartitions();
-    final Set<Partition> intAdds = getIntAddPartitions();
+    final Set<Partition> intBool = getIntBoolPartitions();
+    final Set<Partition> intEqBool = getIntEqBoolPartitions();
+    final Set<Partition> intAddEqBool = getIntAddEqBoolPartitions();
 
-    int numOfBooleans = getBooleanVars().size();
+    int numOfBooleans = getIntBoolVars().size();
 
     int numOfIntEquals = 0;
-    final Set<Partition> realIntEquals = Sets.difference(intEquals, booleans);
-    for (Partition p : realIntEquals) {
+    final Set<Partition> intEq = Sets.difference(intEqBool, intBool);
+    for (Partition p : intEq) {
       numOfIntEquals += p.getVars().size();
     }
 
     int numOfIntAdds = 0;
-    final Set<Partition> realIntAdds = Sets.difference(intAdds, Sets.union(booleans, intEquals));
-    for (Partition p : realIntAdds) {
+    final Set<Partition> intAdd = Sets.difference(intAddEqBool, Sets.union(intBool, intEqBool));
+    for (Partition p : intAdd) {
       numOfIntAdds += p.getVars().size();
     }
 
@@ -191,12 +191,12 @@ public class VariableClassification {
     Joiner.on(prefix).appendTo(str, new String[] {
         "---------------------------------",
         "number of boolean vars:  " + numOfBooleans,
-        "number of intEqual vars: " + numOfIntEquals,
+        "number of intEq vars:    " + numOfIntEquals,
         "number of intAdd vars:   " + numOfIntAdds,
         "number of all vars:      " + allVars.size(),
-        "number of boolean partitions:  " + booleans.size(),
-        "number of intEqual partitions: " + realIntEquals.size(),
-        "number of intAdd partitions:   " + realIntAdds.size(),
+        "number of intBool partitions:  " + intBool.size(),
+        "number of intEq partitions:    " + intEq.size(),
+        "number of intAdd partitions:   " + intAdd.size(),
         "number of all partitions:      " + getPartitions().size(),
         "time for building classification: " + buildTimer });
     str.append("\n---------------------------------\n");
@@ -214,21 +214,21 @@ public class VariableClassification {
 
       // init maps
       allVars = LinkedHashMultimap.create();
-      nonBooleanVars = LinkedHashMultimap.create();
-      nonIntEqualVars = LinkedHashMultimap.create();
+      nonIntBoolVars = LinkedHashMultimap.create();
+      nonIntEqVars = LinkedHashMultimap.create();
       nonIntAddVars = LinkedHashMultimap.create();
 
       dependencies = new Dependencies();
 
-      booleanVars = LinkedHashMultimap.create();
-      intEqualVars = LinkedHashMultimap.create();
-      intAddVars = LinkedHashMultimap.create();
+      intBoolVars = LinkedHashMultimap.create();
+      intEqBoolVars = LinkedHashMultimap.create();
+      intAddEqBoolVars = LinkedHashMultimap.create();
       loopExitConditionVariables = LinkedHashMultimap.create();
       loopExitIncDecConditionVariables = LinkedHashMultimap.create();
 
-      booleanPartitions = new HashSet<>();
-      intEqualPartitions = new HashSet<>();
-      intAddPartitions = new HashSet<>();
+      intBoolPartitions = new HashSet<>();
+      intEqBoolPartitions = new HashSet<>();
+      intAddEqBoolPartitions = new HashSet<>();
 
       // fill maps
       collectVars();
@@ -250,12 +250,12 @@ public class VariableClassification {
 
       if (dumpfile != null) { // option -noout
         try (Writer w = Files.openOutputFile(dumpfile)) {
-          w.append("Boolean\n");
-          w.append(booleanVars.toString());
-          w.append("\n\nIntEqual\n\n");
-          w.append(intEqualVars.toString());
-          w.append("\n\nIntAdd\n\n");
-          w.append(intAddVars.toString());
+          w.append("IntBool\n");
+          w.append(intBoolVars.toString());
+          w.append("\n\nIntEqBool\n\n");
+          w.append(intEqBoolVars.toString());
+          w.append("\n\nIntAddEqBool\n\n");
+          w.append(intAddEqBoolVars.toString());
           w.append("\n\nALL\n\n");
           w.append(allVars.toString());
         } catch (IOException e) {
@@ -331,13 +331,13 @@ public class VariableClassification {
       for (String function : getAllVars().keySet()) {
         for (String var : getAllVars().get(function)) {
           byte type = 0;
-          if (getBooleanVars().containsEntry(function, var)) {
+          if (getIntBoolVars().containsEntry(function, var)) {
             type += 1;
           }
-          if (getIntEqualVars().containsEntry(function, var)) {
+          if (getIntEqBoolVars().containsEntry(function, var)) {
             type += 2;
           }
-          if (getIntAddVars().containsEntry(function, var)) {
+          if (getIntAddEqBoolVars().containsEntry(function, var)) {
             type += 4;
           }
           if (loopExitConditionVariables.containsEntry(function, var)) {
@@ -364,16 +364,16 @@ public class VariableClassification {
   /** This function returns a collection of (functionName, varNames).
    * This collection contains all vars, that are boolean,
    * i.e. the value is 0 or 1. */
-  public Multimap<String, String> getBooleanVars() {
+  public Multimap<String, String> getIntBoolVars() {
     build();
-    return booleanVars;
+    return intBoolVars;
   }
 
   /** This function returns a collection of partitions.
    * Each partition contains only boolean vars. */
-  public Set<Partition> getBooleanPartitions() {
+  public Set<Partition> getIntBoolPartitions() {
     build();
-    return booleanPartitions;
+    return intBoolPartitions;
   }
 
   /** This function returns a collection of (functionName, varNames).
@@ -381,33 +381,33 @@ public class VariableClassification {
    * with integer values. The collection also includes some boolean vars,
    * because they can be assigned, too.
    * There are NO mathematical calculations (add, sub, mult) with these vars. */
-  public Multimap<String, String> getIntEqualVars() {
+  public Multimap<String, String> getIntEqBoolVars() {
     build();
-    return intEqualVars;
+    return intEqBoolVars;
   }
 
   /** This function returns a collection of partitions.
    * Each partition contains only vars,
    * that are only assigned or compared with integer values. */
-  public Set<Partition> getIntEqualPartitions() {
+  public Set<Partition> getIntEqBoolPartitions() {
     build();
-    return intEqualPartitions;
+    return intEqBoolPartitions;
   }
 
   /** This function returns a collection of (functionName, varNames).
    * This collection contains all vars, that are only used in simple calculations
    * (+, -, <, >, <=, >=, ==, !=, &, &&, |, ||, ^).
    * The collection includes all boolean vars and simple numbers, too. */
-  public Multimap<String, String> getIntAddVars() {
+  public Multimap<String, String> getIntAddEqBoolVars() {
     build();
-    return intAddVars;
+    return intAddEqBoolVars;
   }
 
   /** This function returns a collection of partitions.
    * Each partition contains only vars, that are used in simple calculations. */
-  public Set<Partition> getIntAddPartitions() {
+  public Set<Partition> getIntAddEqBoolPartitions() {
     build();
-    return intAddPartitions;
+    return intAddEqBoolPartitions;
   }
 
   /** This function returns a collection of partitions.
@@ -451,8 +451,8 @@ public class VariableClassification {
     }
 
     // if a value is not boolean, all dependent vars are not boolean and viceversa
-    dependencies.solve(nonBooleanVars);
-    dependencies.solve(nonIntEqualVars);
+    dependencies.solve(nonIntBoolVars);
+    dependencies.solve(nonIntEqVars);
     dependencies.solve(nonIntAddVars);
   }
 
@@ -461,19 +461,19 @@ public class VariableClassification {
     for (final String function : allVars.keySet()) {
       for (final String s : allVars.get(function)) {
 
-        if (!nonBooleanVars.containsEntry(function, s)) {
-          booleanVars.put(function, s);
-          booleanPartitions.add(getPartitionForVar(function, s));
+        if (!nonIntBoolVars.containsEntry(function, s)) {
+          intBoolVars.put(function, s);
+          intBoolPartitions.add(getPartitionForVar(function, s));
         }
 
-        if (!nonIntEqualVars.containsEntry(function, s)) {
-          intEqualVars.put(function, s);
-          intEqualPartitions.add(getPartitionForVar(function, s));
+        if (!nonIntEqVars.containsEntry(function, s)) {
+          intEqBoolVars.put(function, s);
+          intEqBoolPartitions.add(getPartitionForVar(function, s));
         }
 
         if (!nonIntAddVars.containsEntry(function, s)) {
-          intAddVars.put(function, s);
-          intAddPartitions.add(getPartitionForVar(function, s));
+          intAddEqBoolVars.put(function, s);
+          intAddEqBoolPartitions.add(getPartitionForVar(function, s));
         }
       }
     }
@@ -576,8 +576,8 @@ public class VariableClassification {
 
     // only simple types (int, long) are allowed for booleans, ...
     if (!(vdecl.getType() instanceof CSimpleType)) {
-      nonBooleanVars.put(function, varName);
-      nonIntEqualVars.put(function, varName);
+      nonIntBoolVars.put(function, varName);
+      nonIntEqVars.put(function, varName);
       nonIntAddVars.put(function, varName);
     }
 
@@ -599,8 +599,8 @@ public class VariableClassification {
 
     // only simple types (int, long) are allowed for booleans, ...
     if (!(lhs instanceof CIdExpression && lhs.getExpressionType() instanceof CSimpleType)) {
-      nonBooleanVars.put(function, varName);
-      nonIntEqualVars.put(function, varName);
+      nonIntBoolVars.put(function, varName);
+      nonIntEqVars.put(function, varName);
       nonIntAddVars.put(function, varName);
     }
 
@@ -689,8 +689,8 @@ public class VariableClassification {
 
       // only simple types (int, long) are allowed for booleans, ...
       if (!(param.getType() instanceof CSimpleType)) {
-        nonBooleanVars.put(innerFunctionName, varName);
-        nonIntEqualVars.put(innerFunctionName, varName);
+        nonIntBoolVars.put(innerFunctionName, varName);
+        nonIntEqVars.put(innerFunctionName, varName);
         nonIntAddVars.put(innerFunctionName, varName);
       }
 
@@ -741,11 +741,11 @@ public class VariableClassification {
 
     BoolCollectingVisitor bcv = new BoolCollectingVisitor(pre);
     Multimap<String, String> possibleBoolean = exp.accept(bcv);
-    handleResult(varName, function, possibleBoolean, nonBooleanVars);
+    handleResult(varName, function, possibleBoolean, nonIntBoolVars);
 
     IntEqualCollectingVisitor ncv = new IntEqualCollectingVisitor(pre);
     Multimap<String, String> possibleIntEqualVars = exp.accept(ncv);
-    handleResult(varName, function, possibleIntEqualVars, nonIntEqualVars);
+    handleResult(varName, function, possibleIntEqualVars, nonIntEqVars);
 
     IntAddCollectingVisitor icv = new IntAddCollectingVisitor(pre);
     Multimap<String, String> possibleIntAddVars = exp.accept(icv);
@@ -825,9 +825,9 @@ public class VariableClassification {
 
     StringBuilder str = new StringBuilder();
     str.append("\nALL  " + allVars.size() + "\n    " + allVars);
-    str.append("\nBool  " + booleanVars.size() + "\n    " + booleanVars);
-    str.append("\nIntEqual  " + intEqualVars.size() + "\n    " + intEqualVars);
-    str.append("\nIntAdd  " + intAddVars.size() + "\n    " + intAddVars);
+    str.append("\nIntBool  " + intBoolVars.size() + "\n    " + intBoolVars);
+    str.append("\nIntEqBool  " + intEqBoolVars.size() + "\n    " + intEqBoolVars);
+    str.append("\nIntAddEqBool  " + intAddEqBoolVars.size() + "\n    " + intAddEqBoolVars);
     return str.toString();
   }
 
@@ -1005,7 +1005,7 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CFieldReference exp) {
-      nonBooleanVars.putAll(super.visit(exp));
+      nonIntBoolVars.putAll(super.visit(exp));
       return null;
     }
 
@@ -1016,10 +1016,10 @@ public class VariableClassification {
 
       if (operand1 == null || operand2 == null) { // a+123 --> a is not boolean
         if (operand1 != null) {
-          nonBooleanVars.putAll(operand1);
+          nonIntBoolVars.putAll(operand1);
         }
         if (operand2 != null) {
-          nonBooleanVars.putAll(operand2);
+          nonIntBoolVars.putAll(operand2);
         }
         return null;
       }
@@ -1040,8 +1040,8 @@ public class VariableClassification {
         //$FALL-THROUGH$
 
       default: // +-*/ --> no boolean operators, a+b --> a and b are not boolean
-        nonBooleanVars.putAll(operand1);
-        nonBooleanVars.putAll(operand2);
+        nonIntBoolVars.putAll(operand1);
+        nonIntBoolVars.putAll(operand2);
         return null;
       }
     }
@@ -1067,7 +1067,7 @@ public class VariableClassification {
         // boolean operation, return inner vars
         return inner;
       } else { // PLUS, MINUS, etc --> not boolean
-        nonBooleanVars.putAll(inner);
+        nonIntBoolVars.putAll(inner);
         return null;
       }
     }
@@ -1079,7 +1079,7 @@ public class VariableClassification {
       if (inner == null) {
         return null;
       } else {
-        nonBooleanVars.putAll(inner);
+        nonIntBoolVars.putAll(inner);
         return null;
       }
     }
@@ -1108,7 +1108,7 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CFieldReference exp) {
-      nonIntEqualVars.putAll(super.visit(exp));
+      nonIntEqVars.putAll(super.visit(exp));
       return null;
     }
 
@@ -1136,10 +1136,10 @@ public class VariableClassification {
       // handle vars from operands
       if (operand1 == null || operand2 == null) { // a+0.2 --> no simple number
         if (operand1 != null) {
-          nonIntEqualVars.putAll(operand1);
+          nonIntEqVars.putAll(operand1);
         }
         if (operand2 != null) {
-          nonIntEqualVars.putAll(operand2);
+          nonIntEqVars.putAll(operand2);
         }
         return null;
       }
@@ -1152,8 +1152,8 @@ public class VariableClassification {
         return operand1;
 
       default: // +-*/ --> no simple operators
-        nonIntEqualVars.putAll(operand1);
-        nonIntEqualVars.putAll(operand2);
+        nonIntEqVars.putAll(operand1);
+        nonIntEqVars.putAll(operand2);
         return null;
       }
     }
@@ -1182,7 +1182,7 @@ public class VariableClassification {
       case PLUS: // this is no calculation, no usage of another param
         return inner;
       default: // *, ~, etc --> not numeral
-        nonIntEqualVars.putAll(inner);
+        nonIntEqVars.putAll(inner);
         return null;
       }
     }
@@ -1201,7 +1201,7 @@ public class VariableClassification {
       // if exp is unknown
       if (inner == null) { return null; }
 
-      nonIntEqualVars.putAll(inner);
+      nonIntEqVars.putAll(inner);
       return null;
     }
   }
