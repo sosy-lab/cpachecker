@@ -1004,16 +1004,16 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       numOfIntAdds += p.getVars().size();
     }
 
-    Multimap<String, String> trackedBooleans = LinkedHashMultimap.create();
-    Multimap<String, String> trackedIntEquals = LinkedHashMultimap.create();
-    Multimap<String, String> trackedIntAdds = LinkedHashMultimap.create();
+    Multimap<String, String> trackedIntBool = LinkedHashMultimap.create();
+    Multimap<String, String> trackedIntEq = LinkedHashMultimap.create();
+    Multimap<String, String> trackedIntAdd = LinkedHashMultimap.create();
     for (Entry<String, String> var : trackedVars.entries()) {
       if (varClass.getIntBoolVars().containsEntry(var.getKey(), var.getValue())) {
-        trackedBooleans.put(var.getKey(), var.getValue());
+        trackedIntBool.put(var.getKey(), var.getValue());
       } else if (varClass.getIntEqBoolVars().containsEntry(var.getKey(), var.getValue())) {
-        trackedIntEquals.put(var.getKey(), var.getValue());
+        trackedIntEq.put(var.getKey(), var.getValue());
       } else if (varClass.getIntAddEqBoolVars().containsEntry(var.getKey(), var.getValue())) {
-        trackedIntAdds.put(var.getKey(), var.getValue());
+        trackedIntAdd.put(var.getKey(), var.getValue());
       } else {
         // ignore other vars, they are either function_return_vars or tmp_vars
       }
@@ -1022,23 +1022,23 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     if (dumpfile != null) { // option -noout
       try (Writer w = Files.openOutputFile(dumpfile)) {
         w.append("Boolean\n\n");
-        w.append(trackedBooleans.toString());
+        w.append(trackedIntBool.toString());
         w.append("\n\nIntEq\n\n");
-        w.append(trackedIntEquals.toString());
+        w.append(trackedIntEq.toString());
         w.append("\n\nIntAdd\n\n");
-        w.append(trackedIntAdds.toString());
+        w.append(trackedIntAdd.toString());
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write tracked variables for BDDCPA to file");
       }
     }
 
-    out.println(String.format("Number of boolean vars:           %d (of %d)", trackedBooleans.size(), numOfBooleans));
-    out.println(String.format("Number of intEqual vars:          %d (of %d)", trackedIntEquals.size(), numOfIntEquals));
-    out.println(String.format("Number of intAdd vars:            %d (of %d)", trackedIntAdds.size(), numOfIntAdds));
+    out.println(String.format("Number of boolean vars:           %d (of %d)", trackedIntBool.size(), numOfBooleans));
+    out.println(String.format("Number of intEqual vars:          %d (of %d)", trackedIntEq.size(), numOfIntEquals));
+    out.println(String.format("Number of intAdd vars:            %d (of %d)", trackedIntAdd.size(), numOfIntAdds));
     out.println(String.format("Number of all vars:               %d (of %d)",
-        trackedBooleans.size() + trackedIntEquals.size() + trackedIntAdds.size(), varClass.getAllVars().size()));
+        trackedIntBool.size() + trackedIntEq.size() + trackedIntAdd.size(), varClass.getAllVars().size()));
     out.println("Number of intBool partitions:     " + intBool.size());
-    out.println("Number of intEq partitions:    " + intEq.size());
+    out.println("Number of intEq partitions:       " + intEq.size());
     out.println("Number of intAdd partitions:      " + intAdd.size());
     out.println("Number of all partitions:         " + varClass.getPartitions().size());
     rmgr.printStatistics(out);
