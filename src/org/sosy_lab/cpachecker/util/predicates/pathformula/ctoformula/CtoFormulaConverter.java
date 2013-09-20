@@ -615,12 +615,13 @@ public class CtoFormulaConverter {
    */
   Formula makeCast(CType fromType, CType toType, Formula formula, CFAEdge edge) throws UnrecognizedCCodeException {
     // UNDEFINED: Casting a numeric value into a value that can't be represented by the target type (either directly or via static_cast)
-    if (fromType.getCanonicalType().equals(toType.getCanonicalType())) {
-      return formula; // No cast required;
-    }
 
     fromType = fromType.getCanonicalType();
     toType = toType.getCanonicalType();
+
+    if (fromType.equals(toType)) {
+      return formula; // No cast required;
+    }
 
     if (fromType instanceof CFunctionType) {
       // references to functions can be seen as function pointers
