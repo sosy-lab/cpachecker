@@ -211,19 +211,15 @@ public class ExplicitPrecision implements Precision {
   private boolean isInIgnoredVarClass(String variable) {
     if (varClass==null || !varClass.isPresent()) { return false; }
 
-    Pair<String, String> var = splitVar(variable);
+    final Pair<String, String> var = splitVar(variable);
 
     final boolean isBoolean = varClass.get().getIntBoolVars().containsEntry(var.getFirst(), var.getSecond());
-    final boolean isIntEqual = varClass.get().getIntEqBoolVars().containsEntry(var.getFirst(), var.getSecond());
-    final boolean isIntAdd = varClass.get().getIntAddEqBoolVars().containsEntry(var.getFirst(), var.getSecond());
+    final boolean isIntEqual = varClass.get().getIntEqualVars().containsEntry(var.getFirst(), var.getSecond());
+    final boolean isIntAdd = varClass.get().getIntAddVars().containsEntry(var.getFirst(), var.getSecond());
 
     final boolean isIgnoredBoolean = ignoreBoolean && isBoolean;
-
-    // if a var is boolean and intEqual, it is not handled as intEqual.
-    final boolean isIgnoredIntEqual = ignoreIntEqual && !isBoolean && isIntEqual;
-
-    // if a var is (boolean or intEqual) and intAdd, it is not handled as intAdd.
-    final boolean isIgnoredIntAdd = ignoreIntAdd && !isBoolean && !isIntEqual && isIntAdd;
+    final boolean isIgnoredIntEqual = ignoreIntEqual && isIntEqual;
+    final boolean isIgnoredIntAdd = ignoreIntAdd && isIntAdd;
 
     return isIgnoredBoolean || isIgnoredIntEqual || isIgnoredIntAdd;
   }

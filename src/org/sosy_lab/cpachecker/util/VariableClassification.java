@@ -140,14 +140,15 @@ public class VariableClassification {
   private Dependencies dependencies;
 
   private Multimap<String, String> intBoolVars;
-  private Multimap<String, String> intEqBoolVars;
-  private Multimap<String, String> intAddEqBoolVars;
+  private Multimap<String, String> intEqualVars;
+  private Multimap<String, String> intAddVars;
+
   private Multimap<String, String> loopExitConditionVariables;
   private Multimap<String, String> loopExitIncDecConditionVariables;
 
   private Set<Partition> intBoolPartitions;
-  private Set<Partition> intEqBoolPartitions;
-  private Set<Partition> intAddEqBoolPartitions;
+  private Set<Partition> intEqualPartitions;
+  private Set<Partition> intAddPartitions;
 
   private final CFA cfa;
   private final ImmutableMultimap<String, Loop> loopStructure;
@@ -169,19 +170,16 @@ public class VariableClassification {
 
   private void printStats() {
     final Set<Partition> intBool = getIntBoolPartitions();
-    final Set<Partition> intEqBool = getIntEqBoolPartitions();
-    final Set<Partition> intAddEqBool = getIntAddEqBoolPartitions();
-
     int numOfBooleans = getIntBoolVars().size();
 
     int numOfIntEquals = 0;
-    final Set<Partition> intEq = Sets.difference(intEqBool, intBool);
+    final Set<Partition> intEq = getIntEqualPartitions();
     for (Partition p : intEq) {
       numOfIntEquals += p.getVars().size();
     }
 
     int numOfIntAdds = 0;
-    final Set<Partition> intAdd = Sets.difference(intAddEqBool, Sets.union(intBool, intEqBool));
+    final Set<Partition> intAdd = getIntAddPartitions();
     for (Partition p : intAdd) {
       numOfIntAdds += p.getVars().size();
     }
@@ -221,14 +219,15 @@ public class VariableClassification {
       dependencies = new Dependencies();
 
       intBoolVars = LinkedHashMultimap.create();
-      intEqBoolVars = LinkedHashMultimap.create();
-      intAddEqBoolVars = LinkedHashMultimap.create();
+      intEqualVars = LinkedHashMultimap.create();
+      intAddVars = LinkedHashMultimap.create();
+
       loopExitConditionVariables = LinkedHashMultimap.create();
       loopExitIncDecConditionVariables = LinkedHashMultimap.create();
 
       intBoolPartitions = new HashSet<>();
-      intEqBoolPartitions = new HashSet<>();
-      intAddEqBoolPartitions = new HashSet<>();
+      intEqualPartitions = new HashSet<>();
+      intAddPartitions = new HashSet<>();
 
       // fill maps
       collectVars();
@@ -250,12 +249,12 @@ public class VariableClassification {
 
       if (dumpfile != null) { // option -noout
         try (Writer w = Files.openOutputFile(dumpfile)) {
-          w.append("IntBool\n");
+          w.append("IntBool\n\n");
           w.append(intBoolVars.toString());
-          w.append("\n\nIntEqBool\n\n");
-          w.append(intEqBoolVars.toString());
-          w.append("\n\nIntAddEqBool\n\n");
-          w.append(intAddEqBoolVars.toString());
+          w.append("\n\nIntEq\n\n");
+          w.append(intEqualVars.toString());
+          w.append("\n\nIntAdd\n\n");
+          w.append(intAddVars.toString());
           w.append("\n\nALL\n\n");
           w.append(allVars.toString());
         } catch (IOException e) {
@@ -332,12 +331,10 @@ public class VariableClassification {
         for (String var : getAllVars().get(function)) {
           byte type = 0;
           if (getIntBoolVars().containsEntry(function, var)) {
-            type += 1;
-          }
-          if (getIntEqBoolVars().containsEntry(function, var)) {
-            type += 2;
-          }
-          if (getIntAddEqBoolVars().containsEntry(function, var)) {
+            type += 1+2+4; // IntBool is subset of IntEqual and IntAdd
+          } else if (getIntEqualVars().containsEntry(function, var)) {
+            type += 2+4; // IntEqual is subset of IntAdd
+          } else if (getIntAddVars().containsEntry(function, var)) {
             type += 4;
           }
           if (loopExitConditionVariables.containsEntry(function, var)) {
@@ -378,36 +375,38 @@ public class VariableClassification {
 
   /** This function returns a collection of (functionName, varNames).
    * This collection contains all vars, that are only assigned or compared
-   * with integer values. The collection also includes some boolean vars,
-   * because they can be assigned, too.
-   * There are NO mathematical calculations (add, sub, mult) with these vars. */
-  public Multimap<String, String> getIntEqBoolVars() {
+   * for equality with integer values.
+   * There are NO mathematical calculations (add, sub, mult) with these vars.
+   * This collection does not contain any variable from "IntBool" or "IntAdd". */
+  public Multimap<String, String> getIntEqualVars() {
     build();
-    return intEqBoolVars;
+    return intEqualVars;
   }
 
   /** This function returns a collection of partitions.
    * Each partition contains only vars,
-   * that are only assigned or compared with integer values. */
-  public Set<Partition> getIntEqBoolPartitions() {
+   * that are only assigned or compared for equality with integer values.
+   * This collection does not contains anypartition from "IntBool" or "IntAdd". */
+  public Set<Partition> getIntEqualPartitions() {
     build();
-    return intEqBoolPartitions;
+    return intEqualPartitions;
   }
 
   /** This function returns a collection of (functionName, varNames).
    * This collection contains all vars, that are only used in simple calculations
    * (+, -, <, >, <=, >=, ==, !=, &, &&, |, ||, ^).
-   * The collection includes all boolean vars and simple numbers, too. */
-  public Multimap<String, String> getIntAddEqBoolVars() {
+   * This collection does not contain any variable from "IntBool" or "IntEq". */
+  public Multimap<String, String> getIntAddVars() {
     build();
-    return intAddEqBoolVars;
+    return intAddVars;
   }
 
   /** This function returns a collection of partitions.
-   * Each partition contains only vars, that are used in simple calculations. */
-  public Set<Partition> getIntAddEqBoolPartitions() {
+   * Each partition contains only vars, that are used in simple calculations.
+   * This collection does not contains anypartition from "IntBool" or "IntEq". */
+  public Set<Partition> getIntAddPartitions() {
     build();
-    return intAddEqBoolPartitions;
+    return intAddPartitions;
   }
 
   /** This function returns a collection of partitions.
@@ -456,29 +455,37 @@ public class VariableClassification {
     dependencies.solve(nonIntAddVars);
   }
 
-  /** This function builds the opposites of each non-x-vars-collection. */
+  /** This function builds the opposites of each non-x-vars-collection.
+   * This method is responsible for the hierarchy of the variables. */
   private void buildOpposites() {
     for (final String function : allVars.keySet()) {
       for (final String s : allVars.get(function)) {
 
+        // we have this hierarchy of classes for variables:
+        //        IntBool < IntEqBool < IntAddEqBool < AllInt
+        // we define and build:
+        //        IntBool = IntBool
+        //        IntEq   = IntEqBool - IntBool
+        //        IntAdd  = IntAddEqBool - IntEqBool
+        //        Other   = IntAll - IntAddEqBool
+
         if (!nonIntBoolVars.containsEntry(function, s)) {
           intBoolVars.put(function, s);
           intBoolPartitions.add(getPartitionForVar(function, s));
-        }
 
-        if (!nonIntEqVars.containsEntry(function, s)) {
-          intEqBoolVars.put(function, s);
-          intEqBoolPartitions.add(getPartitionForVar(function, s));
-        }
+        } else if (!nonIntEqVars.containsEntry(function, s)) {
+          intEqualVars.put(function, s);
+          intEqualPartitions.add(getPartitionForVar(function, s));
 
-        if (!nonIntAddVars.containsEntry(function, s)) {
-          intAddEqBoolVars.put(function, s);
-          intAddEqBoolPartitions.add(getPartitionForVar(function, s));
+        } else if (!nonIntAddVars.containsEntry(function, s)) {
+          intAddVars.put(function, s);
+          intAddPartitions.add(getPartitionForVar(function, s));
         }
       }
     }
   }
 
+  /** switch to edgeType and handle all expressions, that could be part of the edge. */
   private void handleEdge(CFAEdge edge) {
     switch (edge.getEdgeType()) {
 
@@ -826,8 +833,8 @@ public class VariableClassification {
     StringBuilder str = new StringBuilder();
     str.append("\nALL  " + allVars.size() + "\n    " + allVars);
     str.append("\nIntBool  " + intBoolVars.size() + "\n    " + intBoolVars);
-    str.append("\nIntEqBool  " + intEqBoolVars.size() + "\n    " + intEqBoolVars);
-    str.append("\nIntAddEqBool  " + intAddEqBoolVars.size() + "\n    " + intAddEqBoolVars);
+    str.append("\nIntEq  " + intEqualVars.size() + "\n    " + intEqualVars);
+    str.append("\nIntAdd  " + intAddVars.size() + "\n    " + intAddVars);
     return str.toString();
   }
 

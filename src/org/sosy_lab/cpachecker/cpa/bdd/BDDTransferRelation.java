@@ -658,7 +658,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   /** This function creates a mapping of intEqual partitions to a mapping of number to bitvector.
    * This allows to compress big numbers to a small number of bits in the BDD. */
   private void initMappingIntToRegions() {
-    for (Partition partition : varClass.getIntEqBoolPartitions()) {
+    for (Partition partition : varClass.getIntEqualPartitions()) {
       int size = partitionToBitsize(partition);
       Map<BigInteger, Region[]> currentMapping = new HashMap<>();
 
@@ -692,7 +692,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       return 0;
     } else if (varClass.getIntBoolPartitions().contains(partition)) {
       return 1;
-    } else if (compressIntEqual && varClass.getIntEqBoolPartitions().contains(partition)) {
+    } else if (compressIntEqual && varClass.getIntEqualPartitions().contains(partition)) {
       final Set<BigInteger> values = partition.getValues();
       int N = values.size();
       if (!values.contains(BigInteger.ZERO)) {
@@ -727,7 +727,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       this.partition = partition;
       this.size = size;
       this.compress = compressIntEqual &&
-          varClass.getIntEqBoolPartitions().contains(partition);
+          varClass.getIntEqualPartitions().contains(partition);
     }
 
     /** This function returns regions containing bits of a variable.
@@ -987,19 +987,16 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   /** THis function writes some information about tracked variables, number of partitions,... */
   void printStatistics(final PrintStream out) {
     final Set<Partition> intBool = varClass.getIntBoolPartitions();
-    final Set<Partition> intEqBool = varClass.getIntEqBoolPartitions();
-    final Set<Partition> intAddEqBool = varClass.getIntAddEqBoolPartitions();
-
     int numOfBooleans = varClass.getIntBoolVars().size();
 
     int numOfIntEquals = 0;
-    final Set<Partition> intEq = Sets.difference(intEqBool, intBool);
+    final Set<Partition> intEq = varClass.getIntEqualPartitions();
     for (Partition p : intEq) {
       numOfIntEquals += p.getVars().size();
     }
 
     int numOfIntAdds = 0;
-    final Set<Partition> intAdd = Sets.difference(intAddEqBool, Sets.union(intBool, intEqBool));
+    final Set<Partition> intAdd = varClass.getIntAddPartitions();
     for (Partition p : intAdd) {
       numOfIntAdds += p.getVars().size();
     }
@@ -1010,9 +1007,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     for (Entry<String, String> var : trackedVars.entries()) {
       if (varClass.getIntBoolVars().containsEntry(var.getKey(), var.getValue())) {
         trackedIntBool.put(var.getKey(), var.getValue());
-      } else if (varClass.getIntEqBoolVars().containsEntry(var.getKey(), var.getValue())) {
+      } else if (varClass.getIntEqualVars().containsEntry(var.getKey(), var.getValue())) {
         trackedIntEq.put(var.getKey(), var.getValue());
-      } else if (varClass.getIntAddEqBoolVars().containsEntry(var.getKey(), var.getValue())) {
+      } else if (varClass.getIntAddVars().containsEntry(var.getKey(), var.getValue())) {
         trackedIntAdd.put(var.getKey(), var.getValue());
       } else {
         // ignore other vars, they are either function_return_vars or tmp_vars
