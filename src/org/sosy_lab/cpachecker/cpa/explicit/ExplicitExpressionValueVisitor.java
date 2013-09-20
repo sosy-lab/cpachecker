@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -79,6 +78,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.forwarding.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
@@ -97,9 +97,6 @@ public class ExplicitExpressionValueVisitor
   private final String functionName;
   private final MachineModel machineModel;
 
-  private final Set<String> globalVariables; // TODO do we really need this?
-
-
   // for logging
   private final LogManager logger;
   private final CFAEdge edge;
@@ -117,13 +114,11 @@ public class ExplicitExpressionValueVisitor
    * @param pLogger logging
    * @param pEdge only for logging, not needed */
   public ExplicitExpressionValueVisitor(ExplicitState pState, String pFunctionName,
-      MachineModel pMachineModel, Set<String> pGlobalVariables,
-      LogManager pLogger, @Nullable CFAEdge pEdge) {
+      MachineModel pMachineModel, LogManager pLogger, @Nullable CFAEdge pEdge) {
 
     this.state = pState;
     this.functionName = pFunctionName;
     this.machineModel = pMachineModel;
-    this.globalVariables = pGlobalVariables;
     this.logger = pLogger;
     this.edge = pEdge;
   }
@@ -328,7 +323,7 @@ public class ExplicitExpressionValueVisitor
       }
     }
 
-    return getValue(idExp.getName());
+    return getValue(idExp.getName(), ForwardingTransferRelation.isGlobal(idExp));
   }
 
   @Override
@@ -369,7 +364,7 @@ public class ExplicitExpressionValueVisitor
 
   @Override
   public Long visit(CFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
-    return getValue(fieldReferenceExpression.toASTString());
+    return getValue(fieldReferenceExpression.toASTString(), false);
   }
 
   @Override
@@ -515,7 +510,7 @@ public class ExplicitExpressionValueVisitor
       missingFieldAccessInformation = true;
     }
 
-    return getValue(idExp.getName());
+    return getValue(idExp.getName(), ForwardingTransferRelation.isGlobal(idExp));
   }
 
   @Override
@@ -624,10 +619,10 @@ public class ExplicitExpressionValueVisitor
 
 
   /** This method returns the value of a variable from the current state. */
-  private Long getValue(String varName) {
+  private Long getValue(String varName, boolean isGlobal) {
     // TODO remove globalVars-collection and replace it with isGlobal() ?
 
-    if (!globalVariables.contains(varName)) {
+    if (!isGlobal) {
       varName = functionName + "::" + varName;
     }
 

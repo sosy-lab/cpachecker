@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.math.BigInteger;
-import java.util.Collections;
-import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -52,7 +50,6 @@ public class ExpressionValueVisitorTest {
   // we need some dummy-values.
   private final ExplicitState state = new ExplicitState();
   private final String functionName = "dummy_function";
-  private final Set<String> globalVariables = Collections.emptySet();
   private final FileLocation loc = new FileLocation(0, "dummy_file", 0, 0, 0);
 
 
@@ -100,9 +97,9 @@ public class ExpressionValueVisitorTest {
     logger = new BasicLogManager(config, stringLogHandler);
 
     evv32 = new ExplicitExpressionValueVisitor(
-        state, functionName, MachineModel.LINUX32, globalVariables, logger, null);
+        state, functionName, MachineModel.LINUX32, logger, null);
     evv64 = new ExplicitExpressionValueVisitor(
-        state, functionName, MachineModel.LINUX64, globalVariables, logger, null);
+        state, functionName, MachineModel.LINUX64, logger, null);
 
   }
 
