@@ -331,9 +331,9 @@ public class VariableClassification {
         for (String var : getAllVars().get(function)) {
           byte type = 0;
           if (getIntBoolVars().containsEntry(function, var)) {
-            type += 1+2+4; // IntBool is subset of IntEqual and IntAdd
+            type += 1+2+4; // IntBool is subset of IntEqualBool and IntAddEqBool
           } else if (getIntEqualVars().containsEntry(function, var)) {
-            type += 2+4; // IntEqual is subset of IntAdd
+            type += 2+4; // IntEqual is subset of IntAddEqBool
           } else if (getIntAddVars().containsEntry(function, var)) {
             type += 4;
           }

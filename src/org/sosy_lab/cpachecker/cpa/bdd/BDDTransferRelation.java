@@ -723,11 +723,21 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     private final int size;
     private final boolean compress;
 
-    BDDVectorCExpressionVisitor(final Partition partition, final int size) {
-      this.partition = partition;
-      this.size = size;
-      this.compress = compressIntEqual &&
-          varClass.getIntEqualPartitions().contains(partition);
+    BDDVectorCExpressionVisitor(@Nullable final Partition partition, final int size) {
+
+      if (partition == null) {
+        // this indicates a simple calculation like if(1==2),
+        // there is no partition, because no vars are used
+        this.partition = null;
+        this.size = bitsize;
+        this.compress = false;
+
+      } else {
+        this.partition = partition;
+        this.size = size;
+        this.compress = compressIntEqual &&
+            varClass.getIntEqualPartitions().contains(partition);
+      }
     }
 
     /** This function returns regions containing bits of a variable.
