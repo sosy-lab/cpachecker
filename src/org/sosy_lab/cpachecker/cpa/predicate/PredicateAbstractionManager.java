@@ -461,96 +461,96 @@ public class PredicateAbstractionManager {
   private Region buildCartesianAbstraction(final BooleanFormula f, final SSAMap ssa,
       ProverEnvironment thmProver, Collection<AbstractionPredicate> predicates) {
 
-      stats.abstractionSolveTime.start();
-      boolean feasibility = !thmProver.isUnsat();
-      stats.abstractionSolveTime.stop();
+    stats.abstractionSolveTime.start();
+    boolean feasibility = !thmProver.isUnsat();
+    stats.abstractionSolveTime.stop();
 
-      if (!feasibility) {
-        // abstract post leads to false, we can return immediately
-        return rmgr.makeFalse();
-      }
+    if (!feasibility) {
+      // abstract post leads to false, we can return immediately
+      return rmgr.makeFalse();
+    }
 
-      if (!warnedOfCartesianAbstraction && !fmgr.isPurelyConjunctive(f)) {
-        logger.log(Level.WARNING,
-            "Using cartesian abstraction when formulas contain disjunctions may be imprecise. "
-            + "This might lead to failing refinements.");
-        warnedOfCartesianAbstraction = true;
-      }
+    if (!warnedOfCartesianAbstraction && !fmgr.isPurelyConjunctive(f)) {
+      logger.log(Level.WARNING,
+          "Using cartesian abstraction when formulas contain disjunctions may be imprecise. "
+          + "This might lead to failing refinements.");
+      warnedOfCartesianAbstraction = true;
+    }
 
-      stats.abstractionEnumTime.startOuter();
-      try {
-        Region absbdd = rmgr.makeTrue();
+    stats.abstractionEnumTime.startOuter();
+    try {
+      Region absbdd = rmgr.makeTrue();
 
-        // check whether each of the predicate is implied in the next state...
+      // check whether each of the predicate is implied in the next state...
 
-        for (AbstractionPredicate p : predicates) {
-          Pair<BooleanFormula, AbstractionPredicate> cacheKey = Pair.of(f, p);
-          if (useCache && cartesianAbstractionCache.containsKey(cacheKey)) {
-            byte predVal = cartesianAbstractionCache.get(cacheKey);
+      for (AbstractionPredicate p : predicates) {
+        Pair<BooleanFormula, AbstractionPredicate> cacheKey = Pair.of(f, p);
+        if (useCache && cartesianAbstractionCache.containsKey(cacheKey)) {
+          byte predVal = cartesianAbstractionCache.get(cacheKey);
 
+          stats.abstractionEnumTime.getInnerTimer().start();
+          Region v = p.getAbstractVariable();
+          if (predVal == -1) { // pred is false
+            v = rmgr.makeNot(v);
+            absbdd = rmgr.makeAnd(absbdd, v);
+          } else if (predVal == 1) { // pred is true
+            absbdd = rmgr.makeAnd(absbdd, v);
+          } else {
+            assert predVal == 0 : "predicate value is neither false, true, nor unknown";
+          }
+          stats.abstractionEnumTime.getInnerTimer().stop();
+
+        } else {
+          logger.log(Level.ALL, "DEBUG_1",
+              "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
+
+          // instantiate the definition of the predicate
+          BooleanFormula predTrue = fmgr.instantiate(p.getSymbolicAtom(), ssa);
+          BooleanFormula predFalse = bfmgr.not(predTrue);
+
+          // check whether this predicate has a truth value in the next
+          // state
+          byte predVal = 0; // pred is neither true nor false
+
+          thmProver.push(predFalse);
+          boolean isTrue = thmProver.isUnsat();
+          thmProver.pop();
+
+          if (isTrue) {
             stats.abstractionEnumTime.getInnerTimer().start();
             Region v = p.getAbstractVariable();
-            if (predVal == -1) { // pred is false
-              v = rmgr.makeNot(v);
-              absbdd = rmgr.makeAnd(absbdd, v);
-            } else if (predVal == 1) { // pred is true
-              absbdd = rmgr.makeAnd(absbdd, v);
-            } else {
-              assert predVal == 0 : "predicate value is neither false, true, nor unknown";
-            }
+            absbdd = rmgr.makeAnd(absbdd, v);
             stats.abstractionEnumTime.getInnerTimer().stop();
 
+            predVal = 1;
           } else {
-            logger.log(Level.ALL, "DEBUG_1",
-                "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
-
-            // instantiate the definition of the predicate
-            BooleanFormula predTrue = fmgr.instantiate(p.getSymbolicAtom(), ssa);
-            BooleanFormula predFalse = bfmgr.not(predTrue);
-
-            // check whether this predicate has a truth value in the next
-            // state
-            byte predVal = 0; // pred is neither true nor false
-
-            thmProver.push(predFalse);
-            boolean isTrue = thmProver.isUnsat();
+            // check whether it's false...
+            thmProver.push(predTrue);
+            boolean isFalse = thmProver.isUnsat();
             thmProver.pop();
 
-            if (isTrue) {
+            if (isFalse) {
               stats.abstractionEnumTime.getInnerTimer().start();
               Region v = p.getAbstractVariable();
+              v = rmgr.makeNot(v);
               absbdd = rmgr.makeAnd(absbdd, v);
               stats.abstractionEnumTime.getInnerTimer().stop();
 
-              predVal = 1;
-            } else {
-              // check whether it's false...
-              thmProver.push(predTrue);
-              boolean isFalse = thmProver.isUnsat();
-              thmProver.pop();
-
-              if (isFalse) {
-                stats.abstractionEnumTime.getInnerTimer().start();
-                Region v = p.getAbstractVariable();
-                v = rmgr.makeNot(v);
-                absbdd = rmgr.makeAnd(absbdd, v);
-                stats.abstractionEnumTime.getInnerTimer().stop();
-
-                predVal = -1;
-              }
-            }
-
-            if (useCache) {
-              cartesianAbstractionCache.put(cacheKey, predVal);
+              predVal = -1;
             }
           }
+
+          if (useCache) {
+            cartesianAbstractionCache.put(cacheKey, predVal);
+          }
         }
-
-        return absbdd;
-
-      } finally {
-        stats.abstractionEnumTime.stopOuter();
       }
+
+      return absbdd;
+
+    } finally {
+      stats.abstractionEnumTime.stopOuter();
+    }
   }
 
   private BooleanFormula buildFormula(BooleanFormula symbFormula) {
