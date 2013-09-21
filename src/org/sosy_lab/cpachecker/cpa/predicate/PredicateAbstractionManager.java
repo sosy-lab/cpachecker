@@ -95,6 +95,7 @@ public class PredicateAbstractionManager {
   private final LogManager logger;
   private final FormulaManagerView fmgr;
   private final AbstractionManager amgr;
+  private final RegionCreator rmgr;
   private final PathFormulaManager pfmgr;
   private final Solver solver;
 
@@ -146,6 +147,7 @@ public class PredicateAbstractionManager {
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     amgr = pAmgr;
+    rmgr = amgr.getRegionCreator();
     pfmgr = pPfmgr;
     solver = pSolver;
 
@@ -223,14 +225,14 @@ public class PredicateAbstractionManager {
         // block is infeasible
         logger.log(Level.FINEST, "Block feasibility of abstraction", stats.numCallsAbstraction, "was cached and is false.");
         stats.numCallsAbstractionCached++;
-        return new AbstractionFormula(fmgr, amgr.getRegionCreator().makeFalse(),
+        return new AbstractionFormula(fmgr, rmgr.makeFalse(),
             bfmgr.makeBoolean(false), bfmgr.makeBoolean(false), pathFormula);
       }
     }
 
     // filter out irrelevant predicates and optionally those
     // where we can trivially identify their truthness in the result
-    Region initialAbs = amgr.getRegionCreator().makeTrue();
+    Region abs = rmgr.makeTrue();
     if (identifyTrivialPredicates) {
       stats.trivialPredicatesTime.start();
       Pair<ImmutableSet<AbstractionPredicate>, Region> syntacticCheck
@@ -238,17 +240,34 @@ public class PredicateAbstractionManager {
       // the set of predicates we still need to use for abstraction
       predicates = syntacticCheck.getFirst();
       // the region we have already calculated
-      initialAbs = syntacticCheck.getSecond();
+      abs = syntacticCheck.getSecond();
       stats.trivialPredicatesTime.stop();
     }
 
-    Region abs;
-    if (cartesianAbstraction) {
-      abs = buildCartesianAbstraction(f, ssa, predicates);
-    } else {
-      abs = buildBooleanAbstraction(f, ssa, predicates);
+    try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
+      thmProver.push(f);
+
+      if (predicates.isEmpty()) {
+        stats.numSatCheckAbstractions++;
+
+        stats.abstractionSolveTime.start();
+        boolean feasibility = !thmProver.isUnsat();
+        stats.abstractionSolveTime.stop();
+
+        if (!feasibility) {
+          abs = rmgr.makeFalse();
+        }
+
+      } else {
+        if (cartesianAbstraction) {
+          abs = rmgr.makeAnd(abs,
+              buildCartesianAbstraction(f, ssa, thmProver, predicates));
+        } else {
+          abs = rmgr.makeAnd(abs,
+              buildBooleanAbstraction(ssa, thmProver, predicates));
+        }
+      }
     }
-    abs = amgr.getRegionCreator().makeAnd(initialAbs, abs);
 
     AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
 
@@ -440,11 +459,7 @@ public class PredicateAbstractionManager {
   }
 
   private Region buildCartesianAbstraction(final BooleanFormula f, final SSAMap ssa,
-      Collection<AbstractionPredicate> predicates) {
-    final RegionCreator rmgr = amgr.getRegionCreator();
-
-    try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
-      thmProver.push(f);
+      ProverEnvironment thmProver, Collection<AbstractionPredicate> predicates) {
 
       stats.abstractionSolveTime.start();
       boolean feasibility = !thmProver.isUnsat();
@@ -534,10 +549,8 @@ public class PredicateAbstractionManager {
         return absbdd;
 
       } finally {
-        thmProver.pop();
         stats.abstractionEnumTime.stopOuter();
       }
-    }
   }
 
   private BooleanFormula buildFormula(BooleanFormula symbFormula) {
@@ -554,7 +567,7 @@ public class PredicateAbstractionManager {
     return symbFormula;
   }
 
-  private Region buildBooleanAbstraction(BooleanFormula f, SSAMap ssa,
+  private Region buildBooleanAbstraction(SSAMap ssa, ProverEnvironment thmProver,
       Collection<AbstractionPredicate> predicates) {
 
     // build the definition of the predicates, and instantiate them
@@ -578,29 +591,10 @@ public class PredicateAbstractionManager {
     }
 
     // the formula is (abstractionFormula & pathFormula & predDef)
-    BooleanFormula fm = bfmgr.and(f, predDef);
-    Region result;
-
-    if (predVars.isEmpty()) {
-      stats.numSatCheckAbstractions++;
-
-      stats.abstractionSolveTime.start();
-      boolean satResult = !solver.isUnsat(fm);
-      stats.abstractionSolveTime.stop();
-
-      RegionCreator rmgr = amgr.getRegionCreator();
-
-      result = (satResult) ? rmgr.makeTrue() : rmgr.makeFalse();
-
-    } else {
-      logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
-      AllSatResult allSatResult;
-      try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
-        thmProver.push(fm);
-        allSatResult = thmProver.allSat(predVars, amgr.getRegionCreator(),
-            stats.abstractionSolveTime, stats.abstractionEnumTime);
-      }
-      result = allSatResult.getResult();
+    thmProver.push(predDef);
+    try {
+      AllSatResult allSatResult = thmProver.allSat(predVars, rmgr,
+          stats.abstractionSolveTime, stats.abstractionEnumTime);
 
       // update statistics
       int numModels = allSatResult.getCount();
@@ -608,9 +602,11 @@ public class PredicateAbstractionManager {
         stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
         stats.allSatCount += numModels;
       }
-    }
 
-    return result;
+      return allSatResult.getResult();
+    } finally {
+      thmProver.pop();
+    }
   }
 
   /**
