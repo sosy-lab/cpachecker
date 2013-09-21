@@ -251,17 +251,17 @@ public class PredicateAbstractionManager {
       }
     }
 
-    // filter out irrelevant predicates and optionally those
+    // Compute result for those predicates
     // where we can trivially identify their truthness in the result
     Region abs = rmgr.makeTrue();
     if (identifyTrivialPredicates) {
       stats.trivialPredicatesTime.start();
-      Pair<ImmutableSet<AbstractionPredicate>, Region> syntacticCheck
-          = identifyTrivialPredicates(predicates, abstractionFormula, pathFormula);
-      // the set of predicates we still need to use for abstraction
-      predicates = syntacticCheck.getFirst();
-      // the region we have already calculated
-      abs = syntacticCheck.getSecond();
+      abs = identifyTrivialPredicates(predicates, abstractionFormula, pathFormula);
+
+      // Calculate the set of predicates we still need to use for abstraction.
+      predicates = from(predicates)
+                     .filter(not(in(amgr.extractPredicates(abs))))
+                     .toSet();
       stats.trivialPredicatesTime.stop();
     }
 
@@ -287,9 +287,7 @@ public class PredicateAbstractionManager {
         }
 
         if (abstractionType == AbstractionType.COMBINED) {
-          // If doing both cartesian and boolean abstraction,
-          // filter out predicates handled by cartesian abstraction
-          // and ignore them during boolean abstraction.
+          // Calculate the set of predicates that cartesian abstraction couldn't handle.
           predicates = from(predicates)
                          .filter(not(in(amgr.extractPredicates(abs))))
                          .toSet();
@@ -392,9 +390,9 @@ public class PredicateAbstractionManager {
    * @param pPredicates The set of predicates.
    * @param pOldAbs An abstraction formula that determines which variables and predicates are relevant.
    * @param pBlockFormula A path formula that determines which variables and predicates are relevant.
-   * @return A subset of still relevant pPredicates and a "subregion" of pOldAbs.
+   * @return A region of predicates from pPredicates that is entailed by (pOldAbs & pBlockFormula)
    */
-  private Pair<ImmutableSet<AbstractionPredicate>, Region> identifyTrivialPredicates(
+  private Region identifyTrivialPredicates(
       final Collection<AbstractionPredicate> pPredicates,
       final AbstractionFormula pOldAbs, final PathFormula pBlockFormula) {
 
@@ -402,7 +400,6 @@ public class PredicateAbstractionManager {
     final Set<String> blockVariables = fmgr.extractVariables(pBlockFormula.getFormula());
     final Region oldAbs = pOldAbs.asRegion();
 
-    final ImmutableSet.Builder<AbstractionPredicate> predicateBuilder = ImmutableSet.builder();
     final RegionCreator regionCreator = amgr.getRegionCreator();
     Region region = regionCreator.makeTrue();
 
@@ -433,20 +430,16 @@ public class PredicateAbstractionManager {
             logger.log(Level.FINEST, "Negation of predicate", predicate, "is unconditionally true in old abstraction and can be copied to the result.");
 
           } else {
-            // predicate is used in old abs and there is no easy way to handle it,
-            // use it for abstraction
-            predicateBuilder.add(predicate);
+            // predicate is used in old abs and there is no easy way to handle it
             logger.log(Level.FINEST, "Predicate", predicate, "is relevant because it appears in the old abstraction.");
           }
         }
-      } else {
-        predicateBuilder.add(predicate);
       }
     }
 
     assert amgr.entails(oldAbs, region);
 
-    return Pair.of(predicateBuilder.build(), region);
+    return region;
   }
 
   /**
