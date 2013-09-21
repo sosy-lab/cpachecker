@@ -36,6 +36,10 @@ public class StatisticsUtils {
     return String.format("%1.0f", val/full*100) + "%";
   }
 
+  public static String valueWithPercentage(int value, int totalCount) {
+    return value + " (" + toPercent(value, totalCount) + ")";
+  }
+
   public static String div(double val, double full) {
     return String.format(Locale.ROOT, "%.2f", val/full);
   }

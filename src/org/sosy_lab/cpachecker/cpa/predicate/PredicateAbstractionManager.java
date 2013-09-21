@@ -73,13 +73,21 @@ public class PredicateAbstractionManager {
 
   static class Stats {
 
-    public int numCallsAbstraction = 0;
-    public int numSymbolicAbstractions = 0;
-    public int numSatCheckAbstractions = 0;
-    public int numCallsAbstractionCached = 0;
+    public int numCallsAbstraction = 0; // total calls
+    public int numSymbolicAbstractions = 0; // precision completely empty, no computation
+    public int numSatCheckAbstractions = 0; // precision was {false}, only sat check
+    public int numCallsAbstractionCached = 0; // result was cached, no computation
+
+    public int numTotalPredicates = 0;
+    public int maxPredicates = 0;
     public int numIrrelevantPredicates = 0;
     public int numTrivialPredicates = 0;
+    public int numCartesianAbsPredicates = 0;
+    public int numCartesianAbsPredicatesCached = 0;
+    public int numBooleanAbsPredicates = 0;
     public final Timer trivialPredicatesTime = new Timer();
+    public final Timer cartesianAbstractionTime = new Timer();
+    public final Timer booleanAbstractionTime = new Timer();
     public final NestedTimer abstractionEnumTime = new NestedTimer(); // outer: solver time, inner: bdd time
     public final Timer abstractionSolveTime = new Timer(); // only the time for solving, not for model enumeration
 
@@ -92,7 +100,7 @@ public class PredicateAbstractionManager {
     public int numSemanticEntailedPathFormulae = 0;
   }
 
-  final Stats stats;
+  final Stats stats = new Stats();
 
   private final LogManager logger;
   private final FormulaManagerView fmgr;
@@ -156,7 +164,6 @@ public class PredicateAbstractionManager {
 
     config.inject(this, PredicateAbstractionManager.class);
 
-    stats = new Stats();
     logger = pLogger;
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
@@ -251,6 +258,12 @@ public class PredicateAbstractionManager {
       }
     }
 
+    // We update statistics here because we want to ignore calls
+    // where the result was in the cache.
+    stats.numTotalPredicates += pPredicates.size();
+    stats.maxPredicates = Math.max(stats.maxPredicates, pPredicates.size());
+    stats.numIrrelevantPredicates += pPredicates.size() - predicates.size();
+
     // Compute result for those predicates
     // where we can trivially identify their truthness in the result
     Region abs = rmgr.makeTrue();
@@ -282,8 +295,10 @@ public class PredicateAbstractionManager {
       } else {
         if (abstractionType != AbstractionType.BOOLEAN) {
           // First do cartesian abstraction if desired
+          stats.cartesianAbstractionTime.start();
           abs = rmgr.makeAnd(abs,
               buildCartesianAbstraction(f, ssa, thmProver, predicates));
+          stats.cartesianAbstractionTime.stop();
         }
 
         if (abstractionType == AbstractionType.COMBINED) {
@@ -296,8 +311,11 @@ public class PredicateAbstractionManager {
         if (abstractionType != AbstractionType.CARTESIAN
             && !predicates.isEmpty()) {
           // Last do boolean abstraction if desired and necessary
+          stats.numBooleanAbsPredicates += predicates.size();
+          stats.booleanAbstractionTime.start();
           abs = rmgr.makeAnd(abs,
               buildBooleanAbstraction(ssa, thmProver, predicates));
+          stats.booleanAbstractionTime.stop();
         }
       }
     }
@@ -374,7 +392,6 @@ public class PredicateAbstractionManager {
       if (!Sets.intersection(predVariables, variables).isEmpty()) {
         predicateBuilder.add(predicate);
       } else {
-        stats.numIrrelevantPredicates++;
         logger.log(Level.FINEST, "Ignoring predicate about variables", predVariables);
       }
     }
@@ -515,13 +532,16 @@ public class PredicateAbstractionManager {
         Pair<BooleanFormula, AbstractionPredicate> cacheKey = Pair.of(f, p);
         if (useCache && cartesianAbstractionCache.containsKey(cacheKey)) {
           byte predVal = cartesianAbstractionCache.get(cacheKey);
+          stats.numCartesianAbsPredicatesCached++;
 
           stats.abstractionEnumTime.getInnerTimer().start();
           Region v = p.getAbstractVariable();
           if (predVal == -1) { // pred is false
+            stats.numCartesianAbsPredicates++;
             v = rmgr.makeNot(v);
             absbdd = rmgr.makeAnd(absbdd, v);
           } else if (predVal == 1) { // pred is true
+            stats.numCartesianAbsPredicates++;
             absbdd = rmgr.makeAnd(absbdd, v);
           } else {
             assert predVal == 0 : "predicate value is neither false, true, nor unknown";
@@ -545,6 +565,7 @@ public class PredicateAbstractionManager {
           thmProver.pop();
 
           if (isTrue) {
+            stats.numCartesianAbsPredicates++;
             stats.abstractionEnumTime.getInnerTimer().start();
             Region v = p.getAbstractVariable();
             absbdd = rmgr.makeAnd(absbdd, v);
@@ -558,6 +579,7 @@ public class PredicateAbstractionManager {
             thmProver.pop();
 
             if (isFalse) {
+              stats.numCartesianAbsPredicates++;
               stats.abstractionEnumTime.getInnerTimer().start();
               Region v = p.getAbstractVariable();
               v = rmgr.makeNot(v);

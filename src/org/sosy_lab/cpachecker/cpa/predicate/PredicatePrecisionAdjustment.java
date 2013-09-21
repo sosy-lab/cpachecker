@@ -66,8 +66,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   int numAbstractions = 0;
   int numAbstractionsFalse = 0;
   int maxBlockSize = 0;
-  int totalPredsPerAbstraction = 0;
-  int maxPredsPerAbstraction = 0;
 
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
@@ -126,8 +124,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     Collection<AbstractionPredicate> preds = precision.getPredicates(loc, newLocInstance);
 
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
-    maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());
-    totalPredsPerAbstraction += preds.size();
 
     // get invariants and add them
     extractInvariants();
