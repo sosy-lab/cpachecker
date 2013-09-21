@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Predicates.*;
+import static com.google.common.collect.FluentIterable.from;
 
 import java.io.File;
 import java.io.IOException;
@@ -99,9 +101,21 @@ public class PredicateAbstractionManager {
   private final PathFormulaManager pfmgr;
   private final Solver solver;
 
+  private static enum AbstractionType {
+    CARTESIAN,
+    BOOLEAN,
+    COMBINED,
+    ;
+  }
+
   @Option(name = "abstraction.cartesian",
       description = "whether to use Boolean (false) or Cartesian (true) abstraction")
+  @Deprecated
   private boolean cartesianAbstraction = false;
+
+  @Option(name = "abstraction.computation",
+      description = "whether to use Boolean or Cartesian abstraction or both")
+  private AbstractionType abstractionType = AbstractionType.BOOLEAN;
 
   @Option(name = "abstraction.dumpHardQueries",
       description = "dump the abstraction formulas if they took to long")
@@ -151,6 +165,13 @@ public class PredicateAbstractionManager {
     pfmgr = pPfmgr;
     solver = pSolver;
 
+    if (cartesianAbstraction) {
+      abstractionType = AbstractionType.CARTESIAN;
+    }
+    if (abstractionType == AbstractionType.COMBINED) {
+      warnedOfCartesianAbstraction = true; // warning is not necessary
+    }
+
     if (useCache) {
       abstractionCache = new HashMap<>();
       unsatisfiabilityCache = new HashSet<>();
@@ -158,7 +179,7 @@ public class PredicateAbstractionManager {
       abstractionCache = null;
       unsatisfiabilityCache = null;
     }
-    if (useCache && cartesianAbstraction) {
+    if (useCache && (abstractionType != AbstractionType.BOOLEAN)) {
       cartesianAbstractionCache = new HashMap<>();
     } else {
       cartesianAbstractionCache = null;
@@ -259,10 +280,24 @@ public class PredicateAbstractionManager {
         }
 
       } else {
-        if (cartesianAbstraction) {
+        if (abstractionType != AbstractionType.BOOLEAN) {
+          // First do cartesian abstraction if desired
           abs = rmgr.makeAnd(abs,
               buildCartesianAbstraction(f, ssa, thmProver, predicates));
-        } else {
+        }
+
+        if (abstractionType == AbstractionType.COMBINED) {
+          // If doing both cartesian and boolean abstraction,
+          // filter out predicates handled by cartesian abstraction
+          // and ignore them during boolean abstraction.
+          predicates = from(predicates)
+                         .filter(not(in(amgr.extractPredicates(abs))))
+                         .toSet();
+        }
+
+        if (abstractionType != AbstractionType.CARTESIAN
+            && !predicates.isEmpty()) {
+          // Last do boolean abstraction if desired and necessary
           abs = rmgr.makeAnd(abs,
               buildBooleanAbstraction(ssa, thmProver, predicates));
         }
@@ -567,8 +602,8 @@ public class PredicateAbstractionManager {
     return symbFormula;
   }
 
-  private Region buildBooleanAbstraction(SSAMap ssa, ProverEnvironment thmProver,
-      Collection<AbstractionPredicate> predicates) {
+  private Region buildBooleanAbstraction(SSAMap ssa,
+      ProverEnvironment thmProver, Collection<AbstractionPredicate> predicates) {
 
     // build the definition of the predicates, and instantiate them
     // also collect all predicate variables so that the solver knows for which

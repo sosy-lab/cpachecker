@@ -643,8 +643,12 @@ cpa.predicate.abm.auxiliaryPredicateComputer = true
 # use caching of abstractions
 cpa.predicate.abs.useCache = true
 
-# whether to use Boolean (false) or Cartesian (true) abstraction
+# DEPRECATED: whether to use Boolean (false) or Cartesian (true) abstraction
 cpa.predicate.abstraction.cartesian = false
+
+# whether to use Boolean or Cartesian abstraction or both
+cpa.predicate.abstraction.computation = BOOLEAN
+  enum:     [CARTESIAN, BOOLEAN, COMBINED]
 
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
