@@ -102,9 +102,9 @@ public class InvariantsCPA extends AbstractCPA {
         description="which merge operator to use for InvariantCPA")
     private String merge = "JOIN";
 
-    private int interestingPredicatesDepth = 6;
+    private int interestingPredicatesDepth = 2;
 
-    private int interestingVariableLimit = 7;
+    private int interestingVariableLimit = 3;
 
   }
 
@@ -230,7 +230,7 @@ public class InvariantsCPA extends AbstractCPA {
 
       //VariableSelection<CompoundState> variableSelection = new AcceptAllVariableSelection<>();
       VariableSelection<CompoundState> variableSelection = new AcceptSpecifiedVariableSelection<>(relevantVariables);
-      ImmutableSet.copyOf(interestingAssumptions);
+      interestingAssumptions.clear();
       return new InvariantsState(this.useBitvectors,
           variableSelection,
           ImmutableSet.copyOf(relevantEdges),
