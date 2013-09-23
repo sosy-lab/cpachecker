@@ -20,7 +20,6 @@
     <option name="-predicateAnalysis"/>
     <option name="-heap">2000M</option>
     <option name="-setprop">cpa.conditions.global.time.wall=1min</option>
-    <option name="-setprop">cpa.predicate.solver=smtinterpol</option>
   </rundefinition>
 
   <columns>
