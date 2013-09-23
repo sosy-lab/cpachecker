@@ -172,4 +172,9 @@ public class CompoundStateTest {
     assertFalse(CompoundState.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.valueOf(4))).unionWith(SimpleInterval.of(BigInteger.valueOf(6), BigInteger.TEN)).contains(5));
   }
 
+  @Test
+  public void binaryNotTest() {
+    CompoundState.singleton(1).extendToNegativeInfinity().binaryNot();
+  }
+
 }
