@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -81,6 +82,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.forwarding.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
+import com.google.common.collect.Sets;
+
 
 /**
  * This Visitor returns the value from an expression.
@@ -100,6 +103,8 @@ public class ExplicitExpressionValueVisitor
   // for logging
   private final LogManager logger;
   private final CFAEdge edge;
+  // we log for each edge only once, that avoids much output. the user knows all critical lines.
+  private final static Set<CFAEdge> loggedEdges = Sets.newHashSet();
 
 
   private boolean missingPointer = false;
@@ -707,8 +712,7 @@ public class ExplicitExpressionValueVisitor
             }
           }
 
-          if (result != value) {
-            // TODO perhaps we should log this only once?
+          if (result != value && loggedEdges.add(edge)) {
             logger.logf(Level.WARNING,
                 "overflow in line %d: value %d is to big for type '%s', casting to %d.",
                 edge == null ? null : edge.getLineNumber(),
@@ -720,29 +724,35 @@ public class ExplicitExpressionValueVisitor
             if (size < 64) {
               result = maxValue + result; // value is negative!
 
-              logger.logf(Level.WARNING,
-                  "overflow in line %d: target-type is '%s', value %d is changed to %d.",
-                  edge == null ? null : edge.getLineNumber(),
-                  targetType, value, result);
+              if (loggedEdges.add(edge)) {
+                logger.logf(Level.WARNING,
+                    "overflow in line %d: target-type is '%s', value %d is changed to %d.",
+                    edge == null ? null : edge.getLineNumber(),
+                    targetType, value, result);
+              }
 
             } else {
               // java-type "long" is too small
-              logger.logf(Level.SEVERE,
-                  "overflow in line %d: value %s of c-type '%s' is too big "
-                      + "for java-type 'long', analysis may produce wrong results.",
-                  edge == null ? null : edge.getLineNumber(),
-                  value, targetType);
+              if (loggedEdges.add(edge)) {
+                logger.logf(Level.SEVERE,
+                    "overflow in line %d: value %s of c-type '%s' is too big "
+                        + "for java-type 'long', analysis may produce wrong results.",
+                    edge == null ? null : edge.getLineNumber(),
+                    value, targetType);
+              }
             }
           }
 
           return result;
 
         } else { // java-type "long" is too small
-          logger.logf(Level.SEVERE,
-              "overflow in line %d: value %s of c-type '%s' is too big "
-                  + "for java-type 'long'\", analysis may produce wrong results.",
-              edge == null ? null : edge.getLineNumber(),
-              value, targetType);
+          if (loggedEdges.add(edge)) {
+            logger.logf(Level.SEVERE,
+                "overflow in line %d: value %s of c-type '%s' is too big "
+                    + "for java-type 'long'\", analysis may produce wrong results.",
+                edge == null ? null : edge.getLineNumber(),
+                value, targetType);
+          }
 
           return value;
         }
