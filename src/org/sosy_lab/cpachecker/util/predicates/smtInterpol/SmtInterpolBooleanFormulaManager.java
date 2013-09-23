@@ -156,6 +156,11 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
   }
 
   @Override
+  protected boolean isImplication(Term pFormula) {
+    return SmtInterpolUtil.isImplication(pFormula);
+  }
+
+  @Override
   protected boolean isIfThenElse(Term pBits) {
     return SmtInterpolUtil.isIfThenElse(pBits);
   }

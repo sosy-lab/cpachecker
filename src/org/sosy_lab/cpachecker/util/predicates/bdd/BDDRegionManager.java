@@ -483,6 +483,11 @@ public class BDDRegionManager implements RegionManager {
     }
 
     @Override
+    protected BDD visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      return visitBinary(pOperand1, pOperand2, BDDFactory.imp);
+    }
+
+    @Override
     public BDD visitIfThenElse(BooleanFormula pCondition,
         BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
       BDD condition = convert(pCondition);

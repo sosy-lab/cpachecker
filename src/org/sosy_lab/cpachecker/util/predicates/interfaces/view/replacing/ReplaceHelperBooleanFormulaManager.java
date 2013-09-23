@@ -131,6 +131,11 @@ public class ReplaceHelperBooleanFormulaManager implements BooleanFormulaManager
   }
 
   @Override
+  public boolean isImplication(BooleanFormula pFormula) {
+    return rawBooleanManager.isImplication(pFormula);
+  }
+
+  @Override
   public <T extends Formula> boolean isIfThenElse(T pF) {
     Formula f = replaceManager.unwrap(pF);
     return rawBooleanManager.isIfThenElse(f);

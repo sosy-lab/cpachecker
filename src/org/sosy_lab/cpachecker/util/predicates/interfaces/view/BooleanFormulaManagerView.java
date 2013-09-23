@@ -163,6 +163,11 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     return or(not(p), q);
   }
 
+  @Override
+  public boolean isImplication(BooleanFormula pFormula) {
+    return manager.isImplication(extractFromView(pFormula));
+  }
+
 
   public BooleanFormula notEquivalence(BooleanFormula p, BooleanFormula q) {
     return not(equivalence(p, q));
@@ -208,11 +213,15 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
         return visitEquivalence(getArg(f, 0), getArg(f, 1));
       }
 
+      if (bfmgr.isImplication(f)) {
+        return visitImplication(getArg(f, 0), getArg(f, 1));
+      }
+
       if (bfmgr.isIfThenElse(f)) {
         return visitIfThenElse(getArg(f, 0), getArg(f, 1), getArg(f, 2));
       }
 
-      throw new UnsupportedOperationException();
+      throw new UnsupportedOperationException("Unknown boolean operator " + f);
     }
 
     private final BooleanFormula getArg(BooleanFormula pF, int i) {
@@ -226,6 +235,7 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     protected abstract R visitAnd(BooleanFormula operand1, BooleanFormula operand2);
     protected abstract R visitOr(BooleanFormula operand1, BooleanFormula operand2);
     protected abstract R visitEquivalence(BooleanFormula operand1, BooleanFormula operand2);
+    protected abstract R visitImplication(BooleanFormula operand1, BooleanFormula operand2);
     protected abstract R visitIfThenElse(BooleanFormula condition, BooleanFormula thenFormula, BooleanFormula elseFormula);
   }
 
@@ -267,6 +277,11 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
 
     @Override
     protected R visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
       throw new UnsupportedOperationException();
     }
 

@@ -195,6 +195,13 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
   protected abstract boolean isEquivalence(TFormulaInfo pBits);
 
   @Override
+  public boolean isImplication(BooleanFormula pFormula) {
+    return isImplication(extractInfo(pFormula));
+  }
+
+  protected abstract boolean isImplication(TFormulaInfo pFormula);
+
+  @Override
   public <T extends Formula> boolean isIfThenElse(T pF) {
     return isIfThenElse(extractInfo(pF));
   }

@@ -121,6 +121,11 @@ public class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long>
   }
 
   @Override
+  protected boolean isImplication(Long pParam) {
+    return isOP(z3context, pParam, Z3_OP_IMPLIES);
+  }
+
+  @Override
   protected boolean isIfThenElse(Long pParam) {
     return isOP(z3context, pParam, Z3_OP_ITE);
   }

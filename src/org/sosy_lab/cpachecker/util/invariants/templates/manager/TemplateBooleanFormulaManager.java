@@ -229,6 +229,11 @@ public class TemplateBooleanFormulaManager implements BooleanFormulaManager {
   }
 
   @Override
+  public boolean isImplication(BooleanFormula pFormula) {
+    return false;
+  }
+
+  @Override
   public <T extends Formula> boolean isIfThenElse(T pF) {
     return false;
   }

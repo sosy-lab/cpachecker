@@ -53,6 +53,8 @@ public interface BooleanFormulaManager {
 
   public boolean isEquivalence(BooleanFormula formula);
 
+  public boolean isImplication(BooleanFormula formula);
+
   public boolean isTrue(BooleanFormula formula);
 
   public boolean isFalse(BooleanFormula formula);
