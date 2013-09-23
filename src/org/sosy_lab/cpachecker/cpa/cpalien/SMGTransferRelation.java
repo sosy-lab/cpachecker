@@ -2360,7 +2360,7 @@ public class SMGTransferRelation implements TransferRelation {
           return createAddress(mallocEdge);
         case "calloc":
           possibleMallocFail = true;
-          SMGEdgePointsTo callocEdge = builtins.evaluateMalloc(pIastFunctionCallExpression, smgState, cfaEdge);
+          SMGEdgePointsTo callocEdge = builtins.evaluateCalloc(pIastFunctionCallExpression, smgState, cfaEdge);
           return createAddress(callocEdge);
         }
       } else {
