@@ -118,9 +118,6 @@ class SmtInterpolEnvironment {
   /** This Collection is the toplevel of the stack. */
   private Collection<Triple<String, Sort[], Sort>> currentDeclarations;
 
-  private final Term trueTerm;
-  private final Term falseTerm;
-
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
   public SmtInterpolEnvironment(Configuration config, Logics pLogic,
@@ -149,8 +146,6 @@ class SmtInterpolEnvironment {
     }
 
     theory = smtInterpol.getTheory();
-    trueTerm = term("true");
-    falseTerm = term("false");
   }
 
   private Script createLoggingWrapper(SMTInterpol smtInterpol) {
@@ -200,8 +195,8 @@ class SmtInterpolEnvironment {
     return logger;
   }
 
-  public Term getTrueTerm() { return trueTerm; }
-  public Term getFalseTerm() { return falseTerm; }
+  public Term getTrueTerm() { return theory.TRUE; }
+  public Term getFalseTerm() { return theory.FALSE; }
 
   /**  This function creates a filename with following scheme:
        first filename is unchanged, then a number is appended */

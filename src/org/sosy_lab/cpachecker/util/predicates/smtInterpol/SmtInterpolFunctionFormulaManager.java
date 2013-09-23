@@ -56,7 +56,7 @@ class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<T
   public <TFormula extends Formula> Term createUninterpretedFunctionCallImpl(FunctionFormulaType<TFormula> pFuncType,
       List<Term> pArgs) {
     SmtInterpolFunctionType<TFormula> interpolType = (SmtInterpolFunctionType<TFormula>) pFuncType;
-    Term[] args = pArgs.toArray(new Term[pArgs.size()]);
+    Term[] args = SmtInterpolUtil.toTermArray(pArgs);
     String funcDecl = interpolType.getFuncDecl();
     return unsafeManager.createUIFCallImpl(funcDecl, args);
   }

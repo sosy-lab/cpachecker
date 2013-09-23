@@ -97,7 +97,7 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term>
 
   @Override
   public Term replaceArgs(Term pT, List<Term> newArgs) {
-    return SmtInterpolUtil.replaceArgs(env, pT, newArgs.toArray(new Term[newArgs.size()]));
+    return SmtInterpolUtil.replaceArgs(env, pT, SmtInterpolUtil.toTermArray(newArgs));
   }
 
   @Override

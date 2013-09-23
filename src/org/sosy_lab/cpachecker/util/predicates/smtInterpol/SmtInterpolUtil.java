@@ -51,15 +51,16 @@ class SmtInterpolUtil {
   /** A Term is an Atom, iff its function is no element of {"And", "Or", "Not"}.*/
   public static boolean isAtom(Term t) {
     boolean is = !isAnd(t) && !isOr(t) && !isNot(t) && !isImplication(t) && !isIfThenElse(t);
+    assert is || isBoolean(t);
     return is;
   }
 
   public static boolean isVariable(Term t) {
-    boolean is = !isTrue(t) && !isFalse(t)
+    // A variable is the same as an UIF without parameters
+    return !isTrue(t) && !isFalse(t)
         && (t instanceof ApplicationTerm)
         && ((ApplicationTerm) t).getParameters().length == 0
         && ((ApplicationTerm) t).getFunction().getDefinition() == null;
-    return is;
   }
 
   /** check for ConstantTerm with Number or
@@ -126,57 +127,48 @@ class SmtInterpolUtil {
   }
 
   public static boolean isBoolean(Term t) {
-    boolean is = (t instanceof ApplicationTerm)
-          && t.getTheory().getBooleanSort() == ((ApplicationTerm) t).getSort();
-    return is;
+    return t.getTheory().getBooleanSort() == t.getSort();
   }
 
-  /** t1 and t2
-   * @param theory */
+  /** t1 and t2 */
   public static boolean isAnd(Term t) {
-    boolean is = (t instanceof ApplicationTerm)
-        && t.getTheory().m_And == ((ApplicationTerm) t).getFunction();
-    return is;
+    return isFunction(t, t.getTheory().m_And);
   }
 
   /** t1 or t2 */
   public static boolean isOr(Term t) {
-    boolean is = (t instanceof ApplicationTerm)
-        && t.getTheory().m_Or == ((ApplicationTerm) t).getFunction();
-    return is;
+    return isFunction(t, t.getTheory().m_Or);
   }
 
   /** not t */
   public static boolean isNot(Term t) {
-    boolean is = (t instanceof ApplicationTerm)
-        && t.getTheory().m_Not == ((ApplicationTerm) t).getFunction();
-    return is;
+    return isFunction(t, t.getTheory().m_Not);
   }
 
   /** t1 => t2 */
   public static boolean isImplication(Term t) {
-    boolean is = (t instanceof ApplicationTerm)
-        && t.getTheory().m_Implies == ((ApplicationTerm) t).getFunction();
-    return is;
+    return isFunction(t, t.getTheory().m_Implies);
   }
 
   /** (ite t1 t2 t3) */
   public static boolean isIfThenElse(Term t) {
-    boolean is = (t instanceof ApplicationTerm)
-        && "ite".equals(((ApplicationTerm) t).getFunction().getName());
-    return is;
+    return isFunction(t, "ite");
+
   }
 
   /** t1 = t2 */
   public static boolean isEqual(Term t) {
-    String name = "=";
-    return isFunction(t, name);
+    return isFunction(t, "=");
   }
 
   public static boolean isFunction(Term t, String name) {
-    boolean is = (t instanceof ApplicationTerm)
+    return (t instanceof ApplicationTerm)
         && name.equals(((ApplicationTerm) t).getFunction().getName());
-    return is;
+  }
+
+  public static boolean isFunction(Term t, FunctionSymbol func) {
+    return (t instanceof ApplicationTerm)
+        && func == ((ApplicationTerm) t).getFunction();
   }
 
   public static Term[] getArgs(Term t) {
@@ -205,13 +197,11 @@ class SmtInterpolUtil {
   }
 
   public static boolean isTrue(Term t) {
-    boolean isTrue = t.getTheory().TRUE == t;
-    return isTrue;
+    return t.getTheory().TRUE == t;
   }
 
   public static boolean isFalse(Term t) {
-    boolean isFalse = t.getTheory().FALSE == t;
-    return isFalse;
+    return t.getTheory().FALSE == t;
   }
 
   /** this function creates a new Term with the same function and new parameters. */
@@ -248,15 +238,11 @@ class SmtInterpolUtil {
         continue;
       }
 
-      if (t instanceof ApplicationTerm &&
-          (t != t.getTheory().TRUE) && (t != t.getTheory().FALSE)) {
+      if (isVariable(t)) {
+        vars.add(t);
+      } else if (t instanceof ApplicationTerm) {
         Term[] params = ((ApplicationTerm) t).getParameters();
-        if (params.length == 0) { // no params --> term is variable
-          vars.add(t);
-
-        } else {
-          Collections.addAll(todo, params);
-        }
+        Collections.addAll(todo, params);
       }
     }
     return toTermArray(vars);

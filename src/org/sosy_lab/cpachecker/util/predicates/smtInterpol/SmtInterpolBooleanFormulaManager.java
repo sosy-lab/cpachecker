@@ -24,10 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
-import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 
@@ -66,8 +64,7 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
 
   @Override
   public Term equivalence(Term t1, Term t2) {
-    Sort booleanSort = env.sort(Type.BOOL);
-    assert t1.getSort() == booleanSort && t2.getSort() == booleanSort :
+    assert SmtInterpolUtil.isBoolean(t1) && SmtInterpolUtil.isBoolean(t2) :
       "Cannot make equivalence of non-boolean terms:\nTerm 1:\n" +
       t1.toStringDirect() + "\nTerm 2:\n" + t2.toStringDirect();
     return env.term("=", t1, t2);
@@ -75,14 +72,12 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
 
   @Override
   public boolean isTrue(Term t) {
-    boolean isTrue = t.getTheory().TRUE == t;
-    return isTrue;
+    return SmtInterpolUtil.isTrue(t);
   }
 
   @Override
   public boolean isFalse(Term t) {
-    boolean isFalse = t.getTheory().FALSE == t;
-    return isFalse;
+    return SmtInterpolUtil.isFalse(t);
   }
 
   @Override
