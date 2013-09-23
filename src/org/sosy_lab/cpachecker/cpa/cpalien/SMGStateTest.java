@@ -35,6 +35,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
 
 
 public class SMGStateTest {
@@ -144,7 +145,7 @@ public class SMGStateTest {
 
     // Add an 16b object and write a 16b value into it
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
-    Integer new_value = SMGValueFactory.getNewValue();
+    SMGKnownSymValue new_value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
     SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, new_value);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
@@ -163,7 +164,7 @@ public class SMGStateTest {
     Assert.assertTrue(values_for_obj.contains(hv));
 
     // Write a *different* 16b value into it and assert that the state *did* change
-    Integer newer_value = SMGValueFactory.getNewValue();
+    SMGKnownSymValue newer_value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
     SMGEdgeHasValue new_hv = state.writeValue(pt.getObject(), 0, mockType16b, newer_value);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
@@ -245,9 +246,9 @@ public class SMGStateTest {
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
-    Integer nonpointer =SMGValueFactory.getNewValue();
+    SMGKnownSymValue nonpointer = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
     state.writeValue(pt.getObject(), 0, mockType16b, nonpointer);
 
-    state.getPointerFromValue(nonpointer);
+    state.getPointerFromValue(nonpointer.getAsInt());
   }
 }

@@ -344,7 +344,7 @@ public class SMGTransferRelation implements TransferRelation {
       CType newType = new CArrayType(false, false, charType,
           new CIntegerLiteralExpression(null, null, BigInteger.valueOf(size)));
 
-      currentState.writeValue(new_pointer.getObject(), 0, newType, 0);
+      currentState.writeValue(new_pointer.getObject(), 0, newType, SMGKnownSymValue.ZERO);
 
       possibleMallocFail = true;
       return new_pointer;

@@ -384,9 +384,8 @@ public class SMGState implements AbstractQueryableState {
    * @param machineModel Currently used Machine Model
    * @throws SMGInconsistentException
    */
-  public SMGEdgeHasValue writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
+  private SMGEdgeHasValue writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
-    //TODO Does this method need to be public?
 
     if (pValue == null) {
       pValue = heap.getNullValue();
