@@ -187,7 +187,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     private void dumpSMGPlot(String name, SMGState currentState, String location)
     {
-      if (exportSMGFilePattern != null) {
+      if (exportSMGFilePattern != null && currentState != null) {
         if (name == null) {
           if (currentState.getPredecessor() == null) {
             name = String.format("initial-%03d", currentState.getId());
@@ -388,7 +388,7 @@ public class SMGTransferRelation implements TransferRelation {
   private void plotWhenConfigured(String pConfig, String pName, SMGState pState, String pLocation ) {
     //TODO: A variation for more pConfigs
 
-    if (pConfig.equals(exportSMG) && pName != null){
+    if (pConfig.equals(exportSMG)){
       builtins.dumpSMGPlot(pName, pState, pLocation);
     }
   }
