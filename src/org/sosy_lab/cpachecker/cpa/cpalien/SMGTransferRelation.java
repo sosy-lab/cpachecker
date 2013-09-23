@@ -120,11 +120,14 @@ public class SMGTransferRelation implements TransferRelation {
   @FileOption(Type.OUTPUT_FILE)
   private File exportSMGFilePattern = new File("smg-%s.dot");
 
-  @Option(name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped. One of: {never, leaf, every}")
+  @Option(name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped. One of: {never, leaf, interesting, every}")
   private String exportSMG = "never";
 
   @Option(name="enableMallocFail", description = "If this Option is enabled, failure of malloc" + "is simulated")
   private boolean enableMallocFailure = true;
+
+  @Option(name="handleUnknownFunctions", description = "Sets how unknown functions are handled. One of: {strict, assume_safe}")
+  private String handleUnknownFunctions = "strict";
 
   final private LogManager logger;
   final private MachineModel machineModel;
@@ -182,7 +185,8 @@ public class SMGTransferRelation implements TransferRelation {
             "malloc",
             "free",
             "memset",
-            "calloc"
+            "calloc",
+            "__VERIFIER_nondet_bool"
         }));
 
     private void dumpSMGPlot(String name, SMGState currentState, String location)
@@ -1665,10 +1669,18 @@ public class SMGTransferRelation implements TransferRelation {
         case "memset":
           SMGEdgePointsTo memsetTargetEdge = builtins.evaluateMemset(pIastFunctionCallExpression, smgState, cfaEdge);
           return createAddress(memsetTargetEdge);
+        case "__VERIFIER_nondet_bool":
+          return SMGUnknownValue.getInstance();
         }
         throw new AssertionError();
       } else {
-        return SMGUnknownValue.getInstance();
+        switch(handleUnknownFunctions) {
+        case "strict":
+          throw new CPATransferException("Unknown function may be unsafe. See the cpa.cpalien.handleUnknownFunction option.");
+        case "assume_safe":
+          return SMGUnknownValue.getInstance();
+        }
+        throw new AssertionError();
       }
     }
   }
@@ -2362,9 +2374,17 @@ public class SMGTransferRelation implements TransferRelation {
           possibleMallocFail = true;
           SMGEdgePointsTo callocEdge = builtins.evaluateCalloc(pIastFunctionCallExpression, smgState, cfaEdge);
           return createAddress(callocEdge);
+        case "__VERIFIER_nondet_bool":
+          return SMGUnknownValue.getInstance();
         }
       } else {
-        return SMGUnknownValue.getInstance();
+        switch(handleUnknownFunctions) {
+        case "strict":
+          throw new CPATransferException("Unknown function may be unsafe. See the cpa.cpalien.handleUnknownFunction option.");
+        case "assume_safe":
+          return SMGUnknownValue.getInstance();
+        }
+        throw new AssertionError();
       }
 
       return SMGUnknownValue.getInstance();

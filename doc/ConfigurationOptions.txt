@@ -491,8 +491,12 @@ cpa.cpalien.enableMallocFail = true
 # Filename format for SMG graph dumps
 cpa.cpalien.exportSMG.file = "smg-%s.dot"
 
-# Describes when SMG graphs should be dumped. One of: {never, leaf, every}
+# Describes when SMG graphs should be dumped. One of: {never, leaf,
+# interesting, every}
 cpa.cpalien.exportSMGwhen = "never"
+
+# Sets how unknown functions are handled. One of: {strict, assume_safe}
+cpa.cpalien.handleUnknownFunctions = "strict"
 
 # Sets the level of runtime checking: NONE, HALF, FULL
 cpa.cpalien.runtimeCheck = NONE
