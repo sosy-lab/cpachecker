@@ -1203,6 +1203,8 @@ public class CompoundState {
           return singleton(0).extendToNegativeInfinity();
         } else if (!containsPositive()) {
           return singleton(0).extendToPositiveInfinity();
+        } else {
+          return top();
         }
       }
       result = result.unionWith(SimpleInterval.singleton(interval.getLowerBound().not()));
