@@ -123,13 +123,7 @@ public class SMGEdgeHasValue extends SMGEdge {
     final int prime = 31;
     int result = super.hashCode();
     result = prime * result + offset;
-    // "Do not use a hashCode() of CType"
-    // result = prime * result + ((type == null) ? 0 : type.hashCode());
-    // TODO: Ugly, ugly, ugly!
-    // I cannot obtain a hashcode of a type, therefore I cannot obtain hashcode
-    // of the Has-Value edge. *Seems* to work not, but is likely to cause
-    // problems in the future. Tread lightly.
-    result = prime * result + ((type == null) ? 0 : System.identityHashCode(type));
+    result = prime * result + ((type == null) ? 0 : type.hashCode());
     return result;
   }
 
