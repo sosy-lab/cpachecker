@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGUnknownValue;
 
 
 public class SMGStateTest {
@@ -197,8 +198,6 @@ public class SMGStateTest {
     Assert.assertFalse(values_for_obj.contains(hv8at8));
   }
 
-  //TODO: This does not pass yet
-  /*
   @Test
   public void WriteReinterpretationNullifiedTest() throws SMGInconsistentException {
     // Empty state
@@ -207,24 +206,33 @@ public class SMGStateTest {
 
     // Add an 16b object and write a 16b zero value into it
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
-    SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, null);
+    SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, SMGKnownSymValue.ZERO);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Check the object values and assert it has only the written 16b value
-    Set<SMGEdgeHasValue> values_for_obj = state.getValuesForObject(pt.getObject());
+    Set<SMGEdgeHasValue> values_for_obj = state.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pt.getObject()));
     Assert.assertEquals(1, values_for_obj.size());
     Assert.assertTrue(values_for_obj.contains(hv));
 
     // Write a 8b value at index 4
     // We should see three Has-Value edges: 4b zero, 8b just written, 4b zero
-    SMGEdgeHasValue hv8at4 = state.writeValue(pt.getObject(), 4, mockType8b, SMGValueFactory.getNewValue());
+    SMGEdgeHasValue hv8at4 = state.writeValue(pt.getObject(), 4, mockType8b, SMGUnknownValue.getInstance());
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
-    values_for_obj = state.getValuesForObject(pt.getObject());
+    values_for_obj = state.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pt.getObject()));
     Assert.assertEquals(3, values_for_obj.size());
     Assert.assertTrue(values_for_obj.contains(hv8at4));
-    // TODO: Checks for presence of two zero edges
+    Assert.assertTrue(values_for_obj.contains(new SMGEdgeHasValue(4, 0, pt.getObject(), 0)));
+    Assert.assertTrue(values_for_obj.contains(new SMGEdgeHasValue(4, 12, pt.getObject(), 0)));
+
+
+    SMGEdgeHasValueFilter nullFilter = SMGEdgeHasValueFilter.objectFilter(pt.getObject()).filterHavingValue(0);
+    Set<SMGEdgeHasValue> nulls_for_value = state.getHVEdges(nullFilter);
+    Assert.assertEquals(2, nulls_for_value.size());
+
+    Assert.assertEquals(1, state.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pt.getObject()).filterHavingValue(0).filterAtOffset(0)).size());
+    Assert.assertEquals(1, state.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pt.getObject()).filterHavingValue(0).filterAtOffset(12)).size());
+
   }
-  */
 
   @Test
   public void getPointerFromValueTest() throws SMGInconsistentException {

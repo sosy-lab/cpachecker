@@ -415,8 +415,23 @@ public class SMGState implements AbstractQueryableState {
 
     // We need to remove all non-zero overlapping edges
     for (SMGEdgeHasValue hv : edges) {
-      if (hv.getValue() != heap.getNullValue() && new_edge.overlapsWith(hv, heap.getMachineModel())) {
+      if (new_edge.overlapsWith(hv, heap.getMachineModel())) {
         heap.removeHasValueEdge(hv);
+        if (hv.getValue() == heap.getNullValue()) {
+          if (hv.getOffset() < new_edge.getOffset()) {
+            int prefixNullSize = new_edge.getOffset() - hv.getOffset();
+            SMGEdgeHasValue prefixNull = new SMGEdgeHasValue(prefixNullSize, hv.getOffset(), pObject, heap.getNullValue());
+            this.heap.addHasValueEdge(prefixNull);
+          }
+
+          int hvEnd = hv.getOffset() + hv.getSizeInBytes(MachineModel.LINUX64);
+          int neEnd = new_edge.getOffset() + new_edge.getSizeInBytes(MachineModel.LINUX64);
+          if (hvEnd > neEnd) {
+            int postfixNullSize = hvEnd - neEnd;
+            SMGEdgeHasValue postfixNull = new SMGEdgeHasValue(postfixNullSize, neEnd, pObject, heap.getNullValue());
+            this.heap.addHasValueEdge(postfixNull);
+          }
+        }
       }
     }
 
