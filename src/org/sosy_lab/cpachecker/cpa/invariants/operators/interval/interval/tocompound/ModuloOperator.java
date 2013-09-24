@@ -39,7 +39,7 @@ enum ModuloOperator implements IICOperator {
 
   @Override
   public CompoundState apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
-    if (pSecondOperand.isTop()) {
+    if (!pSecondOperand.hasLowerBound() || !pSecondOperand.hasUpperBound()) {
       return CompoundState.of(pFirstOperand);
     }
     return CompoundState.of(pFirstOperand).modulo(pSecondOperand.getLowerBound().abs().max(pSecondOperand.getUpperBound().abs()));
