@@ -51,7 +51,13 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -59,6 +65,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.coverage.CoveragePrinter;
+import org.sosy_lab.cpachecker.coverage.CoveragePrinterGcov;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.ProgramCpuTime;
@@ -81,6 +89,16 @@ class MainCPAStatistics implements Statistics {
         description="print reached set to text file")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path outputFile = Paths.get("reached.txt");
+
+    @Option(name="coverage.export",
+        description="print coverage info to file")
+    private boolean exportCoverage = false;
+
+    @Option(name="coverage.file",
+        description="print coverage info to file")
+    @FileOption(FileOption.Type.OUTPUT_FILE)
+    private Path outputCoverageFile = Paths.get("coverage.info");
+    private String originFile;
 
     @Option(name="statistics.memory",
       description="track memory usage of JVM during runtime")
@@ -123,6 +141,7 @@ class MainCPAStatistics implements Statistics {
           logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, some statistics will be missing.");
           programCpuTime = -1;
         }
+        originFile = config.getProperty("analysis.programNames");
     }
 
     public Collection<Statistics> getSubStatistics() {
@@ -209,6 +228,112 @@ class MainCPAStatistics implements Statistics {
         out.println();
 
         printMemoryStatistics(out);
+
+        if (exportCoverage) {
+          printCoverageInfo(reached);
+        }
+    }
+
+    private void printCoverageInfo(ReachedSet reached) {
+      if (cfa == null) {
+        return;
+      }
+
+      if (reached instanceof ForwardingReachedSet) {
+        reached = ((ForwardingReachedSet)reached).getDelegate();
+      }
+
+      CoveragePrinter printer = new CoveragePrinterGcov();
+      Collection<CFANode> locations;
+
+
+      if (reached instanceof LocationMappedReachedSet) {
+        locations = ((LocationMappedReachedSet)reached).getLocations();
+
+      } else {
+        HashMultiset<CFANode> allLocations = HashMultiset.create(from(reached)
+                                                                      .transform(EXTRACT_LOCATION)
+                                                                      .filter(notNull()));
+
+        locations = allLocations.elementSet();
+      }
+
+      //Add information about visited locations
+      for (CFANode node : locations) {
+        printer.addVisitedLine(node.getLineNumber());
+      }
+
+      //Add visited functions
+      Set<String> functions = from(locations).transform(CFAUtils.GET_FUNCTION).toSet();
+      for (String name : functions) {
+        printer.addVisitedFunction(name);
+      }
+
+      for (CFANode node : cfa.getAllNodes()) {
+        if (node.getNumLeavingEdges() == 1 && node.getLeavingEdge(0) instanceof CDeclarationEdge) {
+          //We don't mark all global definitions
+          CDeclarationEdge declEdge = (CDeclarationEdge) node.getLeavingEdge(0);
+          if (declEdge.getDeclaration().isGlobal()) {
+            continue;
+          }
+        }
+
+        //We don't mark last line - "}"
+        if (node instanceof FunctionExitNode) {
+          continue;
+        }
+
+        printer.addExistingLine(node.getLineNumber());
+
+        //This part adds lines, which are only on edges, such as "return" or "goto"
+        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+          CFAEdge pEdge = node.getLeavingEdge(i);
+          if (pEdge instanceof CDeclarationEdge) {
+            continue;
+          }
+          int line = pEdge.getLineNumber();
+          CFANode predessor = pEdge.getPredecessor();
+          CFANode successor = pEdge.getSuccessor();
+
+          if (pEdge instanceof AStatementEdge) {
+            FileLocation location = ((AStatementEdge)pEdge).getStatement().getFileLocation();
+            if (location.getStartingLineNumber() != location.getEndingLineNumber()) {
+              for (int j = location.getStartingLineNumber(); j <= location.getEndingLineNumber(); j++) {
+                printer.addExistingLine(j);
+                if (locations.contains(predessor) && locations.contains(successor)) {
+                  printer.addVisitedLine(j);
+                }
+              }
+            }
+          }
+
+          printer.addExistingLine(line);
+
+          if (locations.contains(predessor) && locations.contains(successor)) {
+            printer.addVisitedLine(line);
+          }
+          if (pEdge instanceof MultiEdge) {
+            for (CFAEdge singleEdge : ((MultiEdge)pEdge).getEdges()) {
+              if (singleEdge instanceof CDeclarationEdge) {
+                continue;
+              }
+              line = singleEdge.getLineNumber();
+              printer.addExistingLine(line);
+              if (locations.contains(predessor) && locations.contains(successor)) {
+                printer.addVisitedLine(line);
+              }
+            }
+          }
+        }
+      }
+
+      //Now collect information about all functions
+      for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+        printer.addExistingFunction(entryNode.getFunctionName(), entryNode.getLineNumber()
+            , entryNode.getExitNode().getLineNumber());
+      }
+
+      printer.print(outputCoverageFile.toString(), originFile);
     }
 
     private void dumpReachedSet(ReachedSet reached) {
