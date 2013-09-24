@@ -404,7 +404,9 @@ function createColumnToggleView() {
 
 // shows a table with statistics
 // @param statisticsRow: which statistic to show?
-function createStatsView(statisticsRow) {
+function createStatsView(statistics, currentIndex) {
+
+    var statisticsRow = statistics[currentIndex];
 
     // collect all columns
     var columnTitles = [];
@@ -418,6 +420,11 @@ function createStatsView(statisticsRow) {
     var originalCell = $(statisticsRow.cells[0])
     $('<td>').text(originalCell.text())
              .appendTo(rowHeader)
+             .addClass('clickable')
+             .click(function(event) { // iterate through statistics
+                 $('#contentPaneBackground').click(); // cleanup
+                 createStatsView(statistics, (currentIndex + 1) % statistics.length);
+             } )
              .attr('title', originalCell.attr('title'));
 
      // create column-title-cells
@@ -464,10 +471,11 @@ $(document).ready(function() {
     .click(function (event) {
         return createColumnToggleView(); });
   
-  $('.statistics').each(function(index, statisticsRow) {
+  var statistics = $('.statistics');
+  statistics.each(function(index, statisticsRow) {
             $(statisticsRow).find(':first')
                 .addClass('clickable')
-                .click(function (event) { return createStatsView(statisticsRow); });
+                .click(function (event) { return createStatsView(statistics, index); });
        });
 });
 </script>
