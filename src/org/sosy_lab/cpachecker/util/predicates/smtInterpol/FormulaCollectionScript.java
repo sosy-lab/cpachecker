@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
+import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Assignments;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
@@ -146,13 +147,34 @@ class FormulaCollectionScript implements Script {
 
   @Override
   public Term term(String funcname, Term... params) throws SMTLIBException {
-    return script.term(funcname, params);
+    Term result = script.term(funcname, params);
+    return replaceWithDefinition(result);
   }
 
   @Override
   public Term term(String funcname, BigInteger[] indices,
       Sort returnSort, Term... params) throws SMTLIBException {
-    return script.term(funcname, indices, returnSort, params);
+    Term result = script.term(funcname, indices, returnSort, params);
+    return replaceWithDefinition(result);
+  }
+
+  private Term replaceWithDefinition(Term result) {
+    // Replace a term with its definition so that we do not have to handle defined terms later on.
+    if (result instanceof ApplicationTerm) {
+      FunctionSymbol func = ((ApplicationTerm)result).getFunction();
+      if (!func.isIntern()
+          && func.getDefinition() != null) {
+        if (func.getParameterCount() == 0) {
+          result = func.getDefinition();
+        } else {
+          // If we would accept this here,
+          // we would need to handle the definition of a term
+          // when accessing its parameters with SmtInterpolUtil.getArg()
+          throw new SMTLIBException("Terms with definitions are not supported currently.");
+        }
+      }
+    }
+    return result;
   }
 
   @Override

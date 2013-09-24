@@ -51,7 +51,6 @@ import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.PrintTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
-import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 
 class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
@@ -142,21 +141,10 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
             out.append(")\n");
 
           } else {
-            out.append("(define-fun ");
-            out.append(PrintTerm.quoteIdentifier(func.getName()));
-            out.append(" (");
-            for (TermVariable paramVar : func.getDefinitionVars()) {
-              out.append('(');
-              termPrinter.append(out, paramVar);
-              out.append(' ');
-              termPrinter.append(out, paramVar.getSort());
-              out.append(')');
-            }
-            out.append(") ");
-            termPrinter.append(out, func.getReturnSort());
-            out.append(' ');
-            termPrinter.append(out, func.getDefinition());
-            out.append(")\n");
+            // We would have to print a (define-fun) command and
+            // recursively traverse into func.getDefinition() (in post-order!).
+            // However, such terms should actually not occur.
+            throw new IllegalArgumentException("Terms with definition are unsupported.");
           }
         }
 
