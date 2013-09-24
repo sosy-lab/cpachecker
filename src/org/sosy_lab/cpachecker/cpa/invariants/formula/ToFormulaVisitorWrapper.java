@@ -42,6 +42,7 @@ public class ToFormulaVisitorWrapper<ConstantType, FormulaType> extends Paramete
   }
 
   public void setInner(ToFormulaVisitor<ConstantType, FormulaType> pToWrap) {
+    super.setInner(pToWrap);
     this.wrapped = pToWrap;
   }
 
