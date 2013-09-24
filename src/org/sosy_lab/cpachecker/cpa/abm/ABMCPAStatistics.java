@@ -27,8 +27,10 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
 import java.io.PrintStream;
+import java.util.Collection;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
@@ -93,6 +95,18 @@ class ABMCPAStatistics implements Statistics {
       out.println("Compute path for refinement:                                    " + refiner.computePathTimer);
       out.println("  Constructing flat ARG:                                        " + refiner.computeSubtreeTimer);
       out.println("  Searching path to error location:                             " + refiner.computeCounterexampleTimer);
+    }
+
+    //Add to reached set all states from abm cache
+    Collection<ReachedSet> cachedStates = transferRelation.getCachedReachedSet();
+    for (ReachedSet set : cachedStates) {
+      for (AbstractState state : set.asCollection()) {
+        /* Method 'add' add state not only in list of reached states, but also in waitlist,
+         * so we should delete it.
+         */
+        reached.add(state, set.getPrecision(state));
+        reached.removeOnlyFromWaitlist(state);
+      }
     }
   }
 
