@@ -362,6 +362,14 @@ class SmtInterpolEnvironment {
     }
   }
 
+  public Iterable<Term[]> checkAllSat(Term[] importantPredicates) {
+    try {
+      return script.checkAllsat(importantPredicates);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
   /** This function returns a map,
    * that contains assignments term->term for all terms in terms. */
   public Map<Term, Term> getValue(Term[] terms) {
