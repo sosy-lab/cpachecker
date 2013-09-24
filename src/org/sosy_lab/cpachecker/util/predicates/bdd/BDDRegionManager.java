@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
@@ -467,14 +469,27 @@ public class BDDRegionManager implements RegionManager {
       return operand1.applyWith(operand2, operator);
     }
 
-    @Override
-    public BDD visitAnd(BooleanFormula pOperand1, BooleanFormula pOperand2) {
-      return visitBinary(pOperand1, pOperand2, BDDFactory.and);
+    private BDD visitMulti(BDDFactory.BDDOp operator, BooleanFormula... pOperands) {
+      checkArgument(pOperands.length >= 2);
+
+      BDD result = convert(pOperands[0]);
+      for (int i = 1; i < pOperands.length; i++) {
+        // optimization: applyWith() destroys arg0 and arg1,
+        // but this is ok, because we would free them otherwise anyway
+        result = result.applyWith(convert(pOperands[i]), operator);
+      }
+
+      return result;
     }
 
     @Override
-    public BDD visitOr(BooleanFormula pOperand1, BooleanFormula pOperand2) {
-      return visitBinary(pOperand1, pOperand2, BDDFactory.or);
+    public BDD visitAnd(BooleanFormula... pOperands) {
+      return visitMulti(BDDFactory.and, pOperands);
+    }
+
+    @Override
+    public BDD visitOr(BooleanFormula... pOperands) {
+      return visitMulti(BDDFactory.or, pOperands);
     }
 
     @Override

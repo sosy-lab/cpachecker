@@ -876,8 +876,8 @@ public class PredicateAbstractionManager {
     }
 
     @Override
-    protected BooleanFormula visitOr(BooleanFormula pOperand1, BooleanFormula pOperand2) {
-      return pOperand1;
+    protected BooleanFormula visitOr(BooleanFormula... pOperands) {
+      return pOperands[0];
     }
   }
 }

@@ -187,10 +187,12 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
 
     public final R visit(BooleanFormula f) {
       if (bfmgr.isTrue(f)) {
+        assert unsafe.getArity(f) == 0;
         return visitTrue();
       }
 
       if (bfmgr.isFalse(f)) {
+        assert unsafe.getArity(f) == 0;
         return visitFalse();
       }
 
@@ -199,25 +201,31 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
       }
 
       if (bfmgr.isNot(f)) {
+        assert unsafe.getArity(f) == 1;
         return visitNot(getArg(f, 0));
       }
 
       if (bfmgr.isAnd(f)) {
-        return visitAnd(getArg(f, 0), getArg(f, 1));
+        assert unsafe.getArity(f) >= 2;
+        return visitAnd(getAllArgs(f));
       }
       if (bfmgr.isOr(f)) {
-        return visitOr(getArg(f, 0), getArg(f, 1));
+        assert unsafe.getArity(f) >= 2;
+        return visitOr(getAllArgs(f));
       }
 
       if (bfmgr.isEquivalence(f)) {
+        assert unsafe.getArity(f) == 2;
         return visitEquivalence(getArg(f, 0), getArg(f, 1));
       }
 
       if (bfmgr.isImplication(f)) {
+        assert unsafe.getArity(f) == 2;
         return visitImplication(getArg(f, 0), getArg(f, 1));
       }
 
       if (bfmgr.isIfThenElse(f)) {
+        assert unsafe.getArity(f) == 3;
         return visitIfThenElse(getArg(f, 0), getArg(f, 1), getArg(f, 2));
       }
 
@@ -228,12 +236,21 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
       return unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, i));
     }
 
+    private final BooleanFormula[] getAllArgs(BooleanFormula pF) {
+      int arity = unsafe.getArity(pF);
+      BooleanFormula[] args = new BooleanFormula[arity];
+      for (int i = 0; i < arity; i++) {
+        args[i] = getArg(pF, i);
+      }
+      return args;
+    }
+
     protected abstract R visitTrue();
     protected abstract R visitFalse();
     protected abstract R visitAtom(BooleanFormula atom);
     protected abstract R visitNot(BooleanFormula operand);
-    protected abstract R visitAnd(BooleanFormula operand1, BooleanFormula operand2);
-    protected abstract R visitOr(BooleanFormula operand1, BooleanFormula operand2);
+    protected abstract R visitAnd(BooleanFormula... operands);
+    protected abstract R visitOr(BooleanFormula... operand);
     protected abstract R visitEquivalence(BooleanFormula operand1, BooleanFormula operand2);
     protected abstract R visitImplication(BooleanFormula operand1, BooleanFormula operand2);
     protected abstract R visitIfThenElse(BooleanFormula condition, BooleanFormula thenFormula, BooleanFormula elseFormula);
@@ -266,12 +283,12 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     }
 
     @Override
-    protected R visitAnd(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+    protected R visitAnd(BooleanFormula... pOperands) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    protected R visitOr(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+    protected R visitOr(BooleanFormula... pOperands) {
       throw new UnsupportedOperationException();
     }
 
