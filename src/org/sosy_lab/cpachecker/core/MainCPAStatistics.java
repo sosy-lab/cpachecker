@@ -93,18 +93,18 @@ class MainCPAStatistics implements Statistics {
 
     @Option(name="coverage.export",
         description="print coverage info to file")
-    private boolean exportCoverage = false;
+    private boolean exportCoverage = true;
 
     @Option(name="coverage.file",
         description="print coverage info to file")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path outputCoverageFile = Paths.get("coverage.info");
-    private String originFile;
 
     @Option(name="statistics.memory",
       description="track memory usage of JVM during runtime")
     private boolean monitorMemoryUsage = true;
 
+    private final String programNames;
     private final LogManager logger;
     private final Collection<Statistics> subStats;
     private final MemoryStatistics memStats;
@@ -120,9 +120,10 @@ class MainCPAStatistics implements Statistics {
     private Statistics cfaCreatorStatistics;
     private CFA cfa;
 
-    public MainCPAStatistics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+    public MainCPAStatistics(Configuration config, LogManager pLogger, String pProgramNames) throws InvalidConfigurationException {
         logger = pLogger;
         config.inject(this);
+        programNames = pProgramNames;
 
         subStats = new ArrayList<>();
 
@@ -142,7 +143,6 @@ class MainCPAStatistics implements Statistics {
           logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, some statistics will be missing.");
           programCpuTime = -1;
         }
-        originFile = config.getProperty("analysis.programNames");
     }
 
     public Collection<Statistics> getSubStatistics() {
@@ -205,6 +205,10 @@ class MainCPAStatistics implements Statistics {
         if (result != Result.NOT_YET_STARTED) {
           dumpReachedSet(reached);
 
+          if (exportCoverage && outputCoverageFile != null) {
+            printCoverageInfo(reached);
+          }
+
           printSubStatistics(out, result, reached);
         }
 
@@ -229,10 +233,6 @@ class MainCPAStatistics implements Statistics {
         out.println();
 
         printMemoryStatistics(out);
-
-        if (exportCoverage) {
-          printCoverageInfo(reached);
-        }
     }
 
     private void printCoverageInfo(ReachedSet reached) {
@@ -240,34 +240,14 @@ class MainCPAStatistics implements Statistics {
         return;
       }
 
-      if (reached instanceof ForwardingReachedSet) {
-        reached = ((ForwardingReachedSet)reached).getDelegate();
-      }
+      Set<CFANode> locations = getAllLocationsFromReached(reached);
 
       CoveragePrinter printer = new CoveragePrinterGcov();
-      Collection<CFANode> locations;
 
-
-      if (reached instanceof LocationMappedReachedSet) {
-        locations = ((LocationMappedReachedSet)reached).getLocations();
-
-      } else {
-        HashMultiset<CFANode> allLocations = HashMultiset.create(from(reached)
-                                                                      .transform(EXTRACT_LOCATION)
-                                                                      .filter(notNull()));
-
-        locations = allLocations.elementSet();
-      }
-
-      //Add information about visited locations
+      //Add information about visited locations and functions
       for (CFANode node : locations) {
         printer.addVisitedLine(node.getLineNumber());
-      }
-
-      //Add visited functions
-      Set<String> functions = from(locations).transform(CFAUtils.GET_FUNCTION).toSet();
-      for (String name : functions) {
-        printer.addVisitedFunction(name);
+        printer.addVisitedFunction(node.getFunctionName());
       }
 
       for (CFANode node : cfa.getAllNodes()) {
@@ -287,8 +267,7 @@ class MainCPAStatistics implements Statistics {
         printer.addExistingLine(node.getLineNumber());
 
         //This part adds lines, which are only on edges, such as "return" or "goto"
-        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-          CFAEdge pEdge = node.getLeavingEdge(i);
+        for (CFAEdge pEdge : CFAUtils.leavingEdges(node)) {
           if (pEdge instanceof CDeclarationEdge) {
             continue;
           }
@@ -334,7 +313,26 @@ class MainCPAStatistics implements Statistics {
             , entryNode.getExitNode().getLineNumber());
       }
 
-      printer.print(outputCoverageFile.toString(), originFile);
+      try (Writer out = Files.openOutputFile(outputCoverageFile)) {
+        printer.print(out, programNames);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
+      }
+    }
+
+    private Set<CFANode> getAllLocationsFromReached(ReachedSet reached) {
+      if (reached instanceof ForwardingReachedSet) {
+        reached = ((ForwardingReachedSet)reached).getDelegate();
+      }
+      if (reached instanceof LocationMappedReachedSet) {
+        return ((LocationMappedReachedSet)reached).getLocations();
+
+      } else {
+        return from(reached)
+                    .transform(EXTRACT_LOCATION)
+                    .filter(notNull())
+                    .toSet();
+      }
     }
 
     private void dumpReachedSet(ReachedSet reached) {

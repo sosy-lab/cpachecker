@@ -158,7 +158,7 @@ public class CPAchecker {
     Result result = Result.NOT_YET_STARTED;
 
     try {
-      stats = new MainCPAStatistics(config, logger);
+      stats = new MainCPAStatistics(config, logger, programDenotation);
 
       // create reached set, cpa, algorithm
       stats.creationTime.start();

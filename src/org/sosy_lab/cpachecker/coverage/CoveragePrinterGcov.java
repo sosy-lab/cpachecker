@@ -24,23 +24,23 @@
 package org.sosy_lab.cpachecker.coverage;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 /**
- *
+ * Generate coverage information in Gcov format
+ * (http://gcc.gnu.org/onlinedocs/gcc/Gcov.html).
  */
 public class CoveragePrinterGcov implements CoveragePrinter {
 
-  class FunctionInfo {
-    final String name;
-    final int firstLine;
-    final int lastLine;
+  private static class FunctionInfo {
+    private final String name;
+    private final int firstLine;
+    private final int lastLine;
 
     FunctionInfo(String pName, int pFirstLine, int pLastLine) {
       name = pName;
@@ -49,11 +49,11 @@ public class CoveragePrinterGcov implements CoveragePrinter {
     }
   }
 
-  Set<Integer> visitedLines;
-  Set<Integer> allLines;
-  Set<String> visitedFunctions;
-  Set<FunctionInfo> allFunctions;
-  Map<Integer, String> functionBeginnings;
+  private final BitSet visitedLines = new BitSet();
+  private final Set<Integer> allLines = new HashSet<>();
+  private final Set<String> visitedFunctions = new HashSet<>();
+  private final Set<FunctionInfo> allFunctions = new HashSet<>();
+  private final Map<Integer, String> functionBeginnings = new HashMap<>();
 
   //String constants from gcov format
   private final static String TEXTNAME = "TN:";
@@ -61,14 +61,6 @@ public class CoveragePrinterGcov implements CoveragePrinter {
   private final static String FUNCTION = "FN:";
   private final static String FUNCTIONDATA = "FNDA:";
   private final static String LINEDATA = "DA:";
-
-  public CoveragePrinterGcov() {
-    visitedLines = new HashSet<>();
-    allLines = new HashSet<>();
-    visitedFunctions = new HashSet<>();
-    allFunctions = new HashSet<>();
-    functionBeginnings = new HashMap<>();
-  }
 
   @Override
   public void addVisitedFunction(String pName) {
@@ -84,7 +76,7 @@ public class CoveragePrinterGcov implements CoveragePrinter {
   @Override
   public void addVisitedLine(int pLine) {
     if (pLine > 0) {
-      visitedLines.add(pLine);
+      visitedLines.set(pLine);
     }
   }
 
@@ -95,67 +87,38 @@ public class CoveragePrinterGcov implements CoveragePrinter {
     }
   }
 
-  private void createDir(File file) throws IOException {
-    File previousDir = file.getParentFile();
-    if (!previousDir.exists()) {
-      createDir(previousDir);
-    }
-    file.mkdir();
-  }
-
   @Override
-  public void print(String outputFile, String originFile) {
-    try {
-      File file = new File(outputFile);
-      if (!file.exists()) {
-        File previousDir = file.getParentFile();
-        if (!previousDir.exists()) {
-          createDir(previousDir);
-        }
-        file.createNewFile();
-      }
+  public void print(Appendable out, String originFile) throws IOException {
+    //Convert ./test.c -> /full/path/test.c
+    out.append(TEXTNAME + "\n");
+    out.append(SOURCEFILE + new File(originFile).getAbsolutePath() + "\n");
 
-      PrintWriter out = new PrintWriter(outputFile);
-
-      //Convert ./test.c -> /full/path/test.c
-      file = new File(originFile);
-      out.println(TEXTNAME);
-      out.println(SOURCEFILE + file.getAbsolutePath());
-
-      for (FunctionInfo info : allFunctions) {
-        out.println(FUNCTION + info.firstLine + "," + info.name);
-        //Information about function end isn't used by lcov, but it is useful for some postprocessing
-        //But lcov ignores all unknown lines, so, this additional information can't affect on its work
-        out.println("#" + FUNCTION + info.lastLine);
-      }
-
-      for (String name : visitedFunctions) {
-        out.println(FUNCTIONDATA + "1," + name);
-      }
-
-      /* Now save information about lines
-       */
-      for (Integer line : allLines) {
-        /* Some difficulties: all function beginnings are visited at the beginning of analysis
-         * without entering function.
-         * So, we should mark these lines, as visited, if the function is really visited later.
-         */
-        String functionName;
-        if ((functionName = functionBeginnings.get(line)) != null) {
-          //We should mark it, as visited, if the function is analyzed
-          out.println(LINEDATA + line + "," + (visitedFunctions.contains(functionName) ? 1 : 0));
-        } else {
-          out.println(LINEDATA + line + "," + (visitedLines.contains(line) ? 1 : 0));
-        }
-      }
-      out.println("end_of_record");
-      out.close();
-    } catch(FileNotFoundException e) {
-      System.err.println("Cannot open output file " + outputFile);
-    } catch(IOException e) {
-      System.err.println("Cannot create file " + outputFile + ": " + e.getMessage());
+    for (FunctionInfo info : allFunctions) {
+      out.append(FUNCTION + info.firstLine + "," + info.name + "\n");
+      //Information about function end isn't used by lcov, but it is useful for some postprocessing
+      //But lcov ignores all unknown lines, so, this additional information can't affect on its work
+      out.append("#" + FUNCTION + info.lastLine + "\n");
     }
+
+    for (String name : visitedFunctions) {
+      out.append(FUNCTIONDATA + "1," + name + "\n");
+    }
+
+    /* Now save information about lines
+     */
+    for (Integer line : allLines) {
+      /* Some difficulties: all function beginnings are visited at the beginning of analysis
+       * without entering function.
+       * So, we should mark these lines, as visited, if the function is really visited later.
+       */
+      String functionName;
+      if ((functionName = functionBeginnings.get(line)) != null) {
+        //We should mark it, as visited, if the function is analyzed
+        out.append(LINEDATA + line + "," + (visitedFunctions.contains(functionName) ? 1 : 0) + "\n");
+      } else {
+        out.append(LINEDATA + line + "," + (visitedLines.get(line) ? 1 : 0) + "\n");
+      }
+    }
+    out.append("end_of_record\n");
   }
-
-
 }

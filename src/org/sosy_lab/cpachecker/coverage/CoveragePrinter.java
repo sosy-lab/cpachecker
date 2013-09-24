@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.coverage;
 
+import java.io.IOException;
+
 
 /**
  * Interface for printers information about coverage
@@ -37,5 +39,5 @@ public interface CoveragePrinter {
 
   public void addExistingLine(int line);
 
-  public void print(String file, String origin);
+  public void print(Appendable out, String originFile) throws IOException;
 }
