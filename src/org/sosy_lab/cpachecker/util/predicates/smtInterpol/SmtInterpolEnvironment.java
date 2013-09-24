@@ -195,8 +195,14 @@ class SmtInterpolEnvironment {
     return logger;
   }
 
-  public Term getTrueTerm() { return theory.TRUE; }
-  public Term getFalseTerm() { return theory.FALSE; }
+  /**
+   * Be careful when accessing the Theory directly,
+   * because operations on it won't be caught by the LoggingScript.
+   * It is ok to create terms using the Theory, not to define them or call checkSat.
+   */
+  Theory getTheory() {
+    return theory;
+  }
 
   /**  This function creates a filename with following scheme:
        first filename is unchanged, then a number is appended */

@@ -25,26 +25,23 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
-import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
+import de.uni_freiburg.informatik.ultimate.logic.Theory;
 
 
 class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Term> {
 
   private SmtInterpolFormulaCreator creator;
-  private SmtInterpolEnvironment env;
 
-  SmtInterpolBooleanFormulaManager(
-      SmtInterpolFormulaCreator creator) {
+  // We use the Theory directly here because the methods there perform simplifications
+  // that we could not use otherwise.
+  private final Theory theory;
+
+  SmtInterpolBooleanFormulaManager(SmtInterpolFormulaCreator creator, Theory pTheory) {
     super(creator);
     this.creator = creator;
-    this.env = creator.getEnv();
+    theory = pTheory;
   }
-
-  public static SmtInterpolBooleanFormulaManager create(SmtInterpolFormulaCreator creator) {
-    return new SmtInterpolBooleanFormulaManager(creator);
-  }
-
 
   @Override
   public Term makeVariableImpl(String varName) {
@@ -55,9 +52,9 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
   public Term makeBooleanImpl(boolean pValue) {
     Term t ;
     if (pValue) {
-      t = env.getTrueTerm();
+      t = theory.TRUE;
     } else {
-      t = env.getFalseTerm();
+      t = theory.FALSE;
     }
     return t;
   }
@@ -67,7 +64,7 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
     assert SmtInterpolUtil.isBoolean(t1) && SmtInterpolUtil.isBoolean(t2) :
       "Cannot make equivalence of non-boolean terms:\nTerm 1:\n" +
       t1.toStringDirect() + "\nTerm 2:\n" + t2.toStringDirect();
-    return env.term("=", t1, t2);
+    return theory.equals(t1, t2);
   }
 
   @Override
@@ -82,42 +79,27 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
 
   @Override
   public Term ifThenElse(Term condition, Term t1, Term t2) {
-    return env.term("ite", condition, t1, t2);
+    return theory.ifthenelse(condition, t1, t2);
   }
 
   @Override
   public Term not(Term pBits) {
-    // simplify term (not not t)
-    if (isNot(pBits)) {
-      return ((ApplicationTerm) pBits).getParameters()[0];
-    } else {
-      return env.term("not", pBits);
-    }
+    return theory.not(pBits);
   }
 
   @Override
   public Term and(Term pBits1, Term pBits2) {
-
-    if (pBits1 == pBits2) { return pBits1;}
-    Term trueTerm = env.getTrueTerm();
-    if (pBits1 == trueTerm) { return pBits2;}
-    if (pBits2 == trueTerm) { return pBits1;}
-    Term t = env.term("and", pBits1, pBits2);
-    return SmtInterpolUtil.simplify(env, t);
+    return theory.and(pBits1, pBits2);
   }
 
   @Override
   public Term or(Term pBits1, Term pBits2) {
-    Term falseTerm = env.getFalseTerm();
-    if (pBits1 == falseTerm) { return pBits2;}
-    if (pBits2 == falseTerm) { return pBits1;}
-    Term t = env.term("or", pBits1, pBits2);
-    return SmtInterpolUtil.simplify(env, t);
+    return theory.or(pBits1, pBits2);
   }
 
   @Override
   public Term xor(Term pBits1, Term pBits2) {
-    return not(env.term("=", pBits1, pBits2));
+    return theory.xor(pBits1, pBits2);
   }
 
   @Override
@@ -137,12 +119,7 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
 
   @Override
   public boolean isXor(Term pBits) {
-    boolean isNot = SmtInterpolUtil.isNot(pBits);
-    if (!isNot) {
-      return false;
-    }
-    Term arg = SmtInterpolUtil.getArg(pBits, 0);
-    return SmtInterpolUtil.isEqual(arg);
+    return SmtInterpolUtil.isXor(pBits);
   }
 
   @Override
