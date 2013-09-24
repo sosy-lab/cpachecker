@@ -56,6 +56,17 @@ class SmtInterpolUtil {
         && ((ApplicationTerm) t).getFunction().getDefinition() == null;
   }
 
+  public static boolean isUIF(Term t) {
+    if (!(t instanceof ApplicationTerm)) {
+      return false;
+    }
+    FunctionSymbol func = ((ApplicationTerm) t).getFunction();
+    return (t instanceof ApplicationTerm)
+        && ((ApplicationTerm) t).getParameters().length > 0
+        && !func.isIntern()
+        && !func.isInterpreted();
+  }
+
   /** check for ConstantTerm with Number or
    * ApplicationTerm with negative Number */
   public static boolean isNumber(Term t) {

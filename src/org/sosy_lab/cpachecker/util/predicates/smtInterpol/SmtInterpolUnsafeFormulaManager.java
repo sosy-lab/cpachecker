@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
@@ -35,7 +33,6 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term> {
 
-  private final Set<Term> uifs = new HashSet<>();
   private final SmtInterpolEnvironment env;
   private final SmtInterpolFormulaCreator creator;
 
@@ -81,14 +78,14 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term>
 
   @Override
   public boolean isUF(Term t) {
-    return uifs.contains(t);
+    return SmtInterpolUtil.isUIF(t);
   }
 
   @Override
   public String getName(Term t) {
-    if (SmtInterpolUtil.isVariable(t)) {
+    if (isVariable(t)) {
       return dequote(t.toString());
-    } else if (uifs.contains(t)) {
+    } else if (isUF(t)) {
       return ((ApplicationTerm)t).getFunction().toString();
     } else {
       throw new IllegalArgumentException("The Term " + t + " has no name!");
@@ -103,9 +100,9 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term>
   @Override
   public Term replaceName(Term t, String pNewName) {
 
-    if (SmtInterpolUtil.isVariable(t)) {
+    if (isVariable(t)) {
       return creator.makeVariable(t.getSort(), pNewName);
-    } else if (uifs.contains(t)) {
+    } else if (isUF(t)) {
       ApplicationTerm at = (ApplicationTerm) t;
       Term[] args = at.getParameters();
       Sort[] sorts = new Sort[args.length];
@@ -121,7 +118,7 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term>
 
   Term createUIFCallImpl(String funcDecl, Term[] args) {
     Term ufc = env.term(funcDecl, args);
-    uifs.add(ufc);
+    assert SmtInterpolUtil.isUIF(ufc);
     return ufc;
   }
 
