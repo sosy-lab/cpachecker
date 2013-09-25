@@ -268,6 +268,20 @@ public class VariableClassification {
     }
   }
 
+  public Multimap<String, String> getVariablesOfExpression(CFAEdge scopeOf, CExpression expr) {
+    Multimap<String, String> result = LinkedHashMultimap.create();
+    CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
+
+    expr.accept(collector);
+
+    for (CIdExpression id: collector.getReferencedIdExpressions()) {
+      Pair<String, String> assignToVar = idExpressionToVarPair(scopeOf, id);
+      result.put(assignToVar.getFirst(), assignToVar.getSecond());
+    }
+
+    return result;
+  }
+
   private void collectLoopCondVars() {
     for (String key : loopStructure.keySet()) {
       ImmutableCollection<Loop> localLoops = loopStructure.get(key);
@@ -275,12 +289,8 @@ public class VariableClassification {
         // Get all variables that are used in exit-conditions
         for (CFAEdge e : l.getOutgoingEdges()) {
           if (e instanceof CAssumeEdge) {
-            CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
-            ((CAssumeEdge) e).getExpression().accept(collector);
-            for (CIdExpression id: collector.getReferencedIdExpressions()) {
-              Pair<String, String> assignToVar = idExpressionToVarPair(e, id);
-              loopExitConditionVariables.put(assignToVar.getFirst(), assignToVar.getSecond());
-            }
+            CExpression expr = ((CAssumeEdge) e).getExpression();
+            loopExitConditionVariables.putAll(getVariablesOfExpression(e, expr));
           }
         }
 
@@ -349,6 +359,15 @@ public class VariableClassification {
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write variable type mapping to file");
     }
+  }
+
+  /**
+   * Possible loop variables of the program
+   * in form of a collection of (functionName, varNames)
+   */
+  public Multimap<String, String> getLoopExitConditionVariables() {
+    build();
+    return loopExitConditionVariables;
   }
 
   /** This function returns a collection of (functionName, varNames).
@@ -767,7 +786,13 @@ public class VariableClassification {
     }
   }
 
-  private Pair<String, String> idExpressionToVarPair(CFAEdge scopeOf, CIdExpression id) {
+  /**
+   * Returns a pair of (function, variable) for a given IdExpression.
+   * @param scopeOf Used to determine the scope of the variable.
+   * @param id      The IdExpression
+   * @return
+   */
+  public Pair<String, String> idExpressionToVarPair(CFAEdge scopeOf, CIdExpression id) {
     String function = isGlobal(id) ? null : scopeOf.getPredecessor().getFunctionName();
     String name = id.getName();
     return Pair.of(function, name);
