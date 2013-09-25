@@ -130,21 +130,21 @@ public class ARGUtils {
   }
 
 
-  static final Function<ARGState, Collection<ARGState>> CHILDREN_OF_STATE = new Function<ARGState, Collection<ARGState>>() {
+  public static final Function<ARGState, Collection<ARGState>> CHILDREN_OF_STATE = new Function<ARGState, Collection<ARGState>>() {
         @Override
         public Collection<ARGState> apply(ARGState pInput) {
           return pInput.getChildren();
         }
       };
 
-  static final Function<ARGState, Collection<ARGState>> PARENTS_OF_STATE = new Function<ARGState, Collection<ARGState>>() {
+  public static final Function<ARGState, Collection<ARGState>> PARENTS_OF_STATE = new Function<ARGState, Collection<ARGState>>() {
         @Override
         public Collection<ARGState> apply(ARGState pInput) {
           return pInput.getParents();
         }
       };
 
-  private static final Predicate<AbstractState> AT_RELEVANT_LOCATION = Predicates.compose(
+  public static final Predicate<AbstractState> AT_RELEVANT_LOCATION = Predicates.compose(
       new Predicate<CFANode>() {
         @Override
         public boolean apply(CFANode pInput) {
@@ -155,7 +155,7 @@ public class ARGUtils {
       },
       AbstractStates.EXTRACT_LOCATION);
 
-  static final Predicate<ARGState> RELEVANT_STATE = Predicates.or(
+  public static final Predicate<ARGState> RELEVANT_STATE = Predicates.or(
       AbstractStates.IS_TARGET_STATE,
       AT_RELEVANT_LOCATION
       );
@@ -172,7 +172,7 @@ public class ARGUtils {
    * @param root The start of the subgraph of the ARG to project (always considered relevant).
    * @param isRelevant The predicate determining which states are in the resulting relationship.
    */
-  static SetMultimap<ARGState, ARGState> projectARG(final ARGState root,
+  public static SetMultimap<ARGState, ARGState> projectARG(final ARGState root,
       final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
       Predicate<? super ARGState> isRelevant) {
 

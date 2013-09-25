@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.LoopInvariantsWriter;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -95,12 +96,18 @@ class PredicateCPAStatistics extends AbstractStatistics {
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path invariantPrecisionsFile = Paths.get("invariantPrecs.txt");
 
+    @Option(description="file that consists of one abstraction formula for each abstraction state",
+        name="abstractions.file")
+    @FileOption(FileOption.Type.OUTPUT_FILE)
+    private Path abstractionsFile = Paths.get("abstractions.txt");
+
     private final PredicateCPA cpa;
     private final BlockOperator blk;
     private final RegionManager rmgr;
     private final AbstractionManager absmgr;
     private final PredicateMapWriter precisionWriter;
     private final LoopInvariantsWriter loopInvariantsWriter;
+    private final PredicateAbstractionsWriter abstractionsWriter;
 
     private final Timer invariantGeneratorTime;
 
@@ -116,6 +123,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
 
       loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, cpa.getFormulaManager(), pRmgr);
+      abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), pAbsmgr, cpa.getFormulaManager());
 
       if (exportPredmap && predmapFile != null) {
         precisionWriter = new PredicateMapWriter(cpa.getConfiguration(), cpa.getFormulaManager());
@@ -212,7 +220,11 @@ class PredicateCPAStatistics extends AbstractStatistics {
       int allDistinctPreds = absmgr.getNumberOfPredicates();
 
       if (result == Result.SAFE && exportInvariants && invariantsFile != null) {
-        loopInvariantsWriter.exportInvariants(invariantsFile, reached);
+        loopInvariantsWriter.exportLoopInvariants(invariantsFile, reached);
+      }
+
+      if (abstractionsFile != null) {
+        abstractionsWriter.writeAbstractions(abstractionsFile, reached);
       }
 
       if (exportInvariantsAsPrecision && invariantPrecisionsFile != null) {
