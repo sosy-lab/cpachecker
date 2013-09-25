@@ -26,14 +26,25 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 
 public class PredicateAbstractionsParser {
@@ -56,32 +67,120 @@ public class PredicateAbstractionsParser {
     }
   }
 
-  private final Path inputFilePath;
-  private AbstractionNode rootAbstractionNode = null;
-  private ImmutableMultimap<AbstractionNode, AbstractionNode> abstractionTree = null;
+  private static final Pattern NODE_DECLARATION_PATTERN = Pattern.compile("^[0-9]+[ ]*\\(([0-9]+[,]*)*\\):$");
+  private enum AbstractionsParserState {EXPECT_OF_COMMON_DEFINITIONS, EXPECT_NODE_DECLARATION, EXPECT_NODE_ABSTRACTION}
 
-  public PredicateAbstractionsParser(Path pInputFilePath) throws IOException {
+  private final FormulaManagerView fmgr;
+  private final AbstractionManager amgr;
+
+  private final Path inputFilePath;
+
+  private AbstractionNode rootAbstractionNode = null;
+  private ImmutableMap<Integer, AbstractionNode> abstractions = null;
+  private ImmutableMultimap<Integer, Integer> abstractionTree = null;
+
+  public PredicateAbstractionsParser(Path pInputFilePath, FormulaManagerView pFmgr, AbstractionManager pAmgr) throws IOException, PredicateParsingFailedException {
     this.inputFilePath = pInputFilePath;
+    this.fmgr = pFmgr;
+    this.amgr = pAmgr;
+
     Files.checkReadableFile(inputFilePath);
     parseAbstractionTree();
   }
 
-  private void parseAbstractionTree() throws IOException {
-    Multimap<AbstractionNode, AbstractionNode> result = LinkedHashMultimap.create();
+  private void parseAbstractionTree() throws IOException, PredicateParsingFailedException {
+    Multimap<Integer, Integer> resultTree = LinkedHashMultimap.create();
+    Map<Integer, AbstractionNode> resultAbstractions = Maps.newTreeMap();
 
+    String source = inputFilePath.getFileName().toString();
     try (BufferedReader reader = java.nio.file.Files.newBufferedReader(inputFilePath, Charsets.US_ASCII)) {
-    }
 
+      // first, read first section with initial set of function definitions
+      Pair<Integer, String> defParsingResult = PredicatePersistenceUtils.parseCommonDefinitions(reader, inputFilePath.toString());
+      int lineNo = defParsingResult.getFirst();
+      String commonDefinitions = defParsingResult.getSecond();
+
+      String currentLine;
+      int currentAbstractionId = -1;
+      Set<Integer> currentSuccessors = Sets.newTreeSet();
+
+      AbstractionsParserState parserState = AbstractionsParserState.EXPECT_NODE_DECLARATION;
+      while ((currentLine = reader.readLine()) != null) {
+        lineNo++;
+        currentLine = currentLine.trim();
+
+        if (currentLine.isEmpty()) {
+          // blank lines separates sections
+          continue;
+        }
+
+        if (currentLine.startsWith("//")) {
+          // comment
+          continue;
+        }
+
+        if (parserState == AbstractionsParserState.EXPECT_NODE_DECLARATION) {
+          // we expect a new section header
+          if (!currentLine.endsWith(":")) {
+            throw new PredicateParsingFailedException(currentLine + " is not a valid abstraction header", source, lineNo);
+          }
+
+          currentLine = currentLine.substring(0, currentLine.length()-1).trim(); // strip off ":"
+          if (currentLine.isEmpty()) {
+            throw new PredicateParsingFailedException("empty header is not allowed", source, lineNo);
+          }
+
+          if (!NODE_DECLARATION_PATTERN.matcher(currentLine).matches()) {
+            throw new PredicateParsingFailedException(currentLine + " is not a valid abstraction header", source, lineNo);
+          }
+
+          StringTokenizer declarationTokenizer = new StringTokenizer(currentLine, " (,):");
+          currentAbstractionId = Integer.parseInt(declarationTokenizer.nextToken());
+          while (declarationTokenizer.hasMoreTokens()) {
+            String token = declarationTokenizer.nextToken();
+            if (token.trim().length() > 0) {
+              int successorId = Integer.parseInt(token);
+              currentSuccessors.add(successorId);
+            }
+          }
+
+          parserState = AbstractionsParserState.EXPECT_NODE_ABSTRACTION;
+
+        } else if (parserState == AbstractionsParserState.EXPECT_NODE_ABSTRACTION) {
+          if (!currentLine.startsWith("(assert ") && currentLine.endsWith(")")) {
+            throw new PredicateParsingFailedException("unexpected line " + currentLine, source, lineNo);
+          }
+
+          BooleanFormula f;
+          try {
+            f = fmgr.parse(commonDefinitions + currentLine);
+          } catch (IllegalArgumentException e) {
+            throw new PredicateParsingFailedException(e, source, lineNo);
+          }
+
+          AbstractionNode abstractionNode = new AbstractionNode(currentAbstractionId, f);
+          resultAbstractions.put(currentAbstractionId, abstractionNode);
+          resultTree.putAll(currentAbstractionId, currentSuccessors);
+          currentAbstractionId = -1;
+          currentSuccessors.clear();
+        }
+      }
+    }
     this.rootAbstractionNode = null;
-    this.abstractionTree = ImmutableMultimap.copyOf(result);
+    this.abstractions = ImmutableMap.copyOf(resultAbstractions);
+    this.abstractionTree = ImmutableMultimap.copyOf(resultTree);
   }
 
-  public synchronized ImmutableMultimap<AbstractionNode, AbstractionNode> getAbstractionTree() {
+  public AbstractionNode getAbstractionNode(int abstractionId) {
+    return abstractions.get(abstractionId);
+  }
+
+  public ImmutableMultimap<Integer, Integer> getAbstractionTree() {
     assert abstractionTree != null;
     return abstractionTree;
   }
 
-  public synchronized AbstractionNode getRootAbstractionNode() {
+  public AbstractionNode getRootAbstractionNode() {
     assert rootAbstractionNode != null;
     return rootAbstractionNode;
   }

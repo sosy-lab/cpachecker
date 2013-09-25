@@ -107,6 +107,10 @@ public class AbstractionFormula implements Serializable {
     return blockFormula;
   }
 
+  public int getId() {
+    return id;
+  }
+
   @Override
   public String toString() {
     // we print the formula only when it is small

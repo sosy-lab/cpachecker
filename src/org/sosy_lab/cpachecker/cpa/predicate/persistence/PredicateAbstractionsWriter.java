@@ -78,6 +78,11 @@ public class PredicateAbstractionsWriter {
     }
   };
 
+  private int getAbstractionId(ARGState state) {
+    PredicateAbstractState paState = AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+    return paState.getAbstractionFormula().getId();
+  }
+
   public void writeAbstractions(Path abstractionsFile, ReachedSet reached) {
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
@@ -108,15 +113,9 @@ public class PredicateAbstractionsWriter {
           continue;
         }
 
-        // Successors
-        StringBuilder stateSuccessorsSb = new StringBuilder();
+        // Handle successors
         for (ARGState successor : stateSuccessors) {
           worklist.add(successor);
-
-          if (stateSuccessorsSb.length() == 0) {
-            stateSuccessorsSb.append(",");
-          }
-          stateSuccessorsSb.append(successor.getStateId());
         }
 
         // Abstraction formula
@@ -145,11 +144,11 @@ public class PredicateAbstractionsWriter {
           if (stateSuccessorsSb.length() > 0) {
             stateSuccessorsSb.append(",");
           }
-          stateSuccessorsSb.append(successor.getStateId());
+          stateSuccessorsSb.append(getAbstractionId(successor));
         }
 
         writer.append(String.format("%d (%s):\n",
-            state.getStateId(),
+            getAbstractionId(state),
             stateSuccessorsSb.toString()));
         writer.append(stateToAssert.get(state));
         writer.append("\n\n");
