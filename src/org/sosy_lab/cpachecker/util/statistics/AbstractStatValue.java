@@ -43,4 +43,9 @@ public abstract class AbstractStatValue {
    * @return A nonnegative number.
    */
   public abstract int getUpdateCount();
+
+
+  public StatKind getMainStatisticKind() {
+    return mainStatisticKind;
+  }
 }
