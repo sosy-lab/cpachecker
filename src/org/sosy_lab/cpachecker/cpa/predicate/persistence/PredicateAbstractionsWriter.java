@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateDumpUtils.*;
+import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.IOException;

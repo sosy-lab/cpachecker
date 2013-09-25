@@ -41,7 +41,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 
 
-public class PredicateDumpUtils {
+public class PredicatePersistenceUtils {
 
   public static enum PredicateDumpFormat {PLAIN, SMTLIB2}
   public static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
