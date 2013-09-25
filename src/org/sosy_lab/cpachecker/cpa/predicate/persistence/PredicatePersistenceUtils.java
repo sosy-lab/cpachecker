@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -46,6 +47,20 @@ public class PredicatePersistenceUtils {
   public static enum PredicateDumpFormat {PLAIN, SMTLIB2}
   public static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
   public static final Joiner LINE_JOINER = Joiner.on('\n');
+
+  public static class PredicateParsingFailedException extends Exception {
+    private static final long serialVersionUID = 5034288100943314517L;
+
+    public PredicateParsingFailedException(String msg, String source, int lineNo) {
+      super("Parsing failed in line " + lineNo + " of " + source + ": " + msg);
+    }
+
+
+    public PredicateParsingFailedException(Throwable cause, String source, int lineNo) {
+      this(cause.getMessage(), source, lineNo);
+      initCause(cause);
+    }
+  }
 
   public static Pair<String, List<String>> splitFormula(FormulaManagerView fmgr, BooleanFormula f) {
     StringBuilder fullString = new StringBuilder();
@@ -72,6 +87,37 @@ public class PredicatePersistenceUtils {
       }
       sb.append('\n');
     }
+  }
+
+  static Pair<Integer, String> parseCommonDefinitions(BufferedReader reader, String sourceIdentifier) throws PredicateParsingFailedException, IOException {
+    // first, read first section with initial set of function definitions
+    StringBuilder functionDefinitionsBuffer = new StringBuilder();
+
+    int lineNo = 0;
+    String currentLine;
+    while ((currentLine = reader.readLine()) != null) {
+      currentLine = currentLine.trim();
+      lineNo++;
+
+      if (currentLine.isEmpty()) {
+        break;
+      }
+
+      if (currentLine.startsWith("//")) {
+        // comment
+        continue;
+      }
+
+      if (currentLine.startsWith("(") && currentLine.endsWith(")")) {
+        functionDefinitionsBuffer.append(currentLine);
+        functionDefinitionsBuffer.append('\n');
+
+      } else {
+        throw new PredicateParsingFailedException(currentLine + " is not a valid SMTLIB2 definition", sourceIdentifier, lineNo);
+      }
+    }
+
+    return Pair.of(lineNo, functionDefinitionsBuffer.toString());
   }
 
 }

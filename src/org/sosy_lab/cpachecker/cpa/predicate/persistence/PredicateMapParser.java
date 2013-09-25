@@ -44,6 +44,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -88,20 +89,6 @@ public class PredicateMapParser {
   private static final Pattern FUNCTION_NAME_PATTERN = Pattern.compile("^" + FUNCTION_NAME_REGEX + "$");
   private static final Pattern CFA_NODE_PATTERN = Pattern.compile("^" + FUNCTION_NAME_REGEX + " " + CFA_NODE_REGEX + "$");
 
-  public static class PredicateMapParsingFailedException extends Exception {
-    private static final long serialVersionUID = 5034288100943314517L;
-
-    private PredicateMapParsingFailedException(String msg, String source, int lineNo) {
-      super("Parsing failed in line " + lineNo + " of " + source + ": " + msg);
-    }
-
-
-    private PredicateMapParsingFailedException(Throwable cause, String source, int lineNo) {
-      this(cause.getMessage(), source, lineNo);
-      initCause(cause);
-    }
-  }
-
   @Option(description="Apply location-specific predicates to all locations in their function")
   private boolean applyFunctionWide = false;
 
@@ -134,10 +121,10 @@ public class PredicateMapParser {
    * @param initialGlobalPredicates A additional set of global predicates (for all locations).
    * @return A PredicatePrecision containing all the predicates from the file.
    * @throws IOException If the file cannot be read.
-   * @throws PredicateMapParsingFailedException If there is a syntax error in the file.
+   * @throws PredicateParsingFailedException If there is a syntax error in the file.
    */
   public PredicatePrecision parsePredicates(File file)
-          throws IOException, PredicateMapParsingFailedException {
+          throws IOException, PredicateParsingFailedException {
 
     Files.checkReadableFile(file);
 
@@ -152,35 +139,12 @@ public class PredicateMapParser {
    * (available primarily for testing).
    */
   PredicatePrecision parsePredicates(BufferedReader reader, String source)
-          throws IOException, PredicateMapParsingFailedException {
+          throws IOException, PredicateParsingFailedException {
 
     // first, read first section with initial set of function definitions
-    StringBuilder functionDefinitionsBuffer = new StringBuilder();
-
-    int lineNo = 0;
-    String currentLine;
-    while ((currentLine = reader.readLine()) != null) {
-      lineNo++;
-      currentLine = currentLine.trim();
-
-      if (currentLine.isEmpty()) {
-        break;
-      }
-
-      if (currentLine.startsWith("//")) {
-        // comment
-        continue;
-      }
-
-      if (currentLine.startsWith("(") && currentLine.endsWith(")")) {
-        functionDefinitionsBuffer.append(currentLine);
-        functionDefinitionsBuffer.append('\n');
-
-      } else {
-        throw new PredicateMapParsingFailedException(currentLine + " is not a valid SMTLIB2 definition", source, lineNo);
-      }
-    }
-    String functionDefinitions = functionDefinitionsBuffer.toString();
+    Pair<Integer, String> defParsingResult = PredicatePersistenceUtils.parseCommonDefinitions(reader, source);
+    int lineNo = defParsingResult.getFirst();
+    String commonDefinitions = defParsingResult.getSecond();
 
     // second, read map of predicates
     Set<AbstractionPredicate> globalPredicates = Sets.newHashSet();
@@ -188,6 +152,7 @@ public class PredicateMapParser {
     SetMultimap<CFANode, AbstractionPredicate> localPredicates = HashMultimap.create();
 
     Set<AbstractionPredicate> currentSet = null;
+    String currentLine;
     while ((currentLine = reader.readLine()) != null) {
       lineNo++;
       currentLine = currentLine.trim();
@@ -206,11 +171,11 @@ public class PredicateMapParser {
       if (currentSet == null) {
         // we expect a new section header
         if (!currentLine.endsWith(":")) {
-          throw new PredicateMapParsingFailedException(currentLine + " is not a valid section header", source, lineNo);
+          throw new PredicateParsingFailedException(currentLine + " is not a valid section header", source, lineNo);
         }
         currentLine = currentLine.substring(0, currentLine.length()-1).trim(); // strip off ":"
         if (currentLine.isEmpty()) {
-          throw new PredicateMapParsingFailedException("empty key is not allowed", source, lineNo);
+          throw new PredicateParsingFailedException("empty key is not allowed", source, lineNo);
         }
 
         if (currentLine.equals("*") || applyGlobally) {
@@ -255,7 +220,7 @@ public class PredicateMapParser {
             }
 
           } else {
-            throw new PredicateMapParsingFailedException(currentLine + " is not a valid key", source, lineNo);
+            throw new PredicateParsingFailedException(currentLine + " is not a valid key", source, lineNo);
           }
         }
 
@@ -264,15 +229,15 @@ public class PredicateMapParser {
         if (currentLine.startsWith("(assert ") && currentLine.endsWith(")")) {
           BooleanFormula f;
           try {
-            f = fmgr.parse(functionDefinitions + currentLine);
+            f = fmgr.parse(commonDefinitions + currentLine);
           } catch (IllegalArgumentException e) {
-            throw new PredicateMapParsingFailedException(e, source, lineNo);
+            throw new PredicateParsingFailedException(e, source, lineNo);
           }
 
           currentSet.add(amgr.makePredicate(f));
 
         } else {
-          throw new PredicateMapParsingFailedException("unexpected line " + currentLine, source, lineNo);
+          throw new PredicateParsingFailedException("unexpected line " + currentLine, source, lineNo);
         }
       }
     }
