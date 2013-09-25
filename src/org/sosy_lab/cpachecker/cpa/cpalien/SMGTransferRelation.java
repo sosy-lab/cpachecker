@@ -1238,15 +1238,13 @@ public class SMGTransferRelation implements TransferRelation {
   private SMGState handleDeclaration(SMGState smgState, CDeclarationEdge edge) throws CPATransferException {
     logger.log(Level.FINEST, ">>> Handling declaration");
 
-    SMGState newState;
+    SMGState newState = new SMGState(smgState);
     CDeclaration cDecl = edge.getDeclaration();
 
     if (cDecl instanceof CVariableDeclaration) {
-      newState = handleVariableDeclaration(smgState, (CVariableDeclaration)cDecl, edge);
-    } else {
-      //TODO: Handle other declarations?
-      newState = new SMGState(smgState);
+      newState = handleVariableDeclaration(newState, (CVariableDeclaration)cDecl, edge);
     }
+    //TODO: Handle other declarations?
     return newState;
   }
 
