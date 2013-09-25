@@ -133,7 +133,7 @@ public class LoopInvariantsWriter {
                            .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
         Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
         BooleanFormula formula = absmgr.toConcrete(region);
-        Pair<String, List<String>> locInvariant = PredicateMapWriter.splitFormula(fmgr, formula);
+        Pair<String, List<String>> locInvariant = PredicateDumpUtils.splitFormula(fmgr, formula);
 
         for (String def : locInvariant.getSecond()) {
           if (uniqueDefs.add(def)) {
