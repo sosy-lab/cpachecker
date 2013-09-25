@@ -72,34 +72,9 @@ public class LoopInvariantsWriter {
     this.rmgr = pRegMgr;
   }
 
-  public void exportInvariants(Path invariantsFile, ReachedSet reached) {
-    Map<CFANode, Region> regions = getLoopHeadInvariants(reached);
-    if (regions == null) {
-      return;
-    }
-
-    try (Writer invariants = Files.openOutputFile(invariantsFile)) {
-      for (CFANode loc : from(cfa.getAllLoopHeads().get())
-                           .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
-
-        Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
-        BooleanFormula formula = absmgr.toConcrete(region);
-
-        invariants.append("loop__");
-        invariants.append(loc.getFunctionName());
-        invariants.append("__");
-        invariants.append(""+loc.getLineNumber());
-        invariants.append(":\n");
-        fmgr.dumpFormula(formula).appendTo(invariants);
-        invariants.append('\n');
-      }
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write loop invariants to file");
-    }
-  }
-
   private Map<CFANode, Region> getLoopHeadInvariants(ReachedSet reached) {
     Map<CFANode, Region> regions = Maps.newHashMap();
+
     for (AbstractState state : reached) {
       CFANode loc = extractLocation(state);
       if (cfa.getAllLoopHeads().get().contains(loc)) {
@@ -108,12 +83,40 @@ public class LoopInvariantsWriter {
           logger.log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
           return null;
         }
+
         Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
         region = rmgr.makeOr(region, predicateState.getAbstractionFormula().asRegion());
         regions.put(loc, region);
       }
     }
+
     return regions;
+  }
+
+  public void exportLoopInvariants(Path invariantsFile, ReachedSet reached) {
+    Map<CFANode, Region> regions = getLoopHeadInvariants(reached);
+    if (regions == null) {
+      return;
+    }
+
+    try (Writer writer = Files.openOutputFile(invariantsFile)) {
+      for (CFANode loc : from(cfa.getAllLoopHeads().get())
+                           .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
+
+        Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
+        BooleanFormula formula = absmgr.toConcrete(region);
+
+        writer.append("loop__");
+        writer.append(loc.getFunctionName());
+        writer.append("__");
+        writer.append(""+loc.getLineNumber());
+        writer.append(":\n");
+        fmgr.dumpFormula(formula).appendTo(writer);
+        writer.append('\n');
+      }
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write loop invariants to file");
+    }
   }
 
   public void exportLoopInvariantsAsPrecision(Path invariantPrecisionsFile, ReachedSet reached) {
@@ -125,7 +128,7 @@ public class LoopInvariantsWriter {
     Set<String> uniqueDefs = new HashSet<>();
     StringBuilder asserts = new StringBuilder();
 
-    try (Writer invariants = Files.openOutputFile(invariantPrecisionsFile)) {
+    try (Writer writer = Files.openOutputFile(invariantPrecisionsFile)) {
       for (CFANode loc : from(cfa.getAllLoopHeads().get())
                            .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
         Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
@@ -134,8 +137,8 @@ public class LoopInvariantsWriter {
 
         for (String def : locInvariant.getSecond()) {
           if (uniqueDefs.add(def)) {
-            invariants.append(def);
-            invariants.append("\n");
+            writer.append(def);
+            writer.append("\n");
           }
         }
 
@@ -147,8 +150,8 @@ public class LoopInvariantsWriter {
         asserts.append("\n\n");
       }
 
-      invariants.append("\n");
-      invariants.append(asserts);
+      writer.append("\n");
+      writer.append(asserts);
 
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write loop invariants to file");
