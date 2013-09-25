@@ -332,9 +332,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
      */
     ReplaceVisitor<CompoundState> replaceVisitor;
     InvariantsFormula<CompoundState> previousValue = getEnvironmentValue(pVarName);
+    FormulaEvaluationVisitor<CompoundState> evaluationVisitor = getFormulaResolver(pEdge);
     replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
     InvariantsFormula<CompoundState> newSubstitutedValue =
-        pValue.accept(replaceVisitor).accept(this.partialEvaluator, getFormulaResolver(pEdge));
+        pValue.accept(replaceVisitor).accept(this.partialEvaluator, evaluationVisitor);
 
     for (Map.Entry<String, InvariantsFormula<CompoundState>> environmentEntry : this.environment.entrySet()) {
       if (!environmentEntry.getKey().equals(pVarName)) {
@@ -346,7 +347,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     result.putEnvironmentValueInternal(pVarName, newSubstitutedValue);
 
     // Try to add the assumptions; if it turns out that they are false, the state is bottom
-    if (!updateAssumptions(result, replaceVisitor, pValue, pVarName)) { return null; }
+    if (!updateAssumptions(result, replaceVisitor, pValue, pVarName, pEdge)) { return null; }
 
     result.visitedEdges.addAll(visitedEdges);
     result.assumeInternal(CompoundStateFormulaManager.INSTANCE.equal(variable, pValue), getFormulaResolver(pEdge));
@@ -409,8 +410,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * @return <code>true</code> if the transfer of assumptions results in a valid state, <code>false</code> if it is bottom.
    */
   private boolean updateAssumptions(InvariantsState pTargetState, ReplaceVisitor<CompoundState> pReplaceVisitor,
-      InvariantsFormula<CompoundState> pNewValue, String pVarName) {
-    FormulaEvaluationVisitor<CompoundState> resolver = getFormulaResolver();
+      InvariantsFormula<CompoundState> pNewValue, String pVarName, CFAEdge pEdge) {
+    FormulaEvaluationVisitor<CompoundState> resolver = getFormulaResolver(pEdge);
     for (InvariantsFormula<CompoundState> oldAssumption : this.assumptions) {
       // Try to add the assumption; if it turns out that it is false, the assumption is bottom
       if (!pTargetState.assumeInternal(oldAssumption.accept(pReplaceVisitor),
