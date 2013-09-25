@@ -27,6 +27,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -86,6 +87,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -105,6 +107,8 @@ public class InvariantsCPA extends AbstractCPA {
     private int interestingPredicatesDepth = 2;
 
     private int interestingVariableLimit = 3;
+
+    // TODO include this option: private int locationLimit = 128;
 
   }
 
@@ -149,6 +153,7 @@ public class InvariantsCPA extends AbstractCPA {
       new CPAAlgorithm(cpa, logManager, config).run(reached);
       Set<CFAEdge> relevantEdges = new HashSet<>();
       Set<InvariantsFormula<CompoundState>> interestingAssumptions = new HashSet<>();
+      Set<String> interestingVariables = new LinkedHashSet<>();
       for (AbstractState state : FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE)) {
         CFANode location = AbstractStates.extractLocation(state);
         Queue<CFANode> nodes = new ArrayDeque<>();
@@ -164,6 +169,7 @@ public class InvariantsCPA extends AbstractCPA {
               nodes.offer(edge.getPredecessor());
               if ((options.interestingPredicatesDepth < 0 || distance < options.interestingPredicatesDepth) && edge instanceof AssumeEdge) {
                 InvariantsFormula<CompoundState> formula = ((CAssumeEdge) edge).getExpression().accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(edge));
+                addAll(interestingVariables, formula.accept(COLLECT_VARS_VISITOR), options.interestingVariableLimit);
                 if (formula instanceof LogicalNot<?>) { // We don't care about negations here
                   formula = ((LogicalNot<CompoundState>) formula).getNegated();
                 }
@@ -195,11 +201,11 @@ public class InvariantsCPA extends AbstractCPA {
       expand(relevantVariables, relevantEdges, -1);
 
       // Collect especially interesting variables
-      Set<String> interestingVariables = new HashSet<>();
+      /*Set<String> interestingVariables = new HashSet<>();
       for (InvariantsFormula<CompoundState> interestingAssumption : interestingAssumptions) {
         addAll(interestingVariables, interestingAssumption.accept(COLLECT_VARS_VISITOR), options.interestingVariableLimit);
         expand(interestingVariables, relevantEdges, options.interestingVariableLimit);
-      }
+      }*/
       Iterator<InvariantsFormula<CompoundState>> interestingAssumptionIterator = interestingAssumptions.iterator();
       while (interestingAssumptionIterator.hasNext()) {
         InvariantsFormula<CompoundState> interestingAssumption = interestingAssumptionIterator.next();
@@ -235,7 +241,8 @@ public class InvariantsCPA extends AbstractCPA {
           variableSelection,
           ImmutableSet.copyOf(relevantEdges),
           ImmutableSet.copyOf(interestingAssumptions),
-          ImmutableSet.copyOf(interestingVariables));
+          ImmutableSet.copyOf(interestingVariables),
+          HashMultimap.<CFANode, InvariantsState>create());
     } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
       this.logManager.logException(Level.SEVERE, e, "Unable to select specific variables. Defaulting to selecting all variables.");
     }

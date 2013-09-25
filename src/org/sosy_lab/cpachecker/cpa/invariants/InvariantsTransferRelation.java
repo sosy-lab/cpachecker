@@ -131,6 +131,9 @@ public enum InvariantsTransferRelation implements TransferRelation {
         throw new UnrecognizedCFAEdgeException(pEdge);
       }
     }
+    if (element != null) {
+      element.getStateMap().put(pEdge.getSuccessor(), element);
+    }
     return element;
   }
 
