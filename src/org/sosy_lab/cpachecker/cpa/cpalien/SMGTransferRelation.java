@@ -719,7 +719,8 @@ public class SMGTransferRelation implements TransferRelation {
     CType fieldType = getRealExpressionType(lValue);
 
     if (addressOfField.isUnknown()) {
-      return new SMGState(state);
+      //TODO: Really? I would say that when we do not know where to write a value, we are in trouble
+      return state;
     }
 
     newState =
@@ -789,7 +790,7 @@ public class SMGTransferRelation implements TransferRelation {
       SMGAddressValue addressValue = evaluateAddress(smgState, cfaEdge, addressExpression);
 
       if (addressValue.isUnknown()) {
-        return SMGAddress.UNKNOWN;
+        smgState.setUnknownDereference();
       }
 
       return addressValue.getAddress();
