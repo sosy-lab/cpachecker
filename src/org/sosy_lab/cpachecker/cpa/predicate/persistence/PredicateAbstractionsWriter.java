@@ -99,6 +99,8 @@ public class PredicateAbstractionsWriter {
         // Successors
         StringBuilder stateSuccessorsSb = new StringBuilder();
         for (ARGState successor : stateSuccessors) {
+          toWrite.add(successor);
+
           if (stateSuccessorsSb.length() == 0) {
             stateSuccessorsSb.append(",");
           }
