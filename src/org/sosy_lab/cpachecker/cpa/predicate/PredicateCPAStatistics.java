@@ -23,11 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.*;
 
 import java.io.IOException;
@@ -36,9 +32,6 @@ import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -53,26 +46,21 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.LoopInvariantsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
@@ -111,8 +99,8 @@ class PredicateCPAStatistics extends AbstractStatistics {
     private final BlockOperator blk;
     private final RegionManager rmgr;
     private final AbstractionManager absmgr;
-    private final CFA cfa;
     private final PredicateMapWriter precisionWriter;
+    private final LoopInvariantsWriter loopInvariantsWriter;
 
     private final Timer invariantGeneratorTime;
 
@@ -124,9 +112,10 @@ class PredicateCPAStatistics extends AbstractStatistics {
       blk = pBlk;
       rmgr = pRmgr;
       absmgr = pAbsmgr;
-      cfa = pCfa;
       invariantGeneratorTime = checkNotNull(pInvariantGeneratorTimer);
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
+
+      loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, cpa.getFormulaManager(), pRmgr);
 
       if (exportPredmap && predmapFile != null) {
         precisionWriter = new PredicateMapWriter(cpa.getConfiguration(), cpa.getFormulaManager());
@@ -223,11 +212,11 @@ class PredicateCPAStatistics extends AbstractStatistics {
       int allDistinctPreds = absmgr.getNumberOfPredicates();
 
       if (result == Result.SAFE && exportInvariants && invariantsFile != null) {
-        exportInvariants(reached);
+        loopInvariantsWriter.exportInvariants(invariantsFile, reached);
       }
 
       if (exportInvariantsAsPrecision && invariantPrecisionsFile != null) {
-        exportLoopInvariantsAsPrecision(reached);
+        loopInvariantsWriter.exportLoopInvariantsAsPrecision(invariantPrecisionsFile, reached);
       }
 
       PredicateAbstractionManager.Stats as = amgr.stats;
@@ -363,89 +352,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
       rmgr.printStatistics(out);
     }
 
-    private void exportInvariants(ReachedSet reached) {
-      Map<CFANode, Region> regions = getLoopHeadInvariants(reached);
-      if (regions == null) {
-        return;
-      }
 
-      FormulaManagerView fmgr = cpa.getFormulaManager();
-      try (Writer invariants = Files.openOutputFile(invariantsFile)) {
-        for (CFANode loc : from(cfa.getAllLoopHeads().get())
-                             .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
-          Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
-          BooleanFormula formula = absmgr.toConcrete(region);
-          invariants.append("loop__");
-          invariants.append(loc.getFunctionName());
-          invariants.append("__");
-          invariants.append(""+loc.getLineNumber());
-          invariants.append(":\n");
-          fmgr.dumpFormula(formula).appendTo(invariants);
-          invariants.append('\n');
-        }
-      } catch (IOException e) {
-        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write loop invariants to file");
-      }
-    }
-
-    private Map<CFANode, Region> getLoopHeadInvariants(ReachedSet reached) {
-      Map<CFANode, Region> regions = Maps.newHashMap();
-      for (AbstractState state : reached) {
-        CFANode loc = extractLocation(state);
-        if (cfa.getAllLoopHeads().get().contains(loc)) {
-          PredicateAbstractState predicateState = getPredicateState(state);
-          if (!predicateState.isAbstractionState()) {
-            cpa.getLogger().log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
-            return null;
-          }
-          Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
-          region = rmgr.makeOr(region, predicateState.getAbstractionFormula().asRegion());
-          regions.put(loc, region);
-        }
-      }
-      return regions;
-    }
-
-    private void exportLoopInvariantsAsPrecision(ReachedSet reached) {
-      Map<CFANode, Region> regions = getLoopHeadInvariants(reached);
-      if (regions == null) {
-        return;
-      }
-
-      Set<String> uniqueDefs = new HashSet<>();
-      StringBuilder asserts = new StringBuilder();
-
-      FormulaManagerView fmgr = cpa.getFormulaManager();
-
-      try (Writer invariants = Files.openOutputFile(invariantPrecisionsFile)) {
-        for (CFANode loc : from(cfa.getAllLoopHeads().get())
-                             .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
-          Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
-          BooleanFormula formula = absmgr.toConcrete(region);
-          Pair<String, List<String>> locInvariant = PredicateMapWriter.splitFormula(fmgr, formula);
-
-          for (String def : locInvariant.getSecond()) {
-            if (uniqueDefs.add(def)) {
-              invariants.append(def);
-              invariants.append("\n");
-            }
-          }
-
-          asserts.append(loc.getFunctionName());
-          asserts.append(" ");
-          asserts.append(loc.toString());
-          asserts.append(":\n");
-          asserts.append(locInvariant.getFirst());
-          asserts.append("\n\n");
-        }
-
-        invariants.append("\n");
-        invariants.append(asserts);
-
-      } catch (IOException e) {
-        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write loop invariants to file");
-      }
-    }
 
 
 }
