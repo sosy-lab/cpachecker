@@ -669,8 +669,11 @@ public class SMGState implements AbstractQueryableState {
    * Signals a dereference of a pointer or array
    *  which could not be resolved.
    */
-  public void setUnkownDereference() {
-    // TODO Auto-generated method stub
+  public void setUnknownDereference() {
+    //TODO: This can actually be an invalid read too
+    //      The flagging mechanism should be improved
+
+    this.invalidWrite = true;
   }
 
   public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {

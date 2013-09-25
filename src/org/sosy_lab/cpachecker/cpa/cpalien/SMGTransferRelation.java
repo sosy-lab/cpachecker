@@ -2410,7 +2410,7 @@ public class SMGTransferRelation implements TransferRelation {
       if (address.isUnknown()) {
         // We can't resolve the field to dereference, therefore
         // we must assume, that it is invalid
-        smgState.setUnkownDereference();
+        smgState.setUnknownDereference();
         return SMGUnknownValue.getInstance();
       }
 
@@ -2430,7 +2430,7 @@ public class SMGTransferRelation implements TransferRelation {
       if (address.isUnknown()) {
         // We can't resolve the field to dereference , therefore
         // we must assume, that it is invalid
-        smgState.setUnkownDereference();
+        smgState.setUnknownDereference();
         return SMGUnknownValue.getInstance();
       }
 
