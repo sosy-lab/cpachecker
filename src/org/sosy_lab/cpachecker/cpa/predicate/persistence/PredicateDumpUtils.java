@@ -23,10 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -52,6 +58,20 @@ public class PredicateDumpUtils {
     List<String> declarations = lines.subList(0, lines.size()-1);
 
     return Pair.of(formulaString, declarations);
+  }
+
+  static void writeSetOfPredicates(Appendable sb, String key,
+      Collection<AbstractionPredicate> predicates,
+      Map<AbstractionPredicate, String> predToString) throws IOException {
+    if (!predicates.isEmpty()) {
+      sb.append(key);
+      sb.append(":\n");
+      for (AbstractionPredicate pred : predicates) {
+        sb.append(checkNotNull(predToString.get(pred)));
+        sb.append('\n');
+      }
+      sb.append('\n');
+    }
   }
 
 }

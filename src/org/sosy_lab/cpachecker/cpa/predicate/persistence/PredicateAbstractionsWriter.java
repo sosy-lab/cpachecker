@@ -24,18 +24,21 @@
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateDumpUtils.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.util.Deque;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -48,6 +51,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
@@ -75,31 +79,39 @@ public class PredicateAbstractionsWriter {
   };
 
   public void writeAbstractions(Path abstractionsFile, ReachedSet reached) {
+    // In this set, we collect the definitions and declarations necessary
+    // for the predicates (e.g., for variables)
+    // The order of the definitions is important!
+    Set<String> definitions = Sets.newLinkedHashSet();
+
+    // in this set, we collect the string representing each predicate
+    // (potentially making use of the above definitions)
+    Map<ARGState, String> stateToAssert = Maps.newHashMap();
 
     // Get list of all abstraction states in the set reached
     ARGState rootState = AbstractStates.extractStateByType(reached.getFirstState(), ARGState.class);
     SetMultimap<ARGState, ARGState> successors = ARGUtils.projectARG(rootState,
         ARGUtils.CHILDREN_OF_STATE, IS_ABSTRACTION_STATE);
 
-    Set<ARGState> written = Sets.newHashSet();
-    Deque<ARGState> toWrite = Queues.newArrayDeque();
+    Set<ARGState> done = Sets.newHashSet();
+    Deque<ARGState> worklist = Queues.newArrayDeque();
 
-    toWrite.add(rootState);
+    worklist.add(rootState);
 
     // Write abstraction formulas of the abstraction states to the file
     try (Writer writer = Files.openOutputFile(abstractionsFile)) {
-      while (!toWrite.isEmpty()) {
-        ARGState state = toWrite.pop();
+      while (!worklist.isEmpty()) {
+        ARGState state = worklist.pop();
         Set<ARGState> stateSuccessors = successors.get(state);
 
-        if (written.contains(state)) {
+        if (done.contains(state)) {
           continue;
         }
 
         // Successors
         StringBuilder stateSuccessorsSb = new StringBuilder();
         for (ARGState successor : stateSuccessors) {
-          toWrite.add(successor);
+          worklist.add(successor);
 
           if (stateSuccessorsSb.length() == 0) {
             stateSuccessorsSb.append(",");
@@ -111,17 +123,39 @@ public class PredicateAbstractionsWriter {
         PredicateAbstractState predicateState = checkNotNull(extractStateByType(state, PredicateAbstractState.class));
         Region region = predicateState.getAbstractionFormula().asRegion();
         BooleanFormula formula = absmgr.toConcrete(region);
-        Appender abstractionFormula = fmgr.dumpFormula(formula);
 
-        // Write it to the file
+        Pair<String, List<String>> p = splitFormula(fmgr, formula);
+        String formulaString = p.getFirst();
+        definitions.addAll(p.getSecond());
+
+        stateToAssert.put(state, formulaString);
+
+        done.add(state);
+      }
+
+      // Write it to the file
+      // -- first the definitions
+      LINE_JOINER.appendTo(writer, definitions);
+      writer.append("\n\n");
+
+      // -- then the assertions
+      for (ARGState state : successors.keySet()) {
+        StringBuilder stateSuccessorsSb = new StringBuilder();
+        for (ARGState successor : successors.get(state)) {
+          if (stateSuccessorsSb.length() > 0) {
+            stateSuccessorsSb.append(",");
+          }
+          stateSuccessorsSb.append(successor.getStateId());
+        }
+
         writer.append(String.format("%d (%s):\n",
             state.getStateId(),
             stateSuccessorsSb.toString()));
-        abstractionFormula.appendTo(writer);
+        writer.append(stateToAssert.get(state));
         writer.append("\n\n");
-
-        written.add(state);
       }
+
+
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write abstractions to file");
     }
