@@ -241,7 +241,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  public void performRefinement(ARGReachedSet pReached, List<ARGState> pPath,
+  public void performRefinement(ARGReachedSet pReached, List<ARGState> abstractionStatesTrace,
       List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException {
 
     pRepeatedCounterexample = !lastRefinementUsedHeuristics && pRepeatedCounterexample;
@@ -251,7 +251,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       ARGState root = (ARGState)reached.getFirstState();
       ARGState refinementRoot = Iterables.getLast(root.getChildren());
 
-      PredicatePrecision heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pPath, atomicPredicates);
+      PredicatePrecision heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
 
       pReached.removeSubtree(refinementRoot, heuristicPrecision, PredicatePrecision.class);
 
@@ -259,7 +259,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       lastRefinementUsedHeuristics = true;
     } else {
       lastRefinementUsedHeuristics = false;
-      super.performRefinement(pReached, pPath, pInterpolants, pRepeatedCounterexample);
+      super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
     }
   }
 

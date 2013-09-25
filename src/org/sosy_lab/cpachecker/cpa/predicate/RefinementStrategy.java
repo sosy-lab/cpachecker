@@ -125,18 +125,18 @@ public abstract class RefinementStrategy {
   }
 
 
-  public void performRefinement(ARGReachedSet pReached, List<ARGState> path,
+  public void performRefinement(ARGReachedSet pReached, List<ARGState> abstractionStatesTrace,
       List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException {
     // Hook
     startRefinementOfPath();
 
     // The last state along the path is the target (error) state
-    ARGState lastElement = path.get(path.size()-1);
+    ARGState lastElement = abstractionStatesTrace.get(abstractionStatesTrace.size()-1);
     assert lastElement.isTarget();
 
     // Skip the last element of the path, itp is always false there
-    path = path.subList(0, path.size()-1);
-    assert pInterpolants.size() ==  path.size();
+    abstractionStatesTrace = abstractionStatesTrace.subList(0, abstractionStatesTrace.size()-1);
+    assert pInterpolants.size() ==  abstractionStatesTrace.size();
 
     List<ARGState> changedElements = new ArrayList<>();
     ARGState infeasiblePartOfART = lastElement;
@@ -153,7 +153,7 @@ public abstract class RefinementStrategy {
     BooleanFormula lastItp = null;
 
     // Traverse the path
-    for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(pInterpolants, path)) {
+    for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(pInterpolants, abstractionStatesTrace)) {
       pathLengthToInfeasibility++;
       BooleanFormula itp = interpolationPoint.getFirst();
       ARGState w = interpolationPoint.getSecond();

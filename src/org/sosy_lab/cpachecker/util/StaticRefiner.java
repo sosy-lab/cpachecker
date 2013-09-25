@@ -69,7 +69,7 @@ abstract public class StaticRefiner {
   private int maxBackscanPathAssumes = 1;
 
   private final Configuration config;
-  private final CFA cfa;
+  protected final CFA cfa;
   protected final LogManager logger;
 
   public StaticRefiner(

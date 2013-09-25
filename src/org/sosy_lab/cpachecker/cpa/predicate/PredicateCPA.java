@@ -186,7 +186,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     stop = new PredicateStopOperator(domain);
 
     if (performInitialStaticRefinement) {
-      staticRefiner = new PredicateStaticRefiner(config, logger,
+      staticRefiner = new PredicateStaticRefiner(config, logger, solver,
           pathFormulaManager, formulaManager, predicateManager, cfa);
     } else {
       staticRefiner = null;
