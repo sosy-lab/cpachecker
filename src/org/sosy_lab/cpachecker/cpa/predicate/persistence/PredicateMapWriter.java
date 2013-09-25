@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.predicate;
+package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -55,7 +55,7 @@ import com.google.common.collect.Sets;
  * also used by {@link PredicateMapParser}.
  */
 @Options(prefix="cpa.predicate")
-class PredicateMapWriter {
+public class PredicateMapWriter {
 
   @Option(name="predmap.predicateFormat",
       description="Format for exporting predicates from precisions.")
@@ -68,7 +68,7 @@ class PredicateMapWriter {
 
   private final FormulaManagerView fmgr;
 
-  PredicateMapWriter(Configuration config, FormulaManagerView pFmgr) throws InvalidConfigurationException {
+  public PredicateMapWriter(Configuration config, FormulaManagerView pFmgr) throws InvalidConfigurationException {
     config.inject(this);
     fmgr = pFmgr;
   }
@@ -128,7 +128,7 @@ class PredicateMapWriter {
     }
   }
 
-  static Pair<String, List<String>> splitFormula(FormulaManagerView fmgr, BooleanFormula f) {
+  public static Pair<String, List<String>> splitFormula(FormulaManagerView fmgr, BooleanFormula f) {
     StringBuilder fullString = new StringBuilder();
     Appenders.appendTo(fullString, fmgr.dumpFormula(f));
 
