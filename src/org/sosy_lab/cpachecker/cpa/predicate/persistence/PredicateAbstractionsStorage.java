@@ -32,13 +32,15 @@ import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.LinkedHashMultimap;
@@ -46,8 +48,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-
-public class PredicateAbstractionsParser {
+public class PredicateAbstractionsStorage {
 
   public static class AbstractionNode {
     private final int id;
@@ -65,38 +66,51 @@ public class PredicateAbstractionsParser {
     public int getId() {
       return id;
     }
+
+    @Override
+    public int hashCode() {
+      // TODO
+      return super.hashCode();
+    }
   }
 
-  private static final Pattern NODE_DECLARATION_PATTERN = Pattern.compile("^[0-9]+[ ]*\\(([0-9]+[,]*)*\\):$");
+  private static final Pattern NODE_DECLARATION_PATTERN = Pattern.compile("^[0-9]+[ ]*\\(([0-9]+[,]*)*\\)$");
   private enum AbstractionsParserState {EXPECT_OF_COMMON_DEFINITIONS, EXPECT_NODE_DECLARATION, EXPECT_NODE_ABSTRACTION}
 
+  private final Path abstractionsFile;
   private final FormulaManagerView fmgr;
-  private final AbstractionManager amgr;
+  protected final LogManager logger;
 
-  private final Path inputFilePath;
+  private Integer rootAbstractionId = null;
+  private ImmutableMap<Integer, AbstractionNode> abstractions = ImmutableMap.of();
+  private ImmutableMultimap<Integer, Integer> abstractionTree = ImmutableMultimap.of();
+  private Set<Integer> reusedAbstractions = Sets.newTreeSet();
 
-  private AbstractionNode rootAbstractionNode = null;
-  private ImmutableMap<Integer, AbstractionNode> abstractions = null;
-  private ImmutableMultimap<Integer, Integer> abstractionTree = null;
-
-  public PredicateAbstractionsParser(Path pInputFilePath, FormulaManagerView pFmgr, AbstractionManager pAmgr) throws IOException, PredicateParsingFailedException {
-    this.inputFilePath = pInputFilePath;
+  public PredicateAbstractionsStorage(Path pFile, LogManager pLogger, FormulaManagerView pFmgr) throws PredicateParsingFailedException, InvalidConfigurationException {
     this.fmgr = pFmgr;
-    this.amgr = pAmgr;
+    this.logger = pLogger;
+    this.abstractionsFile = pFile;
 
-    Files.checkReadableFile(inputFilePath);
-    parseAbstractionTree();
+    if (pFile != null) {
+      try {
+        Files.checkReadableFile(pFile);
+        parseAbstractionTree();
+      } catch (IOException e) {
+        throw new PredicateParsingFailedException(e, "Init", 0);
+      }
+    }
   }
 
   private void parseAbstractionTree() throws IOException, PredicateParsingFailedException {
     Multimap<Integer, Integer> resultTree = LinkedHashMultimap.create();
     Map<Integer, AbstractionNode> resultAbstractions = Maps.newTreeMap();
+    Set<Integer> abstractionsWithParents = Sets.newTreeSet();
 
-    String source = inputFilePath.getFileName().toString();
-    try (BufferedReader reader = java.nio.file.Files.newBufferedReader(inputFilePath, Charsets.US_ASCII)) {
+    String source = abstractionsFile.getFileName().toString();
+    try (BufferedReader reader = java.nio.file.Files.newBufferedReader(abstractionsFile, Charsets.US_ASCII)) {
 
       // first, read first section with initial set of function definitions
-      Pair<Integer, String> defParsingResult = PredicatePersistenceUtils.parseCommonDefinitions(reader, inputFilePath.toString());
+      Pair<Integer, String> defParsingResult = PredicatePersistenceUtils.parseCommonDefinitions(reader, abstractionsFile.toString());
       int lineNo = defParsingResult.getFirst();
       String commonDefinitions = defParsingResult.getSecond();
 
@@ -155,18 +169,32 @@ public class PredicateAbstractionsParser {
           try {
             f = fmgr.parse(commonDefinitions + currentLine);
           } catch (IllegalArgumentException e) {
-            throw new PredicateParsingFailedException(e, source, lineNo);
+            throw new PredicateParsingFailedException(e, "Formula parsing", lineNo);
           }
 
           AbstractionNode abstractionNode = new AbstractionNode(currentAbstractionId, f);
           resultAbstractions.put(currentAbstractionId, abstractionNode);
           resultTree.putAll(currentAbstractionId, currentSuccessors);
+          abstractionsWithParents.addAll(currentSuccessors);
           currentAbstractionId = -1;
           currentSuccessors.clear();
+
+          parserState = AbstractionsParserState.EXPECT_NODE_DECLARATION;
         }
       }
     }
-    this.rootAbstractionNode = null;
+
+    // Determine root node
+    Set<Integer> nodesWithNoParents = Sets.difference(resultAbstractions.keySet(), abstractionsWithParents);
+    assert nodesWithNoParents.size() <= 1;
+    if (!nodesWithNoParents.isEmpty()) {
+      this.rootAbstractionId = nodesWithNoParents.iterator().next();
+    } else {
+      this.rootAbstractionId = null;
+    }
+
+    // Set results
+
     this.abstractions = ImmutableMap.copyOf(resultAbstractions);
     this.abstractionTree = ImmutableMultimap.copyOf(resultTree);
   }
@@ -176,13 +204,28 @@ public class PredicateAbstractionsParser {
   }
 
   public ImmutableMultimap<Integer, Integer> getAbstractionTree() {
-    assert abstractionTree != null;
     return abstractionTree;
   }
 
-  public AbstractionNode getRootAbstractionNode() {
-    assert rootAbstractionNode != null;
-    return rootAbstractionNode;
+  public Integer getRootAbstractionId() {
+    return rootAbstractionId;
+  }
+
+  public Set<AbstractionNode> getSuccessorAbstractions(Integer ofAbstractionWithId) {
+    Set<AbstractionNode> result = Sets.newHashSet();
+
+    if (abstractionTree != null) {
+      for (Integer successorId : abstractionTree.get(ofAbstractionWithId)) {
+        result.add(abstractions.get(successorId));
+      }
+    }
+
+    return result;
+  }
+
+  public void markAbstractionBeingReused(Integer abstractionId) {
+    Preconditions.checkNotNull(abstractionId);
+    reusedAbstractions.add(abstractionId);
   }
 
 }

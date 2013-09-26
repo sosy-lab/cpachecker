@@ -130,7 +130,8 @@ public class PredicateTransferRelation implements TransferRelation {
         return Collections.singleton(
             new PredicateAbstractState.ComputeAbstractionState(
                 pathFormula, element.getAbstractionFormula(), loc,
-                element.getAbstractionLocationsOnPath()));
+                element.getAbstractionLocationsOnPath(),
+                element.getIdOfAbstractionReused()));
       } else {
         return handleNonAbstractionFormulaLocation(pathFormula, element);
       }
@@ -271,7 +272,8 @@ public class PredicateTransferRelation implements TransferRelation {
       CFANode loc = ((ComputeAbstractionState) oldElement).getLocation();
       return new ComputeAbstractionState(newPathFormula,
           oldElement.getAbstractionFormula(), loc,
-          oldElement.getAbstractionLocationsOnPath());
+          oldElement.getAbstractionLocationsOnPath(),
+          oldElement.getIdOfAbstractionReused());
     } else {
       assert !oldElement.isAbstractionState();
       return mkNonAbstractionStateWithNewPathFormula(newPathFormula, oldElement);
@@ -307,7 +309,7 @@ public class PredicateTransferRelation implements TransferRelation {
       abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
       return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-          abs, abstractionLocations);
+          abs, abstractionLocations, pElement.getIdOfAbstractionReused());
     }
   }
 

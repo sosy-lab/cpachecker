@@ -33,6 +33,7 @@ import java.util.Map;
 
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -48,7 +49,7 @@ public class PredicatePersistenceUtils {
   public static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
   public static final Joiner LINE_JOINER = Joiner.on('\n');
 
-  public static class PredicateParsingFailedException extends Exception {
+  public static class PredicateParsingFailedException extends CPAException {
     private static final long serialVersionUID = 5034288100943314517L;
 
     public PredicateParsingFailedException(String msg, String source, int lineNo) {
