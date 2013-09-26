@@ -107,8 +107,6 @@ public class InvariantsCPA extends AbstractCPA {
 
     private int interestingVariableLimit = 2;
 
-    // TODO include this option: private int locationLimit = 128;
-
   }
 
   private final InvariantsOptions options;

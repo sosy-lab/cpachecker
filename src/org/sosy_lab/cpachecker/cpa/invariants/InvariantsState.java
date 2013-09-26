@@ -335,10 +335,14 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
      * have to be resolved with the variable's previous value.
      */
     ReplaceVisitor<CompoundState> replaceVisitor;
-    InvariantsFormula<CompoundState> previousValue = trim(getEnvironmentValue(pVarName));
+    InvariantsFormula<CompoundState> previousValue = getEnvironmentValue(pVarName);
     FormulaEvaluationVisitor<CompoundState> evaluationVisitor = getFormulaResolver(pEdge);
     if (!mayEvaluate(pEdge) && previousValue instanceof Union<?>) {
-      previousValue = CompoundStateFormulaManager.INSTANCE.asConstant(previousValue.accept(evaluationVisitor, environment));
+      Union<CompoundState> union = (Union<CompoundState>) previousValue;
+      if (union.getOperand1() instanceof Union<?>
+          || union.getOperand2() instanceof Union<?>) {
+        previousValue = CompoundStateFormulaManager.INSTANCE.asConstant(previousValue.accept(evaluationVisitor, environment));
+      }
     }
     replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
     InvariantsFormula<CompoundState> newSubstitutedValue =
@@ -351,7 +355,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
         result.putEnvironmentValueInternal(environmentEntry.getKey(), trim(newEnvValue));
       }
     }
-    result.putEnvironmentValueInternal(pVarName, newSubstitutedValue);
+    result.putEnvironmentValueInternal(pVarName, trim(newSubstitutedValue));
 
     // Try to add the assumptions; if it turns out that they are false, the state is bottom
     if (!updateAssumptions(result, replaceVisitor, pValue, pVarName, pEdge)) { return null; }
