@@ -680,6 +680,9 @@ cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, FORMULA]
 
+# file that consists of one abstraction formula for each abstraction state
+cpa.predicate.abstractions.file = "abstractions.txt"
+
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
 cpa.predicate.blk.alwaysAfterThreshold = true
