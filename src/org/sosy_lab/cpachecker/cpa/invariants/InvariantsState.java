@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -47,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ContainsVarVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaAbstractionVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaDepthCountVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.PartialEvaluator;
@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.SplitDisjunctionsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.StateEqualsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ToBooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ToFormulaVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.Union;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.variablerelations.VariableEQ;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.variablerelations.VariableLT;
@@ -71,17 +72,17 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaMa
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
-import com.google.common.collect.SetMultimap;
 
 /**
  * Instances of this class represent states in the light-weight invariants analysis.
  */
 public class InvariantsState implements AbstractState, FormulaReportingState {
+
+  private static final FormulaDepthCountVisitor<CompoundState> FORMULA_DEPTH_COUNT_VISITOR = new FormulaDepthCountVisitor<>();
 
   /**
    * A visitor used to split boolean conjunction formulas up into the conjuncted clauses
@@ -155,10 +156,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   private final Set<InvariantsFormula<CompoundState>> collectedInterestingAssumptions;
 
-  private final SetMultimap<CFANode, InvariantsState> states;
-
-  private final int locationLimit = 128;
-
   private Collection<InvariantsFormula<CompoundState>> environmentAndAssumptions = null;
 
   /**
@@ -168,8 +165,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * @param pUseBitvectors the flag indicating whether or not to use bit vectors for representing states.
    */
   public InvariantsState(boolean pUseBitvectors, VariableSelection<CompoundState> pVariableSelection) {
-    this(pUseBitvectors, pVariableSelection, null, ImmutableSet.<InvariantsFormula<CompoundState>>of(), ImmutableSet.<String>of(),
-        HashMultimap.<CFANode, InvariantsState>create());
+    this(pUseBitvectors, pVariableSelection, null, ImmutableSet.<InvariantsFormula<CompoundState>>of(), ImmutableSet.<String>of());
   }
 
   /**
@@ -180,7 +176,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    */
   public InvariantsState(boolean pUseBitvectors, VariableSelection<CompoundState> pVariableSelection,
       ImmutableSet<CFAEdge> pRelevantEdges, ImmutableSet<InvariantsFormula<CompoundState>> pInterestingAssumptions,
-      ImmutableSet<String> pInterestingVariables, SetMultimap<CFANode, InvariantsState> pStates) {
+      ImmutableSet<String> pInterestingVariables) {
     this.visitedEdges = new HashSet<>();
     this.environment = new HashMap<>();
     this.assumptions = new VariableRelationSet<>();
@@ -192,7 +188,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     this.interestingAssumptions = pInterestingAssumptions;
     this.interestingVariables = pInterestingVariables;
     this.collectedInterestingAssumptions = new HashSet<>();
-    this.states = pStates;
   }
 
   /**
@@ -205,8 +200,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     return from(pToCopy.visitedEdges, pToCopy.assumptions,
         pToCopy.environment, pToCopy.useBitvectors, pToCopy.variableSelection,
         pToCopy.relevantEdges, pToCopy.types, pToCopy.interestingAssumptions,
-        pToCopy.collectedInterestingAssumptions, pToCopy.interestingVariables,
-        pToCopy.states);
+        pToCopy.collectedInterestingAssumptions, pToCopy.interestingVariables);
   }
 
   /**
@@ -226,9 +220,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       ImmutableSet<CFAEdge> pRelevantEdges, Map<String, CType> pTypes,
       ImmutableSet<InvariantsFormula<CompoundState>> pInterestingAssumptions,
       Set<InvariantsFormula<CompoundState>> pCollectedInterestingAssumptions,
-      ImmutableSet<String> pInterestingVariables,
-      SetMultimap<CFANode, InvariantsState> pStates) {
-    InvariantsState result = new InvariantsState(pUseBitvectors, pVariableSelection, pRelevantEdges, pInterestingAssumptions, pInterestingVariables, pStates);
+      ImmutableSet<String> pInterestingVariables) {
+    InvariantsState result = new InvariantsState(pUseBitvectors, pVariableSelection, pRelevantEdges, pInterestingAssumptions, pInterestingVariables);
     if (!result.assumeInternal(pAssumptions, result.getFormulaResolver())) { return null; }
     if (!result.assumeInternal(pCollectedInterestingAssumptions, result.getFormulaResolver())) { return null; }
     result.putEnvironmentValuesInternal(pEnvironment);
@@ -322,7 +315,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
         return from(visitedEdges, newAssumptions, newEnvironment,
             useBitvectors, variableSelection, relevantEdges, types, interestingAssumptions,
             Collections.<InvariantsFormula<CompoundState>>emptySet(),
-            interestingVariables, states);
+            interestingVariables);
       }
     }
 
@@ -334,7 +327,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       return this;
     }
 
-    final InvariantsState result = new InvariantsState(useBitvectors, newVariableSelection, relevantEdges, interestingAssumptions, interestingVariables, states);
+    final InvariantsState result = new InvariantsState(useBitvectors, newVariableSelection, relevantEdges, interestingAssumptions, interestingVariables);
 
     /*
      * A variable is newly assigned, so the appearances of this variable
@@ -342,10 +335,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
      * have to be resolved with the variable's previous value.
      */
     ReplaceVisitor<CompoundState> replaceVisitor;
-    InvariantsFormula<CompoundState> previousValue = getEnvironmentValue(pVarName);
+    InvariantsFormula<CompoundState> previousValue = trim(getEnvironmentValue(pVarName));
     FormulaEvaluationVisitor<CompoundState> evaluationVisitor = getFormulaResolver(pEdge);
-    if (!mayEvaluate(pEdge) && isLocationStateLimitExceeded(pEdge)) {
-      //previousValue = CompoundStateFormulaManager.INSTANCE.asConstant(previousValue.accept(evaluationVisitor, environment));
+    if (!mayEvaluate(pEdge) && previousValue instanceof Union<?>) {
+      previousValue = CompoundStateFormulaManager.INSTANCE.asConstant(previousValue.accept(evaluationVisitor, environment));
     }
     replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
     InvariantsFormula<CompoundState> newSubstitutedValue =
@@ -355,7 +348,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       if (!environmentEntry.getKey().equals(pVarName)) {
         InvariantsFormula<CompoundState> newEnvValue =
             environmentEntry.getValue().accept(replaceVisitor);
-        result.putEnvironmentValueInternal(environmentEntry.getKey(), newEnvValue);
+        result.putEnvironmentValueInternal(environmentEntry.getKey(), trim(newEnvValue));
       }
     }
     result.putEnvironmentValueInternal(pVarName, newSubstitutedValue);
@@ -378,6 +371,14 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       return this;
     }
     return result;
+  }
+
+  private InvariantsFormula<CompoundState> trim(InvariantsFormula<CompoundState> pFormula) {
+    if (pFormula.accept(FORMULA_DEPTH_COUNT_VISITOR) > 8) {
+      return CompoundStateFormulaManager.INSTANCE.asConstant(
+          pFormula.accept(EVALUATION_VISITOR, environment));
+    }
+    return pFormula;
   }
 
   /**
@@ -554,26 +555,28 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     // If the invariant evaluates to true, it adds no value for now
     if (assumptionEvaluation.isDefinitelyTrue()) { return true; }
 
-    PushAssumptionToEnvironmentVisitor patev =
-        new PushAssumptionToEnvironmentVisitor(pEvaluationVisitor, this.environment);
-    if (!assumption.accept(patev, CompoundState.logicalTrue())) {
-      assert !assumptionEvaluation.isDefinitelyTrue();
-      return false;
-    }
-    // Check all assumptions once more after the environment changed
-    if (isDefinitelyFalse(assumption, pEvaluationVisitor)) { return false; }
-    for (InvariantsFormula<CompoundState> oldAssumption : this.assumptions) {
-      if (isDefinitelyFalse(oldAssumption, pEvaluationVisitor)) { return false; }
+    if (!(pEvaluationVisitor instanceof FormulaAbstractionVisitor)) {
+      PushAssumptionToEnvironmentVisitor patev =
+          new PushAssumptionToEnvironmentVisitor(pEvaluationVisitor, this.environment);
+      if (!assumption.accept(patev, CompoundState.logicalTrue())) {
+        assert !assumptionEvaluation.isDefinitelyTrue();
+        return false;
+      }
+      // Check all assumptions once more after the environment changed
+      if (isDefinitelyFalse(assumption, pEvaluationVisitor)) { return false; }
+      for (InvariantsFormula<CompoundState> oldAssumption : this.assumptions) {
+        if (isDefinitelyFalse(oldAssumption, pEvaluationVisitor)) { return false; }
+      }
+
+      // Check again if there is any more value to gain from the assumption after extracting environment information
+      assumption = assumption.accept(this.partialEvaluator, EVALUATION_VISITOR);
+      if (assumption.accept(EVALUATION_VISITOR, this.environment).isDefinitelyTrue()) {
+        // No more value to gain
+        return true;
+      }
     }
 
-    // Check again if there is any more value to gain from the assumption after extracting environment information
-    assumption = assumption.accept(this.partialEvaluator, EVALUATION_VISITOR);
-    if (assumption.accept(EVALUATION_VISITOR, this.environment).isDefinitelyTrue()) {
-      // No more value to gain
-      return true;
-    }
-
-    extractVariableRelations(assumption, pEvaluationVisitor, this.assumptions);
+    extractVariableRelations(assumption, EVALUATION_VISITOR, this.assumptions);
 
     return true;
   }
@@ -665,7 +668,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     }
     InvariantsState result = from(visitedEdges, assumptions, environment, useBitvectors,
         newVariableSelection, relevantEdges, types, interestingAssumptions, collectedInterestingAssumptions,
-        interestingVariables, states);
+        interestingVariables);
     if (result != null) {
       result.visitedEdges.add(pEdge);
       if (!result.assumeInternal(assumption, evaluator)) { return null; }
@@ -807,24 +810,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     return true;
   }
 
-  /*private boolean environmentsSimilarWithRespectToInterestingVariables(InvariantsState pElement2) {
-    for (String interestingVariable : interestingVariables) {
-      InvariantsFormula<CompoundState> left = environment.get(interestingVariable);
-      InvariantsFormula<CompoundState> right = pElement2.environment.get(interestingVariable);
-      if (left != right && (left == null || !left.equals(right))) {
-        if (!(left instanceof Constant<?>) || !(right instanceof Constant<?>)) {
-          return false;
-        }
-        CompoundState leftValue = left.accept(EVALUATION_VISITOR, environment);
-        CompoundState rightValue = right.accept(EVALUATION_VISITOR, pElement2.environment);
-        if (!leftValue.contains(rightValue) && !rightValue.contains(leftValue)) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }*/
-
   public InvariantsState join(InvariantsState pElement2) {
     return join(pElement2, false);
   }
@@ -833,7 +818,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     Preconditions.checkArgument(pElement2.useBitvectors == useBitvectors);
     Preconditions.checkArgument(pElement2.relevantEdges == relevantEdges);
     Preconditions.checkArgument(pElement2.interestingAssumptions == interestingAssumptions);
-    Preconditions.checkArgument(pElement2.states == states);
 
     InvariantsState element1 = this;
     InvariantsState element2 = pElement2;
@@ -913,7 +897,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       result = InvariantsState.from(resultVisitedEdges, resultAssumptions,
           resultEnvironment, element1.getUseBitvectors(), resultVariableSelection,
           element1.relevantEdges, difference.entriesInCommon(), interestingAssumptions,
-          collectedInterestingAssumptions, interestingVariables, states);
+          collectedInterestingAssumptions, interestingVariables);
     }
     if (result != null) {
       if (result.equals(element2)) {
@@ -940,13 +924,16 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   /**
-   * Checks whether or not, including the given assumption, any "interesting"
-   * assumptions hold for this state.
+   * Collects any "interesting" assumptions holding for this state, considering
+   * the given assumption as true.
    *
    * @param pAssumption the additional assumption to consider.
    * @return <code>true</code> if the state is not obviously unsound afterwards.
    */
   private boolean collectInterestingAssumptions(InvariantsFormula<CompoundState> pAssumption) {
+    if (interestingAssumptions.isEmpty()) {
+      return true;
+    }
     Collection<InvariantsFormula<CompoundState>> informationBase = new ArrayList<>();
     FluentIterable.from(getAssumptionsAndEnvironment()).copyInto(informationBase);
     informationBase.add(pAssumption);
@@ -967,18 +954,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       }
     }
     return true;
-  }
-
-  public SetMultimap<CFANode, InvariantsState> getStateMap() {
-    return this.states;
-  }
-
-  public boolean isLocationStateLimitExceeded(CFAEdge pEdge) {
-    return isLocationStateLimitExceeded(pEdge.getSuccessor());
-  }
-
-  public boolean isLocationStateLimitExceeded(CFANode pNode) {
-    return this.states.asMap().get(pNode).size() >= locationLimit;
   }
 
 }

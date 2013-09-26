@@ -837,7 +837,42 @@ public enum CompoundStateFormulaManager {
     if (pOperand1.equals(pOperand2)) {
       return pOperand1;
     }
-    return InvariantsFormulaManager.INSTANCE.union(pOperand1, pOperand2);
+    // Try reducing nested unions by temporarily representing them as a set
+    Set<InvariantsFormula<CompoundState>> atomicUnionParts = new HashSet<>();
+    Queue<InvariantsFormula<CompoundState>> unionParts = new ArrayDeque<>();
+    CompoundState constantPart = CompoundState.bottom();
+    unionParts.offer(pOperand1);
+    unionParts.offer(pOperand2);
+    while (!unionParts.isEmpty()) {
+      InvariantsFormula<CompoundState> currentPart = unionParts.poll();
+      if (currentPart instanceof Union<?>) {
+        Union<CompoundState> currentUnion = (Union<CompoundState>) currentPart;
+        unionParts.add(currentUnion.getOperand1());
+        unionParts.add(currentUnion.getOperand2());
+      } else if (currentPart instanceof Constant<?>) {
+        constantPart = constantPart.unionWith(((Constant<CompoundState>) currentPart).getValue());
+      } else {
+        atomicUnionParts.add(currentPart);
+      }
+    }
+    return unionAll(constantPart, atomicUnionParts);
+  }
+
+  private InvariantsFormula<CompoundState> unionAll(CompoundState pConstantPart, Collection<InvariantsFormula<CompoundState>> pFormulas) {
+    if (pFormulas.isEmpty()) {
+      return asConstant(pConstantPart);
+    }
+    InvariantsFormula<CompoundState> result = null;
+    Iterator<InvariantsFormula<CompoundState>> atomicUnionPartsIterator = pFormulas.iterator();
+    result = atomicUnionPartsIterator.next();
+    while (atomicUnionPartsIterator.hasNext()) {
+      result = InvariantsFormulaManager.INSTANCE.union(result, atomicUnionPartsIterator.next());
+    }
+    if (!pConstantPart.isBottom()) {
+      InvariantsFormula<CompoundState> constantPartFormula = asConstant(pConstantPart);
+      result = InvariantsFormulaManager.INSTANCE.union(result, constantPartFormula);
+    }
+    return result;
   }
 
   /**

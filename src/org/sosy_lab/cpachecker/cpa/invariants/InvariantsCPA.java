@@ -87,7 +87,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -106,7 +105,7 @@ public class InvariantsCPA extends AbstractCPA {
 
     private int interestingPredicatesDepth = 2;
 
-    private int interestingVariableLimit = 3;
+    private int interestingVariableLimit = 2;
 
     // TODO include this option: private int locationLimit = 128;
 
@@ -241,8 +240,7 @@ public class InvariantsCPA extends AbstractCPA {
           variableSelection,
           ImmutableSet.copyOf(relevantEdges),
           ImmutableSet.copyOf(interestingAssumptions),
-          ImmutableSet.copyOf(interestingVariables),
-          HashMultimap.<CFANode, InvariantsState>create());
+          ImmutableSet.copyOf(interestingVariables));
     } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
       this.logManager.logException(Level.SEVERE, e, "Unable to select specific variables. Defaulting to selecting all variables.");
     }
