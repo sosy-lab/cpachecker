@@ -1437,8 +1437,9 @@ public class SMGTransferRelation implements TransferRelation {
     return pSmgState;
   }
 
-  private SMGSymbolicValue resolveRValue(SMGState oldState, SMGState newSmgState, ExplicitState pExplicitState,
-      CRightHandSide rValue, CFAEdge pEdge) throws CPATransferException {
+  private SMGSymbolicValue resolveRValue(SMGState oldState, SMGState newSmgState,
+      ExplicitState pExplicitState, CRightHandSide rValue, CFAEdge pEdge)
+      throws CPATransferException {
 
     //TODO Refactor ...
     if (rValue instanceof CFunctionCallExpression) {
@@ -1446,12 +1447,12 @@ public class SMGTransferRelation implements TransferRelation {
           (CFunctionCallExpression) rValue, pEdge);
     } else {
 
-      SMGExplicitCommunicator cc = new SMGExplicitCommunicator();
-
       String functionName = pEdge.getPredecessor().getFunctionName();
 
-      return cc.evaluateSMGExpression(pExplicitState, functionName, oldState, machineModel, logger, pEdge,
-          rValue);
+      SMGExplicitCommunicator cc = new SMGExplicitCommunicator(pExplicitState,
+          functionName, oldState, machineModel, logger, pEdge);
+
+      return cc.evaluateSMGExpression(rValue);
     }
   }
 
@@ -1495,11 +1496,13 @@ public class SMGTransferRelation implements TransferRelation {
 
   private SMGAddress resolveMemoryLocation(SMGState pSmgState, ExplicitState pExplicitState,
       CExpression lValue, CFAEdge edge) throws UnrecognizedCCodeException {
-    SMGExplicitCommunicator cc = new SMGExplicitCommunicator();
 
     String functionName = edge.getPredecessor().getFunctionName();
 
-    return cc.evaluateSMGLeftHandSide(pExplicitState, functionName, pSmgState, machineModel, logger, edge, lValue);
+    SMGExplicitCommunicator cc = new SMGExplicitCommunicator(pExplicitState, functionName,
+        pSmgState, machineModel, logger, edge);
+
+    return cc.evaluateSMGLeftHandSide(lValue);
   }
 
   @SuppressWarnings("unused")
@@ -1524,11 +1527,14 @@ public class SMGTransferRelation implements TransferRelation {
 
   private Long resolveAssumptionValue(SMGState pSmgState, ExplicitState pExplicitState,
       CRightHandSide rValue, CFAEdge edge) throws UnrecognizedCCodeException {
-    SMGExplicitCommunicator cc = new SMGExplicitCommunicator();
 
     String functionName = edge.getPredecessor().getFunctionName();
 
-    return cc.evaluateExpression(pExplicitState, functionName, pSmgState, machineModel, logger, edge, rValue);
+    SMGExplicitCommunicator cc =
+        new SMGExplicitCommunicator(pExplicitState, functionName,
+            pSmgState, machineModel, logger, edge);
+
+    return cc.evaluateExpression(rValue);
   }
 
   @SuppressWarnings("unused")
@@ -1550,12 +1556,14 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     protected SMGAddressValue evaluateAddress(SMGState pState, CFAEdge pCfaEdge, CRightHandSide pRvalue)
         throws CPATransferException {
-      SMGExplicitCommunicator cc = new SMGExplicitCommunicator();
 
       String functionName = pCfaEdge.getPredecessor().getFunctionName();
 
-      return cc.evaluateSMGAddressExpression(explicitState, functionName, pState, machineModel, logger, pCfaEdge, pRvalue);
-     }
+      SMGExplicitCommunicator cc = new SMGExplicitCommunicator(explicitState, functionName,
+          pState, machineModel, logger, pCfaEdge);
+
+      return cc.evaluateSMGAddressExpression(pRvalue);
+    }
 
     @Override
     protected SMGSymbolicValue evaluateExpressionValue(SMGState pSmgState, CFAEdge pCfaEdge, CExpression pRValue)
@@ -1576,11 +1584,13 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     protected SMGExplicitValue evaluateExplicitValue(SMGState pState, CFAEdge pCfaEdge, CRightHandSide pRValue)
         throws CPATransferException {
-      SMGExplicitCommunicator cc = new SMGExplicitCommunicator();
 
       String functionName = pCfaEdge.getPredecessor().getFunctionName();
 
-      Long value = cc.evaluateExpression(explicitState, functionName, pState, machineModel, logger, pCfaEdge, pRValue);
+      SMGExplicitCommunicator cc = new SMGExplicitCommunicator(explicitState, functionName,
+          pState, machineModel, logger, pCfaEdge);
+
+      Long value = cc.evaluateExpression(pRValue);
 
       if (value == null) {
         return SMGUnknownValue.getInstance();

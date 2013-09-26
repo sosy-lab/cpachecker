@@ -52,9 +52,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
-
-
-
 /**
  * Called communicator and not Evaluator because in the future
  * this will only contain the necessary methods to extract the
@@ -63,74 +60,73 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  */
 public class SMGExplicitCommunicator {
 
-  public Long evaluateExpression(ExplicitState pState, String pFunctionName,
-      SMGState pSmgState, MachineModel machineModel, LogManager pLogger, CFAEdge pCfaEdge,
-      CRightHandSide rValue) throws UnrecognizedCCodeException {
+  private final CFAEdge cfaEdge;
+  private final LogManager logger;
+  private final MachineModel machineModel;
+  private final SMGState smgState;
+  private final ExplicitState explicitState;
+  private final String functionName;
+
+  public SMGExplicitCommunicator(ExplicitState pExplicitState, String pFunctionName,
+      SMGState pSmgState, MachineModel pMachineModel, LogManager pLogger, CFAEdge pCfaEdge) {
+    explicitState = pExplicitState;
+    smgState = pSmgState;
+    machineModel = pMachineModel;
+    logger = pLogger;
+    cfaEdge = pCfaEdge;
+    functionName = pFunctionName;
+  }
+
+  public Long evaluateExpression(CRightHandSide rValue) throws UnrecognizedCCodeException {
 
     ExplicitExpressionValueVisitor evv =
-        new ExplicitExpressionValueVisitor(pState, pFunctionName, pSmgState, machineModel, pLogger, pCfaEdge);
+        new ExplicitExpressionValueVisitor();
     return rValue.accept(evv);
   }
 
-  public SMGSymbolicValue evaluateSMGExpression(ExplicitState pState, String pFunctionName,
-      SMGState pSmgState, MachineModel machineModel, LogManager pLogger, CFAEdge pCfaEdge,
-      CRightHandSide rValue) throws CPATransferException {
+  public SMGSymbolicValue evaluateSMGExpression(CRightHandSide rValue)
+      throws CPATransferException {
 
     SMGExplicitExpressionEvaluator eee =
-        new SMGExplicitExpressionEvaluator(pLogger, machineModel, pState, pFunctionName, pSmgState, pCfaEdge);
-    return eee.evaluateExpressionValue(pSmgState, pCfaEdge, rValue);
+        new SMGExplicitExpressionEvaluator();
+    return eee.evaluateExpressionValue(smgState, cfaEdge, rValue);
   }
 
-  public SMGAddressValue evaluateSMGAddressExpression(ExplicitState pState, String pFunctionName,
-      SMGState pSmgState, MachineModel machineModel, LogManager pLogger, CFAEdge pCfaEdge,
-      CRightHandSide rValue) throws CPATransferException {
+  public SMGAddressValue evaluateSMGAddressExpression(CRightHandSide rValue)
+      throws CPATransferException {
 
     SMGExplicitExpressionEvaluator eee =
-        new SMGExplicitExpressionEvaluator(pLogger, machineModel, pState, pFunctionName, pSmgState, pCfaEdge);
-    return eee.evaluateAddress(pSmgState, pCfaEdge, rValue);
+        new SMGExplicitExpressionEvaluator();
+    return eee.evaluateAddress(smgState, cfaEdge, rValue);
   }
 
-  public MemoryLocation evaluateLeftHandSide(ExplicitState pState, String pFunctionName,
-      SMGState pSmgState, MachineModel machineModel, LogManager pLogger, CFAEdge pCfaEdge,
-      CExpression lValue) throws UnrecognizedCCodeException {
-
+  public MemoryLocation evaluateLeftHandSide(CExpression lValue)
+      throws UnrecognizedCCodeException {
     ExplicitExpressionValueVisitor evv =
-        new ExplicitExpressionValueVisitor(pState, pFunctionName, pSmgState, machineModel, pLogger, pCfaEdge);
+        new ExplicitExpressionValueVisitor();
     return evv.evaluateMemloc(lValue);
   }
 
-  public SMGAddress evaluateSMGLeftHandSide(ExplicitState pState, String pFunctionName,
-      SMGState pSmgState, MachineModel machineModel, LogManager pLogger, CFAEdge pCfaEdge,
-      CExpression lValue) throws UnrecognizedCCodeException {
+  public SMGAddress evaluateSMGLeftHandSide(CExpression lValue)
+      throws UnrecognizedCCodeException {
 
     ExplicitExpressionValueVisitor evv =
-        new ExplicitExpressionValueVisitor(pState, pFunctionName, pSmgState, machineModel, pLogger, pCfaEdge);
+        new ExplicitExpressionValueVisitor();
     return evv.evaluateAddress(lValue);
   }
 
-  private static class ExplicitExpressionValueVisitor extends ExpressionValueVisitor {
+  private class ExplicitExpressionValueVisitor extends org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor {
 
     private final SMGExplicitExpressionEvaluator smgEvaluator;
-    private final SMGState smgState;
-    private final CFAEdge cfaEdge;
-    private final LogManager logger;
 
-    public ExplicitExpressionValueVisitor(ExplicitState pState, String pFunctionName,
-        SMGState pSmgState, MachineModel machineModel, LogManager pLogger, CFAEdge pCfaEdge) {
-      super(pState, pFunctionName, machineModel);
-      smgEvaluator = new SMGExplicitExpressionEvaluator(pLogger, machineModel, this);
-      smgState = pSmgState;
-      cfaEdge = pCfaEdge;
-      logger = pLogger;
+    public ExplicitExpressionValueVisitor() {
+      super(explicitState, functionName, machineModel, logger, cfaEdge);
+      smgEvaluator = new SMGExplicitExpressionEvaluator(this);
     }
 
-    public ExplicitExpressionValueVisitor(ExplicitState pState, String pFunctionName,
-        SMGState pSmgState, CFAEdge pCfaEdge, SMGExplicitExpressionEvaluator pSmgEvaluator) {
-      super(pState, pFunctionName, pSmgEvaluator.getMachineModel());
+    public ExplicitExpressionValueVisitor(SMGExplicitExpressionEvaluator pSmgEvaluator) {
+      super(explicitState, functionName, machineModel, logger, cfaEdge);
       smgEvaluator = pSmgEvaluator;
-      smgState = pSmgState;
-      cfaEdge = pCfaEdge;
-      logger = smgEvaluator.getLogger();
     }
 
     public SMGAddress evaluateAddress(CExpression pOperand) throws UnrecognizedCCodeException {
@@ -257,13 +253,12 @@ public class SMGExplicitCommunicator {
     }
   }
 
-  private static class SMGExplicitExpressionEvaluator extends SMGExpressionEvaluator {
+  private class SMGExplicitExpressionEvaluator extends SMGExpressionEvaluator {
 
     ExplicitExpressionValueVisitor evv;
 
-    public SMGExplicitExpressionEvaluator(LogManager pLogger, MachineModel pMachineModel,
-        ExplicitExpressionValueVisitor pEvv) {
-      super(pLogger, pMachineModel);
+    public SMGExplicitExpressionEvaluator(ExplicitExpressionValueVisitor pEvv) {
+      super(logger, machineModel);
       evv = pEvv;
     }
 
@@ -272,10 +267,9 @@ public class SMGExplicitCommunicator {
       return super.getMachineModel();
     }
 
-    public SMGExplicitExpressionEvaluator(LogManager pLogger, MachineModel pMachineModel, ExplicitState pExplicitState,
-        String pFunctionName, SMGState pSmgState, CFAEdge pCfaEdge) {
-      super(pLogger, pMachineModel);
-      evv = new ExplicitExpressionValueVisitor(pExplicitState, pFunctionName, pSmgState, pCfaEdge, this);
+    public SMGExplicitExpressionEvaluator() {
+      super(logger, machineModel);
+      evv = new ExplicitExpressionValueVisitor(this);
     }
 
     @Override

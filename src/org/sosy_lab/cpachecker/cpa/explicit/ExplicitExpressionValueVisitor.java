@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.util.List;
-import java.util.Set;
 
+import javax.annotation.Nullable;
+
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -44,11 +46,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -82,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.forwarding.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
@@ -95,35 +97,42 @@ public class ExplicitExpressionValueVisitor
     JRightHandSideVisitor<Long, UnrecognizedCCodeException>,
     JExpressionVisitor<Long, UnrecognizedCCodeException> {
 
-  public boolean missingPointer = false;
-  public boolean missingFieldAccessInformation = false;
-  public boolean missingEnumComparisonInformation = false;
-  public boolean containsFieldReference = false;
-  public boolean containsSubscriptExpression = false;
-
 
   private final ExplicitState state;
   private final String functionName;
   private final MachineModel machineModel;
 
-  private final Set<String> globalVariables; // TODO do we really need this?
+    // for logging
+  @SuppressWarnings("unused")
+  private final LogManager logger;
+  @SuppressWarnings("unused")
+  private final CFAEdge edge;
+
+  public boolean missingPointer = false;
+  public boolean missingFieldAccessInformation = false;
+  public boolean missingEnumComparisonInformation = false;
 
 
+  /** This Visitor returns the numeral value for an expression.
+   * @param pState where to get the values for variables (identifiers)
+   * @param pFunctionName current scope, used only for variable-names
+   * @param pMachineModel where to get info about types, for casting and overflows
+   * @param pLogger logging
+   * @param pEdge only for logging, not needed */
   public ExplicitExpressionValueVisitor(ExplicitState pState, String pFunctionName,
-      MachineModel pMachineModel, Set<String> pGlobalVariables) {
+      MachineModel pMachineModel, LogManager pLogger, @Nullable CFAEdge pEdge) {
 
     this.state = pState;
     this.functionName = pFunctionName;
     this.machineModel = pMachineModel;
-    this.globalVariables = pGlobalVariables;
+    this.logger = pLogger;
+    this.edge = pEdge;
   }
 
   public void reset() {
     missingPointer = false;
     missingFieldAccessInformation = false;
     missingEnumComparisonInformation = false;
-    containsFieldReference = false;
-    containsSubscriptExpression = false;
   }
 
   public boolean hasMissingPointer() {
@@ -298,13 +307,7 @@ public class ExplicitExpressionValueVisitor
       }
     }
 
-    String varName = getScopedVariableName(idExp.getName(), functionName);
-
-    if (state.contains(varName)) {
-      return state.getValueFor(varName);
-    } else {
-      return null;
-    }
+    return getValue(idExp.getName(), ForwardingTransferRelation.isGlobal(idExp));
   }
 
   @Override
@@ -332,6 +335,8 @@ public class ExplicitExpressionValueVisitor
       return null; // valid expression, but it's a pointer value
 
     case SIZEOF:
+      // TODO Not precise enough
+      return getSizeof(unaryOperand.getExpressionType());
     case TILDE:
     default:
       // TODO handle unimplemented operators
@@ -347,13 +352,13 @@ public class ExplicitExpressionValueVisitor
 
   @Override
   public Long visit(CFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
-    String varName = getScopedVariableName(fieldReferenceExpression.toASTString(), functionName);
+    return evaluateLValue(fieldReferenceExpression);
+  }
 
-    if (state.contains(varName)) {
-      return state.getValueFor(varName);
-    } else {
-      return null;
-    }
+  @Override
+  public Long visit(CArraySubscriptExpression pE)
+      throws UnrecognizedCCodeException {
+    return evaluateLValue(pE);
   }
 
   @Override
@@ -499,13 +504,7 @@ public class ExplicitExpressionValueVisitor
       missingFieldAccessInformation = true;
     }
 
-    String varName = getScopedVariableName(idExp.getName(), functionName);
-
-    if (state.contains(varName)) {
-      return state.getValueFor(varName);
-    } else {
-      return null;
-    }
+	return getValue(idExp.getName(), ForwardingTransferRelation.isGlobal(idExp));
   }
 
   @Override
@@ -609,22 +608,27 @@ public class ExplicitExpressionValueVisitor
     return pJCastExpression.getOperand().accept(this);
   }
 
+
   /* additional methods */
 
-  private String getScopedVariableName(String variableName, String functionName) {
-    // TODO remove globalVars-collection and replace it with isGlobal() ?
 
-    if (globalVariables.contains(variableName)) {
-      return variableName;
+  /** This method returns the value of a variable from the current state. */
+  private Long getValue(String varName, boolean isGlobal) {
+
+    MemoryLocation memLoc;
+
+    if (!isGlobal) {
+      memLoc = MemoryLocation.valueOf(functionName, varName, 0);
     } else {
-      return functionName + "::" + variableName;
+      memLoc = MemoryLocation.valueOf(varName, 0);
+    }
+
+    if (state.contains(memLoc)) {
+      return state.getValueFor(memLoc);
+    } else {
+      return null;
     }
   }
-
-
-
-
-
 
   private Long evaluateLValue(CLeftHandSide pLValue) throws UnrecognizedCCodeException {
 
@@ -645,11 +649,6 @@ public class ExplicitExpressionValueVisitor
 
   public MemoryLocation evaluateMemoryLocation(CLeftHandSide lValue) throws UnrecognizedCCodeException {
     return lValue.accept(new MemoryLocationEvaluator(this));
-  }
-
-  public boolean isGlobal(CLeftHandSide cLValue) throws UnrecognizedCCodeException {
-
-    return cLValue.accept(new IsGlobalVisitor());
   }
 
   private static class MemoryLocationEvaluator implements CLeftHandSideVisitor <MemoryLocation, UnrecognizedCCodeException> {
@@ -786,7 +785,7 @@ public class ExplicitExpressionValueVisitor
     @Override
     public MemoryLocation visit(CIdExpression idExp) throws UnrecognizedCCodeException {
 
-      boolean isGlobal = evv.isGlobal(idExp);
+      boolean isGlobal = ForwardingTransferRelation.isGlobal(idExp);
 
       if(isGlobal) {
         return MemoryLocation.valueOf(idExp.getName(), 0);
@@ -803,54 +802,10 @@ public class ExplicitExpressionValueVisitor
 
     @Override
     public MemoryLocation visit(CComplexCastExpression pComplexCastExpression) throws UnrecognizedCCodeException {
-      // TODO Auto-generated method stub
+      //TODO Investigate
       return null;
     }
 
-  }
-
-  private static class IsGlobalVisitor implements CLeftHandSideVisitor<Boolean, UnrecognizedCCodeException> {
-
-    @Override
-    public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws UnrecognizedCCodeException {
-      CLeftHandSide arrayExpression = (CLeftHandSide) pIastArraySubscriptExpression.getArrayExpression();
-      return arrayExpression.accept(this);
-    }
-
-    @Override
-    public Boolean visit(CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
-      CLeftHandSide fieldOwner = (CLeftHandSide) pIastFieldReference.getFieldOwner();
-      return fieldOwner.accept(this);
-    }
-
-    @Override
-    public Boolean visit(CIdExpression idExp) throws UnrecognizedCCodeException {
-      boolean isGlobal = declarationIsGlobalScoped(idExp.getDeclaration());
-      return isGlobal;
-    }
-
-    @Override
-    public Boolean visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
-      // We don't have the Information for determining this.
-      return null;
-    }
-
-    private boolean declarationIsGlobalScoped(CSimpleDeclaration pDecl) {
-      return pDecl instanceof CVariableDeclaration ? ((CVariableDeclaration) pDecl).isGlobal() : false;
-    }
-
-    @Override
-    public Boolean visit(CComplexCastExpression pComplexCastExpression) throws UnrecognizedCCodeException {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-  }
-
-  @Override
-  public Long visit(CArraySubscriptExpression pE)
-      throws UnrecognizedCCodeException {
-    return evaluateLValue(pE);
   }
 
   public ExplicitState getState() {

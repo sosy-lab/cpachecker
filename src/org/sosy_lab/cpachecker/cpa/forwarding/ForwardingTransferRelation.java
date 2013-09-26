@@ -444,7 +444,7 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected static boolean isGlobal(final IAExpression exp) {
+  public static boolean isGlobal(final IAExpression exp) {
     if (exp instanceof CExpression) {
       return isGlobal((CExpression) exp);
     } else if (exp instanceof JExpression) {
