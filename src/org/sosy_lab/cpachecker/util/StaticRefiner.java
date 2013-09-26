@@ -23,16 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
-
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -40,20 +35,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -68,24 +55,15 @@ abstract public class StaticRefiner {
   @Option(description="collect at most this number of assumes along a path, backwards from each target (= error) location")
   private int maxBackscanPathAssumes = 1;
 
-  private final Configuration config;
-  protected final CFA cfa;
   protected final LogManager logger;
 
   public StaticRefiner(
       Configuration pConfig,
-      LogManager pLogger,
-      CFA pCfa) throws InvalidConfigurationException {
+      LogManager pLogger) throws InvalidConfigurationException {
 
     this.logger = pLogger;
-    this.config = pConfig;
-    this.cfa = pCfa;
 
     pConfig.inject(this, StaticRefiner.class);
-
-    if (pConfig.getProperty("specification") == null) {
-      throw new InvalidConfigurationException("No valid specificSportation is given!");
-    }
   }
 
   protected Set<CIdExpression> getVariablesOfAssume(AssumeEdge pAssume) throws CPATransferException {
@@ -148,48 +126,5 @@ abstract public class StaticRefiner {
     }
 
     return result;
-  }
-
-  /**
-   * This method starts a simple CPA on the given CFA in order to find all target nodes
-   * that are syntactical reachable in the CFA.
-   *
-   * @param cfa the CFA to operate on
-   * @return the collection of target nodes
-   */
-  protected Collection<CFANode> getTargetNodesWithCPA() {
-    try {
-      ReachedSetFactory lReachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration(), logger);
-
-      // create new configuration based on the existing one, but with a few options reset
-      Configuration lConfig = Configuration.builder().copyFrom(config)
-        .setOption("output.disable", "true")
-        .clearOption("cpa")
-        .clearOption("cpas")
-        .clearOption("CompositeCPA.cpas")
-        .clearOption("cpa.composite.precAdjust")
-        .build();
-
-      CPABuilder lBuilder = new CPABuilder(lConfig, logger, lReachedSetFactory);
-      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs(cfa);
-      Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger, lConfig);
-      ReachedSet lReached = lReachedSetFactory.create();
-      lReached.add(lCpas.getInitialState(cfa.getMainFunction()), lCpas.getInitialPrecision(cfa.getMainFunction()));
-
-      lAlgorithm.run(lReached);
-
-      return from(lReached)
-               .filter(IS_TARGET_STATE)
-               .transform(EXTRACT_LOCATION)
-               .toSet();
-
-    } catch (CPAException | InvalidConfigurationException e) {
-      logger.log(Level.WARNING, "Cannot find target locations of the CFA.");
-      logger.logDebugException(e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
-
-    return Collections.emptyList();
   }
 }

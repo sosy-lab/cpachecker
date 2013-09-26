@@ -33,7 +33,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -56,9 +55,8 @@ public class ExplicitStaticRefiner extends StaticRefiner {
   public ExplicitStaticRefiner(
       Configuration pConfig,
       LogManager pLogger,
-      CFA pCfa,
       ExplicitPrecision initialPrecision) throws InvalidConfigurationException {
-    super(pConfig, pLogger, pCfa);
+    super(pConfig, pLogger);
 
     explicitPrecision = initialPrecision;
   }

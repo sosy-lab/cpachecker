@@ -104,6 +104,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
   private final PredicateAbstractionManager predAbsManager;
   private final VariableClassification varClasses;
   private final Solver solver;
+  private final CFA cfa;
 
   private Multimap<Pair<String, String>, AStatementEdge> directlyAffectingStatements;
 
@@ -115,10 +116,11 @@ public class PredicateStaticRefiner extends StaticRefiner {
       FormulaManagerView pFormulaManagerView,
       PredicateAbstractionManager pPredAbsManager,
       CFA pCfa) throws InvalidConfigurationException {
-    super(pConfig, pLogger, pCfa);
+    super(pConfig, pLogger);
 
     pConfig.inject(this);
 
+    this.cfa = pCfa;
     assert cfa.getVarClassification().isPresent();
     this.varClasses = cfa.getVarClassification().get();
 
