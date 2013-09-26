@@ -676,6 +676,9 @@ cpa.predicate.abstraction.initialPredicates.applyFunctionWide = false
 # in the program)
 cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 
+# An initial set of comptued abstractions that might be reusable
+cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
+
 # What to use for storing abstractions
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, FORMULA]
@@ -772,6 +775,9 @@ cpa.predicate.mathsat5.furtherOptions = ""
 # Export solver queries in Smtlib format into a file (for Mathsat5).
 cpa.predicate.mathsat5.logAllQueries = false
 cpa.predicate.mathsat5.logfile = "mathsat5.%03d.smt2"
+
+# Max. number of edge of the abstraction tree to prescan for reuse
+cpa.predicate.maxAbstractionReusePrescan = 1
 
 # Set of functions that provide new memory on the heap.
 cpa.predicate.memoryAllocationFunctions = {
