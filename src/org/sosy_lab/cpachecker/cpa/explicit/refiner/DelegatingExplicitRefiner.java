@@ -265,7 +265,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
 
     if (!initialStaticRefinementDone && staticRefiner != null) {
       refinementRoot              = errorPath.get(1);
-      refinedExplicitPrecision    = staticRefiner.extractPrecisionFromCfa();
+      refinedExplicitPrecision    = staticRefiner.extractPrecisionFromCfa(reachedSet, errorPath);
       initialStaticRefinementDone = true;
     }
     else {
