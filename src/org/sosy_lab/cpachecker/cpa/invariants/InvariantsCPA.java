@@ -318,6 +318,9 @@ public class InvariantsCPA extends AbstractCPA {
 
     List<String> formalParams = pEdge.getSuccessor().getFunctionParameterNames();
     List<CExpression> actualParams = pEdge.getArguments();
+    int limit = Math.min(formalParams.size(), actualParams.size());
+    formalParams = FluentIterable.from(formalParams).limit(limit).toList();
+    actualParams = FluentIterable.from(actualParams).limit(limit).toList();
 
     for (Pair<String, CExpression> param : Pair.zipList(formalParams, actualParams)) {
       CExpression actualParam = param.getSecond();

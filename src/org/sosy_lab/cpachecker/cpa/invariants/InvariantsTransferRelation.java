@@ -66,6 +66,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
+import com.google.common.collect.FluentIterable;
+
 public enum InvariantsTransferRelation implements TransferRelation {
 
   INSTANCE;
@@ -191,6 +193,9 @@ public enum InvariantsTransferRelation implements TransferRelation {
     InvariantsState newElement = pElement;
     List<String> formalParams = pEdge.getSuccessor().getFunctionParameterNames();
     List<CExpression> actualParams = pEdge.getArguments();
+    int limit = Math.min(formalParams.size(), actualParams.size());
+    formalParams = FluentIterable.from(formalParams).limit(limit).toList();
+    actualParams = FluentIterable.from(actualParams).limit(limit).toList();
 
     for (Pair<String, CExpression> param : Pair.zipList(formalParams, actualParams)) {
       CExpression actualParam = param.getSecond();
