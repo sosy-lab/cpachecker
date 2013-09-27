@@ -378,7 +378,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   private InvariantsFormula<CompoundState> trim(InvariantsFormula<CompoundState> pFormula) {
-    if (pFormula.accept(FORMULA_DEPTH_COUNT_VISITOR) > 8) {
+    if (pFormula.accept(FORMULA_DEPTH_COUNT_VISITOR) > 4) {
       return CompoundStateFormulaManager.INSTANCE.asConstant(
           pFormula.accept(EVALUATION_VISITOR, environment));
     }
@@ -691,11 +691,28 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     ToFormulaVisitor<CompoundState, BooleanFormula> toBooleanFormulaVisitor =
         ToBooleanFormulaVisitor.getVisitor(pManager, evaluationVisitor, useBitvectors);
 
+    List<InvariantsFormula<CompoundState>> assumptions = new ArrayList<>();
+    assumptions.addAll(collectedInterestingAssumptions);
+    assumptions.addAll(this.assumptions);
+
     for (InvariantsFormula<CompoundState> assumption : getAssumptionsAndEnvironment()) {
       BooleanFormula assumptionFormula = assumption.accept(toBooleanFormulaVisitor, getEnvironment());
       if (assumptionFormula != null) {
         result = bfmgr.and(result, assumptionFormula);
       }
+    }
+    for (Map.Entry<String, InvariantsFormula<CompoundState>> entry : this.environment.entrySet()) {
+      String varName = entry.getKey();
+      CType type = types.get(varName);
+      if (type instanceof CSimpleType) {
+        CSimpleType simpleType = (CSimpleType) type;
+        simpleType.getType();
+        if (simpleType.getType().equals(org.sosy_lab.cpachecker.cfa.types.c.CBasicType.BOOL)) {
+          result = bfmgr.and(result, bfmgr.equivalence(bfmgr.makeVariable(varName), entry.getValue().accept(toBooleanFormulaVisitor, getEnvironment())));
+          continue;
+        }
+      }
+      result = bfmgr.and(result, CompoundStateFormulaManager.INSTANCE.equal(CompoundStateFormulaManager.INSTANCE.asVariable(varName), entry.getValue()).accept(toBooleanFormulaVisitor, getEnvironment()));
     }
 
     // Apply type information
