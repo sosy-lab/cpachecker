@@ -330,7 +330,7 @@ public class PredicateAbstractionManager {
 
             stats.abstractionReuseImplicationTime.start();
             reuseEnv.push(bfmgr.not(instantiatedReuseFormula));
-            boolean implication = !reuseEnv.isUnsat();
+            boolean implication = reuseEnv.isUnsat();
             reuseEnv.pop();
             stats.abstractionReuseImplicationTime.stop();
 
