@@ -848,16 +848,22 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       Map<String, InvariantsFormula<CompoundState>> resultEnvironment = new HashMap<>();
       Set<InvariantsFormula<CompoundState>> resultAssumptions = new HashSet<>();
 
+      ContainsVarVisitor<CompoundState> containsVarVisitor = new ContainsVarVisitor<>(resultEnvironment);
 
       // Get some basic information by joining the environments
       for (Map.Entry<String, InvariantsFormula<CompoundState>> entry : element1.environment.entrySet()) {
         String varName = entry.getKey();
         InvariantsFormula<CompoundState> rightFormula = element2.environment.get(varName);
         if (rightFormula != null) {
-          resultEnvironment.put(varName,
+          InvariantsFormula<CompoundState> newValueFormula =
               CompoundStateFormulaManager.INSTANCE.union(
                   entry.getValue().accept(element1.partialEvaluator, EVALUATION_VISITOR),
-                  rightFormula.accept(element2.partialEvaluator, EVALUATION_VISITOR)).accept(new PartialEvaluator(), EVALUATION_VISITOR));
+                  rightFormula.accept(element2.partialEvaluator, EVALUATION_VISITOR)).accept(new PartialEvaluator(), EVALUATION_VISITOR);
+          if (rightFormula.accept(containsVarVisitor, varName)) {
+            newValueFormula = CompoundStateFormulaManager.INSTANCE.asConstant(newValueFormula.accept(EVALUATION_VISITOR, resultEnvironment));
+          }
+          resultEnvironment.put(varName,
+              newValueFormula);
         }
       }
 

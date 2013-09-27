@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.util.Map;
+
 /**
  * Instances of this class are visitors used to check if the visited formulae
  * contain a specified variable.
@@ -30,6 +32,16 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  * @param <T> the type of the constants used in the visited formulae.
  */
 public class ContainsVarVisitor<T> implements ParameterizedInvariantsFormulaVisitor<T, String, Boolean> {
+
+  private final Map<? extends String, ? extends InvariantsFormula<T>> environment;
+
+  public ContainsVarVisitor() {
+    this(null);
+  }
+
+  public ContainsVarVisitor(Map<? extends String, ? extends InvariantsFormula<T>> pEnvironment) {
+    this.environment = pEnvironment;
+  }
 
   @Override
   public Boolean visit(Add<T> pAdd, String pVarName) {
@@ -130,7 +142,18 @@ public class ContainsVarVisitor<T> implements ParameterizedInvariantsFormulaVisi
 
   @Override
   public Boolean visit(Variable<T> pVariable, String pVarName) {
-    return pVariable.getName().equals(pVarName);
+    return pVariable.getName().equals(pVarName) || refersTo(pVariable, pVarName);
+  }
+
+  private boolean refersTo(Variable<T> pVariable, String pVarName) {
+    if (this.environment == null) {
+      return false;
+    }
+    InvariantsFormula<T> value = this.environment.get(pVariable.getName());
+    if (value == null) {
+      return false;
+    }
+    return value.accept(this, pVarName);
   }
 
 }
