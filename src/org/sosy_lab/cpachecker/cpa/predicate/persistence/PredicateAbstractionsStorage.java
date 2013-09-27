@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -52,11 +53,13 @@ public class PredicateAbstractionsStorage {
 
   public static class AbstractionNode {
     private final int id;
+    private final Optional<Integer> locationId;
     private final BooleanFormula formula;
 
-    public AbstractionNode(int pId, BooleanFormula pFormula) {
+    public AbstractionNode(int pId, BooleanFormula pFormula, Optional<Integer> pLocationId) {
       this.id = pId;
       this.formula = pFormula;
+      this.locationId = pLocationId;
     }
 
     public BooleanFormula getFormula() {
@@ -67,6 +70,10 @@ public class PredicateAbstractionsStorage {
       return id;
     }
 
+    public Optional<Integer> getLocationId() {
+      return locationId;
+    }
+
     @Override
     public int hashCode() {
       // TODO
@@ -74,7 +81,7 @@ public class PredicateAbstractionsStorage {
     }
   }
 
-  private static final Pattern NODE_DECLARATION_PATTERN = Pattern.compile("^[0-9]+[ ]*\\(([0-9]+[,]*)*\\)$");
+  private static final Pattern NODE_DECLARATION_PATTERN = Pattern.compile("^[0-9]+[ ]*\\(([0-9]+[,]*)*\\)[ ]*(@[0-9]+)$");
   private enum AbstractionsParserState {EXPECT_OF_COMMON_DEFINITIONS, EXPECT_NODE_DECLARATION, EXPECT_NODE_ABSTRACTION}
 
   private final Path abstractionsFile;
@@ -116,6 +123,7 @@ public class PredicateAbstractionsStorage {
 
       String currentLine;
       int currentAbstractionId = -1;
+      Optional<Integer> currentLocationId = Optional.absent();
       Set<Integer> currentSuccessors = Sets.newTreeSet();
 
       AbstractionsParserState parserState = AbstractionsParserState.EXPECT_NODE_DECLARATION;
@@ -148,13 +156,18 @@ public class PredicateAbstractionsStorage {
             throw new PredicateParsingFailedException(currentLine + " is not a valid abstraction header", source, lineNo);
           }
 
+          currentLocationId = null;
           StringTokenizer declarationTokenizer = new StringTokenizer(currentLine, " (,):");
           currentAbstractionId = Integer.parseInt(declarationTokenizer.nextToken());
           while (declarationTokenizer.hasMoreTokens()) {
-            String token = declarationTokenizer.nextToken();
-            if (token.trim().length() > 0) {
-              int successorId = Integer.parseInt(token);
-              currentSuccessors.add(successorId);
+            String token = declarationTokenizer.nextToken().trim();
+            if (token.length() > 0) {
+              if (token.startsWith("@")) {
+                currentLocationId = Optional.of(Integer.parseInt(token.substring(1)));
+              } else {
+                int successorId = Integer.parseInt(token);
+                currentSuccessors.add(successorId);
+              }
             }
           }
 
@@ -172,7 +185,7 @@ public class PredicateAbstractionsStorage {
             throw new PredicateParsingFailedException(e, "Formula parsing", lineNo);
           }
 
-          AbstractionNode abstractionNode = new AbstractionNode(currentAbstractionId, f);
+          AbstractionNode abstractionNode = new AbstractionNode(currentAbstractionId, f, currentLocationId);
           resultAbstractions.put(currentAbstractionId, abstractionNode);
           resultTree.putAll(currentAbstractionId, currentSuccessors);
           abstractionsWithParents.addAll(currentSuccessors);
@@ -194,7 +207,6 @@ public class PredicateAbstractionsStorage {
     }
 
     // Set results
-
     this.abstractions = ImmutableMap.copyOf(resultAbstractions);
     this.abstractionTree = ImmutableMultimap.copyOf(resultTree);
   }
@@ -216,7 +228,13 @@ public class PredicateAbstractionsStorage {
 
     if (abstractionTree != null) {
       for (Integer successorId : abstractionTree.get(ofAbstractionWithId)) {
-        result.add(abstractions.get(successorId));
+        if (successorId == null) {
+          continue;
+        }
+        AbstractionNode successor = abstractions.get(successorId);
+        if (successor != null) {
+          result.add(successor);
+        }
       }
     }
 
@@ -226,6 +244,16 @@ public class PredicateAbstractionsStorage {
   public void markAbstractionBeingReused(Integer abstractionId) {
     Preconditions.checkNotNull(abstractionId);
     reusedAbstractions.add(abstractionId);
+  }
+
+  public boolean wasAbstractionReused(Integer abstractionId) {
+    Preconditions.checkNotNull(abstractionId);
+    return reusedAbstractions.contains(abstractionId);
+  }
+
+
+  public ImmutableMap<Integer, AbstractionNode> getAbstractions() {
+    return abstractions;
   }
 
 }

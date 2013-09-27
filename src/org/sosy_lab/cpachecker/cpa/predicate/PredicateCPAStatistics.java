@@ -244,6 +244,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
 
       out.println("Number of abstractions:            " + prec.numAbstractions + " (" + toPercent(prec.numAbstractions, trans.postTimer.getNumberOfIntervals()) + " of all post computations)");
       if (prec.numAbstractions > 0) {
+        out.println("  Times abstraction was reused:    " + as.numAbstractionReuses);
         out.println("  Because of function entry/exit:  " + valueWithPercentage(blk.numBlkFunctions, prec.numAbstractions));
         out.println("  Because of loop head:            " + valueWithPercentage(blk.numBlkLoops, prec.numAbstractions));
         out.println("  Because of threshold:            " + valueWithPercentage(blk.numBlkThreshold, prec.numAbstractions));
@@ -254,6 +255,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
         out.println("  Times boolean abs was used:      " + valueWithPercentage(as.booleanAbstractionTime.getNumberOfIntervals(), as.numCallsAbstraction));
         out.println("  Times result was 'false':        " + valueWithPercentage(prec.numAbstractionsFalse, prec.numAbstractions));
       }
+
       if (trans.satCheckTimer.getNumberOfIntervals() > 0) {
         out.println("Number of satisfiability checks:   " + trans.satCheckTimer.getNumberOfIntervals());
         out.println("  Times result was 'false':        " + trans.numSatChecksFalse + " (" + toPercent(trans.numSatChecksFalse, trans.satCheckTimer.getNumberOfIntervals()) + ")");
@@ -335,6 +337,11 @@ class PredicateCPAStatistics extends AbstractStatistics {
         }
         if (as.booleanAbstractionTime.getNumberOfIntervals() > 0) {
           out.println("    Boolean abstraction:             " + as.booleanAbstractionTime);
+        }
+        if (as.abstractionReuseTime.getNumberOfIntervals() > 0) {
+          out.println("    Abstraction reuse:              " + as.abstractionReuseTime);
+          out.println("    Abstraction reuse implication:  " + as.abstractionReuseImplicationTime);
+          out.println("    Abstraction reuse temp:  " + as.abstractionReuseTempTime);
         }
         out.println("    Solving time:                    " + as.abstractionSolveTime + " (Max: " + as.abstractionSolveTime.printMaxTime() + ")");
         out.println("    Model enumeration time:          " + as.abstractionEnumTime.printOuterSumTime());

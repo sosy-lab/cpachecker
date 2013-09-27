@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.base.Optional;
+
 /**
  * Instances of this class should hold a state formula (the result of an
  * abstraction computation) in several representations:
@@ -65,16 +67,23 @@ public class AbstractionFormula implements Serializable {
   private static int nextId = 0;
   private final int id = nextId++;
   private final BooleanFormulaManager mgr;
+  private final Optional<Integer> idOfStoredAbstractionReused;
 
   public AbstractionFormula(
       FormulaManagerView mgr,
       Region pRegion, BooleanFormula pFormula,
-      BooleanFormula pInstantiatedFormula, PathFormula pBlockFormula) {
+      BooleanFormula pInstantiatedFormula, PathFormula pBlockFormula,
+      Optional<Integer> pIdOfStoredAbstractionReused) {
     this.mgr = checkNotNull(mgr.getBooleanFormulaManager());
     this.region = checkNotNull(pRegion);
     this.formula = checkNotNull(pFormula);
     this.instantiatedFormula = checkNotNull(pInstantiatedFormula);
     this.blockFormula = checkNotNull(pBlockFormula);
+    this.idOfStoredAbstractionReused = pIdOfStoredAbstractionReused;
+  }
+
+  public boolean isReusedFromStoredAbstraction() {
+    return idOfStoredAbstractionReused.isPresent();
   }
 
   public boolean isTrue() {
@@ -109,6 +118,10 @@ public class AbstractionFormula implements Serializable {
 
   public int getId() {
     return id;
+  }
+
+  public Optional<Integer> getIdOfStoredAbstractionReused() {
+    return idOfStoredAbstractionReused;
   }
 
   @Override

@@ -35,7 +35,6 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -66,8 +65,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   final Timer reuseAbstractionTime = new Timer();
 
   int numAbstractions = 0;
-  int numAbstractionsComputed = 0;
-  int numAbstractionsReused = 0;
   int numAbstractionsFalse = 0;
   int maxBlockSize = 0;
 
@@ -137,35 +134,12 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     }
 
     AbstractionFormula newAbstractionFormula = null;
-    Integer idOfAbstractionReused = element.getIdOfAbstractionReused();
 
-    // (try to) reuse an abstraction (of a previous verification run)
-    reuseAbstractionTime.start();
-    Pair<AbstractionFormula, Integer> newAbstraction = formulaManager.tryAbstractionReuseFor(
-          element.getAbstractionFormula(),
-          element.getIdOfAbstractionReused(),
-          abstractionFormula,
-          pathFormula,
-          preds);
-
-    if (newAbstraction != null) {
-      newAbstractionFormula = newAbstraction.getFirst();
-      idOfAbstractionReused = newAbstraction.getSecond();
-    }
-
-    reuseAbstractionTime.stop();
-    if (newAbstractionFormula != null) {
-      numAbstractionsReused++;
-    }
-
-    if  (newAbstractionFormula == null) {
-      // compute new abstraction
-      computingAbstractionTime.start();
-      newAbstractionFormula = formulaManager.buildAbstraction(
-          abstractionFormula, pathFormula, preds);
-      computingAbstractionTime.stop();
-      numAbstractionsComputed++;
-    }
+    // compute new abstraction
+    computingAbstractionTime.start();
+    newAbstractionFormula = formulaManager.buildAbstraction(
+        abstractionFormula, pathFormula, preds);
+    computingAbstractionTime.stop();
 
     // if the abstraction is false, return bottom (represented by empty set)
     if (newAbstractionFormula.isFalse()) {
@@ -185,7 +159,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
     return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-        newAbstractionFormula, abstractionLocations, idOfAbstractionReused);
+        newAbstractionFormula, abstractionLocations);
   }
 
   private void extractInvariants() throws CPAException {
