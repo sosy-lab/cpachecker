@@ -674,17 +674,26 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       }
     }
     for (Map.Entry<String, InvariantsFormula<CompoundState>> entry : this.environment.entrySet()) {
+      InvariantsFormula<CompoundState> valueFormula = entry.getValue();
+      if (valueFormula.equals(TOP)) {
+        continue;
+      }
       String varName = entry.getKey();
       CType type = types.get(varName);
+      BooleanFormula formula = null;
       if (type instanceof CSimpleType) {
         CSimpleType simpleType = (CSimpleType) type;
         simpleType.getType();
         if (simpleType.getType().equals(org.sosy_lab.cpachecker.cfa.types.c.CBasicType.BOOL)) {
-          result = bfmgr.and(result, bfmgr.equivalence(bfmgr.makeVariable(varName), entry.getValue().accept(toBooleanFormulaVisitor, getEnvironment())));
-          continue;
+          formula = bfmgr.equivalence(bfmgr.makeVariable(varName), valueFormula.accept(toBooleanFormulaVisitor, getEnvironment()));
         }
       }
-      result = bfmgr.and(result, CompoundStateFormulaManager.INSTANCE.equal(CompoundStateFormulaManager.INSTANCE.asVariable(varName), entry.getValue()).accept(toBooleanFormulaVisitor, getEnvironment()));
+      if (formula == null) {
+        formula = CompoundStateFormulaManager.INSTANCE.equal(CompoundStateFormulaManager.INSTANCE.asVariable(varName), valueFormula).accept(toBooleanFormulaVisitor, getEnvironment());
+      }
+      if (formula != null) {
+        result = bfmgr.and(result, formula);
+      }
     }
 
     // Apply type information
