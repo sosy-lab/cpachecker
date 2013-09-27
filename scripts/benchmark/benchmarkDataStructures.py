@@ -31,7 +31,6 @@ from datetime import date
 
 import runexecutor
 import util as Util
-from outputHandler import OutputHandler
 
 MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
@@ -211,8 +210,6 @@ class Benchmark:
                 logging.warning("Benchmark file {0} uses deprecated <test> tags. Please rename them to <rundefinition>.".format(benchmarkFile))
             else:
                 logging.warning("Benchmark file {0} specifies no runs to execute (no <rundefinition> tags found).".format(benchmarkFile))
-
-        self.outputHandler = OutputHandler(self)
 
 
     def requiredFiles(self):
@@ -463,31 +460,6 @@ class Run():
                 and int(self.memUsage) >= (rlimits[MEMLIMIT] * 1024 * 1024):
             self.status = 'OUT OF MEMORY'
 
-        self.benchmark.outputHandler.outputAfterRun(self)
-
-    def execute(self, numberOfThread):
-        """
-        This function executes the tool with a sourcefile with options.
-        It also calls functions for output before and after the run.
-        @param numberOfThread: runs are executed in different threads
-        """
-        self.benchmark.outputHandler.outputBeforeRun(self)
-
-        rlimits = self.benchmark.rlimits
-
-        (self.wallTime, self.cpuTime, self.memUsage, returnvalue, output) = runexecutor.executeRun(self.args, rlimits, self.logFile, numberOfThread)
-
-        if runexecutor.PROCESS_KILLED:
-            # If the run was interrupted, we ignore the result and cleanup.
-            self.wallTime = 0
-            self.cpuTime = 0
-            try:
-                os.remove(self.logFile)
-            except OSError:
-                pass
-            return
-
-        self.afterExecution(returnvalue, output)
 
     def _isTimeout(self):
         ''' try to find out whether the tool terminated because of a timeout '''

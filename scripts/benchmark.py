@@ -50,6 +50,7 @@ from benchmark.benchmarkDataStructures import *
 import benchmark.runexecutor as runexecutor
 import benchmark.util as Util
 import benchmark.filewriter as filewriter
+from benchmark.outputHandler import OutputHandler
 
 MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
@@ -94,9 +95,10 @@ class Worker(threading.Thread):
     """
     workingQueue = Queue.Queue()
 
-    def __init__(self, number):
+    def __init__(self, number, outputHandler):
         threading.Thread.__init__(self) # constuctor of superclass
-        self.number = number
+        self.numberOfThread = number
+        self.outputHandler = outputHandler
         self.setDaemon(True)
         self.start()
 
@@ -104,17 +106,47 @@ class Worker(threading.Thread):
         while not Worker.workingQueue.empty() and not STOPPED_BY_INTERRUPT:
             currentRun = Worker.workingQueue.get_nowait()
             try:
-                currentRun.execute(self.number)
+                self.execute(currentRun)
             except BaseException as e:
                 print(e)
             Worker.workingQueue.task_done()
+            
+            
+    def execute(self, run):
+        """
+        This function executes the tool with a sourcefile with options.
+        It also calls functions for output before and after the run.
+        """
+        self.outputHandler.outputBeforeRun(run)
+
+        (run.wallTime, run.cpuTime, run.memUsage, returnvalue, output) = \
+            runexecutor.executeRun(
+                run.args, run.benchmark.rlimits, run.logFile, self.numberOfThread)
+
+        if runexecutor.PROCESS_KILLED:
+            # If the run was interrupted, we ignore the result and cleanup.
+            run.wallTime = 0
+            run.cpuTime = 0
+            try:
+                os.remove(run.logFile)
+            except OSError:
+                pass
+            return
+
+        run.afterExecution(returnvalue, output)
+        self.outputHandler.outputAfterRun(run)
 
 
-def executeBenchmarkLocaly(benchmark):
+    def stop(self):
+        # asynchronous call to runexecutor, 
+        # the worker will stop asap, but not within this method.
+        runexecutor.killAllProcesses()
+
+
+def executeBenchmarkLocaly(benchmark, outputHandler):
     
     runexecutor.init()
-        
-    outputHandler = benchmark.outputHandler
+    
     runSetsExecuted = 0
 
     logging.debug("I will use {0} threads.".format(benchmark.numOfThreads))
@@ -147,7 +179,7 @@ def executeBenchmarkLocaly(benchmark):
 
             # create some workers
             for i in range(benchmark.numOfThreads):
-                WORKER_THREADS.append(Worker(i))
+                WORKER_THREADS.append(Worker(i, outputHandler))
 
             # wait until all tasks are done,
             # instead of queue.join(), we use a loop and sleep(1) to handle KeyboardInterrupt
@@ -392,6 +424,8 @@ def handleCloudResults(benchmark, outputHandler):
                 logging.warning("Cannot read log file: " + e.strerror)
 
             run.afterExecution(returnValue, output)
+            outputHandler.outputAfterRun(run)
+
         outputHandler.outputAfterRunSet(runSet, None, None)
 
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
@@ -400,9 +434,7 @@ def handleCloudResults(benchmark, outputHandler):
          logging.warning("Not all runs were executed in the cloud!")
 
 
-def executeBenchmarkInCloud(benchmark):
-
-    outputHandler = benchmark.outputHandler
+def executeBenchmarkInCloud(benchmark, outputHandler):
 
     # build input for cloud
     cloudInput = getCloudInput(benchmark)
@@ -444,14 +476,15 @@ def executeBenchmarkInCloud(benchmark):
 
 def executeBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile, config, OUTPUT_PATH)
-
+    outputHandler = OutputHandler(benchmark)
+    
     logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
             repr(benchmarkFile), len(benchmark.runSets)))
 
     if config.cloud:
-        executeBenchmarkInCloud(benchmark)
+        executeBenchmarkInCloud(benchmark, outputHandler)
     else:
-        executeBenchmarkLocaly(benchmark)
+        executeBenchmarkLocaly(benchmark, outputHandler)
 
 
 def main(argv=None):
@@ -600,7 +633,8 @@ def killScriptLocal():
 
         # kill running jobs
         Util.printOut("killing subprocesses...")
-        runexecutor.killAllProcesses()
+        for worker in WORKER_THREADS:
+            worker.stop()
 
         # wait until all threads are stopped
         for worker in WORKER_THREADS:
