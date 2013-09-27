@@ -190,16 +190,7 @@ class Benchmark:
             self._requiredFiles.extend(requiredFiles)
 
         # get requirements
-        self.requirements = Requirements()
-        for requireTag in rootTag.findall("require"):
-            requirements = Requirements(requireTag.get('cpuModel', None),
-                                        requireTag.get('cpuCores', None),
-                                        requireTag.get('memory',   None)
-                                        )
-            self.requirements = Requirements.merge(self.requirements, config.cloudCpuModel)
-
-        self.requirements = Requirements.mergeWithCpuModel(self.requirements, config.cloudCpuModel)
-        self.requirements = Requirements.mergeWithLimits(self.requirements, self.rlimits)
+        self.requirements = Requirements(rootTag.findall("require"), self.rlimits, config.cloudCpuModel)
 
         self.resultFilesPattern = None
         resultFilesTags = rootTag.findall("resultfiles")
@@ -522,74 +513,64 @@ class Column:
 
 
 class Requirements:
-    def __init__(self, cpuModel=None, cpuCores=None, memory=None):
-        self._cpuModel = cpuModel
-        self._cpuCores = int(cpuCores) if cpuCores is not None else None
-        self._memory   = int(memory) if memory is not None else None
+    '''
+    This class wrappes the values for the requirements.
+    It parses the tags from XML to get those values.
+    If no values are found, at least the limits are used as requirements.
+    If the user gives a cpuModel, it overrides the previous cpuModel.
+    '''
+    def __init__(self, tags, rlimits, cloudCpuModel):
+        
+        self.cpuModel = None
+        self.memory   = None
+        self.cpuCores = None
+        
+        for requireTag in tags:
+            
+            cpuModel = requireTag.get('cpuModel', None)
+            if self.cpuModel is None:
+                self.cpuModel = cpuModel
+            else:
+                raise Exception('Double specification of required CPU model.')
 
-        if self.cpuCores() <= 0:
-            raise Exception('Invalid value {} for required CPU cores.'.format(cpuCores))
+            cpuCores = requireTag.get('cpuCores', None)
+            if self.cpuCores is None:
+                if cpuCores is not None: self.cpuCores = int(cpuCores)
+            else:
+                raise Exception('Double specification of required CPU cores.')
 
-        if self.memory() <= 0:
-            raise Exception('Invalid value {} for required memory.'.format(memory))
+            memory = requireTag.get('memory',   None)
+            if self.memory is None:
+                if memory is not None: self.memory = int(memory)
+            else:
+                raise Exception('Double specification of required memory.')
 
-    def cpuModel(self):
-        return self._cpuModel or ""
+        # TODO check, if we have enough requirements to reach the limits        
+        # TODO is this really enough? we need some overhead!
+        if self.cpuCores is None:
+            self.cpuCores = rlimits.get(CORELIMIT, None)
 
-    def cpuCores(self):
-        return self._cpuCores or 1
+        if self.memory is None:
+            self.memory = rlimits.get(MEMLIMIT, None)
 
-    def memory(self):
-        return self._memory or 15000
+        if cloudCpuModel is not None: # user-given model -> override value
+            self.cpuModel = cloudCpuModel
 
-    @classmethod
-    def merge(cls, r1, r2):
-        if r1._cpuModel is not None and r2._cpuModel is not None:
-            raise Exception('Double specification of required CPU model.')
-        if r1._cpuCores and r2._cpuCores:
-            raise Exception('Double specification of required CPU cores.')
-        if r1._memory and r2._memory:
-            raise Exception('Double specification of required memory.')
+        if self.cpuCores is not None and self.cpuCores <= 0:
+            raise Exception('Invalid value {} for required CPU cores.'.format(self.cpuCores))
 
-        return cls(r1._cpuModel if r1._cpuModel is not None else r2._cpuModel,
-                   r1._cpuCores or r2._cpuCores,
-                   r1._memory or r2._memory)
+        if self.memory is not None and self.memory <= 0:
+            raise Exception('Invalid value {} for required memory.'.format(self.memory))
 
-    @classmethod
-    def mergeWithLimits(cls, r, l):
-        _cpuModel = r._cpuModel
-        _cpuCores = r._cpuCores
-        _memory = r._memory
-
-        if(_cpuCores is None and CORELIMIT in l):
-            _cpuCores = l[CORELIMIT]
-        if(_memory is None and MEMLIMIT in l):
-            _memory = l[MEMLIMIT]
-
-        return cls(_cpuModel, _cpuCores, _memory)
-
-    @classmethod
-    def mergeWithCpuModel(cls, r, cpuModel):
-        _cpuCores = r._cpuCores
-        _memory = r._memory
-
-        if(cpuModel is None):
-            return r
-        else:
-            return cls(cpuModel, _cpuCores, _memory)
-
-
-    def __repr__(self):
-        return "%s(%r)" % (self.__class__, self.__dict__)
 
     def __str__(self):
         s = ""
-        if self._cpuModel:
-            s += " CPU='" + self._cpuModel + "'"
-        if self._cpuCores:
-            s += " Cores=" + str(self._cpuCores)
-        if self._memory:
-            s += " Memory=" + str(self._memory) + "MB"
+        if self.cpuModel:
+            s += " CPU='" + self.cpuModel + "'"
+        if self.cpuCores:
+            s += " Cores=" + str(self.cpuCores)
+        if self.memory:
+            s += " Memory=" + str(self.memory) + "MB"
 
         return "Requirements:" + (s if s else " None")
 

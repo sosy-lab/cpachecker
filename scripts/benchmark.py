@@ -55,9 +55,12 @@ MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
 CORELIMIT = runexecutor.CORELIMIT
 
-DEFAULT_CLOUD_TIMELIMIT = 3600
+DEFAULT_CLOUD_TIMELIMIT = 3600 # s
 DEFAULT_CLOUD_MEMLIMIT = None
 
+DEFAULT_CLOUD_MEMORY_REQUIREMENT = 15000 # MB
+DEFAULT_CLOUD_CPUCORE_REQUIREMENT = 1 # one core
+DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
 
 # next lines are needed for stopping the script
 WORKER_THREADS = []
@@ -308,11 +311,11 @@ def getToolDataForCloud(benchmark):
 def getBenchmarkDataForCloud(benchmark):
 
     # get requirements
-    requirements = [benchmark.requirements.memory(), benchmark.requirements.cpuCores()]
-    if benchmark.requirements.cpuModel() is not "":
-        requirements.append(benchmark.requirements.cpuModel())
+    r = benchmark.requirements
+    requirements = [DEFAULT_CLOUD_MEMORY_REQUIREMENT if r.memory is None else r.memory,
+                    DEFAULT_CLOUD_CPUCORE_REQUIREMENT if r.cpuCores is None else r.cpuCores,
+                    DEFAULT_CLOUD_CPUMODEL_REQUIREMENT if r.cpuModel is None else r.cpuModel]
 
-    
     # get limits and number of Runs
     timeLimit = benchmark.rlimits.get(TIMELIMIT, DEFAULT_CLOUD_TIMELIMIT)
     memLimit  = benchmark.rlimits.get(MEMLIMIT,  DEFAULT_CLOUD_MEMLIMIT)
@@ -550,7 +553,7 @@ def main(argv=None):
                       help="Sets the priority for this benchmark used in the cloud. Possible values are IDLE, LOW, HIGH, URGENT.")
 
     parser.add_argument("--cloudCpuModel",
-                      dest="cloudCpuModel",
+                      dest="cloudCpuModel", type=str, default=None,
                       metavar="CPU_MODEL",
                       help="Only execute runs on CPU models that contain the given string.")
 
