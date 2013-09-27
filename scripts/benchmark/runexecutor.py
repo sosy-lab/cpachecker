@@ -176,7 +176,6 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
     outputFile.write(' '.join(args) + '\n\n\n' + '-'*80 + '\n\n\n')
     outputFile.flush()
 
-    registeredSubprocess = False
     timelimitThread = None
     wallTimeBefore = time.time()
 
@@ -185,12 +184,8 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
                              stdout=outputFile, stderr=outputFile,
                              preexec_fn=preSubprocess)
 
-        try:
-            _SUB_PROCESSES_LOCK.acquire()
+        with _SUB_PROCESSES_LOCK:
             _SUB_PROCESSES.add(p)
-            registeredSubProcess = True
-        finally:
-            _SUB_PROCESSES_LOCK.release()
 
         if TIMELIMIT in rlimits and CPUACCT in cgroups:
             # Start a timer to periodically check timelimit with cgroup
@@ -199,20 +194,17 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
             timelimitThread.start()
 
         (pid, returnvalue, ru_child) = os.wait4(p.pid, 0)
-    except OSError:
-        logging.critical("I caught an OSError. Assure that the directory "
-                         + "containing the tool to be benchmarked is included "
+
+    except OSError as e:
+        returnvalue = 0
+        ru_child = None
+        logging.critical("I caught an OSError({0}): {1}.".format(e.errno, e.strerror)
+                         + "Assure that the directory containing the tool to be benchmarked is included "
                          + "in the PATH environment variable or an alias is set.")
-        sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
 
     finally:
-        if registeredSubprocess: # TODO always false??
-            try:
-                _SUB_PROCESSES_LOCK.acquire()
-                assert p in _SUB_PROCESSES
-                _SUB_PROCESSES.remove(p)
-            finally:
-                _SUB_PROCESSES_LOCK.release()
+        with _SUB_PROCESSES_LOCK:
+            _SUB_PROCESSES.discard(p)
 
         if timelimitThread:
             timelimitThread.cancel()
@@ -223,11 +215,9 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
         for cgroup in cgroups.values():
             _killAllTasksInCgroup(cgroup)
 
-    assert pid == p.pid
-
     wallTimeAfter = time.time()
     wallTime = wallTimeAfter - wallTimeBefore
-    cpuTime = (ru_child.ru_utime + ru_child.ru_stime)
+    cpuTime = (ru_child.ru_utime + ru_child.ru_stime) if ru_child else 0
     cpuTime2 = None
 
     if CPUACCT in cgroups:
@@ -313,12 +303,9 @@ def killAllProcesses():
     global PROCESS_KILLED
     PROCESS_KILLED = True
 
-    try:
-        _SUB_PROCESSES_LOCK.acquire()
+    with _SUB_PROCESSES_LOCK:
         for process in _SUB_PROCESSES:
             _killSubprocess(process)
-    finally:
-        _SUB_PROCESSES_LOCK.release()
 
 def _readCpuTime(cgroupCpuacct):
     return float(readFile(cgroupCpuacct, 'cpuacct.usage'))/1000000000 # nano-seconds to seconds
