@@ -130,6 +130,12 @@ public class InvariantsWriter {
         }
       }
 
+      // Skip states with no information
+      if (bfmgr.isTrue(formula)) {
+        iterator.remove();
+        continue;
+      }
+
       String s = fmgr.dumpFormula(formula).toString();
 
       List<String> lines = Lists.newArrayList(LINE_SPLITTER.split(s));
@@ -137,12 +143,6 @@ public class InvariantsWriter {
 
       // Get the predicate
       predString = lines.get(lines.size()-1);
-
-      // Skip states with no information
-      if (predString.equals("(assert true)")) {
-        iterator.remove();
-        continue;
-      }
 
       // Remove the predicate from the dump
       lines.remove(lines.size() - 1);
