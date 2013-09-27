@@ -3,6 +3,7 @@
 import signal
 import sys
 import benchmark.runexecutor as runexecutor
+from benchmark.runexecutor import RunExecutor
 
 MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
@@ -48,7 +49,10 @@ def main(argv=None):
         outputFileName = argv[4]
         if(len(argv) == 6):
              rlimits[CORELIMIT] = int(argv[5])
-        (wallTime, cpuTime, memUsage, returnvalue, output) = runexecutor.executeRun(args, rlimits, outputFileName);
+             
+        global runExecutor
+        runExecutor = RunExecutor()
+        (wallTime, cpuTime, memUsage, returnvalue, output) = runExecutor.executeRun(args, rlimits, outputFileName);
 
         print("Walltime: " + str(wallTime))
         print("CpuTime: " + str(cpuTime))
@@ -61,7 +65,7 @@ def main(argv=None):
         sys.exit("Wrong number of arguments, expected exactly 4 or 5: <command> <memlimit in MB> <timelimit in s> <output file name> <core limit(optional)>")
 
 def signal_handler_kill_script(signum, frame):
-    runexecutor.killAllProcesses()
+    runExecutor.kill()
 
 if __name__ == "__main__":
 

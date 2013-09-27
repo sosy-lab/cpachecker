@@ -52,54 +52,57 @@ MEMORY = 'memory'
 
 _BYTE_FACTOR = 1024 # byte in kilobyte
 
-_SUB_PROCESSES = set()
-_SUB_PROCESSES_LOCK = threading.Lock()
 
-_cgroups = {}
+class RunExecutor():
 
-PROCESS_KILLED = False
+  def __init__(self):
+    self.PROCESS_KILLED = False
+    self.SUB_PROCESSES_LOCK = threading.Lock() # needed, because we kill the process asynchronous
+    self.SUB_PROCESSES = set()
 
-# The list of available CPU cores
-_cpus = []
+    self.initCGroups()
 
-def init():
+
+  def initCGroups(self):
     """
-    This function initializes the module.
+    This function initializes the cgroups for the limitations.
     Please call it before any calls to executeRun(),
     if you want to separate initialization from actual run execution
     (e.g., for better error message handling).
     """
-    _initCgroup(CPUACCT)
-    if not _cgroups[CPUACCT]:
+    self.cgroups = {}
+    self.cpus = [] # list of available CPU cores
+    
+    _initCgroup(self.cgroups, CPUACCT)
+    if not self.cgroups[CPUACCT]:
         logging.warning('Without cpuacct cgroups, cputime measurement and limit might not work correctly if subprocesses are started.')
 
-    _initCgroup(MEMORY)
-    if not _cgroups[MEMORY]:
+    _initCgroup(self.cgroups, MEMORY)
+    if not self.cgroups[MEMORY]:
         logging.warning('Cannot measure and limit memory consumption without memory cgroups.')
 
-    _initCgroup(CPUSET)
+    _initCgroup(self.cgroups, CPUSET)
 
-    cgroupCpuset = _cgroups[CPUSET]
+    cgroupCpuset = self.cgroups[CPUSET]
     if not cgroupCpuset:
         logging.warning("Cannot limit the number of CPU curse without cpuset cgroup.")
     else:
         # Read available cpus:
-        global _cpus
         cpuStr = readFile(cgroupCpuset, 'cpuset.cpus')
         for cpu in cpuStr.split(','):
             cpu = cpu.split('-')
             if len(cpu) == 1:
-                _cpus.append(int(cpu[0]))
+                self.cpus.append(int(cpu[0]))
             elif len(cpu) == 2:
                 start, end = cpu
-                _cpus.extend(range(int(start), int(end)+1))
+                self.cpus.extend(range(int(start), int(end)+1))
             else:
                 logging.warning("Could not read available CPU cores from kernel, failed to parse {0}.".format(cpuStr))
 
-        logging.debug("List of available CPU cores is {0}.".format(_cpus))
+        logging.debug("List of available CPU cores is {0}.".format(self.cpus))
 
 
-def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
+  def executeRun(self, args, rlimits, outputFileName, myCpuIndex=None):
     """
     This function executes a given command with resource limits,
     and writes the output to a file.
@@ -126,7 +129,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
     subsystems = [CPUACCT, MEMORY]
     if CORELIMIT in rlimits and myCpuIndex is not None:
         subsystems.append(CPUSET)
-    cgroups = _createCgroup(*subsystems)
+    cgroups = _createCgroup(self.cgroups, *subsystems)
 
     logging.debug("Executing {0} in cgroups {1}.".format(args, cgroups.values()))
 
@@ -138,15 +141,15 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
     # Setup cpuset cgroup if necessary to limit the CPU cores to be used.
     if CORELIMIT in rlimits and myCpuIndex is not None:
         myCpuCount = rlimits[CORELIMIT]
-        if not _cpus or CPUSET not in cgroups:
+        if not self.cpus or CPUSET not in cgroups:
             sys.exit("Cannot limit number of CPU cores because cgroups are not available.")
-        if myCpuCount > len(_cpus):
-            sys.exit("Cannot execute runs on {0} CPU cores, only {1} are available.".format(myCpuCount, len(_cpus)))
+        if myCpuCount > len(self.cpus):
+            sys.exit("Cannot execute runs on {0} CPU cores, only {1} are available.".format(myCpuCount, len(self.cpus)))
         if myCpuCount <= 0:
             sys.exit("Invalid number of CPU cores to use: {0}".format(myCpuCount))
 
         cgroupCpuset = cgroups[CPUSET]
-        totalCpuCount = len(_cpus)
+        totalCpuCount = len(self.cpus)
         myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
         myCpusEnd   = (myCpusStart + myCpuCount-1) % totalCpuCount
         myCpus = ','.join(map(str, range(myCpusStart, myCpusEnd+1)))
@@ -184,8 +187,8 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
                              stdout=outputFile, stderr=outputFile,
                              preexec_fn=preSubprocess)
 
-        with _SUB_PROCESSES_LOCK:
-            _SUB_PROCESSES.add(p)
+        with self.SUB_PROCESSES_LOCK:
+            self.SUB_PROCESSES.add(p)
 
         if TIMELIMIT in rlimits and CPUACCT in cgroups:
             # Start a timer to periodically check timelimit with cgroup
@@ -203,8 +206,8 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
                          + "in the PATH environment variable or an alias is set.")
 
     finally:
-        with _SUB_PROCESSES_LOCK:
-            _SUB_PROCESSES.discard(p)
+        with self.SUB_PROCESSES_LOCK:
+            self.SUB_PROCESSES.discard(p)
 
         if timelimitThread:
             timelimitThread.cancel()
@@ -277,6 +280,13 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
     return (wallTime, cpuTime, memUsage, returnvalue, '\n'.join(output))
 
 
+  def kill(self):
+        self.PROCESS_KILLED = True
+        with self.SUB_PROCESSES_LOCK:
+            for process in self.SUB_PROCESSES:
+                _killSubprocess(process)
+
+
 def getDebugOutputAfterCrash(output, outputFileName):
     """
     Segmentation faults and some memory failures reference a file 
@@ -296,16 +306,6 @@ def getDebugOutputAfterCrash(output, outputFileName):
             logging.debug('Going to append error report file')
             next = True
 
-
-def killAllProcesses():
-
-    # set global flag
-    global PROCESS_KILLED
-    PROCESS_KILLED = True
-
-    with _SUB_PROCESSES_LOCK:
-        for process in _SUB_PROCESSES:
-            _killSubprocess(process)
 
 def _readCpuTime(cgroupCpuacct):
     return float(readFile(cgroupCpuacct, 'cpuacct.usage'))/1000000000 # nano-seconds to seconds
@@ -365,7 +365,7 @@ def _findCgroupMount(subsystem=None):
     return None
 
 
-def _createCgroup(*subsystems):
+def _createCgroup(cgroups, *subsystems):
     """
     Try to create a cgroup for each of the given subsystems.
     If multiple subsystems are available in the same hierarchy,
@@ -376,9 +376,9 @@ def _createCgroup(*subsystems):
     createdCgroupsPerSubsystem = {}
     createdCgroupsPerParent = {}
     for subsystem in subsystems:
-        _initCgroup(subsystem)
+        _initCgroup(cgroups, subsystem)
 
-        parentCgroup = _cgroups.get(subsystem)
+        parentCgroup = cgroups.get(subsystem)
         if not parentCgroup:
             # subsystem not enabled
             continue
@@ -445,8 +445,8 @@ def _removeCgroup(cgroup):
             # somethings this fails because the cgroup is still busy, we try again once
             os.rmdir(cgroup)
 
-def _initCgroup(subsystem):
-    if not subsystem in _cgroups:
+def _initCgroup(cgroups, subsystem):
+    if not subsystem in cgroups:
         cgroup = _findCgroupMount(subsystem)
 
         if not cgroup:
@@ -455,18 +455,18 @@ def _initCgroup(subsystem):
 Please enable it with "sudo mount -t cgroup none /sys/fs/cgroup".'''
                 .format(subsystem)
                 )
-            _cgroups[subsystem] = None
+            cgroups[subsystem] = None
             return
         else:
             logging.debug('Subsystem {0} is mounted at {1}'.format(subsystem, cgroup))
 
         # find our own cgroup, we want to put processes in a child group of it
         cgroup = os.path.join(cgroup, _findOwnCgroup(subsystem)[1:])
-        _cgroups[subsystem] = cgroup
+        cgroups[subsystem] = cgroup
         logging.debug('My cgroup for subsystem {0} is {1}'.format(subsystem, cgroup))
 
-        try:
-            testCgroup = _createCgroup(subsystem)[subsystem]
+        try: # only for testing?
+            testCgroup = _createCgroup(cgroups, subsystem)[subsystem]
             _removeCgroup(testCgroup)
 
             logging.debug('Found {0} subsystem for cgroups mounted at {1}'.format(subsystem, cgroup))
@@ -475,4 +475,4 @@ Please enable it with "sudo mount -t cgroup none /sys/fs/cgroup".'''
 '''Cannot use cgroup hierarchy mounted at {0}, reason: {1}
 If permissions are wrong, please run "sudo chmod o+wt \'{0}\'".'''
                 .format(cgroup, e.strerror))
-            _cgroups[subsystem] = None
+            cgroups[subsystem] = None

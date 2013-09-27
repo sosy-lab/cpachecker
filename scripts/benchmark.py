@@ -47,6 +47,7 @@ import subprocess
 import threading
 
 from benchmark.benchmarkDataStructures import *
+from benchmark.runexecutor import RunExecutor
 import benchmark.runexecutor as runexecutor
 import benchmark.util as Util
 import benchmark.filewriter as filewriter
@@ -99,6 +100,7 @@ class Worker(threading.Thread):
         threading.Thread.__init__(self) # constuctor of superclass
         self.numberOfThread = number
         self.outputHandler = outputHandler
+        self.runExecutor = RunExecutor()
         self.setDaemon(True)
         self.start()
 
@@ -120,10 +122,10 @@ class Worker(threading.Thread):
         self.outputHandler.outputBeforeRun(run)
 
         (run.wallTime, run.cpuTime, run.memUsage, returnvalue, output) = \
-            runexecutor.executeRun(
+            self.runExecutor.executeRun(
                 run.args, run.benchmark.rlimits, run.logFile, self.numberOfThread)
 
-        if runexecutor.PROCESS_KILLED:
+        if self.runExecutor.PROCESS_KILLED:
             # If the run was interrupted, we ignore the result and cleanup.
             run.wallTime = 0
             run.cpuTime = 0
@@ -140,12 +142,10 @@ class Worker(threading.Thread):
     def stop(self):
         # asynchronous call to runexecutor, 
         # the worker will stop asap, but not within this method.
-        runexecutor.killAllProcesses()
+        self.runExecutor.kill()
 
 
 def executeBenchmarkLocaly(benchmark, outputHandler):
-    
-    runexecutor.init()
     
     runSetsExecuted = 0
 
