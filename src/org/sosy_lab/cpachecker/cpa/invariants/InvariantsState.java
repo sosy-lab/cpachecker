@@ -122,7 +122,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   /**
    * The environment currently known to the state.
    */
-  private final Map<String, InvariantsFormula<CompoundState>> environment;
+  private final NonRecursiveEnvironment environment;
 
   /**
    * The currently made assumptions.
@@ -178,7 +178,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       ImmutableSet<CFAEdge> pRelevantEdges, ImmutableSet<InvariantsFormula<CompoundState>> pInterestingAssumptions,
       ImmutableSet<String> pInterestingVariables) {
     this.visitedEdges = new HashSet<>();
-    this.environment = new HashMap<>();
+    this.environment = new NonRecursiveEnvironment();
     this.assumptions = new VariableRelationSet<>();
     this.partialEvaluator = new PartialEvaluator(this.environment);
     this.useBitvectors = pUseBitvectors;
@@ -224,7 +224,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     InvariantsState result = new InvariantsState(pUseBitvectors, pVariableSelection, pRelevantEdges, pInterestingAssumptions, pInterestingVariables);
     if (!result.assumeInternal(pAssumptions, result.getFormulaResolver())) { return null; }
     if (!result.assumeInternal(pCollectedInterestingAssumptions, result.getFormulaResolver())) { return null; }
-    result.putEnvironmentValuesInternal(pEnvironment);
+    result.environment.putAll(pEnvironment);
     result.visitedEdges.addAll(pVisitedEdges);
     result.types.putAll(pTypes);
     return result;
@@ -352,10 +352,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       if (!environmentEntry.getKey().equals(pVarName)) {
         InvariantsFormula<CompoundState> newEnvValue =
             environmentEntry.getValue().accept(replaceVisitor);
-        result.putEnvironmentValueInternal(environmentEntry.getKey(), trim(newEnvValue));
+        result.environment.put(environmentEntry.getKey(), trim(newEnvValue));
       }
     }
-    result.putEnvironmentValueInternal(pVarName, trim(newSubstitutedValue));
+    result.environment.put(pVarName, trim(newSubstitutedValue));
 
     // Try to add the assumptions; if it turns out that they are false, the state is bottom
     if (!updateAssumptions(result, replaceVisitor, pValue, pVarName, pEdge)) { return null; }
@@ -481,34 +481,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    */
   private FormulaEvaluationVisitor<CompoundState> getFormulaResolver() {
     return EVALUATION_VISITOR;
-  }
-
-  /**
-   * Inserts the given environment into this environment.
-   *
-   * @param pEnvironment the environment to insert into this environment.
-   */
-  private void putEnvironmentValuesInternal(Map<String, InvariantsFormula<CompoundState>> pEnvironment) {
-    for (Map.Entry<String, InvariantsFormula<CompoundState>> entry : pEnvironment.entrySet()) {
-      putEnvironmentValueInternal(entry.getKey(),
-          entry.getValue().accept(this.partialEvaluator, getFormulaResolver()));
-    }
-  }
-
-  /**
-   * Puts the given environment element into this environment.
-   *
-   * @param pVariableName the variable name.
-   * @param pValue the value of the variable.
-   */
-  private void putEnvironmentValueInternal(String pVariableName, InvariantsFormula<CompoundState> pValue) {
-    FormulaEvaluationVisitor<CompoundState> evaluator = getFormulaResolver();
-    InvariantsFormula<CompoundState> value = pValue.accept(this.partialEvaluator, evaluator);
-    if (value.equals(TOP)) {
-      this.environment.remove(pVariableName);
-    } else {
-      this.environment.put(pVariableName, pValue.accept(this.partialEvaluator, evaluator));
-    }
   }
 
   /**
@@ -862,7 +834,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
         resultVisitedEdges.addAll(element2.visitedEdges);
       }
 
-      Map<String, InvariantsFormula<CompoundState>> resultEnvironment = new HashMap<>();
+      Map<String, InvariantsFormula<CompoundState>> resultEnvironment = new NonRecursiveEnvironment();
       Set<InvariantsFormula<CompoundState>> resultAssumptions = new HashSet<>();
 
       ContainsVarVisitor<CompoundState> containsVarVisitor = new ContainsVarVisitor<>(resultEnvironment);
@@ -876,9 +848,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
               CompoundStateFormulaManager.INSTANCE.union(
                   entry.getValue().accept(element1.partialEvaluator, EVALUATION_VISITOR),
                   rightFormula.accept(element2.partialEvaluator, EVALUATION_VISITOR)).accept(new PartialEvaluator(), EVALUATION_VISITOR);
-          if (rightFormula.accept(containsVarVisitor, varName)) {
-            newValueFormula = CompoundStateFormulaManager.INSTANCE.asConstant(newValueFormula.accept(EVALUATION_VISITOR, resultEnvironment));
-          }
           resultEnvironment.put(varName,
               newValueFormula);
         }
