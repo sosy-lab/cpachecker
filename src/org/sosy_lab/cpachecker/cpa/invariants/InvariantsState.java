@@ -837,8 +837,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       Map<String, InvariantsFormula<CompoundState>> resultEnvironment = new NonRecursiveEnvironment();
       Set<InvariantsFormula<CompoundState>> resultAssumptions = new HashSet<>();
 
-      ContainsVarVisitor<CompoundState> containsVarVisitor = new ContainsVarVisitor<>(resultEnvironment);
-
       // Get some basic information by joining the environments
       for (Map.Entry<String, InvariantsFormula<CompoundState>> entry : element1.environment.entrySet()) {
         String varName = entry.getKey();
