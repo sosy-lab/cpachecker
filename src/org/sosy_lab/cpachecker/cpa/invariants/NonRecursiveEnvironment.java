@@ -131,4 +131,19 @@ public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<Co
     return Collections.unmodifiableSet(this.inner.entrySet());
   }
 
+  @Override
+  public String toString() {
+    return this.inner.toString();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return this.inner.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return this.inner.hashCode();
+  }
+
 }
