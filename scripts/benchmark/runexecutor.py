@@ -70,20 +70,20 @@ class RunExecutor():
     if you want to separate initialization from actual run execution
     (e.g., for better error message handling).
     """
-    self.cgroups = {} # contains the roots of all cgroup-subsystems
+    self.cgroupsParents = {} # contains the roots of all cgroup-subsystems
     self.cpus = [] # list of available CPU cores
     
-    _initCgroup(self.cgroups, CPUACCT)
-    if not self.cgroups[CPUACCT]:
+    _initCgroup(self.cgroupsParents, CPUACCT)
+    if not self.cgroupsParents[CPUACCT]:
         logging.warning('Without cpuacct cgroups, cputime measurement and limit might not work correctly if subprocesses are started.')
 
-    _initCgroup(self.cgroups, MEMORY)
-    if not self.cgroups[MEMORY]:
+    _initCgroup(self.cgroupsParents, MEMORY)
+    if not self.cgroupsParents[MEMORY]:
         logging.warning('Cannot measure and limit memory consumption without memory cgroups.')
 
-    _initCgroup(self.cgroups, CPUSET)
+    _initCgroup(self.cgroupsParents, CPUSET)
 
-    cgroupCpuset = self.cgroups[CPUSET]
+    cgroupCpuset = self.cgroupsParents[CPUSET]
     if not cgroupCpuset:
         logging.warning("Cannot limit the number of CPU curse without cpuset cgroup.")
     else:
@@ -117,7 +117,7 @@ class RunExecutor():
         subsystems = [CPUACCT, MEMORY]
         if CORELIMIT in rlimits and myCpuIndex is not None:
             subsystems.append(CPUSET)
-        cgroups = _createCgroup(self.cgroups, *subsystems)
+        cgroups = _createCgroup(self.cgroupsParents, *subsystems)
 
         logging.debug("Executing {0} in cgroups {1}.".format(args, cgroups.values()))
 
@@ -409,7 +409,7 @@ def _findCgroupMount(subsystem=None):
     return None
 
 
-def _createCgroup(cgroups, *subsystems):
+def _createCgroup(cgroupsParents, *subsystems):
     """
     Try to create a cgroup for each of the given subsystems.
     If multiple subsystems are available in the same hierarchy,
@@ -420,9 +420,9 @@ def _createCgroup(cgroups, *subsystems):
     createdCgroupsPerSubsystem = {}
     createdCgroupsPerParent = {}
     for subsystem in subsystems:
-        _initCgroup(cgroups, subsystem)
+        _initCgroup(cgroupsParents, subsystem)
 
-        parentCgroup = cgroups.get(subsystem)
+        parentCgroup = cgroupsParents.get(subsystem)
         if not parentCgroup:
             # subsystem not enabled
             continue
@@ -489,8 +489,8 @@ def _removeCgroup(cgroup):
             # somethings this fails because the cgroup is still busy, we try again once
             os.rmdir(cgroup)
 
-def _initCgroup(cgroups, subsystem):
-    if not subsystem in cgroups:
+def _initCgroup(cgroupsParents, subsystem):
+    if not subsystem in cgroupsParents:
         cgroup = _findCgroupMount(subsystem)
 
         if not cgroup:
@@ -499,18 +499,18 @@ def _initCgroup(cgroups, subsystem):
 Please enable it with "sudo mount -t cgroup none /sys/fs/cgroup".'''
                 .format(subsystem)
                 )
-            cgroups[subsystem] = None
+            cgroupsParents[subsystem] = None
             return
         else:
             logging.debug('Subsystem {0} is mounted at {1}'.format(subsystem, cgroup))
 
         # find our own cgroup, we want to put processes in a child group of it
         cgroup = os.path.join(cgroup, _findOwnCgroup(subsystem)[1:])
-        cgroups[subsystem] = cgroup
+        cgroupsParents[subsystem] = cgroup
         logging.debug('My cgroup for subsystem {0} is {1}'.format(subsystem, cgroup))
 
         try: # only for testing?
-            testCgroup = _createCgroup(cgroups, subsystem)[subsystem]
+            testCgroup = _createCgroup(cgroupsParents, subsystem)[subsystem]
             _removeCgroup(testCgroup)
 
             logging.debug('Found {0} subsystem for cgroups mounted at {1}'.format(subsystem, cgroup))
@@ -519,4 +519,4 @@ Please enable it with "sudo mount -t cgroup none /sys/fs/cgroup".'''
 '''Cannot use cgroup hierarchy mounted at {0}, reason: {1}
 If permissions are wrong, please run "sudo chmod o+wt \'{0}\'".'''
                 .format(cgroup, e.strerror))
-            cgroups[subsystem] = None
+            cgroupsParents[subsystem] = None
