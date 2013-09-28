@@ -70,7 +70,7 @@ class RunExecutor():
     if you want to separate initialization from actual run execution
     (e.g., for better error message handling).
     """
-    self.cgroups = {}
+    self.cgroups = {} # contains the roots of all cgroup-subsystems
     self.cpus = [] # list of available CPU cores
     
     _initCgroup(self.cgroups, CPUACCT)
@@ -102,6 +102,197 @@ class RunExecutor():
         logging.debug("List of available CPU cores is {0}.".format(self.cpus))
 
 
+  def _setupCGroups(self, args, rlimits, myCpuIndex=None):
+        """
+        This method creates the CGroups for the following execution.
+        @param args: the command line to run, used only for logging
+        @param rlimits: the resource limits, used for the cgroups
+        @param myCpuIndex: number of a CPU-core for the execution, does not match physical cores
+        @return cgroups: a map of all the necessary cgroups for the following execution.
+                         Please add the process of the following execution to all those cgroups!
+        @return myCpuCount: None or the number of CPU cores to use
+        """
+      
+        # Setup cgroups, need a single call to _createCgroup() for all subsystems
+        subsystems = [CPUACCT, MEMORY]
+        if CORELIMIT in rlimits and myCpuIndex is not None:
+            subsystems.append(CPUSET)
+        cgroups = _createCgroup(self.cgroups, *subsystems)
+
+        logging.debug("Executing {0} in cgroups {1}.".format(args, cgroups.values()))
+
+        try:
+            myCpuCount = multiprocessing.cpu_count()
+        except NotImplementedError:
+            myCpuCount = 1
+
+        # Setup cpuset cgroup if necessary to limit the CPU cores to be used.
+        if CORELIMIT in rlimits and myCpuIndex is not None:
+            myCpuCount = rlimits[CORELIMIT]
+  
+            if not self.cpus or CPUSET not in cgroups:
+                sys.exit("Cannot limit number of CPU cores because cgroups are not available.")
+            if myCpuCount > len(self.cpus):
+                sys.exit("Cannot execute runs on {0} CPU cores, only {1} are available.".format(myCpuCount, len(self.cpus)))
+            if myCpuCount <= 0:
+                sys.exit("Invalid number of CPU cores to use: {0}".format(myCpuCount))
+
+            cgroupCpuset = cgroups[CPUSET]
+            totalCpuCount = len(self.cpus)
+            myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
+            myCpusEnd = (myCpusStart + myCpuCount - 1) % totalCpuCount
+            myCpus = ','.join(map(str, range(myCpusStart, myCpusEnd + 1)))
+            writeFile(myCpus, cgroupCpuset, 'cpuset.cpus')
+            myCpus = readFile(cgroupCpuset, 'cpuset.cpus')
+            logging.debug('Executing {0} with cpu cores {1}.'.format(args, myCpus))
+
+        # Setup memory limit
+        if MEMLIMIT in rlimits:
+
+            if not MEMORY in cgroups:
+                sys.exit("Memory limit specified, but cannot be implemented without cgroup support.")
+
+            cgroupMemory = cgroups[MEMORY]
+            memlimit = str(rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR) # MB to Byte
+            writeFile(memlimit, cgroupMemory, 'memory.limit_in_bytes')
+
+            try:
+                writeFile(memlimit, cgroupMemory, 'memory.memsw.limit_in_bytes')
+            except IOError as e:
+                if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
+                    sys.exit("Memory limit specified, but kernel does not allow limiting swap memory. Please set swapaccount=1 on your kernel command line.")
+                raise e
+
+            memlimit = readFile(cgroupMemory, 'memory.memsw.limit_in_bytes')
+            logging.debug('Executing {0} with memory limit {1} bytes.'.format(args, memlimit))
+
+        return (cgroups, myCpuCount)
+
+
+  def _execute(self, args, rlimits, outputFileName, cgroups, myCpuCount):
+        """
+        This method executes the command line and waits for the termination of it. 
+        """
+
+        def preSubprocess():
+            os.setpgrp() # make subprocess to group-leader
+
+            if TIMELIMIT in rlimits:
+                # Also use ulimit for CPU time limit as a fallback if cgroups are not available
+                resource.setrlimit(resource.RLIMIT_CPU, (rlimits[TIMELIMIT], rlimits[TIMELIMIT]))
+
+            # put us into the cgroup(s)
+            pid = os.getpid()
+            for cgroup in cgroups.values():
+                _addTaskToCgroup(cgroup, pid)
+
+
+        # write command line into outputFile
+        outputFile = open(outputFileName, 'w') # override existing file
+        outputFile.write(' '.join(args) + '\n\n\n' + '-' * 80 + '\n\n\n')
+        outputFile.flush()
+
+        timelimitThread = None
+        wallTimeBefore = time.time()
+
+        try:
+            p = subprocess.Popen(args,
+                                 stdout=outputFile, stderr=outputFile,
+                                 preexec_fn=preSubprocess)
+
+            with self.SUB_PROCESSES_LOCK:
+                self.SUB_PROCESSES.add(p)
+
+            if TIMELIMIT in rlimits and CPUACCT in cgroups:
+                # Start a timer to periodically check timelimit with cgroup
+                # if the tool uses subprocesses and ulimit does not work.
+                timelimitThread = _TimelimitThread(cgroups[CPUACCT], rlimits[TIMELIMIT], p, myCpuCount)
+                timelimitThread.start()
+
+            pid, returnvalue, ru_child = os.wait4(p.pid, 0)
+
+        except OSError as e:
+            returnvalue = 0
+            ru_child = None
+            logging.critical("I caught an OSError({0}): {1}.".format(e.errno, e.strerror) \
+                             + "Assure that the directory containing the tool to be benchmarked is included " \
+                             + "in the PATH environment variable or an alias is set.")
+
+        finally:
+            with self.SUB_PROCESSES_LOCK:
+                self.SUB_PROCESSES.discard(p)
+
+            if timelimitThread:
+                timelimitThread.cancel()
+
+            outputFile.close() # normally subprocess closes file, we do this again
+
+            # kill all remaining processes if some managed to survive
+            for cgroup in cgroups.values():
+                _killAllTasksInCgroup(cgroup)
+
+        wallTimeAfter = time.time()
+        wallTime = wallTimeAfter - wallTimeBefore
+        cpuTime = ru_child.ru_utime + ru_child.ru_stime if ru_child else 0
+        return (returnvalue, wallTime, cpuTime)
+
+
+
+  def _getExactMeasures(self, cgroups, returnvalue, wallTime, cpuTime):
+        """
+        This method tries to extract better measures from cgroups.
+        """
+    
+        cpuTime2 = None
+        if CPUACCT in cgroups:
+            # We want to read the value from the cgroup.
+            # The documentation warns about outdated values.
+            # So we read twice with 0.1s time difference,
+            # and continue reading as long as the values differ.
+            # This has never happened except when interrupting the script with Ctrl+C,
+            # but just try to be on the safe side here.
+            cgroupCpuacct = cgroups[CPUACCT]
+            tmp = _readCpuTime(cgroupCpuacct)
+            tmp2 = None
+            while tmp != tmp2:
+                time.sleep(0.1)
+                tmp2 = tmp
+                tmp = _readCpuTime(cgroupCpuacct)
+            cpuTime2 = tmp
+
+        memUsage = None
+        if MEMORY in cgroups:
+            # This measurement reads the maximum number of bytes of RAM+Swap the process used.
+            # For more details, c.f. the kernel documentation:
+            # https://www.kernel.org/doc/Documentation/cgroups/memory.txt
+            try:
+                memUsage = readFile(cgroups[MEMORY], 'memory.memsw.max_usage_in_bytes')
+                memUsage = int(memUsage)
+            except IOError as e:
+                if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
+                    print("Kernel does not track swap memory usage, cannot measure memory usage. " \
+                          + "Please set swapaccount=1 on your kernel command line.")
+                else:
+                    raise e
+
+        logging.debug('Run exited with code {0}, walltime={1}, cputime={2}, cgroup-cputime={3}, memory={4}'
+                      .format(returnvalue, wallTime, cpuTime, cpuTime2, memUsage))
+
+        # Usually cpuTime2 seems to be 0.01s greater than cpuTime.
+        # Furthermore, cpuTime might miss some subprocesses,
+        # therefore we expect cpuTime2 to be always greater (and more correct).
+        # However, sometimes cpuTime is a little bit bigger than cpuTime2.
+        # This may indicate a problem with cgroups, for example another process
+        # moving our benchmarked process between cgroups.
+        if cpuTime2 is not None:
+            if (cpuTime * 0.9) > cpuTime2:
+                logging.warning('Cputime measured by wait was {0}, cputime measured by cgroup was only {1}, perhaps measurement is flawed.'.format(cpuTime, cpuTime2))
+            else:
+                cpuTime = cpuTime2
+
+        return (cpuTime, memUsage)
+
+
   def executeRun(self, args, rlimits, outputFileName, myCpuIndex=None):
     """
     This function executes a given command with resource limits,
@@ -110,166 +301,19 @@ class RunExecutor():
     @param rlimits: the resource limits
     @param outputFileName: the file where the output should be written to
     @param myCpuIndex: None or the number of the first CPU core to use
-    @param myCpuCount: None or the number of CPU cores to use
     @return: a tuple with wallTime in seconds, cpuTime in seconds, memory usage in bytes, returnvalue, and process output
     """
-    def preSubprocess():
-        os.setpgrp() # make subprocess to group-leader
 
-        if TIMELIMIT in rlimits:
-            # Also use ulimit for CPU time limit as a fallback if cgroups are not available
-            resource.setrlimit(resource.RLIMIT_CPU, (rlimits[TIMELIMIT], rlimits[TIMELIMIT]))
+    (cgroups, myCpuCount) = self._setupCGroups(args, rlimits, myCpuIndex)
 
-        # put us into the cgroup(s)
-        pid = os.getpid()
-        for cgroup in cgroups.values():
-            _addTaskToCgroup(cgroup, pid)
+    (returnvalue, wallTime, cpuTime) = \
+        self._execute(args, rlimits, outputFileName, cgroups, myCpuCount)
 
-    # Setup cgroups, need a single call to _createCgroup() for all subsystems
-    subsystems = [CPUACCT, MEMORY]
-    if CORELIMIT in rlimits and myCpuIndex is not None:
-        subsystems.append(CPUSET)
-    cgroups = _createCgroup(self.cgroups, *subsystems)
-
-    logging.debug("Executing {0} in cgroups {1}.".format(args, cgroups.values()))
-
-    try:
-        myCpuCount = multiprocessing.cpu_count()
-    except NotImplementedError:
-        myCpuCount = 1
-
-    # Setup cpuset cgroup if necessary to limit the CPU cores to be used.
-    if CORELIMIT in rlimits and myCpuIndex is not None:
-        myCpuCount = rlimits[CORELIMIT]
-        if not self.cpus or CPUSET not in cgroups:
-            sys.exit("Cannot limit number of CPU cores because cgroups are not available.")
-        if myCpuCount > len(self.cpus):
-            sys.exit("Cannot execute runs on {0} CPU cores, only {1} are available.".format(myCpuCount, len(self.cpus)))
-        if myCpuCount <= 0:
-            sys.exit("Invalid number of CPU cores to use: {0}".format(myCpuCount))
-
-        cgroupCpuset = cgroups[CPUSET]
-        totalCpuCount = len(self.cpus)
-        myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
-        myCpusEnd   = (myCpusStart + myCpuCount-1) % totalCpuCount
-        myCpus = ','.join(map(str, range(myCpusStart, myCpusEnd+1)))
-        writeFile(myCpus, cgroupCpuset, 'cpuset.cpus')
-
-        myCpus = readFile(cgroupCpuset, 'cpuset.cpus')
-        logging.debug('Executing {0} with cpu cores {1}.'.format(args, myCpus))
-
-    # Setup memory limit
-    if MEMLIMIT in rlimits:
-        if not MEMORY in cgroups:
-            sys.exit("Memory limit specified, but cannot be implemented without cgroup support.")
-        cgroupMemory = cgroups[MEMORY]
-        memlimit = str(rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR) # MB to Byte
-        writeFile(memlimit, cgroupMemory, 'memory.limit_in_bytes')
-        try:
-            writeFile(memlimit, cgroupMemory, 'memory.memsw.limit_in_bytes')
-        except IOError as e:
-            if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
-                sys.exit("Memory limit specified, but kernel does not allow limiting swap memory. Please set swapaccount=1 on your kernel command line.")
-            raise e
-
-        memlimit = readFile(cgroupMemory, 'memory.memsw.limit_in_bytes')
-        logging.debug('Executing {0} with memory limit {1} bytes.'.format(args, memlimit))
-
-    outputFile = open(outputFileName, 'w') # override existing file
-    outputFile.write(' '.join(args) + '\n\n\n' + '-'*80 + '\n\n\n')
-    outputFile.flush()
-
-    timelimitThread = None
-    wallTimeBefore = time.time()
-
-    try:
-        p = subprocess.Popen(args,
-                             stdout=outputFile, stderr=outputFile,
-                             preexec_fn=preSubprocess)
-
-        with self.SUB_PROCESSES_LOCK:
-            self.SUB_PROCESSES.add(p)
-
-        if TIMELIMIT in rlimits and CPUACCT in cgroups:
-            # Start a timer to periodically check timelimit with cgroup
-            # if the tool uses subprocesses and ulimit does not work.
-            timelimitThread = _TimelimitThread(cgroups[CPUACCT], rlimits[TIMELIMIT], p, myCpuCount)
-            timelimitThread.start()
-
-        (pid, returnvalue, ru_child) = os.wait4(p.pid, 0)
-
-    except OSError as e:
-        returnvalue = 0
-        ru_child = None
-        logging.critical("I caught an OSError({0}): {1}.".format(e.errno, e.strerror)
-                         + "Assure that the directory containing the tool to be benchmarked is included "
-                         + "in the PATH environment variable or an alias is set.")
-
-    finally:
-        with self.SUB_PROCESSES_LOCK:
-            self.SUB_PROCESSES.discard(p)
-
-        if timelimitThread:
-            timelimitThread.cancel()
-
-        outputFile.close() # normally subprocess closes file, we do this again
-
-        # kill all remaining processes if some managed to survive
-        for cgroup in cgroups.values():
-            _killAllTasksInCgroup(cgroup)
-
-    wallTimeAfter = time.time()
-    wallTime = wallTimeAfter - wallTimeBefore
-    cpuTime = (ru_child.ru_utime + ru_child.ru_stime) if ru_child else 0
-    cpuTime2 = None
-
-    if CPUACCT in cgroups:
-        # We want to read the value from the cgroup.
-        # The documentation warns about outdated values.
-        # So we read twice with 0.1s time difference,
-        # and continue reading as long as the values differ.
-        # This has never happened except when interrupting the script with Ctrl+C,
-        # but just try to be on the safe side here.
-        cgroupCpuacct = cgroups[CPUACCT]
-        tmp = _readCpuTime(cgroupCpuacct)
-        tmp2 = None
-        while tmp != tmp2:
-            time.sleep(0.1)
-            tmp2 = tmp
-            tmp = _readCpuTime(cgroupCpuacct)
-        cpuTime2 = tmp
-
-    memUsage = None
-    if MEMORY in cgroups:
-        # This measurement reads the maximum number of bytes of RAM+Swap the process used.
-        # For more details, c.f. the kernel documentation:
-        # https://www.kernel.org/doc/Documentation/cgroups/memory.txt
-        try:
-            memUsage = readFile(cgroups[MEMORY], 'memory.memsw.max_usage_in_bytes')
-            memUsage = int(memUsage)
-        except IOError as e:
-            if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
-                print("Kernel does not track swap memory usage, cannot measure memory usage. Please set swapaccount=1 on your kernel command line.")
-            else:
-                raise e
+    (cpuTime, memUsage) = self._getExactMeasures(cgroups, returnvalue, wallTime, cpuTime)
 
     for cgroup in set(cgroups.values()):
         # Need the set here to delete each cgroup only once.
         _removeCgroup(cgroup)
-
-    logging.debug('Run exited with code {0}, walltime={1}, cputime={2}, cgroup-cputime={3}, memory={4}'.format(returnvalue, wallTime, cpuTime, cpuTime2, memUsage))
-
-    # Usually cpuTime2 seems to be 0.01s greater than cpuTime.
-    # Furthermore, cpuTime might miss some subprocesses,
-    # therefore we expect cpuTime2 to be always greater (and more correct).
-    # However, sometimes cpuTime is a little bit bigger than cpuTime2.
-    # This may indicate a problem with cgroups, for example another process
-    # moving our benchmarked process between cgroups.
-    if cpuTime2 is not None:
-        if (cpuTime*0.9) > cpuTime2:
-            logging.warning('Cputime measured by wait was {0}, cputime measured by cgroup was only {1}, perhaps measurement is flawed.'.format(cpuTime, cpuTime2))
-        else:
-            cpuTime = cpuTime2
 
     outputFile = open(outputFileName, 'rt') # re-open file for reading output
     output = list(map(Util.decodeToString, outputFile.readlines()[6:])) # first 6 lines are for logging, rest is output of subprocess
