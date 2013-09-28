@@ -138,7 +138,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // compute new abstraction
     computingAbstractionTime.start();
     newAbstractionFormula = formulaManager.buildAbstraction(
-        abstractionFormula, pathFormula, preds);
+        loc, abstractionFormula, pathFormula, preds);
     computingAbstractionTime.stop();
 
     // if the abstraction is false, return bottom (represented by empty set)
