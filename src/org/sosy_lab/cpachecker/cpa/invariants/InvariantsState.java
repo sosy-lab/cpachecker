@@ -532,7 +532,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     // If the invariant evaluates to true, it adds no value for now
     if (assumptionEvaluation.isDefinitelyTrue()) { return true; }
 
-    if (!(pEvaluationVisitor instanceof FormulaAbstractionVisitor)) {
+    // If exact evaluation is enabled or the expression relates a maximum of one variable
+    // to constants, then environment information may be gained
+    if (!(pEvaluationVisitor instanceof FormulaAbstractionVisitor)
+        || assumption.accept(new CollectVarsVisitor<CompoundState>()).size() <= 1) {
       PushAssumptionToEnvironmentVisitor patev =
           new PushAssumptionToEnvironmentVisitor(pEvaluationVisitor, this.environment);
       if (!assumption.accept(patev, CompoundState.logicalTrue())) {
