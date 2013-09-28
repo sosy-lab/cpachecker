@@ -55,54 +55,54 @@ _BYTE_FACTOR = 1024 # byte in kilobyte
 
 class RunExecutor():
 
-  def __init__(self):
-    self.PROCESS_KILLED = False
-    self.SUB_PROCESSES_LOCK = threading.Lock() # needed, because we kill the process asynchronous
-    self.SUB_PROCESSES = set()
+    def __init__(self):
+        self.PROCESS_KILLED = False
+        self.SUB_PROCESSES_LOCK = threading.Lock() # needed, because we kill the process asynchronous
+        self.SUB_PROCESSES = set()
 
-    self.initCGroups()
+        self._initCGroups()
 
 
-  def initCGroups(self):
-    """
-    This function initializes the cgroups for the limitations.
-    Please call it before any calls to executeRun(),
-    if you want to separate initialization from actual run execution
-    (e.g., for better error message handling).
-    """
-    self.cgroupsParents = {} # contains the roots of all cgroup-subsystems
-    self.cpus = [] # list of available CPU cores
+    def _initCGroups(self):
+        """
+        This function initializes the cgroups for the limitations.
+        Please call it before any calls to executeRun(),
+        if you want to separate initialization from actual run execution
+        (e.g., for better error message handling).
+        """
+        self.cgroupsParents = {} # contains the roots of all cgroup-subsystems
+        self.cpus = [] # list of available CPU cores
+
+        _initCgroup(self.cgroupsParents, CPUACCT)
+        if not self.cgroupsParents[CPUACCT]:
+            logging.warning('Without cpuacct cgroups, cputime measurement and limit might not work correctly if subprocesses are started.')
+
+        _initCgroup(self.cgroupsParents, MEMORY)
+        if not self.cgroupsParents[MEMORY]:
+            logging.warning('Cannot measure and limit memory consumption without memory cgroups.')
+
+        _initCgroup(self.cgroupsParents, CPUSET)
+
+        cgroupCpuset = self.cgroupsParents[CPUSET]
+        if not cgroupCpuset:
+            logging.warning("Cannot limit the number of CPU curse without cpuset cgroup.")
+        else:
+            # Read available cpus:
+            cpuStr = readFile(cgroupCpuset, 'cpuset.cpus')
+            for cpu in cpuStr.split(','):
+                cpu = cpu.split('-')
+                if len(cpu) == 1:
+                    self.cpus.append(int(cpu[0]))
+                elif len(cpu) == 2:
+                    start, end = cpu
+                    self.cpus.extend(range(int(start), int(end)+1))
+                else:
+                    logging.warning("Could not read available CPU cores from kernel, failed to parse {0}.".format(cpuStr))
     
-    _initCgroup(self.cgroupsParents, CPUACCT)
-    if not self.cgroupsParents[CPUACCT]:
-        logging.warning('Without cpuacct cgroups, cputime measurement and limit might not work correctly if subprocesses are started.')
-
-    _initCgroup(self.cgroupsParents, MEMORY)
-    if not self.cgroupsParents[MEMORY]:
-        logging.warning('Cannot measure and limit memory consumption without memory cgroups.')
-
-    _initCgroup(self.cgroupsParents, CPUSET)
-
-    cgroupCpuset = self.cgroupsParents[CPUSET]
-    if not cgroupCpuset:
-        logging.warning("Cannot limit the number of CPU curse without cpuset cgroup.")
-    else:
-        # Read available cpus:
-        cpuStr = readFile(cgroupCpuset, 'cpuset.cpus')
-        for cpu in cpuStr.split(','):
-            cpu = cpu.split('-')
-            if len(cpu) == 1:
-                self.cpus.append(int(cpu[0]))
-            elif len(cpu) == 2:
-                start, end = cpu
-                self.cpus.extend(range(int(start), int(end)+1))
-            else:
-                logging.warning("Could not read available CPU cores from kernel, failed to parse {0}.".format(cpuStr))
-
-        logging.debug("List of available CPU cores is {0}.".format(self.cpus))
+            logging.debug("List of available CPU cores is {0}.".format(self.cpus))
 
 
-  def _setupCGroups(self, args, rlimits, myCpuIndex=None):
+    def _setupCGroups(self, args, rlimits, myCpuIndex=None):
         """
         This method creates the CGroups for the following execution.
         @param args: the command line to run, used only for logging
@@ -169,7 +169,7 @@ class RunExecutor():
         return (cgroups, myCpuCount)
 
 
-  def _execute(self, args, rlimits, outputFileName, cgroups, myCpuCount):
+    def _execute(self, args, rlimits, outputFileName, cgroups, myCpuCount):
         """
         This method executes the command line and waits for the termination of it. 
         """
@@ -238,7 +238,7 @@ class RunExecutor():
 
 
 
-  def _getExactMeasures(self, cgroups, returnvalue, wallTime, cpuTime):
+    def _getExactMeasures(self, cgroups, returnvalue, wallTime, cpuTime):
         """
         This method tries to extract better measures from cgroups.
         """
@@ -293,38 +293,38 @@ class RunExecutor():
         return (cpuTime, memUsage)
 
 
-  def executeRun(self, args, rlimits, outputFileName, myCpuIndex=None):
-    """
-    This function executes a given command with resource limits,
-    and writes the output to a file.
-    @param args: the command line to run
-    @param rlimits: the resource limits
-    @param outputFileName: the file where the output should be written to
-    @param myCpuIndex: None or the number of the first CPU core to use
-    @return: a tuple with wallTime in seconds, cpuTime in seconds, memory usage in bytes, returnvalue, and process output
-    """
+    def executeRun(self, args, rlimits, outputFileName, myCpuIndex=None):
+        """
+        This function executes a given command with resource limits,
+        and writes the output to a file.
+        @param args: the command line to run
+        @param rlimits: the resource limits
+        @param outputFileName: the file where the output should be written to
+        @param myCpuIndex: None or the number of the first CPU core to use
+        @return: a tuple with wallTime in seconds, cpuTime in seconds, memory usage in bytes, returnvalue, and process output
+        """
 
-    (cgroups, myCpuCount) = self._setupCGroups(args, rlimits, myCpuIndex)
+        (cgroups, myCpuCount) = self._setupCGroups(args, rlimits, myCpuIndex)
 
-    (returnvalue, wallTime, cpuTime) = \
-        self._execute(args, rlimits, outputFileName, cgroups, myCpuCount)
+        (returnvalue, wallTime, cpuTime) = \
+            self._execute(args, rlimits, outputFileName, cgroups, myCpuCount)
 
-    (cpuTime, memUsage) = self._getExactMeasures(cgroups, returnvalue, wallTime, cpuTime)
+        (cpuTime, memUsage) = self._getExactMeasures(cgroups, returnvalue, wallTime, cpuTime)
 
-    for cgroup in set(cgroups.values()):
-        # Need the set here to delete each cgroup only once.
-        _removeCgroup(cgroup)
+        for cgroup in set(cgroups.values()):
+            # Need the set here to delete each cgroup only once.
+            _removeCgroup(cgroup)
 
-    outputFile = open(outputFileName, 'rt') # re-open file for reading output
-    output = list(map(Util.decodeToString, outputFile.readlines()[6:])) # first 6 lines are for logging, rest is output of subprocess
-    outputFile.close()
+        outputFile = open(outputFileName, 'rt') # re-open file for reading output
+        output = list(map(Util.decodeToString, outputFile.readlines()[6:])) # first 6 lines are for logging, rest is output of subprocess
+        outputFile.close()
 
-    getDebugOutputAfterCrash(output, outputFileName)
+        getDebugOutputAfterCrash(output, outputFileName)
 
-    return (wallTime, cpuTime, memUsage, returnvalue, '\n'.join(output))
+        return (wallTime, cpuTime, memUsage, returnvalue, '\n'.join(output))
 
 
-  def kill(self):
+    def kill(self):
         self.PROCESS_KILLED = True
         with self.SUB_PROCESSES_LOCK:
             for process in self.SUB_PROCESSES:
