@@ -352,7 +352,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       if (!environmentEntry.getKey().equals(pVarName)) {
         InvariantsFormula<CompoundState> newEnvValue =
             environmentEntry.getValue().accept(replaceVisitor);
-        result.environment.put(environmentEntry.getKey(), trim(newEnvValue));
+        InvariantsFormula<CompoundState> newEnvValueSimplified = newEnvValue.accept(this.partialEvaluator, evaluationVisitor);
+        result.environment.put(environmentEntry.getKey(), trim(newEnvValueSimplified));
       }
     }
     result.environment.put(pVarName, trim(newSubstitutedValue));
@@ -380,7 +381,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   private InvariantsFormula<CompoundState> trim(InvariantsFormula<CompoundState> pFormula) {
     if (pFormula.accept(FORMULA_DEPTH_COUNT_VISITOR) > 4) {
       return CompoundStateFormulaManager.INSTANCE.asConstant(
-          pFormula.accept(EVALUATION_VISITOR, environment));
+          pFormula.accept(ABSTRACTION_VISITOR, environment));
     }
     return pFormula;
   }
