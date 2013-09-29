@@ -169,7 +169,7 @@ class RunExecutor():
         return (cgroups, myCpuCount)
 
 
-    def _execute(self, args, rlimits, outputFileName, cgroups, myCpuCount):
+    def _execute(self, args, rlimits, outputFileName, cgroups, myCpuCount, environments):
         """
         This method executes the command line and waits for the termination of it. 
         """
@@ -187,6 +187,15 @@ class RunExecutor():
                 _addTaskToCgroup(cgroup, pid)
 
 
+        # copy parent-environment and set needed values, either override or append
+        runningEnv = os.environ.copy()
+        for key, value in environments.get("newEnv", {}).items():
+            runningEnv[key] = value
+        for key, value in environments.get("additionalEnv", {}).items():
+            runningEnv[key] = runningEnv.get(key, "") + value
+
+        logging.debug("Using additional environment {0}.".format(str(environments)))
+
         # write command line into outputFile
         outputFile = open(outputFileName, 'w') # override existing file
         outputFile.write(' '.join(args) + '\n\n\n' + '-' * 80 + '\n\n\n')
@@ -198,7 +207,7 @@ class RunExecutor():
         try:
             p = subprocess.Popen(args,
                                  stdout=outputFile, stderr=outputFile,
-                                 preexec_fn=preSubprocess)
+                                 env=runningEnv, preexec_fn=preSubprocess)
 
             with self.SUB_PROCESSES_LOCK:
                 self.SUB_PROCESSES.add(p)
@@ -226,6 +235,8 @@ class RunExecutor():
                 timelimitThread.cancel()
 
             outputFile.close() # normally subprocess closes file, we do this again
+
+            logging.debug("size of logfile '{0}': {1}".format(outputFileName, str(os.path.getsize(outputFileName))))
 
             # kill all remaining processes if some managed to survive
             for cgroup in cgroups.values():
@@ -270,7 +281,7 @@ class RunExecutor():
                 memUsage = int(memUsage)
             except IOError as e:
                 if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
-                    print("Kernel does not track swap memory usage, cannot measure memory usage. " \
+                    logging.critical("Kernel does not track swap memory usage, cannot measure memory usage. "
                           + "Please set swapaccount=1 on your kernel command line.")
                 else:
                     raise e
@@ -293,7 +304,7 @@ class RunExecutor():
         return (cpuTime, memUsage)
 
 
-    def executeRun(self, args, rlimits, outputFileName, myCpuIndex=None):
+    def executeRun(self, args, rlimits, outputFileName, myCpuIndex=None, environments={}):
         """
         This function executes a given command with resource limits,
         and writes the output to a file.
@@ -301,25 +312,35 @@ class RunExecutor():
         @param rlimits: the resource limits
         @param outputFileName: the file where the output should be written to
         @param myCpuIndex: None or the number of the first CPU core to use
+        @param environments: special environments for running the command
         @return: a tuple with wallTime in seconds, cpuTime in seconds, memory usage in bytes, returnvalue, and process output
         """
 
+        logging.debug("executeRun: setting up CCgoups.")
         (cgroups, myCpuCount) = self._setupCGroups(args, rlimits, myCpuIndex)
 
+        logging.debug("executeRun: executing tool.")
         (returnvalue, wallTime, cpuTime) = \
-            self._execute(args, rlimits, outputFileName, cgroups, myCpuCount)
+            self._execute(args, rlimits, outputFileName, cgroups, myCpuCount, environments)
 
+        logging.debug("executeRun: getting exact measures.")
         (cpuTime, memUsage) = self._getExactMeasures(cgroups, returnvalue, wallTime, cpuTime)
 
+        logging.debug("executeRun: cleaning up CGroups.")
         for cgroup in set(cgroups.values()):
             # Need the set here to delete each cgroup only once.
             _removeCgroup(cgroup)
 
+        logging.debug("executeRun: reading output.")
         outputFile = open(outputFileName, 'rt') # re-open file for reading output
         output = list(map(Util.decodeToString, outputFile.readlines()[6:])) # first 6 lines are for logging, rest is output of subprocess
         outputFile.close()
 
+        logging.debug("executeRun: analysing output for crash-info.")
         getDebugOutputAfterCrash(output, outputFileName)
+
+        logging.debug("executeRun: Run execution returns with code {0}, walltime={1}, cputime={2}, memory={3}"
+                      .format(returnvalue, wallTime, cpuTime, memUsage))
 
         return (wallTime, cpuTime, memUsage, returnvalue, '\n'.join(output))
 
