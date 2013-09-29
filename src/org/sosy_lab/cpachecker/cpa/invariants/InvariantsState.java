@@ -252,7 +252,14 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     }
   }
 
-  public InvariantsState assign(String pVarName, InvariantsFormula<CompoundState> pValue, CFAEdge pEdge) {
+  public InvariantsState assign(boolean isUnknownPointerDereference, String pVarName, InvariantsFormula<CompoundState> pValue, CFAEdge pEdge) {
+    // If a dereferenced pointer is assigned to, anything might change, so all information is invalidated
+    if (isUnknownPointerDereference) {
+      InvariantsState result = copy(this);
+      result.environment.clear();
+      result.assumptions.clear();
+      return result;
+    }
     if (pValue instanceof Variable<?>) {
       InvariantsState result = this;
       String valueVarName = ((Variable<?>) pValue).getName();
@@ -261,10 +268,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       for (Map.Entry<String, InvariantsFormula<CompoundState>> entry : this.environment.entrySet()) {
         if (entry.getKey().startsWith(pointerDerefPrefix)) {
           String suffix = entry.getKey().substring(pointerDerefPrefix.length());
-          result = result.assign(pVarName + "->" + suffix, CompoundStateFormulaManager.INSTANCE.asVariable(entry.getKey()), pEdge);
+          result = result.assign(isUnknownPointerDereference, pVarName + "->" + suffix, CompoundStateFormulaManager.INSTANCE.asVariable(entry.getKey()), pEdge);
         } else if (entry.getKey().startsWith(nonPointerDerefPrefix)) {
           String suffix = entry.getKey().substring(nonPointerDerefPrefix.length());
-          result = result.assign(pVarName + "." + suffix, CompoundStateFormulaManager.INSTANCE.asVariable(entry.getKey()), pEdge);
+          result = result.assign(isUnknownPointerDereference, pVarName + "." + suffix, CompoundStateFormulaManager.INSTANCE.asVariable(entry.getKey()), pEdge);
         }
       }
       return result.assign(pVarName, pValue, pEdge, false);
@@ -359,7 +366,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     result.environment.put(pVarName, trim(newSubstitutedValue));
 
     // Try to add the assumptions; if it turns out that they are false, the state is bottom
-    if (!updateAssumptions(result, replaceVisitor, pValue, pVarName, pEdge)) { return null; }
+    if (!updateAssumptions(result, replaceVisitor, pValue, pVarName, pEdge)) {
+      return null; }
 
     result.visitedEdges.addAll(visitedEdges);
     result.assumeInternal(CompoundStateFormulaManager.INSTANCE.equal(variable, pValue), getFormulaResolver(pEdge));

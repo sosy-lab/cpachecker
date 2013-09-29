@@ -184,7 +184,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
       value = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.top());
     }
 
-    return pElement.assign(varName, value, pEdge).putType(varName,
+    return pElement.assign(false, varName, value, pEdge).putType(varName,
         decl.getType());
   }
 
@@ -209,7 +209,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
       }));
 
       String formalParam = scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
-      newElement = newElement.assign(formalParam, value, pEdge);
+      newElement = newElement.assign(false, formalParam, value, pEdge);
     }
 
     return newElement;
@@ -228,16 +228,17 @@ public enum InvariantsTransferRelation implements TransferRelation {
     return pElement;
   }
 
-  private InvariantsState handleAssignment(InvariantsState pElement, String pFunctionName, CFAEdge pEdge, CExpression leftHandSide, InvariantsFormula<CompoundState> pValue) throws UnrecognizedCCodeException {
+  private InvariantsState handleAssignment(InvariantsState pElement, String pFunctionName, CFAEdge pEdge, CExpression pLeftHandSide, InvariantsFormula<CompoundState> pValue) throws UnrecognizedCCodeException {
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
-    if (leftHandSide instanceof CArraySubscriptExpression) {
-      CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) leftHandSide;
+    boolean isUnknownPointerDereference = pLeftHandSide instanceof CPointerExpression;
+    if (pLeftHandSide instanceof CArraySubscriptExpression) {
+      CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) pLeftHandSide;
       String array = getVarName(arraySubscriptExpression.getArrayExpression(), pEdge, pFunctionName);
       InvariantsFormula<CompoundState> subscript = arraySubscriptExpression.getSubscriptExpression().accept(etfv);
       return pElement.assignArray(array, subscript, pValue, pEdge);
     } else {
-      String varName = getVarName(leftHandSide, pEdge, pFunctionName);
-      return pElement.assign(varName, pValue, pEdge);
+      String varName = getVarName(pLeftHandSide, pEdge, pFunctionName);
+      return pElement.assign(isUnknownPointerDereference, varName, pValue, pEdge);
     }
   }
 
@@ -251,7 +252,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
     InvariantsFormula<CompoundState> returnedState = returnedExpression.accept(etfv);
     String returnValueName = scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
-    return pElement.assign(returnValueName, returnedState, pEdge);
+    return pElement.assign(false, returnValueName, returnedState, pEdge);
   }
 
   private InvariantsState handleFunctionReturn(InvariantsState pElement, CFunctionReturnEdge pFunctionReturnEdge)
