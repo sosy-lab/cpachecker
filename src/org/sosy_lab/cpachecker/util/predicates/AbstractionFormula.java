@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -35,7 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
-import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Instances of this class should hold a state formula (the result of an
@@ -67,23 +68,23 @@ public class AbstractionFormula implements Serializable {
   private static int nextId = 0;
   private final int id = nextId++;
   private final BooleanFormulaManager mgr;
-  private final Optional<Integer> idOfStoredAbstractionReused;
+  private final Set<Integer> idsOfStoredAbstractionReused;
 
   public AbstractionFormula(
       FormulaManagerView mgr,
       Region pRegion, BooleanFormula pFormula,
       BooleanFormula pInstantiatedFormula, PathFormula pBlockFormula,
-      Optional<Integer> pIdOfStoredAbstractionReused) {
+      Set<Integer> pIdOfStoredAbstractionReused) {
     this.mgr = checkNotNull(mgr.getBooleanFormulaManager());
     this.region = checkNotNull(pRegion);
     this.formula = checkNotNull(pFormula);
     this.instantiatedFormula = checkNotNull(pInstantiatedFormula);
     this.blockFormula = checkNotNull(pBlockFormula);
-    this.idOfStoredAbstractionReused = pIdOfStoredAbstractionReused;
+    this.idsOfStoredAbstractionReused = checkNotNull(pIdOfStoredAbstractionReused);
   }
 
   public boolean isReusedFromStoredAbstraction() {
-    return idOfStoredAbstractionReused.isPresent();
+    return !idsOfStoredAbstractionReused.isEmpty();
   }
 
   public boolean isTrue() {
@@ -120,8 +121,8 @@ public class AbstractionFormula implements Serializable {
     return id;
   }
 
-  public Optional<Integer> getIdOfStoredAbstractionReused() {
-    return idOfStoredAbstractionReused;
+  public ImmutableSet<Integer> getIdsOfStoredAbstractionReused() {
+    return ImmutableSet.copyOf(idsOfStoredAbstractionReused);
   }
 
   @Override

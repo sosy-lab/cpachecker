@@ -75,6 +75,11 @@ public class PredicateAbstractionsStorage {
     }
 
     @Override
+    public String toString() {
+      return Integer.toString(getId());
+    }
+
+    @Override
     public int hashCode() {
       // TODO
       return super.hashCode();

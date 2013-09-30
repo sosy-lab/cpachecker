@@ -341,7 +341,6 @@ class PredicateCPAStatistics extends AbstractStatistics {
         if (as.abstractionReuseTime.getNumberOfIntervals() > 0) {
           out.println("    Abstraction reuse:              " + as.abstractionReuseTime);
           out.println("    Abstraction reuse implication:  " + as.abstractionReuseImplicationTime);
-          out.println("    Abstraction reuse temp:  " + as.abstractionReuseTempTime);
         }
         out.println("    Solving time:                    " + as.abstractionSolveTime + " (Max: " + as.abstractionSolveTime.printMaxTime() + ")");
         out.println("    Model enumeration time:          " + as.abstractionEnumTime.printOuterSumTime());
