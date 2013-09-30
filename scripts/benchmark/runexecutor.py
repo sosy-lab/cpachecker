@@ -169,7 +169,7 @@ class RunExecutor():
         return (cgroups, myCpuCount)
 
 
-    def _execute(self, args, rlimits, outputFileName, cgroups, myCpuCount, environments):
+    def _execute(self, args, rlimits, outputFileName, cgroups, myCpuCount, environments, runningDir):
         """
         This method executes the command line and waits for the termination of it. 
         """
@@ -204,10 +204,12 @@ class RunExecutor():
         timelimitThread = None
         wallTimeBefore = time.time()
 
+        p = None
         try:
             p = subprocess.Popen(args,
                                  stdout=outputFile, stderr=outputFile,
-                                 env=runningEnv, preexec_fn=preSubprocess)
+                                 env=runningEnv, cwd=runningDir,
+                                 preexec_fn=preSubprocess)
 
             with self.SUB_PROCESSES_LOCK:
                 self.SUB_PROCESSES.add(p)
@@ -304,7 +306,7 @@ class RunExecutor():
         return (cpuTime, memUsage)
 
 
-    def executeRun(self, args, rlimits, outputFileName, myCpuIndex=None, environments={}):
+    def executeRun(self, args, rlimits, outputFileName, myCpuIndex=None, environments={}, runningDir=None):
         """
         This function executes a given command with resource limits,
         and writes the output to a file.
@@ -321,7 +323,7 @@ class RunExecutor():
 
         logging.debug("executeRun: executing tool.")
         (returnvalue, wallTime, cpuTime) = \
-            self._execute(args, rlimits, outputFileName, cgroups, myCpuCount, environments)
+            self._execute(args, rlimits, outputFileName, cgroups, myCpuCount, environments, runningDir)
 
         logging.debug("executeRun: getting exact measures.")
         (cpuTime, memUsage) = self._getExactMeasures(cgroups, returnvalue, wallTime, cpuTime)

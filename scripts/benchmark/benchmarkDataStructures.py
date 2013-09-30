@@ -135,7 +135,7 @@ class Benchmark:
         self.executable = self.tool.getExecutable()
         self.toolVersion = self.tool.getVersion(self.executable)
 
-        logging.debug("The tool to be benchmarked is {0}.".format(repr(self.tool)))
+        logging.debug("The tool to be benchmarked is {0}.".format(str(self.toolName)))
 
         self.rlimits = {}
         keys = list(rootTag.keys())
@@ -218,6 +218,10 @@ class Benchmark:
 
     def workingDirectory(self):
         return self.tool.getWorkingDirectory(self.executable)
+
+
+    def getEnvironments(self):
+        return self.tool.getEnvironments(self.executable)
 
 
     @staticmethod

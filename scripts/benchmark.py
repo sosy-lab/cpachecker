@@ -123,7 +123,10 @@ class Worker(threading.Thread):
 
         (run.wallTime, run.cpuTime, run.memUsage, returnvalue, output) = \
             self.runExecutor.executeRun(
-                run.args, run.benchmark.rlimits, run.logFile, self.numberOfThread)
+                run.args, run.benchmark.rlimits, run.logFile,
+                myCpuIndex=self.numberOfThread,
+                environments=run.benchmark.getEnvironments(),
+                runningDir=run.benchmark.workingDirectory())
 
         if self.runExecutor.PROCESS_KILLED:
             # If the run was interrupted, we ignore the result and cleanup.
@@ -356,6 +359,9 @@ def getBenchmarkDataForCloud(benchmark):
     limitsAndNumRuns = [numberOfRuns, timeLimit, memLimit]
     if coreLimit is not None: limitsAndNumRuns.append(coreLimit)
     
+    # get tool-specific environment
+    env = benchmark.getEnvironments()
+
     # get Runs with args and sourcefiles
     sourceFiles = []
     runDefinitions = []
@@ -365,8 +371,14 @@ def getBenchmarkDataForCloud(benchmark):
 
         # get runs
         for run in runSet.runs:
-            # escape delimiter char: replace 1 space with 2 spaces
-            argString = " ".join(arg.replace(" ", "  ") for arg in run.args)
+
+            # we assume, that VCloud-client only splits its input at tabs,
+            # so we can use all other chars for the info, that is needed to run the tool.
+            # we build a string-representation of all this info (it's a map),
+            # that can be parsed with python again in cloudRunexecutor.py (this is very easy with eval()) .
+            argString = repr({"args":run.args, "env":env, "debug": config.debug})
+            assert not "\t" in argString # cannot call toTabList(), if there is a tab
+
             logFile = os.path.relpath(run.logFile, benchmark.logFolder)
             runDefinitions.append(toTabList([argString, run.sourcefile, logFile]))
             sourceFiles.append(run.sourcefile)
@@ -406,7 +418,8 @@ def handleCloudResults(benchmark, outputHandler):
 
                 if returnValue is not None:
                     # Do not delete stdOut file if there was some problem
-                    os.remove(stdoutFile)
+                    # os.remove(stdoutFile)
+                    pass
                 else:
                     executedAllRuns = False;
 
