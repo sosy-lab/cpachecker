@@ -97,7 +97,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
   private InvariantsState getSuccessor(CFAEdge pEdge, InvariantsState pState) throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
     InvariantsState element = pState;
     if (!element.isRelevant(pEdge)) {
-      element = null;
+      element = pState.clear();
     } else {
       switch (pEdge.getEdgeType()) {
       case BlankEdge:

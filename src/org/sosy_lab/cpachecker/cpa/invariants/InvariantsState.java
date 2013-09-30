@@ -255,10 +255,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   public InvariantsState assign(boolean isUnknownPointerDereference, String pVarName, InvariantsFormula<CompoundState> pValue, CFAEdge pEdge) {
     // If a dereferenced pointer is assigned to, anything might change, so all information is invalidated
     if (isUnknownPointerDereference) {
-      InvariantsState result = copy(this);
-      result.environment.clear();
-      result.assumptions.clear();
-      return result;
+      return clear();
     }
     if (pValue instanceof Variable<?>) {
       InvariantsState result = this;
@@ -366,8 +363,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     result.environment.put(pVarName, trim(newSubstitutedValue));
 
     // Try to add the assumptions; if it turns out that they are false, the state is bottom
-    if (!updateAssumptions(result, replaceVisitor, pValue, pVarName, pEdge)) {
-      return null; }
+    if (!updateAssumptions(result, replaceVisitor, pValue, pVarName, pEdge)) { return null; }
 
     result.visitedEdges.addAll(visitedEdges);
     result.assumeInternal(CompoundStateFormulaManager.INSTANCE.equal(variable, pValue), getFormulaResolver(pEdge));
@@ -383,6 +379,17 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (equals(result)) {
       return this;
     }
+    return result;
+  }
+
+  public InvariantsState clear() {
+    if (environment.isEmpty() && assumptions.isEmpty() && collectedInterestingAssumptions.isEmpty()) {
+      return this;
+    }
+    InvariantsState result = copy(this);
+    result.environment.clear();
+    result.assumptions.clear();
+    result.collectedInterestingAssumptions.clear();
     return result;
   }
 
