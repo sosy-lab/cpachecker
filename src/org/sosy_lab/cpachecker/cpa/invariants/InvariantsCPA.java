@@ -219,6 +219,12 @@ public class InvariantsCPA extends AbstractCPA {
     }
 
     // Iterate backwards from all relevant locations to find the relevant edges
+    /*
+     * TODO: Actually, the edges should only be ranked by their proximity to their
+     * closest target state; the current implementation is biased by preferring all
+     * edges of the (arbitrary) first target state in the set to the following ones,
+     * and so on. This is only relevant if there are multiple target states.
+     */
     for (CFANode location : relevantLocations) {
       Queue<CFANode> nodes = new ArrayDeque<>();
       Queue<Integer> distances = new ArrayDeque<>();
