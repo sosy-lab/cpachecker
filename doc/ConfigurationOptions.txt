@@ -608,9 +608,31 @@ cpa.interval.splitIntervals = false
 # at most that many intervals will be tracked per variable
 cpa.interval.threshold = 0
 
+# determine variables relevant to the decision whether or not a target path
+# assume edge is taken and limit the analyis to those variables.
+cpa.invariants.analyzeRelevantVariablesOnly = true
+
+# determine target locations in advance and analyse paths to the target
+# locations only.
+cpa.invariants.analyzeTargetPathsOnly = true
+
+# the maximum number of predicates to consider as interesting. -1 one
+# disables the limit, but this is not recommended. 0 means that guessing
+# interesting predicates is disabled.
+cpa.invariants.interestingPredicatesLimit = 0
+
+# the maximum number of variables to consider as interesting. -1 one disables
+# the limit, but this is not recommended. 0 means that guessing interesting
+# variables is disabled.
+cpa.invariants.interestingVariableLimit = 2
+
 # which merge operator to use for InvariantCPA
 cpa.invariants.merge = "JOIN"
   allowed values: [JOIN, SEP]
+
+# whether or not to use a bit vector formula manager when extracting
+# invariant approximations from states.
+cpa.invariants.useBitvectors = true
 
 # threshold for unrolling loops of the program (0 is infinite)
 # works only if assumption storage CPA is enabled, because otherwise it would

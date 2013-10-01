@@ -103,19 +103,19 @@ public class InvariantsCPA extends AbstractCPA {
         description="which merge operator to use for InvariantCPA")
     private String merge = "JOIN";
 
-    @Option(description="Determine target locations in advance and analyse paths to the target locations only.")
+    @Option(description="determine target locations in advance and analyse paths to the target locations only.")
     private boolean analyzeTargetPathsOnly = true;
 
-    @Option(description="Determine variables relevant to the decision whether or not a target path assume edge is taken and limit the analyis to those variables.")
+    @Option(description="determine variables relevant to the decision whether or not a target path assume edge is taken and limit the analyis to those variables.")
     private boolean analyzeRelevantVariablesOnly = true;
 
-    @Option(description="The maximum number of predicates to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting predicates is disabled.")
+    @Option(description="the maximum number of predicates to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting predicates is disabled.")
     private int interestingPredicatesLimit = 0;
 
-    @Option(description="The maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
+    @Option(description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
     private int interestingVariableLimit = 2;
 
-    @Option(description="Whether or not to use a bit vector formula manager when extracting invariant approximations from states.")
+    @Option(description="whether or not to use a bit vector formula manager when extracting invariant approximations from states.")
     private boolean useBitvectors = true;
 
   }
@@ -219,12 +219,6 @@ public class InvariantsCPA extends AbstractCPA {
     }
 
     // Iterate backwards from all relevant locations to find the relevant edges
-    /*
-     * TODO: Actually, the edges should only be ranked by their proximity to their
-     * closest target state; the current implementation is biased by preferring all
-     * edges of the (arbitrary) first target state in the set to the following ones,
-     * and so on. This is only relevant if there are multiple target states.
-     */
     for (CFANode location : relevantLocations) {
       Queue<CFANode> nodes = new ArrayDeque<>();
       Queue<Integer> distances = new ArrayDeque<>();
