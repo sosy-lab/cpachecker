@@ -307,15 +307,16 @@ public class InvariantsCPA extends AbstractCPA {
   }
 
   /**
-   * If the limit
+   * Limits the given iterable by the given amount of elements. A limit below 0 means that
+   * no limit is applied.
    *
-   * @param pIterable
-   * @param limit
-   * @return
+   * @param pIterable the iterable to be limited.
+   * @param pLimit the limit.
+   * @return the limited iterable.
    */
-  private static <T> Iterable<T> limit(Iterable<T> pIterable, int limit) {
-    if (limit >= 0) {
-      return FluentIterable.from(pIterable).limit(limit);
+  private static <T> Iterable<T> limit(Iterable<T> pIterable, int pLimit) {
+    if (pLimit >= 0) {
+      return FluentIterable.from(pIterable).limit(pLimit);
     }
     return pIterable;
   }
