@@ -110,7 +110,7 @@ public class InvariantsCPA extends AbstractCPA {
     private boolean analyzeRelevantVariablesOnly = true;
 
     @Option(description="The maximum number of predicates to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting predicates is disabled.")
-    private int interestingPredicatesLimit = 2;
+    private int interestingPredicatesLimit = 0;
 
     @Option(description="The maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
     private int interestingVariableLimit = 2;
@@ -180,8 +180,8 @@ public class InvariantsCPA extends AbstractCPA {
     Set<CFANode> targetLocations = new LinkedHashSet<>();
 
     // Determine the target locations
-    boolean determineTargetStates = options.analyzeTargetPathsOnly || options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
-    if (determineTargetStates) {
+    boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
+    if (determineTargetLocations) {
       try {
         Configuration.Builder configurationBuilder = Configuration.builder().copyFrom(config);
         configurationBuilder.setOption("output.disable", "true");
@@ -199,10 +199,10 @@ public class InvariantsCPA extends AbstractCPA {
         }
       } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
         this.logManager.logException(Level.SEVERE, e, "Unable to find target locations. Defaulting to selecting all locations.");
-        determineTargetStates = false;
+        determineTargetLocations = false;
       }
     }
-    if (options.analyzeTargetPathsOnly && determineTargetStates) {
+    if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
     } else {
       relevantLocations.addAll(cfa.getAllNodes());
@@ -214,7 +214,7 @@ public class InvariantsCPA extends AbstractCPA {
     Set<String> interestingVariables = new LinkedHashSet<>();
 
     boolean guessInterestingInformation = options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
-    if (guessInterestingInformation && !determineTargetStates) {
+    if (guessInterestingInformation && !determineTargetLocations) {
       this.logManager.log(Level.WARNING, "Target states were not determined. Guessing interesting information is arbitrary.");
     }
 
@@ -232,7 +232,7 @@ public class InvariantsCPA extends AbstractCPA {
           if (relevantEdges.add(edge)) {
             nodes.offer(edge.getPredecessor());
             if (edge instanceof AssumeEdge) {
-              if (guessInterestingInformation && options.interestingPredicatesLimit != 0) {
+              if (guessInterestingInformation) {
                 try {
                   InvariantsFormula<CompoundState> formula = ((CAssumeEdge) edge).getExpression().accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(edge));
                   if (options.interestingVariableLimit != 0) {
