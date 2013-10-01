@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelectio
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -682,16 +681,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     ToFormulaVisitor<CompoundState, BooleanFormula> toBooleanFormulaVisitor =
         ToBooleanFormulaVisitor.getVisitor(pManager, evaluationVisitor, useBitvectors);
 
-    List<InvariantsFormula<CompoundState>> assumptions = new ArrayList<>();
+    Set<InvariantsFormula<CompoundState>> assumptions = new HashSet<>();
     assumptions.addAll(collectedInterestingAssumptions);
     assumptions.addAll(this.assumptions);
 
-    for (InvariantsFormula<CompoundState> assumption : getAssumptionsAndEnvironment()) {
-      BooleanFormula assumptionFormula = assumption.accept(toBooleanFormulaVisitor, getEnvironment());
-      if (assumptionFormula != null) {
-        result = bfmgr.and(result, assumptionFormula);
-      }
-    }
     for (Map.Entry<String, InvariantsFormula<CompoundState>> entry : this.environment.entrySet()) {
       InvariantsFormula<CompoundState> valueFormula = entry.getValue();
       if (valueFormula.equals(TOP)) {
@@ -708,25 +701,31 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
         }
       }
       if (formula == null) {
-        formula = CompoundStateFormulaManager.INSTANCE.equal(CompoundStateFormulaManager.INSTANCE.asVariable(varName), valueFormula).accept(toBooleanFormulaVisitor, getEnvironment());
-      }
-      if (formula != null) {
+        assumptions.add(CompoundStateFormulaManager.INSTANCE.equal(CompoundStateFormulaManager.INSTANCE.asVariable(varName), valueFormula));
+      } else {
         result = bfmgr.and(result, formula);
       }
     }
 
+    for (InvariantsFormula<CompoundState> assumption : getAssumptionsAndEnvironment()) {
+      BooleanFormula assumptionFormula = assumption.accept(toBooleanFormulaVisitor, getEnvironment());
+      if (assumptionFormula != null) {
+        result = bfmgr.and(result, assumptionFormula);
+      }
+    }
+
     // Apply type information
+    /* Disabled applying type information, because it lead to incorrect verification results
     RationalFormulaManagerView rfmgr = pManager.getRationalFormulaManager();
     for (Map.Entry<String, CType> typeMapping : types.entrySet()) {
       if (typeMapping.getValue() instanceof CSimpleType) {
         CSimpleType type = (CSimpleType) typeMapping.getValue();
         if (type.isUnsigned()) {
           BooleanFormula typeFormula = rfmgr.greaterOrEquals(rfmgr.makeVariable(typeMapping.getKey()), rfmgr.makeNumber(0));
-          result = bfmgr.and(result, typeFormula);
+          //result = bfmgr.and(result, typeFormula);
         }
       }
-    }
-
+    }*/
     return result;
   }
 
