@@ -208,7 +208,7 @@ public final class InterpolationManager {
   }
 
   public Appender dumpCounterexample(CounterexampleTraceInfo cex) {
-    return fmgr.dumpFormula(bfmgr.conjunction(cex.getCounterExampleFormulas()));
+    return fmgr.dumpFormula(bfmgr.and(cex.getCounterExampleFormulas()));
   }
 
   /**
@@ -290,7 +290,7 @@ public final class InterpolationManager {
 
       // Check if refinement problem is not too big
       if (maxRefinementSize > 0) {
-        int size = fmgr.dumpFormula(bfmgr.conjunction(f)).toString().length();
+        int size = fmgr.dumpFormula(bfmgr.and(f)).toString().length();
         if (size > maxRefinementSize) {
           logger.log(Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
           throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
