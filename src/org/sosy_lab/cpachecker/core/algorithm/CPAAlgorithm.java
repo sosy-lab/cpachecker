@@ -74,7 +74,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
     private int   countIterations   = 0;
     private int   maxWaitlistSize   = 0;
-    private int   countWaitlistSize = 0;
+    private long  countWaitlistSize = 0;
     private int   countSuccessors   = 0;
     private int   maxSuccessors     = 0;
     private int   countMerge        = 0;
