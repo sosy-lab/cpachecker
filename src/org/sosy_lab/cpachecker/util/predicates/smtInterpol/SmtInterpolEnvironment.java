@@ -292,7 +292,7 @@ class SmtInterpolEnvironment {
 
     } else {
       script.declareFun(fun, paramSorts, resultSort);
-      if (!stack.isEmpty()) {
+      if (currentDeclarations != null) {
         currentDeclarations.add(Triple.of(fun, paramSorts, resultSort));
       }
     }
