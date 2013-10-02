@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -130,12 +131,13 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
 
   public ImpactAlgorithm(Configuration config, LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
       ConfigurableProgramAnalysis pCpa, CFA cfa) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     logger = pLogger;
     cpa = pCpa;
 
-    FormulaManagerFactory factory = new FormulaManagerFactory(config, pLogger);
+    FormulaManagerFactory factory = new FormulaManagerFactory(config, pLogger, pShutdownNotifier);
     fmgr = new FormulaManagerView(factory.getFormulaManager(), config, logger);
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, cfa.getMachineModel()));

@@ -66,7 +66,7 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
 
   @Override
   public AllSatResult allSat(Collection<BooleanFormula> important,
-      RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) {
+      RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException {
     checkNotNull(rmgr);
     checkNotNull(solveTime);
     checkNotNull(enumTime);

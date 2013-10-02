@@ -134,7 +134,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     blk.setCFA(cfa);
 
-    formulaManagerFactory = new FormulaManagerFactory(config, logger);
+    formulaManagerFactory = new FormulaManagerFactory(config, logger, pShutdownNotifier);
 
     formulaManager = new FormulaManagerView(formulaManagerFactory.getFormulaManager(), config, logger);
     String libraries = formulaManager.getVersion();

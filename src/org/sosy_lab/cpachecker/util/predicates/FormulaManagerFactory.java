@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.lang.ref.WeakReference;
@@ -41,6 +42,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
@@ -83,15 +85,18 @@ public class FormulaManagerFactory {
   private Solvers interpolationSolver = null;
 
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
   private final FormulaManager fmgr;
   private final FormulaManager itpFmgr;
 
   private volatile SolverFactory smtInterpolFactory = null;
 
-  public FormulaManagerFactory(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public FormulaManagerFactory(Configuration config, LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
+    shutdownNotifier = checkNotNull(pShutdownNotifier);
 
     if (solver.equals(interpolationSolver)) {
       // If interpolationSolver is not null, we use SeparateInterpolatingProverEnvironment
@@ -118,7 +123,7 @@ public class FormulaManagerFactory {
         return loadSmtInterpol().create(config, logger, useIntegers);
 
       case MATHSAT5:
-          return Mathsat5FormulaManager.create(logger, config, useIntegers);
+          return Mathsat5FormulaManager.create(logger, config, shutdownNotifier, useIntegers);
 
       case Z3:
         try {

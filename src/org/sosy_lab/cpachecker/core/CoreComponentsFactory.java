@@ -133,7 +133,7 @@ public class CoreComponentsFactory {
       algorithm = new RestartAlgorithm(config, logger, shutdownNotifier, programDenotation, cfa);
 
     } else if (useImpactAlgorithm) {
-      algorithm = new ImpactAlgorithm(config, logger, cpa, cfa);
+      algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
 
     } else {
       algorithm = new CPAAlgorithm(cpa, logger, config, shutdownNotifier);
