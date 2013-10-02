@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
@@ -186,7 +187,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   public BMCAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa,
                       Configuration config, LogManager logger,
-                      ReachedSetFactory pReachedSetFactory, CFA pCfa)
+                      ReachedSetFactory pReachedSetFactory,
+                      ShutdownNotifier pShutdownNotifier, CFA pCfa)
                       throws InvalidConfigurationException, CPAException {
     config.inject(this);
     this.algorithm = algorithm;
@@ -196,7 +198,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     cfa = pCfa;
 
     if (induction && useInvariantsForInduction) {
-      invariantGenerator = new CPAInvariantGenerator(config, logger, reachedSetFactory, cfa);
+      invariantGenerator = new CPAInvariantGenerator(config, logger, reachedSetFactory, pShutdownNotifier, cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator(reachedSetFactory);
     }

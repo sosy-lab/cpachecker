@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
@@ -69,7 +70,8 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
   private ProofChecker checker;
   private PropertyChecker propChecker;
 
-  public ARGProofCheckerParallelStrategy(Configuration pConfig, LogManager pLogger, ProofChecker pChecker)
+  public ARGProofCheckerParallelStrategy(Configuration pConfig, LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier, ProofChecker pChecker)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     checker = pChecker;

@@ -41,6 +41,7 @@ import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
 
 import com.google.common.base.Strings;
@@ -103,10 +104,11 @@ public class CPAMain {
       }
       dumpConfiguration(options, cpaConfig, logManager);
       programDenotation = getProgramDenotation(options);
+      ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
 
-      shutdownHook = new ShutdownHook(cpaConfig, logManager, outputDirectory);
-      cpachecker = new CPAchecker(cpaConfig, logManager);
-      proofGenerator = new ProofGenerator(cpaConfig, logManager);
+      shutdownHook = new ShutdownHook(shutdownNotifier, cpaConfig, logManager, outputDirectory);
+      cpachecker = new CPAchecker(cpaConfig, logManager, shutdownNotifier);
+      proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.DuplicateOutputStream.mergeStreams;
 
 import java.io.File;
@@ -39,6 +40,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 import com.google.common.io.Closeables;
 
@@ -64,6 +66,7 @@ class ShutdownHook extends Thread {
   private final LogManager logManager;
   private final String outputDirectory;
   private final Thread mainThread;
+  private final ShutdownNotifier shutdownNotifier;
 
   // if still null when run() is executed, analysis has been interrupted by user
   private CPAcheckerResult mResult = null;
@@ -72,11 +75,12 @@ class ShutdownHook extends Thread {
    * Create a shutdown hook. This constructor needs to be called from the
    * thread in which CPAchecker is run.
    */
-  public ShutdownHook(Configuration config, LogManager logger, String pOutputDirectory) throws InvalidConfigurationException {
+  public ShutdownHook(ShutdownNotifier pShutdownNotifier, Configuration config, LogManager logger, String pOutputDirectory) throws InvalidConfigurationException {
     config.inject(this);
 
     logManager = logger;
     outputDirectory = pOutputDirectory;
+    shutdownNotifier = checkNotNull(pShutdownNotifier);
 
     mainThread = Thread.currentThread();
   }
@@ -99,7 +103,7 @@ class ShutdownHook extends Thread {
 
     if (mainThread.isAlive()) {
       // probably the user pressed Ctrl+C
-      mainThread.interrupt();
+      shutdownNotifier.requestShutdown("The JVM is shutting down, probably because Ctrl+C was pressed.");
       logManager.log(Level.INFO, "Stop signal received, waiting 2s for analysis to stop cleanly...");
       cancelled = true;
 

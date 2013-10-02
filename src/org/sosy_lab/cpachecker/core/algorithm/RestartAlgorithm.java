@@ -48,8 +48,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -135,6 +135,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private List<File> configFiles;
 
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final RestartAlgorithmStatistics stats;
   private final String filename;
   private final CFA cfa;
@@ -142,7 +143,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   private Algorithm currentAlgorithm;
 
-  public RestartAlgorithm(Configuration config, LogManager pLogger, String pFilename, CFA pCfa) throws InvalidConfigurationException {
+  public RestartAlgorithm(Configuration config, LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier, String pFilename, CFA pCfa) throws InvalidConfigurationException {
     config.inject(this);
 
     if (configFiles.isEmpty()) {
@@ -151,6 +153,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     this.stats = new RestartAlgorithmStatistics(configFiles.size());
     this.logger = pLogger;
+    this.shutdownNotifier = pShutdownNotifier;
     this.filename = pFilename;
     this.cfa = pCfa;
     this.globalConfig = config;
@@ -192,6 +195,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         if (currentAlgorithm instanceof StatisticsProvider) {
           ((StatisticsProvider)currentAlgorithm).collectStatistics(stats.getSubStatistics());
         }
+        shutdownNotifier.shutdownIfNecessary();
 
         stats.noOfAlgorithmsUsed++;
 
@@ -223,10 +227,15 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
           } else {
             throw e;
           }
+        } catch (InterruptedException e) {
+          shutdownNotifier.shutdownIfNecessary(); // check if we should also stop
+          logger.logUserException(Level.WARNING, e, "Analysis " + stats.noOfAlgorithmsUsed + " stopped");
         }
       } finally {
         stats.totalTime.stop();
       }
+
+      shutdownNotifier.shutdownIfNecessary();
 
       if (configFilesIterator.hasNext()) {
         stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
@@ -293,8 +302,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       reached = createInitialReachedSetForRestart(cpa, mainFunction, singleReachedSetFactory);
     }
 
-    CPAchecker.stopIfNecessary();
-
     return Pair.of(algorithm, reached);
   }
 
@@ -315,7 +322,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private ConfigurableProgramAnalysis createCPA(ReachedSetFactory pReachedSetFactory, Configuration pConfig, RestartAlgorithmStatistics stats) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    CPABuilder builder = new CPABuilder(pConfig, logger, pReachedSetFactory);
+    CPABuilder builder = new CPABuilder(pConfig, logger, shutdownNotifier, pReachedSetFactory);
     ConfigurableProgramAnalysis cpa = builder.buildCPAs(cfa);
 
     if (cpa instanceof StatisticsProvider) {
@@ -331,18 +338,18 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
-    Algorithm algorithm = new CPAAlgorithm(cpa, logger, pConfig);
+    Algorithm algorithm = new CPAAlgorithm(cpa, logger, pConfig, shutdownNotifier);
 
     if (pOptions.useRefinement) {
       algorithm = new CEGARAlgorithm(algorithm, cpa, pConfig, logger);
     }
 
     if (pOptions.useBMC) {
-      algorithm = new BMCAlgorithm(algorithm, cpa, pConfig, logger, singleReachedSetFactory, cfa);
+      algorithm = new BMCAlgorithm(algorithm, cpa, pConfig, logger, singleReachedSetFactory, shutdownNotifier, cfa);
     }
 
     if (pOptions.useCBMC) {
-      algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, pConfig, logger, cfa, filename);
+      algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, pConfig, logger, shutdownNotifier, cfa, filename);
     }
 
     if (pOptions.useAssumptionCollector) {
