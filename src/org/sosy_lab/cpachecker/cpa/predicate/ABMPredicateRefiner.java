@@ -327,7 +327,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
         ARGReachedSet pReached,
         List<ARGState> pPath,
         List<BooleanFormula> pInterpolants,
-        boolean pRepeatedCounterexample) throws CPAException {
+        boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
 
       // overriding this method is needed, as, in principle, it is possible to get two successive spurious counterexamples
       // which only differ in its abstractions (with 'aggressive caching').

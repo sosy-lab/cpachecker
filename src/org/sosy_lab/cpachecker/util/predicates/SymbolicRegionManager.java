@@ -111,7 +111,7 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
-  public boolean entails(Region pF1, Region pF2) {
+  public boolean entails(Region pF1, Region pF2) throws InterruptedException {
     SymbolicRegion r1 = (SymbolicRegion)pF1;
     SymbolicRegion r2 = (SymbolicRegion)pF2;
 

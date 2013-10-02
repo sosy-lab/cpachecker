@@ -62,7 +62,7 @@ public class LoggingInterpolatingProverEnvironment<T> implements InterpolatingPr
   }
 
   @Override
-  public boolean isUnsat() {
+  public boolean isUnsat() throws InterruptedException {
     boolean result = wrapped.isUnsat();
     logger.log(Level.FINE, "unsat-check returned:", result);
     return result;

@@ -271,8 +271,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   /**
    * This method tries to find a feasible path to (one of) the target state(s).
    * It does so by asking the solver for a satisfying assignment.
+   * @throws InterruptedException
    */
-  private void createErrorPath(final ReachedSet pReachedSet, final ProverEnvironment prover) throws CPATransferException {
+  private void createErrorPath(final ReachedSet pReachedSet, final ProverEnvironment prover) throws CPATransferException, InterruptedException {
     if (!(cpa instanceof ARGCPA)) {
       logger.log(Level.INFO, "Error found, but error path cannot be created without ARGCPA");
       return;
@@ -366,7 +367,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private boolean checkTargetStates(final ReachedSet pReachedSet, final ProverEnvironment prover) {
+  private boolean checkTargetStates(final ReachedSet pReachedSet, final ProverEnvironment prover) throws InterruptedException {
     List<AbstractState> targetStates = from(pReachedSet)
                                             .filter(IS_TARGET_STATE)
                                             .toList();
@@ -395,7 +396,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private boolean checkBoundingAssertions(final ReachedSet pReachedSet, final ProverEnvironment prover) {
+  private boolean checkBoundingAssertions(final ReachedSet pReachedSet, final ProverEnvironment prover) throws InterruptedException {
     FluentIterable<AbstractState> stopStates = from(pReachedSet)
                                                     .filter(IS_STOP_STATE);
 

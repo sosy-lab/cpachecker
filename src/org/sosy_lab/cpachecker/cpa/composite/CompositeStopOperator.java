@@ -46,7 +46,7 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
   }
 
   @Override
-  public boolean stop(AbstractState element, Collection<AbstractState> reached, Precision precision) throws CPAException {
+  public boolean stop(AbstractState element, Collection<AbstractState> reached, Precision precision) throws CPAException, InterruptedException {
     CompositeState compositeState = (CompositeState) element;
     CompositePrecision compositePrecision = (CompositePrecision) precision;
 
@@ -58,7 +58,7 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
     return false;
   }
 
-  private boolean stop(CompositeState compositeState, CompositeState compositeReachedState, CompositePrecision compositePrecision) throws CPAException {
+  private boolean stop(CompositeState compositeState, CompositeState compositeReachedState, CompositePrecision compositePrecision) throws CPAException, InterruptedException {
     List<AbstractState> compositeElements = compositeState.getWrappedStates();
     List<AbstractState> compositeReachedStates = compositeReachedState.getWrappedStates();
 
@@ -78,7 +78,7 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
     return true;
   }
 
-  boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement, List<ConfigurableProgramAnalysis> cpas) throws CPAException {
+  boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement, List<ConfigurableProgramAnalysis> cpas) throws CPAException, InterruptedException {
     CompositeState compositeState = (CompositeState)pElement;
     CompositeState compositeOtherElement = (CompositeState)pOtherElement;
 
@@ -104,7 +104,7 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
   }
 
   @Override
-  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedState, Precision pPrecision) throws CPAException {
+  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedState, Precision pPrecision) throws CPAException, InterruptedException {
 
     CompositeState compositeState = (CompositeState)pElement;
     CompositeState compositeReachedState = (CompositeState)pReachedState;

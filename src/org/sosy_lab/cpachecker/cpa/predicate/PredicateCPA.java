@@ -286,7 +286,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     // isLessOrEqual for proof checking; formula based; elements can be trusted (i.e., invariants do not have to be checked)
 
     PredicateAbstractState e1 = (PredicateAbstractState) pElement;

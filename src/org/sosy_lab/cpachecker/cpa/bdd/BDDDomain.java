@@ -31,7 +31,7 @@ public class BDDDomain implements AbstractDomain {
   public BDDDomain() {}
 
   @Override
-  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedState) {
+  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedState) throws InterruptedException {
     return ((BDDState) newElement).isLessOrEqual((BDDState) reachedState);
   }
 

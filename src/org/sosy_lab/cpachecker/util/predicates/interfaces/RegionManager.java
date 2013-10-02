@@ -44,7 +44,7 @@ public interface RegionManager {
    * @param f2 an AbstractFormula
    * @return true if (f1 => f2), false otherwise
    */
-  public boolean entails(Region f1, Region f2);
+  public boolean entails(Region f1, Region f2) throws InterruptedException;
 
   /**
    * @return a representation of logical truth

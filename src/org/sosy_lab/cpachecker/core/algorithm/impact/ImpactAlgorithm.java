@@ -250,7 +250,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
    * Check if a vertex v may potentially be covered by another vertex w.
    * It checks everything except their state formulas.
    */
-  private boolean mayCover(Vertex v, Vertex w, Precision prec) throws CPAException {
+  private boolean mayCover(Vertex v, Vertex w, Precision prec) throws CPAException, InterruptedException {
     return (v != w)
         && !w.isCovered() // ???
         && w.isOlderThan(v)
@@ -258,7 +258,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
         && cpa.getStopOperator().stop(v.getWrappedState(), Collections.singleton(w.getWrappedState()), prec);
   }
 
-  private boolean cover(Vertex v, Vertex w, Precision prec) throws CPAException {
+  private boolean cover(Vertex v, Vertex w, Precision prec) throws CPAException, InterruptedException {
     coverTime.start();
     try {
       assert !v.isCovered();
@@ -367,7 +367,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private boolean close(Vertex v, ReachedSet reached) throws CPAException {
+  private boolean close(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
     closeTime.start();
     try {
       if (v.isCovered()) {

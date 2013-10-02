@@ -352,7 +352,7 @@ public final class InterpolationManager {
    * @param f The list of formulas to check.
    * @return A sublist of f that contains the useful formulas.
    */
-  private List<BooleanFormula> getUsefulBlocks(List<BooleanFormula> f) {
+  private List<BooleanFormula> getUsefulBlocks(List<BooleanFormula> f) throws InterruptedException {
 
     cexAnalysisGetUsefulBlocksTimer.start();
 
