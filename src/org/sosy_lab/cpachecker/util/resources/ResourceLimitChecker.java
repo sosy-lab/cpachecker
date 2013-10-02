@@ -29,7 +29,16 @@ import static org.sosy_lab.cpachecker.core.ShutdownNotifier.interruptCurrentThre
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
+import javax.management.JMException;
+
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 
@@ -88,6 +97,51 @@ public final class ResourceLimitChecker {
     if (thread != null) {
       thread.interrupt();
     }
+  }
+
+  /**
+   * Create an instance of this class from some configuration options.
+   * The returned instance is not started yet.
+   */
+  public static ResourceLimitChecker fromConfiguration(Configuration config,
+      LogManager logger, ShutdownNotifier notifier) throws InvalidConfigurationException {
+
+    ResourceLimitOptions options = new ResourceLimitOptions();
+    config.inject(options);
+
+    ImmutableList.Builder<ResourceLimit> limits = ImmutableList.builder();
+    if (options.walltime >= 0) {
+      limits.add(WalltimeLimit.fromNowOn(options.walltime, TimeUnit.NANOSECONDS));
+    }
+    if (options.cpuTime >= 0) {
+      try {
+        limits.add(ProcessCpuTimeLimit.fromNowOn(options.cpuTime, TimeUnit.NANOSECONDS));
+      } catch (JMException e) {
+        logger.logDebugException(e, "Querying cpu time failed");
+        logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, cpu time threshold disabled.");
+      }
+    }
+
+    return new ResourceLimitChecker(notifier, limits.build());
+  }
+
+  @Options(prefix="limits")
+  private static class ResourceLimitOptions {
+
+    @Option(name="time.wall",
+        description="Limit for wall time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
+    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+        defaultUserUnit=TimeUnit.SECONDS,
+        min=-1)
+    private long walltime = -1;
+
+    @Option(name="time.cpu",
+        description="Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
+    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+        defaultUserUnit=TimeUnit.SECONDS,
+        min=-1)
+    private long cpuTime = -1;
+
   }
 
   private static class ResourceLimitCheckRunnable implements Runnable {

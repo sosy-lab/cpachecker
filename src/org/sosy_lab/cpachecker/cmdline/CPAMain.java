@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
 
@@ -96,6 +97,7 @@ public class CPAMain {
     ShutdownHook shutdownHook = null;
     String programDenotation = null;
     ProofGenerator proofGenerator = null;
+    ResourceLimitChecker limits = null;
     try {
       MainOptions options = new MainOptions();
       cpaConfig.inject(options);
@@ -105,6 +107,9 @@ public class CPAMain {
       dumpConfiguration(options, cpaConfig, logManager);
       programDenotation = getProgramDenotation(options);
       ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
+
+      limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownNotifier);
+      limits.start();
 
       shutdownHook = new ShutdownHook(shutdownNotifier, cpaConfig, logManager, outputDirectory);
       cpachecker = new CPAchecker(cpaConfig, logManager, shutdownNotifier);
@@ -122,6 +127,8 @@ public class CPAMain {
 
     // run analysis
     CPAcheckerResult result = cpachecker.run(programDenotation);
+
+    limits.cancel(); // no limits for operations during statistics
 
     shutdownHook.setResult(result);
 

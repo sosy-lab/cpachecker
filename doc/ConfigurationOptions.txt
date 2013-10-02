@@ -1051,6 +1051,14 @@ java.version = JavaCore.VERSION_1_7
 language = C
   enum:     [C, JAVA]
 
+# Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
+# for infinite)
+limits.time.cpu = -1
+
+# Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
+# for infinite)
+limits.time.wall = -1
+
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
