@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentEx
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
@@ -54,7 +55,7 @@ import com.google.common.io.Closeables;
 
 public class CPAMain {
 
-  @SuppressWarnings("resource") // We don't close LogManager because it will be used from ShutdownHook.
+  @SuppressWarnings("resource") // We don't close LogManager
   public static void main(String[] args) {
     // initialize various components
     Configuration cpaConfig = null;
@@ -127,10 +128,20 @@ public class CPAMain {
     ShutdownHook shutdownHook = new ShutdownHook(shutdownNotifier);
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
+    // This is for actually forcing a termination when CPAchecker
+    // fails to shutdown within some time.
+    ShutdownRequestListener forcedExitOnShutdown =
+        ForceTerminationOnShutdown.createShutdownListener(logManager, shutdownHook);
+    shutdownNotifier.register(forcedExitOnShutdown);
+
     // run analysis
     CPAcheckerResult result = cpachecker.run(programDenotation);
 
-    limits.cancel(); // no limits for operations during statistics
+    // We want to print the statistics completely now that we have come so far,
+    // so we disable all the limits, shutdown hooks, etc.
+    shutdownHook.disable();
+    shutdownNotifier.unregister(forcedExitOnShutdown);
+    limits.cancel();
 
     // generated proof (if enabled)
     proofGenerator.generateProof(result);
@@ -223,15 +234,6 @@ public class CPAMain {
       // print statistics
       mResult.printStatistics(stream);
       stream.println();
-
-      /*
-      if (cancelled) {
-        stream.println(
-            "***********************************************************************\n" +
-            "* WARNING: Analysis interrupted!! The statistics might be unreliable! *\n" +
-            "***********************************************************************\n");
-      }
-      */
 
       // print result
       if (!options.printStatistics) {

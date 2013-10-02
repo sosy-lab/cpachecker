@@ -36,14 +36,22 @@ class ShutdownHook extends Thread {
   private final Thread mainThread;
   private final ShutdownNotifier shutdownNotifier;
 
+  private volatile boolean enabled = true;
+
   /**
    * Create a shutdown hook. This constructor needs to be called from the
    * thread in which CPAchecker is run.
    */
   public ShutdownHook(ShutdownNotifier pShutdownNotifier) {
+    super("Shutdown Hook");
     shutdownNotifier = checkNotNull(pShutdownNotifier);
 
     mainThread = Thread.currentThread();
+  }
+
+  public void disable() {
+    enabled = false;
+    this.interrupt(); // in case it is already running
   }
 
   // We want to use Thread.stop() to force the main thread to stop
@@ -51,7 +59,7 @@ class ShutdownHook extends Thread {
   @Override
   public void run() {
 
-    if (mainThread.isAlive()) {
+    if (enabled && mainThread.isAlive()) {
       // probably the user pressed Ctrl+C
       shutdownNotifier.requestShutdown("The JVM is shutting down, probably because Ctrl+C was pressed.");
 
