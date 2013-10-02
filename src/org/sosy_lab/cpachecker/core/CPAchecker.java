@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.core.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import java.io.File;
@@ -152,7 +153,7 @@ public class CPAchecker {
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
 
-    final ShutdownRequestListener interruptThreadOnShutdown = interruptThreadOnShutdown();
+    final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
@@ -339,15 +340,5 @@ public class CPAchecker {
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
 
     reached.add(initialState, initialPrecision);
-  }
-
-  private ShutdownRequestListener interruptThreadOnShutdown() {
-    final Thread cpacheckerThread = Thread.currentThread();
-    return new ShutdownRequestListener() {
-        @Override
-        public void shutdownRequested(String pReason) {
-          cpacheckerThread.interrupt();
-        }
-      };
   }
 }

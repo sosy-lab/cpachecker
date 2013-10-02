@@ -24,12 +24,14 @@
 package org.sosy_lab.cpachecker.util.resources;
 
 import static com.google.common.base.Preconditions.*;
+import static org.sosy_lab.cpachecker.core.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.math.LongMath;
@@ -49,14 +51,24 @@ public final class ResourceLimitChecker {
   /**
    * Create a new instance with a list of limits to check and a {@link ShutdownNotifier}
    * that gets notified when a limit is exceeded.
+   * It is safe (but useless) to call this constructor with an empty list of limits,
+   * limits that have already been exceeded, or a shutdown notifier that has
+   * already been triggered.
    * @param shutdownNotifier A non-null shutdown notifier instance.
-   * @param limits A non-empty list without null entries of resource limits.
+   * @param limits A (possibly empty) list without null entries of resource limits.
    */
   public ResourceLimitChecker(ShutdownNotifier shutdownNotifier, List<ResourceLimit> limits) {
-    Runnable runnable = new ResourceLimitCheckRunnable(shutdownNotifier, limits);
+    checkNotNull(shutdownNotifier);
+    if (limits.isEmpty() || shutdownNotifier.shouldShutdown()) {
+      // limits are irrelevant
+      thread = null;
 
-    thread = new Thread(runnable, "Resource limit checker");
-    thread.setDaemon(true);
+    } else {
+      Runnable runnable = new ResourceLimitCheckRunnable(shutdownNotifier, limits);
+
+      thread = new Thread(runnable, "Resource limit checker");
+      thread.setDaemon(true);
+    }
   }
 
   /**
@@ -64,14 +76,18 @@ public final class ResourceLimitChecker {
    * May be called only once.
    */
   public void start() {
-    thread.start();
+    if (thread != null) {
+      thread.start();
+    }
   }
 
   /**
    * Cancel enforcing the limits (without triggering the stop request if not done before).
    */
   public void cancel() {
-    thread.interrupt();
+    if (thread != null) {
+      thread.interrupt();
+    }
   }
 
   private static class ResourceLimitCheckRunnable implements Runnable {
@@ -96,6 +112,9 @@ public final class ResourceLimitChecker {
 
     @Override
     public void run() {
+      ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
+      toNotify.registerAndCheckImmediately(interruptThreadOnShutdown);
+
       // Here we keep track of the next time we need to check each limit.
       final long[] timesOfNextCheck = new long[limits.size()];
 
@@ -136,6 +155,7 @@ public final class ResourceLimitChecker {
           Thread.sleep(millisToSleep);
         } catch (InterruptedException e) {
           // Cancel requested by ResourceLimitChecker#cancel()
+          toNotify.unregister(interruptThreadOnShutdown);
           return;
         }
       }

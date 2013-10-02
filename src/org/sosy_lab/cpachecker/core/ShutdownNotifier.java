@@ -271,6 +271,23 @@ public final class ShutdownNotifier {
     listeners.remove(listener);
   }
 
+  /**
+   * Utility method for creating a {@link ShutdownRequestListener}
+   * that interrupts the current thread (that calls this method) on a shutdown.
+   * Note that this method does not actually do anything, you need to
+   * register the returned listener with an instance of this class.
+   * @return
+   */
+  public static ShutdownRequestListener interruptCurrentThreadOnShutdown() {
+    final Thread currentThread = Thread.currentThread();
+    return new ShutdownRequestListener() {
+        @Override
+        public void shutdownRequested(String pReason) {
+          currentThread.interrupt();
+        }
+      };
+  }
+
   public static interface ShutdownRequestListener  {
 
     /**
