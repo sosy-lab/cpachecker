@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.coverage.CoveragePrinter;
 import org.sosy_lab.cpachecker.coverage.CoveragePrinterGcov;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.MemoryStatistics;
+import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
