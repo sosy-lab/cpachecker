@@ -33,6 +33,7 @@ import java.util.Deque;
 
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
@@ -113,6 +114,7 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
    */
   static class MathsatAllSatCallback implements Mathsat5NativeApi.AllSatModelCallback, AllSatResult {
 
+    private final ShutdownNotifier shutdownNotifier;
     private final RegionCreator rmgr;
 
     private final Timer solveTime;
@@ -134,6 +136,7 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
       this.solveTime = pSolveTime;
       this.enumTime = pEnumTime;
       this.env = env;
+      this.shutdownNotifier = prover.mgr.getShutdownNotifier();
     }
 
     public void setInfiniteNumberOfModels() {
@@ -148,17 +151,18 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
     }
 
     @Override
-    public Region getResult() {
+    public Region getResult() throws InterruptedException {
       if (cubes.size() > 0) {
         buildBalancedOr();
       }
       return formula;
     }
 
-    private void buildBalancedOr() {
+    private void buildBalancedOr() throws InterruptedException {
       enumTime.startBoth();
       cubes.add(formula);
       while (cubes.size() > 1) {
+        shutdownNotifier.shutdownIfNecessary();
         Region b1 = cubes.remove();
         Region b2 = cubes.remove();
         cubes.add(rmgr.makeOr(b1, b2));

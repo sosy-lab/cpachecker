@@ -163,16 +163,17 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
     }
 
     @Override
-    public Region getResult() {
+    public Region getResult() throws InterruptedException {
       if (cubes.size() > 0) {
         buildBalancedOr();
       }
       return formula;
     }
 
-    private void buildBalancedOr() {
+    private void buildBalancedOr() throws InterruptedException {
       cubes.add(formula);
       while (cubes.size() > 1) {
+        shutdownNotifier.shutdownIfNecessary();
         Region b1 = cubes.remove();
         Region b2 = cubes.remove();
         cubes.add(rmgr.makeOr(b1, b2));

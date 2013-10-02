@@ -97,6 +97,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
   private final Mathsat5Settings settings;
   private int logfileCounter = 0;
 
+  private final ShutdownNotifier shutdownNotifier;
   private final TerminationTest terminationTest;
 
   private Mathsat5FormulaManager(
@@ -117,7 +118,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     mathsatEnv = formulaCreator.getEnv();
     settings = pSettings;
 
-    checkNotNull(pShutdownNotifier);
+    shutdownNotifier = checkNotNull(pShutdownNotifier);
     terminationTest = new TerminationTest() {
         @Override
         public boolean shouldTerminate() throws InterruptedException {
@@ -127,6 +128,9 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
       };
   }
 
+  ShutdownNotifier getShutdownNotifier() {
+    return shutdownNotifier;
+  }
 
   static long getMsatTerm(Formula pT) {
     return ((Mathsat5Formula)pT).getTerm();

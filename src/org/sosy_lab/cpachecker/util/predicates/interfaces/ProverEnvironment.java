@@ -87,7 +87,7 @@ public interface ProverEnvironment extends AutoCloseable {
     /**
      * The result of an allSat call as an abstract formula.
      */
-    public Region getResult();
+    public Region getResult() throws InterruptedException;
 
     /**
      * The number of satisfying assignments contained in the result, of
