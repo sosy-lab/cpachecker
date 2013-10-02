@@ -449,6 +449,9 @@ public class PredicateAbstractionManager {
           abs = rmgr.makeAnd(abs,
               buildBooleanAbstraction(ssa, thmProver, predicates));
           stats.booleanAbstractionTime.stop();
+
+          // Warning:
+          // buildBooleanAbstraction() does not clean up thmProver, so do not use it here.
         }
       }
     }
@@ -778,21 +781,20 @@ public class PredicateAbstractionManager {
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     thmProver.push(predDef);
-    try {
-      AllSatResult allSatResult = thmProver.allSat(predVars, rmgr,
-          stats.abstractionSolveTime, stats.abstractionEnumTime);
+    AllSatResult allSatResult = thmProver.allSat(predVars, rmgr,
+        stats.abstractionSolveTime, stats.abstractionEnumTime);
 
-      // update statistics
-      int numModels = allSatResult.getCount();
-      if (numModels < Integer.MAX_VALUE) {
-        stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
-        stats.allSatCount += numModels;
-      }
+    // pop() is actually costly sometimes, and we delete the environment anyway
+    // thmProver.pop();
 
-      return allSatResult.getResult();
-    } finally {
-      thmProver.pop();
+    // update statistics
+    int numModels = allSatResult.getCount();
+    if (numModels < Integer.MAX_VALUE) {
+      stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
+      stats.allSatCount += numModels;
     }
+
+    return allSatResult.getResult();
   }
 
   /**
