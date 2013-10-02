@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.ProgramCpuTime;
+import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 
 
 class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
@@ -113,7 +113,7 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
 
     long cputimeNanos;
     try {
-      cputimeNanos = ProgramCpuTime.read();
+      cputimeNanos = ProcessCpuTime.read();
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
       logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, cpu time threshold disabled");

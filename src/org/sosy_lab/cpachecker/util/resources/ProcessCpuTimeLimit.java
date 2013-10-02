@@ -29,8 +29,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.management.JMException;
 
-import org.sosy_lab.cpachecker.util.ProgramCpuTime;
-
 /**
  * A limit that measures the CPU time used by the current process
  * (if available on this JVM).
@@ -49,19 +47,19 @@ public class ProcessCpuTimeLimit implements ResourceLimit {
   }
 
   public static ProcessCpuTimeLimit fromNowOn(long limit, TimeUnit unit) throws JMException {
-    return new ProcessCpuTimeLimit(ProgramCpuTime.read(), limit, unit);
+    return new ProcessCpuTimeLimit(ProcessCpuTime.read(), limit, unit);
   }
 
   public static ProcessCpuTimeLimit sinceProcessStart(long time, TimeUnit unit) throws JMException {
-    // Do a single read to trigger exceptions if ProgramCpuTime is not available.
-    ProgramCpuTime.read();
+    // Do a single read to trigger exceptions if ProcessCpuTime is not available.
+    ProcessCpuTime.read();
     return new ProcessCpuTimeLimit(0, time, unit);
   }
 
   @Override
   public long getCurrentValue() {
     try {
-      return ProgramCpuTime.read();
+      return ProcessCpuTime.read();
     } catch (JMException e) {
       return 0;
     }
