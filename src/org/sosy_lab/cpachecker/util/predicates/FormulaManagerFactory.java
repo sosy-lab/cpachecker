@@ -120,7 +120,7 @@ public class FormulaManagerFactory {
     try {
       switch (solver) {
       case SMTINTERPOL:
-        return loadSmtInterpol().create(config, logger, useIntegers);
+        return loadSmtInterpol().create(config, logger, shutdownNotifier, useIntegers);
 
       case MATHSAT5:
           return Mathsat5FormulaManager.create(logger, config, shutdownNotifier, useIntegers);
@@ -219,7 +219,8 @@ public class FormulaManagerFactory {
    * and used by this class, not by other classes.
    */
   public static interface SolverFactory {
-    FormulaManager create(Configuration config, LogManager logger, boolean useIntegers) throws InvalidConfigurationException;
+    FormulaManager create(Configuration config, LogManager logger,
+        ShutdownNotifier pShutdownNotifier, boolean useIntegers) throws InvalidConfigurationException;
 
     ProverEnvironment createProver(FormulaManager mgr);
 
