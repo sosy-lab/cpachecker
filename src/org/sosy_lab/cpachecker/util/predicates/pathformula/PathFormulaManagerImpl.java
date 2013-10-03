@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 
 import com.google.common.base.Function;
+import com.google.common.base.Objects;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
@@ -211,8 +212,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     for (Triple<String, Integer, Integer> difference : varDifferences) {
       String name = difference.getFirst();
-      int i1 = difference.getSecond();
-      int i2 = difference.getThird();
+      int i1 = Objects.firstNonNull(difference.getSecond(), 1);
+      int i2 = Objects.firstNonNull(difference.getThird(), 1);
 
       if (i1 > i2 && i1 > 1) {
         // i2:smaller, i1:bigger

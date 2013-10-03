@@ -695,7 +695,21 @@ public class CompoundState {
    * given value.
    */
   public CompoundState multiply(final BigInteger pValue) {
-    return applyOperationToAllAndUnite(ISCOperator.MULTIPLY_OPERATOR, pValue);
+    if (pValue.equals(BigInteger.ZERO)) {
+      return CompoundState.singleton(pValue);
+    }
+    if (pValue.equals(BigInteger.ONE)) {
+      return this;
+    }
+    CompoundState result = applyOperationToAllAndUnite(ISCOperator.MULTIPLY_OPERATOR, pValue);
+    if (result.isTop()) {
+      result = new CompoundState();
+      for (int i = -3; i <= 3; ++i) {
+        result.intervals.add(SimpleInterval.singleton(pValue.multiply(BigInteger.valueOf(i))));
+      }
+      result = result.extendToNegativeInfinity().extendToPositiveInfinity();
+    }
+    return result;
   }
 
   /**
@@ -707,6 +721,9 @@ public class CompoundState {
    * given interval.
    */
   public CompoundState multiply(final SimpleInterval pInterval) {
+    if (pInterval.isSingleton()) {
+      return multiply(pInterval.getLowerBound());
+    }
     return applyOperationToAllAndUnite(IICOperator.MULTIPLY_OPERATOR, pInterval);
   }
 
@@ -719,6 +736,9 @@ public class CompoundState {
    * given state.
    */
   public CompoundState multiply(final CompoundState pState) {
+    if (pState.intervals.size() == 1) {
+      return multiply(pState.intervals.get(0));
+    }
     return applyOperationToAllAndUnite(ICCOperator.MULTIPLY_OPERATOR, pState);
   }
 
@@ -1183,6 +1203,8 @@ public class CompoundState {
           return singleton(0).extendToNegativeInfinity();
         } else if (!containsPositive()) {
           return singleton(0).extendToPositiveInfinity();
+        } else {
+          return top();
         }
       }
       result = result.unionWith(SimpleInterval.singleton(interval.getLowerBound().not()));

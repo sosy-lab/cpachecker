@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.ImmutableList.copyOf;
-import static org.sosy_lab.cpachecker.util.StatisticsUtils.toPercent;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
 import java.io.PrintStream;
 import java.util.ArrayDeque;

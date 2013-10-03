@@ -362,15 +362,29 @@ public class SSAMap implements Serializable {
       if (comp < 0) {
         // e1 < e2
 
+        K key = e1.getKey();
+        V value1 = e1.getValue();
+
+        if (collectDifferences != null) {
+          collectDifferences.add(Triple.<K,V,V>of(key, value1, null));
+        }
+
         // forward e1 until e2 catches up
         e1 = null;
 
       } else if (comp > 0) {
         // e1 > e2
 
+        K key = e2.getKey();
+        V value2 = e2.getValue();
+
         // e2 is not in map
-        assert !result.containsKey(e2.getKey());
-        result = result.putAndCopy(e2.getKey(), e2.getValue());
+        assert !result.containsKey(key);
+        result = result.putAndCopy(key, value2);
+
+        if (collectDifferences != null) {
+          collectDifferences.add(Triple.<K,V,V>of(key, null, value2));
+        }
 
         // forward e2 until e1 catches up
         e2 = null;

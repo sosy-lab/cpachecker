@@ -33,8 +33,6 @@ import java.util.Deque;
 
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.core.Model;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
@@ -42,41 +40,21 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.base.Preconditions;
 
-public class Mathsat5TheoremProver implements ProverEnvironment {
+public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvironment {
 
   private static final boolean USE_SHARED_ENV = true;
 
-  private final Mathsat5FormulaManager mgr;
-  private long curEnv;
-
   public Mathsat5TheoremProver(Mathsat5FormulaManager pMgr,
       boolean generateModels) {
-    mgr = pMgr;
+    super(pMgr, createEnvironment(pMgr, generateModels));
+  }
 
+  private static long createEnvironment(Mathsat5FormulaManager mgr, boolean generateModels) {
     long cfg = msat_create_config();
     if (generateModels) {
       msat_set_option_checked(cfg, "model_generation", "true");
     }
-    curEnv = mgr.createEnvironment(cfg, USE_SHARED_ENV, true);
-    checkNotNull(curEnv);
-  }
-
-  @Override
-  public boolean isUnsat() {
-    return !msat_check_sat(curEnv);
-  }
-
-  @Override
-  public Model getModel() throws SolverException {
-    Preconditions.checkState(curEnv != 0);
-
-    return Mathsat5Model.createMathsatModel(curEnv, mgr);
-  }
-
-  @Override
-  public void pop() {
-    Preconditions.checkState(curEnv != 0);
-    msat_pop_backtrack_point(curEnv);
+    return mgr.createEnvironment(cfg, USE_SHARED_ENV, true);
   }
 
   @Override
@@ -84,13 +62,6 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
     Preconditions.checkState(curEnv != 0);
     msat_push_backtrack_point(curEnv);
     msat_assert_formula(curEnv, getMsatTerm(f));
-  }
-
-  @Override
-  public void close() {
-    Preconditions.checkState(curEnv != 0);
-    msat_destroy_env(curEnv);
-    curEnv = 0;
   }
 
   @Override

@@ -33,7 +33,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -142,6 +144,8 @@ final class ImpactUtility {
       return false;
     }
 
+    CFANode location = AbstractStates.extractLocation(s);
+
     // Extract predicates from interpolants.
     Collection<AbstractionPredicate> preds = predAbsMgr.extractPredicates(itp);
 
@@ -154,11 +158,11 @@ final class ImpactUtility {
 
     } else if (abstractInterpolantOnly) {
       // Compute an abstraction of "itp"
-      newAbstraction = predAbsMgr.buildAbstraction(itp, blockFormula, preds);
+      newAbstraction = predAbsMgr.buildAbstraction(location, itp, blockFormula, preds, PredicateAbstractionManager.noAbstractionReuse);
 
     } else {
       // Compute an abstraction of "lastAbstraction & blockFormula"
-      newAbstraction = predAbsMgr.buildAbstraction(lastAbstraction, blockFormula, preds);
+      newAbstraction = predAbsMgr.buildAbstraction(location, lastAbstraction, blockFormula, preds);
     }
     abstractionTime.stop();
 

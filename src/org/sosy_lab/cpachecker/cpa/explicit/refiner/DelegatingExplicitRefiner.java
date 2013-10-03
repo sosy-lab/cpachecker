@@ -123,6 +123,8 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    */
   private final MachineModel machineModel;
 
+  private final LogManager logger;
+
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(DelegatingExplicitRefiner.class.getSimpleName() + " could not find the ExplicitCPA");
@@ -170,6 +172,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
             logger,
             formulaManager,
             predicateCpa.getPredicateManager(),
+            extractor,
             solver);
 
         return new PredicateCPARefiner(
@@ -180,8 +183,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
             pathChecker,
             formulaManager,
             pathFormulaManager,
-            backupRefinementStrategy,
-            extractor);
+            backupRefinementStrategy);
       }
   }
 
@@ -215,6 +217,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     predicatingRefiner    = pBackupRefiner;
     staticRefiner         = pExplicitStaticRefiner;
     machineModel          = pMachineModel;
+    logger                = pLogger;
   }
 
   @Override
@@ -262,7 +265,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
 
     if (!initialStaticRefinementDone && staticRefiner != null) {
       refinementRoot              = errorPath.get(1);
-      refinedExplicitPrecision    = staticRefiner.extractPrecisionFromCfa();
+      refinedExplicitPrecision    = staticRefiner.extractPrecisionFromCfa(reachedSet, errorPath);
       initialStaticRefinementDone = true;
     }
     else {

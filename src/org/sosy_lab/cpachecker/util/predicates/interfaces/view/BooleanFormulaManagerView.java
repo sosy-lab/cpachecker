@@ -23,13 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.List;
 
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 
 public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> implements BooleanFormulaManager {
@@ -53,6 +59,19 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
   public BooleanFormula and(BooleanFormula pBits1, BooleanFormula pBits2) {
     return wrapInView(manager.and(extractFromView(pBits1), extractFromView(pBits2)));
   }
+
+  @Override
+  public BooleanFormula and(List<BooleanFormula> pBits) {
+    BooleanFormula result = manager.and(Lists.transform(pBits,
+        new Function<BooleanFormula, BooleanFormula>() {
+          @Override
+          public BooleanFormula apply(BooleanFormula pInput) {
+            return extractFromView(pInput);
+          }
+        }));
+    return wrapInView(result);
+  }
+
   @Override
   public BooleanFormula or(BooleanFormula pBits1, BooleanFormula pBits2) {
     return wrapInView(manager.or(extractFromView(pBits1), extractFromView(pBits2)));
@@ -129,21 +148,32 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     return manager.isIfThenElse(viewManager.extractFromView(pF));
   }
 
+  public <T extends Formula> Triple<BooleanFormula, T, T> splitIfThenElse(T pF) {
+    checkArgument(isIfThenElse(pF));
+
+    FormulaManagerView fmgr = getViewManager();
+    UnsafeFormulaManager unsafe = fmgr.getUnsafeFormulaManager();
+    assert unsafe.getArity(pF) == 3;
+
+    BooleanFormula cond = wrapInView(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0)));
+    T thenBranch = fmgr.wrapInView(unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 1)));
+    T elseBranch = fmgr.wrapInView(unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 2)));
+
+    return Triple.of(cond, thenBranch, elseBranch);
+  }
+
   @Override
   public boolean isEquivalence(BooleanFormula pFormula) {
     return manager.isEquivalence(extractFromView(pFormula));
   }
 
-  public BooleanFormula conjunction(List<BooleanFormula> f) {
-    BooleanFormula result = manager.makeBoolean(true);
-    for (BooleanFormula formula : f) {
-      result = manager.and(result, extractFromView(formula));
-    }
-    return wrapInView(result);
-  }
-
   public BooleanFormula implication(BooleanFormula p, BooleanFormula q) {
     return or(not(p), q);
+  }
+
+  @Override
+  public boolean isImplication(BooleanFormula pFormula) {
+    return manager.isImplication(extractFromView(pFormula));
   }
 
 
@@ -165,10 +195,12 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
 
     public final R visit(BooleanFormula f) {
       if (bfmgr.isTrue(f)) {
+        assert unsafe.getArity(f) == 0;
         return visitTrue();
       }
 
       if (bfmgr.isFalse(f)) {
+        assert unsafe.getArity(f) == 0;
         return visitFalse();
       }
 
@@ -177,38 +209,110 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
       }
 
       if (bfmgr.isNot(f)) {
+        assert unsafe.getArity(f) == 1;
         return visitNot(getArg(f, 0));
       }
 
       if (bfmgr.isAnd(f)) {
-        return visitAnd(getArg(f, 0), getArg(f, 1));
+        assert unsafe.getArity(f) >= 2;
+        return visitAnd(getAllArgs(f));
       }
       if (bfmgr.isOr(f)) {
-        return visitOr(getArg(f, 0), getArg(f, 1));
+        assert unsafe.getArity(f) >= 2;
+        return visitOr(getAllArgs(f));
       }
 
       if (bfmgr.isEquivalence(f)) {
+        assert unsafe.getArity(f) == 2;
         return visitEquivalence(getArg(f, 0), getArg(f, 1));
       }
 
+      if (bfmgr.isImplication(f)) {
+        assert unsafe.getArity(f) == 2;
+        return visitImplication(getArg(f, 0), getArg(f, 1));
+      }
+
       if (bfmgr.isIfThenElse(f)) {
+        assert unsafe.getArity(f) == 3;
         return visitIfThenElse(getArg(f, 0), getArg(f, 1), getArg(f, 2));
       }
 
-      throw new UnsupportedOperationException();
+      throw new UnsupportedOperationException("Unknown boolean operator " + f);
     }
 
     private final BooleanFormula getArg(BooleanFormula pF, int i) {
       return unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, i));
     }
 
+    private final BooleanFormula[] getAllArgs(BooleanFormula pF) {
+      int arity = unsafe.getArity(pF);
+      BooleanFormula[] args = new BooleanFormula[arity];
+      for (int i = 0; i < arity; i++) {
+        args[i] = getArg(pF, i);
+      }
+      return args;
+    }
+
     protected abstract R visitTrue();
     protected abstract R visitFalse();
     protected abstract R visitAtom(BooleanFormula atom);
     protected abstract R visitNot(BooleanFormula operand);
-    protected abstract R visitAnd(BooleanFormula operand1, BooleanFormula operand2);
-    protected abstract R visitOr(BooleanFormula operand1, BooleanFormula operand2);
+    protected abstract R visitAnd(BooleanFormula... operands);
+    protected abstract R visitOr(BooleanFormula... operand);
     protected abstract R visitEquivalence(BooleanFormula operand1, BooleanFormula operand2);
+    protected abstract R visitImplication(BooleanFormula operand1, BooleanFormula operand2);
     protected abstract R visitIfThenElse(BooleanFormula condition, BooleanFormula thenFormula, BooleanFormula elseFormula);
+  }
+
+  public static abstract class DefaultBooleanFormulaVisitor<R> extends BooleanFormulaVisitor<R> {
+
+    protected DefaultBooleanFormulaVisitor(FormulaManagerView pFmgr) {
+      super(pFmgr);
+    }
+
+    @Override
+    protected R visitTrue() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitFalse() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitAtom(BooleanFormula pAtom) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitNot(BooleanFormula pOperand) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitAnd(BooleanFormula... pOperands) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitOr(BooleanFormula... pOperands) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitIfThenElse(BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
+      throw new UnsupportedOperationException();
+    }
   }
 }

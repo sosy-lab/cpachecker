@@ -310,6 +310,10 @@ counterexample.continueAfterInfeasibleError = true
 # similar infeasible counterexamples to get discovered, but is unsound
 counterexample.removeInfeasibleErrors = false
 
+# print coverage info to file
+coverage.export = true
+coverage.file = "coverage.info"
+
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
@@ -491,8 +495,12 @@ cpa.cpalien.enableMallocFail = true
 # Filename format for SMG graph dumps
 cpa.cpalien.exportSMG.file = "smg-%s.dot"
 
-# Describes when SMG graphs should be dumped. One of: {never, leaf, every}
+# Describes when SMG graphs should be dumped. One of: {never, leaf,
+# interesting, every}
 cpa.cpalien.exportSMGwhen = "never"
+
+# Sets how unknown functions are handled. One of: {strict, assume_safe}
+cpa.cpalien.handleUnknownFunctions = "strict"
 
 # Sets the level of runtime checking: NONE, HALF, FULL
 cpa.cpalien.runtimeCheck = NONE
@@ -600,9 +608,31 @@ cpa.interval.splitIntervals = false
 # at most that many intervals will be tracked per variable
 cpa.interval.threshold = 0
 
+# determine variables relevant to the decision whether or not a target path
+# assume edge is taken and limit the analyis to those variables.
+cpa.invariants.analyzeRelevantVariablesOnly = true
+
+# determine target locations in advance and analyse paths to the target
+# locations only.
+cpa.invariants.analyzeTargetPathsOnly = true
+
+# the maximum number of predicates to consider as interesting. -1 one
+# disables the limit, but this is not recommended. 0 means that guessing
+# interesting predicates is disabled.
+cpa.invariants.interestingPredicatesLimit = 0
+
+# the maximum number of variables to consider as interesting. -1 one disables
+# the limit, but this is not recommended. 0 means that guessing interesting
+# variables is disabled.
+cpa.invariants.interestingVariableLimit = 2
+
 # which merge operator to use for InvariantCPA
 cpa.invariants.merge = "JOIN"
   allowed values: [JOIN, SEP]
+
+# whether or not to use a bit vector formula manager when extracting
+# invariant approximations from states.
+cpa.invariants.useBitvectors = true
 
 # threshold for unrolling loops of the program (0 is infinite)
 # works only if assumption storage CPA is enabled, because otherwise it would
@@ -643,8 +673,12 @@ cpa.predicate.abm.auxiliaryPredicateComputer = true
 # use caching of abstractions
 cpa.predicate.abs.useCache = true
 
-# whether to use Boolean (false) or Cartesian (true) abstraction
+# DEPRECATED: whether to use Boolean (false) or Cartesian (true) abstraction
 cpa.predicate.abstraction.cartesian = false
+
+# whether to use Boolean or Cartesian abstraction or both
+cpa.predicate.abstraction.computation = BOOLEAN
+  enum:     [CARTESIAN, BOOLEAN, COMBINED]
 
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
@@ -664,9 +698,15 @@ cpa.predicate.abstraction.initialPredicates.applyFunctionWide = false
 # in the program)
 cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 
+# An initial set of comptued abstractions that might be reusable
+cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
+
 # What to use for storing abstractions
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, FORMULA]
+
+# file that consists of one abstraction formula for each abstraction state
+cpa.predicate.abstractions.file = "abstractions.txt"
 
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
@@ -733,7 +773,7 @@ cpa.predicate.ignoreExtractConcat = true
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 cpa.predicate.interpolationSolver = no default value
-  allowed values: [MATHSAT5, SMTINTERPOL]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3]
 
 # export final loop invariants
 cpa.predicate.invariants.export = true
@@ -756,7 +796,10 @@ cpa.predicate.mathsat5.furtherOptions = ""
 
 # Export solver queries in Smtlib format into a file (for Mathsat5).
 cpa.predicate.mathsat5.logAllQueries = false
-cpa.predicate.mathsat5.logfile = "mathsat5.%d.smt2"
+cpa.predicate.mathsat5.logfile = "mathsat5.%03d.smt2"
+
+# Max. number of edge of the abstraction tree to prescan for reuse
+cpa.predicate.maxAbstractionReusePrescan = 1
 
 # Set of functions that provide new memory on the heap.
 cpa.predicate.memoryAllocationFunctions = {
@@ -794,7 +837,7 @@ cpa.predicate.predmap.export = true
 # file for exporting final predicate map
 cpa.predicate.predmap.file = "predmap.txt"
 
-# format for exporting predicates of the final predicate map
+# Format for exporting predicates from precisions.
 cpa.predicate.predmap.predicateFormat = SMTLIB2
   enum:     [PLAIN, SMTLIB2]
 
@@ -834,10 +877,6 @@ cpa.predicate.refinement.dumpPredicates = false
 
 # File name for the predicates dumped after refinements.
 cpa.predicate.refinement.dumpPredicatesFile = "refinement%04d-predicates.prec"
-
-# Format that should be used when dumping predicates after a refinement.
-cpa.predicate.refinement.dumpPredicatesFormat = SMTLIB2
-  enum:     [PLAIN, SMTLIB2]
 
 # apply deletion-filter to the abstract counterexample, to get a minimal set
 # of blocks, before applying interpolation-based refinement
@@ -897,19 +936,39 @@ cpa.predicate.satCheck = 0
 
 # Double check generated results like interpolants and models whether they
 # are correct
-cpa.predicate.smtinterpol.checkResults = true
+cpa.predicate.smtinterpol.checkResults = false
 
 # Export solver queries in Smtlib format into a file.
 cpa.predicate.smtinterpol.logAllQueries = false
-cpa.predicate.smtinterpol.logfile = "smtinterpol.smt2"
 
-# Whether to use MathSAT 5 or SmtInterpol as SMT solver
+# Export interpolation queries in Smtlib format into a file.
+cpa.predicate.smtinterpol.logInterpolationQueries = false
+
+# Export solver queries in Smtlib format into a file.
+cpa.predicate.smtinterpol.logfile = "smtinterpol.%03d.smt2"
+
+# Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver (Z3 needs the
+# FOCI library from http://www.kenmcmil.com/foci2/).
 cpa.predicate.solver = MATHSAT5
-  allowed values: [MATHSAT5, SMTINTERPOL]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3]
 
 # Encode program variables as INTEGER variables, instead of using REALs. Not
 # all solvers might support this.
 cpa.predicate.solver.useIntegers = false
+
+# log some solver actions, this may be slow!
+cpa.predicate.solver.useLogger = false
+
+# Export solver queries in Smtlib2 format.
+cpa.predicate.solver.z3.logger.logfile = "z3smtlog.%d.smt2"
+
+# Export solver queries in Smtlib2 format, there are small differences for
+# different solvers, choose target-solver.
+cpa.predicate.solver.z3.logger.target = Z3
+  allowed values: [Z3, MATHSAT5]
+
+# simplify formulas when they are asserted in a solver.
+cpa.predicate.solver.z3.simplifyFormulas = false
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
@@ -1034,9 +1093,19 @@ restartAlgorithm.configFiles = no default value
 # (see config/specification/ for examples)
 specification = no default value
 
+# Add all assumtions from the control flow automaton to the precision.
+staticRefiner.addAllControlFlowAssumes = false
+
+# Add all assumtions along a error trace to the precision.
+staticRefiner.addAllErrorTraceAssumes = false
+staticRefiner.addAssumesByBoundedBackscan = true
+
 # Apply mined predicates on the corresponding scope. false = add them to the
 # global precision.
 staticRefiner.applyScoped = true
+
+# Dump CFA assume edges as SMTLIB2 formulas to a file.
+staticRefiner.assumePredicatesFile = "CfaAssumePredicates.txt"
 
 # collect at most this number of assumes along a path, backwards from each
 # target (= error) location

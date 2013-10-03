@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+import java.util.List;
 
 
 /**
@@ -52,6 +53,8 @@ public interface BooleanFormulaManager {
   public BooleanFormula equivalence(BooleanFormula formula1, BooleanFormula formula2);
 
   public boolean isEquivalence(BooleanFormula formula);
+
+  public boolean isImplication(BooleanFormula formula);
 
   public boolean isTrue(BooleanFormula formula);
 
@@ -84,6 +87,7 @@ public interface BooleanFormulaManager {
    * @return (f1 & f2)
    */
   public BooleanFormula and(BooleanFormula bits1, BooleanFormula bits2);
+  public BooleanFormula and(List<BooleanFormula> bits);
 
   /**
    * Creates a formula representing an OR of the two arguments.

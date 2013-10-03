@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
+import de.uni_freiburg.informatik.ultimate.logic.AnnotatedTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FormulaLet;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
@@ -50,9 +51,8 @@ import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.PrintTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
-import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 
-public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
+class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
   private final SmtInterpolEnvironment env;
   private final SmtInterpolFormulaCreator creator;
@@ -79,9 +79,13 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
     // Create managers
     SmtInterpolUnsafeFormulaManager unsafeManager = new SmtInterpolUnsafeFormulaManager(creator);
     SmtInterpolFunctionFormulaManager functionTheory = new SmtInterpolFunctionFormulaManager(creator, unsafeManager);
-    SmtInterpolBooleanFormulaManager booleanTheory = SmtInterpolBooleanFormulaManager.create(creator);
+    SmtInterpolBooleanFormulaManager booleanTheory = new SmtInterpolBooleanFormulaManager(creator, env.getTheory());
     SmtInterpolRationalFormulaManager rationalTheory = new SmtInterpolRationalFormulaManager(creator, functionTheory, pUseIntegers);
     return new SmtInterpolFormulaManager(unsafeManager, functionTheory, booleanTheory, rationalTheory);
+  }
+
+  public SmtInterpolInterpolatingProver createInterpolator() {
+    return env.getInterpolator(this);
   }
 
   BooleanFormula encapsulateBooleanFormula(Term t) {
@@ -108,6 +112,9 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
         while (!todo.isEmpty()) {
           Term t = todo.removeLast();
+          while (t instanceof AnnotatedTerm) {
+            t = ((AnnotatedTerm) t).getSubterm();
+          }
           if (!(t instanceof ApplicationTerm)
               || !seen.add(t)) {
             continue;
@@ -134,21 +141,10 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
             out.append(")\n");
 
           } else {
-            out.append("(define-fun ");
-            out.append(PrintTerm.quoteIdentifier(func.getName()));
-            out.append(" (");
-            for (TermVariable paramVar : func.getDefinitionVars()) {
-              out.append('(');
-              termPrinter.append(out, paramVar);
-              out.append(' ');
-              termPrinter.append(out, paramVar.getSort());
-              out.append(')');
-            }
-            out.append(") ");
-            termPrinter.append(out, func.getReturnSort());
-            out.append(' ');
-            termPrinter.append(out, func.getDefinition());
-            out.append(")\n");
+            // We would have to print a (define-fun) command and
+            // recursively traverse into func.getDefinition() (in post-order!).
+            // However, such terms should actually not occur.
+            throw new IllegalArgumentException("Terms with definition are unsupported.");
           }
         }
 

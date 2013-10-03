@@ -37,14 +37,15 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.defaults.AbstractStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateMapParser.PredicateMapParsingFailedException;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 import com.google.common.collect.ImmutableList;
 
@@ -99,7 +100,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
         } catch (IOException e) {
           logger.logUserException(Level.WARNING, e, "Could not read predicate map from file");
 
-        } catch (PredicateMapParsingFailedException e) {
+        } catch (PredicateParsingFailedException e) {
           logger.logUserException(Level.WARNING, e, "Could not read predicate map");
         }
       }

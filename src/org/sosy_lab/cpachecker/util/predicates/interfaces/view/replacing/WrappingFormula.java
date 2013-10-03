@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -30,16 +32,23 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 
 
-public abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
-  private TWrap wrapped;
-  private FormulaType<TOut> type;
-  public WrappingFormula(FormulaType<TOut> type, TWrap toWrap) {
-    wrapped = toWrap;
-    this.type = type;
+abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
+
+  private final TWrap wrapped;
+  private final FormulaType<TOut> type;
+
+  WrappingFormula(FormulaType<TOut> pType, TWrap pWrapped) {
+    wrapped = checkNotNull(pWrapped);
+    type = checkNotNull(pType);
   }
 
-  public TWrap getWrapped() { return wrapped; }
-  public FormulaType<TOut> getType() { return type; }
+  TWrap getWrapped() {
+    return wrapped;
+  }
+
+  FormulaType<TOut> getType() {
+    return type;
+  }
 
   @Override
   public String toString() {
@@ -47,34 +56,48 @@ public abstract class WrappingFormula<TWrap extends Formula, TOut extends Formul
   }
 
   @Override
-  public boolean equals(Object pObj) {
-    throw new UnsupportedOperationException();
+  public int hashCode() {
+    final int prime = 31;
+    return (prime + type.hashCode()) * prime + wrapped.hashCode();
   }
 
   @Override
-  public int hashCode() {
-    throw new UnsupportedOperationException();
+  public boolean equals(Object pObj) {
+    if ((pObj == null)
+        || !getClass().equals(pObj.getClass())) {
+      return false;
+    }
+
+    WrappingFormula<?, ?> other = (WrappingFormula<?, ?>)pObj;
+
+    return wrapped.equals(other.wrapped)
+        && type.equals(other.type);
   }
 }
 
-class WrappingBitvectorFormula<TWrap extends Formula>
-extends WrappingFormula<TWrap, BitvectorFormula>
-implements BitvectorFormula {
-  public WrappingBitvectorFormula(FormulaType<BitvectorFormula> type, TWrap pToWrap) {
+final class WrappingBitvectorFormula<TWrap extends Formula>
+    extends WrappingFormula<TWrap, BitvectorFormula>
+    implements BitvectorFormula {
+
+  WrappingBitvectorFormula(FormulaType<BitvectorFormula> type, TWrap pToWrap) {
     super(type, pToWrap);
   }
 }
-class WrappingRationalFormula<TWrap extends Formula>
-extends WrappingFormula<TWrap, RationalFormula>
-implements RationalFormula {
-  public WrappingRationalFormula(FormulaType<RationalFormula> type, TWrap pToWrap) {
+
+final class WrappingRationalFormula<TWrap extends Formula>
+    extends WrappingFormula<TWrap, RationalFormula>
+    implements RationalFormula {
+
+  WrappingRationalFormula(FormulaType<RationalFormula> type, TWrap pToWrap) {
     super(type, pToWrap);
   }
 }
-class WrappingBooleanFormula<TWrap extends Formula>
-extends WrappingFormula<TWrap, BooleanFormula>
-implements BooleanFormula {
-  public WrappingBooleanFormula(FormulaType<BooleanFormula> type, TWrap pToWrap) {
+
+final class WrappingBooleanFormula<TWrap extends Formula>
+    extends WrappingFormula<TWrap, BooleanFormula>
+    implements BooleanFormula {
+
+  WrappingBooleanFormula(FormulaType<BooleanFormula> type, TWrap pToWrap) {
     super(type, pToWrap);
   }
 }

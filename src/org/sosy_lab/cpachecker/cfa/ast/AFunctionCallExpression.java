@@ -38,12 +38,12 @@ public abstract class AFunctionCallExpression extends ARightHandSide {
 
   private final IAExpression functionName;
   private final List<? extends IAExpression> parameters;
-  private final IASimpleDeclaration declaration;
+  private final AFunctionDeclaration declaration;
 
 
   public AFunctionCallExpression(FileLocation pFileLocation, Type pType, final IAExpression pFunctionName,
       final List<? extends IAExpression> pParameters,
-      final IASimpleDeclaration pDeclaration) {
+      final AFunctionDeclaration pDeclaration) {
     super(pFileLocation, pType);
     functionName = pFunctionName;
     parameters = ImmutableList.copyOf(pParameters);
@@ -67,7 +67,7 @@ public abstract class AFunctionCallExpression extends ARightHandSide {
    * The result may be null if the function was not declared, or if a complex
    * function name expression is used (i.e., a function pointer).
    */
-  public IASimpleDeclaration getDeclaration() {
+  public AFunctionDeclaration getDeclaration() {
     return declaration;
   }
 

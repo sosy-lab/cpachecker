@@ -161,7 +161,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
 
   private ExplicitStaticRefiner initializeStaticRefiner(CFA cfa) throws InvalidConfigurationException {
     if (performInitialStaticRefinement) {
-      return new ExplicitStaticRefiner(config, logger, cfa, precision);
+      return new ExplicitStaticRefiner(config, logger, precision);
     }
 
     return null;

@@ -4,7 +4,7 @@
   <option name="-noout"/>
   <option name="-preprocess"/>
   <option name="-setprop">cpa.conditions.global.time.wall=1min</option>
-
+  
   <rundefinition>
     <sourcefiles>
       <option name="-CPAlien-with-explicitAnalysis-without-malloc-failure-Error"/>

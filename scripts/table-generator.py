@@ -730,7 +730,7 @@ def getStatsOfRunSet(runResults):
             wrongUnsafe = StatValue(countWrongUnsafe)
 
         else:
-            sum, correct, wrongSafe, wrongUnsafe = getStatsOfNumberColumn(values, statusList)
+            sum, correct, wrongSafe, wrongUnsafe = getStatsOfNumberColumn(values, statusList, column.title)
             score = ''
 
         if (sum.sum, correct.sum, wrongSafe.sum, wrongUnsafe.sum) == (0,0,0,0):
@@ -781,12 +781,13 @@ def getCategoryCount(categoryList):
             counts[result.RESULT_WRONG_UNSAFE])
 
 
-def getStatsOfNumberColumn(values, categoryList):
+def getStatsOfNumberColumn(values, categoryList, columnTitle):
     assert len(values) == len(categoryList)
     try:
         valueList = [Util.toDecimal(v) for v in values]
     except InvalidOperation as e:
-        print("Warning: {0}. Statistics may be wrong.".format(e))
+        if columnTitle != "host": # we ignore values of column host, used in cloud-mode
+            print("Warning: {0}. Statistics may be wrong.".format(e))
         return (StatValue(0), StatValue(0), StatValue(0), StatValue(0))
 
     valuesPerCategory = collections.defaultdict(list)

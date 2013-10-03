@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
@@ -159,7 +159,7 @@ public class CollectVarsVisitor<T> implements InvariantsFormulaVisitor<T, Set<St
      * are of size one, a new modifiable set is created for the result.
      */
     if (a.size() == 1 && b.size() == 1) {
-      Set<String> result = new HashSet<>(a);
+      Set<String> result = new LinkedHashSet<>(a);
       result.addAll(b);
       return result;
     }

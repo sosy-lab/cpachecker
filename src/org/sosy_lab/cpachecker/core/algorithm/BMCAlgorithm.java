@@ -260,7 +260,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
 
     } finally {
-      invariantGenerator.cancel();
+      if (invariantGenerator != null) {
+        invariantGenerator.cancel();
+      }
     }
   }
 
@@ -345,7 +347,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         } else {
           counterexample = CounterexampleInfo.feasible(targetPath, info.getModel());
 
-          counterexample.addFurtherInformation(fmgr.dumpFormula(bfmgr.conjunction(info.getCounterExampleFormulas())),
+          counterexample.addFurtherInformation(fmgr.dumpFormula(bfmgr.and(info.getCounterExampleFormulas())),
               dumpCounterexampleFormula);
         }
 

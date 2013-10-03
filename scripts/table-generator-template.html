@@ -205,14 +205,16 @@ $(document).ready(function() {
 </script>
 
 
-<!-- ################## Possibility to select displayed columns by clicking on left-most cell in title row ################## -->
+<!-- ################## Possibility to display an overlay-table
+                        for selecting displayed columns or showing other data
+                        by clicking on left-most cell in title row ################## -->
 
 <style type="text/css">
-  #toggleTable { margin: auto; }
-  #toggleTable td { padding-bottom: 5px; padding-top: 5px; }
-  #toggleTable tr:hover { background-color: transparent; }
-  #toggleTable tbody td:first-child { font-family: arial, sans serif; }
-  #toggleTableWrapper { height: 100%; overflow: auto; width: 100%; }
+  #tableViewTable { margin: auto; }
+  #tableViewTable td { padding-bottom: 5px; padding-top: 5px; }
+  #tableViewTable thead td:first-child { font-family: arial, sans serif; font-size:large; font-weight:bold; text-align:center }
+  #tableViewTable tbody td:first-child { font-family: arial, sans serif; }
+  #tableViewTableWrapper { height: 100%; overflow: auto; width: 100%; }
   .hiddenCell { background: red; }
   .visibleCell { background: green; }
   .clickableCell:hover { opacity: 0.5; cursor: pointer; }
@@ -291,11 +293,12 @@ function toggleCells(indices) {
 }
 
 
-function createColumnToggleView() {
-
-    // collect all columns
-    var tableColumns = [];
-    var titlesToColumns = {};
+// collect columns and store them in a datastructure,
+// this allows access to the columnsover the title and the index.
+// @param columnTitles: list of strings, will be filled.
+// @param titlesToColumns: map from column-title to a list of column-indices, will be filled.
+// @returns number of columns, equal to "sum(len(c) for c in columns)"
+function getColumns(columnTitles, titlesToColumns) {
     var columnIndex = 1; // column 1 is the first data-column
     for (var i = 0; i < tests.length; i++) {
         var test = tests[i];
@@ -305,39 +308,58 @@ function createColumnToggleView() {
         var cols = columns[i];
         for (var j = 0; j < cols.length; j++, columnIndex++) {
             var title = cols[j];
-            var index = tableColumns.indexOf(title);
+            var index;
             if (title in titlesToColumns) {
                 titlesToColumns[title].push(columnIndex);
+                index = columnTitles.indexOf(title);
             } else { // new title
-                // assert(index == -1);
                 titlesToColumns[title] = [columnIndex];
-                tableColumns.push(title);
-                index = tableColumns.length - 1; // index of last position
+                columnTitles.push(title);
+                index = columnTitles.length - 1; // index of last position
             }
             test.indexToColumn[index] = columnIndex;
             test.indices.push(columnIndex);
         }
     }
+    return columnIndex;
+}
 
+
+// returns a list with values from start to end. example: range(2,6)==[2,3,4,5]
+function range(start, end) {
+    var list = []; for (var i=start; i<end; i++) { list.push(i); } return list;
+}
+
+
+function createColumnToggleView() {
+
+    // collect all columns
+    var columnTitles = [];
+    var titlesToColumns = {};
+    var columnIndex = getColumns(columnTitles, titlesToColumns);
+    
     // create header for table
-    var list = []; for (var i=1; i<columnIndex; i++) { list.push(i); }
     var rowHeader = $('<tr>');
-    $('<td>') // create top-left cell
-        .click( {indices: list},
+
+    // create top-left cell
+    $('<td>')
+        .click( {indices: range(1, columnIndex) },
                 function(event) { toggleCells(event.data.indices); } )
         .addClass('clickable')
         .attr('title', 'Click here to toggle all columns')
         .appendTo(rowHeader);
-    for (var j = 0; j < tableColumns.length; j++) {
-        $('<td>').append(tableColumns[j]) // create column-title-cell
-            .click( {indices: titlesToColumns[tableColumns[j]]}, 
+
+    // create column-title-cells
+    for (var j = 0; j < columnTitles.length; j++) {
+        $('<td>').append(columnTitles[j])
+            .click( {indices: titlesToColumns[columnTitles[j]]}, 
                     function(event) { toggleCells(event.data.indices); } )
             .addClass('clickable')
             .attr('title', 'Click here to toggle all columns with this title')
             .appendTo(rowHeader);
     }
 
-    var tableHTML = $('<table>').attr('id', 'toggleTable')
+    var tableHTML = $('<table>').attr('id', 'tableViewTable')
                     .append($('<thead>').append(rowHeader));
 
     // create body for table
@@ -357,7 +379,7 @@ function createColumnToggleView() {
     
         // get cells of row
         var cols = columns[i];
-        for (var j = 0; j < tableColumns.length; j++) {
+        for (var j = 0; j < columnTitles.length; j++) {
             var cell = $('<td>').appendTo(rowHTML);
             var index = test.indexToColumn[j];
             if (index) {
@@ -373,7 +395,70 @@ function createColumnToggleView() {
             }
         }
     }
-    $('<div>').attr('id', 'toggleTableWrapper')
+    $('<div>').attr('id', 'tableViewTableWrapper')
+              .append(tableHTML)
+              .appendTo($("#contentPane"));
+    showContentPane();
+}
+
+
+// shows a table with statistics
+// @param statisticsRow: which statistic to show?
+function createStatsView(statistics, currentIndex) {
+
+    var statisticsRow = statistics[currentIndex];
+
+    // collect all columns
+    var columnTitles = [];
+    var titlesToColumns = {};
+    var columnIndex = getColumns(columnTitles, titlesToColumns);
+
+    // create header for table
+    var rowHeader = $('<tr>');
+
+    // create top-left cell
+    var originalCell = $(statisticsRow.cells[0])
+    $('<td>').text(originalCell.text())
+             .appendTo(rowHeader)
+             .addClass('clickable')
+             .click(function(event) { // iterate through statistics
+                 $('#contentPaneBackground').click(); // cleanup
+                 createStatsView(statistics, (currentIndex + 1) % statistics.length);
+             } )
+             .attr('title', originalCell.attr('title'));
+
+     // create column-title-cells
+     for (var j = 0; j < columnTitles.length; j++) {
+         var title = (columnTitles[j] == 'status') ? '#files' : columnTitles[j];
+         $('<td>').append(title).appendTo(rowHeader);
+    }
+
+    var tableHTML = $('<table>').attr('id', 'tableViewTable')
+                    .append($('<thead>').append(rowHeader));
+
+    // create body for table
+    var tableBody = $('<tbody>').appendTo(tableHTML);
+    for (var i = 0; i < tests.length; i++) {
+        rowHTML = $('<tr>').appendTo(tableBody);
+        var test = tests[i];
+        
+        // get indices of row and create rowTitle-cell
+        var rowTitle = test.tool + ' ' + (test.date ? test.date + ' ' : '') + test.name;
+        $('<td>').append(rowTitle)
+            .appendTo(rowHTML);
+    
+        // get cells of row
+        var cols = columns[i];
+        for (var j = 0; j < columnTitles.length; j++) {
+            var cell = $('<td>').appendTo(rowHTML);
+            var index = test.indexToColumn[j];
+            if (index) {
+                originalCell = $(statisticsRow.cells[index]);
+                cell.text(originalCell.text()).attr('title', originalCell.attr('title'));                    
+            }
+        }
+    }
+    $('<div>').attr('id', 'tableViewTableWrapper')
               .append(tableHTML)
               .appendTo($("#contentPane"));
     showContentPane();
@@ -385,6 +470,13 @@ $(document).ready(function() {
     .attr("title", "Click here to toggle visibility of columns")
     .click(function (event) {
         return createColumnToggleView(); });
+  
+  var statistics = $('.statistics');
+  statistics.each(function(index, statisticsRow) {
+            $(statisticsRow).find(':first')
+                .addClass('clickable')
+                .click(function (event) { return createStatsView(statistics, index); });
+       });
 });
 </script>
 
@@ -1205,7 +1297,7 @@ def formatStatTitle(stat):
   {{endfor}}
 </tr>
 {{for line in foot}}
-  <tr>
+  <tr class="statistics">
     <td {{attr(title=line.description)}}>{{line.title}}</td>
     {{for cell in line.content}}
     <td {{attr(class_=line.id, title=formatStatTitle(cell))}}>{{cell}}</td>

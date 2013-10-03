@@ -147,7 +147,7 @@ enum MultiplyOperator implements IIIOperator {
       } else {
         lbUb = ubUb = BigInteger.ZERO;
       }
-    } else {
+    } else { // pFirstOperand.hasUpperBound()
       int thisUpperBoundSignum = pFirstOperand.getUpperBound().signum();
       if (pLowerBound == null) {
         // One of the lower bounds is negative infinity, so if one of
@@ -159,12 +159,12 @@ enum MultiplyOperator implements IIIOperator {
         } else {
           ubLb = ubUb = BigInteger.ZERO;
         }
-      } else {
+      } else { // pLowerBound != null
         // The first upper and second lower bound are both finite,
         // so a candidate for the new extremes can be calculated
         ubLb = pFirstOperand.getUpperBound().multiply(pLowerBound);
       }
-      if (!pFirstOperand.hasUpperBound()) {
+      if (!pSecondOperand.hasUpperBound()) {
         // One of the upper bounds is negative infinity, so if one of
         // its co-factors is non-zero, an extreme can easily be found
         if (thisUpperBoundSignum < 0) {

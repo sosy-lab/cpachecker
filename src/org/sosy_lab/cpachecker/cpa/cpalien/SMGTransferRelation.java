@@ -115,11 +115,14 @@ public class SMGTransferRelation implements TransferRelation {
   @FileOption(Type.OUTPUT_FILE)
   private File exportSMGFilePattern = new File("smg-%s.dot");
 
-  @Option(name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped. One of: {never, leaf, every}")
+  @Option(name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped. One of: {never, leaf, interesting, every}")
   private String exportSMG = "never";
 
   @Option(name="enableMallocFail", description = "If this Option is enabled, failure of malloc" + "is simulated")
   private boolean enableMallocFailure = true;
+
+  @Option(name="handleUnknownFunctions", description = "Sets how unknown functions are handled. One of: {strict, assume_safe}")
+  private String handleUnknownFunctions = "strict";
 
   final private LogManager logger;
   final private MachineModel machineModel;
@@ -169,12 +172,13 @@ public class SMGTransferRelation implements TransferRelation {
             "malloc",
             "free",
             "memset",
-            "calloc"
+            "calloc",
+            "__VERIFIER_nondet_bool"
         }));
 
     private void dumpSMGPlot(String name, SMGState currentState, String location)
     {
-      if (exportSMGFilePattern != null) {
+      if (exportSMGFilePattern != null && currentState != null) {
         if (name == null) {
           if (currentState.getPredecessor() == null) {
             name = String.format("initial-%03d", currentState.getId());
@@ -354,7 +358,7 @@ public class SMGTransferRelation implements TransferRelation {
       CType newType = new CArrayType(false, false, charType,
           new CIntegerLiteralExpression(null, null, BigInteger.valueOf(size)));
 
-      currentState.writeValue(new_pointer.getObject(), 0, newType, 0);
+      currentState.writeValue(new_pointer.getObject(), 0, newType, SMGKnownSymValue.ZERO);
 
       possibleMallocFail = true;
       return new_pointer;
@@ -407,7 +411,7 @@ public class SMGTransferRelation implements TransferRelation {
   private void plotWhenConfigured(String pConfig, String pName, SMGState pState, String pLocation ) {
     //TODO: A variation for more pConfigs
 
-    if (pConfig.equals(exportSMG) && pName != null){
+    if (pConfig.equals(exportSMG)){
       builtins.dumpSMGPlot(pName, pState, pLocation);
     }
   }
@@ -432,8 +436,6 @@ public class SMGTransferRelation implements TransferRelation {
     setInfo(smgState);
 
     SMGState successor;
-
-
 
     switch (cfaEdge.getEdgeType()) {
     case DeclarationEdge:
@@ -753,6 +755,9 @@ public class SMGTransferRelation implements TransferRelation {
 
     if (addressOfField.isUnknown()) {
       addMissingInformation(lValue, rValue);
+      //TODO: Really? I would say that when we do not know where to write a value, we are in trouble
+      /* Maybe defining it as relevant? In some cases, we can get the address through the explicitCPA.
+       * In all other cases we could give an Invalid Write*/
       return new SMGState(state);
     }
 
@@ -920,15 +925,13 @@ public class SMGTransferRelation implements TransferRelation {
   private SMGState handleDeclaration(SMGState smgState, CDeclarationEdge edge) throws CPATransferException {
     logger.log(Level.FINEST, ">>> Handling declaration");
 
-    SMGState newState;
+    SMGState newState = new SMGState(smgState);
     CDeclaration cDecl = edge.getDeclaration();
 
     if (cDecl instanceof CVariableDeclaration) {
-      newState = handleVariableDeclaration(smgState, (CVariableDeclaration)cDecl, edge);
-    } else {
-      //TODO: Handle other declarations?
-      newState = new SMGState(smgState);
+      newState = handleVariableDeclaration(newState, (CVariableDeclaration)cDecl, edge);
     }
+    //TODO: Handle other declarations?
     return newState;
   }
 
@@ -1165,6 +1168,15 @@ public class SMGTransferRelation implements TransferRelation {
     }
   }
 
+  /**
+   * The class {@link SMGExpressionEvaluator} is meant to evaluate
+   * a expression using an arbitrary SMGState. Thats why it does not
+   * permit semantic changes of the state it uses. This class implements
+   * additionally the changes that occur while calculating the next smgState
+   * in the Transfer Relation. These mainly include changes when evaluating
+   * functions. They also contain code that should only be executed during
+   * the calculation of the next SMG State, e.g. logging.
+   */
   private class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
     private boolean missingExplicitInformation;
@@ -1191,7 +1203,13 @@ public class SMGTransferRelation implements TransferRelation {
       public SMGAddress visit(CPointerExpression pLValue) throws CPATransferException {
         logger.log(Level.FINEST, ">>> Handling statement: assignment to dereferenced pointer");
 
-        return super.visit(pLValue);
+        SMGAddress address = super.visit(pLValue);
+
+        if (address.isUnknown()) {
+          getSmgState().setUnknownDereference();
+        }
+
+        return address;
       }
 
       @Override
@@ -1219,6 +1237,7 @@ public class SMGTransferRelation implements TransferRelation {
       @Override
       public SMGSymbolicValue visit(CFunctionCallExpression pIastFunctionCallExpression)
           throws CPATransferException {
+
         CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
         String functionName = fileNameExpression.toASTString();
 
@@ -1239,9 +1258,17 @@ public class SMGTransferRelation implements TransferRelation {
             isRequiered = true;
             SMGEdgePointsTo callocEdge = builtins.evaluateMalloc(pIastFunctionCallExpression, smgState, cfaEdge);
             return createAddress(callocEdge);
+          case "__VERIFIER_nondet_bool":
+            return SMGUnknownValue.getInstance();
           }
         } else {
-          return SMGUnknownValue.getInstance();
+          switch(handleUnknownFunctions) {
+          case "strict":
+            throw new CPATransferException("Unknown function may be unsafe. See the cpa.cpalien.handleUnknownFunction option.");
+          case "assume_safe":
+            return SMGUnknownValue.getInstance();
+          }
+          throw new AssertionError();
         }
 
         return SMGUnknownValue.getInstance();
@@ -1257,6 +1284,7 @@ public class SMGTransferRelation implements TransferRelation {
       @Override
       public SMGAddressValue visit(CFunctionCallExpression pIastFunctionCallExpression)
           throws CPATransferException {
+
         CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
         String functionName = fileNameExpression.toASTString();
 
@@ -1275,10 +1303,18 @@ public class SMGTransferRelation implements TransferRelation {
           case "memset":
             SMGEdgePointsTo memsetTargetEdge = builtins.evaluateMemset(pIastFunctionCallExpression, smgState, cfaEdge);
             return createAddress(memsetTargetEdge);
+          case "__VERIFIER_nondet_bool":
+            return SMGUnknownValue.getInstance();
           }
           throw new AssertionError();
         } else {
-          return SMGUnknownValue.getInstance();
+          switch(handleUnknownFunctions) {
+          case "strict":
+            throw new CPATransferException("Unknown function may be unsafe. See the cpa.cpalien.handleUnknownFunction option.");
+          case "assume_safe":
+            return SMGUnknownValue.getInstance();
+          }
+          throw new AssertionError();
         }
       }
     }
@@ -1304,6 +1340,7 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public SMGExplicitValue evaluateExplicitValue(SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue)
         throws CPATransferException {
+
       SMGExplicitValue explicitValue = super.evaluateExplicitValue(pSmgState, pCfaEdge, pRValue);
       if (explicitValue.isUnknown()) {
         missingExplicitInformation = true;
@@ -1635,7 +1672,6 @@ public class SMGTransferRelation implements TransferRelation {
      * If this missing Information can't be evaluated, stop analysis
      */
     private final boolean requieredInformation;
-
 
     public MissingInformation(CExpression pMissingCLeftMemoryLocation,
         CRightHandSide pMissingCExpressionInformation, boolean pRequieredInformation) {

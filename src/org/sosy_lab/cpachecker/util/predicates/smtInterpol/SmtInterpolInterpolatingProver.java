@@ -42,9 +42,9 @@ import com.google.common.base.Preconditions;
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-public class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<String> {
+class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<String> {
 
-  private final SmtInterpolFormulaManager mgr;
+  protected final SmtInterpolFormulaManager mgr;
   private SmtInterpolEnvironment env;
 
   private final List<String> assertedFormulas; // Collection of termNames
@@ -52,7 +52,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingProverEnviro
   private static final String prefix = "term_"; // for termnames
   private static int counter = 0; // for different termnames // TODO static?
 
-  public SmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr) {
+  SmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr) {
     mgr = pMgr;
     env = mgr.createEnvironment();
     assertedFormulas = new ArrayList<>();
@@ -68,12 +68,16 @@ public class SmtInterpolInterpolatingProver implements InterpolatingProverEnviro
 
     String termName = prefix + counter++;
     Term annotatedTerm = env.annotate(t, new Annotation(":named", termName));
-    env.push(1);
-    env.assertTerm(annotatedTerm);
+    pushAndAssert(annotatedTerm);
     assertedFormulas.add(termName);
     annotatedTerms.put(termName, t);
     assert assertedFormulas.size() == annotatedTerms.size();
     return termName;
+  }
+
+  protected void pushAndAssert(Term annotatedTerm) {
+    env.push(1);
+    env.assertTerm(annotatedTerm);
   }
 
   @Override
@@ -105,6 +109,10 @@ public class SmtInterpolInterpolatingProver implements InterpolatingProverEnviro
     Term termA = buildConjunctionOfNamedTerms(termNamesOfA);
     Term termB = buildConjunctionOfNamedTerms(termNamesOfB);
 
+    return getInterpolant(termA, termB);
+  }
+
+  protected BooleanFormula getInterpolant(Term termA, Term termB) {
     // get interpolant of groups
     Term[] itp = env.getInterpolants(new Term[] {termA, termB});
     assert itp.length == 1; // 2 groups -> 1 interpolant
@@ -130,9 +138,9 @@ public class SmtInterpolInterpolatingProver implements InterpolatingProverEnviro
   @Override
   public void close() {
     Preconditions.checkNotNull(env);
-    while (!assertedFormulas.isEmpty()) { // cleanup stack
-      pop();
-    }
+    env.pop(assertedFormulas.size());
+    assertedFormulas.clear();
+    annotatedTerms.clear();
     assert assertedFormulas.size() == annotatedTerms.size();
     env = null;
   }

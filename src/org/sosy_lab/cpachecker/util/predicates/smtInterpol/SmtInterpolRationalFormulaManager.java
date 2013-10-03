@@ -156,7 +156,7 @@ class SmtInterpolRationalFormulaManager extends AbstractRationalFormulaManager<T
   @Override
   public Term multiply(Term pNumber1, Term pNumber2) {
     Term result;
-    if (isNumber(pNumber1) || isNumber(pNumber2)) { // TODO: both not numeral?
+    if (isNumber(pNumber1) || isNumber(pNumber2)) {
       result = env.term("*", pNumber1, pNumber2);
     } else {
       result = makeUf(multUfDecl, pNumber1, pNumber2);

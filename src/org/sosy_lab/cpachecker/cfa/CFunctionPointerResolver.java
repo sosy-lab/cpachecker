@@ -129,13 +129,13 @@ public class CFunctionPointerResolver {
     matchingFunctionCall = getFunctionSetPredicate(functionSets);
 
     if (functionSets.contains(FunctionSet.USED_IN_CODE)) {
-      CFunctionPointerVariablesCollector varCollector = new CFunctionPointerVariablesCollector();
+      CReferencedFunctionsCollector varCollector = new CReferencedFunctionsCollector();
       for (CFANode node : cfa.getAllNodes()) {
         for (CFAEdge edge : leavingEdges(node)) {
           varCollector.visitEdge(edge);
         }
       }
-      Set<String> addressedFunctions = varCollector.getCollectedVars();
+      Set<String> addressedFunctions = varCollector.getCollectedFunctions();
       candidateFunctions =
           from(Sets.intersection(addressedFunctions, cfa.getAllFunctionNames()))
               .transform(Functions.forMap(cfa.getAllFunctions()))
@@ -240,7 +240,7 @@ public class CFunctionPointerResolver {
           CStatement stmt = statement.getStatement();
           if (stmt instanceof CFunctionCall) {
             CFunctionCall call = (CFunctionCall)stmt;
-            if (!CFASecondPassBuilder.isRegularCall(call.getFunctionCallExpression())) {
+            if (isFunctionPointerCall(call)) {
               replaceFunctionPointerCall(call, statement);
             }
           }
@@ -249,6 +249,26 @@ public class CFunctionPointerResolver {
         workList.add(edge.getSuccessor());
       }
     }
+  }
+
+  private boolean isFunctionPointerCall(CFunctionCall call) {
+    CFunctionCallExpression callExpr = call.getFunctionCallExpression();
+    if (callExpr.getDeclaration() != null) {
+      // "f()" where "f" is a declared function
+      return false;
+    }
+
+    CExpression nameExpr = callExpr.getFunctionNameExpression();
+    if (nameExpr instanceof CIdExpression
+        && ((CIdExpression)nameExpr).getDeclaration() == null) {
+      // "f()" where "f" is an undefined identifier
+      // Someone calls an undeclared function.
+      return false;
+    }
+
+    // Either "exp()" where "exp" is a more complicated expression,
+    // or "f()" where "f" is a variable.
+    return true;
   }
 
   /**

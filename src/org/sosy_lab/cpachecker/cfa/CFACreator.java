@@ -374,7 +374,7 @@ public class CFACreator {
       // get information about variables, needed for some analysis (BDDCPA),
       // after this step the edges should not be modified,
       // otherwise the analysis could get wrong data
-      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa, config, logger));
+      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()));
 
       stats.processingTime.stop();
 

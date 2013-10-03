@@ -36,7 +36,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -58,7 +58,6 @@ import com.google.common.collect.Sets;
 public class InvariantsWriter {
 
   private static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
-
   private static final Joiner LINE_JOINER = Joiner.on('\n');
 
   private final FormulaManagerView fmgr;
@@ -71,7 +70,7 @@ public class InvariantsWriter {
     fmgr = pFmgr;
   }
 
-  public void write(ReachedSet pReachedSet, Appendable pAppendable) throws IOException {
+  public void write(UnmodifiableReachedSet pReachedSet, Appendable pAppendable) throws IOException {
     SetMultimap<CFANode, InvariantsState> locationPredicates = HashMultimap.create();
     for (AbstractState state : pReachedSet) {
       CFANode location = AbstractStates.extractLocation(state);
@@ -83,7 +82,7 @@ public class InvariantsWriter {
     write(locationPredicates, pAppendable);
   }
 
-  public void write(final CFANode pCfaNode, ReachedSet pReachedSet, Appendable pAppendable) throws IOException {
+  public void write(final CFANode pCfaNode, UnmodifiableReachedSet pReachedSet, Appendable pAppendable) throws IOException {
     FluentIterable<InvariantsState> states = FluentIterable.from(pReachedSet).filter(new Predicate<AbstractState>() {
 
       @Override
@@ -131,6 +130,12 @@ public class InvariantsWriter {
         }
       }
 
+      // Skip states with no information
+      if (bfmgr.isTrue(formula)) {
+        iterator.remove();
+        continue;
+      }
+
       String s = fmgr.dumpFormula(formula).toString();
 
       List<String> lines = Lists.newArrayList(LINE_SPLITTER.split(s));
@@ -138,12 +143,6 @@ public class InvariantsWriter {
 
       // Get the predicate
       predString = lines.get(lines.size()-1);
-
-      // Skip states with no information
-      if (predString.equals("(assert true)")) {
-        iterator.remove();
-        continue;
-      }
 
       // Remove the predicate from the dump
       lines.remove(lines.size() - 1);

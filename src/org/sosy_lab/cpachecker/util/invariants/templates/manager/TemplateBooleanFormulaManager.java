@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.templates.manager;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.util.invariants.templates.NonTemplate;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateBoolean;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateConjunction;
@@ -114,6 +116,15 @@ public class TemplateBooleanFormulaManager implements BooleanFormulaManager {
     F = TemplateConjunction.conjoin(b1, b2);
     */
     return F;
+  }
+
+  @Override
+  public BooleanFormula and(List<BooleanFormula> pBits) {
+    BooleanFormula result = makeBoolean(true);
+    for (BooleanFormula f : pBits) {
+      result = and(result, f);
+    }
+    return result;
   }
 
   /**
@@ -225,6 +236,11 @@ public class TemplateBooleanFormulaManager implements BooleanFormulaManager {
 
   @Override
   public boolean isEquivalence(BooleanFormula pFormula) {
+    return false;
+  }
+
+  @Override
+  public boolean isImplication(BooleanFormula pFormula) {
     return false;
   }
 

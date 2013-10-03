@@ -34,6 +34,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -614,12 +615,13 @@ public class CtoFormulaConverter {
    */
   Formula makeCast(CType fromType, CType toType, Formula formula, CFAEdge edge) throws UnrecognizedCCodeException {
     // UNDEFINED: Casting a numeric value into a value that can't be represented by the target type (either directly or via static_cast)
-    if (fromType.getCanonicalType().equals(toType.getCanonicalType())) {
-      return formula; // No cast required;
-    }
 
     fromType = fromType.getCanonicalType();
     toType = toType.getCanonicalType();
+
+    if (fromType.equals(toType)) {
+      return formula; // No cast required;
+    }
 
     if (fromType instanceof CFunctionType) {
       // references to functions can be seen as function pointers
@@ -1088,17 +1090,17 @@ public class CtoFormulaConverter {
     }
 
     case MultiEdge: {
-      BooleanFormula multiEdgeFormula = bfmgr.makeBoolean(true);
+      List<BooleanFormula> multiEdgeFormulas = new ArrayList<>(((MultiEdge)edge).getEdges().size());
 
       // unroll the MultiEdge
       for (CFAEdge singleEdge : (MultiEdge)edge) {
         if (singleEdge instanceof BlankEdge) {
           continue;
         }
-        multiEdgeFormula = bfmgr.and(multiEdgeFormula, createFormulaForEdge(singleEdge, function, ssa, constraints));
+        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, constraints));
       }
 
-      return multiEdgeFormula;
+      return bfmgr.and(multiEdgeFormulas);
     }
 
     default:
@@ -1360,7 +1362,22 @@ public class CtoFormulaConverter {
 
   <T extends Formula> BooleanFormula toBooleanFormula(T pF) {
     // If this is not a predicate, make it a predicate by adding a "!= 0"
+    assert !fmgr.getFormulaType(pF).isBooleanType();
+
     T zero = fmgr.makeNumber(fmgr.getFormulaType(pF), 0);
+
+    if (bfmgr.isIfThenElse(pF)) {
+      Triple<BooleanFormula, T, T> parts = bfmgr.splitIfThenElse(pF);
+
+      T one = fmgr.makeNumber(fmgr.getFormulaType(pF), 1);
+
+      if (parts.getSecond().equals(one) && parts.getThird().equals(zero)) {
+        return parts.getFirst();
+      } else if (parts.getSecond().equals(zero) && parts.getThird().equals(one)) {
+        return bfmgr.not(parts.getFirst());
+      }
+    }
+
     return bfmgr.not(fmgr.makeEqual(pF, zero));
   }
 

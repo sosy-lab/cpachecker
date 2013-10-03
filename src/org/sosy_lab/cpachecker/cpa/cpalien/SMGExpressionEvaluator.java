@@ -250,6 +250,8 @@ public class SMGExpressionEvaluator {
   public SMGExplicitValue evaluateExplicitValue(SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue)
       throws CPATransferException {
 
+
+
     ExplicitValueVisitor visitor = new ExplicitValueVisitor(smgState, cfaEdge);
     SMGExplicitValue value = rValue.accept(visitor);
     return value;
@@ -1295,7 +1297,7 @@ public class SMGExpressionEvaluator {
       if (address.isUnknown()) {
         // We can't resolve the field to dereference, therefore
         // we must assume, that it is invalid
-        smgState.setInvalidRead();
+        smgState.setUnknownDereference(); //TODO technically not allowed here, changes smgState semantically
         return SMGUnknownValue.getInstance();
       }
 
@@ -1315,7 +1317,7 @@ public class SMGExpressionEvaluator {
       if (address.isUnknown()) {
         // We can't resolve the field to dereference , therefore
         // we must assume, that it is invalid
-        smgState.setInvalidRead();
+        smgState.setUnknownDereference(); //TODO technically not allowed here, changes smgState semantically
         return SMGUnknownValue.getInstance();
       }
 

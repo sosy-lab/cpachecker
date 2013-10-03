@@ -32,3 +32,15 @@ call "ant report-dependencies".
   CPAchecker-specific license: license-libmathsatj.txt
   SMT-solver (used for predicate analysis)
   Source for Java wrapper library in native/source/libmathsatj/
+
+- libz3j.so and libz3.so: Z3
+  http://z3.codeplex.com/
+  Microsoft Research License Agreement: license-Z3.txt
+  SMT-solver (used for predicate analysis)
+  Source for Java wrapper library in native/source/libz3j/
+
+- libfoci.so: FOCI
+  http://www.kenmcmil.com/foci2/
+  All rights reserved by Cadence.
+  Not included in CPAchecker, needs to be downloaded manually.
+  Library is required by Z3 for interpolation.

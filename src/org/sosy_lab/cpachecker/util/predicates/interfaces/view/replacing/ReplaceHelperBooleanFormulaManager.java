@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -96,6 +98,11 @@ public class ReplaceHelperBooleanFormulaManager implements BooleanFormulaManager
   }
 
   @Override
+  public BooleanFormula and(List<BooleanFormula> pBits) {
+    return rawBooleanManager.and(pBits);
+  }
+
+  @Override
   public BooleanFormula or(BooleanFormula pBits1, BooleanFormula pBits2) {
     return rawBooleanManager.or(pBits1, pBits2);
   }
@@ -131,8 +138,14 @@ public class ReplaceHelperBooleanFormulaManager implements BooleanFormulaManager
   }
 
   @Override
+  public boolean isImplication(BooleanFormula pFormula) {
+    return rawBooleanManager.isImplication(pFormula);
+  }
+
+  @Override
   public <T extends Formula> boolean isIfThenElse(T pF) {
-    return rawBooleanManager.isIfThenElse(pF);
+    Formula f = replaceManager.unwrap(pF);
+    return rawBooleanManager.isIfThenElse(f);
   }
 
 }

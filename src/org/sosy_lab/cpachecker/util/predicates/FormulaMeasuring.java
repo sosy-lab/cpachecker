@@ -43,51 +43,6 @@ import com.google.common.collect.ImmutableSet;
 
 public class FormulaMeasuring {
 
-  public static class StatisticalIntValue {
-    private int maxValue = Integer.MIN_VALUE;
-    private int minValue = Integer.MAX_VALUE;
-    private int valueCount = 0;
-    private int valueSum = 0;
-
-    public void setNextValue(int newValue) {
-      valueSum += newValue;
-      valueCount += 1;
-      maxValue = Math.max(newValue, maxValue);
-      minValue = Math.min(newValue, minValue);
-    }
-
-    public int getMaxValue() {
-      return valueCount == 0 ? 0 : maxValue;
-    }
-
-    public int getMinValue() {
-      return valueCount == 0 ? 0 : minValue;
-    }
-
-    public int getValueCount() {
-      return valueCount;
-    }
-
-    public int getValueSum() {
-      return valueSum;
-    }
-
-    public float getAverage() {
-      if (valueCount > 0) {
-        return valueSum / valueCount;
-      } else {
-        return 0;
-      }
-    }
-
-    @Override
-    public String toString() {
-      return String.format("%d (count: %d, min: %d, max: %d, avg: %s)",
-          valueSum, valueCount, getMinValue(), getMaxValue(), getAverage());
-    }
-
-  }
-
   public static class FormulaMeasures {
     private int trues = 0;
     private int falses = 0;

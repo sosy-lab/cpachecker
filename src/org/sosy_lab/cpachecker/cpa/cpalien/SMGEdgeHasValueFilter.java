@@ -45,26 +45,31 @@ public class SMGEdgeHasValueFilter {
   private Integer offset = null;
   private CType type = null;
 
-  public void filterByObject(SMGObject pObject) {
+  public SMGEdgeHasValueFilter filterByObject(SMGObject pObject) {
     object = pObject;
+    return this;
   }
 
-  public void filterHavingValue(Integer pValue) {
+  public SMGEdgeHasValueFilter filterHavingValue(Integer pValue) {
     value = pValue;
     valueComplement = false;
+    return this;
   }
 
-  public void filterNotHavingValue(Integer pValue) {
+  public SMGEdgeHasValueFilter filterNotHavingValue(Integer pValue) {
     value = pValue;
     valueComplement = true;
+    return this;
   }
 
-  public void filterAtOffset(Integer pOffset) {
+  public SMGEdgeHasValueFilter filterAtOffset(Integer pOffset) {
     offset = pOffset;
+    return this;
   }
 
-  public void filterByType(CType pType) {
+  public SMGEdgeHasValueFilter filterByType(CType pType) {
     type = pType;
+    return this;
   }
 
   public boolean holdsFor(SMGEdgeHasValue pEdge) {

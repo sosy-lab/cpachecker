@@ -146,9 +146,12 @@ class Mathsat5BooleanFormulaManager extends AbstractBooleanFormulaManager<Long> 
   }
 
   @Override
+  protected boolean isImplication(Long pFormula) {
+    return false; // Mathsat does not have implications
+  }
+
+  @Override
   public boolean isIfThenElse(Long pBits) {
     return msat_term_is_term_ite(mathsatEnv, pBits);
   }
-
-
 }

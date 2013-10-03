@@ -62,12 +62,11 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   final Timer totalPrecTime = new Timer();
   final Timer invariantGenerationTime = new Timer();
   final Timer computingAbstractionTime = new Timer();
+  final Timer reuseAbstractionTime = new Timer();
 
   int numAbstractions = 0;
   int numAbstractionsFalse = 0;
   int maxBlockSize = 0;
-  int totalPredsPerAbstraction = 0;
-  int maxPredsPerAbstraction = 0;
 
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
@@ -126,8 +125,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     Collection<AbstractionPredicate> preds = precision.getPredicates(loc, newLocInstance);
 
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
-    maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());
-    totalPredsPerAbstraction += preds.size();
 
     // get invariants and add them
     extractInvariants();
@@ -136,12 +133,12 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       pathFormula = pathFormulaManager.makeAnd(pathFormula, invariant);
     }
 
-    computingAbstractionTime.start();
+    AbstractionFormula newAbstractionFormula = null;
 
     // compute new abstraction
-    AbstractionFormula newAbstractionFormula = formulaManager.buildAbstraction(
-        abstractionFormula, pathFormula, preds);
-
+    computingAbstractionTime.start();
+    newAbstractionFormula = formulaManager.buildAbstraction(
+        loc, abstractionFormula, pathFormula, preds);
     computingAbstractionTime.stop();
 
     // if the abstraction is false, return bottom (represented by empty set)

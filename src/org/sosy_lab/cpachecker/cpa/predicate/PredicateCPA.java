@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import java.util.Collection;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -183,7 +185,13 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     prec = new PredicatePrecisionAdjustment(this, invariantGenerator);
     stop = new PredicateStopOperator(domain);
 
-    staticRefiner = initializeStaticRefiner(config, logger, abstractionManager, cfa);
+    if (performInitialStaticRefinement) {
+      staticRefiner = new PredicateStaticRefiner(config, logger, solver,
+          pathFormulaManager, formulaManager, predicateManager, cfa);
+    } else {
+      staticRefiner = null;
+    }
+
     precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, pathFormulaManager, abstractionManager, formulaManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
@@ -239,6 +247,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return logger;
   }
 
+  @Nullable
   public PredicateStaticRefiner getStaticRefiner() {
     return staticRefiner;
   }
@@ -286,17 +295,5 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     } else {
       return false;
     }
-  }
-
-  private PredicateStaticRefiner initializeStaticRefiner(
-    Configuration config,
-    LogManager logger,
-    AbstractionManager abstractionManager,
-    CFA cfa) throws InvalidConfigurationException {
-    if (performInitialStaticRefinement) {
-      return new PredicateStaticRefiner(config, logger, pathFormulaManager, formulaManager, abstractionManager, cfa);
-    }
-
-    return null;
   }
 }

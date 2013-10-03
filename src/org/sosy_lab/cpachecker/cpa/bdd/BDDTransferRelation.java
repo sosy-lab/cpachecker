@@ -690,7 +690,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     if (partition == null) {
       // we know nothing about the partition, so do not track it with BDDCPA
       return 0;
-    } else if (varClass.getBooleanPartitions().contains(partition)) {
+    } else if (varClass.getIntBoolPartitions().contains(partition)) {
       return 1;
     } else if (compressIntEqual && varClass.getIntEqualPartitions().contains(partition)) {
       final Set<BigInteger> values = partition.getValues();
@@ -723,11 +723,21 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     private final int size;
     private final boolean compress;
 
-    BDDVectorCExpressionVisitor(final Partition partition, final int size) {
-      this.partition = partition;
-      this.size = size;
-      this.compress = compressIntEqual &&
-          varClass.getIntEqualPartitions().contains(partition);
+    BDDVectorCExpressionVisitor(@Nullable final Partition partition, final int size) {
+
+      if (partition == null) {
+        // this indicates a simple calculation like if(1==2),
+        // there is no partition, because no vars are used
+        this.partition = null;
+        this.size = bitsize;
+        this.compress = false;
+
+      } else {
+        this.partition = partition;
+        this.size = size;
+        this.compress = compressIntEqual &&
+            varClass.getIntEqualPartitions().contains(partition);
+      }
     }
 
     /** This function returns regions containing bits of a variable.
@@ -986,34 +996,31 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   /** THis function writes some information about tracked variables, number of partitions,... */
   void printStatistics(final PrintStream out) {
-    final Set<Partition> booleans = varClass.getBooleanPartitions();
-    final Set<Partition> intEquals = varClass.getIntEqualPartitions();
-    final Set<Partition> intAdds = varClass.getIntAddPartitions();
-
-    int numOfBooleans = varClass.getBooleanVars().size();
+    final Set<Partition> intBool = varClass.getIntBoolPartitions();
+    int numOfBooleans = varClass.getIntBoolVars().size();
 
     int numOfIntEquals = 0;
-    final Set<Partition> realIntEquals = Sets.difference(intEquals, booleans);
-    for (Partition p : realIntEquals) {
+    final Set<Partition> intEq = varClass.getIntEqualPartitions();
+    for (Partition p : intEq) {
       numOfIntEquals += p.getVars().size();
     }
 
     int numOfIntAdds = 0;
-    final Set<Partition> realIntAdds = Sets.difference(intAdds, Sets.union(booleans, intEquals));
-    for (Partition p : realIntAdds) {
+    final Set<Partition> intAdd = varClass.getIntAddPartitions();
+    for (Partition p : intAdd) {
       numOfIntAdds += p.getVars().size();
     }
 
-    Multimap<String, String> trackedBooleans = LinkedHashMultimap.create();
-    Multimap<String, String> trackedIntEquals = LinkedHashMultimap.create();
-    Multimap<String, String> trackedIntAdds = LinkedHashMultimap.create();
+    Multimap<String, String> trackedIntBool = LinkedHashMultimap.create();
+    Multimap<String, String> trackedIntEq = LinkedHashMultimap.create();
+    Multimap<String, String> trackedIntAdd = LinkedHashMultimap.create();
     for (Entry<String, String> var : trackedVars.entries()) {
-      if (varClass.getBooleanVars().containsEntry(var.getKey(), var.getValue())) {
-        trackedBooleans.put(var.getKey(), var.getValue());
+      if (varClass.getIntBoolVars().containsEntry(var.getKey(), var.getValue())) {
+        trackedIntBool.put(var.getKey(), var.getValue());
       } else if (varClass.getIntEqualVars().containsEntry(var.getKey(), var.getValue())) {
-        trackedIntEquals.put(var.getKey(), var.getValue());
+        trackedIntEq.put(var.getKey(), var.getValue());
       } else if (varClass.getIntAddVars().containsEntry(var.getKey(), var.getValue())) {
-        trackedIntAdds.put(var.getKey(), var.getValue());
+        trackedIntAdd.put(var.getKey(), var.getValue());
       } else {
         // ignore other vars, they are either function_return_vars or tmp_vars
       }
@@ -1022,24 +1029,24 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     if (dumpfile != null) { // option -noout
       try (Writer w = Files.openOutputFile(dumpfile)) {
         w.append("Boolean\n\n");
-        w.append(trackedBooleans.toString());
-        w.append("\n\nIntEqual\n\n");
-        w.append(trackedIntEquals.toString());
+        w.append(trackedIntBool.toString());
+        w.append("\n\nIntEq\n\n");
+        w.append(trackedIntEq.toString());
         w.append("\n\nIntAdd\n\n");
-        w.append(trackedIntAdds.toString());
+        w.append(trackedIntAdd.toString());
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write tracked variables for BDDCPA to file");
       }
     }
 
-    out.println(String.format("Number of boolean vars:           %d (of %d)", trackedBooleans.size(), numOfBooleans));
-    out.println(String.format("Number of intEqual vars:          %d (of %d)", trackedIntEquals.size(), numOfIntEquals));
-    out.println(String.format("Number of intAdd vars:            %d (of %d)", trackedIntAdds.size(), numOfIntAdds));
+    out.println(String.format("Number of boolean vars:           %d (of %d)", trackedIntBool.size(), numOfBooleans));
+    out.println(String.format("Number of intEqual vars:          %d (of %d)", trackedIntEq.size(), numOfIntEquals));
+    out.println(String.format("Number of intAdd vars:            %d (of %d)", trackedIntAdd.size(), numOfIntAdds));
     out.println(String.format("Number of all vars:               %d (of %d)",
-        trackedBooleans.size() + trackedIntEquals.size() + trackedIntAdds.size(), varClass.getAllVars().size()));
-    out.println("Number of boolean partitions:     " + booleans.size());
-    out.println("Number of intEqual partitions:    " + realIntEquals.size());
-    out.println("Number of intAdd partitions:      " + realIntAdds.size());
+        trackedIntBool.size() + trackedIntEq.size() + trackedIntAdd.size(), varClass.getAllVars().size()));
+    out.println("Number of intBool partitions:     " + intBool.size());
+    out.println("Number of intEq partitions:       " + intEq.size());
+    out.println("Number of intAdd partitions:      " + intAdd.size());
     out.println("Number of all partitions:         " + varClass.getPartitions().size());
     rmgr.printStatistics(out);
   }

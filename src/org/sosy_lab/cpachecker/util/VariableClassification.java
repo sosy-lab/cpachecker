@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
@@ -68,9 +69,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -92,9 +95,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -127,26 +133,32 @@ public class VariableClassification {
 
   private Multimap<String, String> allVars = null;
 
-  private Multimap<String, String> nonBooleanVars;
-  private Multimap<String, String> nonIntEqualVars;
+  private Multimap<String, String> nonIntBoolVars;
+  private Multimap<String, String> nonIntEqVars;
   private Multimap<String, String> nonIntAddVars;
 
   private Dependencies dependencies;
 
-  private Multimap<String, String> booleanVars;
+  private Multimap<String, String> intBoolVars;
   private Multimap<String, String> intEqualVars;
   private Multimap<String, String> intAddVars;
 
-  private Set<Partition> booleanPartitions;
+  private Multimap<String, String> loopExitConditionVariables;
+  private Multimap<String, String> loopExitIncDecConditionVariables;
+
+  private Set<Partition> intBoolPartitions;
   private Set<Partition> intEqualPartitions;
   private Set<Partition> intAddPartitions;
 
-  private CFA cfa;
+  private final CFA cfa;
+  private final ImmutableMultimap<String, Loop> loopStructure;
   private final LogManager logger;
 
-  public VariableClassification(CFA cfa, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public VariableClassification(CFA cfa, Configuration config, LogManager pLogger,
+      ImmutableMultimap<String, Loop> pLoopStructure) throws InvalidConfigurationException {
     config.inject(this);
     this.cfa = cfa;
+    this.loopStructure = pLoopStructure;
     this.logger = pLogger;
 
     if (printStatsOnStartup) {
@@ -157,21 +169,18 @@ public class VariableClassification {
   }
 
   private void printStats() {
-    final Set<Partition> booleans = getBooleanPartitions();
-    final Set<Partition> intEquals = getIntEqualPartitions();
-    final Set<Partition> intAdds = getIntAddPartitions();
-
-    int numOfBooleans = getBooleanVars().size();
+    final Set<Partition> intBool = getIntBoolPartitions();
+    int numOfBooleans = getIntBoolVars().size();
 
     int numOfIntEquals = 0;
-    final Set<Partition> realIntEquals = Sets.difference(intEquals, booleans);
-    for (Partition p : realIntEquals) {
+    final Set<Partition> intEq = getIntEqualPartitions();
+    for (Partition p : intEq) {
       numOfIntEquals += p.getVars().size();
     }
 
     int numOfIntAdds = 0;
-    final Set<Partition> realIntAdds = Sets.difference(intAdds, Sets.union(booleans, intEquals));
-    for (Partition p : realIntAdds) {
+    final Set<Partition> intAdd = getIntAddPartitions();
+    for (Partition p : intAdd) {
       numOfIntAdds += p.getVars().size();
     }
 
@@ -180,12 +189,12 @@ public class VariableClassification {
     Joiner.on(prefix).appendTo(str, new String[] {
         "---------------------------------",
         "number of boolean vars:  " + numOfBooleans,
-        "number of intEqual vars: " + numOfIntEquals,
+        "number of intEq vars:    " + numOfIntEquals,
         "number of intAdd vars:   " + numOfIntAdds,
         "number of all vars:      " + allVars.size(),
-        "number of boolean partitions:  " + booleans.size(),
-        "number of intEqual partitions: " + realIntEquals.size(),
-        "number of intAdd partitions:   " + realIntAdds.size(),
+        "number of intBool partitions:  " + intBool.size(),
+        "number of intEq partitions:    " + intEq.size(),
+        "number of intAdd partitions:   " + intAdd.size(),
         "number of all partitions:      " + getPartitions().size(),
         "time for building classification: " + buildTimer });
     str.append("\n---------------------------------\n");
@@ -203,17 +212,20 @@ public class VariableClassification {
 
       // init maps
       allVars = LinkedHashMultimap.create();
-      nonBooleanVars = LinkedHashMultimap.create();
-      nonIntEqualVars = LinkedHashMultimap.create();
+      nonIntBoolVars = LinkedHashMultimap.create();
+      nonIntEqVars = LinkedHashMultimap.create();
       nonIntAddVars = LinkedHashMultimap.create();
 
       dependencies = new Dependencies();
 
-      booleanVars = LinkedHashMultimap.create();
+      intBoolVars = LinkedHashMultimap.create();
       intEqualVars = LinkedHashMultimap.create();
       intAddVars = LinkedHashMultimap.create();
 
-      booleanPartitions = new HashSet<>();
+      loopExitConditionVariables = LinkedHashMultimap.create();
+      loopExitIncDecConditionVariables = LinkedHashMultimap.create();
+
+      intBoolPartitions = new HashSet<>();
       intEqualPartitions = new HashSet<>();
       intAddPartitions = new HashSet<>();
 
@@ -222,6 +234,9 @@ public class VariableClassification {
 
       // we have collected the nonBooleanVars, lets build the needed booleanVars.
       buildOpposites();
+
+      // collect loop condition variables
+      collectLoopCondVars();
 
       // add last vars to dependencies,
       // this allows to get partitions for all vars,
@@ -234,9 +249,9 @@ public class VariableClassification {
 
       if (dumpfile != null) { // option -noout
         try (Writer w = Files.openOutputFile(dumpfile)) {
-          w.append("Boolean\n");
-          w.append(booleanVars.toString());
-          w.append("\n\nIntEqual\n\n");
+          w.append("IntBool\n\n");
+          w.append(intBoolVars.toString());
+          w.append("\n\nIntEq\n\n");
           w.append(intEqualVars.toString());
           w.append("\n\nIntAdd\n\n");
           w.append(intAddVars.toString());
@@ -253,19 +268,90 @@ public class VariableClassification {
     }
   }
 
+  public Multimap<String, String> getVariablesOfExpression(CFAEdge scopeOf, CExpression expr) {
+    Multimap<String, String> result = LinkedHashMultimap.create();
+    CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
+
+    expr.accept(collector);
+
+    for (CIdExpression id: collector.getReferencedIdExpressions()) {
+      Pair<String, String> assignToVar = idExpressionToVarPair(scopeOf, id);
+      result.put(assignToVar.getFirst(), assignToVar.getSecond());
+    }
+
+    return result;
+  }
+
+  private void collectLoopCondVars() {
+    for (String key : loopStructure.keySet()) {
+      ImmutableCollection<Loop> localLoops = loopStructure.get(key);
+      for (Loop l : localLoops) {
+        // Get all variables that are used in exit-conditions
+        for (CFAEdge e : l.getOutgoingEdges()) {
+          if (e instanceof CAssumeEdge) {
+            CExpression expr = ((CAssumeEdge) e).getExpression();
+            loopExitConditionVariables.putAll(getVariablesOfExpression(e, expr));
+          }
+        }
+
+        // Get all variables that are incremented or decrement by literal values
+        for (CFAEdge e: l.getInnerLoopEdges()) {
+          if (e instanceof CStatementEdge) {
+            CStatementEdge stmtEdge = (CStatementEdge) e;
+            if (stmtEdge.getStatement() instanceof CAssignment) {
+              CAssignment assign = (CAssignment) stmtEdge.getStatement();
+              if (assign.getLeftHandSide() instanceof CIdExpression) {
+                CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
+                Pair<String, String> assignToVar = idExpressionToVarPair(e, assignementToId);
+                if (loopExitConditionVariables.containsEntry(assignToVar.getFirst(), assignToVar.getSecond())) {
+                  if (assign.getRightHandSide() instanceof CBinaryExpression) {
+                    CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
+                    BinaryOperator op = binExpr.getOperator();
+                    if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
+                      if (binExpr.getOperand1() instanceof CLiteralExpression
+                        || binExpr.getOperand2() instanceof CLiteralExpression) {
+                        CIdExpression operandId = null;
+                        if (binExpr.getOperand1() instanceof CIdExpression) {
+                          operandId = (CIdExpression) binExpr.getOperand1();
+                        }
+                        if (binExpr.getOperand2() instanceof CIdExpression) {
+                          operandId = (CIdExpression) binExpr.getOperand2();
+                        }
+                        if (operandId != null) {
+                          Pair<String, String> operandVar = idExpressionToVarPair(e, operandId);
+                          if (assignToVar.equals(operandVar)) {
+                            loopExitIncDecConditionVariables.put(assignToVar.getFirst(), assignToVar.getSecond());
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   public void dumpVariableTypeMapping(Path target)  {
     try (Writer w = Files.openOutputFile(target)) {
       for (String function : getAllVars().keySet()) {
         for (String var : getAllVars().get(function)) {
           byte type = 0;
-          if (getBooleanVars().containsEntry(function, var)) {
-            type += 1;
-          }
-          if (getIntEqualVars().containsEntry(function, var)) {
-            type += 2;
-          }
-          if (getIntAddVars().containsEntry(function, var)) {
+          if (getIntBoolVars().containsEntry(function, var)) {
+            type += 1+2+4; // IntBool is subset of IntEqualBool and IntAddEqBool
+          } else if (getIntEqualVars().containsEntry(function, var)) {
+            type += 2+4; // IntEqual is subset of IntAddEqBool
+          } else if (getIntAddVars().containsEntry(function, var)) {
             type += 4;
+          }
+          if (loopExitConditionVariables.containsEntry(function, var)) {
+            type += 8;
+          }
+          if (loopExitIncDecConditionVariables.containsEntry(function, var)) {
+            type += 16;
           }
           w.append(String.format("%s::%s\t%d\n", function, var, type));
         }
@@ -273,6 +359,15 @@ public class VariableClassification {
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write variable type mapping to file");
     }
+  }
+
+  /**
+   * Possible loop variables of the program
+   * in form of a collection of (functionName, varNames)
+   */
+  public Multimap<String, String> getLoopExitConditionVariables() {
+    build();
+    return loopExitConditionVariables;
   }
 
   /** This function returns a collection of (functionName, varNames).
@@ -285,23 +380,23 @@ public class VariableClassification {
   /** This function returns a collection of (functionName, varNames).
    * This collection contains all vars, that are boolean,
    * i.e. the value is 0 or 1. */
-  public Multimap<String, String> getBooleanVars() {
+  public Multimap<String, String> getIntBoolVars() {
     build();
-    return booleanVars;
+    return intBoolVars;
   }
 
   /** This function returns a collection of partitions.
    * Each partition contains only boolean vars. */
-  public Set<Partition> getBooleanPartitions() {
+  public Set<Partition> getIntBoolPartitions() {
     build();
-    return booleanPartitions;
+    return intBoolPartitions;
   }
 
   /** This function returns a collection of (functionName, varNames).
    * This collection contains all vars, that are only assigned or compared
-   * with integer values. The collection also includes some boolean vars,
-   * because they can be assigned, too.
-   * There are NO mathematical calculations (add, sub, mult) with these vars. */
+   * for equality with integer values.
+   * There are NO mathematical calculations (add, sub, mult) with these vars.
+   * This collection does not contain any variable from "IntBool" or "IntAdd". */
   public Multimap<String, String> getIntEqualVars() {
     build();
     return intEqualVars;
@@ -309,7 +404,8 @@ public class VariableClassification {
 
   /** This function returns a collection of partitions.
    * Each partition contains only vars,
-   * that are only assigned or compared with integer values. */
+   * that are only assigned or compared for equality with integer values.
+   * This collection does not contains anypartition from "IntBool" or "IntAdd". */
   public Set<Partition> getIntEqualPartitions() {
     build();
     return intEqualPartitions;
@@ -318,14 +414,15 @@ public class VariableClassification {
   /** This function returns a collection of (functionName, varNames).
    * This collection contains all vars, that are only used in simple calculations
    * (+, -, <, >, <=, >=, ==, !=, &, &&, |, ||, ^).
-   * The collection includes all boolean vars and simple numbers, too. */
+   * This collection does not contain any variable from "IntBool" or "IntEq". */
   public Multimap<String, String> getIntAddVars() {
     build();
     return intAddVars;
   }
 
   /** This function returns a collection of partitions.
-   * Each partition contains only vars, that are used in simple calculations. */
+   * Each partition contains only vars, that are used in simple calculations.
+   * This collection does not contains anypartition from "IntBool" or "IntEq". */
   public Set<Partition> getIntAddPartitions() {
     build();
     return intAddPartitions;
@@ -372,27 +469,34 @@ public class VariableClassification {
     }
 
     // if a value is not boolean, all dependent vars are not boolean and viceversa
-    dependencies.solve(nonBooleanVars);
-    dependencies.solve(nonIntEqualVars);
+    dependencies.solve(nonIntBoolVars);
+    dependencies.solve(nonIntEqVars);
     dependencies.solve(nonIntAddVars);
   }
 
-  /** This function builds the opposites of each non-x-vars-collection. */
+  /** This function builds the opposites of each non-x-vars-collection.
+   * This method is responsible for the hierarchy of the variables. */
   private void buildOpposites() {
     for (final String function : allVars.keySet()) {
       for (final String s : allVars.get(function)) {
 
-        if (!nonBooleanVars.containsEntry(function, s)) {
-          booleanVars.put(function, s);
-          booleanPartitions.add(getPartitionForVar(function, s));
-        }
+        // we have this hierarchy of classes for variables:
+        //        IntBool < IntEqBool < IntAddEqBool < AllInt
+        // we define and build:
+        //        IntBool = IntBool
+        //        IntEq   = IntEqBool - IntBool
+        //        IntAdd  = IntAddEqBool - IntEqBool
+        //        Other   = IntAll - IntAddEqBool
 
-        if (!nonIntEqualVars.containsEntry(function, s)) {
+        if (!nonIntBoolVars.containsEntry(function, s)) {
+          intBoolVars.put(function, s);
+          intBoolPartitions.add(getPartitionForVar(function, s));
+
+        } else if (!nonIntEqVars.containsEntry(function, s)) {
           intEqualVars.put(function, s);
           intEqualPartitions.add(getPartitionForVar(function, s));
-        }
 
-        if (!nonIntAddVars.containsEntry(function, s)) {
+        } else if (!nonIntAddVars.containsEntry(function, s)) {
           intAddVars.put(function, s);
           intAddPartitions.add(getPartitionForVar(function, s));
         }
@@ -400,6 +504,7 @@ public class VariableClassification {
     }
   }
 
+  /** switch to edgeType and handle all expressions, that could be part of the edge. */
   private void handleEdge(CFAEdge edge) {
     switch (edge.getEdgeType()) {
 
@@ -497,8 +602,8 @@ public class VariableClassification {
 
     // only simple types (int, long) are allowed for booleans, ...
     if (!(vdecl.getType() instanceof CSimpleType)) {
-      nonBooleanVars.put(function, varName);
-      nonIntEqualVars.put(function, varName);
+      nonIntBoolVars.put(function, varName);
+      nonIntEqVars.put(function, varName);
       nonIntAddVars.put(function, varName);
     }
 
@@ -520,8 +625,8 @@ public class VariableClassification {
 
     // only simple types (int, long) are allowed for booleans, ...
     if (!(lhs instanceof CIdExpression && lhs.getExpressionType() instanceof CSimpleType)) {
-      nonBooleanVars.put(function, varName);
-      nonIntEqualVars.put(function, varName);
+      nonIntBoolVars.put(function, varName);
+      nonIntEqVars.put(function, varName);
       nonIntAddVars.put(function, varName);
     }
 
@@ -610,8 +715,8 @@ public class VariableClassification {
 
       // only simple types (int, long) are allowed for booleans, ...
       if (!(param.getType() instanceof CSimpleType)) {
-        nonBooleanVars.put(innerFunctionName, varName);
-        nonIntEqualVars.put(innerFunctionName, varName);
+        nonIntBoolVars.put(innerFunctionName, varName);
+        nonIntEqVars.put(innerFunctionName, varName);
         nonIntAddVars.put(innerFunctionName, varName);
       }
 
@@ -662,11 +767,11 @@ public class VariableClassification {
 
     BoolCollectingVisitor bcv = new BoolCollectingVisitor(pre);
     Multimap<String, String> possibleBoolean = exp.accept(bcv);
-    handleResult(varName, function, possibleBoolean, nonBooleanVars);
+    handleResult(varName, function, possibleBoolean, nonIntBoolVars);
 
     IntEqualCollectingVisitor ncv = new IntEqualCollectingVisitor(pre);
     Multimap<String, String> possibleIntEqualVars = exp.accept(ncv);
-    handleResult(varName, function, possibleIntEqualVars, nonIntEqualVars);
+    handleResult(varName, function, possibleIntEqualVars, nonIntEqVars);
 
     IntAddCollectingVisitor icv = new IntAddCollectingVisitor(pre);
     Multimap<String, String> possibleIntAddVars = exp.accept(icv);
@@ -679,6 +784,18 @@ public class VariableClassification {
     if (possibleVars == null) {
       notPossibleVars.put(function, varName);
     }
+  }
+
+  /**
+   * Returns a pair of (function, variable) for a given IdExpression.
+   * @param scopeOf Used to determine the scope of the variable.
+   * @param id      The IdExpression
+   * @return
+   */
+  public Pair<String, String> idExpressionToVarPair(CFAEdge scopeOf, CIdExpression id) {
+    String function = isGlobal(id) ? null : scopeOf.getPredecessor().getFunctionName();
+    String name = id.getName();
+    return Pair.of(function, name);
   }
 
   private boolean isGlobal(CExpression exp) {
@@ -740,8 +857,8 @@ public class VariableClassification {
 
     StringBuilder str = new StringBuilder();
     str.append("\nALL  " + allVars.size() + "\n    " + allVars);
-    str.append("\nBool  " + booleanVars.size() + "\n    " + booleanVars);
-    str.append("\nIntEqual  " + intEqualVars.size() + "\n    " + intEqualVars);
+    str.append("\nIntBool  " + intBoolVars.size() + "\n    " + intBoolVars);
+    str.append("\nIntEq  " + intEqualVars.size() + "\n    " + intEqualVars);
     str.append("\nIntAdd  " + intAddVars.size() + "\n    " + intAddVars);
     return str.toString();
   }
@@ -920,7 +1037,7 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CFieldReference exp) {
-      nonBooleanVars.putAll(super.visit(exp));
+      nonIntBoolVars.putAll(super.visit(exp));
       return null;
     }
 
@@ -931,10 +1048,10 @@ public class VariableClassification {
 
       if (operand1 == null || operand2 == null) { // a+123 --> a is not boolean
         if (operand1 != null) {
-          nonBooleanVars.putAll(operand1);
+          nonIntBoolVars.putAll(operand1);
         }
         if (operand2 != null) {
-          nonBooleanVars.putAll(operand2);
+          nonIntBoolVars.putAll(operand2);
         }
         return null;
       }
@@ -955,8 +1072,8 @@ public class VariableClassification {
         //$FALL-THROUGH$
 
       default: // +-*/ --> no boolean operators, a+b --> a and b are not boolean
-        nonBooleanVars.putAll(operand1);
-        nonBooleanVars.putAll(operand2);
+        nonIntBoolVars.putAll(operand1);
+        nonIntBoolVars.putAll(operand2);
         return null;
       }
     }
@@ -982,7 +1099,7 @@ public class VariableClassification {
         // boolean operation, return inner vars
         return inner;
       } else { // PLUS, MINUS, etc --> not boolean
-        nonBooleanVars.putAll(inner);
+        nonIntBoolVars.putAll(inner);
         return null;
       }
     }
@@ -994,7 +1111,7 @@ public class VariableClassification {
       if (inner == null) {
         return null;
       } else {
-        nonBooleanVars.putAll(inner);
+        nonIntBoolVars.putAll(inner);
         return null;
       }
     }
@@ -1023,7 +1140,7 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CFieldReference exp) {
-      nonIntEqualVars.putAll(super.visit(exp));
+      nonIntEqVars.putAll(super.visit(exp));
       return null;
     }
 
@@ -1051,10 +1168,10 @@ public class VariableClassification {
       // handle vars from operands
       if (operand1 == null || operand2 == null) { // a+0.2 --> no simple number
         if (operand1 != null) {
-          nonIntEqualVars.putAll(operand1);
+          nonIntEqVars.putAll(operand1);
         }
         if (operand2 != null) {
-          nonIntEqualVars.putAll(operand2);
+          nonIntEqVars.putAll(operand2);
         }
         return null;
       }
@@ -1067,8 +1184,8 @@ public class VariableClassification {
         return operand1;
 
       default: // +-*/ --> no simple operators
-        nonIntEqualVars.putAll(operand1);
-        nonIntEqualVars.putAll(operand2);
+        nonIntEqVars.putAll(operand1);
+        nonIntEqVars.putAll(operand2);
         return null;
       }
     }
@@ -1097,7 +1214,7 @@ public class VariableClassification {
       case PLUS: // this is no calculation, no usage of another param
         return inner;
       default: // *, ~, etc --> not numeral
-        nonIntEqualVars.putAll(inner);
+        nonIntEqVars.putAll(inner);
         return null;
       }
     }
@@ -1116,7 +1233,7 @@ public class VariableClassification {
       // if exp is unknown
       if (inner == null) { return null; }
 
-      nonIntEqualVars.putAll(inner);
+      nonIntEqVars.putAll(inner);
       return null;
     }
   }

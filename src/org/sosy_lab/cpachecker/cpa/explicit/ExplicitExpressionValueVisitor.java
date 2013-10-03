@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
@@ -45,8 +47,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -81,10 +86,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.forwarding.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+
+import com.google.common.collect.Sets;
 
 
 /**
@@ -102,16 +110,16 @@ public class ExplicitExpressionValueVisitor
   private final String functionName;
   private final MachineModel machineModel;
 
-    // for logging
-  @SuppressWarnings("unused")
+
+  // for logging
   private final LogManager logger;
-  @SuppressWarnings("unused")
   private final CFAEdge edge;
+  // we log for each edge only once, that avoids much output. the user knows all critical lines.
+  private final static Set<CFAEdge> loggedEdges = Sets.newHashSet();
 
-  public boolean missingPointer = false;
-  public boolean missingFieldAccessInformation = false;
-  public boolean missingEnumComparisonInformation = false;
-
+  private boolean missingPointer = false;
+  private boolean missingFieldAccessInformation = false;
+  private boolean missingEnumComparisonInformation = false;
 
   /** This Visitor returns the numeral value for an expression.
    * @param pState where to get the values for variables (identifiers)
@@ -155,15 +163,27 @@ public class ExplicitExpressionValueVisitor
   @Override
   public Long visit(final CBinaryExpression pE) throws UnrecognizedCCodeException {
     final BinaryOperator binaryOperator = pE.getOperator();
-    final CExpression lVarInBinaryExp = pE.getOperand1();
-    final CExpression rVarInBinaryExp = pE.getOperand2();
+    final CExpression op1 = pE.getOperand1();
+    final CExpression op2 = pE.getOperand2();
 
-    Long lVal = lVarInBinaryExp.accept(this);
+    // commonType is the converted eclipse-type, that is not always correct.
+    // the eclipse-type is the _simplest_ type of a read-access to the expression.
+    // this leads to (almost) non-deterministic types in a binExpr.
+    // the type may not be correct for the evaluation.
+    // example: INT op LONG_LONG_INT
+    // -> commonType is one of {INT, LONG_LONG_INT}, but should be LONG_LONG_INT.
+    // TODO fix this, either manually here or directly in C-TypeConverter?
+    final CType commonType = pE.getExpressionType();
+
+    //    final CType t1 = op1.getExpressionType();
+    //    final CType t2 = op2.getExpressionType();
+
+    final Long lVal = evaluate(op1, commonType);
     if (lVal == null) { return null; }
-    Long rVal = rVarInBinaryExp.accept(this);
+    final Long rVal = evaluate(op2, commonType);
     if (rVal == null) { return null; }
 
-    final Long result;
+    Long result;
     switch (binaryOperator) {
     case PLUS:
     case MINUS:
@@ -177,6 +197,7 @@ public class ExplicitExpressionValueVisitor
     case BINARY_XOR: {
 
       result = arithmeticOperation(lVal, rVal, binaryOperator);
+      result = castCValue(result, commonType);
 
       break;
     }
@@ -257,7 +278,7 @@ public class ExplicitExpressionValueVisitor
 
   @Override
   public Long visit(CCastExpression pE) throws UnrecognizedCCodeException {
-    return pE.getOperand().accept(this);
+    return castCValue(pE.getOperand().accept(this), pE.getType());
   }
 
   @Override
@@ -297,6 +318,21 @@ public class ExplicitExpressionValueVisitor
   }
 
   @Override
+  public Long visit(final CTypeIdExpression pE) {
+    final TypeIdOperator idOperator = pE.getOperator();
+    final CType innerType = pE.getType();
+
+    switch (idOperator) {
+    case SIZEOF:
+      int size = machineModel.getSizeof(innerType);
+      return (long) size;
+
+    default: // TODO support more operators
+      return null;
+    }
+  }
+
+  @Override
   public Long visit(CIdExpression idExp) throws UnrecognizedCCodeException {
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
@@ -312,29 +348,29 @@ public class ExplicitExpressionValueVisitor
 
   @Override
   public Long visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-    UnaryOperator unaryOperator = unaryExpression.getOperator();
-    CExpression unaryOperand = unaryExpression.getOperand();
+    final UnaryOperator unaryOperator = unaryExpression.getOperator();
+    final CExpression unaryOperand = unaryExpression.getOperand();
 
-    Long value = null;
+    final Long value = unaryOperand.accept(this);
+
+    if (value == null && unaryOperator != UnaryOperator.SIZEOF) {
+      return null;
+    }
 
     switch (unaryOperator) {
+    case PLUS:
+      return value;
+
     case MINUS:
-      value = unaryOperand.accept(this);
-      return (value != null) ? -value : null;
+      return -value;
 
     case NOT:
-      value = unaryOperand.accept(this);
-
-      if (value == null) {
-        return null;
-      } else {
-        return (value == 0L) ? 1L : 0L;
-      }
-
-    case AMPER:
-      return null; // valid expression, but it's a pointer value
+      return (value == 0L) ? 1L : 0L;
 
     case SIZEOF:
+      return (long) machineModel.getSizeof(unaryOperand.getExpressionType());
+
+    case AMPER: // valid expression, but it's a pointer value
       // TODO Not precise enough
       return getSizeof(unaryOperand.getExpressionType());
     case TILDE:
@@ -504,7 +540,7 @@ public class ExplicitExpressionValueVisitor
       missingFieldAccessInformation = true;
     }
 
-	return getValue(idExp.getName(), ForwardingTransferRelation.isGlobal(idExp));
+    return getValue(idExp.getName(), ForwardingTransferRelation.isGlobal(idExp));
   }
 
   @Override
@@ -610,7 +646,6 @@ public class ExplicitExpressionValueVisitor
 
 
   /* additional methods */
-
 
   /** This method returns the value of a variable from the current state. */
   private Long getValue(String varName, boolean isGlobal) {
@@ -818,5 +853,133 @@ public class ExplicitExpressionValueVisitor
 
   public long getSizeof(CType pType) throws UnrecognizedCCodeException {
     return machineModel.getSizeof(pType);
+  }
+
+  /**
+   * This method returns the value of an expression, reduced to match the type.
+   * This method handles overflows and casts.
+   * If necessary warnings for the user are printed.
+   *
+   * @param pExp expression to evaluate
+   * @param pTargetType the type of the left side of an assignment
+   * @return if evaluation successful, then value, else null
+   */
+  public Long evaluate(final CExpression pExp, final CType pTargetType)
+      throws UnrecognizedCCodeException {
+    return castCValue(pExp.accept(this), pTargetType);
+  }
+
+  /**
+   * This method returns the value of an expression, reduced to match the type.
+   * This method handles overflows and casts.
+   * If necessary warnings for the user are printed.
+   *
+   * @param pExp expression to evaluate
+   * @param pTargetType the type of the left side of an assignment
+   * @return if evaluation successful, then value, else null
+   */
+  public Long evaluate(final CRightHandSide pExp, final CType pTargetType)
+      throws UnrecognizedCCodeException {
+    return castCValue(pExp.accept(this), pTargetType);
+  }
+
+
+  /**
+   * This method returns the input-value, casted to match the type.
+   * If the value matches the type, it is returned unchanged.
+   * This method handles overflows and print warnings for the user.
+   * Example:
+   * This method is called, when an value of type 'integer'
+   * is assigned to a variable of type 'char'.
+   */
+  private Long castCValue(@Nullable final Long value, final CType targetType) {
+    if (value == null) { return null; }
+
+    final CType type = targetType.getCanonicalType();
+    if (type instanceof CSimpleType) {
+      final CSimpleType st = (CSimpleType) type;
+
+      switch (st.getType()) {
+
+      case INT:
+      case CHAR: {
+        final int bitPerByte = machineModel.getSizeofCharInBits();
+        final int numBytes = machineModel.getSizeof(st);
+        final int size = bitPerByte * numBytes;
+
+        if ((size < 64) || (size == 64 && st.isSigned())
+            || (value < Long.MAX_VALUE / 2 && value > Long.MIN_VALUE / 2)) {
+          // we can handle this with java-type "long"
+          // TODO otherwise switch to BigInteger
+
+          final long maxValue = 1L << size; // 2^size
+
+          long result = value;
+
+          if (size < 64) { // otherwise modulo is useless, because result would be 1
+            result = value % maxValue; // shrink to number of bits
+
+            if (st.isSigned()) {
+              if (result > (maxValue / 2) - 1) {
+                result -= maxValue;
+              } else if (result < -(maxValue / 2)) {
+                result += maxValue;
+              }
+            }
+          }
+
+          if (result != value && loggedEdges.add(edge)) {
+            logger.logf(Level.WARNING,
+                "overflow in line %d: value %d is to big for type '%s', casting to %d.",
+                edge == null ? null : edge.getLineNumber(),
+                value, targetType, result);
+          }
+
+          if (st.isUnsigned() && value < 0) {
+
+            if (size < 64) {
+              result = maxValue + result; // value is negative!
+
+              if (loggedEdges.add(edge)) {
+                logger.logf(Level.WARNING,
+                    "overflow in line %d: target-type is '%s', value %d is changed to %d.",
+                    edge == null ? null : edge.getLineNumber(),
+                    targetType, value, result);
+              }
+
+            } else {
+              // java-type "long" is too small
+              if (loggedEdges.add(edge)) {
+                logger.logf(Level.SEVERE,
+                    "overflow in line %d: value %s of c-type '%s' is too big "
+                        + "for java-type 'long', analysis may produce wrong results.",
+                    edge == null ? null : edge.getLineNumber(),
+                    value, targetType);
+              }
+            }
+          }
+
+          return result;
+
+        } else { // java-type "long" is too small
+          if (loggedEdges.add(edge)) {
+            logger.logf(Level.SEVERE,
+                "overflow in line %d: value %s of c-type '%s' is too big "
+                    + "for java-type 'long'\", analysis may produce wrong results.",
+                edge == null ? null : edge.getLineNumber(),
+                value, targetType);
+          }
+
+          return value;
+        }
+      }
+
+      default:
+        return value; // currently we do not handle floats, doubles or voids
+      }
+
+    } else {
+      return value; // pointer like (void)*, (struct s)*, ...
+    }
   }
 }

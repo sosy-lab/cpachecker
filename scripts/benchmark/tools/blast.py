@@ -19,6 +19,12 @@ class Tool(benchmark.tools.template.BaseTool):
         return os.curdir
 
 
+    def getEnvironments(self, executable):
+        executableDir = os.path.dirname(executable)
+        workingDir = self.getWorkingDirectory(executable)
+        return {"additionalEnv" : {'PATH' :  ':' + (os.path.relpath(executableDir, start=workingDir))}}
+
+
     def getVersion(self, executable):
         return subprocess.Popen([executable],
                                 stdout=subprocess.PIPE,
@@ -26,8 +32,9 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getCmdline(self, blastExe, options, sourcefile):
+        workingDir = self.getWorkingDirectory(blastExe)
         ocamlExe = Util.findExecutable('ocamltune')
-        return [ocamlExe, blastExe] + options + [sourcefile]
+        return [os.path.relpath(ocamlExe, start=workingDir), os.path.relpath(blastExe, start=workingDir)] + options + [sourcefile]
 
 
     def getName(self):

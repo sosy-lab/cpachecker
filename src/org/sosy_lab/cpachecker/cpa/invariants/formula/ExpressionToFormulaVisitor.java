@@ -149,7 +149,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
 
   @Override
   public InvariantsFormula<CompoundState> visit(CPointerExpression pCPointerExpression) throws UnrecognizedCCodeException {
-    return super.visit(pCPointerExpression);
+    return CompoundStateFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.extract(pCPointerExpression));
   }
 
   @Override

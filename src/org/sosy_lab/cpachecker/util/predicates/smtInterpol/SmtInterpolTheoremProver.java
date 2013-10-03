@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
-import java.util.Map;
 
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
@@ -44,13 +43,13 @@ import com.google.common.base.Preconditions;
 
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-public class SmtInterpolTheoremProver implements ProverEnvironment {
+class SmtInterpolTheoremProver implements ProverEnvironment {
 
   private final SmtInterpolFormulaManager mgr;
   private SmtInterpolEnvironment env;
   private final List<Term> assertedTerms;
 
-  public SmtInterpolTheoremProver(SmtInterpolFormulaManager pMgr) {
+  SmtInterpolTheoremProver(SmtInterpolFormulaManager pMgr) {
     this.mgr = pMgr;
 
     assertedTerms = new ArrayList<>();
@@ -88,9 +87,8 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
   @Override
   public void close() {
     Preconditions.checkNotNull(env);
-    while (assertedTerms.size() > 0) { // cleanup stack
-      pop();
-    }
+    env.pop(assertedTerms.size());
+    assertedTerms.clear();
     env = null;
   }
 
@@ -117,30 +115,8 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
 
     solveTime.start();
     allsatEnv.push(1);
-    while (allsatEnv.checkSat()) {
-      Term[] model = new Term[importantTerms.length];
-
-      Map<Term, Term> val = allsatEnv.getValue(importantTerms);
-      for (int j = 0; j < importantTerms.length; j++) {
-        Term valueOfT = val.get(importantTerms[j]);
-        if (SmtInterpolUtil.isFalse(valueOfT)) {
-          model[j] = allsatEnv.term("not", importantTerms[j]);
-        } else {
-          assert SmtInterpolUtil.isTrue(valueOfT);
-          model[j] = importantTerms[j];
-        }
-      }
-      // add model to BDD
+    for (Term[] model : allsatEnv.checkAllSat(importantTerms)) {
       result.callback(model);
-
-      Term notTerm;
-      if (model.length == 1) { // AND needs 2 or more terms
-        notTerm = allsatEnv.term("not", model[0]);
-      } else {
-        notTerm = allsatEnv.term("not", allsatEnv.term("and", model));
-      }
-
-      allsatEnv.assertTerm(notTerm);
     }
     allsatEnv.pop(1);
 

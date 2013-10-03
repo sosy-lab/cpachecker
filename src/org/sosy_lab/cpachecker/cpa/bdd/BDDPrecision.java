@@ -95,14 +95,14 @@ public class BDDPrecision implements Precision {
 
     if (!varClass.isPresent()) { return true; }
 
-    boolean trackSomeBooleans = trackBoolean &&
-        !varClass.get().getBooleanVars().isEmpty();
+    boolean trackSomeIntBools = trackBoolean &&
+        !varClass.get().getIntBoolVars().isEmpty();
     boolean trackSomeIntEquals = trackIntEqual &&
         !varClass.get().getIntEqualVars().isEmpty();
     boolean trackSomeIntAdds = trackIntAdd &&
         !varClass.get().getIntAddVars().isEmpty();
 
-    return !(trackSomeBooleans || trackSomeIntEquals || trackSomeIntAdds);
+    return !(trackSomeIntBools || trackSomeIntEquals || trackSomeIntAdds);
   }
 
   /**
@@ -130,17 +130,13 @@ public class BDDPrecision implements Precision {
   private boolean isInTrackedClass(@Nullable String function, String var) {
     if (!varClass.isPresent()) { return false; }
 
-    final boolean isBoolean = varClass.get().getBooleanVars().containsEntry(function, var);
-    final boolean isIntEqual = varClass.get().getIntEqualVars().containsEntry(function, var);
+    final boolean isIntBool = varClass.get().getIntBoolVars().containsEntry(function, var);
+    final boolean isIntEq = varClass.get().getIntEqualVars().containsEntry(function, var);
     final boolean isIntAdd = varClass.get().getIntAddVars().containsEntry(function, var);
 
-    final boolean isTrackedBoolean = trackBoolean && isBoolean;
-
-    // if a var is both boolean and intEqual, do NOT track it as intEqual!
-    final boolean isTrackedIntEqual = trackIntEqual && !isBoolean && isIntEqual;
-
-    // if a var is (boolean or intEqual) and intAdd, do NOT track it as intAdd!
-    final boolean isTrackedIntAdd = trackIntAdd && !isBoolean && !isIntEqual && isIntAdd;
+    final boolean isTrackedBoolean = trackBoolean && isIntBool;
+    final boolean isTrackedIntEqual = trackIntEqual && isIntEq;
+    final boolean isTrackedIntAdd = trackIntAdd && isIntAdd;
 
     return isTrackedBoolean || isTrackedIntEqual || isTrackedIntAdd;
   }

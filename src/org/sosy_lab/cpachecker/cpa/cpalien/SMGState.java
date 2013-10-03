@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -34,14 +33,8 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
@@ -496,9 +489,8 @@ public class SMGState implements AbstractQueryableState {
    * @param machineModel Currently used Machine Model
    * @throws SMGInconsistentException
    */
-  public SMGEdgeHasValue writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
+  private SMGEdgeHasValue writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
-    //TODO Does this method need to be public?
 
     if (pValue == null) {
       pValue = heap.getNullValue();
@@ -542,11 +534,31 @@ public class SMGState implements AbstractQueryableState {
         } else {
           heap.removeHasValueEdge(hv);
         }
+
+
+        //TODO This method of shrinking did not work for my benchmarks, investigate
+        /*
+        if (hv.getValue() == heap.getNullValue()) {
+          if (hv.getOffset() < new_edge.getOffset()) {
+            int prefixNullSize = new_edge.getOffset() - hv.getOffset();
+            SMGEdgeHasValue prefixNull = new SMGEdgeHasValue(prefixNullSize, hv.getOffset(), pObject, heap.getNullValue());
+            this.heap.addHasValueEdge(prefixNull);
+          }
+
+          int hvEnd = hv.getOffset() + hv.getSizeInBytes(heap.getMachineModel());
+          int neEnd = new_edge.getOffset() + new_edge.getSizeInBytes(heap.getMachineModel());
+          if (hvEnd > neEnd) {
+            int postfixNullSize = hvEnd - neEnd;
+            SMGEdgeHasValue postfixNull = new SMGEdgeHasValue(postfixNullSize, neEnd, pObject, heap.getNullValue());
+            this.heap.addHasValueEdge(postfixNull);
+          }
+        }
+        */
       }
     }
 
+    // TODO Until I know where the error lies, I will keep my version of shrinking in.
     shrinkOverlappingZeroEdges(new_edge, overlappingZeroEdges);
-
 
     heap.addHasValueEdge(new_edge);
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -577,30 +589,16 @@ public class SMGState implements AbstractQueryableState {
         int zeroEdgeOffset2 = zeroEdgeOffset + zeroEdge.getSizeInBytes(maModel);
 
         if (zeroEdgeOffset < offset) {
-          CType newZeroType = getDummyCharArrayType(offset - zeroEdgeOffset);
-          SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(newZeroType, zeroEdgeOffset, object, 0);
+          SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(offset - zeroEdgeOffset, zeroEdgeOffset, object, 0);
           heap.addHasValueEdge(newZeroEdge);
         }
 
         if (offset2 < zeroEdgeOffset2) {
-          CType newZeroType = getDummyCharArrayType(zeroEdgeOffset2 - offset2);
-          SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(newZeroType, offset2, object, 0);
+          SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(zeroEdgeOffset2 - offset2, offset2, object, 0);
           heap.addHasValueEdge(newZeroEdge);
         }
       }
     }
-  }
-
-  private CArrayType getDummyCharArrayType(int length) {
-    //TODO Correct Dummy Array Type
-    CSimpleType dummyChar =
-        new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-    CSimpleType dummyInt =
-        new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
-    FileLocation dummyFileLoc = new FileLocation(0, "CPAlien_BuiltIn", 0, 0, 0);
-    CExpression dummyInteger = new CIntegerLiteralExpression(dummyFileLoc, dummyInt, BigInteger.valueOf(length));
-    CArrayType dummyArrayType = new CArrayType(false, false, dummyChar, dummyInteger);
-    return dummyArrayType;
   }
 
   public void setInvalidWrite() {
@@ -954,6 +952,13 @@ public class SMGState implements AbstractQueryableState {
     performConsistencyCheck(runtimeCheckLevel);
     heap.pruneUnreachable();
     performConsistencyCheck(runtimeCheckLevel);
+  }
+
+  public void setUnknownDereference() {
+    //TODO: This can actually be an invalid read too
+    //      The flagging mechanism should be improved
+
+    this.invalidWrite = true;
   }
 
   public SMGObject getNullObject() {

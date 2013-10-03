@@ -25,15 +25,17 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringReader;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -43,6 +45,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
+import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.QuotedObject;
@@ -87,25 +90,26 @@ class SmtInterpolEnvironment {
   }
 
   @Option(description="Double check generated results like interpolants and models whether they are correct")
-  private boolean checkResults = true;
+  private boolean checkResults = false;
 
   @Option(description="Export solver queries in Smtlib format into a file.")
   private boolean logAllQueries = false;
 
+  @Option(description="Export interpolation queries in Smtlib format into a file.")
+  private boolean logInterpolationQueries = false;
+
   @Option(name="logfile", description="Export solver queries in Smtlib format into a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File smtLogfile = new File("smtinterpol.smt2");
+  private File smtLogfile = new File("smtinterpol.%03d.smt2");
 
   /** this is a counter to get distinct logfiles for distinct environments. */
   private static int logfileCounter = 0;
 
+  private final LogManager logger;
+
   /** the wrapped Script */
   private final Script script;
   private final Theory theory;
-
-  /** This Set stores declared functions.
-   * It is used to guarantee, that functions are only declared once. */
-  private final Set<String> declaredFunctions = new HashSet<>();
 
   /** The stack contains a List of Declarations for each levels on the assertion-stack.
    * It is used to declare functions again, if stacklevels are popped. */
@@ -114,18 +118,16 @@ class SmtInterpolEnvironment {
   /** This Collection is the toplevel of the stack. */
   private Collection<Triple<String, Sort[], Sort>> currentDeclarations;
 
-  private final Term trueTerm;
-  private final Term falseTerm;
-
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
   public SmtInterpolEnvironment(Configuration config, Logics pLogic,
-      final LogManager logger) throws InvalidConfigurationException {
+      final LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
+    logger = pLogger;
 
     SMTInterpol smtInterpol = new SMTInterpol(createLog4jLogger(logger));
     if (logAllQueries && smtLogfile != null) {
-      script = createLoggingWrapper(smtInterpol, logger);
+      script = createLoggingWrapper(smtInterpol);
     } else {
       script = smtInterpol;
     }
@@ -144,12 +146,10 @@ class SmtInterpolEnvironment {
     }
 
     theory = smtInterpol.getTheory();
-    trueTerm = term("true");
-    falseTerm = term("false");
   }
 
-  private Script createLoggingWrapper(SMTInterpol smtInterpol, final LogManager logger) {
-    String filename = getFilename(smtLogfile.getAbsolutePath());
+  private Script createLoggingWrapper(SMTInterpol smtInterpol) {
+    String filename = getFilename(smtLogfile);
     try {
       // create a thin wrapper around Benchmark,
       // this allows to write most formulas of the solver to outputfile
@@ -195,23 +195,45 @@ class SmtInterpolEnvironment {
     return logger;
   }
 
-  public Term getTrueTerm() { return trueTerm; }
-  public Term getFalseTerm() { return falseTerm; }
+  /**
+   * Be careful when accessing the Theory directly,
+   * because operations on it won't be caught by the LoggingScript.
+   * It is ok to create terms using the Theory, not to define them or call checkSat.
+   */
+  Theory getTheory() {
+    return theory;
+  }
 
   /**  This function creates a filename with following scheme:
        first filename is unchanged, then a number is appended */
-  private String getFilename(final String oldFilename) {
-    String filename = oldFilename;
-    if (logfileCounter != 0) {
-      if (oldFilename.endsWith(".smt2")) {
-        filename = oldFilename.substring(0, oldFilename.length() - 4)
-            + "__" + logfileCounter + ".smt2";
-      } else {
-        filename += "__" + logfileCounter;
+  private String getFilename(final File oldFilename) {
+    String filename = oldFilename.getAbsolutePath();
+    return String.format(filename, logfileCounter++);
+  }
+
+  SmtInterpolInterpolatingProver getInterpolator(SmtInterpolFormulaManager mgr) {
+    if (logInterpolationQueries && smtLogfile != null) {
+      String logfile = getFilename(smtLogfile);
+
+      try {
+        PrintWriter out = new PrintWriter(Files.openOutputFile(Paths.get(logfile)));
+
+        out.println("(set-option :produce-interpolants true)");
+        out.println("(set-option :produce-models true)");
+        if (checkResults) {
+          out.println("(set-option :interpolant-check-mode true)");
+          out.println("(set-option :unsat-core-check-mode true)");
+          out.println("(set-option :model-check-mode true)");
+        }
+
+        out.println("(set-logic " + theory.getLogic().name() + ")");
+        return new LoggingSmtInterpolInterpolatingProver(mgr, out);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write interpolation query to file");
       }
     }
-    logfileCounter++;
-    return filename;
+
+    return new SmtInterpolInterpolatingProver(mgr);
   }
 
   /** Parse a String to Terms and Declarations.
@@ -257,31 +279,23 @@ class SmtInterpolEnvironment {
    * It is possible to check, if the function was declared before.
    * If both ('check' and 'declared before') are true, nothing is done. */
   private void declareFun(String fun, Sort[] paramSorts, Sort resultSort, boolean check) {
-    String funRepr = functionToString(fun, paramSorts, resultSort);
-    if (check != declaredFunctions.contains(funRepr)) {
-      try {
-        script.declareFun(fun, paramSorts, resultSort);
-        declaredFunctions.add(funRepr);
-      } catch (SMTLIBException e) {
-        throw new AssertionError(e);
+    if (check) {
+      FunctionSymbol fsym = theory.getFunction(fun, paramSorts);
+
+      if (fsym == null) {
+        declareFun(fun, paramSorts, resultSort, false);
+      } else {
+        if (!fsym.getReturnSort().equals(resultSort)) {
+          throw new SMTLIBException("Function " + fun + " is already declared with different definition");
+        }
       }
-      if (stack.size() != 0) {
+
+    } else {
+      script.declareFun(fun, paramSorts, resultSort);
+      if (currentDeclarations != null) {
         currentDeclarations.add(Triple.of(fun, paramSorts, resultSort));
       }
     }
-  }
-
-  /** This function returns a String-representation of a function-declaration.
-   * It can be used to get a hashable representation of a function.
-   * example:   "bool f (int int )"   */
-  private String functionToString(String fun, Sort[] paramSorts, Sort resultSort) {
-    StringBuilder str = new StringBuilder(resultSort.getName())
-        .append(" ").append(fun).append("(");
-    for (Sort paramSort : paramSorts) {
-      str.append(paramSort.getName()).append(" ");
-    }
-    str.append(")");
-    return str.toString();
   }
 
   public void push(int levels) {
@@ -349,6 +363,14 @@ class SmtInterpolEnvironment {
       default:
         throw new SMTLIBException("checkSat returned " + result);
       }
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  public Iterable<Term[]> checkAllSat(Term[] importantPredicates) {
+    try {
+      return script.checkAllsat(importantPredicates);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }

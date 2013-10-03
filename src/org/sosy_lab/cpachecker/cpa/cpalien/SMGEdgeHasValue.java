@@ -130,7 +130,7 @@ public class SMGEdgeHasValue extends SMGEdge {
     final int prime = 31;
     int result = super.hashCode();
     result = prime * result + offset;
-    result = prime * result + ((type == null) ? 0 : type.getCanonicalType().hashCode());
+    result = prime * result + ((type == null) ? 0 : type.hashCode());
     return result;
   }
 
