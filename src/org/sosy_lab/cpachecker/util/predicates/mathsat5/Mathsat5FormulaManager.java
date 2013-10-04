@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import java.io.File;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
@@ -53,7 +55,7 @@ import com.google.common.base.Splitter.MapSplitter;
 import com.google.common.collect.ImmutableMap;
 
 @Options(prefix="cpa.predicate.mathsat5")
-public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
+public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> implements AutoCloseable {
 
   @Options(prefix="cpa.predicate.mathsat5")
   private static class Mathsat5Settings {
@@ -85,12 +87,17 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     }
   }
 
+  private final LogManager logger;
+
   private final Mathsat5FormulaCreator formulaCreator;
   private final long mathsatEnv;
+  private final long mathsatConfig;
   private final Mathsat5Settings settings;
   private static final AtomicInteger logfileCounter = new AtomicInteger(0);
 
   private Mathsat5FormulaManager(
+      LogManager pLogger,
+      long pMathsatConfig,
       AbstractUnsafeFormulaManager<Long> unsafeManager,
       AbstractFunctionFormulaManager<Long> pFunctionManager,
       AbstractBooleanFormulaManager<Long> pBooleanManager,
@@ -103,8 +110,10 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
       throw new IllegalArgumentException("the formel-creator has to be a Mathsat5FormulaCreator instance!");
     }
     formulaCreator = (Mathsat5FormulaCreator) getFormulaCreator();
+    mathsatConfig = pMathsatConfig;
     mathsatEnv = formulaCreator.getEnv();
     settings = pSettings;
+    logger = checkNotNull(pLogger);
   }
 
 
@@ -141,7 +150,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     Mathsat5RationalFormulaManager rationalTheory = Mathsat5RationalFormulaManager.create(creator, functionTheory);
     Mathsat5BitvectorFormulaManager bitvectorTheory  = Mathsat5BitvectorFormulaManager.create(creator);
 
-    return new Mathsat5FormulaManager(
+    return new Mathsat5FormulaManager(logger, msatConf,
         unsafeManager, functionTheory, booleanTheory,
         rationalTheory, bitvectorTheory, settings);
   }
@@ -207,4 +216,10 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     return mathsatEnv;
   }
 
+  @Override
+  public void close() {
+    logger.log(Level.FINER, "Freeing Mathsat environment");
+    msat_destroy_env(mathsatEnv);
+    msat_destroy_config(mathsatConfig);
+  }
 }
