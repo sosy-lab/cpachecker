@@ -116,7 +116,7 @@ public class InvariantsCPA extends AbstractCPA {
     private int interestingVariableLimit = 2;
 
     @Option(description="whether or not to use a bit vector formula manager when extracting invariant approximations from states.")
-    private boolean useBitvectors = true;
+    private boolean useBitvectors = false;
 
   }
 

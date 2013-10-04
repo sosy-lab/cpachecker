@@ -632,7 +632,7 @@ cpa.invariants.merge = "JOIN"
 
 # whether or not to use a bit vector formula manager when extracting
 # invariant approximations from states.
-cpa.invariants.useBitvectors = true
+cpa.invariants.useBitvectors = false
 
 # threshold for unrolling loops of the program (0 is infinite)
 # works only if assumption storage CPA is enabled, because otherwise it would
