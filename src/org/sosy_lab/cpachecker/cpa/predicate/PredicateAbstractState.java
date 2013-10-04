@@ -31,13 +31,10 @@ import java.io.Serializable;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Preconditions;
@@ -46,7 +43,7 @@ import com.google.common.base.Predicate;
 /**
  * AbstractState for Symbolic Predicate Abstraction CPA
  */
-public abstract class PredicateAbstractState implements AbstractState, Partitionable, FormulaReportingState, Serializable {
+public abstract class PredicateAbstractState implements AbstractState, Partitionable, Serializable {
 
   private static final long serialVersionUID = -265763837277453447L;
 
@@ -247,10 +244,5 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
   public PathFormula getPathFormula() {
     return pathFormula;
-  }
-
-  @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
-    return getAbstractionFormula().asFormula();
   }
 }
