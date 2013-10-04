@@ -68,6 +68,10 @@ public class AssumptionStorageState implements AbstractState {
     return fmgr.getBooleanFormulaManager().isTrue(assumption);
   }
 
+  public boolean isAssumptionFalse() {
+    return fmgr.getBooleanFormulaManager().isFalse(assumption);
+  }
+
   public BooleanFormula getStopFormula() {
     return stopFormula;
   }
