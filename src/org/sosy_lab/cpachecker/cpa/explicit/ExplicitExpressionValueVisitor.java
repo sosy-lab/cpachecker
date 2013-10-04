@@ -338,7 +338,9 @@ public class ExplicitExpressionValueVisitor
 
     final Long value = unaryOperand.accept(this);
 
-    if (value == null) { return null; }
+    if (value == null && unaryOperator != UnaryOperator.SIZEOF) {
+      return null;
+    }
 
     switch (unaryOperator) {
     case PLUS:

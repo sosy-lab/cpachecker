@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 
 import java.io.File;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
@@ -87,15 +88,10 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     }
   }
 
-  // TODO This is ugly.
-  // We need this as a workaround until we can have separate solver environments
-  // in every CPA and copy formulas between them.
-  private static Mathsat5FormulaManager instance = null;
-
   private final Mathsat5FormulaCreator formulaCreator;
   private final long mathsatEnv;
   private final Mathsat5Settings settings;
-  private int logfileCounter = 0;
+  private static final AtomicInteger logfileCounter = new AtomicInteger(0);
 
   private final ShutdownNotifier shutdownNotifier;
   private final TerminationTest terminationTest;
@@ -136,11 +132,8 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     return ((Mathsat5Formula)pT).getTerm();
   }
 
-  public static synchronized Mathsat5FormulaManager create(LogManager logger,
+  public static Mathsat5FormulaManager create(LogManager logger,
       Configuration config, ShutdownNotifier pShutdownNotifier, boolean useIntegers) throws InvalidConfigurationException {
-    if (instance != null) {
-      return instance;
-    }
 
     // Init Msat
     Mathsat5Settings settings = new Mathsat5Settings(config);
@@ -168,10 +161,9 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     Mathsat5RationalFormulaManager rationalTheory = Mathsat5RationalFormulaManager.create(creator, functionTheory);
     Mathsat5BitvectorFormulaManager bitvectorTheory  = Mathsat5BitvectorFormulaManager.create(creator);
 
-    instance = new Mathsat5FormulaManager(
+    return new Mathsat5FormulaManager(
         unsafeManager, functionTheory, booleanTheory,
         rationalTheory, bitvectorTheory, settings, pShutdownNotifier);
-    return instance;
   }
 
   BooleanFormula encapsulateBooleanFormula(long t) {
@@ -216,7 +208,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     }
 
     if (settings.logAllQueries && settings.logfile != null) {
-      String filename = String.format(settings.logfile.getAbsolutePath(), logfileCounter++);
+      String filename = String.format(settings.logfile.getAbsolutePath(), logfileCounter.getAndIncrement());
 
       msat_set_option_checked(cfg, "debug.api_call_trace", "1");
       msat_set_option_checked(cfg, "debug.api_call_trace_filename", filename);

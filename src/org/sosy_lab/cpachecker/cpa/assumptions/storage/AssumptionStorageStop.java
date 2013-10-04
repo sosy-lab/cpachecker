@@ -28,7 +28,6 @@ import java.util.Collection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 
 /**
  * Stop operator for the assumption storage CPA. Stops if the stop flag is
@@ -48,8 +47,7 @@ public class AssumptionStorageStop implements StopOperator {
         AssumptionStorageState reachedState = (AssumptionStorageState)ae;
 
         // implication check is costly, so we do a fast syntactical approximation
-        BooleanFormulaManager bfmgr = reachedState.getManager();
-        if (   bfmgr.isFalse(reachedState.getStopFormula())
+        if (   reachedState.isStopFormulaFalse()
             || reachedState.getStopFormula().equals(element.getStopFormula())) {
           return true;
         }

@@ -309,7 +309,24 @@ class ASTTypeConverter {
   }
 
   private CTypedefType conv(final ITypedef t) {
+
+    final String name = t.getName();
+
+    CType oldType = scope.lookupTypedef(name);
+    int counter = 0;
+    while (oldType == null && counter < typeConversions.size() && typeConversions.size() > 1) {
+      oldType = scope.lookupType(name + "__" + counter);
+      counter++;
+    }
+
+    // We have seen this type already.
+    if (oldType != null && counter == 0) {
+      return new CTypedefType(false, false, t.getName(), oldType);
+    } else if (oldType != null) {
+      return new CTypedefType(false, false, name + "__" + counter, oldType);
+    } else { // New typedef type (somehow recognized by CDT, but not found in declared types)
       return new CTypedefType(false, false, t.getName(), convert(t.getType()));
+    }
   }
 
   private List<CCompositeTypeMemberDeclaration> conv(IField[] pFields) {
