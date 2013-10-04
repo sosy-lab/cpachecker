@@ -81,6 +81,19 @@ public class CompoundStateTest {
     assertEquals(zeroToThree, zeroToThree.unionWith(CompoundState.singleton(2)));
     assertEquals(zeroToThree, zeroToThree.unionWith(CompoundState.singleton(3)));
     assertEquals(zeroToThree, zeroToThree.unionWith(zeroToThree));
+
+    CompoundState steps = CompoundState.bottom();
+    for (int i = -6; i <= 6; i += 2) {
+      steps = steps.unionWith(CompoundState.singleton(i));
+    }
+    steps = steps.extendToNegativeInfinity().extendToPositiveInfinity();
+    for (int i = -6; i <= 6; i += 2) {
+      assertTrue(steps.contains(i));
+    }
+    CompoundState stepsNegInf = steps.unionWith(CompoundState.singleton(BigInteger.valueOf(-4)).extendToNegativeInfinity());
+    for (int i = -6; i <= 6; i += 2) {
+      assertTrue(stepsNegInf.contains(i));
+    }
   }
 
   @Test

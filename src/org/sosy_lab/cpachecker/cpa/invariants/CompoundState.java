@@ -176,6 +176,9 @@ public class CompoundState {
           lastInterval = interval;
           result.intervals.add(lastInterval);
         }
+      } else if (!currentInserted) {
+        lastInterval = interval;
+        result.intervals.add(lastInterval);
       }
     }
     if (!inserted) {
