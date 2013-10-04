@@ -798,10 +798,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (!collectedInterestingAssumptions.equals(pElement2.collectedInterestingAssumptions)) {
       return false;
     }
-    // Environments must be equal at least with respect to interesting variables
-    if (!environmentsEqualWithRespectToInterestingVariables(pElement2)) {
-      return false;
-    }
     // Only two checks remain to test for equality:
     if (assumptions.equals(pElement2.assumptions)
         && environment.equals(pElement2.environment)) {
