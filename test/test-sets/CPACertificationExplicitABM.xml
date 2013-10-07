@@ -8,7 +8,7 @@
 <option name="-setprop">pcc.strategy=ARGProofCheckerStrategy</option>
 <option name="-setprop">pcc.proofFile=arg.obj</option>
 <option name="-setprop">analysis.traversal.order=DFS</option>
-<option name="-setprop">cpa.conditions.global.time.wall=5min</option>
+<option name="-setprop">limits.time.cpu=5min</option>
 <option name="-explicitAnalysis-abm"/>
 
 <rundefinition name="Analysis">
