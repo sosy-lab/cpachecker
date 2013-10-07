@@ -37,9 +37,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -60,9 +62,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
 
 @Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
@@ -175,15 +179,17 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     while (configFilesIterator.hasNext()) {
       stats.totalTime.start();
+      @Nullable ConfigurableProgramAnalysis currentCpa = null;
       ReachedSet currentReached;
       ShutdownNotifier singleShutdownNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
       try {
         File singleConfigFileName = configFilesIterator.next();
 
         try {
-          Pair<Algorithm, ReachedSet> currentPair = createNextAlgorithm(singleConfigFileName, mainFunction, singleShutdownNotifier);
-          currentAlgorithm = currentPair.getFirst();
-          currentReached = currentPair.getSecond();
+          Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg = createNextAlgorithm(singleConfigFileName, mainFunction, singleShutdownNotifier);
+          currentAlgorithm = currentAlg.getFirst();
+          currentCpa = currentAlg.getSecond();
+          currentReached = currentAlg.getThird();
         } catch (InvalidConfigurationException e) {
           logger.logUserException(Level.WARNING, e, "Skipping one analysis because its configuration is invalid");
           continue;
@@ -243,6 +249,14 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       if (configFilesIterator.hasNext()) {
         stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
         stats.resetSubStatistics();
+
+        if (currentCpa != null) {
+          for (ConfigurableProgramAnalysis cpa : CPAs.asIterable(currentCpa)) {
+            closeIfPossible(cpa);
+          }
+        }
+        closeIfPossible(currentAlgorithm);
+
         logger.log(Level.INFO, "RestartAlgorithm switches to the next configuration...");
       }
     }
@@ -280,9 +294,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  private Pair<Algorithm, ReachedSet> createNextAlgorithm(File singleConfigFileName, CFANode mainFunction, ShutdownNotifier singleShutdownNotifier) throws InvalidConfigurationException, CPAException, InterruptedException, IOException {
+  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(File singleConfigFileName, CFANode mainFunction, ShutdownNotifier singleShutdownNotifier) throws InvalidConfigurationException, CPAException, InterruptedException, IOException {
 
     ReachedSet reached;
+    ConfigurableProgramAnalysis cpa;
     Algorithm algorithm;
 
     Configuration.Builder singleConfigBuilder = Configuration.builder();
@@ -300,15 +315,16 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     if (singleOptions.runCBMCasExternalTool) {
       algorithm = new ExternalCBMCAlgorithm(filename, singleConfig, logger);
+      cpa = null;
       reached = new ReachedSetFactory(singleConfig, logger).create();
     } else {
       ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig, logger);
-      ConfigurableProgramAnalysis cpa = createCPA(singleReachedSetFactory, singleConfig, singleShutdownNotifier, stats);
+      cpa = createCPA(singleReachedSetFactory, singleConfig, singleShutdownNotifier, stats);
       algorithm = createAlgorithm(cpa, singleConfig, singleShutdownNotifier, stats, singleReachedSetFactory, singleOptions);
       reached = createInitialReachedSetForRestart(cpa, mainFunction, singleReachedSetFactory);
     }
 
-    return Pair.of(algorithm, reached);
+    return Triple.of(algorithm, cpa, reached);
   }
 
   private ReachedSet createInitialReachedSetForRestart(
@@ -366,6 +382,17 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     return algorithm;
+  }
+
+  private void closeIfPossible(Object obj) {
+    if (obj instanceof AutoCloseable) {
+      try {
+        ((AutoCloseable)obj).close();
+      } catch (Exception e) {
+        Throwables.propagateIfPossible(e);
+        logger.logUserException(Level.WARNING, e, "Failed to close " + obj.getClass().getSimpleName());
+      }
+    }
   }
 
   @Override

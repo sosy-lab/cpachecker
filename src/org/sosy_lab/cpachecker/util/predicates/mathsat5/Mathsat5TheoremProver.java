@@ -47,15 +47,15 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
 
   public Mathsat5TheoremProver(Mathsat5FormulaManager pMgr,
       boolean generateModels) {
-    super(pMgr, createEnvironment(pMgr, generateModels));
+    super(pMgr, createConfig(pMgr, generateModels), USE_SHARED_ENV, true);
   }
 
-  private static long createEnvironment(Mathsat5FormulaManager mgr, boolean generateModels) {
+  private static long createConfig(Mathsat5FormulaManager mgr, boolean generateModels) {
     long cfg = msat_create_config();
     if (generateModels) {
       msat_set_option_checked(cfg, "model_generation", "true");
     }
-    return mgr.createEnvironment(cfg, USE_SHARED_ENV, true);
+    return cfg;
   }
 
   @Override

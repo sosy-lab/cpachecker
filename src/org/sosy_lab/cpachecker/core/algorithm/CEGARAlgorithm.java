@@ -133,14 +133,14 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
 
-  @Option(required = true,
+  @Option(name="refiner", required = true,
       description = "Which refinement algorithm to use? "
       + "(give class name, required for CEGAR) If the package name starts with "
       + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
   private Class<? extends Refiner> refiner = null;
 
-  @Option(description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
+  @Option(name="globalRefinement", description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
   private boolean globalRefinement = false;
 
   private final LogManager logger;
@@ -219,14 +219,15 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
-    boolean isComplete = true;
-
+    boolean isComplete        = true;
+    int initialReachedSetSize = reached.size();
+    
     stats.totalTimer.start();
     try {
       boolean refinementSuccessful;
       do {
         refinementSuccessful = false;
-
+        
         // run algorithm
         isComplete &= algorithm.run(reached);
 
@@ -235,7 +236,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
           refinementSuccessful = refine(reached);
 
-          if (refinementSuccessful) {
+          // assert that reached set is free of target states,
+          // if refinement was successful and initial reached set was empty (i.e. stopAfterError=true) 
+          if (refinementSuccessful && initialReachedSetSize == 1) {
             assert !from(reached).anyMatch(IS_TARGET_STATE);
           }
         }
