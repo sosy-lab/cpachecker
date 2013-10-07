@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -142,6 +143,9 @@ public class CFAReduction {
       lReached.add(lCpas.getInitialState(cfa.getMainFunction()), lCpas.getInitialPrecision(cfa.getMainFunction()));
 
       lAlgorithm.run(lReached);
+
+      CPAs.closeCpaIfPossible(lCpas, logger);
+      CPAs.closeIfPossible(lAlgorithm, logger);
 
       return from(lReached)
                .filter(IS_TARGET_STATE)

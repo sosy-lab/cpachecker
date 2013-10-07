@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 @Options(prefix="counterexample.checker")
 public class CounterexampleCPAChecker implements CounterexampleChecker {
@@ -112,6 +113,9 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       lReached.add(lCpas.getInitialState(entryNode), lCpas.getInitialPrecision(entryNode));
 
       lAlgorithm.run(lReached);
+
+      CPAs.closeCpaIfPossible(lCpas, logger);
+      CPAs.closeIfPossible(lAlgorithm, logger);
 
       // counterexample is feasible if a target state is reachable
       return from(lReached).anyMatch(IS_TARGET_STATE);
