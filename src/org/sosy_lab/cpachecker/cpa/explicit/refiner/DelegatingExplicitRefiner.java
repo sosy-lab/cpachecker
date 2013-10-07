@@ -164,6 +164,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
             solver,
             factory,
             config,
+            predicateCpa.getShutdownNotifier(),
             logger);
 
         PathChecker pathChecker = new PathChecker(logger, pathFormulaManager, solver);

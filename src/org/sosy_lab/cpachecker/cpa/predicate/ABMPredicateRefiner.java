@@ -128,6 +128,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
                                           predicateCpa.getSolver(),
                                           predicateCpa.getFormulaManagerFactory(),
                                           predicateCpa.getConfiguration(),
+                                          predicateCpa.getShutdownNotifier(),
                                           logger);
 
     PathChecker pathChecker = new PathChecker(logger,

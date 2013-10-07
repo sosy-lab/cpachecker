@@ -59,6 +59,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -112,6 +113,7 @@ public final class InterpolationManager {
 
 
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PathFormulaManager pmgr;
@@ -175,10 +177,12 @@ public final class InterpolationManager {
       Solver pSolver,
       FormulaManagerFactory pFmgrFactory,
       Configuration config,
+      ShutdownNotifier pShutdownNotifier,
       LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, InterpolationManager.class);
 
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = pPmgr;
@@ -513,7 +517,7 @@ public final class InterpolationManager {
    * @return A list of all the interpolants.
    */
   private <T> List<BooleanFormula> getInterpolants(
-      InterpolatingProverEnvironment<T> pItpProver, List<T> itpGroupsIds) {
+      InterpolatingProverEnvironment<T> pItpProver, List<T> itpGroupsIds) throws InterruptedException {
 
     List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(itpGroupsIds.size()-1);
 
@@ -532,6 +536,7 @@ public final class InterpolationManager {
     }
 
     for (int i = 0; i < itpGroupsIds.size()-1; ++i) {
+      shutdownNotifier.shutdownIfNecessary();
       // last iteration is left out because B would be empty
       final int start_of_a = (wellScopedPredicates ? entryPoints.peek() : 0);
 

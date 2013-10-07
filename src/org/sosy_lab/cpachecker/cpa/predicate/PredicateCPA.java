@@ -102,6 +102,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   private final Configuration config;
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
   private final PredicateAbstractDomain domain;
   private final PredicateTransferRelation transfer;
@@ -127,6 +128,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     this.config = config;
     this.logger = logger;
+    this.shutdownNotifier = pShutdownNotifier;
 
     if (enableBlockreducer) {
       BlockComputer blockComputer = new BlockedCFAReducer(config);
@@ -247,6 +249,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   LogManager getLogger() {
     return logger;
+  }
+
+  public ShutdownNotifier getShutdownNotifier() {
+    return shutdownNotifier;
   }
 
   @Nullable
