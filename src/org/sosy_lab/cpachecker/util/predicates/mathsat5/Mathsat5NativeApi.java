@@ -54,7 +54,7 @@ class Mathsat5NativeApi {
 
   interface AllSatModelCallback {
 
-    void callback(long[] model);
+    void callback(long[] model) throws InterruptedException;
   }
 
   static interface TerminationTest {

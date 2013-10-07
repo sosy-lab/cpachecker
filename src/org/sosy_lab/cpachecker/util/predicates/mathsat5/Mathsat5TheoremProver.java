@@ -173,12 +173,14 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
     }
 
     @Override
-    public void callback(long[] model) {
+    public void callback(long[] model) throws InterruptedException {
       if (count == 0) {
         solveTime.stop();
         enumTime.startOuter();
         regionTime = enumTime.getInnerTimer();
       }
+
+      shutdownNotifier.shutdownIfNecessary();
 
       regionTime.start();
 
