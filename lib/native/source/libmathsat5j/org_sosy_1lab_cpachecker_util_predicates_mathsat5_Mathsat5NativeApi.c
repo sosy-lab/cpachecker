@@ -302,14 +302,10 @@ struct msat_callback_info {
 };
 
 static int call_java_callback(msat_term *model, int size, void *user_data) {
-	int retval = 1;
+	int retval = 0; // 0 means "terminate search"
 	struct msat_callback_info *helper =
 			(struct msat_callback_info *) user_data;
 	JNIEnv *jenv = helper->jenv;
-	if ((*jenv)->ExceptionCheck(jenv)) {
-		//retval = 1;
-		return retval; // exit JNI code as soon as possible
-	}
 
 	jlongArray jmodel = (*jenv)->NewLongArray(jenv, (size_t) size);
 	if (jmodel == NULL) {
@@ -317,7 +313,6 @@ static int call_java_callback(msat_term *model, int size, void *user_data) {
 	}
 	jlong *jarr = malloc(sizeof(jlong) * size);
 	if (jarr == NULL) {
-		//retval = 1;
 		throwException(jenv, "java/lang/OutOfMemoryError",
 				"Cannot allocate memory for allsat result");
 		goto out_jarr;
@@ -331,6 +326,10 @@ static int call_java_callback(msat_term *model, int size, void *user_data) {
 	(*jenv)->SetLongArrayRegion(jenv, jmodel, 0, (size_t) size, (jlong *) jarr);
 
 	(*jenv)->CallVoidMethod(jenv, helper->obj, helper->callback_method, jmodel);
+
+	if (!(*jenv)->ExceptionCheck(jenv)) {
+		retval = 1; // everything successful, no exceptions: continue search
+	}
 
 	out_jarr: free(jarr);
 
