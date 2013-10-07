@@ -418,7 +418,7 @@ def handleCloudResults(benchmark, outputHandler):
 
                 if returnValue is not None:
                     # Do not delete stdOut file if there was some problem
-                    # os.remove(stdoutFile)
+                    os.remove(stdoutFile)
                     pass
                 else:
                     executedAllRuns = False;
