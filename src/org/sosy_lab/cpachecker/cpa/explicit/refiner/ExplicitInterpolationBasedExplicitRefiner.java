@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -96,23 +97,27 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
   private final MachineModel machineModel;
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
-  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config, final LogManager pLogger, final MachineModel pMachineModel)
+  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config,
+      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      final MachineModel pMachineModel)
       throws InvalidConfigurationException {
     config.inject(this);
     this.machineModel = pMachineModel;
     this.logger = pLogger;
+    this.shutdownNotifier = pShutdownNotifier;
   }
 
   protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
-      ARGPath errorPath) throws CPAException {
+      ARGPath errorPath) throws CPAException, InterruptedException {
     timerInterpolation.start();
 
     interpolationOffset                   = -1;
     assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
         AssignmentsInPathConditionState.class);
 
-    ExplicitInterpolator interpolator     = new ExplicitInterpolator(logger, machineModel);
+    ExplicitInterpolator interpolator     = new ExplicitInterpolator(logger, shutdownNotifier, machineModel);
     Map<String, Long> currentInterpolant  = new HashMap<>();
     Multimap<CFANode, String> increment   = HashMultimap.create();
 
@@ -122,6 +127,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     }
 
     for (int i = 0; i < errorPath.size(); i++) {
+      shutdownNotifier.shutdownIfNecessary();
       CFAEdge currentEdge = errorPath.get(i).getSecond();
 
       if (currentEdge instanceof BlankEdge) {
@@ -137,25 +143,20 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
       // do interpolation
       Map<String, Long> inputInterpolant = new HashMap<>(currentInterpolant);
-      try {
-        Set<Pair<String, Long>> interpolant = interpolator.deriveInterpolant(cfaTrace, i, inputInterpolant);
-        numberOfInterpolations += interpolator.getNumberOfInterpolations();
+      Set<Pair<String, Long>> interpolant = interpolator.deriveInterpolant(cfaTrace, i, inputInterpolant);
+      numberOfInterpolations += interpolator.getNumberOfInterpolations();
 
-        // early stop once we are past the first statement that made a path feasible for the first time
-        if (interpolant == null) {
-          timerInterpolation.stop();
-          return increment;
-        }
-        for (Pair<String, Long> element : interpolant) {
-          if (element.getSecond() == null) {
-            currentInterpolant.remove(element.getFirst());
-          } else {
-            currentInterpolant.put(element.getFirst(), element.getSecond());
-          }
-        }
+      // early stop once we are past the first statement that made a path feasible for the first time
+      if (interpolant == null) {
+        timerInterpolation.stop();
+        return increment;
       }
-      catch (InterruptedException e) {
-        throw new CPAException("Explicit-Interpolation failed: ", e);
+      for (Pair<String, Long> element : interpolant) {
+        if (element.getSecond() == null) {
+          currentInterpolant.remove(element.getFirst());
+        } else {
+          currentInterpolant.put(element.getFirst(), element.getSecond());
+        }
       }
 
       // remove variables from the interpolant that belong to the scope of the returning function

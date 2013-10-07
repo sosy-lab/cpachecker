@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -197,6 +198,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     return new DelegatingExplicitRefiner(
         config,
         logger,
+        explicitCpa.getShutdownNotifier(),
         cpa,
         backupRefiner,
         explicitCpa.getStaticRefiner(),
@@ -206,6 +208,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
   protected DelegatingExplicitRefiner(
       final Configuration pConfig,
       final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
       final ConfigurableProgramAnalysis pCpa,
       @Nullable final PredicateCPARefiner pBackupRefiner,
       ExplicitStaticRefiner pExplicitStaticRefiner,
@@ -213,7 +216,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     super(pCpa);
     pConfig.inject(this);
 
-    interpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(pConfig, pLogger, pMachineModel);
+    interpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(pConfig, pLogger, pShutdownNotifier, pMachineModel);
     predicatingRefiner    = pBackupRefiner;
     staticRefiner         = pExplicitStaticRefiner;
     machineModel          = pMachineModel;
@@ -249,7 +252,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    * @returns true, if the explicit refinement was successful, else false
    * @throws CPAException when explicit interpolation fails
    */
-  private boolean performExplicitRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException {
+  private boolean performExplicitRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
     numberOfExplicitRefinements++;
 
     UnmodifiableReachedSet reachedSet   = reached.asReachedSet();
