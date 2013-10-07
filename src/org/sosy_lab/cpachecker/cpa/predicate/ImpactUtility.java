@@ -158,7 +158,7 @@ final class ImpactUtility {
 
     } else if (abstractInterpolantOnly) {
       // Compute an abstraction of "itp"
-      newAbstraction = predAbsMgr.buildAbstraction(location, itp, blockFormula, preds, PredicateAbstractionManager.noAbstractionReuse);
+      newAbstraction = predAbsMgr.buildAbstraction(location, itp, blockFormula, preds);
 
     } else {
       // Compute an abstraction of "lastAbstraction & blockFormula"

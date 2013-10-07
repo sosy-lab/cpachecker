@@ -78,12 +78,18 @@ public class PredicateAbstractionsWriter {
     }
   };
 
-  private int getAbstractionId(ARGState state) {
-    PredicateAbstractState paState = AbstractStates.extractStateByType(state, PredicateAbstractState.class);
-    return paState.getAbstractionFormula().getId();
+  private static final Predicate<AbstractState> IS_STATE = new Predicate<AbstractState>() {
+    @Override
+    public boolean apply(AbstractState pArg0) {
+      return true;
+    }
+  };
+
+  private int getStateId(ARGState state) {
+    return state.getStateId();
   }
 
-  public void writeAbstractions(Path abstractionsFile, ReachedSet reached) {
+  public void writeStateGraph(Path abstractionsFile, ReachedSet reached, boolean includeNonAbstractionStates) {
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
     // The order of the definitions is important!
@@ -94,9 +100,10 @@ public class PredicateAbstractionsWriter {
     Map<ARGState, String> stateToAssert = Maps.newHashMap();
 
     // Get list of all abstraction states in the set reached
+    Predicate<AbstractState> filterPredicate = includeNonAbstractionStates ? IS_STATE : IS_ABSTRACTION_STATE;
     ARGState rootState = AbstractStates.extractStateByType(reached.getFirstState(), ARGState.class);
     SetMultimap<ARGState, ARGState> successors = ARGUtils.projectARG(rootState,
-        ARGUtils.CHILDREN_OF_STATE, IS_ABSTRACTION_STATE);
+        ARGUtils.CHILDREN_OF_STATE, filterPredicate);
 
     Set<ARGState> done = Sets.newHashSet();
     Deque<ARGState> worklist = Queues.newArrayDeque();
@@ -119,13 +126,17 @@ public class PredicateAbstractionsWriter {
 
         // Abstraction formula
         PredicateAbstractState predicateState = checkNotNull(extractStateByType(state, PredicateAbstractState.class));
-        Region region = predicateState.getAbstractionFormula().asRegion();
-        BooleanFormula formula = absmgr.toConcrete(region);
+        String formulaString;
+        if (predicateState.isAbstractionState()) {
+          Region region = predicateState.getAbstractionFormula().asRegion();
+          BooleanFormula formula = absmgr.toConcrete(region);
 
-        Pair<String, List<String>> p = splitFormula(fmgr, formula);
-        String formulaString = p.getFirst();
-        definitions.addAll(p.getSecond());
-
+          Pair<String, List<String>> p = splitFormula(fmgr, formula);
+          formulaString = p.getFirst();
+          definitions.addAll(p.getSecond());
+        } else {
+          formulaString = "()";
+        }
         stateToAssert.put(state, formulaString);
 
         done.add(state);
@@ -143,11 +154,11 @@ public class PredicateAbstractionsWriter {
           if (stateSuccessorsSb.length() > 0) {
             stateSuccessorsSb.append(",");
           }
-          stateSuccessorsSb.append(getAbstractionId(successor));
+          stateSuccessorsSb.append(getStateId(successor));
         }
 
         writer.append(String.format("%d (%s) @%d:\n",
-            getAbstractionId(state),
+            getStateId(state),
             stateSuccessorsSb.toString(),
             AbstractStates.extractLocation(state).getNodeNumber()));
         writer.append(stateToAssert.get(state));

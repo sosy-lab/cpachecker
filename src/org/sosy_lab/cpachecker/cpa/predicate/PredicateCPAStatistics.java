@@ -101,6 +101,10 @@ class PredicateCPAStatistics extends AbstractStatistics {
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path abstractionsFile = Paths.get("abstractions.txt");
 
+    @Option(description="file for exporting final loop invariants",
+        name="abstractions.includeNonAbstractionStates")
+    private boolean includeNonAbstractionStates = false;
+
     private final PredicateCPA cpa;
     private final BlockOperator blk;
     private final RegionManager rmgr;
@@ -224,7 +228,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
       }
 
       if (abstractionsFile != null) {
-        abstractionsWriter.writeAbstractions(abstractionsFile, reached);
+        abstractionsWriter.writeStateGraph(abstractionsFile, reached, includeNonAbstractionStates);
       }
 
       if (exportInvariantsAsPrecision && invariantPrecisionsFile != null) {

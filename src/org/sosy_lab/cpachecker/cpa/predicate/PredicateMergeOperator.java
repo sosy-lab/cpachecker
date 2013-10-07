@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.collect.Sets;
+
 
 /**
  * Merge operator for symbolic predicate abstraction.
@@ -84,7 +86,8 @@ public class PredicateMergeOperator implements MergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
-        merged = mkNonAbstractionStateWithNewPathFormula(pathFormula, elem1);
+        merged = mkNonAbstractionStateWithNewPathFormula(pathFormula, elem1,
+            Sets.union(elem1.getReuseStateId(), elem2.getReuseStateId()));
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

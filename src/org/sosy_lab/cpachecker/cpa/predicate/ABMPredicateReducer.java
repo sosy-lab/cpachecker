@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -103,7 +104,7 @@ public class ABMPredicateReducer implements Reducer {
                                                                              .empty();
 
       return PredicateAbstractState.mkAbstractionState(bfmgr, pathFormula,
-          newAbstraction, abstractionLocations);
+          newAbstraction, abstractionLocations, Collections.<Integer>emptySet());
     } finally {
       reduceTimer.stop();
     }
@@ -154,7 +155,7 @@ public class ABMPredicateReducer implements Reducer {
       PersistentMap<CFANode, Integer> abstractionLocations = reducedState.getAbstractionLocationsOnPath();
 
       return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-          newAbstractionFormula, abstractionLocations);
+          newAbstractionFormula, abstractionLocations, Collections.<Integer>emptySet());
     } finally {
       expandTimer.stop();
     }
@@ -423,6 +424,6 @@ public class ABMPredicateReducer implements Reducer {
     PersistentMap<CFANode, Integer> abstractionLocations = rootState.getAbstractionLocationsOnPath();
 
     return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-        newAbstractionFormula, abstractionLocations);
+        newAbstractionFormula, abstractionLocations, Collections.<Integer>emptySet());
   }
 }

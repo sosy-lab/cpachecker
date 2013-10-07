@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionReuse;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -56,6 +58,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+
+import com.google.common.base.Optional;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
@@ -88,6 +92,7 @@ public class PredicateTransferRelation implements TransferRelation {
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
+  private final PredicateAbstractionReuse abstractionStorage;
 
   private final BlockOperator blk;
 
@@ -96,7 +101,7 @@ public class PredicateTransferRelation implements TransferRelation {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
 
-  public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk) throws InvalidConfigurationException {
+  public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk, PredicateAbstractionReuse pStorage) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this, PredicateTransferRelation.class);
 
     logger = pCpa.getLogger();
@@ -105,6 +110,7 @@ public class PredicateTransferRelation implements TransferRelation {
     fmgr = pCpa.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     blk = pBlk;
+    abstractionStorage = pStorage;
   }
 
   @Override
@@ -125,6 +131,19 @@ public class PredicateTransferRelation implements TransferRelation {
       PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
+      // determine the successor state in the reuse-ARG
+      Set<Integer> reuseCandidateStateId = Collections.emptySet();
+      if (element.getReuseStateId().size() > 1) {
+        throw new IllegalStateException("States with multiple abstraction reuses not yet supported!");
+      } else if (element.getReuseStateId().size() == 1) {
+        int lastAbstractionIdReused = element.getReuseStateId().iterator().next();
+        Optional<Integer> getPostLocationId = Optional.of(edge.getSuccessor().getNodeNumber());
+        reuseCandidateStateId = abstractionStorage.getSuccessorStateIds(lastAbstractionIdReused, getPostLocationId);
+        if (reuseCandidateStateId.size() > 1) {
+          throw new IllegalStateException("There should be only one successor abstraction for reuse!");
+        }
+      }
+
       // check whether to do abstraction
       boolean doAbstraction = blk.isBlockEnd(edge, pathFormula);
 
@@ -132,9 +151,10 @@ public class PredicateTransferRelation implements TransferRelation {
         return Collections.singleton(
             new PredicateAbstractState.ComputeAbstractionState(
                 pathFormula, element.getAbstractionFormula(), loc,
-                element.getAbstractionLocationsOnPath()));
+                element.getAbstractionLocationsOnPath(),
+                reuseCandidateStateId));
       } else {
-        return handleNonAbstractionFormulaLocation(pathFormula, element);
+        return handleNonAbstractionFormulaLocation(pathFormula, element, reuseCandidateStateId);
       }
     } finally {
       postTimer.stop();
@@ -144,9 +164,11 @@ public class PredicateTransferRelation implements TransferRelation {
   /**
    * Does special things when we do not compute an abstraction for the
    * successor. This currently only envolves an optional sat check.
+   * @param pReuseCandidateStateId
    */
   private Collection<PredicateAbstractState> handleNonAbstractionFormulaLocation(
-      PathFormula pathFormula, PredicateAbstractState oldState) {
+      PathFormula pathFormula, PredicateAbstractState oldState,
+      Set<Integer> pReuseCandidateStateId) {
     boolean satCheck = (satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize);
 
     logger.log(Level.FINEST, "Handling non-abstraction location",
@@ -168,7 +190,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
     // create the new abstract state for non-abstraction location
     return Collections.singleton(
-        mkNonAbstractionStateWithNewPathFormula(pathFormula, oldState));
+        mkNonAbstractionStateWithNewPathFormula(pathFormula, oldState, pReuseCandidateStateId));
   }
 
   /**
@@ -273,10 +295,11 @@ public class PredicateTransferRelation implements TransferRelation {
       CFANode loc = ((ComputeAbstractionState) oldElement).getLocation();
       return new ComputeAbstractionState(newPathFormula,
           oldElement.getAbstractionFormula(), loc,
-          oldElement.getAbstractionLocationsOnPath());
+          oldElement.getAbstractionLocationsOnPath(),
+          oldElement.getReuseStateId());
     } else {
       assert !oldElement.isAbstractionState();
-      return mkNonAbstractionStateWithNewPathFormula(newPathFormula, oldElement);
+      return mkNonAbstractionStateWithNewPathFormula(newPathFormula, oldElement, oldElement.getReuseStateId());
     }
   }
 
@@ -309,7 +332,7 @@ public class PredicateTransferRelation implements TransferRelation {
       abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
       return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-          abs, abstractionLocations);
+          abs, abstractionLocations, pElement.getReuseStateId());
     }
   }
 
@@ -326,7 +349,7 @@ public class PredicateTransferRelation implements TransferRelation {
       satCheckTimer.start();
       PathFormula pFormula = convertEdgeToPathFormula(pathFormula, pCfaEdge);
       Collection<? extends AbstractState> foundSuccessors =
-          handleNonAbstractionFormulaLocation(pFormula, predicateElement);
+          handleNonAbstractionFormulaLocation(pFormula, predicateElement, Collections.<Integer>emptySet());
       //if we found successors, they all have to be unsat
       for (AbstractState e : foundSuccessors) {
         PredicateAbstractState successor = (PredicateAbstractState) e;
@@ -371,4 +394,6 @@ public class PredicateTransferRelation implements TransferRelation {
 
     return result;
   }
+
+
 }

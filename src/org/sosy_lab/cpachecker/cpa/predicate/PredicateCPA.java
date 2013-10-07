@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -31,6 +34,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -52,6 +56,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionReuse;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
@@ -100,6 +105,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Option(description="Generate invariants and strengthen the formulas during abstraction with them.")
   private boolean useInvariantsForAbstraction = false;
 
+  @Option(name = "abstraction.reuseAbstractionsFrom",
+      description="An initial set of comptued abstractions that might be reusable")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path reuseAbstractionsFrom;
+
   private final Configuration config;
   private final LogManager logger;
 
@@ -119,6 +129,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateAbstractState topState;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final PredicateStaticRefiner staticRefiner;
+  private final PredicateAbstractionReuse abstractionStorage;
 
   protected PredicateCPA(Configuration config, LogManager logger,
       BlockOperator blk, CFA cfa, ReachedSetFactory reachedSetFactory)
@@ -160,14 +171,21 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     AbstractionManager abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
 
-    predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, pathFormulaManager, solver, config, logger);
-    transfer = new PredicateTransferRelation(this, blk);
+    abstractionStorage = new PredicateAbstractionReuse(reuseAbstractionsFrom, logger, formulaManager);
+
+    predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, pathFormulaManager, solver, abstractionStorage, config, logger);
+    transfer = new PredicateTransferRelation(this, blk, abstractionStorage);
+
+    Set<Integer> rootReuseIds = abstractionStorage.hasDataForReuse()
+          ? Collections.<Integer>singleton(abstractionStorage.getRootAbstractionId())
+              : Collections.<Integer>emptySet();
 
     topState = PredicateAbstractState.mkAbstractionState(
         formulaManager.getBooleanFormulaManager(),
         pathFormulaManager.makeEmptyPathFormula(),
         predicateManager.makeTrueAbstractionFormula(null),
-        PathCopyingPersistentTreeMap.<CFANode, Integer>of());
+        PathCopyingPersistentTreeMap.<CFANode, Integer>of(),
+        rootReuseIds);
     domain = new PredicateAbstractDomain(this);
 
     if (mergeType.equals("SEP")) {

@@ -30,11 +30,13 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -133,12 +135,12 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       pathFormula = pathFormulaManager.makeAnd(pathFormula, invariant);
     }
 
-    AbstractionFormula newAbstractionFormula = null;
 
     // compute new abstraction
     computingAbstractionTime.start();
-    newAbstractionFormula = formulaManager.buildAbstraction(
-        loc, abstractionFormula, pathFormula, preds);
+    Pair<AbstractionFormula,Set<Integer>> newAbstraction = formulaManager.buildAbstraction(
+        element.getReuseStateId(), loc, abstractionFormula, pathFormula, preds);
+    AbstractionFormula newAbstractionFormula = newAbstraction.getFirst();
     computingAbstractionTime.stop();
 
     // if the abstraction is false, return bottom (represented by empty set)
@@ -159,7 +161,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
     return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-        newAbstractionFormula, abstractionLocations);
+        newAbstractionFormula, abstractionLocations, newAbstraction.getSecond());
   }
 
   private void extractInvariants() throws CPAException {
