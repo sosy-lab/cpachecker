@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
 
 @Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
@@ -251,11 +250,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         stats.resetSubStatistics();
 
         if (currentCpa != null) {
-          for (ConfigurableProgramAnalysis cpa : CPAs.asIterable(currentCpa)) {
-            closeIfPossible(cpa);
-          }
+          CPAs.closeCpaIfPossible(currentCpa, logger);
         }
-        closeIfPossible(currentAlgorithm);
+        CPAs.closeIfPossible(currentAlgorithm, logger);
 
         logger.log(Level.INFO, "RestartAlgorithm switches to the next configuration...");
       }
@@ -382,17 +379,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     return algorithm;
-  }
-
-  private void closeIfPossible(Object obj) {
-    if (obj instanceof AutoCloseable) {
-      try {
-        ((AutoCloseable)obj).close();
-      } catch (Exception e) {
-        Throwables.propagateIfPossible(e);
-        logger.logUserException(Level.WARNING, e, "Failed to close " + obj.getClass().getSimpleName());
-      }
-    }
   }
 
   @Override
