@@ -192,16 +192,13 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     }
 
     if (returnFormulaType != conv.fmgr.getFormulaType(ret)) {
-      // Could be because both types got promoted
-      if (!promT1.getCanonicalType().equals(t1.getCanonicalType())
-          && !promT2.getCanonicalType().equals(t2.getCanonicalType())) {
-        // We have to cast back to the return type
-        ret = conv.makeCast(implicitType, returnType, ret, edge);
-      }
+      // Could be because one or both of the types got promoted
+      // We have to cast back to the return type
+      ret = conv.makeCast(implicitType, returnType, ret, edge);
     }
 
     assert returnFormulaType == conv.fmgr.getFormulaType(ret)
-         : "Returntype and Formulatype do not match in visit(CBinaryExpression)";
+         : "Returntype and Formulatype do not match in visit(CBinaryExpression): " + exp;
     return ret;
   }
 
