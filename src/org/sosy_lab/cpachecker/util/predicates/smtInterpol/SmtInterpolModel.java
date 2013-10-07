@@ -136,7 +136,11 @@ class SmtInterpolModel {
 
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
 
-    assert env.checkSat() : "model is only available for SAT environments";
+    try {
+      assert env.checkSat() : "model is only available for SAT environments";
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
     Map<Term, Term> val = env.getValue(keys);
 
     for (Term lKeyTerm : keys) {

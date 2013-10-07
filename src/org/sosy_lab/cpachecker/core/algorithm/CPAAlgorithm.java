@@ -39,8 +39,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -126,10 +126,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final LogManager                  logger;
 
-  public CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger, Configuration config) throws InvalidConfigurationException {
+  private final ShutdownNotifier                   shutdownNotifier;
+
+  public CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
+      Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     this.cpa = cpa;
     this.logger = logger;
+    this.shutdownNotifier = pShutdownNotifier;
 
     if (forcedCoveringClass != null) {
       forcedCovering = Classes.createInstance(ForcedCovering.class, forcedCoveringClass,
@@ -165,7 +169,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         cpa.getPrecisionAdjustment();
 
     while (reachedSet.hasWaitingState()) {
-      CPAchecker.stopIfNecessary();
+      shutdownNotifier.shutdownIfNecessary();
 
       stats.countIterations++;
 

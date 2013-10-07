@@ -50,5 +50,5 @@ public interface ProofChecker {
    * Checks whether the given state is covered by an other state. That is, the set of concretisations of the state
    * has to be a subset of the set of concretisations of the other state.
    */
-  public boolean isCoveredBy(AbstractState state, AbstractState otherState) throws CPAException;
+  public boolean isCoveredBy(AbstractState state, AbstractState otherState) throws CPAException, InterruptedException;
 }

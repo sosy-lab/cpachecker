@@ -192,7 +192,7 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public boolean entails(Region pF1, Region pF2) {
+  public boolean entails(Region pF1, Region pF2) throws InterruptedException {
     return delegate.entails(pF1, pF2);
   }
 

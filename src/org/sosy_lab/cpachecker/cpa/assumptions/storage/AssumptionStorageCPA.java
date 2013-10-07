@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -65,8 +66,8 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
   private final FormulaManagerView formulaManager;
   private final AssumptionStorageState topState;
 
-  private AssumptionStorageCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
-    formulaManager = new FormulaManagerView(new FormulaManagerFactory(config, logger).getFormulaManager(), config, logger);
+  private AssumptionStorageCPA(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
+    formulaManager = new FormulaManagerView(new FormulaManagerFactory(config, logger, pShutdownNotifier).getFormulaManager(), config, logger);
     CtoFormulaConverter converter = CtoFormulaConverter.create(config, formulaManager, cfa.getMachineModel(), logger);
     abstractDomain = new AssumptionStorageDomain(formulaManager);
     stopOperator = new AssumptionStorageStop();

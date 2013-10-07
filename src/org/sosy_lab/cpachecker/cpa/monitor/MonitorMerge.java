@@ -41,7 +41,7 @@ public class MonitorMerge implements MergeOperator {
   public AbstractState merge(
       AbstractState pElement1,
       AbstractState pElement2, Precision pPrecision)
-  throws CPAException {
+  throws CPAException, InterruptedException {
     MonitorState monitorState1= (MonitorState)pElement1;
     MonitorState monitorState2 = (MonitorState)pElement2;
 

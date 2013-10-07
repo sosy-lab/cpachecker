@@ -34,6 +34,7 @@ import java.util.List;
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
@@ -46,11 +47,13 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 class SmtInterpolTheoremProver implements ProverEnvironment {
 
   private final SmtInterpolFormulaManager mgr;
+  private final ShutdownNotifier shutdownNotifier;
   private SmtInterpolEnvironment env;
   private final List<Term> assertedTerms;
 
-  SmtInterpolTheoremProver(SmtInterpolFormulaManager pMgr) {
+  SmtInterpolTheoremProver(SmtInterpolFormulaManager pMgr, ShutdownNotifier pShutdownNotifier) {
     this.mgr = pMgr;
+    this.shutdownNotifier = checkNotNull(pShutdownNotifier);
 
     assertedTerms = new ArrayList<>();
     env = mgr.createEnvironment();
@@ -58,7 +61,7 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
   }
 
   @Override
-  public boolean isUnsat() {
+  public boolean isUnsat() throws InterruptedException {
     return !env.checkSat();
   }
 
@@ -94,7 +97,7 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
 
   @Override
   public AllSatResult allSat(Collection<BooleanFormula> formulas,
-                             RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) {
+                             RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException {
     checkNotNull(rmgr);
     checkNotNull(solveTime);
     checkNotNull(enumTime);
@@ -110,14 +113,17 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
     Term[] importantTerms = new Term[formulas.size()];
     int i = 0;
     for (BooleanFormula impF : formulas) {
+
       importantTerms[i++] = mgr.getTerm(impF);
     }
 
     solveTime.start();
     allsatEnv.push(1);
     for (Term[] model : allsatEnv.checkAllSat(importantTerms)) {
+      shutdownNotifier.shutdownIfNecessary();
       result.callback(model);
     }
+    shutdownNotifier.shutdownIfNecessary();
     allsatEnv.pop(1);
 
     if (solveTime.isRunning()) {
@@ -157,16 +163,17 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
     }
 
     @Override
-    public Region getResult() {
+    public Region getResult() throws InterruptedException {
       if (cubes.size() > 0) {
         buildBalancedOr();
       }
       return formula;
     }
 
-    private void buildBalancedOr() {
+    private void buildBalancedOr() throws InterruptedException {
       cubes.add(formula);
       while (cubes.size() > 1) {
+        shutdownNotifier.shutdownIfNecessary();
         Region b1 = cubes.remove();
         Region b2 = cubes.remove();
         cubes.add(rmgr.makeOr(b1, b2));

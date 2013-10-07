@@ -48,7 +48,7 @@ public class StopSepOperator implements StopOperator {
 
   @Override
   public boolean stop(AbstractState el, Collection<AbstractState> reached, Precision precision)
-    throws CPAException {
+    throws CPAException, InterruptedException {
 
     for (AbstractState reachedState : reached) {
       if (domain.isLessOrEqual(el, reachedState)) {

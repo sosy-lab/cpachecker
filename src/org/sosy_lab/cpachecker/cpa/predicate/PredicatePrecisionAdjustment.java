@@ -91,7 +91,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public Triple<AbstractState, Precision, Action> prec(
       AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException {
+      UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
 
     totalPrecTime.start();
 
@@ -111,7 +111,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
    */
   private AbstractState computeAbstraction(
       ComputeAbstractionState element,
-      PredicatePrecision precision) throws CPAException {
+      PredicatePrecision precision) throws CPAException, InterruptedException {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
     PersistentMap<CFANode, Integer> abstractionLocations = element.getAbstractionLocationsOnPath();

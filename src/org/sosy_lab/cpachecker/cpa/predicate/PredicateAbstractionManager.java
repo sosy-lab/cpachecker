@@ -240,10 +240,11 @@ public class PredicateAbstractionManager {
    * @param predicates The set of predicates used for abstraction.
    * @return An AbstractionFormula instance representing an abstraction of
    *          "abstractionFormula & pathFormula" with pathFormula as the block formula.
+   * @throws InterruptedException
    */
   public AbstractionFormula buildAbstraction(CFANode location,
       AbstractionFormula abstractionFormula, PathFormula pathFormula,
-      Collection<AbstractionPredicate> pPredicates) {
+      Collection<AbstractionPredicate> pPredicates) throws InterruptedException {
 
     stats.numCallsAbstraction++;
 
@@ -547,7 +548,7 @@ public class PredicateAbstractionManager {
    */
   private Region identifyTrivialPredicates(
       final Collection<AbstractionPredicate> pPredicates,
-      final AbstractionFormula pOldAbs, final PathFormula pBlockFormula) {
+      final AbstractionFormula pOldAbs, final PathFormula pBlockFormula) throws InterruptedException {
 
     final SSAMap ssa = pBlockFormula.getSsa();
     final Set<String> blockVariables = fmgr.extractVariables(pBlockFormula.getFormula());
@@ -610,7 +611,7 @@ public class PredicateAbstractionManager {
       final BooleanFormula f,
       final PathFormula blockFormula,
       final Collection<AbstractionPredicate> predicates,
-      final Set<Integer> idsOfStoredAbstractionReused) {
+      final Set<Integer> idsOfStoredAbstractionReused) throws InterruptedException {
 
     PathFormula pf = new PathFormula(f, blockFormula.getSsa(), 0);
 
@@ -643,7 +644,7 @@ public class PredicateAbstractionManager {
   }
 
   private Region buildCartesianAbstraction(final BooleanFormula f, final SSAMap ssa,
-      ProverEnvironment thmProver, Collection<AbstractionPredicate> predicates) {
+      ProverEnvironment thmProver, Collection<AbstractionPredicate> predicates) throws InterruptedException {
 
     stats.abstractionSolveTime.start();
     boolean feasibility = !thmProver.isUnsat();
@@ -757,7 +758,7 @@ public class PredicateAbstractionManager {
   }
 
   private Region buildBooleanAbstraction(SSAMap ssa,
-      ProverEnvironment thmProver, Collection<AbstractionPredicate> predicates) {
+      ProverEnvironment thmProver, Collection<AbstractionPredicate> predicates) throws InterruptedException {
 
     // build the definition of the predicates, and instantiate them
     // also collect all predicate variables so that the solver knows for which
@@ -800,14 +801,14 @@ public class PredicateAbstractionManager {
   /**
    * Checks if a1 => a2
    */
-  public boolean checkCoverage(AbstractionFormula a1, AbstractionFormula a2) {
+  public boolean checkCoverage(AbstractionFormula a1, AbstractionFormula a2) throws InterruptedException {
     return amgr.entails(a1.asRegion(), a2.asRegion());
   }
 
   /**
    * Checks if (a1 & p1) => a2
    */
-  public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2) {
+  public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2) throws InterruptedException {
     BooleanFormula absFormula = a1.asInstantiatedFormula();
     BooleanFormula symbFormula = buildFormula(p1.getFormula());
     BooleanFormula a = bfmgr.and(absFormula, symbFormula);
@@ -821,7 +822,7 @@ public class PredicateAbstractionManager {
   /**
    * Checks whether a1.getFormula() => a2.getFormula() and whether the a1.getSsa()(v) <= a2.getSsa()(v) for all v
    */
-  public boolean checkCoverage(PathFormula a1, PathFormula a2, PathFormulaManager pfmgr) {
+  public boolean checkCoverage(PathFormula a1, PathFormula a2, PathFormulaManager pfmgr) throws InterruptedException {
     stats.numPathFormulaCoverageChecks++;
 
     //handle common special case more efficiently
@@ -866,7 +867,7 @@ public class PredicateAbstractionManager {
    * @param pPathFormula the path formula
    * @return unsat(pAbstractionFormula & pPathFormula)
    */
-  public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula) {
+  public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula) throws InterruptedException {
     BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
     BooleanFormula symbFormula = buildFormula(pathFormula.getFormula());
     BooleanFormula f = bfmgr.and(absFormula, symbFormula);

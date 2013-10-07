@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormulaManager;
@@ -57,6 +58,7 @@ public class FMtester {
     // delcare and construct the basic objects
     //Dialect dialect = Dialect.GNUC;
     Configuration config = Configuration.defaultConfiguration();
+    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
     LogManager logger;
     CFACreator cfac;
     FunctionEntryNode root = null;
@@ -67,7 +69,7 @@ public class FMtester {
 
     try {
       logger = new BasicLogManager(config);
-      cfac = new CFACreator(config, logger);
+      cfac = new CFACreator(config, logger, shutdownNotifier);
       CFA cfa = cfac.parseFileAndCreateCFA(testfile);
       root = cfa.getMainFunction();
 

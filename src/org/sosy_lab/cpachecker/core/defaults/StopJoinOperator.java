@@ -47,7 +47,7 @@ public class StopJoinOperator implements StopOperator {
 
   @Override
   public boolean stop(AbstractState state, Collection<AbstractState> reached,
-                      Precision precision) throws CPAException {
+                      Precision precision) throws CPAException, InterruptedException {
     Iterator<AbstractState> it = reached.iterator();
     AbstractState joinedState = it.next();
     while (it.hasNext()) {

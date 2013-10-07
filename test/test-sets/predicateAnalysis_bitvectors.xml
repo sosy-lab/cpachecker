@@ -10,7 +10,7 @@
     <option name="-noout"/>
     <option name="-predicateAnalysis"/>
     <option name="-heap">2500M</option>
-    <option name="-setprop">cpa.conditions.global.time.wall=3min</option>
+    <option name="-setprop">limits.time.cpu=3min</option>
     <option name="-setprop">cpa.predicate.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.ignoreCasts=false</option>
     <option name="-setprop">cpa.predicate.replaceBitvectorWithRationalAndFunctionTheory=false</option>

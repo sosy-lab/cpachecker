@@ -126,7 +126,7 @@ public abstract class RefinementStrategy {
 
 
   public void performRefinement(ARGReachedSet pReached, List<ARGState> abstractionStatesTrace,
-      List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException {
+      List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
     // Hook
     startRefinementOfPath();
 
@@ -238,7 +238,7 @@ public abstract class RefinementStrategy {
    * @return True if no refinement was necessary (this implies that refinement
    *          on all of the state's parents is also not necessary)
    */
-  protected abstract boolean performRefinementForState(BooleanFormula interpolant, ARGState state);
+  protected abstract boolean performRefinementForState(BooleanFormula interpolant, ARGState state) throws InterruptedException;
 
   /**
    * Do any necessary work after one path has been refined.
@@ -249,12 +249,13 @@ public abstract class RefinementStrategy {
    * @param reached The reached set.
    * @param repeatedCounterexample Whether the counterexample has been found before.
    * @throws CPAException
+   * @throws InterruptedException
    */
   protected abstract void finishRefinementOfPath(
       final ARGState unreachableState,
       List<ARGState> affectedStates,
       ARGReachedSet reached,
-      boolean repeatedCounterexample) throws CPAException;
+      boolean repeatedCounterexample) throws CPAException, InterruptedException;
 
   public abstract Statistics getStatistics();
 }

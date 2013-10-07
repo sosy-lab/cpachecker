@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -353,10 +354,10 @@ public class ABMTransferRelation implements TransferRelation {
 
 
   public ABMTransferRelation(Configuration pConfig, LogManager pLogger, ABMCPA abmCpa, ProofChecker wrappedChecker,
-      ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
+      ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
-    algorithm = new CPAAlgorithm(abmCpa, logger, pConfig);
+    algorithm = new CPAAlgorithm(abmCpa, logger, pConfig, pShutdownNotifier);
     reachedSetFactory = pReachedSetFactory;
     wrappedTransfer = abmCpa.getWrappedCpa().getTransferRelation();
     wrappedReducer = abmCpa.getReducer();

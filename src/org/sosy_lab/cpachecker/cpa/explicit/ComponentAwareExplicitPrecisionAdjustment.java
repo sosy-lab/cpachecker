@@ -131,7 +131,7 @@ public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisio
   @Override
   public Triple<AbstractState, Precision, Action> prec(AbstractState pElement,
                                                Precision pPrecision,
-                                               UnmodifiableReachedSet pElements) throws CPAException {
+                                               UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
     total.start();
     modified = false;
 
