@@ -81,7 +81,7 @@ public class CPAs {
    */
   public static void closeCpaIfPossible(ConfigurableProgramAnalysis cpa, LogManager logger) {
     for (ConfigurableProgramAnalysis currentCpa : CPAs.asIterable(cpa)) {
-      closeCpaIfPossible(currentCpa, logger);
+      closeIfPossible(currentCpa, logger);
     }
   }
 
