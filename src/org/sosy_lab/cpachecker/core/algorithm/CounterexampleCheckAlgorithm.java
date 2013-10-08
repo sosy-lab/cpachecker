@@ -134,6 +134,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
         Set<ARGState> statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
 
+        logger.log(Level.INFO, "Error path found, starting counterexample check with " + checkerName + ".");
         boolean feasibility;
         try {
           feasibility = checker.checkCounterexample(rootState, errorState, statesOnErrorPath);

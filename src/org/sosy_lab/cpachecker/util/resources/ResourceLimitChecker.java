@@ -42,7 +42,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.math.LongMath;
 import com.google.common.primitives.Longs;
 
@@ -122,7 +125,17 @@ public final class ResourceLimitChecker {
       }
     }
 
-    return new ResourceLimitChecker(notifier, limits.build());
+    ImmutableList<ResourceLimit> limitsList = limits.build();
+    if (!limitsList.isEmpty()) {
+      logger.log(Level.INFO, "Using the following resource limits:",
+          Joiner.on(", ").join(Lists.transform(limitsList,
+              new Function<ResourceLimit, String>() {
+                public String apply(ResourceLimit pInput) {
+                  return pInput.getName();
+                }
+              })));
+    }
+    return new ResourceLimitChecker(notifier, limitsList);
   }
 
   @Options(prefix="limits")
