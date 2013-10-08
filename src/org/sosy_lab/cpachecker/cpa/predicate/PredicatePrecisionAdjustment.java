@@ -62,7 +62,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   final Timer totalPrecTime = new Timer();
   final Timer invariantGenerationTime = new Timer();
   final Timer computingAbstractionTime = new Timer();
-  final Timer reuseAbstractionTime = new Timer();
 
   int numAbstractions = 0;
   int numAbstractionsFalse = 0;
@@ -139,9 +138,12 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     // compute new abstraction
     computingAbstractionTime.start();
-    newAbstractionFormula = formulaManager.buildAbstraction(
-        loc, abstractionFormula, pathFormula, preds);
-    computingAbstractionTime.stop();
+    try {
+      newAbstractionFormula = formulaManager.buildAbstraction(
+          loc, abstractionFormula, pathFormula, preds);
+    } finally {
+      computingAbstractionTime.stop();
+    }
 
     // if the abstraction is false, return bottom (represented by empty set)
     if (newAbstractionFormula.isFalse()) {
