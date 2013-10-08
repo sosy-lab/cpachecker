@@ -495,11 +495,13 @@ class ASTTypeConverter {
     String name = ASTConverter.convert(d.getName());
     CComplexType realType = scope.lookupType(type.toASTString() + " " + name);
 
-    int counter = 0;
-    while (realType == null && counter < typeConversions.size() && typeConversions.size() > 1) {
-      realType = scope.lookupType(type.toASTString() + " " + name + "__" + counter);
-      name = name + "__" + counter;
+    int counter = -1;
+    while (realType == null && counter < (typeConversions.size() - 1) && typeConversions.size() > 1) {
       counter++;
+      realType = scope.lookupType(type.toASTString() + " " + name + "__" + counter);
+    }
+    if (counter >= 0) {
+      name = name + "__" + counter;
     }
 
     return new CElaboratedType(d.isConst(), d.isVolatile(), type, name, realType);
