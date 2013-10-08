@@ -263,7 +263,7 @@ public class ExplicitExpressionValueVisitor
 
   @Override
   public Long visit(CCastExpression pE) throws UnrecognizedCCodeException {
-    return castCValue(pE.getOperand().accept(this), pE.getType());
+    return castCValue(pE.getOperand().accept(this), pE.getExpressionType());
   }
 
   @Override

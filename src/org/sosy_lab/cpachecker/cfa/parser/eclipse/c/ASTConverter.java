@@ -515,20 +515,18 @@ class ASTConverter {
     final CType type = typeConverter.convert(e.getExpressionType());
     final CType castType = convert(e.getTypeId());
 
-    // TODO why do wee need 2 types here? would one not be enough?
-    // the cast-expression only needs an operand and one type (which is the target-type).
-    // the other type should always be equal to castExpr.getOperand().getExpressionType().
-
     if("__imag__".equals(e.getTypeId().getRawSignature())) {
       return new CComplexCastExpression(loc, type, operand, castType, false);
     } else if ("__real__".equals(e.getTypeId().getRawSignature())) {
       return new CComplexCastExpression(loc, type, operand, castType, true);
     }
 
+    assert type.getCanonicalType().equals(castType.getCanonicalType());
+
     if (e.getOperand() instanceof IASTFieldReference && ((IASTFieldReference)e.getOperand()).isPointerDereference()) {
-      return createInitializedTemporaryVariable(loc, type, new CCastExpression(loc, type, operand, castType));
+      return createInitializedTemporaryVariable(loc, type, new CCastExpression(loc, type, operand));
     } else {
-      return new CCastExpression(loc, type, operand, castType);
+      return new CCastExpression(loc, type, operand);
     }
   }
 

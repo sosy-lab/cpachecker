@@ -200,8 +200,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
         newExpr = expr;
       } else {
         newExpr = new CCastExpression(
-            expr.getFileLocation(), expr.getExpressionType(),
-            pair.getFirst(), expr.getType());
+            expr.getFileLocation(), expr.getExpressionType(), pair.getFirst());
       }
       return Pair.of((CExpression) newExpr, null);
     }
