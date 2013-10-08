@@ -519,9 +519,9 @@ class ASTConverter {
     // the cast-expression only needs an operand and one type (which is the target-type).
     // the other type should always be equal to castExpr.getOperand().getExpressionType().
 
-    if(e.getRawSignature().contains("__imag__")) {
+    if("__imag__".equals(e.getTypeId().getRawSignature())) {
       return new CComplexCastExpression(loc, type, operand, castType, false);
-    } else if (e.getRawSignature().contains("__real__")) {
+    } else if ("__real__".equals(e.getTypeId().getRawSignature())) {
       return new CComplexCastExpression(loc, type, operand, castType, true);
     }
 
@@ -632,16 +632,14 @@ class ASTConverter {
       }
     }
 
-    CType type = typeConverter.convert(e.getExpressionType());
-
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
     // if the owner is a FieldReference itself there's the need for a temporary Variable
     // but only if we are not in global scope, otherwise there will be parsing errors
     if (simplifyPointerExpressions && owner instanceof CFieldReference && !scope.isGlobalScope() && (e.isPointerDereference())) {
-      owner = createInitializedTemporaryVariable(
-          loc, typeConverter.convert(e.getFieldOwner().getExpressionType()), owner);
+      owner = createInitializedTemporaryVariable(loc, owner.getExpressionType(), owner);
     }
 
+    CType type = typeConverter.convert(e.getExpressionType());
     if (containsProblemType(type)) {
       CType ownerType = owner.getExpressionType().getCanonicalType();
       if (e.isPointerDereference()) {
