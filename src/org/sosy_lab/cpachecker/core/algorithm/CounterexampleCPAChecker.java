@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 @Options(prefix="counterexample.checker")
 public class CounterexampleCPAChecker implements CounterexampleChecker {
@@ -105,8 +106,10 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
               .loadFromFile(configFile)
               .setOption("specification", automatonFile.toAbsolutePath().toString())
               .build();
+      ShutdownNotifier lShutdownNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+      ResourceLimitChecker.fromConfiguration(lConfig, logger, lShutdownNotifier).start();
 
-      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger, shutdownNotifier);
+      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger, lShutdownNotifier);
       ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, null);
       ReachedSet lReached = factory.createReachedSet();
@@ -114,6 +117,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
       lAlgorithm.run(lReached);
 
+      lShutdownNotifier.requestShutdown("Analysis terminated");
       CPAs.closeCpaIfPossible(lCpas, logger);
       CPAs.closeIfPossible(lAlgorithm, logger);
 
