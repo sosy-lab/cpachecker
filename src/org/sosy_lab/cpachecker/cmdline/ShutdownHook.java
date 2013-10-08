@@ -49,9 +49,13 @@ class ShutdownHook extends Thread {
     mainThread = Thread.currentThread();
   }
 
-  public void disable() {
+  public void disableAndStop() {
     enabled = false;
     this.interrupt(); // in case it is already running
+  }
+
+  public void disable() {
+    enabled = false;
   }
 
   // We want to use Thread.stop() to force the main thread to stop

@@ -119,7 +119,7 @@ class ForceTerminationOnShutdown implements Runnable {
     // that blocks it until the main thread terminates,
     // so we have to disable that ShutdownHook.
 
-    shutdownHook.disable();
+    shutdownHook.disableAndStop();
     System.exit(0);
   }
 
