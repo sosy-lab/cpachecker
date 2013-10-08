@@ -94,15 +94,17 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
 
     totalPrecTime.start();
+    try {
+      if (pElement instanceof ComputeAbstractionState) {
+        ComputeAbstractionState element = (ComputeAbstractionState)pElement;
+        PredicatePrecision precision = (PredicatePrecision)pPrecision;
 
-    if (pElement instanceof ComputeAbstractionState) {
-      ComputeAbstractionState element = (ComputeAbstractionState)pElement;
-      PredicatePrecision precision = (PredicatePrecision)pPrecision;
+        pElement = computeAbstraction(element, precision);
+      }
 
-      pElement = computeAbstraction(element, precision);
+    } finally {
+      totalPrecTime.stop();
     }
-
-    totalPrecTime.stop();
     return Triple.of(pElement, pPrecision, Action.CONTINUE);
   }
 

@@ -87,13 +87,15 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
 
     MathsatAllSatCallback callback = new MathsatAllSatCallback(this, rmgr, solveTime, enumTime, curEnv);
     solveTime.start();
-
-    int numModels = msat_all_sat(curEnv, imp, callback);
-
-    if (solveTime.isRunning()) {
-      solveTime.stop();
-    } else {
-      enumTime.stopOuter();
+    int numModels;
+    try {
+      numModels = msat_all_sat(curEnv, imp, callback);
+    } finally {
+      if (solveTime.isRunning()) {
+        solveTime.stop();
+      } else {
+        enumTime.stopOuter();
+      }
     }
 
     if (numModels == -1) {

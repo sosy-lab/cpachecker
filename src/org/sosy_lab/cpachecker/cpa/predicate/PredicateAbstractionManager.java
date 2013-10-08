@@ -419,8 +419,12 @@ public class PredicateAbstractionManager {
         stats.numSatCheckAbstractions++;
 
         stats.abstractionSolveTime.start();
-        boolean feasibility = !thmProver.isUnsat();
-        stats.abstractionSolveTime.stop();
+        boolean feasibility;
+        try {
+          feasibility = !thmProver.isUnsat();
+        } finally {
+          stats.abstractionSolveTime.stop();
+        }
 
         if (!feasibility) {
           abs = rmgr.makeFalse();
@@ -430,9 +434,12 @@ public class PredicateAbstractionManager {
         if (abstractionType != AbstractionType.BOOLEAN) {
           // First do cartesian abstraction if desired
           stats.cartesianAbstractionTime.start();
-          abs = rmgr.makeAnd(abs,
-              buildCartesianAbstraction(f, ssa, thmProver, predicates));
-          stats.cartesianAbstractionTime.stop();
+          try {
+            abs = rmgr.makeAnd(abs,
+                buildCartesianAbstraction(f, ssa, thmProver, predicates));
+          } finally {
+            stats.cartesianAbstractionTime.stop();
+          }
         }
 
         if (abstractionType == AbstractionType.COMBINED) {
@@ -447,9 +454,12 @@ public class PredicateAbstractionManager {
           // Last do boolean abstraction if desired and necessary
           stats.numBooleanAbsPredicates += predicates.size();
           stats.booleanAbstractionTime.start();
-          abs = rmgr.makeAnd(abs,
-              buildBooleanAbstraction(ssa, thmProver, predicates));
-          stats.booleanAbstractionTime.stop();
+          try {
+            abs = rmgr.makeAnd(abs,
+                buildBooleanAbstraction(ssa, thmProver, predicates));
+          } finally {
+            stats.booleanAbstractionTime.stop();
+          }
 
           // Warning:
           // buildBooleanAbstraction() does not clean up thmProver, so do not use it here.

@@ -118,18 +118,21 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
     }
 
     solveTime.start();
-    allsatEnv.push(1);
-    for (Term[] model : allsatEnv.checkAllSat(importantTerms)) {
+    try {
+      allsatEnv.push(1);
+      for (Term[] model : allsatEnv.checkAllSat(importantTerms)) {
+        shutdownNotifier.shutdownIfNecessary();
+        result.callback(model);
+      }
       shutdownNotifier.shutdownIfNecessary();
-      result.callback(model);
-    }
-    shutdownNotifier.shutdownIfNecessary();
-    allsatEnv.pop(1);
+      allsatEnv.pop(1);
 
-    if (solveTime.isRunning()) {
-      solveTime.stop();
-    } else {
-      enumTime.stopOuter();
+    } finally {
+      if (solveTime.isRunning()) {
+        solveTime.stop();
+      } else {
+        enumTime.stopOuter();
+      }
     }
 
     return result;
