@@ -311,6 +311,7 @@ class CFABuilder extends ASTVisitor {
 
         } else {
           newD = globalScope.getTypes().get(newType.getQualifiedName() + "__" + (counter - 1));
+          used = fileScope.registerTypeDeclaration(newD);
 
           ASTTypeConverter conv = new ASTTypeConverter(fileScope, astCreator, staticVariablePrefix);
           IType key = conv.getTypeFromTypeConversion(newType);
