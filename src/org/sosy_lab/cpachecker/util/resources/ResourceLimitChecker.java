@@ -130,6 +130,7 @@ public final class ResourceLimitChecker {
       logger.log(Level.INFO, "Using the following resource limits:",
           Joiner.on(", ").join(Lists.transform(limitsList,
               new Function<ResourceLimit, String>() {
+                @Override
                 public String apply(ResourceLimit pInput) {
                   return pInput.getName();
                 }
