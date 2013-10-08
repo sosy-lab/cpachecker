@@ -27,9 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager.getMsatTerm;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
-import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Deque;
 
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
@@ -38,6 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
 
 import com.google.common.base.Preconditions;
 
@@ -118,6 +117,7 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
 
     private final ShutdownNotifier shutdownNotifier;
     private final RegionCreator rmgr;
+    private final RegionBuilder builder;
 
     private final Timer solveTime;
     private final NestedTimer enumTime;
@@ -125,8 +125,7 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
 
     private int count = 0;
 
-    private Region formula;
-    private final Deque<Region> cubes = new ArrayDeque<>();
+    private Region formula = null;
     private long env;
 
     private Mathsat5TheoremProver prover;
@@ -134,16 +133,15 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
     public MathsatAllSatCallback(Mathsat5TheoremProver prover, RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime, long env) {
       this.rmgr = rmgr;
       this.prover = prover;
-      this.formula = rmgr.makeFalse();
       this.solveTime = pSolveTime;
       this.enumTime = pEnumTime;
       this.env = env;
       this.shutdownNotifier = prover.mgr.getShutdownNotifier();
+      builder = rmgr.newRegionBuilder(shutdownNotifier);
     }
 
     public void setInfiniteNumberOfModels() {
       count = Integer.MAX_VALUE;
-      cubes.clear();
       formula = rmgr.makeTrue();
     }
 
@@ -154,24 +152,16 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
 
     @Override
     public Region getResult() throws InterruptedException {
-      if (cubes.size() > 0) {
-        buildBalancedOr();
+      if (formula == null) {
+        enumTime.startBoth();
+        try {
+          formula = builder.getResult();
+          builder.close();
+        } finally {
+          enumTime.stopBoth();
+        }
       }
       return formula;
-    }
-
-    private void buildBalancedOr() throws InterruptedException {
-      enumTime.startBoth();
-      cubes.add(formula);
-      while (cubes.size() > 1) {
-        shutdownNotifier.shutdownIfNecessary();
-        Region b1 = cubes.remove();
-        Region b2 = cubes.remove();
-        cubes.add(rmgr.makeOr(b1, b2));
-      }
-      assert (cubes.size() == 1);
-      formula = cubes.remove();
-      enumTime.stopBoth();
     }
 
     @Override
@@ -190,30 +180,17 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
       // of all the models found by msat_all_sat, and storing them
       // in a BDD
       // first, let's create the BDD corresponding to the model
-      Deque<Region> curCube = new ArrayDeque<>(model.length + 1);
-      Region m = rmgr.makeTrue();
+      builder.startNewConjunction();
       for (long t : model) {
-        Region v;
         if (msat_term_is_not(env, t)) {
           t = msat_term_get_arg(t, 0);
 
-          v = rmgr.getPredicate(prover.mgr.encapsulateBooleanFormula(t));
-          v = rmgr.makeNot(v);
+          builder.addNegativeRegion(rmgr.getPredicate(prover.mgr.encapsulateBooleanFormula(t)));
         } else {
-          v = rmgr.getPredicate(prover.mgr.encapsulateBooleanFormula(t));
+          builder.addPositiveRegion(rmgr.getPredicate(prover.mgr.encapsulateBooleanFormula(t)));
         }
-        curCube.add(v);
       }
-      // now, add the model to the bdd
-      curCube.add(m);
-      while (curCube.size() > 1) {
-        Region v1 = curCube.remove();
-        Region v2 = curCube.remove();
-        curCube.add(rmgr.makeAnd(v1, v2));
-      }
-      assert (curCube.size() == 1);
-      m = curCube.remove();
-      cubes.add(m);
+      builder.finishConjunction();
 
       count++;
 

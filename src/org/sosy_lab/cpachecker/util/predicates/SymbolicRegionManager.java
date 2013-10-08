@@ -30,6 +30,7 @@ import java.io.PrintStream;
 import java.util.Set;
 
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -192,6 +193,51 @@ public class SymbolicRegionManager implements RegionManager {
             return new SymbolicRegion(bfmgr, input);
           }
         }).toSet();
+  }
+
+  @Override
+  public RegionBuilder builder(ShutdownNotifier pShutdownNotifier) {
+    return new SymbolicRegionBuilder();
+  }
+
+  private class SymbolicRegionBuilder implements RegionBuilder {
+
+    private BooleanFormula currentCube = null;
+    private BooleanFormula cubes = bfmgr.makeBoolean(false);
+
+    @Override
+    public void startNewConjunction() {
+      checkState(currentCube == null);
+      currentCube = bfmgr.makeBoolean(true);
+    }
+
+    @Override
+    public void addPositiveRegion(Region r) {
+      checkState(currentCube != null);
+      currentCube = bfmgr.and(((SymbolicRegion)r).f, currentCube);
+    }
+
+    @Override
+    public void addNegativeRegion(Region r) {
+      checkState(currentCube != null);
+      currentCube = bfmgr.and(bfmgr.not(((SymbolicRegion)r).f), currentCube);
+    }
+
+    @Override
+    public void finishConjunction() {
+      checkState(currentCube != null);
+      cubes = bfmgr.or(currentCube, cubes);
+      currentCube = null;
+    }
+
+    @Override
+    public Region getResult() throws InterruptedException {
+      return new SymbolicRegion(bfmgr, cubes);
+    }
+
+    @Override
+    public void close() {
+    }
   }
 
   @Override
