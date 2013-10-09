@@ -109,8 +109,8 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     this.shutdownNotifier = pShutdownNotifier;
   }
 
-  protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
-      ARGPath errorPath) throws CPAException, InterruptedException {
+  protected Multimap<CFANode, String> determinePrecisionIncrement(ARGPath errorPath)
+      throws CPAException, InterruptedException {
     timerInterpolation.start();
 
     interpolationOffset                   = -1;

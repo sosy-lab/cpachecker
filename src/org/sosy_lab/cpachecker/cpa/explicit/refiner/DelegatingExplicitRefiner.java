@@ -273,7 +273,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       initialStaticRefinementDone = true;
     }
     else {
-      Multimap<CFANode, String> increment = interpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
+      Multimap<CFANode, String> increment = interpolatingRefiner.determinePrecisionIncrement(errorPath);
       refinementRoot                      = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
 
       // no increment - explicit refinement was not successful
