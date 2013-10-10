@@ -200,8 +200,17 @@ public class CBinaryExpressionBuilder {
     }
 
     if (bitwiseOperators.contains(pBinOperator)) {
-      assert integerTypes.contains(((CSimpleType) pType1).getType());
-      assert integerTypes.contains(((CSimpleType) pType2).getType());
+      if (pType1 instanceof CSimpleType) {
+        assert integerTypes.contains(((CSimpleType) pType1).getType());
+      } else {
+        assert pType1 instanceof CEnumType;
+      }
+
+      if (pType2 instanceof CSimpleType) {
+        assert integerTypes.contains(((CSimpleType) pType2).getType());
+      } else {
+        assert pType2 instanceof CEnumType;
+      }
     }
 
     return getCalculationTypeForBinaryOperation(pType1, pType2, pBinOperator);
