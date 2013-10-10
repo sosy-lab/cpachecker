@@ -61,7 +61,6 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTGotoStatement;
 import org.eclipse.cdt.core.dom.ast.IASTIfStatement;
 import org.eclipse.cdt.core.dom.ast.IASTLabelStatement;
-import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTNullStatement;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
@@ -1012,20 +1011,13 @@ class CFAFunctionBuilder extends ASTVisitor {
   /**
    * @category conditions
    */
-  private CONDITION getConditionKind(final IASTExpression cond) {
-      if (cond instanceof IASTLiteralExpression) {
-          IASTLiteralExpression literalExpression = (IASTLiteralExpression) cond;
-          if (literalExpression.getKind() == IASTLiteralExpression.lk_integer_constant) {
-              String s = String.valueOf(literalExpression.getValue());
-              BigInteger i = astCreator.parseIntegerLiteral(s, cond);
-              if (i.equals(BigInteger.ZERO)) {
-                return CONDITION.ALWAYS_FALSE;
-              } else {
-                return CONDITION.ALWAYS_TRUE;
-              }
-          }
-      }
-      return CONDITION.NORMAL;
+  private CONDITION getConditionKind(final CExpression cond) {
+    Number value = cond.accept(expressionSimplificator).getSecond();
+    if (value != null) {
+      return value.longValue() == 1 ? CONDITION.ALWAYS_TRUE : CONDITION.ALWAYS_FALSE;
+    }
+
+    return CONDITION.NORMAL;
   }
 
   /**
@@ -1067,8 +1059,14 @@ class CFAFunctionBuilder extends ASTVisitor {
       buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true);
 
     } else {
-      final CONDITION kind = getConditionKind(condition);
+
       String rawSignature = condition.getRawSignature();
+
+      final CExpression exp = astCreator.convertExpressionWithoutSideEffects(condition);
+      rootNode = handleAllSideEffects(rootNode, filelocStart, rawSignature, true);
+      exp.accept(checkBinding);
+
+      final CONDITION kind = getConditionKind(exp);
 
       switch (kind) {
       case ALWAYS_FALSE:
@@ -1077,6 +1075,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
         final BlankEdge falseEdge = new BlankEdge(rawSignature, filelocStart, rootNode, elseNode, "");
         addToCFA(falseEdge);
+
+        // reset side assignments which are not necessary
         return;
 
       case ALWAYS_TRUE:
@@ -1093,10 +1093,6 @@ class CFAFunctionBuilder extends ASTVisitor {
       case NORMAL:
       }
 
-      final CExpression exp = astCreator.convertExpressionWithoutSideEffects(condition);
-
-      rootNode = handleAllSideEffects(rootNode, filelocStart, rawSignature, true);
-      exp.accept(checkBinding);
 
       if (furtherThenComputation) {
         thenNodeForLastThen = thenNode;
