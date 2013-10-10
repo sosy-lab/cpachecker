@@ -30,10 +30,11 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.cdt.internal.core.dom.parser.ProblemType;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -41,13 +42,17 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.collect.Sets;
 
 
-/** This Class handles the promotion and conversion of C-types, as defined in ISO-C99.
+/** This Class build binary expression.
+ * It handles the promotion and conversion of C-types,
+ * depending on the operands,
+ * as defined in ISO-C99.
  *
  * This class should be used to get the correct CTypes for a binary operation.
  * There are always 4 types in  a binary operation, that may be different:
@@ -74,7 +79,7 @@ import com.google.common.collect.Sets;
  * but only of the assignment, and this is not handled within this class.
  *
  */
-public class CTypeConversionHandler {
+public class CBinaryExpressionBuilder {
 
 
   private final static Set<BinaryOperator> relationalOperators = Sets.immutableEnumSet(
@@ -108,23 +113,58 @@ public class CTypeConversionHandler {
 
   private final MachineModel machineModel;
   private final LogManager logger;
-  private final CFAEdge edge;
 
 
   /** This constructor does nothing, except initializing fields.
-   *
-   * @param pMachineModel where to get info about types, for casting and overflows
-   * @param pLogger logging
-   * @param pEdge only for logging, not needed
-   */
-  public CTypeConversionHandler(MachineModel pMachineModel, LogManager pLogger, @Nullable CFAEdge pEdge) {
+  *
+  * @param pMachineModel where to get info about types, for casting and overflows
+  * @param pLogger logging
+  * @param pEdge only for logging, not needed
+  */
+  public CBinaryExpressionBuilder(MachineModel pMachineModel, LogManager pLogger) {
     this.logger = pLogger;
     this.machineModel = pMachineModel;
-    this.edge = pEdge;
   }
 
 
-  /** This method calculates the type of the result of a binary operation.
+  /** This method returns a binaryExpression.
+   * It is better (safer) to use this method instead of the Constructor of the CBinaryExpression,
+   * because the C-type of the expression is build from the operands and the operator.
+   *
+   *  @param op1 first operand
+   *  @param op2 second operand
+   *  @param op operator between the operands */
+  public CBinaryExpression buildBinaryExpression(CExpression op1, CExpression op2, BinaryOperator op) {
+
+    // TODO if calculation- and result-function are never needed independent
+    // from each other, we could merge them. --> speedup?
+
+    final CType t1 = op1.getExpressionType();
+    final CType t2 = op2.getExpressionType();
+
+    final CType calculationType;
+    final CType resultType;
+
+    // if parser cannot determinate type, we ignore the type
+    // TODO do we use the correct CProblemType?
+    // TODO in special cases (depending on the operator) we could return the correct type
+    if (t1 instanceof CProblemType) {
+      calculationType = resultType = t1;
+    } else if (t2 instanceof CProblemType) {
+      calculationType = resultType = t2;
+
+    } else {
+      calculationType = getCalculationTypeForBinaryOperation(t1, t2, op);
+      resultType = getResultTypeForBinaryOperation(t1, t2, op);
+    }
+
+    return new CBinaryExpression(op1.getFileLocation(), resultType, op1, op2, op);
+  }
+
+  /**
+   * private method, only visible for Junit-test.
+   * <p>
+   * This method calculates the type of the result of a binary operation.
    * This type may be different from the type of the calculation itself,
    * in most cases it is equal, only sometimes it is smaller.
    * It should not be bigger than the type of the calculation.
@@ -133,10 +173,9 @@ public class CTypeConversionHandler {
    * @param pType1 type of the first operand
    * @param pType2 type of the second operand
    * @param pBinOperator used to get the result-type
-   * @param pBinExp for logging
    */
-  public CType getResultTypeForBinaryOperation(final CType pType1, final CType pType2,
-      final BinaryOperator pBinOperator, @Nullable final CBinaryExpression pBinExp) {
+  CType getResultTypeForBinaryOperation(final CType pType1, final CType pType2,
+      final BinaryOperator pBinOperator) {
     /*
      * ISO-C99 (6.5.8 #6): Relational operators
      * Each of the operators <, >, <=, and >= shall yield 1
@@ -165,7 +204,7 @@ public class CTypeConversionHandler {
       assert integerTypes.contains(((CSimpleType) pType2).getType());
     }
 
-    return getCalculationTypeForBinaryOperation(pType1, pType2, pBinOperator, pBinExp);
+    return getCalculationTypeForBinaryOperation(pType1, pType2, pBinOperator);
   }
 
 
@@ -186,8 +225,10 @@ public class CTypeConversionHandler {
     }
   }
 
-
-  /** This method returns the "common real type" of a binary expression.
+  /**
+   * private method, only visible for Junit-test.
+   * <p>
+   * This method returns the "common real type" of a binary expression.
    * For detail see ISO-C-Standard:
    * <ul>
    * <li>6.3.1.8 Usual arithmetic conversions
@@ -198,10 +239,9 @@ public class CTypeConversionHandler {
    * @param pType1 type of the first operand
    * @param pType2 type of the second operand
    * @param pBinOperator for logging and some checks. Not needed, if both types are 'simple'.
-   * @param pBinExp for logging
    */
-  public CType getCalculationTypeForBinaryOperation(CType pType1, CType pType2,
-      final BinaryOperator pBinOperator, @Nullable final CBinaryExpression pBinExp) {
+  CType getCalculationTypeForBinaryOperation(CType pType1, CType pType2,
+      final BinaryOperator pBinOperator) {
 
     pType1 = pType1.getCanonicalType();
     pType2 = pType2.getCanonicalType();
@@ -225,16 +265,15 @@ public class CTypeConversionHandler {
 
       final CType commonType = getCommonSimpleTypeForBinaryOperation((CSimpleType) pType1, (CSimpleType) pType2);
 
-      logger.logf(Level.FINEST, "type-conversion in line %d (%s): %s (%s, %s) -> %s",
-          edge == null ? null : edge.getLineNumber(),
-          pBinExp, pBinOperator, pType1, pType2, commonType);
+      logger.logf(Level.FINEST, "type-conversion: %s (%s, %s) -> %s",
+          pBinOperator, pType1, pType2, commonType);
 
       return commonType;
     }
 
 
-    if (pType1 instanceof CSimpleType) { return getSecondTypeToSimpleType(pType2, pBinOperator, pBinExp); }
-    if (pType2 instanceof CSimpleType) { return getSecondTypeToSimpleType(pType1, pBinOperator, pBinExp); }
+    if (pType1 instanceof CSimpleType) { return getSecondTypeToSimpleType(pType2, pBinOperator); }
+    if (pType2 instanceof CSimpleType) { return getSecondTypeToSimpleType(pType1, pBinOperator); }
 
 
     // both are pointer or function-pointer
@@ -244,27 +283,16 @@ public class CTypeConversionHandler {
       if (pBinOperator == BinaryOperator.MINUS) { return machineModel.getPointerDiffType(); }
 
       assert relationalOperators.contains(pBinOperator) : ""
-          + "unusual calculation with two pointer-operands: "
-          + pBinExp;
+          + "unusual calculation " + pBinOperator + " with two pointer-operands.";
       return CNumericTypes.SIGNED_INT;
     }
 
 
     // TODO check if there are other types, that can be used in binaryExp
-    // TODO fallback or assertion?
 
-    CType commonType = null;
-    if (pBinExp != null) {
-      // fallback: eclipse-parser + cfa-converter have produced this common type,
-      // we do not guarantee correctness. // TODO remove this part
-      commonType = pBinExp.getExpressionType();
-    }
-
-    logger.logf(Level.SEVERE, "unhandled type-conversion in line %d (%s): %s (%s, %s) -> %s (%s, %s)",
-        edge == null ? null : edge.getLineNumber(),
-        pBinExp, pBinOperator, pType1, pType2, commonType, pType1.getClass(), pType2.getClass());
-
-    throw new AssertionError();
+    throw new AssertionError(String.format(
+        "unhandled type-conversion: %s (%s, %s) of (%s, %s)",
+        pBinOperator, pType1, pType2, pType1.getClass(), pType2.getClass()));
   }
 
 
@@ -278,14 +306,13 @@ public class CTypeConversionHandler {
    * @param pBinExp for logging only
    */
   private CType getSecondTypeToSimpleType(final CType pType,
-      @Nullable final BinaryOperator pBinOperator, @Nullable final CBinaryExpression pBinExp) {
+      @Nullable final BinaryOperator pBinOperator) {
 
     // if one type is an pointer, return the pointer.
     if (pType instanceof CPointerType) {
       assert additiveOperators.contains(pBinOperator)
           || relationalOperators.contains(pBinOperator) : ""
-          + "unusual calculation with pointer-operand: "
-          + pBinExp;
+          + "unusual calculation " + pBinOperator + " with pointer-operand: ";
       return pType;
     }
 
@@ -293,13 +320,13 @@ public class CTypeConversionHandler {
     if (pType instanceof CArrayType) {
       assert additiveOperators.contains(pBinOperator)
           || relationalOperators.contains(pBinOperator) : ""
-          + "unusual calculation with array-operand: "
-          + pBinExp;
+          + "unusual calculation " + pBinOperator + "with array-operand: ";
       final CArrayType at = ((CArrayType) pType);
       return new CPointerType(at.isConst(), at.isVolatile(), at.getType());
     }
 
-    throw new AssertionError();
+    if (pType instanceof ProblemType) { return CNumericTypes.SIGNED_INT; }
+    throw new AssertionError("unhandled type (secondtype to simple type): " + pType);
   }
 
 
