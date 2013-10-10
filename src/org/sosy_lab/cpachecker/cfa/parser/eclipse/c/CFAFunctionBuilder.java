@@ -496,7 +496,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // unreachable cases and their statements are ignored
     if (ignoreStatementsUntilNextCase && !(statement instanceof IASTCaseStatement || statement instanceof IASTDefaultStatement)) {
-      return PROCESS_CONTINUE;
+      return PROCESS_SKIP;
     }
 
     IASTFileLocation fileloc = statement.getFileLocation();
