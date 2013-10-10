@@ -288,6 +288,17 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       if (pair.getFirst() == op) {
         // shortcut: if nothing has changed, use the original expression
         newExpr = expr;
+
+        // in case of a sizeof we do not need to know the explicit value of the variable
+        // it is enough to know its type
+        if (unaryOperator == UnaryOperator.SIZEOF) {
+          int result = machineModel.getSizeof(op.getExpressionType());
+          return Pair.<CExpression, Number> of(
+              new CIntegerLiteralExpression(expr.getFileLocation(),
+                  expr.getExpressionType(), BigInteger.valueOf(result)),
+              result);
+        }
+
       } else {
         newExpr = new CUnaryExpression(
             expr.getFileLocation(), expr.getExpressionType(),
