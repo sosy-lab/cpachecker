@@ -139,8 +139,8 @@ public class CBinaryExpressionBuilder {
     // TODO if calculation- and result-function are never needed independent
     // from each other, we could merge them. --> speedup?
 
-    final CType t1 = op1.getExpressionType();
-    final CType t2 = op2.getExpressionType();
+    final CType t1 = op1.getExpressionType().getCanonicalType();
+    final CType t2 = op2.getExpressionType().getCanonicalType();
 
     final CType calculationType;
     final CType resultType;
@@ -158,7 +158,7 @@ public class CBinaryExpressionBuilder {
       resultType = getResultTypeForBinaryOperation(t1, t2, op);
     }
 
-    return new CBinaryExpression(op1.getFileLocation(), resultType, op1, op2, op);
+    return new CBinaryExpression(op1.getFileLocation(), resultType, calculationType, op1, op2, op);
   }
 
   /**
@@ -242,10 +242,6 @@ public class CBinaryExpressionBuilder {
    */
   CType getCalculationTypeForBinaryOperation(CType pType1, CType pType2,
       final BinaryOperator pBinOperator) {
-
-    pType1 = pType1.getCanonicalType();
-    pType2 = pType2.getCanonicalType();
-
 
     /* 6.7.2.2 Enumeration specifiers
      * The expression, that defines the value of an enumeration constant,

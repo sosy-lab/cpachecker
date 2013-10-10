@@ -367,7 +367,7 @@ public class CFACreator {
         // all expressions, that can be evaluated, will be replaced with their result.
         // example: a=1+2; --> a=3;
         // TODO support for constant propagation like "define MAGIC_NUMBER 1234".
-        ExpressionSimplifier es = new ExpressionSimplifier(machineModel);
+        ExpressionSimplifier es = new ExpressionSimplifier(machineModel, logger);
         CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(mainFunction, es);
         es.replaceEdges();
       }

@@ -27,6 +27,7 @@ import java.math.BigInteger;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -58,9 +60,11 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     <Pair<CExpression, Number>, RuntimeException> {
 
   private final MachineModel machineModel;
+  private final LogManager logger;
 
-  public ExpressionSimplificationVisitor(MachineModel mm) {
+  public ExpressionSimplificationVisitor(MachineModel mm, LogManager pLogger) {
     this.machineModel = mm;
+    this.logger = pLogger;
   }
 
   @Override
@@ -85,8 +89,8 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
         // shortcut: if nothing has changed, use the original expression
         newExpr = expr;
       } else {
-        newExpr = new CBinaryExpression(
-            expr.getFileLocation(), expr.getExpressionType(),
+        final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(machineModel, logger);
+        newExpr = binExprBuilder.buildBinaryExpression(
             pair1.getFirst(), pair2.getFirst(), binaryOperator);
       }
       return Pair.of((CExpression) newExpr, null);

@@ -153,6 +153,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
 
   private final ExpressionSimplificationVisitor expressionSimplificator;
+  private final CBinaryExpressionBuilder binExprBuilder;
 
   // Data structures for handling goto
   private final Map<String, CLabelNode> labelMap = new HashMap<>();
@@ -181,7 +182,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     scope = pScope;
     astCreator = new ASTConverter(config, pScope, pLogger, pMachine, staticVariablePrefix, false);
     checkBinding = new CheckBindingVisitor(pLogger);
-    expressionSimplificator = new ExpressionSimplificationVisitor(pMachine);
+    expressionSimplificator = new ExpressionSimplificationVisitor(pMachine, pLogger);
+    binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
 
     shouldVisitDeclarations = true;
     shouldVisitEnumerators = true;
@@ -1107,11 +1109,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       } else {
         // build new boolean expression: a==0 and switch branches
-        CSimpleType intType = CNumericTypes.INT;
-        CExpression zero =
-            new CIntegerLiteralExpression(exp.getFileLocation(), intType, BigInteger.ZERO);
-        CExpression conv =
-            new CBinaryExpression(exp.getFileLocation(), intType, exp, zero, BinaryOperator.EQUALS);
+        CExpression conv = binExprBuilder.buildBinaryExpression(exp, CNumericTypes.ZERO, BinaryOperator.EQUALS);
 
         addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen,
             condition.getFileLocation().getStartingLineNumber());
@@ -1532,17 +1530,10 @@ class CFAFunctionBuilder extends ASTVisitor {
       CExpression smallEnd = astCreator.convertExpressionWithoutSideEffects(((IASTBinaryExpression)right).getOperand1());
       CExpression bigEnd = astCreator.convertExpressionWithoutSideEffects(((IASTBinaryExpression)right).getOperand2());
 
-      FileLocation filelocation = ASTConverter.convert(fileloc);
-      CBinaryExpression firstPart = new CBinaryExpression(filelocation,
-                                                          switchExpr.getExpressionType(),
-                                                          switchExpr,
-                                                          smallEnd,
-                                                          CBinaryExpression.BinaryOperator.GREATER_EQUAL);
-      CBinaryExpression secondPart = new CBinaryExpression(filelocation,
-                                     switchExpr.getExpressionType(),
-                                     switchExpr,
-                                     bigEnd,
-                                     CBinaryExpression.BinaryOperator.LESS_EQUAL);
+      CBinaryExpression firstPart = binExprBuilder.buildBinaryExpression(
+          switchExpr, smallEnd, CBinaryExpression.BinaryOperator.GREATER_EQUAL);
+      CBinaryExpression secondPart = binExprBuilder.buildBinaryExpression(
+          switchExpr, bigEnd, CBinaryExpression.BinaryOperator.LESS_EQUAL);
 
       Number value1 = firstPart.accept(expressionSimplificator).getSecond();
       Number value2 = secondPart.accept(expressionSimplificator).getSecond();
@@ -1555,9 +1546,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else {
       final CExpression caseExpr = astCreator.convertExpressionWithoutSideEffects(statement.getExpression());
       // build condition, "a==2", TODO correct type?
-      CBinaryExpression binExp = new CBinaryExpression(ASTConverter.convert(fileloc),
-                                     switchExpr.getExpressionType(), switchExpr, caseExpr,
-                                     CBinaryExpression.BinaryOperator.EQUALS);
+      CBinaryExpression binExp = binExprBuilder.buildBinaryExpression(
+          switchExpr, caseExpr, CBinaryExpression.BinaryOperator.EQUALS);
 
       Number value = binExp.accept(expressionSimplificator).getSecond();
 
@@ -1617,17 +1607,10 @@ class CFAFunctionBuilder extends ASTVisitor {
       CExpression smallEnd = astCreator.convertExpressionWithoutSideEffects(((IASTBinaryExpression)right).getOperand1());
       CExpression bigEnd = astCreator.convertExpressionWithoutSideEffects(((IASTBinaryExpression)right).getOperand2());
 
-      FileLocation filelocation = ASTConverter.convert(fileloc);
-      CBinaryExpression firstPart = new CBinaryExpression(filelocation,
-                                                          switchExpr.getExpressionType(),
-                                                          switchExpr,
-                                                          smallEnd,
-                                                          CBinaryExpression.BinaryOperator.GREATER_EQUAL);
-      binExp = new CBinaryExpression(filelocation,
-                                     switchExpr.getExpressionType(),
-                                     switchExpr,
-                                     bigEnd,
-                                     CBinaryExpression.BinaryOperator.LESS_EQUAL);
+      CBinaryExpression firstPart = binExprBuilder.buildBinaryExpression(
+          switchExpr, smallEnd, CBinaryExpression.BinaryOperator.GREATER_EQUAL);
+      binExp = binExprBuilder.buildBinaryExpression(
+          switchExpr, bigEnd, CBinaryExpression.BinaryOperator.LESS_EQUAL);
 
       // add the first condition edge, the second one will be added after the if clause
       final CFANode intermediateNode = newCFANode(filelocStart);
@@ -1636,9 +1619,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else {
       final CExpression caseExpr = astCreator.convertExpressionWithoutSideEffects(statement.getExpression());
       // build condition, "a==2", TODO correct type?
-      binExp = new CBinaryExpression(ASTConverter.convert(fileloc),
-                                     switchExpr.getExpressionType(), switchExpr, caseExpr,
-                                     CBinaryExpression.BinaryOperator.EQUALS);
+      binExp = binExprBuilder.buildBinaryExpression(
+          switchExpr, caseExpr, CBinaryExpression.BinaryOperator.EQUALS);
     }
 
     // fall-through (case before has no "break")
