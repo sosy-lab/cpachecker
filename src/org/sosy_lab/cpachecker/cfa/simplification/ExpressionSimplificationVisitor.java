@@ -276,9 +276,20 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   public Pair<CExpression, Number> visit(final CUnaryExpression expr) {
     final UnaryOperator unaryOperator = expr.getOperator();
     final CExpression op = expr.getOperand();
+
+    // in case of a SIZEOF we do not need to know the explicit value of the variable,
+    // it is enough to know its type
+    if (unaryOperator == UnaryOperator.SIZEOF) {
+      final int result = machineModel.getSizeof(op.getExpressionType());
+      return Pair.<CExpression, Number> of(
+          new CIntegerLiteralExpression(expr.getFileLocation(),
+              expr.getExpressionType(), BigInteger.valueOf(result)),
+              result);
+    }
+
     final Pair<CExpression, Number> pair = op.accept(this);
 
-    Set<UnaryOperator> evaluableUnaryOperators = Sets.newHashSet(
+    final Set<UnaryOperator> evaluableUnaryOperators = Sets.newHashSet(
         UnaryOperator.PLUS, UnaryOperator.MINUS, UnaryOperator.NOT);
 
     // if expr can not be evaluated, build new expression
@@ -288,17 +299,6 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       if (pair.getFirst() == op) {
         // shortcut: if nothing has changed, use the original expression
         newExpr = expr;
-
-        // in case of a sizeof we do not need to know the explicit value of the variable
-        // it is enough to know its type
-        if (unaryOperator == UnaryOperator.SIZEOF) {
-          int result = machineModel.getSizeof(op.getExpressionType());
-          return Pair.<CExpression, Number> of(
-              new CIntegerLiteralExpression(expr.getFileLocation(),
-                  expr.getExpressionType(), BigInteger.valueOf(result)),
-              result);
-        }
-
       } else {
         newExpr = new CUnaryExpression(
             expr.getFileLocation(), expr.getExpressionType(),
@@ -322,10 +322,6 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
 
     case NOT:
       result = (value == 0L) ? 1L : 0L;
-      break;
-
-    case SIZEOF:
-      result = machineModel.getSizeof(op.getExpressionType());
       break;
 
     default:
