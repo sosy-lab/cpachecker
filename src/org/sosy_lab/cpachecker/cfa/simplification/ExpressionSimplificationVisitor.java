@@ -154,6 +154,8 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       return l * r;
     case SHIFT_LEFT:
       return l << r;
+    case SHIFT_RIGHT: // TODO Java vs C?
+      return l >> r;
     case BINARY_AND:
       return l & r;
     case BINARY_OR:
