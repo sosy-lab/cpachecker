@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
 
 import java.io.Serializable;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -68,9 +69,9 @@ import com.google.common.collect.Multiset.Entry;
  */
 public class SSAMap implements Serializable {
 
-  private static final int INDEX_NOT_CONTAINED = -1;
-
   private static final long serialVersionUID = 7618801653203679876L;
+
+  private static final int INDEX_NOT_CONTAINED = -1;
 
   /**
    * Builder for SSAMaps. Its state starts with an existing SSAMap, but may be
@@ -83,15 +84,21 @@ public class SSAMap implements Serializable {
   public static class SSAMapBuilder {
 
     private SSAMap ssa;
-    private PersistentSortedMap<String, Integer> vars;
+    private PersistentSortedMap<String, Integer> vars; // Do not update without updating varsHashCode!
     private PersistentSortedMap<String, CType> varTypes;
     private Multiset<Pair<String, FormulaList>> funcsBuilder = null;
     private Map<Pair<String, FormulaList>, CType> funcTypesBuilder = null;
+
+    // Instead of computing vars.hashCode(),
+    // we calculate the hashCode ourselves incrementally
+    // (this is possible because a Map's hashCode is clearly defined).
+    private int varsHashCode;
 
     private SSAMapBuilder(SSAMap ssa) {
       this.ssa = ssa;
       this.vars = ssa.vars;
       this.varTypes = ssa.varTypes;
+      this.varsHashCode = ssa.varsHashCode;
     }
 
     public int getIndex(String variable) {
@@ -126,6 +133,11 @@ public class SSAMap implements Serializable {
 
       if (idx > oldIdx) {
         vars = vars.putAndCopy(name, idx);
+
+        if (oldIdx != INDEX_NOT_CONTAINED) {
+          varsHashCode -= mapEntryHashCode(name, oldIdx);
+        }
+        varsHashCode += mapEntryHashCode(name, idx);
       }
     }
 
@@ -158,6 +170,8 @@ public class SSAMap implements Serializable {
       int index = getIndex(variable);
       if (index != INDEX_NOT_CONTAINED) {
         vars = vars.removeAndCopy(variable);
+        varsHashCode -= mapEntryHashCode(variable, index);
+
         varTypes = varTypes.removeAndCopy(variable);
       }
     }
@@ -186,17 +200,26 @@ public class SSAMap implements Serializable {
         return ssa;
       }
 
-      ssa = new SSAMap(vars,
+      ssa = new SSAMap(vars, varsHashCode,
                        Objects.firstNonNull(funcsBuilder, ssa.funcs),
                        varTypes,
                        Objects.firstNonNull(funcTypesBuilder, ssa.types));
       funcsBuilder = null;
       return ssa;
     }
+
+    /**
+     * Not-null safe copy of {@link SimpleImmutableEntry#hashCode()}
+     * for Object-to-int maps.
+     */
+    private static int mapEntryHashCode(Object key, int value) {
+      return key.hashCode() ^ value;
+    }
   }
 
   private static final SSAMap EMPTY_SSA_MAP = new SSAMap(
       PathCopyingPersistentTreeMap.<String, Integer>of(),
+      0,
       ImmutableMultiset.<Pair<String, FormulaList>>of(),
       PathCopyingPersistentTreeMap.<String, CType>of(),
       ImmutableMap.<Pair<String, FormulaList>, CType>of());
@@ -209,7 +232,7 @@ public class SSAMap implements Serializable {
   }
 
   public SSAMap withDefault(final int defaultValue) {
-    return new SSAMap(this.vars, this.funcs, this.varTypes, this.types) {
+    return new SSAMap(this.vars, this.varsHashCode, this.funcs, this.varTypes, this.types) {
 
       private static final long serialVersionUID = -5638018887478723717L;
 
@@ -318,7 +341,7 @@ public class SSAMap implements Serializable {
       }
     }
 
-    return Pair.of(new SSAMap(vars, funcs, varTypes, funcTypes), differences);
+    return Pair.of(new SSAMap(vars, 0, funcs, varTypes, funcTypes), differences);
   }
 
   /**
@@ -483,7 +506,11 @@ public class SSAMap implements Serializable {
   private final PersistentSortedMap<String, CType> varTypes;
   private final Map<Pair<String, FormulaList>, CType> types;
 
+  // Cache hashCode of potentiall big map
+  private final int varsHashCode;
+
   private SSAMap(PersistentSortedMap<String, Integer> vars,
+                 int varsHashCode,
                  Multiset<Pair<String, FormulaList>> funcs,
                  PersistentSortedMap<String, CType> varTypes,
                  Map<Pair<String, FormulaList>, CType> types) {
@@ -491,6 +518,13 @@ public class SSAMap implements Serializable {
     this.funcs = funcs;
     this.varTypes = varTypes;
     this.types = types;
+
+    if (varsHashCode == 0) {
+      this.varsHashCode = vars.hashCode();
+    } else {
+      this.varsHashCode = varsHashCode;
+      assert varsHashCode == vars.hashCode();
+    }
   }
 
   /**
@@ -568,7 +602,7 @@ public class SSAMap implements Serializable {
 
   @Override
   public int hashCode() {
-    return (31 + funcs.hashCode()) * 31 + vars.hashCode();
+    return (31 + funcs.hashCode()) * 31 + varsHashCode;
   }
 
   @Override
@@ -579,7 +613,11 @@ public class SSAMap implements Serializable {
       return false;
     } else {
       SSAMap other = (SSAMap)obj;
-      return vars.equals(other.vars) && funcs.equals(other.funcs);
+      // Do a few cheap checks before the expensive ones.
+      return varsHashCode == other.varsHashCode
+          && funcs.entrySet().size() == other.funcs.entrySet().size()
+          && vars.equals(other.vars)
+          && funcs.equals(other.funcs);
     }
   }
 }
