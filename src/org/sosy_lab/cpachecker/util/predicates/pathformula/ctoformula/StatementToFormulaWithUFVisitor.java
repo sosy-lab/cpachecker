@@ -381,57 +381,56 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       }
       return result;
     } else if (type instanceof CCompositeType && ((CCompositeType) type).getKind() == ComplexTypeKind.UNION) {
-      final CCompositeType compositeType = (CCompositeType) type;
-      final int membersCount = compositeType.getMembers().size();
-      final List<Object> result = new ArrayList<>(membersCount);
-      for (int i = 0; i < membersCount; ++i) {
-        result.add(null);
-      }
-      if (!(topInitializer instanceof CDesignatedInitializer)) {
-        if (topInitializer instanceof CInitializerList) {
-          final CInitializerList topInitializerList = (CInitializerList) topInitializer;
-          if (topInitializerList.getInitializers().size() == 1) {
-            result.set(0, visitInitializer(compositeType.getMembers().get(0).getType(),
-                                           topInitializerList.getInitializers().get(0),
-                                           isAutomatic));
-          } else {
-            throw new  UnrecognizedCCodeException("Wrong union initializer list size", edge, topInitializer);
-          }
-        } else {
-          throw new  UnrecognizedCCodeException("Wrong union initializer", edge, topInitializer);
+      if (topInitializer instanceof CInitializerList  &&
+          ((CInitializerList) topInitializer).getInitializers().size() == 1) {
+        topInitializer = ((CInitializerList) topInitializer).getInitializers().get(0);
+        final CCompositeType compositeType = (CCompositeType) type;
+        final int membersCount = compositeType.getMembers().size();
+        final List<Object> result = new ArrayList<>(membersCount);
+        for (int i = 0; i < membersCount; ++i) {
+          result.add(null);
         }
-      } else {
-        final CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) topInitializer;
-        final CDesignator designator = designatedInitializer.getDesignators().get(0);
-        if (designator instanceof CFieldDesignator) {
-          final String fieldName = ((CFieldDesignator) designator).getFieldName();
-          int index = 0;
-          for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-            if (memberDeclaration.getName().equals(fieldName)) {
-              final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
-              final CInitializer newInitializer;
-              if (designatedInitializer.getDesignators().size() == 1) {
-                newInitializer = designatedInitializer.getRightHandSide();
-              } else {
-                newInitializer = new CDesignatedInitializer(designatedInitializer.getFileLocation(),
-                                                            designatedInitializer.getDesignators().subList(
-                                                              1,
-                                                              designatedInitializer.getDesignators().size()),
-                                                            designatedInitializer.getRightHandSide());
+        if (!(topInitializer instanceof CDesignatedInitializer)) {
+          result.set(0, visitInitializer(compositeType.getMembers().get(0).getType(),
+                                         topInitializer,
+                                         isAutomatic));
+        } else {
+          final CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) topInitializer;
+          final CDesignator designator = designatedInitializer.getDesignators().get(0);
+          if (designator instanceof CFieldDesignator) {
+            final String fieldName = ((CFieldDesignator) designator).getFieldName();
+            int index = 0;
+            for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+              if (memberDeclaration.getName().equals(fieldName)) {
+                final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
+                final CInitializer newInitializer;
+                if (designatedInitializer.getDesignators().size() == 1) {
+                  newInitializer = designatedInitializer.getRightHandSide();
+                } else {
+                  newInitializer = new CDesignatedInitializer(designatedInitializer.getFileLocation(),
+                                                              designatedInitializer.getDesignators().subList(
+                                                                1,
+                                                                designatedInitializer.getDesignators().size()),
+                                                              designatedInitializer.getRightHandSide());
+                }
+                result.set(index, visitInitializer(memberType, newInitializer, isAutomatic));
+                break;
               }
-              result.set(index, visitInitializer(memberType, newInitializer, isAutomatic));
-              break;
+              index++;
             }
-            index++;
+            if (index >= compositeType.getMembers().size()) {
+              throw new UnrecognizedCCodeException("Unrecognized field designator", edge, designator);
+            }
+          } else {
+            throw new UnrecognizedCCodeException("Wrong designator: field designator expected", edge, designator);
           }
-          if (index >= compositeType.getMembers().size()) {
-            throw new UnrecognizedCCodeException("Unrecognized field designator", edge, designator);
-          }
-        } else {
-          throw new UnrecognizedCCodeException("Wrong designator", edge, designator);
         }
+        return result;
+      } else {
+        throw new UnrecognizedCCodeException("Wrong union initializer: one-element list expected",
+                                             edge,
+                                             topInitializer);
       }
-      return result;
     } else {
       assert topInitializer instanceof CInitializerExpression : "Unrecognized initializer";
       final CExpression initializerExpression = ((CInitializerExpression) topInitializer).getExpression();
