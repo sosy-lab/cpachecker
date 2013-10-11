@@ -394,7 +394,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
               newBaseType,
               integerType,
               result,
-              conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(integerType), 0),
+              conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(integerType, pts), 0),
               new PointerTargetPattern(newBaseName, 0, 0),
               false,
               null,

@@ -187,7 +187,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
     if (!pts.isBase(variable.getName())) {
       return null;
     } else {
-      return new PointerTargetPattern(e.getName());
+      return new PointerTargetPattern(variable.getName(), 0, 0);
     }
   }
 
