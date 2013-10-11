@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -164,11 +163,11 @@ public class PointerTargetSet implements Serializable {
   }
 
   public static CType simplifyType(final CType type) {
-    return CTypeUtils.simplifyType(type.getCanonicalType());
+    return type.getCanonicalType();
   }
 
   public static String cTypeToString(final CType type) {
-    return CTypeUtils.simplifyType(type.getCanonicalType()).toString();
+    return type.getCanonicalType().toString();
   }
 
   public int getSize(CType cType) {

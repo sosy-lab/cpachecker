@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.transformers.forPredicateAnalysisWithUF;
 
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils.simplifyType;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -84,8 +82,8 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
     final CExpression oldOperand2 = e.getOperand2();
     final CExpression operand1 = (CExpression) oldOperand1.accept(this);
     final CExpression operand2 = (CExpression) oldOperand2.accept(this);
-    final CType type1 = simplifyType(operand1.getExpressionType());
-    final CType type2 = simplifyType(operand2.getExpressionType());
+    final CType type1 = operand1.getExpressionType().getCanonicalType();
+    final CType type2 = operand2.getExpressionType().getCanonicalType();
     final FileLocation fileLocation = e.getFileLocation();
     switch (e.getOperator()) {
     case BINARY_AND:

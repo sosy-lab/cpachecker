@@ -78,7 +78,7 @@ class CInitializerTransformer extends ForwardingCExpressionVisitor<CAstNode, Unr
 
     return rhs == oldRhs ? e :
            new CDesignatedInitializer(e.getFileLocation(),
-                                      e.getLeftHandSide(),
+                                      e.getDesignators(),
                                       rhs);
   }
 

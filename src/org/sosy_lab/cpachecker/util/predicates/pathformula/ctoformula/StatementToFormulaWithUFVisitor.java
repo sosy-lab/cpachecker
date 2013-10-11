@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CEmptyDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
@@ -72,6 +71,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetS
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 
 public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
@@ -244,7 +244,15 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           result.set(index, visitInitializer(elementType, initializer, isAutomatic));
         } else {
           final CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) initializer;
-          final CDesignator designator = designatedInitializer.getLeftHandSide();
+          final List<CDesignator> designators = designatedInitializer.getDesignators();
+          final CDesignator designator;
+          if (designators.size() > 1) {
+            conv.log(Level.WARNING, "Nested designators are unsupported: " + designatedInitializer + " in line "+
+                                    designatedInitializer.getFileLocation().getStartingLineNumber());
+            continue;
+          } else {
+            designator = Iterables.getOnlyElement(designators);
+          }
           final Object rhs = visitInitializer(elementType, designatedInitializer.getRightHandSide(), isAutomatic);
           if (designator instanceof CArrayRangeDesignator) {
             final Integer floor = ((CArrayRangeDesignator) designator).getFloorExpression()
@@ -268,8 +276,6 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
             } else {
               throw new UnrecognizedCCodeException("Can't evaluate array designator subscript", edge, designator);
             }
-          } else if (designator instanceof CEmptyDesignator) {
-            result.set(index, rhs);
           }
         }
         ++index;
@@ -302,22 +308,22 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           result.set(index, visitInitializer(memberTypes.get(index), initializer, isAutomatic));
         } else {
           final CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) initializer;
-          final CDesignator designator = designatedInitializer.getLeftHandSide();
+          final List<CDesignator> designators = designatedInitializer.getDesignators();
+          final CDesignator designator;
+          if (designators.size() > 1) {
+            conv.log(Level.WARNING, "Nested designators are unsupported: " + designatedInitializer + " in line "+
+                                    designatedInitializer.getFileLocation().getStartingLineNumber());
+            continue;
+          } else {
+            designator = Iterables.getOnlyElement(designators);
+          }
           if (designator instanceof CFieldDesignator) {
-            if (!(((CFieldDesignator) designator).getFieldOwner() instanceof CEmptyDesignator)) {
-              conv.log(Level.WARNING, "Nested designators are unsupported: " + designator + " in line "+
-                                      designator.getFileLocation().getStartingLineNumber());
-              continue;
-            }
+
             final Pair<Integer, CType> indexType = members.get(((CFieldDesignator) designator).getFieldName());
             final Object rhs = visitInitializer(indexType.getSecond(),
                                                 designatedInitializer.getRightHandSide(),
                                                 isAutomatic);
             result.set(indexType.getFirst(), rhs);
-          } else if (designator instanceof CEmptyDesignator) {
-            result.set(index, visitInitializer(memberTypes.get(index),
-                                               designatedInitializer.getRightHandSide(),
-                                               isAutomatic));
           } else {
             throw new UnrecognizedCCodeException("Wrong designator", edge, designator);
           }
