@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -117,7 +119,17 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   private static String getUFName(final CType type) {
-    return "*" + PointerTargetSet.typeToString(type).replace(' ', '_');
+    String result = ufNameCache.get(type);
+    if (result != null) {
+      return result;
+    } else {
+      result = "*" + PointerTargetSet.typeToString(type)
+                                     .replace("const ", "")
+                                     .replace("volatile ", "")
+                                     .replace(' ', '_');
+      ufNameCache.put(type, result);
+      return result;
+    }
   }
 
   static String getReturnVarName() {
@@ -1008,4 +1020,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of("printf", "printk");
 
   private static final String RETURN_VARIABLE_NAME = "__retval__";
+
+  private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
 }
