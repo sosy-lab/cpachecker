@@ -176,31 +176,30 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   @Override
   public PointerTargetPattern visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
     final CExpression arrayExpression = e.getArrayExpression();
-    final PointerTargetPattern result = arrayExpression.accept(pointerVisitor);
-    if (result != null) {
-      CType containerType = PointerTargetSet.simplifyType(arrayExpression.getExpressionType());
-      if (containerType instanceof CArrayType || containerType instanceof CPointerType) {
-        final CType elementType;
-        if (containerType instanceof CPointerType) {
-          elementType = ((CPointerType) containerType).getType();
-          containerType = new CArrayType(containerType.isConst(),
-                                         containerType.isVolatile(),
-                                         elementType,
-                                         null);
-        } else {
-          elementType = ((CArrayType) containerType).getType();
-        }
-        result.shift(containerType);
-        final Integer index = e.getSubscriptExpression().accept(pts.getEvaluatingVisitor());
-        if (index != null) {
-          result.setProperOffset(index * pts.getSize(elementType));
-        }
-        return result;
+    PointerTargetPattern result = arrayExpression.accept(pointerVisitor);
+    if (result == null) {
+      result = new PointerTargetPattern();
+    }
+    CType containerType = PointerTargetSet.simplifyType(arrayExpression.getExpressionType());
+    if (containerType instanceof CArrayType || containerType instanceof CPointerType) {
+      final CType elementType;
+      if (containerType instanceof CPointerType) {
+        elementType = ((CPointerType) containerType).getType();
+        containerType = new CArrayType(containerType.isConst(), // TODO: Set array size
+                                       containerType.isVolatile(),
+                                       elementType,
+                                       null);
       } else {
-        throw new UnrecognizedCCodeException("Array expression has incompatible type", cfaEdge, e);
+        elementType = ((CArrayType) containerType).getType();
       }
+      result.shift(containerType);
+      final Integer index = e.getSubscriptExpression().accept(pts.getEvaluatingVisitor());
+      if (index != null) {
+        result.setProperOffset(index * pts.getSize(elementType));
+      }
+      return result;
     } else {
-      throw new UnrecognizedCCodeException("Subscripting pure variable", cfaEdge, e);
+      throw new UnrecognizedCCodeException("Array expression has incompatible type", cfaEdge, e);
     }
   }
 
@@ -261,8 +260,12 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
           return new PointerTargetPattern();
         }
       } else if (type instanceof CArrayType) {
-        result.shift(type, 0);
-        return result;
+        if (result != null) {
+          result.shift(type, 0);
+          return result;
+        } else {
+          return new PointerTargetPattern();
+        }
       } else {
         throw new UnrecognizedCCodeException("Dereferencing non-pointer expression", cfaEdge, e);
       }
