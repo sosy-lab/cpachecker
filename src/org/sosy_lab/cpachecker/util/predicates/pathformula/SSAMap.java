@@ -32,12 +32,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
 import java.util.SortedSet;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -168,6 +170,10 @@ public class SSAMap implements Serializable {
 
     public SortedSet<Map.Entry<String, CType>> allVariablesWithTypes() {
       return varTypes.entrySet();
+    }
+
+    public SortedMap<String, CType> allVariablesWithPrefix(String prefix) {
+      return Collections3.subMapWithPrefix(varTypes, prefix);
     }
 
     /**
