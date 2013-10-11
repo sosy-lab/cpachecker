@@ -104,7 +104,9 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public String toString() {
-    return this.toASTString("");
+    return (isConst() ? "const " : "") +
+           (isVolatile() ? "volatile " : "") +
+           "enum " + name;
   }
 
   public static final class CEnumerator extends ASimpleDeclarations implements CSimpleDeclaration {
