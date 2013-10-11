@@ -171,7 +171,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @Override
   @Deprecated
   Formula makeConstant(final String name, final CType type, final SSAMapBuilder ssa) {
-    throw new UnsupportedOperationException("Use the method with pts argument instead");
+    // throw new UnsupportedOperationException("Use the method with pts argument instead");
+    return super.makeConstant(name, type, ssa);
   }
 
   @Override
@@ -218,7 +219,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @Override
   @Deprecated
   Formula makeFreshVariable(final String name, final CType type, final SSAMapBuilder ssa) {
-    throw new UnsupportedOperationException("Use the method with pts argument instead");
+    // throw new UnsupportedOperationException("Use the method with pts argument instead");
+    return super.makeFreshVariable(name, type, ssa);
   }
 
   Formula makeFreshVariable(final String name,
