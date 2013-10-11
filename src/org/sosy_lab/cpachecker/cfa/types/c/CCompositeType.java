@@ -39,6 +39,9 @@ public final class CCompositeType implements CComplexType {
   private boolean   isConst;
   private boolean   isVolatile;
 
+  private boolean   isInHashCodeComputation = false; // A trick to allow computing hash codes of
+                                                     // recursive composite types
+
   public CCompositeType(final boolean pConst, final boolean pVolatile,
       final CComplexType.ComplexTypeKind pKind, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName) {
 
@@ -187,13 +190,21 @@ public final class CCompositeType implements CComplexType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(isConst);
-    result = prime * result + Objects.hashCode(isVolatile);
-    result = prime * result + Objects.hashCode(kind);
-    result = prime * result + Objects.hashCode(name);
-    return result;
+      final int prime = 31;
+      // For computing hash codes of recursive (self-referential) composite types
+      if (isInHashCodeComputation) {
+        return prime;
+      } else {
+        isInHashCodeComputation = true;
+      }
+      int result = 7;
+      result = prime * result + Objects.hashCode(isConst);
+      result = prime * result + Objects.hashCode(isVolatile);
+      result = prime * result + Objects.hashCode(kind);
+      result = prime * result + Objects.hashCode(name);
+      result = prime * result + Objects.hashCode(members);
+      isInHashCodeComputation = false;
+      return result;
   }
 
   /**
