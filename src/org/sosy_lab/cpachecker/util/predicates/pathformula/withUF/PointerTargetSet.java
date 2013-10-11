@@ -404,36 +404,36 @@ public class PointerTargetSet implements Serializable {
       if (bases.containsKey(name)) {
         return true; // The base has already been added
       }
-      flag = false;
-      addTargets(name, type, null, 0, 0);
-      bases = bases.putAndCopy(name, type);
 
       final FormulaManagerView fm = pointerTargetSet.formulaManager;
       final Formula base = fm.makeVariable(pointerType, name);
       if (bases.isEmpty()) { // Initial assumption b_0 > 0
         disjointnessFormula = fm.makeGreaterThan(base, fm.makeNumber(pointerType, 0L), true);
-      } else { // b_i >= b_{i-1} + sizeof(b_{i-1})
+      } else { // b_i >= b_{i-1} + sizeof(b_{i-1}) && b_{i-1}  + sizeof(b_{i-1}) > 0
         final String lastBase = bases.lastKey();
         final int lastSize = getSize(bases.get(lastBase));
+        final Formula  rhs = fm.makePlus(fm.makeVariable(pointerType, lastBase), fm.makeNumber(pointerType, lastSize));
         disjointnessFormula = fm.makeAnd(disjointnessFormula,
-                                         fm.makeGreaterOrEqual(base,
-                                                               fm.makePlus(fm.makeVariable(pointerType,
-                                                                                           lastBase),
-                                                                           fm.makeNumber(pointerType,
-                                                                                         lastSize)), true));
+                                         fm.makeAnd(fm.makeGreaterThan(rhs, fm.makeNumber(pointerType, 0L), true),
+                                                    fm.makeGreaterOrEqual(base, rhs, true)));
       }
+
+      flag = false;
+      addTargets(name, type, null, 0, 0);
+      bases = bases.putAndCopy(name, type);
       return flag;
     }
 
-    BooleanFormula addBase(BooleanFormula disjointnessFormula, String name, String lastBase, int lastSize) {
+    BooleanFormula addBase(final BooleanFormula disjointnessFormula,
+                           final String name,
+                           final String lastBase,
+                           final int lastSize) {
       final FormulaManagerView fm = pointerTargetSet.formulaManager;
       final Formula base = fm.makeVariable(pointerType, name);
+      final Formula rhs = fm.makePlus(fm.makeVariable(pointerType, lastBase), fm.makeNumber(pointerType, lastSize));
       return  fm.makeAnd(disjointnessFormula,
-                         fm.makeGreaterOrEqual(base,
-                                               fm.makePlus(fm.makeVariable(pointerType,
-                                                                           lastBase),
-                                                           fm.makeNumber(pointerType,
-                                                                         lastSize)), true));
+                         fm.makeAnd(fm.makeGreaterThan(rhs, fm.makeNumber(pointerType, 0L), true),
+                                    fm.makeGreaterOrEqual(base, rhs, true)));
     }
 
     public boolean isBase(final String name) {
