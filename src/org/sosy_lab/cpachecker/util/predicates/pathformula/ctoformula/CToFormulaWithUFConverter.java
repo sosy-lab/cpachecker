@@ -37,6 +37,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -94,6 +96,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+@Options(prefix="cpa.predicate")
 public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   public static CToFormulaWithUFConverter create(final Configuration config,
@@ -976,9 +979,25 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   private final RationalFormulaManagerView rfmgr;
 
+  @Option(description = "The function used to model successful heap object allocation. " +
+                        " This is only used, when pointer analysis with UFs is enabled.")
   String successfulAllocFunctionName = "__VERIFIER_successful_alloc";
+  @Option(description = "The function used to model successful heap object allocation with zeroing. " +
+                        " This is only used, when pointer analysis with UFs is enabled.")
   String successfulZallocFunctionName = "__VERIFIER_successful_zalloc";
-  String MemsetFunctionName = "__VERIFIER_memset";
+
+  String memsetFunctionName = "__VERIFIER_memset";
+
+  @SuppressWarnings("hiding")
+  @Option(description = "List of functions that non-deterministically provide new memory on the heap, " +
+                        "i.e. they can return either a valid pointer or zero. " +
+                        "This is only used, when handling of pointers is enabled.")
+  Set<String> memoryAllocationFunctions = ImmutableSet.of("malloc", "__kmalloc");
+
+  @Option(description = "List of functions that non-deterministically provide new zeroed memory on the heap, " +
+                        "i.e. they can return either a valid pointer or zero. " +
+                        "This is only used, when handling of pointers is enabled.")
+  Set<String> memoryAllocationFunctionsWithZeroing = ImmutableSet.of("kzalloc");
 
   @SuppressWarnings("hiding")
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of("printf", "printk");

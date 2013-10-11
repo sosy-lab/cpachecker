@@ -42,11 +42,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -944,6 +946,11 @@ public class PointerTargetSet implements Serializable {
   private final BooleanFormula disjointnessFormula;
 
   public static final int DEFAULT_ARRAY_LENGTH = 100;
+  public static final int DEFAULT_ALLOCATION_SIZE = 4;
+
+  public static final CType VOID =
+    new CSimpleType(false, false, CBasicType.VOID, false, false, false, false, false, false, false);
+  public static final CType POINTER_TO_VOID = new CPointerType(true, false, VOID);
 
   private static final long serialVersionUID = 2102505458322248624L;
 }

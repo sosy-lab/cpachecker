@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import java.io.File;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -350,6 +352,18 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     }
   }
 
+  private static boolean isSizeof(final CExpression e) {
+    return e instanceof CUnaryExpression && ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF ||
+           e instanceof CTypeIdExpression && ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF;
+  }
+
+  private static boolean isSizeofMultilple(final CExpression e) {
+    return e instanceof CBinaryExpression &&
+           ((CBinaryExpression) e).getOperator() == BinaryOperator.MULTIPLY &&
+           (isSizeof(((CBinaryExpression) e).getOperand1()) ||
+            isSizeof(((CBinaryExpression) e).getOperand2()));
+  }
+
   private static CType getSizeofType(CExpression e) {
     if (e instanceof CUnaryExpression &&
         ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF) {
@@ -381,22 +395,29 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                   parameters.size() == 1) {
         final CExpression parameter = parameters.get(0);
         final CType newType;
-        if (parameter instanceof CUnaryExpression) {
+        if (isSizeof(parameter)) {
           newType = getSizeofType(parameter);
-        } else if (parameter instanceof CBinaryExpression &&
-                   ((CBinaryExpression) parameter).getOperator() == BinaryOperator.MULTIPLY) {
+        } else if (isSizeofMultilple(parameter)) {
           final CBinaryExpression product = (CBinaryExpression) parameter;
           final CType operand1Type = getSizeofType(product.getOperand1());
           final CType operand2Type = getSizeofType(product.getOperand2());
           if (operand1Type != null) {
-            newType = new CArrayType(false, false, operand1Type, product.getOperand2());
+            newType = new CArrayType(true, false, operand1Type, product.getOperand2());
           } else if (operand2Type != null) {
-            newType = new CArrayType(false, false, operand2Type, product.getOperand1());
+            newType = new CArrayType(true, false, operand2Type, product.getOperand1());
           } else {
             throw new UnrecognizedCCodeException("Can't determine type for internal memory allocation", edge, e);
           }
         } else {
-          throw new UnrecognizedCCodeException("Can't determine type for internal memory allocation", edge, e);
+          Integer size = parameter.accept(pts.getEvaluatingVisitor());
+          CExpression length = parameter;
+          if (size == null) {
+            size = PointerTargetSet.DEFAULT_ALLOCATION_SIZE;
+            length = new CIntegerLiteralExpression(parameter.getFileLocation(),
+                                                   parameter.getExpressionType(),
+                                                   BigInteger.valueOf(size));
+          }
+          newType = new CArrayType(true, false, PointerTargetSet.VOID, length);
         }
         final CType newBaseType = PointerTargetSet.getBaseType(newType);
         final String newBaseName = FormulaManagerView.makeName(functionName,
@@ -420,6 +441,29 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         }
         pts.addBase(newBaseName, newType);
         return result;
+      } else if ((conv.memoryAllocationFunctions.contains(functionName) ||
+                  conv.memoryAllocationFunctionsWithZeroing.contains(functionName)) &&
+                  parameters.size() == 1) {
+        final Formula nondet = conv.makeFreshVariable(functionName,
+                                                      PointerTargetSet.POINTER_TO_VOID,
+                                                      ssa,
+                                                      pts);
+        final String delegateFunctionName = !conv.memoryAllocationFunctionsWithZeroing.contains(functionName) ?
+                                              conv.successfulAllocFunctionName :
+                                              conv.successfulZallocFunctionName;
+        final CExpression delegateFuncitonNameExpression = new CIdExpression(functionNameExpression.getFileLocation(),
+                                                                             functionNameExpression.getExpressionType(),
+                                                                             delegateFunctionName,
+                                                                             ((CIdExpression) functionNameExpression)
+                                                                               .getDeclaration());
+        final CFunctionCallExpression delegateCall =
+          new CFunctionCallExpression(e.getFileLocation(),
+                                      PointerTargetSet.POINTER_TO_VOID,
+                                      delegateFuncitonNameExpression,
+                                      parameters,
+                                      e.getDeclaration());
+        final Formula zero = conv.fmgr.makeNumber(pts.getPointerType(), 0);
+        return conv.bfmgr.ifThenElse(conv.bfmgr.not(conv.fmgr.makeEqual(nondet, zero)), visit(delegateCall), zero);
       } else if (conv.nondetFunctions.contains(functionName) ||
                  conv.nondetFunctionsPattern.matcher(functionName).matches()) {
         return conv.makeFreshVariable(functionName, returnType, ssa, pts);
