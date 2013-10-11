@@ -183,9 +183,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     } else {
       return new PathFormulaWithUF(bfmgr.makeBoolean(true),
                                    SSAMap.emptySSAMap(),
-                                   PointerTargetSet.emptyPointerTargetSet(machineModel,
-                                                                          bfmgr.makeBoolean(true),
-                                                                          fmgr),
+                                   PointerTargetSet.emptyPointerTargetSet(machineModel, fmgr),
                                    0);
     }
   }
@@ -238,13 +236,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final PointerTargetSet pts1 = ((PathFormulaWithUF) pathFormula1).getPointerTargetSet();
       final PointerTargetSet pts2 = ((PathFormulaWithUF) pathFormula2).getPointerTargetSet();
 
-      final Triple<Pair<BooleanFormula, BooleanFormula>, SSAMap, PointerTargetSet> mergeResult =
+      final Triple<Triple<BooleanFormula, BooleanFormula, BooleanFormula>, SSAMap, PointerTargetSet> mergeResult =
         mergeSSAMapsAndPointerTargetSets(ssa1, pts1, ssa2, pts2);
 
       // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
       final BooleanFormula newFormula1 = bfmgr.and(formula1, mergeResult.getFirst().getFirst());
       final BooleanFormula newFormula2 = bfmgr.and(formula2, mergeResult.getFirst().getSecond());
-      final BooleanFormula newFormula = bfmgr.or(newFormula1, newFormula2);
+      final BooleanFormula newFormula = bfmgr.and(bfmgr.or(newFormula1, newFormula2),
+                                                           mergeResult.getFirst().getThird());
       final SSAMap newSSA = mergeResult.getSecond();
       final PointerTargetSet newPTS = mergeResult.getThird();
       final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
@@ -344,7 +343,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return Pair.of(Pair.of(mt1, mt2), resultSSA);
   }
 
-  private Triple<Pair<BooleanFormula, BooleanFormula>, SSAMap, PointerTargetSet>
+  private Triple<Triple<BooleanFormula, BooleanFormula, BooleanFormula>, SSAMap, PointerTargetSet>
     mergeSSAMapsAndPointerTargetSets(final SSAMap ssa1,
                                      final PointerTargetSet pts1,
                                      final SSAMap ssa2,
@@ -436,11 +435,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
     }
 
-    final Pair<PointerTargetSet, Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
+    final Triple<PointerTargetSet,
+                 BooleanFormula,
+                 Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
       ptsMergeResult = pts1.mergeWith(pts2);
 
     final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
-    for (final Map.Entry<String, CType> baseFromPTS1 : ptsMergeResult.getSecond().getFirst().entrySet()) {
+    for (final Map.Entry<String, CType> baseFromPTS1 : ptsMergeResult.getThird().getFirst().entrySet()) {
       if (!((CToFormulaWithUFConverter) converter).isDynamicAllocVariableName(baseFromPTS1.getKey()) &&
           !PointerTargetSet.containsArray(baseFromPTS1.getValue())) {
         final FormulaType<?> baseFormulaType = ((CToFormulaWithUFConverter) converter)
@@ -455,7 +456,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                                                                         pts2));
       }
     }
-    for (final Map.Entry<String, CType> baseFromPTS2 : ptsMergeResult.getSecond().getSecond().entrySet()) {
+    for (final Map.Entry<String, CType> baseFromPTS2 : ptsMergeResult.getThird().getSecond().entrySet()) {
       if (!((CToFormulaWithUFConverter) converter).isDynamicAllocVariableName(baseFromPTS2.getKey()) &&
           !PointerTargetSet.containsArray(baseFromPTS2.getValue())) {
         final FormulaType<?> baseFormulaType = ((CToFormulaWithUFConverter) converter)
@@ -480,7 +481,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       resultPTS = resultPTSBuilder.build();
     }
 
-    return Triple.of(Pair.of(mergeFormula1, mergeFormula2), resultSSA, resultPTS);
+    return Triple.of(Triple.of(mergeFormula1, mergeFormula2, ptsMergeResult.getSecond()), resultSSA, resultPTS);
   }
 
   private BooleanFormula makeNondetMiddleVariableMerger(final String variableName,

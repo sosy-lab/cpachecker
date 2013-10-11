@@ -58,15 +58,12 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -76,7 +73,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -194,20 +190,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     // create list of formulas on path
     final List<BooleanFormula> formulas;
-    if (!pointerAnalysisWithUFs) {
-      formulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirst().getFirst());
-    } else {
-      final List<BooleanFormula> blockFormulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirst().getFirst());
-      final int last = blockFormulas.size() - 1;
-      final PathFormula lastPathFormula = AbstractStates.extractStateByType(abstractionStatesTrace.get(last),
-                                                                            PredicateAbstractState.class)
-                                                        .getAbstractionFormula()
-                                                        .getBlockFormula();
-      formulas = ImmutableList.<BooleanFormula>builder()
-                              .addAll(blockFormulas.subList(0, last))
-                              .add(((PathFormulaWithUF) lastPathFormula).getFormulaWithConstraints())
-                              .build();
-    }
+    formulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirst().getFirst());
     assert abstractionStatesTrace.size() == formulas.size();
 
     // build the counterexample

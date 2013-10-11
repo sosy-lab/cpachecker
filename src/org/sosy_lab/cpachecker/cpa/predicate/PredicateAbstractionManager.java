@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -221,11 +220,7 @@ public class PredicateAbstractionManager {
   }
 
   private BooleanFormula getFormula(final PathFormula pathFormula) {
-     if (!pointerAnalysisWithUFs) {
-       return pathFormula.getFormula();
-     } else {
-       return ((PathFormulaWithUF) pathFormula).getFormulaWithConstraints();
-     }
+    return pathFormula.getFormula();
   }
 
   /**

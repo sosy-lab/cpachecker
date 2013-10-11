@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -494,7 +495,6 @@ public class PointerTargetSet implements Serializable {
             pointerTargetSet.fields,
             pointerTargetSet.deferredAllocations,
             pointerTargetSet.targets,
-            pointerTargetSet.disjointnessFormula,
             pointerTargetSet.formulaManager);
     }
 
@@ -621,6 +621,32 @@ public class PointerTargetSet implements Serializable {
       }
     }
 
+    public BooleanFormula prepareBase(final String name, CType type) {
+      type = simplifyType(type);
+      if (bases.containsKey(name)) {
+        // The base has already been added
+        return formulaManager.getBooleanFormulaManager().makeBoolean(true);
+      }
+      bases = bases.putAndCopy(name, type); // To get proper inequalities
+      final BooleanFormula nextInequality = getNextBaseAddressInequality(name, lastBase);
+      bases = bases.putAndCopy(name, getFakeBaseType(getSize(type))); // To prevent adding spurious targets when merging
+      lastBase = name;
+      return nextInequality;
+    }
+
+    public boolean shareBase(final String name, CType type) {
+      type = simplifyType(type);
+//      Preconditions.checkArgument(bases.containsKey(name),
+//                                  "The base should be prepared beforehead with prepareBase()");
+
+      flag = false;
+      addTargets(name, type, null, 0, 0);
+      bases = bases.putAndCopy(name, type);
+
+      lastBase = name;
+      return flag;
+    }
+
     /**
      * Adds the newly allocated base of the given type for tracking along with all its tracked (sub)fields
      * (if its a structure/union) or all its elements (if its an array).
@@ -628,29 +654,20 @@ public class PointerTargetSet implements Serializable {
      * @param type
      * @return
      */
-    public boolean addBase(final String name, CType type) {
+    public Pair<Boolean, BooleanFormula> addBase(final String name, CType type) {
       type = simplifyType(type);
       if (bases.containsKey(name)) {
-        return true; // The base has already been added
-      }
-
-      final FormulaManagerView fm = formulaManager;
-      final Formula base = fm.makeVariable(pointerType, name);
-      if (bases.isEmpty()) { // Initial assumption b_0 > 0
-        disjointnessFormula = fm.makeGreaterThan(base, fm.makeNumber(pointerType, 0L), true);
-      } else { // b_i >= b_{i-1} + sizeof(b_{i-1}) && b_{i-1}  + sizeof(b_{i-1}) > 0
-        final int lastSize = getSize(bases.get(lastBase));
-        final Formula  rhs = fm.makePlus(fm.makeVariable(pointerType, lastBase), fm.makeNumber(pointerType, lastSize));
-        disjointnessFormula = fm.makeAnd(disjointnessFormula,
-                                         fm.makeAnd(fm.makeGreaterThan(rhs, fm.makeNumber(pointerType, 0L), true),
-                                                    fm.makeGreaterOrEqual(base, rhs, true)));
+        // The base has already been added
+        return Pair.of(true, formulaManager.getBooleanFormulaManager().makeBoolean(true));
       }
 
       flag = false;
       addTargets(name, type, null, 0, 0);
       bases = bases.putAndCopy(name, type);
+
+      final BooleanFormula nextInequality = getNextBaseAddressInequality(name, lastBase);
       lastBase = name;
-      return flag;
+      return Pair.of(flag, nextInequality);
     }
 
     public boolean tracksField(final CCompositeType compositeType, final String fieldName) {
@@ -795,6 +812,10 @@ public class PointerTargetSet implements Serializable {
       return deferredAllocationPool;
     }
 
+    public static int getNextDynamicAllocationIndex() {
+      return dynamicAllocationCounter++;
+    }
+
     /**
      * Returns an immutable PointerTargetSet with all the changes made to the builder.
      */
@@ -806,11 +827,10 @@ public class PointerTargetSet implements Serializable {
                                   fields,
                                   deferredAllocations,
                                   targets,
-                                  disjointnessFormula,
                                   formulaManager);
     }
 
-    private boolean flag; // Used by addBase() addField() to detect essential additions
+    private boolean flag; // Used by addBase() and addField() to detect essential additions
 
     private static final long serialVersionUID = 5692271309582052121L;
   }
@@ -830,23 +850,6 @@ public class PointerTargetSet implements Serializable {
     return UNITED_BASE_FIELD_NAME_PREFIX + index;
   }
 
-  BooleanFormula conjoinBase(final BooleanFormula disjointnessFormula,
-                             final String name,
-                             final String lastBase,
-                             final Integer lastSize) {
-    final FormulaManagerView fm = formulaManager;
-    final Formula base = fm.makeVariable(pointerType, name);
-    if (lastBase != null) {
-      final Formula rhs = fm.makePlus(fm.makeVariable(pointerType, lastBase), fm.makeNumber(pointerType, lastSize));
-      return fm.makeAnd(disjointnessFormula,
-                        fm.makeAnd(fm.makeGreaterThan(rhs, fm.makeNumber(pointerType, 0L), true),
-                                   fm.makeGreaterOrEqual(base, rhs, true)));
-    } else {
-      assert lastSize == null;
-      return fm.makeGreaterThan(base, fm.makeNumber(pointerType, 0L), true);
-    }
-  }
-
   public EvaluatingCExpressionVisitor getEvaluatingVisitor() {
     return evaluatingVisitor;
   }
@@ -855,17 +858,31 @@ public class PointerTargetSet implements Serializable {
     return pointerType;
   }
 
+  protected BooleanFormula getNextBaseAddressInequality(final String newBase,
+                                                        final String lastBase) {
+    final FormulaManagerView fm = formulaManager;
+    final Formula newBaseFormula = fm.makeVariable(pointerType, newBase);
+    if (lastBase != null) {
+      final Integer lastSize = getSize(bases.get(lastBase));
+      final Formula rhs = fm.makePlus(fm.makeVariable(pointerType, lastBase), fm.makeNumber(pointerType, lastSize));
+      // The condition rhs > 0 prevents overflows in case of bit-vector encoding
+      return fm.makeAnd(fm.makeGreaterThan(rhs, fm.makeNumber(pointerType, 0L), true),
+                        fm.makeGreaterOrEqual(newBaseFormula, rhs, true));
+    } else {
+      return fm.makeGreaterThan(newBaseFormula, fm.makeNumber(pointerType, 0L), true);
+    }
+  }
+
   /**
    * Conjoins the given formula with constraints representing disjointness of the allocated shared objects.
    *
    */
-  public BooleanFormula withDisjointnessConstraints(final BooleanFormula formula) {
-    BooleanFormula disjointnessFormula = this.disjointnessFormula;
+  public BooleanFormula forceDisjointnessConstraints(final BooleanFormula formula) {
+    BooleanFormula disjointnessFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
     // In case we have deferred memory allocations, add the appropriate constraints
     if (!deferredAllocations.isEmpty()) {
       final Set<String> addedBaseVariables = new HashSet<>();
       String lastBase = this.lastBase;
-      Integer lastSize = lastBase != null ? getSize(bases.get(lastBase)) : null;
       for (Map.Entry<String, DeferredAllocationPool> pointerVariableEntry : deferredAllocations.entrySet()) {
         final DeferredAllocationPool deferredAllocationPool = pointerVariableEntry.getValue();
         Integer size = deferredAllocationPool.getSize() != null ?
@@ -875,9 +892,10 @@ public class PointerTargetSet implements Serializable {
         }
         for (String baseVariable : deferredAllocationPool.getBaseVariables()) {
           if (!addedBaseVariables.contains(baseVariable)) {
-            disjointnessFormula = conjoinBase(disjointnessFormula, baseVariable, lastBase, lastSize);
+            disjointnessFormula = formulaManager.makeAnd(disjointnessFormula,
+                                                         getNextBaseAddressInequality(baseVariable,
+                                                                                      lastBase));
             lastBase = baseVariable;
-            lastSize = size;
             addedBaseVariables.add(baseVariable);
           }
         }
@@ -887,7 +905,7 @@ public class PointerTargetSet implements Serializable {
   }
 
   public boolean isBase(final String name) {
-    return bases.containsKey(name);
+    return bases.containsKey(name) && !isFakeBaseType(bases.get(name));
   }
 
   public boolean isBase(final String name, CType type) {
@@ -897,8 +915,7 @@ public class PointerTargetSet implements Serializable {
   }
 
   public static final PointerTargetSet emptyPointerTargetSet(final MachineModel machineModel,
-                                                              final BooleanFormula truthFormula,
-                                                              final FormulaManagerView formulaManager) {
+                                                             final FormulaManagerView formulaManager) {
     final EvaluatingCExpressionVisitor evaluatingVisitor = new EvaluatingCExpressionVisitor(machineModel);
     return new PointerTargetSet(evaluatingVisitor,
                                 new CSizeofVisitor(evaluatingVisitor),
@@ -907,11 +924,12 @@ public class PointerTargetSet implements Serializable {
                                 PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
                                 PathCopyingPersistentTreeMap.<String, DeferredAllocationPool>of(),
                                 PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of(),
-                                truthFormula,
                                 formulaManager);
   }
 
-  public Pair<PointerTargetSet, Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
+  public Triple<PointerTargetSet,
+                BooleanFormula,
+                Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
     mergeWith(final PointerTargetSet other) {
 
     final ConflictHandler<CType> baseUnitingConflictHandler = new ConflictHandler<CType>() {
@@ -961,9 +979,9 @@ public class PointerTargetSet implements Serializable {
       }
     };
     final boolean reverseBases = other.bases.size() > bases.size();
-    final Triple<PersistentSortedMap<String, CType>,
-                 PersistentSortedMap<String, CType>,
-                 PersistentSortedMap<String, CType>> mergedBases =
+    Triple<PersistentSortedMap<String, CType>,
+           PersistentSortedMap<String, CType>,
+           PersistentSortedMap<String, CType>> mergedBases =
       !reverseBases ? mergeSortedSets(bases, other.bases, baseUnitingConflictHandler) :
                       mergeSortedSets(other.bases, bases, baseUnitingConflictHandler);
 
@@ -981,13 +999,9 @@ public class PointerTargetSet implements Serializable {
 
     final PointerTargetSetBuilder builder1 = new PointerTargetSetBuilder(emptyPointerTargetSet(
                                                                                evaluatingVisitor.getMachineModel(),
-                                                                               formulaManager.getBooleanFormulaManager()
-                                                                                             .makeBoolean(true),
                                                                                formulaManager)),
                                   builder2 = new PointerTargetSetBuilder(emptyPointerTargetSet(
                                                                                evaluatingVisitor.getMachineModel(),
-                                                                               formulaManager.getBooleanFormulaManager()
-                                                                                             .makeBoolean(true),
                                                                                formulaManager));
     if (reverseBases == reverseFields) {
       builder1.setFields(mergedFields.getFirst());
@@ -1033,27 +1047,26 @@ public class PointerTargetSet implements Serializable {
       }
     }
 
-    BooleanFormula mergedDisjointnessFormula;
-    String lastBase = null;
-    Integer lastSize = null;
-    if (!reverseBases) {
-      mergedDisjointnessFormula = this.disjointnessFormula;
-      if (!bases.isEmpty()) {
-        lastBase = this.lastBase;
-        lastSize = getSize(bases.get(lastBase));
-      }
+    final String lastBase;
+    final BooleanFormula basesMergeFormula;
+    if (this.lastBase == null && other.lastBase == null || this.lastBase.equals(other.lastBase)) {
+      assert this.lastBase == null || bases.get(this.lastBase).equals(other.bases.get(other.lastBase));
+      lastBase = this.lastBase;
+      basesMergeFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
+      // Nothing to do, as there were no divergence with regard to base allocations
     } else {
-      mergedDisjointnessFormula = other.disjointnessFormula;
-      if (!other.bases.isEmpty()) {
-        lastBase = other.lastBase;
-        lastSize = other.getSize(other.bases.get(lastBase));
-      }
-    }
-
-    for (final Map.Entry<String, CType> entry : mergedBases.getSecond().entrySet()) {
-      mergedDisjointnessFormula = conjoinBase(mergedDisjointnessFormula, entry.getKey(), lastBase, lastSize);
-      lastBase = entry.getKey();
-      lastSize = builder1.getSize(entry.getValue());
+      final CType fakeBaseType = getFakeBaseType(0);
+      final String fakeBaseName = CToFormulaWithUFConverter.NOMERGE_NAME_PREFIX + FAKE_ALLOC_FUNCTION_NAME +
+                                  CToFormulaWithUFConverter.getUFName(fakeBaseType) +
+                                  CToFormulaWithUFConverter.FRESH_INDEX_SEPARATOR +
+                                  PointerTargetSetBuilder.getNextDynamicAllocationIndex();
+      mergedBases =
+        Triple.of(mergedBases.getFirst(),
+                  mergedBases.getSecond(),
+                  mergedBases.getThird().putAndCopy(fakeBaseName, fakeBaseType));
+      lastBase = fakeBaseName;
+      basesMergeFormula = formulaManager.makeAnd(this.getNextBaseAddressInequality(fakeBaseName, this.lastBase),
+                                                 other.getNextBaseAddressInequality(fakeBaseName, other.lastBase));
     }
 
     final ConflictHandler<PersistentList<PointerTarget>> conflictHandler =
@@ -1072,10 +1085,11 @@ public class PointerTargetSet implements Serializable {
                                              conflictHandler),
                              builder2.targets,
                              conflictHandler),
-                           mergedDisjointnessFormula,
                            formulaManager);
-    return Pair.of(result, !reverseBases ? Pair.of(mergedBases.getFirst(), mergedBases.getSecond()) :
-                                           Pair.of(mergedBases.getSecond(), mergedBases.getFirst()));
+    return Triple.of(result,
+                     basesMergeFormula,
+                     !reverseBases ? Pair.of(mergedBases.getFirst(), mergedBases.getSecond()) :
+                                     Pair.of(mergedBases.getSecond(), mergedBases.getFirst()));
   }
 
   private static <T> PersistentList<T> mergePersistentLists(final PersistentList<T> list1,
@@ -1356,7 +1370,6 @@ public class PointerTargetSet implements Serializable {
                            final PersistentSortedMap<CompositeField, Boolean> fields,
                            final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations,
                            final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
-                           final BooleanFormula disjointnessFormula,
                            final FormulaManagerView formulaManager) {
     this.evaluatingVisitor = evaluatingVisitor;
     this.sizeofVisitor = sizeofVisitor;
@@ -1370,7 +1383,6 @@ public class PointerTargetSet implements Serializable {
     this.deferredAllocations = deferredAllocations;
 
     this.targets = targets;
-    this.disjointnessFormula = disjointnessFormula;
 
     final MachineModel machineModel = this.evaluatingVisitor.getMachineModel();
     final int pointerSize = machineModel.getSizeofPtr();
@@ -1384,6 +1396,16 @@ public class PointerTargetSet implements Serializable {
    */
   public PointerTargetSetBuilder builder() {
     return new PointerTargetSetBuilder(this);
+  }
+
+  private static final CType getFakeBaseType(int size) {
+    return simplifyType(new CArrayType(false, false, VOID, new CIntegerLiteralExpression(null,
+                                                                                        CHAR,
+                                                                                        BigInteger.valueOf(size))));
+  }
+
+  private static final boolean isFakeBaseType(final CType type) {
+    return type instanceof CArrayType && ((CArrayType) type).getType().equals(VOID);
   }
 
   private static final Joiner joiner = Joiner.on(" ");
@@ -1414,9 +1436,10 @@ public class PointerTargetSet implements Serializable {
   protected /*final*/ PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
 
   protected /*final*/ PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
-  protected /*final*/ BooleanFormula disjointnessFormula;
 
   protected final FormulaType<?> pointerType;
+
+  private static int dynamicAllocationCounter = 0;
 
   public static final int DEFAULT_ARRAY_LENGTH = 16;
   public static final int DEFAULT_ALLOCATION_SIZE = 4;
@@ -1429,6 +1452,8 @@ public class PointerTargetSet implements Serializable {
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
+
+  private static final String FAKE_ALLOC_FUNCTION_NAME = "__VERIFIER_fake_alloc";
 
   private static final long serialVersionUID = 2102505458322248624L;
 }

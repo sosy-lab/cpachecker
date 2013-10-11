@@ -423,6 +423,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final CType type = PointerTargetSet.simplifyType(declaration.getType());
     final String lhs = declaration.getQualifiedName();
     if (!pts.isBase(declaration.getQualifiedName()) && !PointerTargetSet.containsArray(type)) {
+      declareSharedBase(declaration, false);
       return conv.makeAssignment(type,
                                  type,
                                  lhs,
@@ -450,7 +451,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                         ssa,
                                                         constraints,
                                                         pts);
-      conv.addPreFilledBase(lhs, type, true, pts);
+      conv.addPreFilledBase(lhs, type, false, true, constraints, pts);
       return result;
     }
   }
@@ -771,7 +772,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         }
         if (newType != null) {
           final CType newBaseType = PointerTargetSet.getBaseType(newType);
-          final String newBaseName = conv.makeAllocVariableName(functionName, newType, newBaseType, ssa);
+          final String newBaseName = conv.makeAllocVariableName(functionName, newType, newBaseType);
           return conv.makeAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                      newType,
                                      newBaseName,
@@ -781,9 +782,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                      pts);
         } else {
           final String newBaseName = conv.makeAllocVariableName(functionName,
-                                                               PointerTargetSet.VOID,
-                                                               PointerTargetSet.POINTER_TO_VOID,
-                                                               ssa);
+                                                                PointerTargetSet.VOID,
+                                                                PointerTargetSet.POINTER_TO_VOID);
           pts.addTemporaryDeferredAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                              size != null ? new CIntegerLiteralExpression(parameter.getFileLocation(),
                                                                                           parameter.getExpressionType(),
@@ -921,12 +921,20 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     return function;
   }
 
-  public void forceShared(final CDeclaration declaration) {
-    conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), false, pts);
+  public void declareSharedBase(final CDeclaration declaration, final boolean shareImmediately) {
+    if (shareImmediately) {
+      conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), false, false, constraints, pts);
+    } else {
+      constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(), declaration.getType()));
+    }
   }
 
-  public void forceShared(final CParameterDeclaration declaration) {
-    conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), false, pts);
+  public void declareSharedBase(final CParameterDeclaration declaration, final boolean shareImmediately) {
+    if (shareImmediately) {
+      conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), false, false, constraints, pts);
+    } else {
+      constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(), declaration.getType()));
+    }
   }
 
   public void declareCompositeType(final CCompositeType compositeType) {

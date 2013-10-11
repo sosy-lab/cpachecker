@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -71,9 +70,7 @@ public class PathChecker {
       ssaMaps.add(pathFormula.getSsa());
     }
 
-    BooleanFormula f = !(pathFormula instanceof PathFormulaWithUF) ?
-                         pathFormula.getFormula() :
-                         ((PathFormulaWithUF) pathFormula).getFormulaWithConstraints();
+    BooleanFormula f = pathFormula.getFormula();
 
     try (ProverEnvironment thmProver = solver.newProverEnvironmentWithModelGeneration()) {
       thmProver.push(f);

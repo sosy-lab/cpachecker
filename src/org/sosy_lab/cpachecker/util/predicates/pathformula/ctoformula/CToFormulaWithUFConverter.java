@@ -140,11 +140,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   String makeAllocVariableName(final String functionName,
-                              final CType type,
-                              final CType baseType,
-                              final SSAMapBuilder ssa) {
+                               final CType type,
+                               final CType baseType) {
     final String allocVariableName = NOMERGE_NAME_PREFIX + functionName + "_" + getUFName(type);
-    return  allocVariableName + FRESH_INDEX_SEPARATOR + super.makeFreshIndex(allocVariableName, baseType, ssa);
+    return  allocVariableName + FRESH_INDEX_SEPARATOR + PointerTargetSetBuilder.getNextDynamicAllocationIndex();
   }
 
   static String getReturnVarName() {
@@ -294,9 +293,15 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   void addPreFilledBase(final String baseName,
                         final CType type,
+                        final boolean prepared,
                         final boolean forcePreFill,
+                        final Constraints constraints,
                         final PointerTargetSetBuilder pts) {
-    pts.addBase(baseName, type);
+    if (!prepared) {
+      constraints.addConstraint(pts.addBase(baseName, type).getSecond());
+    } else {
+      pts.shareBase(baseName, type);
+    }
     if (forcePreFill ||
         (options.maxPreFilledAllocationSize() > 0 && pts.getSize(type) <= options.maxPreFilledAllocationSize())) {
       addAllFields(type, pts);
@@ -329,7 +334,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         pts);
       constraints.addConstraint(initialization);
     }
-    addPreFilledBase(baseName, type, isZeroing, pts);
+    addPreFilledBase(baseName, type, false, isZeroing, constraints, pts);
     return result;
   }
 
@@ -896,9 +901,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                              returnVariableDeclaration),
                                            resultExpression);
       final BooleanFormula result = assignment.accept(statementVisitor);
-      if (PointerTargetSet.containsArray(returnType)) {
-        statementVisitor.forceShared(returnVariableDeclaration);
-      }
+      statementVisitor.declareSharedBase(returnVariableDeclaration, PointerTargetSet.containsArray(returnType));
       return result;
     }
   }
@@ -978,9 +981,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         new CIdExpression(declaration.getFileLocation(), declarationType, declaration.getName(), declaration),
         initializer != null ? ((CInitializerExpression) initializer).getExpression() : null);
       final BooleanFormula result = assignment.accept(statementVisitor);
-      if (PointerTargetSet.containsArray(declarationType)) {
-        statementVisitor.forceShared(declaration);
-      }
+      statementVisitor.declareSharedBase(declaration, PointerTargetSet.containsArray(declarationType));
       return result;
     } else if (initializer instanceof CInitializerList) {
       final Object initializerList = statementVisitor.visitInitializer(declarationType,
@@ -1040,9 +1041,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         argument);
       final BooleanFormula assignment = assignmentStatement.accept(statementVisitor);
       result = bfmgr.and(result, assignment);
-      if (PointerTargetSet.containsArray(parameterType)) {
-        statementVisitor.forceShared(formalParameter);
-      }
+      statementVisitor.declareSharedBase(formalParameter, PointerTargetSet.containsArray(parameterType));
     }
 
     return result;
@@ -1157,7 +1156,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   public static final String FIELD_NAME_SEPARATOR = "$";
 
-  static final String FRESH_INDEX_SEPARATOR = "#";
+  public static final String FRESH_INDEX_SEPARATOR = "#";
 
   static final String SSA_INDEX_SEPARATOR =  FormulaManagerView.makeName("", 0).substring(0, 1);
 
