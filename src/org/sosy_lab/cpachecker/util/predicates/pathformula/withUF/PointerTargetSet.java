@@ -305,9 +305,10 @@ public class PointerTargetSet implements Serializable {
 
     public void addCompositeType(CCompositeType compositeType) {
       compositeType = (CCompositeType) simplifyType(compositeType);
-      if (sizes.contains(compositeType)) {
-        assert offsets.containsKey(compositeType) : "Illegal state of PointerTargetSet: no offsets for type:" +
-                                                    compositeType;
+      if (offsets.containsKey(compositeType)) {
+        // Support for empty structs though it's a GCC extension
+        assert sizes.contains(compositeType) || compositeType.getMembers().size() == 0 :
+          "Illegal state of PointerTargetSet: no offsets for type:" + compositeType;
         return; // The type has already been added
       }
 
@@ -328,9 +329,9 @@ public class PointerTargetSet implements Serializable {
           memberCompositeType = (CCompositeType) memberType;
           if (memberCompositeType.getKind() == ComplexTypeKind.STRUCT ||
               memberCompositeType.getKind() == ComplexTypeKind.UNION) {
-            if (!sizes.contains(memberCompositeType)) {
-              assert !offsets.containsKey(memberCompositeType) :
-                       "Illegal state of PointerTargetSet: offsets for type:" + memberCompositeType;
+            if (!offsets.containsKey(memberCompositeType)) {
+              assert !sizes.contains(memberCompositeType) :
+                "Illegal state of PointerTargetSet: offsets for type:" + memberCompositeType;
               addCompositeType(memberCompositeType);
             }
           }
