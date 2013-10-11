@@ -262,6 +262,9 @@ public class PersistentList<T> extends AbstractSequentialList<T> {
     }
 
     public PersistentList<T> buildOnto(final PersistentList<T> tail) {
+      if (list == empty()) {
+        return tail;
+      }
       PersistentList<T> last = list;
       for (PersistentList<T> p = list.tail; p != empty(); p = p.tail) {
         last = p;
