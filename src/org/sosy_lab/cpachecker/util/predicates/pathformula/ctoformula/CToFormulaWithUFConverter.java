@@ -255,11 +255,12 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
       int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        final String fieldName = memberDeclaration.getName();
-        final Variable newBase = Variable.create(base + BaseVisitor.NAME_SEPARATOR + fieldName,
-                                                 memberDeclaration.getType());
+        final String memberName = memberDeclaration.getName();
+        final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
+        final Variable newBase = Variable.create(base.getName() + BaseVisitor.NAME_SEPARATOR + memberName,
+                                                 memberType);
         if (getIndex(newBase.getName(), newBase.getType(), ssa) > 1) {
-          fields.add(Pair.of(compositeType, fieldName));
+          fields.add(Pair.of(compositeType, memberName));
           addSharingConstraints(cfaEdge,
                                 fmgr.makePlus(address, fmgr.makeNumber(pts.getPointerType(), offset)),
                                 newBase,
@@ -269,7 +270,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                 pts);
         }
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += pts.getSize(memberDeclaration.getType());
+          offset += pts.getSize(memberType);
         }
       }
     } else {
@@ -465,12 +466,13 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     if (lvalueType instanceof CArrayType) {
       Preconditions.checkArgument(lvalue instanceof Formula && pattern != null,
                                   "Array elements can't be represented as variables, but pure LHS is given");
-      Preconditions.checkArgument(rvalue instanceof Formula || rvalue instanceof List,
+      Preconditions.checkArgument(rvalue == null || rvalue instanceof Formula || rvalue instanceof List,
                                   "Array elements can't be represented as variables, but pure RHS is given");
       final CArrayType lvalueArrayType = (CArrayType) lvalueType;
       final CType lvalueElementType = PointerTargetSet.simplifyType(lvalueArrayType.getType());
       if (!(rvalueType instanceof CArrayType) ||
-          ((CArrayType) rvalueType).getType().getCanonicalType().equals(lvalueElementType.getCanonicalType())) {
+          PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType())
+            .equals(lvalueElementType.getCanonicalType())) {
         Integer length = lvalueArrayType.getLength().accept(pts.getEvaluatingVisitor());
         if (length == null) {
           length = PointerTargetSet.DEFAULT_ARRAY_LENGTH;
@@ -483,8 +485,9 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
           result = bfmgr.makeBoolean(true);
           int offset = 0;
           for (int i = 0; i < length; ++i) {
-            final CType newRvalueType = rvalueType instanceof CArrayType ? ((CArrayType) rvalueType).getType() :
-                                                                           rvalueType;
+            final CType newRvalueType = rvalueType instanceof CArrayType ?
+                                          PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType()) :
+                                          rvalueType;
             final Formula offsetFormula = fmgr.makeNumber(pts.getPointerType(), offset);
             final Formula newLvalue = fmgr.makePlus((Formula) lvalue, offsetFormula);
             final Object newRvalue = rvalue == null ? null :
@@ -587,7 +590,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
               }
             } else if (pattern.isSemiexact()) {
               addSemiexactRetentionConstraints(pattern,
-                                               lvalueCompositeType.getMembers().get(0).getType(),
+                                               PointerTargetSet.simplifyType(
+                                                 lvalueCompositeType.getMembers().get(0).getType()),
                                                (Formula) lvalue,
                                                offset,
                                                types,
@@ -614,6 +618,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final int oldIndex = getIndex(targetName, lvalueType, ssa);
       final int newIndex = oldIndex + 1;
       if (rvalue != null) {
+        if (rvalueType instanceof CArrayType) {
+          rvalueType = new CPointerType(false, false,
+                                        PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType()));
+        }
         final Formula rhs = makeCast(rvalueType, lvalueType, (Formula) rvalue);
         if (lvalue instanceof String) {
           result = fmgr.makeEqual(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
@@ -719,11 +727,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return new StatementToFormulaWithUFVisitor(delegate, lvalueVisitor);
   }
 
-  protected BooleanFormula makeReturn(final CExpression result,
+  protected BooleanFormula makeReturn(final CExpression resultExpression,
                                       final CReturnStatementEdge returnEdge,
                                       final StatementToFormulaWithUFVisitor statementVisitor)
   throws CPATransferException {
-    if (result == null) {
+    if (resultExpression == null) {
       // this is a return from a void function, do nothing
       return bfmgr.makeBoolean(true);
     } else {

@@ -124,8 +124,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   public BooleanFormula visit(final CAssignment e) throws UnrecognizedCCodeException {
     final CRightHandSide rhs = e.getRightHandSide();
     final CExpression lhs = e.getLeftHandSide();
-    final CType lhsType = lhs.getExpressionType();
-    final CType rhsType = rhs != null ? rhs.getExpressionType() :
+    final CType lhsType = PointerTargetSet.simplifyType(lhs.getExpressionType());
+    final CType rhsType = rhs != null ? PointerTargetSet.simplifyType(rhs.getExpressionType()) :
       new CSimpleType(true, false, CBasicType.CHAR, false,false, false, false, false, false, false);
 
     delegate.reset();
@@ -163,11 +163,14 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   private static void addFields(final CCompositeType type, final PointerTargetSetBuilder pts) {
     for (CCompositeTypeMemberDeclaration memberDeclaration : type.getMembers()) {
       pts.addField(type, memberDeclaration.getName());
-      if (memberDeclaration.getType() instanceof CCompositeType) {
-        addFields((CCompositeType) memberDeclaration.getType(), pts);
-      } else if (memberDeclaration.getType() instanceof CArrayType &&
-                 ((CArrayType) memberDeclaration.getType()).getType() instanceof CCompositeType) {
-        addFields((CCompositeType) ((CArrayType) memberDeclaration.getType()).getType(), pts);
+      final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
+      if (memberType instanceof CCompositeType) {
+        addFields((CCompositeType) memberType, pts);
+      } else if (memberType instanceof CArrayType) {
+        final CType elementType = PointerTargetSet.simplifyType(((CArrayType) memberType).getType());
+        if (elementType instanceof CCompositeType) {
+          addFields((CCompositeType) elementType, pts);
+        }
       }
     }
   }
@@ -219,7 +222,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     if (type instanceof CArrayType) {
       assert topInitializer instanceof CInitializerList : "Wrong array initializer";
       final CInitializerList initializerList = (CInitializerList) topInitializer;
-      final CType elementType = ((CArrayType) type).getType();
+      final CType elementType = PointerTargetSet.simplifyType(((CArrayType) type).getType());
       final CExpression lengthExpression = ((CArrayType) type).getLength();
       final Integer length;
       if (lengthExpression != null) {
@@ -290,8 +293,9 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       final List<CType> memberTypes = new ArrayList<>(size);
       int index = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : ((CCompositeType) type).getMembers()) {
-        members.put(memberDeclaration.getName(), Pair.of(index, memberDeclaration.getType()));
-        memberTypes.add(memberDeclaration.getType());
+        final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
+        members.put(memberDeclaration.getName(), Pair.of(index, memberType));
+        memberTypes.add(memberType);
         index++;
       }
       final List<Object> result = new ArrayList<>(size);
@@ -340,10 +344,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   private static CType getSizeofType(CExpression e) {
     if (e instanceof CUnaryExpression &&
         ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF) {
-      return ((CUnaryExpression) e).getOperand().getExpressionType();
+      return PointerTargetSet.simplifyType(((CUnaryExpression) e).getOperand().getExpressionType());
     } else if (e instanceof CTypeIdExpression &&
                ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF) {
-      return ((CTypeIdExpression) e).getType();
+      return PointerTargetSet.simplifyType(((CTypeIdExpression) e).getType());
     } else {
       return null;
     }
@@ -352,7 +356,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   @Override
   public Formula visit(final CFunctionCallExpression e) throws UnrecognizedCCodeException {
     final CExpression functionNameExpression = e.getFunctionNameExpression();
-    final CType resultType = e.getExpressionType();
+    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     final List<CExpression> parameters = e.getParameterExpressions();
     if (functionNameExpression instanceof CIdExpression) {
       final String functionName = ((CIdExpression) functionNameExpression).getName();
@@ -415,6 +419,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
 
   public String getFuncitonName() {
     return function;
+  }
+
+  public void forceShared(final CDeclaration declaration) {
+    pts.addBase(declaration.getQualifiedName(), declaration.getType());
   }
 
   public void forceShared(final CParameterDeclaration declaration) {
