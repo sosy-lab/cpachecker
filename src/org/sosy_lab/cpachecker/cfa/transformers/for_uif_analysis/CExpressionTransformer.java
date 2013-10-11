@@ -275,7 +275,7 @@ class CExpressionTransformer implements CExpressionVisitor<AExpression, Unrecogn
           ((CUnaryExpression) e.getOperand()).getOperator() == UnaryOperator.AMPER) {
         // "* &v" -> "v"
         return ((CUnaryExpression) e.getOperand()).getOperand().accept(this);
-      } else if (e.getOperand() instanceof CCastExpression &&
+      } /* else if (e.getOperand() instanceof CCastExpression &&
                  ((CCastExpression) e.getOperand()).getOperand() instanceof CUnaryExpression &&
                  ((CUnaryExpression) ((CCastExpression) e.getOperand()).getOperand()).getOperator() ==
                    UnaryOperator.AMPER) {
@@ -286,7 +286,7 @@ class CExpressionTransformer implements CExpressionVisitor<AExpression, Unrecogn
                                    ((CUnaryExpression) ((CCastExpression) e.getOperand()).getOperand()).getOperand()
                                                                                                        .accept(this),
                                    ((CCastExpression) e.getOperand()).getType());
-      } else if (e.getOperand().getExpressionType() instanceof CPointerType &&
+      } */ else if (e.getOperand().getExpressionType() instanceof CPointerType &&
                  ((CPointerType)e.getOperand().getExpressionType()).getType() instanceof CFunctionType) {
         // "* f" -> "f"
         return e.getOperand().accept(this);

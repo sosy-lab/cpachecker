@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
 import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplifier;
+import org.sosy_lab.cpachecker.cfa.transformers.for_uif_analysis.CFATransformer;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -125,6 +126,10 @@ public class CFACreator {
   @Option(name="cfa.useMultiEdges",
       description="combine sequences of simple edges into a single edge")
   private boolean useMultiEdges = false;
+
+  @Option(name="cfa.simplifyPointerArith",
+          description="convert pointer arithmetic into array subscripts (e.g. *(p + 1) into p[1]")
+  private boolean simplifyPointerArith = false;
 
   @Option(name="cfa.removeIrrelevantForSpecification",
       description="remove paths from CFA that cannot lead to a specification violation")
@@ -396,6 +401,10 @@ public class CFACreator {
 
       if (useMultiEdges) {
         MultiEdgeCreator.createMultiEdges(cfa);
+      }
+
+      if (simplifyPointerArith) {
+        CFATransformer.transformCFA(cfa, logger);
       }
 
       final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);

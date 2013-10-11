@@ -26,8 +26,9 @@ package org.sosy_lab.cpachecker.cfa.transformers.for_uif_analysis;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -37,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -45,9 +45,11 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
@@ -153,7 +155,8 @@ public class CFATransformer extends DefaultCFAVisitor {
       }
       case ReturnStatementEdge: {
         final CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) oldEdge;
-        if (returnStatementEdge.getRawAST().isPresent()) {
+        if (returnStatementEdge.getRawAST().isPresent() && /* That's because getExpression() assumes rawAST != null */
+            returnStatementEdge.getExpression() != null) {
           final CExpression oldExpression = returnStatementEdge.getExpression();
           final CExpression expression = (CExpression) oldExpression.accept(expressionVisitor);
           if (expression != oldExpression) {
@@ -173,12 +176,40 @@ public class CFATransformer extends DefaultCFAVisitor {
         final CStatementEdge statementEdge = (CStatementEdge) oldEdge;
         final CStatement oldStatement = statementEdge.getStatement();
         final CStatement statement = oldStatement.accept(statementVisitor);
-        if (statement != oldStatement) {
-          edge = new CStatementEdge(statementEdge.getRawStatement(),
-                                    statement,
-                                    statementEdge.getLineNumber(),
-                                    statementEdge.getPredecessor(),
-                                    statementEdge.getSuccessor());
+        if (!(oldEdge instanceof CFunctionSummaryStatementEdge)) {
+          if (statement != oldStatement) {
+            edge = new CStatementEdge(statementEdge.getRawStatement(),
+                                      statement,
+                                      statementEdge.getLineNumber(),
+                                      statementEdge.getPredecessor(),
+                                      statementEdge.getSuccessor());
+          }
+        } else /*oldEdge instanceof CFunctionSummaryStatementEdge*/ {
+          final CFunctionSummaryStatementEdge summaryStatementEdge = (CFunctionSummaryStatementEdge) statementEdge;
+          final CFunctionCallExpression oldCallExpression = summaryStatementEdge.getFunctionCall().getFunctionCallExpression();
+          final CFunctionCallExpression callExpression = (CFunctionCallExpression) oldCallExpression
+                                                                                       .accept(rhsVisitor);
+          if (statement != oldStatement || callExpression != oldCallExpression) {
+            final CFunctionCall oldFunctionCall = summaryStatementEdge.getFunctionCall();
+            final CFunctionCall functionCall;
+            if (oldFunctionCall instanceof CFunctionCallStatement) {
+              functionCall = new CFunctionCallStatement(((CFunctionCallStatement) oldFunctionCall).getFileLocation(),
+                                                        callExpression);
+            } else /*oldFunctionCall instanceof CFunctionCallAssignmentStatement*/ {
+              functionCall = new CFunctionCallAssignmentStatement(((CFunctionCallAssignmentStatement) oldFunctionCall)
+                                                                   .getFileLocation(),
+                                                                   ((CFunctionCallAssignmentStatement) oldFunctionCall)
+                                                                   .getLeftHandSide(),
+                                                                    callExpression);
+            }
+            edge = new CFunctionSummaryStatementEdge(summaryStatementEdge.getRawStatement(),
+                                                     statement,
+                                                     summaryStatementEdge.getLineNumber(),
+                                                     summaryStatementEdge.getPredecessor(),
+                                                     summaryStatementEdge.getSuccessor(),
+                                                     functionCall,
+                                                     summaryStatementEdge.getFunctionName());
+          }
         }
       }
       }
@@ -234,12 +265,16 @@ public class CFATransformer extends DefaultCFAVisitor {
     return TraversalProcess.CONTINUE;
   }
 
-  public CFATransformer(final Logger logger) {
+  private CFATransformer(final LogManager logger) {
     this.logger = logger;
   }
 
+  public static void transformCFA(MutableCFA cfa, final LogManager logger) {
+    CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(cfa.getMainFunction(), new CFATransformer(logger));
+  }
+
   private CExpressionTransformer expressionVisitor = new CExpressionTransformer();
-  private CStatementVisitor<CStatement, UnrecognizedCCodeException> statementVisitor =
-          new CStatementTransformer(expressionVisitor);
-  private final Logger logger;
+  private CStatementTransformer statementVisitor = new CStatementTransformer(expressionVisitor);
+  private CRightHandSideTransformer rhsVisitor = new CRightHandSideTransformer(expressionVisitor);
+  private final LogManager logger;
 }
