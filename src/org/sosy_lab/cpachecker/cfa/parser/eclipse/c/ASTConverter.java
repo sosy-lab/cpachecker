@@ -557,10 +557,14 @@ class ASTConverter {
       return convertExpressionWithSideEffects(e.getOperand());
     }
 
-    if(e.getRawSignature().contains("__imag__")) {
-      return new CComplexCastExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), operand, convert(e.getTypeId()), false);
-    } else if (e.getRawSignature().contains("__real__")) {
-      return new CComplexCastExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), operand, convert(e.getTypeId()), true);
+    final FileLocation loc = getLocation(e);
+    final CType type = typeConverter.convert(e.getExpressionType());
+    final CType castType = convert(e.getTypeId());
+
+    if("__imag__".equals(e.getTypeId().getRawSignature())) {
+      return new CComplexCastExpression(loc, type, operand, castType, false);
+    } else if ("__real__".equals(e.getTypeId().getRawSignature())) {
+      return new CComplexCastExpression(loc, type, operand, castType, true);
     }
 
     if (e.getOperand() instanceof IASTFieldReference && ((IASTFieldReference)e.getOperand()).isPointerDereference()) {
