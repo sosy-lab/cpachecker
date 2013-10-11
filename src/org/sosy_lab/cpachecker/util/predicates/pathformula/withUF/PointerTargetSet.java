@@ -604,7 +604,7 @@ public class PointerTargetSet implements Serializable {
         final CArrayType arrayType = (CArrayType) cType;
         assert arrayType.getLength() != null : "CFA should be transformed to eliminate unsized arrays";
         Integer length = arrayType.getLength().accept(evaluatingVisitor);
-        if (length == null) {
+        if (length == null || length > DEFAULT_ARRAY_LENGTH) {
           length = DEFAULT_ARRAY_LENGTH;
         }
         int offset = 0;
@@ -690,7 +690,7 @@ public class PointerTargetSet implements Serializable {
         final CArrayType arrayType = (CArrayType) cType;
         assert arrayType.getLength() != null : "CFA should be transformed to eliminate unsized arrays";
         Integer length = arrayType.getLength().accept(evaluatingVisitor);
-        if (length == null) {
+        if (length == null || length > DEFAULT_ARRAY_LENGTH) {
           length = DEFAULT_ARRAY_LENGTH;
         }
         int offset = 0;
@@ -1421,7 +1421,7 @@ public class PointerTargetSet implements Serializable {
 
   protected final FormulaType<?> pointerType;
 
-  public static final int DEFAULT_ARRAY_LENGTH = 100;
+  public static final int DEFAULT_ARRAY_LENGTH = 16;
   public static final int DEFAULT_ALLOCATION_SIZE = 4;
 
   public static final CSimpleType CHAR =
