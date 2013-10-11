@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.transformers.forPredicateAnalysisWithUF;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -111,9 +111,9 @@ class CStatementTransformer implements CStatementVisitor<CStatement, Unrecognize
     return functionCall == oldFunctionCall ? s : new CFunctionCallStatement(s.getFileLocation(), functionCall);
   }
 
-  public CStatementTransformer(final CExpressionVisitor<AExpression, UnrecognizedCCodeException> expressionVisitor) {
+  public CStatementTransformer(final CExpressionVisitor<CAstNode, UnrecognizedCCodeException> expressionVisitor) {
     this.expressionVisitor = expressionVisitor;
   }
 
-  private final CExpressionVisitor<AExpression, UnrecognizedCCodeException> expressionVisitor;
+  private final CExpressionVisitor<CAstNode, UnrecognizedCCodeException> expressionVisitor;
 }

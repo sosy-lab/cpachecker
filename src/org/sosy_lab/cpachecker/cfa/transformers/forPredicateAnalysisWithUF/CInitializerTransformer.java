@@ -26,106 +26,25 @@ package org.sosy_lab.cpachecker.cfa.transformers.forPredicateAnalysisWithUF;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.ForwardingCExpressionVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
-class CInitializerTransformer implements CInitializerVisitor<CInitializer, UnrecognizedCCodeException> {
-
-  @Override
-  public CInitializer visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-    		                                    "CExpressionTransformer instead");
-  }
-
-  @Override
-  public CInitializer visit(final CBinaryExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public CInitializer visit(final CCastExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public CInitializer visit(final CFieldReference e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public CInitializer visit(final CIdExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public CInitializer visit(final CCharLiteralExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public CInitializer visit(final CFloatLiteralExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public CInitializer visit(final CIntegerLiteralExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public CInitializer visit(final CStringLiteralExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public CInitializer visit(final CTypeIdExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public CInitializer visit(final CTypeIdInitializerExpression e)
-  throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public CInitializer visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
+class CInitializerTransformer extends ForwardingCExpressionVisitor<CAstNode, UnrecognizedCCodeException>
+                              implements CInitializerVisitor<CAstNode, UnrecognizedCCodeException> {
 
   @Override
   public CInitializer visit(final CInitializerExpression e) throws UnrecognizedCCodeException {
     final CExpression oldExpression = e.getExpression();
-    final CExpression expression = (CExpression) oldExpression.accept(expressionTransformer);
+    final CExpression expression = (CExpression) oldExpression.accept(this);
 
     return expression == oldExpression ? e :
            new CInitializerExpression(e.getFileLocation(), expression);
@@ -136,7 +55,7 @@ class CInitializerTransformer implements CInitializerVisitor<CInitializer, Unrec
     List<CInitializer> initializers = null;
     int i = 0;
     for (CInitializer oldInitializer : e.getInitializers()) {
-      final CInitializer initializer = oldInitializer.accept(this);
+      final CInitializer initializer = (CInitializer) oldInitializer.accept(this);
       if (initializer != oldInitializer && initializers == null) {
         initializers = new ArrayList<>();
         initializers.addAll(e.getInitializers().subList(0, i));
@@ -155,7 +74,7 @@ class CInitializerTransformer implements CInitializerVisitor<CInitializer, Unrec
   @Override
   public CDesignatedInitializer visit(final CDesignatedInitializer e) throws UnrecognizedCCodeException {
     final CInitializer oldRhs = e.getRightHandSide();
-    final CInitializer rhs = oldRhs.accept(this);
+    final CInitializer rhs = (CInitializer) oldRhs.accept(this);
 
     return rhs == oldRhs ? e :
            new CDesignatedInitializer(e.getFileLocation(),
@@ -163,9 +82,7 @@ class CInitializerTransformer implements CInitializerVisitor<CInitializer, Unrec
                                       rhs);
   }
 
-  CInitializerTransformer(final CExpressionTransformer expressionTransformer) {
-    this.expressionTransformer = expressionTransformer;
+  CInitializerTransformer(final CExpressionVisitor<CAstNode, UnrecognizedCCodeException> delegate) {
+    super(delegate);
   }
-
-  private final CExpressionTransformer expressionTransformer;
 }

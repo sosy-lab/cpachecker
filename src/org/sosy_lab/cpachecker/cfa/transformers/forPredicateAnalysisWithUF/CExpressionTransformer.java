@@ -25,36 +25,43 @@ package org.sosy_lab.cpachecker.cfa.transformers.forPredicateAnalysisWithUF;
 
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils.simplifyType;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.transformers.forPredicateAnalysisWithUF.CInitializerTransformer;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
-class CExpressionTransformer implements CExpressionVisitor<AExpression, UnrecognizedCCodeException> {
+class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, UnrecognizedCCodeException>
+                             implements CExpressionVisitor<CAstNode, UnrecognizedCCodeException> {
+
+  CExpressionTransformer(final boolean transformPointerArithmetic,
+                         final boolean transformArrows,
+                         final boolean transformStarAmper,
+                         final boolean transformFuncitonPointers) {
+    this.transformPointerArithmetic = transformPointerArithmetic;
+    this.transformArrows = transformArrows;
+    this.transformStarAmper = transformStarAmper;
+    this.transformFuncitonPointers = transformFuncitonPointers;
+  }
 
   @Override
   public CArraySubscriptExpression visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
@@ -72,7 +79,7 @@ class CExpressionTransformer implements CExpressionVisitor<AExpression, Unrecogn
   }
 
   @Override
-  public AExpression visit(final CBinaryExpression e) throws UnrecognizedCCodeException {
+  public CExpression visit(final CBinaryExpression e) throws UnrecognizedCCodeException {
     final CExpression oldOperand1 = e.getOperand1();
     final CExpression oldOperand2 = e.getOperand2();
     final CExpression operand1 = (CExpression) oldOperand1.accept(this);
@@ -219,22 +226,7 @@ class CExpressionTransformer implements CExpressionVisitor<AExpression, Unrecogn
   }
 
   @Override
-  public CCharLiteralExpression visit(final CCharLiteralExpression e) throws UnrecognizedCCodeException {
-    return e;
-  }
-
-  @Override
-  public CFloatLiteralExpression visit(final CFloatLiteralExpression e) throws UnrecognizedCCodeException {
-    return e;
-  }
-
-  @Override
-  public CIntegerLiteralExpression visit(final CIntegerLiteralExpression e) throws UnrecognizedCCodeException {
-    return e;
-  }
-
-  @Override
-  public CStringLiteralExpression visit(final CStringLiteralExpression e) throws UnrecognizedCCodeException {
+  public CExpression visitDefault(final CExpression e) throws UnrecognizedCCodeException {
     return e;
   }
 
@@ -258,7 +250,7 @@ class CExpressionTransformer implements CExpressionVisitor<AExpression, Unrecogn
   public CTypeIdInitializerExpression visit(final CTypeIdInitializerExpression e)
   throws UnrecognizedCCodeException {
     final CInitializer oldInitializer = e.getInitializer();
-    final CInitializer initializer = oldInitializer.accept(initializerTransformer);
+    final CInitializer initializer = (CInitializer) oldInitializer.accept(initializerTransformer);
 
     return initializer == oldInitializer ? e :
            new CTypeIdInitializerExpression(e.getFileLocation(),
@@ -268,14 +260,14 @@ class CExpressionTransformer implements CExpressionVisitor<AExpression, Unrecogn
   }
 
   @Override
-  public AExpression visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
+  public CExpression visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
     // Detect expression of the form
     // "* &v", "* ((t *) &v)", and "* f" where f is a function pointer
     if (e.getOperator() == UnaryOperator.STAR) {
       if (e.getOperand() instanceof CUnaryExpression &&
           ((CUnaryExpression) e.getOperand()).getOperator() == UnaryOperator.AMPER) {
         // "* &v" -> "v"
-        return ((CUnaryExpression) e.getOperand()).getOperand().accept(this);
+        return (CExpression) ((CUnaryExpression) e.getOperand()).getOperand().accept(this);
       } /* else if (e.getOperand() instanceof CCastExpression &&
                  ((CCastExpression) e.getOperand()).getOperand() instanceof CUnaryExpression &&
                  ((CUnaryExpression) ((CCastExpression) e.getOperand()).getOperand()).getOperator() ==
@@ -290,7 +282,7 @@ class CExpressionTransformer implements CExpressionVisitor<AExpression, Unrecogn
       } */ else if (e.getOperand().getExpressionType() instanceof CPointerType &&
                  ((CPointerType)e.getOperand().getExpressionType()).getType() instanceof CFunctionType) {
         // "* f" -> "f"
-        return e.getOperand().accept(this);
+        return (CExpression) e.getOperand().accept(this);
       }
     }
 
@@ -300,7 +292,7 @@ class CExpressionTransformer implements CExpressionVisitor<AExpression, Unrecogn
     switch (e.getOperator()) {
     case AMPER:
       if (e.getOperand().getExpressionType() instanceof CFunctionType) {
-        return e.getOperand().accept(this); // &f -> f
+        return (CExpression) e.getOperand().accept(this); // &f -> f
       }
       break;
     case MINUS:
@@ -327,11 +319,16 @@ class CExpressionTransformer implements CExpressionVisitor<AExpression, Unrecogn
     currentEdge = e;
   }
 
-  public CInitializerVisitor<CInitializer, UnrecognizedCCodeException> getInitializerTransformer() {
+  public CInitializerVisitor<CAstNode, UnrecognizedCCodeException> getInitializerTransformer() {
     return initializerTransformer;
   }
 
+  private final boolean transformPointerArithmetic;
+  private final boolean transformArrows;
+  private final boolean transformStarAmper;
+  private final boolean transformFuncitonPointers;
+
   private CFAEdge currentEdge = null;
-  private final CInitializerVisitor<CInitializer, UnrecognizedCCodeException> initializerTransformer =
+  private final CInitializerVisitor<CAstNode, UnrecognizedCCodeException> initializerTransformer =
                 new CInitializerTransformer(this);
 }

@@ -86,7 +86,8 @@ public class CFATransformer extends DefaultCFAVisitor {
           final CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
           if (variableDeclaration.getInitializer() != null) {
             final CInitializer oldInitializer = variableDeclaration.getInitializer();
-            final CInitializer initializer = oldInitializer.accept(expressionVisitor.getInitializerTransformer());
+            final CInitializer initializer =
+              (CInitializer) oldInitializer.accept(expressionVisitor.getInitializerTransformer());
             if (initializer != oldInitializer) {
               edge = new CDeclarationEdge(declarationEdge.getRawStatement(),
                                           declarationEdge.getLineNumber(),
@@ -273,7 +274,7 @@ public class CFATransformer extends DefaultCFAVisitor {
     CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(cfa.getMainFunction(), new CFATransformer(logger));
   }
 
-  private CExpressionTransformer expressionVisitor = new CExpressionTransformer();
+  private CExpressionTransformer expressionVisitor = new CExpressionTransformer(true, true, true, true);
   private CStatementTransformer statementVisitor = new CStatementTransformer(expressionVisitor);
   private CRightHandSideTransformer rhsVisitor = new CRightHandSideTransformer(expressionVisitor);
   private final LogManager logger;

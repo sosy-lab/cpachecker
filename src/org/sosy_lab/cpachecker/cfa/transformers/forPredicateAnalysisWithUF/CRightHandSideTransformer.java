@@ -26,109 +26,26 @@ package org.sosy_lab.cpachecker.cfa.transformers.forPredicateAnalysisWithUF;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.ForwardingCExpressionVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
-class CRightHandSideTransformer implements CRightHandSideVisitor<ARightHandSide, UnrecognizedCCodeException> {
-
-  @Override
-  public ARightHandSide visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public ARightHandSide visit(final CBinaryExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public ARightHandSide visit(final CCastExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public ARightHandSide visit(final CFieldReference e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public ARightHandSide visit(final CIdExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public ARightHandSide visit(final CCharLiteralExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public ARightHandSide visit(final CFloatLiteralExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public ARightHandSide visit(final CIntegerLiteralExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public ARightHandSide visit(final CStringLiteralExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public ARightHandSide visit(final CTypeIdExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public ARightHandSide visit(final CTypeIdInitializerExpression e)
-  throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
-
-  @Override
-  public ARightHandSide visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
-    throw new UnsupportedOperationException("the method shouldn't be called: use the one from " +
-                                            "CExpressionTransformer instead");
-  }
+class CRightHandSideTransformer extends ForwardingCExpressionVisitor<CAstNode, UnrecognizedCCodeException>
+                                implements CRightHandSideVisitor<CAstNode, UnrecognizedCCodeException> {
 
   @Override
   public CFunctionCallExpression visit(final CFunctionCallExpression e) throws UnrecognizedCCodeException {
     final CExpression oldFunctionNameExpression = e.getFunctionNameExpression();
-    final CExpression functionNameExpression = (CExpression) oldFunctionNameExpression.accept(expressionTransformer);
+    final CExpression functionNameExpression = (CExpression) oldFunctionNameExpression.accept(this);
 
     List<CExpression> parameters = null;
     int i = 0;
     for (CExpression oldParameter : e.getParameterExpressions()) {
-      final CExpression parameter = (CExpression) oldParameter.accept(expressionTransformer);
+      final CExpression parameter = (CExpression) oldParameter.accept(this);
       if (parameter != oldParameter && parameters == null) {
         parameters = new ArrayList<>();
         parameters.addAll(e.getParameterExpressions().subList(0, i));
@@ -147,10 +64,7 @@ class CRightHandSideTransformer implements CRightHandSideVisitor<ARightHandSide,
                                        e.getDeclaration());
   }
 
-
-  CRightHandSideTransformer(final CExpressionTransformer expressionTransformer) {
-    this.expressionTransformer = expressionTransformer;
+  CRightHandSideTransformer(final CExpressionTransformer delegate) {
+    super(delegate);
   }
-
-  private final CExpressionTransformer expressionTransformer;
 }
