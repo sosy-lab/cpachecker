@@ -123,11 +123,6 @@ public class FormulaManagerView {
   @Option(description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced.")
   private boolean ignoreExtractConcat = true;
 
-  @Option(name="pointerAnalysisWithUFs",
-      description="Use CToFormulaConverterWithUF for converting edges to path formulae. This enables encoding of " +
-                  "aliased variables with uninterpreted function calls.")
-  private boolean pointerAnalysisWithUFs = false;
-
   // TODO move option solver.useIntegers here to replace Bitvectors with LIA and EUF generically
 
   private LogManager logger;
@@ -746,11 +741,11 @@ public class FormulaManagerView {
   }
 
   private boolean ufCanBeLvalue(String name) {
-    return name.startsWith(".{") || name.startsWith("->{") || (pointerAnalysisWithUFs && name.startsWith("*"));
+    return name.startsWith(".{") || name.startsWith("->{") || name.startsWith("*");
   }
 
   private boolean ufIndexDependsOnArgs(final String name) {
-    return !pointerAnalysisWithUFs || !name.startsWith("*");
+    return !name.startsWith("*");
   }
 
   public <T extends Formula> T uninstantiate(T pF) {

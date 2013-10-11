@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
@@ -77,7 +76,10 @@ import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.eclipse.cdt.core.dom.ast.IBasicType;
+import org.eclipse.cdt.core.dom.ast.IBasicType.Kind;
 import org.eclipse.cdt.core.dom.ast.ICompositeType;
+import org.eclipse.cdt.core.dom.ast.IPointerType;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignator;
@@ -85,7 +87,6 @@ import org.eclipse.cdt.core.dom.ast.c.ICASTFieldDesignator;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
-import org.eclipse.cdt.internal.core.dom.parser.c.CASTIdExpression;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -166,14 +167,6 @@ class ASTConverter {
       description="simplify pointer expressions like s->f to (*s).f with this option " +
         "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide")
   private boolean simplifyPointerExpressions = false;
-
-  @Option(name="cfa.ignoreAllocCasts", description = "Ignore type castings in calls to memory allocation functions")
-  private boolean ignoreAllocCasts = false;
-
-  @Option(name="cfa.allocationFunctionPattern", description = "Regex pattern matching allocation functions")
-  private String memoryAllocationFunctionPatternString = ".*alloc";
-
-  private Pattern memoryAllocationFunctionPattern = Pattern.compile(memoryAllocationFunctionPatternString);
 
   private final boolean simplifyConstExpressions;
   private final ExpressionSimplificationVisitor expressionSimplificator;
@@ -542,19 +535,20 @@ class ASTConverter {
     }
   }
 
+  private static boolean isPointerToVoid(final IASTExpression e) {
+    return (e.getExpressionType() instanceof IPointerType) &&
+           ((IPointerType) e.getExpressionType()).getType() instanceof IBasicType &&
+           ((IBasicType)((IPointerType) e.getExpressionType()).getType()).getKind() == Kind.eVoid;
+  }
+
   private CAstNode convert(IASTCastExpression e) {
     final CExpression operand;
-    if (!ignoreAllocCasts ||
-        !(e.getOperand() instanceof CASTFunctionCallExpression) ||
-        !(((CASTFunctionCallExpression) e.getOperand()).getFunctionNameExpression() instanceof CASTIdExpression) ||
-        !memoryAllocationFunctionPattern.matcher(
-          ((CASTIdExpression) ((CASTFunctionCallExpression) e.getOperand()).getFunctionNameExpression())
-                                                                           .getName()
-                                                                           .toString())
-            .matches()) {
-      operand = convertExpressionWithoutSideEffects(e.getOperand());
-    } else {
+    if (e.getOperand() instanceof CASTFunctionCallExpression &&
+        isPointerToVoid(e.getOperand()) &&
+        e.getTypeId() instanceof IPointerType) {
       return convertExpressionWithSideEffects(e.getOperand());
+    } else {
+      operand = convertExpressionWithoutSideEffects(e.getOperand());
     }
 
     final FileLocation loc = getLocation(e);
