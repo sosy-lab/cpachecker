@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
@@ -51,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -219,13 +221,45 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     return result;
   }
 
-  public Object visitInitializer(CType type, final CInitializer topInitializer, final boolean isAutomatic)
+  private CInitializerList stringLiteralToInitializerList(final CStringLiteralExpression e,
+                                                          final CExpression lengthExpression) {
+    final Integer length = lengthExpression.accept(pts.getEvaluatingVisitor());
+    assert length != null : "CFA should be transformed to eliminate unsized arrays";
+    final String s = e.getContentString();
+    assert length >= s.length();
+    // http://stackoverflow.com/a/6915917
+    // As the C99 Draft Specification's 32nd Example in §6.7.8 (p. 130) states
+    // char s[] = "abc", t[3] = "abc"; is identical to: char s[] = { 'a', 'b', 'c', '\0' }, t[] = { 'a', 'b', 'c' };
+    final boolean zeroTerminated = length >= s.length() + 1;
+    final List<CInitializer> initializers = new ArrayList<>();
+    for (int i = 0; i < s.length(); i++) {
+      initializers.add(new CInitializerExpression(
+                             e.getFileLocation(),
+                             new CCharLiteralExpression(e.getFileLocation(),
+                                                        PointerTargetSet.CONST_CHAR,
+                                                        s.charAt(i))));
+    }
+    if (zeroTerminated) {
+      initializers.add(new CInitializerExpression(
+                             e.getFileLocation(),
+                             new CCharLiteralExpression(e.getFileLocation(), PointerTargetSet.CONST_CHAR, '\0')));
+    }
+    return new CInitializerList(e.getFileLocation(), initializers);
+  }
+
+  public Object visitInitializer(CType type, CInitializer topInitializer, final boolean isAutomatic)
   throws UnrecognizedCCodeException {
     type = PointerTargetSet.simplifyType(type);
-    final CSimpleType integerType =
-        new CSimpleType(true, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-    final Formula zero = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(integerType, pts), 0);
+    final Formula zero = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(PointerTargetSet.CONST_CHAR, pts), 0);
     if (type instanceof CArrayType) {
+      if (topInitializer instanceof CInitializerExpression &&
+          ((CArrayType) type).getType() instanceof CSimpleType &&
+          ((CSimpleType) ((CArrayType) type).getType()).getType() == CBasicType.CHAR &&
+          ((CInitializerExpression) topInitializer).getExpression() instanceof CStringLiteralExpression) {
+        topInitializer = stringLiteralToInitializerList(
+          (CStringLiteralExpression) ((CInitializerExpression) topInitializer).getExpression(),
+          ((CArrayType) type).getLength());
+      }
       assert topInitializer instanceof CInitializerList : "Wrong array initializer";
       final CInitializerList initializerList = (CInitializerList) topInitializer;
       final CType elementType = PointerTargetSet.simplifyType(((CArrayType) type).getType());
@@ -239,6 +273,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       if (length == null) {
         throw new UnrecognizedCCodeException("Can't evaluate array size for initialization", edge, initializerList);
       }
+      assert length >= initializerList.getInitializers().size() : "Initializer is larger than the array";
       final List<Object> result = new ArrayList<>(length);
       for (int i = 0; i < length; ++i) {
         if (isAutomatic) {

@@ -951,6 +951,8 @@ public class PointerTargetSet implements Serializable {
   public static final int DEFAULT_ARRAY_LENGTH = 100;
   public static final int DEFAULT_ALLOCATION_SIZE = 4;
 
+  public static final CSimpleType CONST_CHAR =
+    new CSimpleType(true, false, CBasicType.CHAR, false, false, true, false, false, false, false);
   public static final CType VOID =
     new CSimpleType(false, false, CBasicType.VOID, false, false, false, false, false, false, false);
   public static final CType POINTER_TO_VOID = new CPointerType(true, false, VOID);
