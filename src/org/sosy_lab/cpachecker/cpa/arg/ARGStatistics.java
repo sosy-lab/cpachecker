@@ -65,7 +65,6 @@ import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.arg")
@@ -317,17 +316,18 @@ public class ARGStatistics implements Statistics {
       @Override
       public void appendTo(Appendable out) throws IOException {
         // Write edges mixed with assigned values.
-        Multimap<CFAEdge, Model.AssignableTerm> assignments = model.getAssignedTermsPerEdge();
 
         for (CFAEdge edge : targetPath.asEdgesList()) {
           out.append(edge.toString());
           out.append(System.lineSeparator());
-          for (Model.AssignableTerm term : assignments.get(edge)) {
-            out.append('\t');
-            out.append(term.toString());
-            out.append(": ");
-            out.append(model.get(term).toString());
-            out.append(System.lineSeparator());
+          if (model != null) {
+            for (Model.AssignableTerm term : model.getAssignedTermsPerEdge().get(edge)) {
+              out.append('\t');
+              out.append(term.toString());
+              out.append(": ");
+              out.append(model.get(term).toString());
+              out.append(System.lineSeparator());
+            }
           }
         }
       }
