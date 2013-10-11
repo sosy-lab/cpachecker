@@ -59,6 +59,25 @@ public class PointerTargetPattern implements Serializable {
     this.matchRange = true;
   }
 
+  public void setBase(final String base) {
+    this.base = base;
+  }
+
+  public void setRange(final int startOffset, final int size) {
+    this.containerOffset = startOffset;
+    this.properOffset = startOffset + size;
+    this.matchRange = true;
+    this.containerType = null;
+  }
+
+  public void setRange(final int size) {
+    assert containerOffset != null && properOffset != null : "Strating address is inexact";
+    this.containerOffset += properOffset;
+    this.properOffset = containerOffset + size;
+    this.matchRange = true;
+    this.containerType = null;
+  }
+
   public void setProperOffset(final int properOffset) {
     assert !matchRange : "Contradiction in target pattern: properOffset";
     this.properOffset = properOffset;
@@ -153,6 +172,14 @@ public class PointerTargetPattern implements Serializable {
       }
     }
     return true;
+  }
+
+  public boolean isExact() {
+    return base != null && containerOffset != null && properOffset != null;
+  }
+
+  public boolean isSemiexact() {
+    return containerOffset != null && properOffset != null;
   }
 
   private String base = null;

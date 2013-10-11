@@ -423,6 +423,10 @@ public class PointerTargetSet implements Serializable {
       return bases.containsKey(name);
     }
 
+    public boolean tracksField(final CCompositeType compositeType, final String fieldName) {
+      return fields.containsKey(CompositeField.of(cTypeToString(compositeType), fieldName));
+    }
+
     public FormulaType<?> getPointerType() {
       return pointerType;
     }
