@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -130,17 +131,18 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
 
   public ImpactAlgorithm(Configuration config, LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
       ConfigurableProgramAnalysis pCpa, CFA cfa) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     logger = pLogger;
     cpa = pCpa;
 
-    FormulaManagerFactory factory = new FormulaManagerFactory(config, pLogger);
+    FormulaManagerFactory factory = new FormulaManagerFactory(config, pLogger, pShutdownNotifier);
     fmgr = new FormulaManagerView(factory.getFormulaManager(), config, logger);
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, cfa.getMachineModel()));
     solver = new Solver(fmgr, factory);
-    imgr = new InterpolationManager(fmgr, pfmgr, solver, factory, config, logger);
+    imgr = new InterpolationManager(fmgr, pfmgr, solver, factory, config, pShutdownNotifier, logger);
   }
 
   public AbstractState getInitialState(CFANode location) {
@@ -250,7 +252,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
    * Check if a vertex v may potentially be covered by another vertex w.
    * It checks everything except their state formulas.
    */
-  private boolean mayCover(Vertex v, Vertex w, Precision prec) throws CPAException {
+  private boolean mayCover(Vertex v, Vertex w, Precision prec) throws CPAException, InterruptedException {
     return (v != w)
         && !w.isCovered() // ???
         && w.isOlderThan(v)
@@ -258,7 +260,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
         && cpa.getStopOperator().stop(v.getWrappedState(), Collections.singleton(w.getWrappedState()), prec);
   }
 
-  private boolean cover(Vertex v, Vertex w, Precision prec) throws CPAException {
+  private boolean cover(Vertex v, Vertex w, Precision prec) throws CPAException, InterruptedException {
     coverTime.start();
     try {
       assert !v.isCovered();
@@ -367,7 +369,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private boolean close(Vertex v, ReachedSet reached) throws CPAException {
+  private boolean close(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
     closeTime.start();
     try {
       if (v.isCovered()) {

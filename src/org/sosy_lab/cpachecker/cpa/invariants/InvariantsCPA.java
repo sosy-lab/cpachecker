@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -60,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -70,15 +72,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundStateFormulaManager;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Equal;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor.VariableNameExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.LessThan;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.SplitDisjunctionsVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptAllVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
@@ -90,10 +88,13 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * This is a CPA for collecting simple syntactic invariants about integer variables.
+ * This is a CPA for collecting simple invariants about integer variables.
  */
 public class InvariantsCPA extends AbstractCPA {
 
+  /**
+   * A formula visitor for collecting the variables contained in a formula.
+   */
   private static final CollectVarsVisitor<CompoundState> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
   @Options(prefix="cpa.invariants")
@@ -103,146 +104,228 @@ public class InvariantsCPA extends AbstractCPA {
         description="which merge operator to use for InvariantCPA")
     private String merge = "JOIN";
 
-    private int interestingPredicatesDepth = 2;
+    @Option(description="determine target locations in advance and analyse paths to the target locations only.")
+    private boolean analyzeTargetPathsOnly = true;
 
+    @Option(description="determine variables relevant to the decision whether or not a target path assume edge is taken and limit the analyis to those variables.")
+    private boolean analyzeRelevantVariablesOnly = true;
+
+    @Option(description="the maximum number of predicates to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting predicates is disabled.")
+    private int interestingPredicatesLimit = 0;
+
+    @Option(description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
     private int interestingVariableLimit = 2;
+
+    @Option(description="whether or not to use a bit vector formula manager when extracting invariant approximations from states.")
+    private boolean useBitvectors = false;
 
   }
 
+  /**
+   * The configured options.
+   */
   private final InvariantsOptions options;
 
-  private final boolean useBitvectors;
-
+  /**
+   * The configuration.
+   */
   private final Configuration config;
 
+  /**
+   * The log manager used.
+   */
   private final LogManager logManager;
 
+  /**
+   * The reached set factory used.
+   */
   private final ReachedSetFactory reachedSetFactory;
 
+  /**
+   * The notifier that tells us when to stop.
+   */
+  private final ShutdownNotifier shutdownNotifier;
+
+  /**
+   * The analyzed control flow automaton.
+   */
   private final CFA cfa;
 
+  /**
+   * Gets a factory for creating InvariantCPAs.
+   *
+   * @return a factory for creating InvariantCPAs.
+   */
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(InvariantsCPA.class).withOptions(InvariantsOptions.class);
   }
 
+  /**
+   * Creates an InvariantCPA.
+   *
+   * @param config the configuration used.
+   * @param logger the log manager used.
+   * @param options the configured options.
+   * @param pReachedSetFactory the reached set factory used.
+   * @param pCfa the control flow automaton to analyze.
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   */
   public InvariantsCPA(Configuration config, LogManager logger, InvariantsOptions options,
-      ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
+      ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
     super(options.merge, "sep", InvariantsDomain.INSTANCE, InvariantsTransferRelation.INSTANCE);
     this.config = config;
     this.logManager = logger;
+    this.shutdownNotifier = pShutdownNotifier;
     this.reachedSetFactory = pReachedSetFactory;
     this.cfa = pCfa;
-    this.useBitvectors = true;
     this.options = options;
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    try {
-      Configuration.Builder configurationBuilder = Configuration.builder().copyFrom(config);
-      configurationBuilder.setOption("output.disable", "true");
-      configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA");
-      configurationBuilder.setOption("specification", "config/specification/default.spc");
+    Set<CFANode> relevantLocations = new LinkedHashSet<>();
+    Set<CFANode> targetLocations = new LinkedHashSet<>();
 
-      ConfigurableProgramAnalysis cpa = new CPABuilder(configurationBuilder.build(), logManager, reachedSetFactory).buildCPAs(cfa);
-      ReachedSet reached = reachedSetFactory.create();
-      reached.add(cpa.getInitialState(pNode), cpa.getInitialPrecision(pNode));
-      new CPAAlgorithm(cpa, logManager, config).run(reached);
-      Set<CFAEdge> relevantEdges = new HashSet<>();
-      Set<InvariantsFormula<CompoundState>> interestingAssumptions = new HashSet<>();
-      Set<String> interestingVariables = new LinkedHashSet<>();
-      for (AbstractState state : FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE)) {
-        CFANode location = AbstractStates.extractLocation(state);
-        Queue<CFANode> nodes = new ArrayDeque<>();
-        Queue<Integer> distances = new ArrayDeque<>();
-        nodes.offer(location);
-        distances.offer(0);
-        while (!nodes.isEmpty()) {
-          location = nodes.poll();
-          int distance = distances.poll();
-          for (int i = 0; i < location.getNumEnteringEdges(); ++i) {
-            CFAEdge edge = location.getEnteringEdge(i);
-            if (relevantEdges.add(edge)) {
-              nodes.offer(edge.getPredecessor());
-              if ((options.interestingPredicatesDepth < 0 || distance < options.interestingPredicatesDepth) && edge instanceof AssumeEdge) {
-                InvariantsFormula<CompoundState> formula = ((CAssumeEdge) edge).getExpression().accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(edge));
-                addAll(interestingVariables, formula.accept(COLLECT_VARS_VISITOR), options.interestingVariableLimit);
-                if (formula instanceof LogicalNot<?>) { // We don't care about negations here
-                  formula = ((LogicalNot<CompoundState>) formula).getNegated();
-                }
-                for (InvariantsFormula<CompoundState> assumption : formula.accept(new SplitDisjunctionsVisitor<CompoundState>())) {
-                  if (assumption instanceof LogicalNot<?>) { // We don't care about negations here either
-                    assumption = ((LogicalNot<CompoundState>) assumption).getNegated();
+    // Determine the target locations
+    boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
+    if (determineTargetLocations) {
+      try {
+        Configuration.Builder configurationBuilder = Configuration.builder().copyFrom(config);
+        configurationBuilder.setOption("output.disable", "true");
+        configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA");
+        configurationBuilder.setOption("specification", "config/specification/default.spc");
+
+        ConfigurableProgramAnalysis cpa = new CPABuilder(configurationBuilder.build(), logManager, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
+        ReachedSet reached = reachedSetFactory.create();
+        reached.add(cpa.getInitialState(pNode), cpa.getInitialPrecision(pNode));
+        new CPAAlgorithm(cpa, logManager, config, shutdownNotifier).run(reached);
+
+        for (AbstractState state : FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE)) {
+          CFANode location = AbstractStates.extractLocation(state);
+          targetLocations.add(location);
+        }
+      } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
+        this.logManager.logException(Level.SEVERE, e, "Unable to find target locations. Defaulting to selecting all locations.");
+        determineTargetLocations = false;
+      }
+    }
+    if (options.analyzeTargetPathsOnly && determineTargetLocations) {
+      relevantLocations.addAll(targetLocations);
+    } else {
+      relevantLocations.addAll(cfa.getAllNodes());
+    }
+
+    // Collect relevant edges and guess that information might be interesting
+    Set<CFAEdge> relevantEdges = new HashSet<>();
+    Set<InvariantsFormula<CompoundState>> interestingPredicates = new LinkedHashSet<>();
+    Set<String> interestingVariables = new LinkedHashSet<>();
+
+    boolean guessInterestingInformation = options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
+    if (guessInterestingInformation && !determineTargetLocations) {
+      this.logManager.log(Level.WARNING, "Target states were not determined. Guessing interesting information is arbitrary.");
+    }
+
+    // Iterate backwards from all relevant locations to find the relevant edges
+    for (CFANode location : relevantLocations) {
+      Queue<CFANode> nodes = new ArrayDeque<>();
+      Queue<Integer> distances = new ArrayDeque<>();
+      nodes.offer(location);
+      distances.offer(0);
+      while (!nodes.isEmpty()) {
+        location = nodes.poll();
+        int distance = distances.poll();
+        for (int i = 0; i < location.getNumEnteringEdges(); ++i) {
+          CFAEdge edge = location.getEnteringEdge(i);
+          if (relevantEdges.add(edge)) {
+            nodes.offer(edge.getPredecessor());
+            if (edge instanceof AssumeEdge) {
+              if (guessInterestingInformation) {
+                try {
+                  InvariantsFormula<CompoundState> formula = ((CAssumeEdge) edge).getExpression().accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(edge));
+                  if (options.interestingVariableLimit != 0) {
+                    addAll(interestingVariables, formula.accept(COLLECT_VARS_VISITOR), options.interestingVariableLimit);
                   }
-                  interestingAssumptions.add(assumption);
-                  distances.offer(distance + 1);
+                  if (options.interestingPredicatesLimit != 0) {
+                    if (formula instanceof LogicalNot<?>) { // We don't care about negations here
+                      formula = ((LogicalNot<CompoundState>) formula).getNegated();
+                    }
+                    for (InvariantsFormula<CompoundState> assumption : formula.accept(new SplitDisjunctionsVisitor<CompoundState>())) {
+                      if (assumption instanceof LogicalNot<?>) { // We don't care about negations here either
+                        assumption = ((LogicalNot<CompoundState>) assumption).getNegated();
+                      }
+                      interestingPredicates.add(assumption);
+                    }
+                  }
+                } catch (UnrecognizedCCodeException e) {
+                  this.logManager.logException(Level.SEVERE, e, "Found unrecognized C code on an edge. Cannot guess interesting information.");
+                  guessInterestingInformation = false;
                 }
-              } else {
-                distances.offer(distance);
               }
+              distances.offer(distance + 1);
+            } else {
+              distances.offer(distance);
             }
           }
         }
       }
-      // Collect all variables of relevant assume edges
-      Set<String> relevantVariables = new HashSet<>();
-      for (CFAEdge edge : relevantEdges) {
-        ExpressionToFormulaVisitor etfv = InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(edge);
-        if (edge instanceof CAssumeEdge) {
+    }
+    // Try to specify all relevant variables
+    Set<String> relevantVariables = new HashSet<>();
+    boolean specifyRelevantVariables = options.analyzeRelevantVariablesOnly;
+    // Collect all variables from relevant edges
+    for (CFAEdge edge : relevantEdges) {
+      ExpressionToFormulaVisitor etfv = InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(edge);
+      if (edge instanceof CAssumeEdge) {
+        try {
           InvariantsFormula<CompoundState> assumption = ((CAssumeEdge) edge).getExpression().accept(etfv);
           relevantVariables.addAll(assumption.accept(COLLECT_VARS_VISITOR));
+        } catch (UnrecognizedCCodeException e) {
+          this.logManager.logException(Level.SEVERE, e, "Found unrecognized C code on an edge. Cannot specify relevant variables explicitly. Considering all variables as relevant.");
+          specifyRelevantVariables = false;
         }
       }
-
+    }
+    final VariableSelection<CompoundState> variableSelection;
+    if (specifyRelevantVariables) {
       // Collect all variables related to variables found on relevant assume edges from other edges with a fix point iteration
       expand(relevantVariables, relevantEdges, -1);
-
-      // Collect especially interesting variables
-      /*Set<String> interestingVariables = new HashSet<>();
-      for (InvariantsFormula<CompoundState> interestingAssumption : interestingAssumptions) {
-        addAll(interestingVariables, interestingAssumption.accept(COLLECT_VARS_VISITOR), options.interestingVariableLimit);
-        expand(interestingVariables, relevantEdges, options.interestingVariableLimit);
-      }*/
-      Iterator<InvariantsFormula<CompoundState>> interestingAssumptionIterator = interestingAssumptions.iterator();
-      while (interestingAssumptionIterator.hasNext()) {
-        InvariantsFormula<CompoundState> interestingAssumption = interestingAssumptionIterator.next();
-        if (interestingAssumption instanceof Equal<?>) {
-          String varName = null;
-          Equal<CompoundState> equal = (Equal<CompoundState>) interestingAssumption;
-          if (equal.getOperand1() instanceof Variable<?> && (equal.getOperand2() instanceof Constant<?> || equal.getOperand2() instanceof Variable<?>)) {
-            varName = ((Variable<?>) equal.getOperand1()).getName();
-          } else if (equal.getOperand2() instanceof Variable<?> && (equal.getOperand1() instanceof Constant<?> || equal.getOperand1() instanceof Constant<?>)) {
-            varName = ((Variable<?>) equal.getOperand2()).getName();
-          }
-          if (interestingVariables.contains(varName)) {
-            interestingAssumptionIterator.remove();
-          }
-        } else if (interestingAssumption instanceof LessThan<?>) {
-          String varName = null;
-          LessThan<CompoundState> lessThan = (LessThan<CompoundState>) interestingAssumption;
-          if (lessThan.getOperand1() instanceof Variable<?> && (lessThan.getOperand2() instanceof Constant<?> || lessThan.getOperand2() instanceof Variable<?>)) {
-            varName = ((Variable<?>) lessThan.getOperand1()).getName();
-          } else if (lessThan.getOperand2() instanceof Variable<?> && (lessThan.getOperand1() instanceof Constant<?> || lessThan.getOperand1() instanceof Constant<?>)) {
-            varName = ((Variable<?>) lessThan.getOperand2()).getName();
-          }
-          if (interestingVariables.contains(varName)) {
-            interestingAssumptionIterator.remove();
-          }
-        }
-      }
-
-      //VariableSelection<CompoundState> variableSelection = new AcceptAllVariableSelection<>();
-      VariableSelection<CompoundState> variableSelection = new AcceptSpecifiedVariableSelection<>(relevantVariables);
-      interestingAssumptions.clear();
-      return new InvariantsState(this.useBitvectors,
-          variableSelection,
-          ImmutableSet.copyOf(relevantEdges),
-          ImmutableSet.copyOf(interestingAssumptions),
-          ImmutableSet.copyOf(interestingVariables));
-    } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
-      this.logManager.logException(Level.SEVERE, e, "Unable to select specific variables. Defaulting to selecting all variables.");
+      variableSelection = new AcceptSpecifiedVariableSelection<>(relevantVariables);
+    } else {
+      variableSelection = new AcceptAllVariableSelection<>();
     }
-    return new InvariantsState(this.useBitvectors, new AcceptAllVariableSelection<CompoundState>());
+
+    // Remove predicates from the collection of interesting predicates that are already covered by the set of interesting variables
+    Iterator<InvariantsFormula<CompoundState>> interestingPredicateIterator = interestingPredicates.iterator();
+    while (interestingPredicateIterator.hasNext()) {
+      InvariantsFormula<CompoundState> interestingPredicate = interestingPredicateIterator.next();
+      List<String> containedUninterestingVariables = new ArrayList<>(interestingPredicate.accept(COLLECT_VARS_VISITOR));
+      containedUninterestingVariables.removeAll(interestingVariables);
+      if (containedUninterestingVariables.size() <= 1) {
+        interestingPredicateIterator.remove();
+      }
+    }
+
+    // Create the configured initial state
+    return new InvariantsState(options.useBitvectors,
+        variableSelection,
+        ImmutableSet.copyOf(relevantEdges),
+        ImmutableSet.copyOf(limit(interestingPredicates, options.interestingPredicatesLimit)),
+        ImmutableSet.copyOf(limit(interestingVariables, options.interestingVariableLimit)));
+  }
+
+  /**
+   * Limits the given iterable by the given amount of elements. A limit below 0 means that
+   * no limit is applied.
+   *
+   * @param pIterable the iterable to be limited.
+   * @param pLimit the limit.
+   * @return the limited iterable.
+   */
+  private static <T> Iterable<T> limit(Iterable<T> pIterable, int pLimit) {
+    if (pLimit >= 0) {
+      return FluentIterable.from(pIterable).limit(pLimit);
+    }
+    return pIterable;
   }
 
   private static void expand(Set<String> pRelevantVariables, Collection<CFAEdge> pCfaEdges, int pLimit) {

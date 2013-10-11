@@ -69,8 +69,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.coverage.CoveragePrinter;
 import org.sosy_lab.cpachecker.coverage.CoveragePrinterGcov;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.MemoryStatistics;
-import org.sosy_lab.cpachecker.util.ProgramCpuTime;
+import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
+import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 import com.google.common.base.Joiner;
@@ -81,6 +81,9 @@ import com.google.common.collect.Multiset;
 
 @Options
 class MainCPAStatistics implements Statistics {
+
+  // Beyond this many states, we omit some statistics because they are costly.
+  private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 1000000;
 
   @Option(name="reachedSet.export",
       description="print reached set to text file")
@@ -137,7 +140,7 @@ class MainCPAStatistics implements Statistics {
 
     programTime.start();
     try {
-      programCpuTime = ProgramCpuTime.read();
+      programCpuTime = ProcessCpuTime.read();
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
       logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, some statistics will be missing.");
@@ -157,7 +160,7 @@ class MainCPAStatistics implements Statistics {
   void startAnalysisTimer() {
     analysisTime.start();
     try {
-      analysisCpuTime = ProgramCpuTime.read();
+      analysisCpuTime = ProcessCpuTime.read();
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
       // user was already warned
@@ -170,7 +173,7 @@ class MainCPAStatistics implements Statistics {
     programTime.stop();
 
     try {
-      long stopCpuTime = ProgramCpuTime.read();
+      long stopCpuTime = ProcessCpuTime.read();
 
       if (programCpuTime >= 0) {
         programCpuTime = stopCpuTime - programCpuTime;
@@ -385,63 +388,70 @@ class MainCPAStatistics implements Statistics {
     out.println("Size of reached set:             " + reachedSize);
 
     if (!reached.isEmpty()) {
-
-      Set<CFANode> locations;
-      CFANode mostFrequentLocation = null;
-      int mostFrequentLocationCount = 0;
-
-      if (reached instanceof LocationMappedReachedSet) {
-        LocationMappedReachedSet l = (LocationMappedReachedSet)reached;
-        locations = l.getLocations();
-
-        Map.Entry<Object, Collection<AbstractState>> maxPartition = l.getMaxPartition();
-        mostFrequentLocation = (CFANode)maxPartition.getKey();
-        mostFrequentLocationCount = maxPartition.getValue().size();
-
-      } else {
-        HashMultiset<CFANode> allLocations = HashMultiset.create(from(reached)
-                                                                      .transform(EXTRACT_LOCATION)
-                                                                      .filter(notNull()));
-
-        locations = allLocations.elementSet();
-
-        for (Multiset.Entry<CFANode> location : allLocations.entrySet()) {
-          int size = location.getCount();
-          if (size > mostFrequentLocationCount) {
-            mostFrequentLocationCount = size;
-            mostFrequentLocation = location.getElement();
-          }
-        }
+      if (reachedSize < MAX_SIZE_FOR_REACHED_STATISTICS) {
+        printReachedSetStatisticsDetails(reached, out);
       }
 
+      if (reached.hasWaitingState()) {
+        out.println("  Size of final wait list        " + reached.getWaitlistSize());
+      }
+    }
+  }
+
+  private void printReachedSetStatisticsDetails(ReachedSet reached, PrintStream out) {
+    int reachedSize = reached.size();
+    Set<CFANode> locations;
+    CFANode mostFrequentLocation = null;
+    int mostFrequentLocationCount = 0;
+
+    if (reached instanceof LocationMappedReachedSet) {
+      LocationMappedReachedSet l = (LocationMappedReachedSet)reached;
+      locations = l.getLocations();
+
+      Map.Entry<Object, Collection<AbstractState>> maxPartition = l.getMaxPartition();
+      mostFrequentLocation = (CFANode)maxPartition.getKey();
+      mostFrequentLocationCount = maxPartition.getValue().size();
+
+    } else {
+      HashMultiset<CFANode> allLocations = HashMultiset.create(from(reached)
+                                                                    .transform(EXTRACT_LOCATION)
+                                                                    .filter(notNull()));
+
+      locations = allLocations.elementSet();
+
+      for (Multiset.Entry<CFANode> location : allLocations.entrySet()) {
+        int size = location.getCount();
+        if (size > mostFrequentLocationCount) {
+          mostFrequentLocationCount = size;
+          mostFrequentLocation = location.getElement();
+        }
+      }
+    }
+
+    if (!locations.isEmpty()) {
       int locs = locations.size();
-      if (locs>0) {
       out.println("  Number of reached locations:   " + locs + " (" + StatisticsUtils.toPercent(locs, cfa.getAllNodes().size()) + ")");
       out.println("    Avg states per location:     " + reachedSize / locs);
       out.println("    Max states per location:     " + mostFrequentLocationCount + " (at node " + mostFrequentLocation + ")");
 
       Set<String> functions = from(locations).transform(CFAUtils.GET_FUNCTION).toSet();
       out.println("  Number of reached functions:   " + functions.size() + " (" + StatisticsUtils.toPercent(functions.size(), cfa.getNumberOfFunctions()) + ")");
-      }
+    }
 
-      if (reached instanceof PartitionedReachedSet) {
-        PartitionedReachedSet p = (PartitionedReachedSet)reached;
-        int partitions = p.getNumberOfPartitions();
-        out.println("  Number of partitions:          " + partitions);
-        out.println("    Avg size of partitions:      " + reachedSize / partitions);
-        Map.Entry<Object, Collection<AbstractState>> maxPartition = p.getMaxPartition();
-        out.print  ("    Max size of partitions:      " + maxPartition.getValue().size());
-        if (maxPartition.getValue().size() > 1) {
-          out.println(" (with key " + maxPartition.getKey() + ")");
-        } else {
-          out.println();
-        }
-      }
-      out.println("  Number of target states:       " + from(reached).filter(IS_TARGET_STATE).size());
-      if (reached.hasWaitingState()) {
-        out.println("  Size of final wait list        " + reached.getWaitlistSize());
+    if (reached instanceof PartitionedReachedSet) {
+      PartitionedReachedSet p = (PartitionedReachedSet)reached;
+      int partitions = p.getNumberOfPartitions();
+      out.println("  Number of partitions:          " + partitions);
+      out.println("    Avg size of partitions:      " + reachedSize / partitions);
+      Map.Entry<Object, Collection<AbstractState>> maxPartition = p.getMaxPartition();
+      out.print  ("    Max size of partitions:      " + maxPartition.getValue().size());
+      if (maxPartition.getValue().size() > 1) {
+        out.println(" (with key " + maxPartition.getKey() + ")");
+      } else {
+        out.println();
       }
     }
+    out.println("  Number of target states:       " + from(reached).filter(IS_TARGET_STATE).size());
   }
 
   private void printCfaStatistics(PrintStream out) {

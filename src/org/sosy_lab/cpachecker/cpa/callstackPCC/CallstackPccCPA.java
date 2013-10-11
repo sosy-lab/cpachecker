@@ -87,7 +87,7 @@ public class CallstackPccCPA extends AbstractCPA implements ConfigurableProgramA
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     return (getAbstractDomain().isLessOrEqual(pElement, pOtherElement));
   }
 

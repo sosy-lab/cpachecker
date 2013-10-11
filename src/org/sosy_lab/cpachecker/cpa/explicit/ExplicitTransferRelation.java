@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -1123,17 +1124,11 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
           if (riteAddend instanceof CLiteralExpression && (operation == BinaryOperator.PLUS || operation == BinaryOperator.MINUS)) {
             BinaryOperator newOperation = (operation == BinaryOperator.PLUS) ? BinaryOperator.MINUS : BinaryOperator.PLUS;
 
-            CBinaryExpression sum = new CBinaryExpression(expr.getFileLocation(),
-                                                                expr.getExpressionType(),
-                                                                riteOperand,
-                                                                riteAddend,
-                                                                newOperation);
-
-            CBinaryExpression assume = new CBinaryExpression(expression.getFileLocation(),
-                                                                   binaryExpression.getExpressionType(),
-                                                                   leftAddend,
-                                                                   sum,
-                                                                   operator);
+            final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(machineModel, logger);
+            final CBinaryExpression sum = binExprBuilder.buildBinaryExpression(
+                riteOperand, riteAddend, newOperation);
+            final CBinaryExpression assume = binExprBuilder.buildBinaryExpression(
+                leftAddend, sum, operator);
             return assume;
           }
         }

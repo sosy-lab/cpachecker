@@ -151,7 +151,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     int numberOfGlobalVariables = 0;
 
     for (String variableName : constantsMap.keySet()) {
-      if (variableName.contains("::")) {
+      if (!variableName.contains("::")) {
         numberOfGlobalVariables++;
       }
     }

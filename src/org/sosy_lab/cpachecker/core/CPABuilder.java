@@ -78,11 +78,14 @@ public class CPABuilder {
 
   private final Configuration config;
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final ReachedSetFactory reachedSetFactory;
 
-  public CPABuilder(Configuration pConfig, LogManager pLogger, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
+  public CPABuilder(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
+      ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
     this.config = pConfig;
     this.logger = pLogger;
+    this.shutdownNotifier = pShutdownNotifier;
     this.reachedSetFactory = pReachedSetFactory;
     config.inject(this);
   }
@@ -141,6 +144,7 @@ public class CPABuilder {
 
     factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
     factory.setLogger(logger);
+    factory.setShutdownNotifier(shutdownNotifier);
     if (reachedSetFactory != null) {
       factory.set(reachedSetFactory, ReachedSetFactory.class);
     }

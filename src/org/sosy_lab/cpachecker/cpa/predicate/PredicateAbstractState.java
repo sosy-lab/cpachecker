@@ -31,13 +31,10 @@ import java.io.Serializable;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Preconditions;
@@ -46,7 +43,7 @@ import com.google.common.base.Predicate;
 /**
  * AbstractState for Symbolic Predicate Abstraction CPA
  */
-public abstract class PredicateAbstractState implements AbstractState, Partitionable, FormulaReportingState, Serializable {
+public abstract class PredicateAbstractState implements AbstractState, Partitionable, Serializable {
 
   private static final long serialVersionUID = -265763837277453447L;
 
@@ -70,9 +67,8 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     private static final long serialVersionUID = 8341054099315063986L;
 
     private AbstractionState(BooleanFormulaManager bfmgr, PathFormula pf,
-        AbstractionFormula pA, PersistentMap<CFANode, Integer> pAbstractionLocations,
-        Integer pIdOfAbstractionReused) {
-      super(pf, pA, pAbstractionLocations, pIdOfAbstractionReused);
+        AbstractionFormula pA, PersistentMap<CFANode, Integer> pAbstractionLocations) {
+      super(pf, pA, pAbstractionLocations);
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
       //Preconditions.checkArgument(bfmgr.isTrue(pf.getFormula()));
@@ -113,8 +109,8 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     private transient PredicateAbstractState mergedInto = null;
 
     private NonAbstractionState(PathFormula pF, AbstractionFormula pA,
-        PersistentMap<CFANode, Integer> pAbstractionLocations, Integer pIdOfAbstractionReused) {
-      super(pF, pA, pAbstractionLocations, pIdOfAbstractionReused);
+        PersistentMap<CFANode, Integer> pAbstractionLocations) {
+      super(pF, pA, pAbstractionLocations);
     }
 
     @Override
@@ -150,9 +146,8 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     private transient final CFANode location;
 
     public ComputeAbstractionState(PathFormula pf, AbstractionFormula pA,
-        CFANode pLoc, PersistentMap<CFANode, Integer> pAbstractionLocations,
-        Integer pIdOfAbstractionReused) {
-      super(pf, pA, pAbstractionLocations, pIdOfAbstractionReused);
+        CFANode pLoc, PersistentMap<CFANode, Integer> pAbstractionLocations) {
+      super(pf, pA, pAbstractionLocations);
       location = pLoc;
     }
 
@@ -178,15 +173,14 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
   static PredicateAbstractState mkAbstractionState(BooleanFormulaManager bfmgr,
       PathFormula pF, AbstractionFormula pA,
-      PersistentMap<CFANode, Integer> pAbstractionLocations, Integer pIdOfAbstractionReused) {
-    return new AbstractionState(bfmgr, pF, pA, pAbstractionLocations, pIdOfAbstractionReused);
+      PersistentMap<CFANode, Integer> pAbstractionLocations) {
+    return new AbstractionState(bfmgr, pF, pA, pAbstractionLocations);
   }
 
   static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(PathFormula pF,
       PredicateAbstractState oldState) {
     return new NonAbstractionState(pF, oldState.getAbstractionFormula(),
-                                        oldState.getAbstractionLocationsOnPath(),
-                                        oldState.getIdOfAbstractionReused());
+                                        oldState.getAbstractionLocationsOnPath());
   }
 
   /** The path formula for the path from the last abstraction node to this node.
@@ -200,16 +194,11 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
   /** How often each abstraction location was visited on the path to the current state. */
   private final PersistentMap<CFANode, Integer> abstractionLocations;
 
-  /** */
-  private Integer idOfAbstractionReused = null;
-
   private PredicateAbstractState(PathFormula pf, AbstractionFormula a,
-      PersistentMap<CFANode, Integer> pAbstractionLocations,
-      Integer pIdOfAbstractionReused) {
+      PersistentMap<CFANode, Integer> pAbstractionLocations) {
     this.pathFormula = pf;
     this.abstractionFormula = a;
     this.abstractionLocations = pAbstractionLocations;
-    this.idOfAbstractionReused = pIdOfAbstractionReused;
   }
 
   public abstract boolean isAbstractionState();
@@ -228,14 +217,6 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
   public AbstractionFormula getAbstractionFormula() {
     return abstractionFormula;
-  }
-
-  public Integer getIdOfAbstractionReused() {
-    return idOfAbstractionReused;
-  }
-
-  public void setIdOfAbstractionReused(Integer pIdOfAbstractionReused) {
-    idOfAbstractionReused = pIdOfAbstractionReused;
   }
 
   /**
@@ -263,10 +244,5 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
   public PathFormula getPathFormula() {
     return pathFormula;
-  }
-
-  @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
-    return getAbstractionFormula().asFormula();
   }
 }

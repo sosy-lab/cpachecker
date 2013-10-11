@@ -156,7 +156,7 @@ public class CPASelfCheck {
   }
 
   private static boolean checkJoin(Class<ConfigurableProgramAnalysis> pCpa,
-                                ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException {
+                                ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException, InterruptedException {
     AbstractDomain d = pCpaInst.getAbstractDomain();
     AbstractState initial = pCpaInst.getInitialState(pMain);
 
@@ -165,7 +165,7 @@ public class CPASelfCheck {
   }
 
   private static boolean checkMergeSoundness(Class<ConfigurableProgramAnalysis> pCpa,
-                                 ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException {
+                                 ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException, InterruptedException {
     AbstractDomain d = pCpaInst.getAbstractDomain();
     MergeOperator merge = pCpaInst.getMergeOperator();
     AbstractState initial = pCpaInst.getInitialState(pMain);
@@ -178,7 +178,7 @@ public class CPASelfCheck {
 
   private static boolean checkStopEmptyReached(
                                             Class<ConfigurableProgramAnalysis> pCpa,
-                                            ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException {
+                                            ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException, InterruptedException {
     StopOperator stop = pCpaInst.getStopOperator();
     HashSet<AbstractState> reached = new HashSet<>();
     AbstractState initial = pCpaInst.getInitialState(pMain);
@@ -188,7 +188,7 @@ public class CPASelfCheck {
   }
 
   private static boolean checkStopReached(Class<ConfigurableProgramAnalysis> pCpa,
-                                       ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException {
+                                       ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException, InterruptedException {
     StopOperator stop = pCpaInst.getStopOperator();
     HashSet<AbstractState> reached = new HashSet<>();
     AbstractState initial = pCpaInst.getInitialState(pMain);

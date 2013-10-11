@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 
 /**
  * Instances of this class are parameterized compound state invariants formula
@@ -146,7 +147,16 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     }
     CompoundState leftValue = evaluate(pDivide.getNumerator());
     CompoundState rightValue = evaluate(pDivide.getDenominator());
-    CompoundState pushLeftValue = parameter.multiply(rightValue.negate());
+
+    // Determine the numerator but consider integer division
+    CompoundState computedLeftValue = parameter.multiply(rightValue);
+    for (SimpleInterval interval : computedLeftValue.getIntervals()) {
+      CompoundState borderA = CompoundState.of(interval);
+      CompoundState borderB = borderA.add(rightValue.add(rightValue.signum().negate()));
+      computedLeftValue = computedLeftValue.unionWith(CompoundState.span(borderA, borderB));
+    }
+
+    CompoundState pushLeftValue = leftValue.intersectWith(computedLeftValue);
     CompoundState pushRightValue = leftValue.divide(parameter);
     if (!pDivide.getNumerator().accept(this, pushLeftValue)
         || !pDivide.getDenominator().accept(this, pushRightValue)) {

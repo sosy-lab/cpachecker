@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Preconditions;
 
@@ -43,24 +44,32 @@ public class AssumptionStorageState implements AbstractState {
   // if it is TRUE, there is no reason -> don't stop
   private final BooleanFormula stopFormula;
 
-  private BooleanFormulaManager bfmgr;
+  private final FormulaManagerView fmgr;
 
   // the assumption represented by this class is always the conjunction of "assumption" and "stopFormula"
 
-  public AssumptionStorageState(BooleanFormulaManager bfmgr, BooleanFormula pAssumption, BooleanFormula pStopFormula) {
+  public AssumptionStorageState(FormulaManagerView pFmgr, BooleanFormula pAssumption, BooleanFormula pStopFormula) {
     assumption = Preconditions.checkNotNull(pAssumption);
     stopFormula = Preconditions.checkNotNull(pStopFormula);
-    this.bfmgr = bfmgr;
+    fmgr = pFmgr;
 
-    assert !bfmgr.isFalse(assumption); // FALSE would mean "stop the analysis", but this should be signaled by stopFormula
+    assert !fmgr.getBooleanFormulaManager().isFalse(assumption); // FALSE would mean "stop the analysis", but this should be signaled by stopFormula
   }
 
   public BooleanFormula getAssumption() {
     return assumption;
   }
 
+  public Appender getAssumptionAsString() {
+    return fmgr.dumpFormula(assumption);
+  }
+
   public boolean isAssumptionTrue() {
-    return bfmgr.isTrue(assumption);
+    return fmgr.getBooleanFormulaManager().isTrue(assumption);
+  }
+
+  public boolean isAssumptionFalse() {
+    return fmgr.getBooleanFormulaManager().isFalse(assumption);
   }
 
   public BooleanFormula getStopFormula() {
@@ -68,20 +77,20 @@ public class AssumptionStorageState implements AbstractState {
   }
 
   public boolean isStopFormulaTrue() {
-    return bfmgr.isTrue(stopFormula);
+    return fmgr.getBooleanFormulaManager().isTrue(stopFormula);
   }
 
-  public BooleanFormulaManager getManager() {
-    return bfmgr;
+  public boolean isStopFormulaFalse() {
+    return fmgr.getBooleanFormulaManager().isFalse(stopFormula);
   }
 
   @Override
   public String toString() {
-    return (bfmgr.isTrue(stopFormula) ? "" : "<STOP> ") + "assume: (" + assumption + " & " + stopFormula + ")";
+    return (fmgr.getBooleanFormulaManager().isTrue(stopFormula) ? "" : "<STOP> ") + "assume: (" + assumption + " & " + stopFormula + ")";
   }
 
   public boolean isStop() {
-    return !bfmgr.isTrue(stopFormula);
+    return !fmgr.getBooleanFormulaManager().isTrue(stopFormula);
   }
 
   @Override

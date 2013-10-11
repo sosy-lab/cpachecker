@@ -44,7 +44,7 @@ public class BDDState implements AbstractQueryableState {
     return currentState;
   }
 
-  public boolean isLessOrEqual(BDDState other) {
+  public boolean isLessOrEqual(BDDState other) throws InterruptedException {
     return manager.entails(this.currentState, other.currentState);
   }
 

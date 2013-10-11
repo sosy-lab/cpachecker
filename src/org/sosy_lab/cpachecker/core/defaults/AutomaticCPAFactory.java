@@ -41,6 +41,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -192,6 +193,11 @@ public class AutomaticCPAFactory implements CPAFactory {
   @Override
   public CPAFactory setConfiguration(Configuration pConfiguration) {
     return set(pConfiguration, Configuration.class);
+  }
+
+  @Override
+  public CPAFactory setShutdownNotifier(ShutdownNotifier pShutdownNotifier) {
+    return set(pShutdownNotifier, ShutdownNotifier.class);
   }
 
   @Override

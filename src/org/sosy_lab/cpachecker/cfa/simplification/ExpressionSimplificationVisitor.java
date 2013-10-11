@@ -27,6 +27,7 @@ import java.math.BigInteger;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -58,9 +60,11 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     <Pair<CExpression, Number>, RuntimeException> {
 
   private final MachineModel machineModel;
+  private final LogManager logger;
 
-  public ExpressionSimplificationVisitor(MachineModel mm) {
+  public ExpressionSimplificationVisitor(MachineModel mm, LogManager pLogger) {
     this.machineModel = mm;
+    this.logger = pLogger;
   }
 
   @Override
@@ -85,8 +89,8 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
         // shortcut: if nothing has changed, use the original expression
         newExpr = expr;
       } else {
-        newExpr = new CBinaryExpression(
-            expr.getFileLocation(), expr.getExpressionType(),
+        final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(machineModel, logger);
+        newExpr = binExprBuilder.buildBinaryExpression(
             pair1.getFirst(), pair2.getFirst(), binaryOperator);
       }
       return Pair.of((CExpression) newExpr, null);
@@ -154,6 +158,8 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       return l * r;
     case SHIFT_LEFT:
       return l << r;
+    case SHIFT_RIGHT: // TODO Java vs C?
+      return l >> r;
     case BINARY_AND:
       return l & r;
     case BINARY_OR:
@@ -200,8 +206,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
         newExpr = expr;
       } else {
         newExpr = new CCastExpression(
-            expr.getFileLocation(), expr.getExpressionType(),
-            pair.getFirst(), expr.getType());
+            expr.getFileLocation(), expr.getExpressionType(), pair.getFirst());
       }
       return Pair.of((CExpression) newExpr, null);
     }
@@ -275,9 +280,20 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   public Pair<CExpression, Number> visit(final CUnaryExpression expr) {
     final UnaryOperator unaryOperator = expr.getOperator();
     final CExpression op = expr.getOperand();
+
+    // in case of a SIZEOF we do not need to know the explicit value of the variable,
+    // it is enough to know its type
+    if (unaryOperator == UnaryOperator.SIZEOF) {
+      final int result = machineModel.getSizeof(op.getExpressionType());
+      return Pair.<CExpression, Number> of(
+          new CIntegerLiteralExpression(expr.getFileLocation(),
+              expr.getExpressionType(), BigInteger.valueOf(result)),
+              result);
+    }
+
     final Pair<CExpression, Number> pair = op.accept(this);
 
-    Set<UnaryOperator> evaluableUnaryOperators = Sets.newHashSet(
+    final Set<UnaryOperator> evaluableUnaryOperators = Sets.newHashSet(
         UnaryOperator.PLUS, UnaryOperator.MINUS, UnaryOperator.NOT);
 
     // if expr can not be evaluated, build new expression
@@ -310,10 +326,6 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
 
     case NOT:
       result = (value == 0L) ? 1L : 0L;
-      break;
-
-    case SIZEOF:
-      result = machineModel.getSizeof(op.getExpressionType());
       break;
 
     default:

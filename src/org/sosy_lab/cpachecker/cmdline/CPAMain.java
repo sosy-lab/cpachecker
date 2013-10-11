@@ -23,9 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import static org.sosy_lab.common.DuplicateOutputStream.mergeStreams;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -41,13 +45,17 @@ import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
+import com.google.common.io.Closeables;
 
 public class CPAMain {
 
-  @SuppressWarnings("resource") // We don't close LogManager because it will be used from ShutdownHook.
+  @SuppressWarnings("resource") // We don't close LogManager
   public static void main(String[] args) {
     // initialize various components
     Configuration cpaConfig = null;
@@ -91,12 +99,13 @@ public class CPAMain {
     }
 
     // create everything
+    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
     CPAchecker cpachecker = null;
-    ShutdownHook shutdownHook = null;
     String programDenotation = null;
     ProofGenerator proofGenerator = null;
+    ResourceLimitChecker limits = null;
+    MainOptions options = new MainOptions();
     try {
-      MainOptions options = new MainOptions();
       cpaConfig.inject(options);
       if (Strings.isNullOrEmpty(options.programs)) {
         throw new InvalidConfigurationException("Please specify a program to analyze on the command line.");
@@ -104,29 +113,44 @@ public class CPAMain {
       dumpConfiguration(options, cpaConfig, logManager);
       programDenotation = getProgramDenotation(options);
 
-      shutdownHook = new ShutdownHook(cpaConfig, logManager, outputDirectory);
-      cpachecker = new CPAchecker(cpaConfig, logManager);
-      proofGenerator = new ProofGenerator(cpaConfig, logManager);
+      limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownNotifier);
+      limits.start();
+
+      cpachecker = new CPAchecker(cpaConfig, logManager, shutdownNotifier);
+      proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
       return;
     }
 
-    // this is for catching Ctrl+C and printing statistics even in that
-    // case. It might be useful to understand what's going on when
-    // the analysis takes a lot of time...
+    // This is for shutting down when Ctrl+C is caught.
+    ShutdownHook shutdownHook = new ShutdownHook(shutdownNotifier);
     Runtime.getRuntime().addShutdownHook(shutdownHook);
+
+    // This is for actually forcing a termination when CPAchecker
+    // fails to shutdown within some time.
+    ShutdownRequestListener forcedExitOnShutdown =
+        ForceTerminationOnShutdown.createShutdownListener(logManager, shutdownHook);
+    shutdownNotifier.register(forcedExitOnShutdown);
 
     // run analysis
     CPAcheckerResult result = cpachecker.run(programDenotation);
 
-    shutdownHook.setResult(result);
-
-    // statistics are displayed by shutdown hook
+    // We want to print the statistics completely now that we have come so far,
+    // so we disable all the limits, shutdown hooks, etc.
+    shutdownHook.disable();
+    shutdownNotifier.unregister(forcedExitOnShutdown);
+    limits.cancel();
 
     // generated proof (if enabled)
     proofGenerator.generateProof(result);
+
+    printResultAndStatistics(result, outputDirectory, options, logManager);
+
+    System.out.flush();
+    System.err.flush();
+    logManager.flush();
   }
 
   @Options
@@ -140,6 +164,17 @@ public class CPAMain {
         description="Dump the complete configuration to a file.")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private File configurationOutputFile = new File("UsedConfiguration.properties");
+
+    @Option(name="statistics.export", description="write some statistics to disk")
+    private boolean exportStatistics = true;
+
+    @Option(name="statistics.file",
+        description="write some statistics to disk")
+    @FileOption(FileOption.Type.OUTPUT_FILE)
+    private File exportStatisticsFile = new File("Statistics.txt");
+
+    @Option(name="statistics.print", description="print statistics to console")
+    private boolean printStatistics = false;
   }
 
   static String getProgramDenotation(final MainOptions options) throws InvalidConfigurationException {
@@ -174,6 +209,58 @@ public class CPAMain {
     config.setOptions(cmdLineOptions);
 
     return config.build();
+  }
+
+  @SuppressWarnings("deprecation")
+  private static void printResultAndStatistics(CPAcheckerResult mResult,
+      String outputDirectory, MainOptions options, LogManager logManager) {
+
+    // setup output streams
+    PrintStream console = options.printStatistics ? System.out : null;
+    FileOutputStream file = null;
+
+    if (options.exportStatistics && options.exportStatisticsFile != null) {
+      try {
+        com.google.common.io.Files.createParentDirs(options.exportStatisticsFile);
+        file = new FileOutputStream(options.exportStatisticsFile);
+      } catch (IOException e) {
+        logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
+      }
+    }
+
+    PrintStream stream = makePrintStream(mergeStreams(console, file));
+
+    try {
+      // print statistics
+      mResult.printStatistics(stream);
+      stream.println();
+
+      // print result
+      if (!options.printStatistics) {
+        stream = makePrintStream(mergeStreams(System.out, file)); // ensure that result is printed to System.out
+      }
+      mResult.printResult(stream);
+
+      if (outputDirectory != null) {
+        stream.println("More details about the verification run can be found in the directory \"" + outputDirectory + "\".");
+      }
+
+      stream.flush();
+
+    } finally {
+      // close only file, not System.out
+      if (file != null) {
+        Closeables.closeQuietly(file);
+      }
+    }
+  }
+
+  private static PrintStream makePrintStream(OutputStream stream) {
+    if (stream instanceof PrintStream) {
+      return (PrintStream)stream;
+    } else {
+      return new PrintStream(stream);
+    }
   }
 
   private CPAMain() { } // prevent instantiation

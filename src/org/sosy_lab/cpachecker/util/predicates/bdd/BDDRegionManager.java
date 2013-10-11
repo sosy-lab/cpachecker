@@ -23,13 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.*;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -44,14 +47,19 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 /**
@@ -85,6 +93,10 @@ public class BDDRegionManager implements RegionManager {
 
   @Option(description="Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD cache size).")
   private double bddCacheRatio = 0.1;
+
+  // Statistics
+  private final StatInt cleanupQueueSize = new StatInt(StatKind.AVG, "Size of BDD node cleanup queue");
+  private final StatTimer cleanupTimer = new StatTimer("Time for BDD node cleanup");
 
   private final LogManager logger;
   private final BDDFactory factory;
@@ -179,20 +191,24 @@ public class BDDRegionManager implements RegionManager {
   @Override
   public void printStatistics(PrintStream out) {
     try {
-      out.println("Number of BDD nodes:                 " + factory.getNodeNum());
-      out.println("Size of BDD node table:              " + factory.getNodeTableSize());
+      BDDFactory.GCStats stats = factory.getGCStats();
 
-      // Cache size is currently always equal to bddCacheSize,
-      // unfortunately the library does not update it on cache resizes.
-      //out.println("Size of BDD cache:                   " + factory.getCacheSize());
+      writingStatisticsTo(out)
+        .put("Number of BDD nodes", factory.getNodeNum())
+        .put("Size of BDD node table", factory.getNodeTableSize())
+
+        // Cache size is currently always equal to bddCacheSize,
+        // unfortunately the library does not update it on cache resizes.
+        //.put("Size of BDD cache", factory.getCacheSize())
+
+        .put(cleanupQueueSize)
+        .put(cleanupTimer)
+
+        .put("Time for BDD garbage collection", Timer.formatTime(stats.sumtime) + " (in " + stats.num + " runs)")
+        ;
 
       // Cache stats are disabled in JFactory (CACHESTATS = false)
       //out.println(factory.getCacheStats());
-
-      BDDFactory.GCStats stats = factory.getGCStats();
-      out.println("Time for BDD garbage collection:     " + Timer.formatTime(stats.sumtime) + " (in " + stats.num + " runs)");
-      // unfortunately, factory.getCacheStats() returns an empty object
-      // because statistics collection for the cache is disabled in the library
     } catch (UnsupportedOperationException e) {
       // Not all factories might have all statistics supported.
       // As statistics are not that important, just ignore it.
@@ -238,12 +254,20 @@ public class BDDRegionManager implements RegionManager {
    * BDD library is not multi-threaded.
    */
   private void cleanupReferences() {
-    PhantomReference<? extends BDDRegion> ref;
-    while ((ref = (PhantomReference<? extends BDDRegion>)referenceQueue.poll()) != null) {
+    cleanupTimer.start();
+    try {
+      int count = 0;
+      PhantomReference<? extends BDDRegion> ref;
+      while ((ref = (PhantomReference<? extends BDDRegion>)referenceQueue.poll()) != null) {
+        count++;
 
-      BDD bdd = referenceMap.remove(ref);
-      assert bdd != null;
-      bdd.free();
+        BDD bdd = referenceMap.remove(ref);
+        assert bdd != null;
+        bdd.free();
+      }
+      cleanupQueueSize.setNextValue(count);
+    } finally {
+      cleanupTimer.stop();
     }
   }
 
@@ -377,6 +401,119 @@ public class BDDRegionManager implements RegionManager {
       predicateBuilder.add(wrap(factory.ithVar(var)));
     }
     return predicateBuilder.build();
+  }
+
+  @Override
+  public RegionBuilder builder(ShutdownNotifier pShutdownNotifier) {
+    return new BDDRegionBuilder(pShutdownNotifier);
+  }
+
+  private class BDDRegionBuilder implements RegionBuilder {
+
+    private final ShutdownNotifier shutdownNotifier;
+
+    private BDDRegionBuilder(ShutdownNotifier pShutdownNotifier) {
+      shutdownNotifier = pShutdownNotifier;
+    }
+
+    // Invariant: currentCube and everything in cubes
+    // is allowed to be mutated/destroyed, i.e., there is no other reference to it.
+    private BDD currentCube = null;
+
+    // Invariants:
+    // cubes contains a number of BDDs, whose disjunction makes up the result.
+    // cubes may also contain null values, which are to be ignored,
+    // but there is always at least one non-null value (if the list is not empty).
+    // The cube at index i is one built from i+1 models.
+    // When inserting, we find the left-most place in the list where we can insert.
+    // If the list is empty, we just add the cube at position 0.
+    // If this position is filled, we take the new cube and the cube from position 0,
+    // disjunct them and try storing the result at position 1,
+    // iteratively increasing the position.
+    // This is used to create balanced disjunctions
+    // instead of using a single growing BDD,
+    // while at the same time limiting the number of stored BDDs
+    // (log(numOfCubes) many).
+    private final List<BDD> cubes = new ArrayList<>();
+
+    @Override
+    public void startNewConjunction() {
+      checkState(currentCube == null);
+      // one() creates new BDD
+      currentCube = factory.one(); // true
+    }
+
+    @Override
+    public void addPositiveRegion(Region r) {
+      checkState(currentCube != null);
+      // call id() for copy
+      currentCube.andWith(((BDDRegion)r).getBDD().id());
+    }
+
+    @Override
+    public void addNegativeRegion(Region r) {
+      checkState(currentCube != null);
+      // not() creates new BDD
+      currentCube.andWith(((BDDRegion)r).getBDD().not());
+    }
+
+    @Override
+    public void finishConjunction() {
+      checkState(currentCube != null);
+
+      for (int i = 0; i < cubes.size(); i++) {
+        BDD cubeAtI = cubes.get(i);
+
+        if (cubeAtI == null) {
+          cubes.set(i, currentCube);
+          currentCube = null;
+          return;
+        } else {
+          currentCube.orWith(cubeAtI);
+          cubes.set(i, null);
+        }
+      }
+
+      if (currentCube != null) {
+        cubes.add(currentCube);
+        currentCube = null;
+      }
+    }
+
+    @Override
+    public Region getResult() throws InterruptedException {
+      checkState(currentCube == null);
+      if (cubes.isEmpty()) {
+        return falseFormula;
+      } else {
+        buildBalancedOr();
+        // call id() for copy
+        return wrap(Iterables.getOnlyElement(cubes).id());
+      }
+    }
+
+    private void buildBalancedOr() throws InterruptedException {
+      BDD result = factory.zero(); // false
+
+      for (BDD cube : cubes) {
+        if (cube != null) {
+          shutdownNotifier.shutdownIfNecessary();
+          result.orWith(cube);
+        }
+      }
+      cubes.clear();
+      cubes.add(result);
+      assert (cubes.size() == 1);
+    }
+
+    @Override
+    public void close() {
+      checkState(currentCube == null);
+      for (BDD bdd : cubes) {
+        bdd.free();
+      }
+      cubes.clear();
+    }
   }
 
   @Override

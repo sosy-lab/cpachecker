@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -192,7 +193,7 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public boolean entails(Region pF1, Region pF2) {
+  public boolean entails(Region pF1, Region pF2) throws InterruptedException {
     return delegate.entails(pF1, pF2);
   }
 
@@ -234,6 +235,11 @@ public class NamedRegionManager implements RegionManager {
   @Override
   public Region makeExists(Region pF1, Region... pF2) {
     return delegate.makeExists(pF1, pF2);
+  }
+
+  @Override
+  public RegionBuilder builder(ShutdownNotifier pShutdownNotifier) {
+    return delegate.builder(pShutdownNotifier);
   }
 
   @Override

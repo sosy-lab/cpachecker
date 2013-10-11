@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -185,7 +186,7 @@ public class CFACreator {
   private final CFACreatorStatistics stats = new CFACreatorStatistics();
   private final Configuration config;
 
-  public CFACreator(Configuration config, LogManager logger)
+  public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
           throws InvalidConfigurationException {
     config.inject(this);
     this.config = config;
@@ -209,7 +210,7 @@ public class CFACreator {
     stats.conversionTime = parser.getCFAConstructionTime();
 
     if (removeIrrelevantForSpecification) {
-      cfaReduction = new CFAReduction(config, logger);
+      cfaReduction = new CFAReduction(config, logger, pShutdownNotifier);
     } else {
       cfaReduction = null;
     }
@@ -366,7 +367,7 @@ public class CFACreator {
         // all expressions, that can be evaluated, will be replaced with their result.
         // example: a=1+2; --> a=3;
         // TODO support for constant propagation like "define MAGIC_NUMBER 1234".
-        ExpressionSimplifier es = new ExpressionSimplifier(machineModel);
+        ExpressionSimplifier es = new ExpressionSimplifier(machineModel, logger);
         CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(mainFunction, es);
         es.replaceEdges();
       }
