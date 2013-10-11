@@ -842,15 +842,20 @@ public class PointerTargetSet implements Serializable {
   }
 
   BooleanFormula conjoinBase(final BooleanFormula disjointnessFormula,
-                         final String name,
-                         final String lastBase,
-                         final int lastSize) {
+                             final String name,
+                             final String lastBase,
+                             final Integer lastSize) {
     final FormulaManagerView fm = formulaManager;
     final Formula base = fm.makeVariable(pointerType, name);
-    final Formula rhs = fm.makePlus(fm.makeVariable(pointerType, lastBase), fm.makeNumber(pointerType, lastSize));
-    return fm.makeAnd(disjointnessFormula,
-                      fm.makeAnd(fm.makeGreaterThan(rhs, fm.makeNumber(pointerType, 0L), true),
-                                 fm.makeGreaterOrEqual(base, rhs, true)));
+    if (lastBase != null) {
+      final Formula rhs = fm.makePlus(fm.makeVariable(pointerType, lastBase), fm.makeNumber(pointerType, lastSize));
+      return fm.makeAnd(disjointnessFormula,
+                        fm.makeAnd(fm.makeGreaterThan(rhs, fm.makeNumber(pointerType, 0L), true),
+                                   fm.makeGreaterOrEqual(base, rhs, true)));
+    } else {
+      assert lastSize == null;
+      return fm.makeGreaterThan(base, fm.makeNumber(pointerType, 0L), true);
+    }
   }
 
   public CEvaluatingVisitor getEvaluatingVisitor() {
@@ -870,7 +875,8 @@ public class PointerTargetSet implements Serializable {
     // In case we have deferred memory allocations, add the appropriate constraints
     if (!deferredAllocations.isEmpty()) {
       final Set<String> addedBaseVariables = new HashSet<>();
-      int lastSize = getSize(bases.get(lastBase));
+      String lastBase = this.lastBase;
+      Integer lastSize = lastBase != null ? getSize(bases.get(lastBase)) : null;
       for (Map.Entry<String, DeferredAllocationPool> pointerVariableEntry : deferredAllocations.entrySet()) {
         final DeferredAllocationPool deferredAllocationPool = pointerVariableEntry.getValue();
         Integer size = deferredAllocationPool.getSize() != null ?
@@ -1040,7 +1046,7 @@ public class PointerTargetSet implements Serializable {
 
     BooleanFormula mergedDisjointnessFormula;
     String lastBase = null;
-    int lastSize = 0;
+    Integer lastSize = null;
     if (!reverseBases) {
       mergedDisjointnessFormula = this.disjointnessFormula;
       if (!bases.isEmpty()) {
