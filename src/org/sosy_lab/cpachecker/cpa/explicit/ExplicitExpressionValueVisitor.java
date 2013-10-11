@@ -92,8 +92,8 @@ import com.google.common.collect.Sets;
 public class ExplicitExpressionValueVisitor
     extends DefaultCExpressionVisitor<Long, UnrecognizedCCodeException>
     implements CRightHandSideVisitor<Long, UnrecognizedCCodeException>,
-    JRightHandSideVisitor<Long, UnrecognizedCCodeException>,
-    JExpressionVisitor<Long, UnrecognizedCCodeException> {
+    JRightHandSideVisitor<Long, RuntimeException>,
+    JExpressionVisitor<Long, RuntimeException> {
 
 
   private final ExplicitState state;
@@ -363,22 +363,22 @@ public class ExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(JCharLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Long visit(JCharLiteralExpression pE) {
     return (long) pE.getCharacter();
   }
 
   @Override
-  public Long visit(JThisExpression thisExpression) throws UnrecognizedCCodeException {
+  public Long visit(JThisExpression thisExpression) {
     return null;
   }
 
   @Override
-  public Long visit(JStringLiteralExpression pPaStringLiteralExpression) throws UnrecognizedCCodeException {
+  public Long visit(JStringLiteralExpression pPaStringLiteralExpression) {
     return null;
   }
 
   @Override
-  public Long visit(JBinaryExpression pE) throws UnrecognizedCCodeException {
+  public Long visit(JBinaryExpression pE) {
 
     org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator binaryOperator = pE.getOperator();
     JExpression lVarInBinaryExp = pE.getOperand1();
@@ -492,7 +492,7 @@ public class ExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(JIdExpression idExp) throws UnrecognizedCCodeException {
+  public Long visit(JIdExpression idExp) {
 
 
     IASimpleDeclaration decl = idExp.getDeclaration();
@@ -509,7 +509,7 @@ public class ExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(JUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
+  public Long visit(JUnaryExpression unaryExpression) {
 
     JUnaryExpression.UnaryOperator unaryOperator = unaryExpression.getOperator();
     JExpression unaryOperand = unaryExpression.getOperand();
@@ -544,68 +544,68 @@ public class ExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(JIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Long visit(JIntegerLiteralExpression pE) {
     return pE.asLong();
   }
 
   @Override
-  public Long visit(JBooleanLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Long visit(JBooleanLiteralExpression pE) {
     return ((pE.getValue()) ? 1l : 0l);
   }
 
   @Override
-  public Long visit(JFloatLiteralExpression pJBooleanLiteralExpression) throws UnrecognizedCCodeException {
+  public Long visit(JFloatLiteralExpression pJBooleanLiteralExpression) {
     return null;
   }
 
   @Override
-  public Long visit(JMethodInvocationExpression pAFunctionCallExpression) throws UnrecognizedCCodeException {
+  public Long visit(JMethodInvocationExpression pAFunctionCallExpression) {
     return null;
   }
 
   @Override
-  public Long visit(JArrayCreationExpression aCE) throws UnrecognizedCCodeException {
+  public Long visit(JArrayCreationExpression aCE) {
     return null;
   }
 
   @Override
-  public Long visit(JArrayInitializer pJArrayInitializer) throws UnrecognizedCCodeException {
+  public Long visit(JArrayInitializer pJArrayInitializer) {
     return null;
   }
 
   @Override
-  public Long visit(JArraySubscriptExpression pAArraySubscriptExpression) throws UnrecognizedCCodeException {
+  public Long visit(JArraySubscriptExpression pAArraySubscriptExpression) {
     return pAArraySubscriptExpression.getSubscriptExpression().accept(this);
   }
 
   @Override
-  public Long visit(JClassInstanceCreation pJClassInstanzeCreation) throws UnrecognizedCCodeException {
+  public Long visit(JClassInstanceCreation pJClassInstanzeCreation) {
     return null;
   }
 
   @Override
-  public Long visit(JVariableRunTimeType pJThisRunTimeType) throws UnrecognizedCCodeException {
+  public Long visit(JVariableRunTimeType pJThisRunTimeType) {
     return null;
   }
 
   @Override
-  public Long visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws UnrecognizedCCodeException {
+  public Long visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) {
     return null;
   }
 
   @Override
-  public Long visit(JNullLiteralExpression pJNullLiteralExpression) throws UnrecognizedCCodeException {
+  public Long visit(JNullLiteralExpression pJNullLiteralExpression) {
     return null;
   }
 
   @Override
-  public Long visit(JEnumConstantExpression pJEnumConstantExpression) throws UnrecognizedCCodeException {
+  public Long visit(JEnumConstantExpression pJEnumConstantExpression) {
     missingEnumComparisonInformation = true;
     return null;
   }
 
   @Override
-  public Long visit(JCastExpression pJCastExpression) throws UnrecognizedCCodeException {
+  public Long visit(JCastExpression pJCastExpression) {
     return pJCastExpression.getOperand().accept(this);
   }
 
