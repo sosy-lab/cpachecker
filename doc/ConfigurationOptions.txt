@@ -257,9 +257,6 @@ cegar.globalRefinement = false
 # omitted.
 cegar.refiner = no default value
 
-# Regex pattern matching allocation functions
-cfa.allocationFunctionPattern = ".*alloc"
-
 # export CFA as .dot file
 cfa.export = true
 
@@ -268,9 +265,6 @@ cfa.exportPerFunction = true
 
 # export CFA as .dot file
 cfa.file = "cfa.dot"
-
-# Ignore type castings in calls to memory allocation functions
-cfa.ignoreAllocCasts = false
 
 # Also initialize local variables with default values, or leave them
 # uninitialized.
