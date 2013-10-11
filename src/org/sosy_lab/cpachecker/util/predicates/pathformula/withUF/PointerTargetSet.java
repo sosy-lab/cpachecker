@@ -326,7 +326,8 @@ public class PointerTargetSet implements Serializable {
         }
       }
 
-      assert offset == size : "Incorrect sizeof or offset of the last member: " + compositeType;
+      assert compositeType.getKind() != ComplexTypeKind.STRUCT || offset == size :
+             "Incorrect sizeof or offset of the last member: " + compositeType;
 
       sizes.setCount(compositeType, size);
       offsets.put(compositeType, members);
