@@ -127,6 +127,10 @@ public class CFACreator {
       description="combine sequences of simple edges into a single edge")
   private boolean useMultiEdges = false;
 
+  @Option(name="cfa.transformUnsizedArrays",
+          description="convert unsized arrays either to pointers or to sized arrays (when initialized)")
+  private boolean transformUnsizedArrays = false;
+
   @Option(name="cfa.transformPointerArithmetic",
           description="convert pointer arithmetic into array subscripts (e.g. *(p + 1) into p[1]")
   private boolean transformPointerArithmetic = false;
@@ -423,6 +427,8 @@ public class CFACreator {
           transformFunctionPointers) {
         CFATransformer.transformCFA(cfa,
                                     logger,
+                                    machineModel,
+                                    transformUnsizedArrays,
                                     transformPointerArithmetic,
                                     transformArrows,
                                     transformStarAmper,

@@ -51,10 +51,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, UnrecognizedCCodeException>
                              implements CExpressionVisitor<CAstNode, UnrecognizedCCodeException> {
 
-  CExpressionTransformer(final boolean transformPointerArithmetic,
+  CExpressionTransformer(final CTypeTransformer typeVisitor,
+                         final boolean transformPointerArithmetic,
                          final boolean transformArrows,
                          final boolean transformStarAmper,
                          final boolean transformFunctionPointers) {
+    this.typeVisitor = typeVisitor;
     this.transformPointerArithmetic = transformPointerArithmetic;
     this.transformArrows = transformArrows;
     this.transformStarAmper = transformStarAmper;
@@ -67,12 +69,17 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
     final CExpression oldSubscriptExpression = e.getSubscriptExpression();
     final CExpression arrayExpression = (CExpression) oldArrayExpression.accept(this);
     final CExpression subscriptExpression = (CExpression) oldSubscriptExpression.accept(this);
+    final CType oldExpressionType = e.getExpressionType();
+    final CType expressionType = oldExpressionType.accept(typeVisitor);
 
-    return arrayExpression == oldArrayExpression && subscriptExpression == oldSubscriptExpression ? e :
-           new CArraySubscriptExpression(e.getFileLocation(),
-                                         e.getExpressionType(),
-                                         arrayExpression,
-                                         subscriptExpression);
+    return arrayExpression == oldArrayExpression &&
+           subscriptExpression == oldSubscriptExpression &&
+           expressionType == oldExpressionType ?
+             e :
+             new CArraySubscriptExpression(e.getFileLocation(),
+                                           expressionType,
+                                           arrayExpression,
+                                           subscriptExpression);
 
   }
 
@@ -84,7 +91,10 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
     final CExpression operand2 = (CExpression) oldOperand2.accept(this);
     final CType type1 = operand1.getExpressionType().getCanonicalType();
     final CType type2 = operand2.getExpressionType().getCanonicalType();
+    final CType oldExpressionType = e.getExpressionType();
+    final CType expressionType = oldExpressionType.accept(typeVisitor);
     final FileLocation fileLocation = e.getFileLocation();
+
     switch (e.getOperator()) {
     case BINARY_AND:
     case BINARY_OR:
@@ -126,20 +136,20 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
                                                                   minusOperand2),
                                     UnaryOperator.AMPER);
       } else if (type1 instanceof CPointerType) {
-        if (type1.equals(type2)) { // Pointer subtraction => (operand1 - operand2) / sizeof(operand1)
-          final CType resultType = e.getExpressionType();
+        // Pointer subtraction => (operand1 - operand2) / sizeof(operand1)
+        if (type1.getCanonicalType().equals(type2.getCanonicalType())) {
           final CBinaryExpression difference = operand1 == oldOperand1 && operand2 == oldOperand2 ? e :
             new CBinaryExpression(fileLocation,
-                                  resultType,
+                                  expressionType,
                                   operand1,
                                   operand2,
                                   BinaryOperator.MINUS);
           final CTypeIdExpression sizeofOperand1 = new CTypeIdExpression(fileLocation,
-                                                                         resultType,
+                                                                         expressionType,
                                                                          TypeIdOperator.SIZEOF,
                                                                          type1);
           return new CBinaryExpression(fileLocation,
-                                       resultType,
+                                       expressionType,
                                        difference,
                                        sizeofOperand1,
                                        BinaryOperator.DIVIDE);
@@ -185,9 +195,9 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
       break;
     }
 
-    return operand1 == oldOperand1 && operand2 == oldOperand2 ? e :
+    return operand1 == oldOperand1 && operand2 == oldOperand2 && expressionType == oldExpressionType ? e :
            new CBinaryExpression(fileLocation,
-                                 e.getExpressionType(),
+                                 expressionType,
                                  operand1,
                                  operand2,
                                  e.getOperator());
@@ -197,10 +207,12 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
   public CCastExpression visit(final CCastExpression e) throws UnrecognizedCCodeException {
     final CExpression oldOperand = e.getOperand();
     final CExpression operand = (CExpression) oldOperand.accept(this);
+    final CType oldExpressionType = e.getExpressionType();
+    final CType expressionType = oldExpressionType.accept(typeVisitor);
 
-    return operand == oldOperand ? e :
+    return operand == oldOperand && expressionType == oldExpressionType ? e :
            new CCastExpression(e.getFileLocation(),
-                               e.getExpressionType(),
+                               expressionType,
                                operand,
                                e.getType());
   }
@@ -209,9 +221,12 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
   public CFieldReference visit(final CFieldReference e) throws UnrecognizedCCodeException {
     final CExpression oldFieldOwner = e.getFieldOwner();
     final CExpression fieldOwner = (CExpression) oldFieldOwner.accept(this);
+    final CType oldExpressionType = e.getExpressionType();
+    final CType expressionType = oldExpressionType.accept(typeVisitor);
+
     if (transformArrows && e.isPointerDereference()) { // transform p->f into (*p).f
       return new CFieldReference(e.getFileLocation(),
-                                 e.getExpressionType(),
+                                 expressionType,
                                  e.getFieldName(),
                                  new CUnaryExpression(e.getFileLocation(),
                                                       ((CPointerType) fieldOwner.getExpressionType()).getType(),
@@ -219,7 +234,7 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
                                                       UnaryOperator.STAR),
                                  false);
     } else {
-      return fieldOwner == oldFieldOwner ? e :
+      return fieldOwner == oldFieldOwner && expressionType == oldExpressionType ? e :
              new CFieldReference(e.getFileLocation(),
                                  e.getExpressionType(),
                                  e.getFieldName(),
@@ -230,7 +245,11 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
 
   @Override
   public CIdExpression visit(final CIdExpression e) throws UnrecognizedCCodeException {
-    return e;
+    final CType oldExpressionType = e.getExpressionType();
+    final CType expressionType = oldExpressionType.accept(typeVisitor);
+
+    return expressionType == oldExpressionType ? e :
+           new CIdExpression(e.getFileLocation(), expressionType, e.getName(), e.getDeclaration());
   }
 
   @Override
@@ -245,7 +264,7 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
     case SIZEOF:
     case TYPEOF:
       return e;
-    case TYPEID: // For C language it's the just the same as TYPEOF
+    case TYPEID: // For C language it's just the same as TYPEOF
       break;
     }
     return new CTypeIdExpression(e.getFileLocation(), // This is for TYPEID case, to prevent error message
@@ -259,10 +278,12 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
   throws UnrecognizedCCodeException {
     final CInitializer oldInitializer = e.getInitializer();
     final CInitializer initializer = (CInitializer) oldInitializer.accept(initializerTransformer);
+    final CType oldExpressionType = e.getExpressionType();
+    final CType expressionType = oldExpressionType.accept(typeVisitor);
 
-    return initializer == oldInitializer ? e :
+    return initializer == oldInitializer && expressionType == oldExpressionType ? e :
            new CTypeIdInitializerExpression(e.getFileLocation(),
-                                            e.getExpressionType(),
+                                            expressionType,
                                             initializer,
                                             e.getType());
   }
@@ -296,6 +317,8 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
 
     final CExpression oldOperand = e.getOperand();
     final CExpression operand = (CExpression) oldOperand.accept(this);
+    final CType oldExpressionType = e.getExpressionType();
+    final CType expressionType = oldExpressionType.accept(typeVisitor);
 
     switch (e.getOperator()) {
     case AMPER:
@@ -316,9 +339,9 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
       break;
     }
 
-    return operand == oldOperand ? e :
+    return operand == oldOperand && expressionType == oldExpressionType ? e :
            new CUnaryExpression(e.getFileLocation(),
-                                e.getExpressionType(),
+                                expressionType,
                                 operand,
                                 e.getOperator());
   }
@@ -338,5 +361,6 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
 
   private CFAEdge currentEdge = null;
   private final CInitializerVisitor<CAstNode, UnrecognizedCCodeException> initializerTransformer =
-                new CInitializerTransformer(this);
+            new CInitializerTransformer(this);
+  private final CTypeTransformer typeVisitor;
 }

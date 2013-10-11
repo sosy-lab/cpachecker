@@ -36,6 +36,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
@@ -66,6 +68,8 @@ class CStatementTransformer implements CStatementVisitor<CStatement, Unrecognize
   throws UnrecognizedCCodeException {
     final CExpression oldFunctionName = e.getFunctionNameExpression();
     final CExpression functionName = (CExpression) oldFunctionName.accept(expressionVisitor);
+    final CType oldExpressionType = e.getExpressionType();
+    final CType expressionType = oldExpressionType.accept(typeVisitor);
 
     List<CExpression> parameters = null;
     int i = 0;
@@ -81,9 +85,9 @@ class CStatementTransformer implements CStatementVisitor<CStatement, Unrecognize
       ++i;
     }
 
-    return oldFunctionName == functionName && parameters == null ? e :
+    return oldFunctionName == functionName && parameters == null && expressionType == oldExpressionType ? e :
            new CFunctionCallExpression(e.getFileLocation(),
-                                       e.getExpressionType(),
+                                       expressionType,
                                        functionName,
                                        parameters != null ? parameters : e.getParameterExpressions(),
                                        e.getDeclaration());
@@ -111,9 +115,12 @@ class CStatementTransformer implements CStatementVisitor<CStatement, Unrecognize
     return functionCall == oldFunctionCall ? s : new CFunctionCallStatement(s.getFileLocation(), functionCall);
   }
 
-  public CStatementTransformer(final CExpressionVisitor<CAstNode, UnrecognizedCCodeException> expressionVisitor) {
+  public CStatementTransformer(final CTypeVisitor<CType, UnrecognizedCCodeException> typeVisitor,
+                               final CExpressionVisitor<CAstNode, UnrecognizedCCodeException> expressionVisitor) {
+    this.typeVisitor = typeVisitor;
     this.expressionVisitor = expressionVisitor;
   }
 
   private final CExpressionVisitor<CAstNode, UnrecognizedCCodeException> expressionVisitor;
+  private final CTypeVisitor<CType, UnrecognizedCCodeException> typeVisitor;
 }

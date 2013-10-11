@@ -130,6 +130,7 @@ public class PointerTargetSet implements Serializable {
     public Integer visit(final CArrayType t) throws IllegalArgumentException {
 
       final CExpression arrayLength = t.getLength();
+      assert arrayLength != null : "CFA should be transformed to eliminate unsized arrays";
 
       Integer length = null;
 
@@ -389,6 +390,7 @@ public class PointerTargetSet implements Serializable {
       assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
+        assert arrayType.getLength() != null : "CFA should be transformed to eliminate unsized arrays";
         Integer length = arrayType.getLength().accept(pointerTargetSet.evaluatingVisitor);
         if (length == null) {
           length = DEFAULT_ARRAY_LENGTH;
@@ -477,6 +479,7 @@ public class PointerTargetSet implements Serializable {
       assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
+        assert arrayType.getLength() != null : "CFA should be transformed to eliminate unsized arrays";
         Integer length = arrayType.getLength().accept(pointerTargetSet.evaluatingVisitor);
         if (length == null) {
           length = DEFAULT_ARRAY_LENGTH;

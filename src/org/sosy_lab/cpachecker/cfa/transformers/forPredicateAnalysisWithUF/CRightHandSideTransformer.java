@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.ForwardingCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
@@ -41,6 +43,8 @@ class CRightHandSideTransformer extends ForwardingCExpressionVisitor<CAstNode, U
   public CFunctionCallExpression visit(final CFunctionCallExpression e) throws UnrecognizedCCodeException {
     final CExpression oldFunctionNameExpression = e.getFunctionNameExpression();
     final CExpression functionNameExpression = (CExpression) oldFunctionNameExpression.accept(this);
+    final CType oldExpressionType = e.getExpressionType();
+    final CType expressionType = oldExpressionType.accept(typeVisitor);
 
     List<CExpression> parameters = null;
     int i = 0;
@@ -56,15 +60,21 @@ class CRightHandSideTransformer extends ForwardingCExpressionVisitor<CAstNode, U
       ++i;
     }
 
-    return functionNameExpression == oldFunctionNameExpression && parameters == null ? e :
+    return functionNameExpression == oldFunctionNameExpression &&
+           parameters == null  &&
+           expressionType == oldExpressionType? e :
            new CFunctionCallExpression(e.getFileLocation(),
-                                       e.getExpressionType(),
+                                       expressionType,
                                        functionNameExpression,
                                        parameters != null ? parameters : e.getParameterExpressions(),
                                        e.getDeclaration());
   }
 
-  CRightHandSideTransformer(final CExpressionTransformer delegate) {
+  CRightHandSideTransformer(final CTypeVisitor<CType, UnrecognizedCCodeException> typeVisitor,
+                            final CExpressionTransformer delegate) {
     super(delegate);
+    this.typeVisitor = typeVisitor;
   }
+
+  private final CTypeVisitor<CType, UnrecognizedCCodeException> typeVisitor;
 }

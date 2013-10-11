@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -48,6 +49,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
@@ -88,7 +91,14 @@ public class CFATransformer extends DefaultCFAVisitor {
             final CInitializer oldInitializer = variableDeclaration.getInitializer();
             final CInitializer initializer =
               (CInitializer) oldInitializer.accept(expressionVisitor.getInitializerTransformer());
-            if (initializer != oldInitializer) {
+
+            final CType oldVariableType = variableDeclaration.getType();
+            if (initializer instanceof CInitializerList) {
+              typeVisitor.setInitializerSize(((CInitializerList) initializer).getInitializers().size(),
+                                             initializer.getFileLocation());
+            }
+            final CType variableType = oldVariableType.accept(typeVisitor);
+            if (initializer != oldInitializer || variableType != oldVariableType) {
               edge = new CDeclarationEdge(declarationEdge.getRawStatement(),
                                           declarationEdge.getLineNumber(),
                                           declarationEdge.getPredecessor(),
@@ -96,7 +106,7 @@ public class CFATransformer extends DefaultCFAVisitor {
                                           new CVariableDeclaration(variableDeclaration.getFileLocation(),
                                                                    variableDeclaration.isGlobal(),
                                                                    variableDeclaration.getCStorageClass(),
-                                                                   variableDeclaration.getType(),
+                                                                   variableType,
                                                                    variableDeclaration.getName(),
                                                                    variableDeclaration.getOrigName(),
                                                                    variableDeclaration.getQualifiedName(),
@@ -121,15 +131,21 @@ public class CFATransformer extends DefaultCFAVisitor {
           }
           ++i;
         }
-        if (arguments != null) {
-          final CFunctionCall oldFunctionCall = functionCallEdge.getSummaryEdge().getExpression();
-          final CFunctionCallExpression oldFunctionCallExpression = oldFunctionCall.getFunctionCallExpression();
+        final CFunctionCall oldFunctionCall = functionCallEdge.getSummaryEdge().getExpression();
+        final CFunctionCallExpression oldFunctionCallExpression = oldFunctionCall.getFunctionCallExpression();
+        final CExpression oldFunctionNameExpression = oldFunctionCallExpression.getFunctionNameExpression();
+        final CExpression funcitonNameExpression = (CExpression) oldFunctionNameExpression.accept(expressionVisitor);
+        final CType oldFunctionNameExpressionType = oldFunctionCallExpression.getExpressionType();
+        final CType funcitonNameExpressionType = oldFunctionNameExpressionType.accept(typeVisitor);
+        if (arguments != null ||
+            funcitonNameExpression != oldFunctionNameExpression ||
+            funcitonNameExpressionType != oldFunctionNameExpressionType) {
           final CFunctionCallExpression functionCallExpression = new CFunctionCallExpression(
                                                                        oldFunctionCallExpression.getFileLocation(),
-                                                                       oldFunctionCallExpression.getExpressionType(),
-                                                                       oldFunctionCallExpression
-                                                                         .getFunctionNameExpression(),
-                                                                       arguments,
+                                                                       funcitonNameExpressionType,
+                                                                       funcitonNameExpression,
+                                                                       arguments != null ? arguments :
+                                                                         functionCallEdge.getArguments(),
                                                                        oldFunctionCallExpression.getDeclaration());
           final CFunctionCall functionCall;
           if (oldFunctionCall instanceof CFunctionCallStatement) {
@@ -187,9 +203,10 @@ public class CFATransformer extends DefaultCFAVisitor {
           }
         } else /*oldEdge instanceof CFunctionSummaryStatementEdge*/ {
           final CFunctionSummaryStatementEdge summaryStatementEdge = (CFunctionSummaryStatementEdge) statementEdge;
-          final CFunctionCallExpression oldCallExpression = summaryStatementEdge.getFunctionCall().getFunctionCallExpression();
+          final CFunctionCallExpression oldCallExpression =
+            summaryStatementEdge.getFunctionCall().getFunctionCallExpression();
           final CFunctionCallExpression callExpression = (CFunctionCallExpression) oldCallExpression
-                                                                                       .accept(rhsVisitor);
+                                                                                     .accept(rhsVisitor);
           if (statement != oldStatement || callExpression != oldCallExpression) {
             final CFunctionCall oldFunctionCall = summaryStatementEdge.getFunctionCall();
             final CFunctionCall functionCall;
@@ -277,33 +294,44 @@ public class CFATransformer extends DefaultCFAVisitor {
   }
 
   private CFATransformer(final LogManager logger,
+                         final MachineModel machineModel,
+                         final boolean transformUnsizedArrays,
                          final boolean transformPointerArithmetic,
                          final boolean transformArrows,
                          final boolean transformStarAmper,
                          final boolean transformFunctionPointers) {
-    expressionVisitor = new CExpressionTransformer(transformPointerArithmetic,
+
+    // Caching is mandatory to prevent infinite recursion
+    typeVisitor = new CachingCTypeTransformer(machineModel, transformUnsizedArrays);
+    expressionVisitor = new CExpressionTransformer(typeVisitor,
+                                                   transformPointerArithmetic,
                                                    transformArrows,
                                                    transformStarAmper,
                                                    transformFunctionPointers);
-    statementVisitor = new CStatementTransformer(expressionVisitor);
-    rhsVisitor = new CRightHandSideTransformer(expressionVisitor);
+    statementVisitor = new CStatementTransformer(typeVisitor, expressionVisitor);
+    rhsVisitor = new CRightHandSideTransformer(typeVisitor, expressionVisitor);
     this.logger = logger;
   }
 
   public static void transformCFA(final MutableCFA cfa,
                                   final LogManager logger,
+                                  final MachineModel machineModel,
+                                  final boolean transformUnsizedArrays,
                                   final boolean transformPointerArithmetic,
                                   final boolean transformArrows,
                                   final boolean transformStarAmper,
                                   final boolean transformFunctionPointers) {
     CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(cfa.getMainFunction(),
                                                          new CFATransformer(logger,
+                                                                            machineModel,
+                                                                            transformUnsizedArrays,
                                                                             transformPointerArithmetic,
                                                                             transformArrows,
                                                                             transformStarAmper,
                                                                             transformFunctionPointers));
   }
 
+  private final CachingCTypeTransformer typeVisitor;
   private final CExpressionTransformer expressionVisitor;
   private final CStatementTransformer statementVisitor;
   private final CRightHandSideTransformer rhsVisitor;

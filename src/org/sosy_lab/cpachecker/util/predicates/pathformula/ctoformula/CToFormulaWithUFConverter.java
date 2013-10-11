@@ -477,6 +477,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       if (!(rvalueType instanceof CArrayType) ||
           PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType())
             .equals(lvalueElementType.getCanonicalType())) {
+        assert lvalueArrayType.getLength() != null : "CFA should be transformed to elimintate unsized arrays";
         Integer length = lvalueArrayType.getLength().accept(pts.getEvaluatingVisitor());
         if (length == null) {
           length = PointerTargetSet.DEFAULT_ARRAY_LENGTH;
