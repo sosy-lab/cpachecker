@@ -48,11 +48,11 @@ public class CachingCTypeTransformer extends CTypeTransformer {
 
    @Override
    public CType visit(final CArrayType t) {
-     final CType cachedType = typeCache.get(t);
-     if (cachedType != null) {
-       return cachedType;
+     CType result = typeCache.get(t);
+     if (result != null) {
+       return result;
      } else {
-       final CType result = super.visit(t);
+       result = super.visit(t);
        typeCache.put(t, result);
        return result;
      }
@@ -60,9 +60,9 @@ public class CachingCTypeTransformer extends CTypeTransformer {
 
   @Override
   public CType visit(final CCompositeType t) throws UnrecognizedCCodeException {
-    final CType cachedType = typeCache.get(t);
-    if (cachedType != null) {
-      return cachedType;
+    final CType result = typeCache.get(t);
+    if (result != null) {
+      return result;
     } else {
       typeCache.put(t, t); // This prevents infinite recursion
       return super.visit(t);
@@ -71,11 +71,11 @@ public class CachingCTypeTransformer extends CTypeTransformer {
 
   @Override
   public CType visit(final CElaboratedType t) throws UnrecognizedCCodeException {
-    final CType cachedType = typeCache.get(t);
-    if (cachedType != null) {
-      return cachedType;
+    CType result = typeCache.get(t);
+    if (result != null) {
+      return result;
     } else {
-      final CType result = super.visit(t);
+      result = super.visit(t);
       typeCache.put(t, result);
       return result;
     }
@@ -83,11 +83,11 @@ public class CachingCTypeTransformer extends CTypeTransformer {
 
   @Override
   public CType visit(final CFunctionType t) throws UnrecognizedCCodeException {
-    final CType cachedType = typeCache.get(t);
-    if (cachedType != null) {
-      return cachedType;
+    CType result = typeCache.get(t);
+    if (result != null) {
+      return result;
     } else {
-      final CType result = super.visit(t);
+      result = super.visit(t);
       typeCache.put(t, result);
       return result;
     }
@@ -95,11 +95,11 @@ public class CachingCTypeTransformer extends CTypeTransformer {
 
   @Override
   public CType visit(final CPointerType t) throws UnrecognizedCCodeException {
-    final CType cachedType = typeCache.get(t);
-    if (cachedType != null) {
-      return cachedType;
+    CType result = typeCache.get(t);
+    if (result != null) {
+      return result;
     } else {
-      final CType result = super.visit(t);
+      result = super.visit(t);
       typeCache.put(t, result);
       return result;
     }
@@ -107,11 +107,11 @@ public class CachingCTypeTransformer extends CTypeTransformer {
 
   @Override
   public CType visit(final CTypedefType t) throws UnrecognizedCCodeException {
-    final CType cachedType = typeCache.get(t);
-    if (cachedType != null) {
-      return cachedType;
+    CType result = typeCache.get(t);
+    if (result != null) {
+      return result;
     } else {
-      final CType result = super.visit(t);
+      result = super.visit(t);
       typeCache.put(t, result);
       return result;
     }
@@ -119,11 +119,11 @@ public class CachingCTypeTransformer extends CTypeTransformer {
 
   @Override
   public CType visitDefault(final CType t) {
-    final CType cachedType = typeCache.get(t);
-    if (cachedType != null) {
-      return cachedType;
+    CType result = typeCache.get(t);
+    if (result != null) {
+      return result;
     } else {
-      final CType result = super.visitDefault(t);
+      result = super.visitDefault(t);
       typeCache.put(t, result);
       return result;
     }
