@@ -25,17 +25,16 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 
 import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.subMapWithPrefix;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -57,7 +56,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   /**
    * the map that keeps the name of variables and their constant values
    */
-  private PersistentMap<String, Long> constantsMap;
+  private PersistentSortedMap<String, Long> constantsMap;
 
   /**
    * the current delta of this state to the previous state
@@ -68,7 +67,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     constantsMap = PathCopyingPersistentTreeMap.of();
   }
 
-  public ExplicitState(PersistentMap<String, Long> constantsMap) {
+  public ExplicitState(PersistentSortedMap<String, Long> constantsMap) {
     this.constantsMap = constantsMap;
   }
 
@@ -108,16 +107,8 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param functionName the name of the function that is about to be left
    */
   void dropFrame(String functionName) {
-    List<String> toDropAll = new ArrayList<>();
-
-    for (String variableName : constantsMap.keySet()) {
-      if (variableName.startsWith(functionName + "::")) {
-        toDropAll.add(variableName);
-      }
-    }
-
-    for (String variableNameToDrop : toDropAll) {
-      constantsMap = constantsMap.removeAndCopy(variableNameToDrop);
+    for (String variableName : subMapWithPrefix(constantsMap, functionName + "::").keySet()) {
+      forget(variableName);
     }
   }
 
@@ -175,7 +166,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @return a new state representing the join of this element and the other element
    */
   ExplicitState join(ExplicitState reachedState) {
-    PersistentMap<String, Long> newConstantsMap = PathCopyingPersistentTreeMap.of();
+    PersistentSortedMap<String, Long> newConstantsMap = PathCopyingPersistentTreeMap.of();
 
     for (Map.Entry<String, Long> otherEntry : reachedState.constantsMap.entrySet()) {
       String key = otherEntry.getKey();
