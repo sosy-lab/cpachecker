@@ -77,8 +77,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
         } else {
           elementType = ((CArrayType) containerType).getType();
         }
-        result.setContainerType(containerType);
-        result.shiftContainerOffset();
+        result.shift(containerType);
         final Integer index = e.getSubscriptExpression().accept(pts.getEvaluatingVisitor());
         if (index != null) {
           result.setProperOffset(index * pts.getSize(elementType));
@@ -122,9 +121,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
         if (offset != null && oldOffset != null && offset < oldOffset) {
           result.setProperOffset(oldOffset - offset);
         } else {
-          result.unsetContainerType();
-          result.unsetProperOffset();
-          result.unsetContainerOffset();
+          result.retainBase();
         }
         return result;
       } else {
@@ -142,14 +139,12 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
         offset = operand2.accept(pts.getEvaluatingVisitor());
       }
       if (result != null) {
-        final Integer remaining = result.getRemaining(pts);
+        final Integer remaining = result.getRemainingOffset(pts);
         if (offset != null && remaining != null && offset < remaining) {
           assert result.getProperOffset() != null : "Unexpected nondet proper offset";
           result.setProperOffset(result.getProperOffset() + offset);
         } else {
-          result.unsetContainerType();
-          result.unsetProperOffset();
-          result.unsetContainerOffset();
+          result.retainBase();
         }
         return result;
       } else {
@@ -176,9 +171,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       final CType containerType = PointerTargetSet.simplifyType(ownerExpression.getExpressionType());
       if (!(containerType instanceof CCompositeType) ||
           ((CCompositeType) containerType).getKind() == ComplexTypeKind.ENUM) {
-        result.setContainerType(containerType);
-        result.shiftContainerOffset();
-        result.setProperOffset(pts.getOffset((CCompositeType) containerType, e.getFieldName()));
+        result.shift(containerType, pts.getOffset((CCompositeType) containerType, e.getFieldName()));
         return result;
       } else {
         throw new UnrecognizedCCodeException("Field owner expression has incompatible type", cfaEdge, e);
@@ -211,13 +204,12 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       return e.getOperand().accept(this);
     case STAR:
       final CType type = PointerTargetSet.simplifyType(e.getExpressionType());
+      final PointerTargetPattern result = e.getOperand().accept(this);
       if (type instanceof CPointerType) {
-        return new PointerTargetPattern();
+        result.clear();
+        return result;
       } else if (type instanceof CArrayType) {
-        final PointerTargetPattern result = e.getOperand().accept(this);
-        result.setContainerType(type);
-        result.shiftContainerOffset();
-        result.setProperOffset(0);
+        result.shift(type, 0);
         return result;
       } else {
         throw new UnrecognizedCCodeException("Dereferencing non-pointer expression", cfaEdge, e);

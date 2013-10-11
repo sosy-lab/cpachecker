@@ -38,28 +38,12 @@ public class PointerTargetPattern implements Serializable {
     this.matchRange = false;
   }
 
+  /**
+   * Constructor for matching targets in the memory block with the specified base name
+   * @param base the base name specified
+   */
   public PointerTargetPattern(final String base) {
     this.base = base;
-    this.matchRange = false;
-  }
-
-  /**
-   * Constructor for matching array elements
-   * @param containerType
-   */
-  public PointerTargetPattern(final CType containerType) {
-    this.containerType = containerType;
-    this.matchRange = false;
-  }
-
-  /**
-   * Constructor for matching structure fields
-   * @param containerType
-   * @param properOffset
-   */
-  public PointerTargetPattern(final CType containerType, final int properOffset) {
-    this.containerType = containerType;
-    this.properOffset = properOffset;
     this.matchRange = false;
   }
 
@@ -75,37 +59,33 @@ public class PointerTargetPattern implements Serializable {
     this.matchRange = true;
   }
 
-  public void setBase(final String base) {
-    this.base = base;
-  }
-
-  public void setContainerType(final CType containerType) {
-    assert !matchRange : "Contradiction in target pattern: containerType";
-    this.containerType = containerType;
-  }
-
-  public void unsetContainerType() {
-    assert !matchRange : "Contradiction in target pattern: containerType";
-    containerType = null;
-  }
-
   public void setProperOffset(final int properOffset) {
     assert !matchRange : "Contradiction in target pattern: properOffset";
     this.properOffset = properOffset;
   }
 
-  public void unsetProperOffset() {
+  public Integer getProperOffset() {
     assert !matchRange : "Contradiction in target pattern: properOffset";
-    properOffset = null;
+    return properOffset;
   }
 
-  public void setContainerOffset(final int containerOffset) {
-    assert !matchRange : "Contradiction in target pattern: containerOffset";
-    this.containerOffset = containerOffset;
+  public Integer getRemainingOffset(PointerTargetSetBuilder pts) {
+    assert !matchRange : "Contradiction in target pattern: remaining offset";
+    if (containerOffset != null && properOffset != null) {
+      return pts.getSize(containerType) - properOffset;
+    } else {
+      return null;
+    }
   }
 
-  public void shiftContainerOffset() {
-    assert !matchRange : "Contradiction in target pattern: containerOffset";
+  /**
+   * Increase containerOffset by properOffset, unset properOffset and set containerType.
+   * Useful for array subscript visitors.
+   * @param containerType
+   */
+  public void shift(final CType containerType) {
+    assert !matchRange : "Contradiction in target pattern: shift";
+    this.containerType = containerType;
     if (properOffset != null) {
       containerOffset += properOffset;
     } else {
@@ -114,8 +94,34 @@ public class PointerTargetPattern implements Serializable {
     properOffset = null;
   }
 
-  public void unsetContainerOffset() {
-    assert !matchRange : "Contradiction in target pattern: containerOffset";
+  /**
+   * Increase containerOffset by properOffset, set properOffset and containerType.
+   * Useful for field access visitors.
+   * @param containerType
+   */
+  public void shift(final CType containerType, final int properOffset) {
+    shift(containerType);
+    this.properOffset = properOffset;
+  }
+
+  /**
+   * Unset everything, except base
+   */
+  public void retainBase() {
+    assert !matchRange : "Contradiction in target pattern: retainBase";
+    containerType = null;
+    properOffset = null;
+    containerOffset = null;
+  }
+
+  /**
+   * Unset all criteria
+   */
+  public void clear() {
+    assert !matchRange : "Contradiction in target pattern: clear";
+    base = null;
+    containerType = null;
+    properOffset = null;
     containerOffset = null;
   }
 
@@ -147,18 +153,6 @@ public class PointerTargetPattern implements Serializable {
       }
     }
     return true;
-  }
-
-  public Integer getProperOffset() {
-    return properOffset;
-  }
-
-  public Integer getRemaining(PointerTargetSetBuilder pts) {
-    if (containerOffset != null && properOffset != null) {
-      return pts.getSize(containerType) - properOffset;
-    } else {
-      return null;
-    }
   }
 
   private String base = null;
