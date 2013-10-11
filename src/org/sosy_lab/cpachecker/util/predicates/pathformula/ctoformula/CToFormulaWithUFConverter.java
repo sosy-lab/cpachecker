@@ -115,6 +115,16 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return PointerTargetSet.cTypeToString(type).replace(' ', '_');
   }
 
+  static String getReturnVarName() {
+    return RETURN_VARIABLE_NAME;
+  }
+
+  @Override
+  @Deprecated
+  public FormulaType<?> getFormulaTypeFromCType(final CType type) {
+    return super.getFormulaTypeFromCType(type);
+  }
+
   public FormulaType<?> getFormulaTypeFromCType(final CType type, final PointerTargetSetBuilder pts) {
     final int size = pts.getSize(type);
     final int bitsPerByte = machineModel.getSizeofCharInBits();
@@ -152,6 +162,18 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return index;
   }
 
+  @Override
+  @Deprecated
+  Formula makeConstant(final String name, final CType type, final SSAMapBuilder ssa) {
+    throw new UnsupportedOperationException("Use the method with pts argument instead");
+  }
+
+  @Override
+  @Deprecated
+  Formula makeConstant(final Variable var, final SSAMapBuilder ssa) {
+    throw new UnsupportedOperationException("Use the method with pts argument instead");
+  }
+
   Formula makeConstant(final String name,
                        final CType type,
                        final SSAMapBuilder ssa,
@@ -161,6 +183,18 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   Formula makeConstant(final Variable var, final SSAMapBuilder ssa, final PointerTargetSetBuilder pts) {
     return makeConstant(var.getName(), var.getType(), ssa, pts);
+  }
+
+  @Override
+  @Deprecated
+  Formula makeVariable(final String name, final CType type, final SSAMapBuilder ssa) {
+    throw new UnsupportedOperationException("Use the method with pts argument instead");
+  }
+
+  @Override
+  @Deprecated
+  Formula makeVariable(final Variable var, final SSAMapBuilder ssa) {
+    throw new UnsupportedOperationException("Use the method with pts argument instead");
   }
 
   Formula makeVariable(final String name,
@@ -173,6 +207,12 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   Formula makeVariable(final Variable var, final SSAMapBuilder ssa, final PointerTargetSetBuilder pts) {
     return makeVariable(var.getName(), var.getType(), ssa, pts);
+  }
+
+  @Override
+  @Deprecated
+  Formula makeFreshVariable(final String name, final CType type, final SSAMapBuilder ssa) {
+    throw new UnsupportedOperationException("Use the method with pts argument instead");
   }
 
   Formula makeFreshVariable(final String name,
@@ -687,7 +727,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       // so that we can use it later on, if it is assigned to
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
-      final String returnVariableName = getReturnVarName(statementVisitor.getFuncitonName());
+      final String returnVariableName = getReturnVarName();
       final CFunctionDeclaration functionDeclaration = ((CFunctionEntryNode) returnEdge.getSuccessor()
                                                                                        .getEntryNode())
                                                                                          .getFunctionDefinition();
@@ -826,7 +866,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
     } else if (returnExpression instanceof CFunctionCallAssignmentStatement) {
       final CFunctionCallAssignmentStatement expression = (CFunctionCallAssignmentStatement) returnExpression;
-      final String returnVariableName = getReturnVarName(statementVisitor.getFuncitonName());
+      final String returnVariableName = getReturnVarName();
       final CFunctionCallExpression functionCallExpression = expression.getRightHandSide();
       final CType returnType = getReturnType(functionCallExpression, summaryEdge);
       final CIdExpression rhs = new CIdExpression(functionCallExpression.getFileLocation(),
@@ -913,4 +953,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   @SuppressWarnings("hiding")
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of("printf", "printk");
+
+  private static final String RETURN_VARIABLE_NAME = "__retval__";
 }
