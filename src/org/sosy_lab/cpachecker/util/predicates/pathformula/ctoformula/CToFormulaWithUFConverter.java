@@ -129,6 +129,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
+  static String getAllocVairiableName(final String functionName, final CType type) {
+    return functionName + "_" + getUFName(type);
+  }
+
   static String getReturnVarName() {
     return RETURN_VARIABLE_NAME;
   }

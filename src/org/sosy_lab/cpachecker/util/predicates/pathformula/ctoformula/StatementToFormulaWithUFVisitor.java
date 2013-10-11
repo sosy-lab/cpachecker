@@ -450,8 +450,9 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           newType = new CArrayType(true, false, PointerTargetSet.VOID, length);
         }
         final CType newBaseType = PointerTargetSet.getBaseType(newType);
-        final String newBaseName = FormulaManagerView.makeName(functionName,
-                                                      conv.makeFreshIndex(functionName, newBaseType, ssa));
+        final String allocVariableName = CToFormulaWithUFConverter.getAllocVairiableName(functionName, newBaseType);
+        final String newBaseName = FormulaManagerView.makeName(allocVariableName,
+                                     conv.makeFreshIndex(allocVariableName, newBaseType, ssa));
         final Formula result = conv.makeConstant(Variable.create(newBaseName, newBaseType), ssa, pts);
         if (functionName.equals(conv.successfulZallocFunctionName)) {
           final CSimpleType integerType =
