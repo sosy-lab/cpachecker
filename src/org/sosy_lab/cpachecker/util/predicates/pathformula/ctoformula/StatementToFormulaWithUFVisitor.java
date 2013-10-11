@@ -436,7 +436,9 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       assert topInitializer instanceof CInitializerExpression : "Unrecognized initializer";
       final CExpression initializerExpression = ((CInitializerExpression) topInitializer).getExpression();
       final Formula initializer = initializerExpression.accept(this);
-      return conv.makeCast(initializerExpression.getExpressionType(), type, initializer);
+      final CType initializerExpressionType = CToFormulaWithUFConverter.implicitCastToPointer(
+                                                                          initializerExpression.getExpressionType());
+      return conv.makeCast(initializerExpressionType, type, initializer);
     }
   }
 

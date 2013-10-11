@@ -427,6 +427,18 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
+  public static CType implicitCastToPointer(CType type) {
+    type = PointerTargetSet.simplifyType(type);
+    if (type instanceof CArrayType) {
+      return new CPointerType(false, false,
+                              PointerTargetSet.simplifyType(((CArrayType) type).getType()));
+    } else if (type instanceof CFunctionType) {
+      return new CPointerType(false, false, type);
+    } else {
+      return type;
+    }
+  }
+
   /**
    * Returns a <code>BooleanFormula</code> (equality) representing the specified assignment.
    * Adds the corresponding memory retention constraints to the <code>constraints</code> argument.
@@ -662,10 +674,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final int oldIndex = getIndex(targetName, lvalueType, ssa);
       final int newIndex = oldIndex + 1;
       if (rvalue != null) {
-        if (rvalueType instanceof CArrayType) {
-          rvalueType = new CPointerType(false, false,
-                                        PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType()));
-        }
+        rvalueType = implicitCastToPointer(rvalueType);
         final Formula rhs = makeCast(rvalueType, lvalueType, (Formula) rvalue);
         if (lvalue instanceof String) {
           result = fmgr.makeEqual(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
