@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.typ
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -171,6 +172,8 @@ public class CtoFormulaConverter {
   private final Map<String, BitvectorFormula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
 
+  private final Map<CType, FormulaType<?>> typeCache = new IdentityHashMap<>();
+
   final FormulaEncodingOptions options;
   final MachineModel machineModel;
   private final CtoFormulaSizeofVisitor sizeofVisitor;
@@ -280,11 +283,16 @@ public class CtoFormulaConverter {
   }
 
   public FormulaType<?> getFormulaTypeFromCType(CType type) {
-    int byteSize = getSizeof(type);
+    FormulaType<?> result = typeCache.get(type);
+    if (result == null) {
+      int byteSize = getSizeof(type);
 
-    int bitsPerByte = machineModel.getSizeofCharInBits();
-    // byte to bits
-    return efmgr.getFormulaType(byteSize * bitsPerByte);
+      int bitsPerByte = machineModel.getSizeofCharInBits();
+      // byte to bits
+      result = efmgr.getFormulaType(byteSize * bitsPerByte);
+      typeCache.put(type, result);
+    }
+    return result;
   }
 
   static boolean hasRepresentableDereference(Variable v) {
