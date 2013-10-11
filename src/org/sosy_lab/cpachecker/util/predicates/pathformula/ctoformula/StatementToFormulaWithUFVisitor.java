@@ -359,6 +359,9 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
             } else if (lhsType.equals(PointerTargetSet.POINTER_TO_VOID) &&
                        ExpressionToFormulaWithUFVisitor.isSimpleTarget(e.getLeftHandSide()) &&
                        lastTarget instanceof String) {
+              if (pts.isDeferredAllocationPointer((String) lastTarget)) {
+                handleDeferredAllocationPointerRemoval(e, (String) lastTarget);
+              }
               pts.addDeferredAllocationPointer((String) lastTarget, variable);
               handleDeferredAllocationPointerRemoval(e, variable);
             } else {
