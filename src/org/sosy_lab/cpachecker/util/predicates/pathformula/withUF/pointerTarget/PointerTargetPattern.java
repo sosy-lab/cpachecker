@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget
 
 import java.io.Serializable;
 
+import javax.annotation.Nonnull;
+
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
@@ -153,22 +155,22 @@ public class PointerTargetPattern implements Serializable {
     containerOffset = null;
   }
 
-  public boolean matches(final PointerTarget target) {
+  public boolean matches(final @Nonnull PointerTarget target) {
     if (!matchRange) {
-      if (properOffset != null && target.properOffset != properOffset) {
+      if (properOffset != null && properOffset != target.properOffset) {
         return false;
       }
-      if (containerOffset != null && target.containerOffset != containerOffset) {
+      if (containerOffset != null && containerOffset != target.containerOffset) {
         return false;
       }
-      if (base != null && !target.base.equals(base)) {
+      if (base != null && !base.equals(target.base)) {
         return false;
       }
-      if (containerType != null && !target.containerType.equals(containerType)) {
-        if (!(target.containerType instanceof CArrayType) || !(containerType instanceof CArrayType)) {
+      if (containerType != null && !containerType.equals(target.containerType)) {
+        if (!(containerType instanceof CArrayType) || !(target.containerType instanceof CArrayType)) {
           return false;
         } else {
-          return ((CArrayType) target.containerType).getType().equals(((CArrayType) containerType).getType());
+          return ((CArrayType) containerType).getType().equals(((CArrayType) target.containerType).getType());
         }
       }
     } else {
@@ -176,7 +178,7 @@ public class PointerTargetPattern implements Serializable {
       if (offset < containerOffset || offset >= properOffset) {
         return false;
       }
-      if (base != null && !target.base.equals(base)) {
+      if (base != null && !base.equals(target.base)) {
         return false;
       }
     }
