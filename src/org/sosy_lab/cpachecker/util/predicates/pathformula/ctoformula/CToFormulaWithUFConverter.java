@@ -35,7 +35,21 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -43,14 +57,18 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
@@ -504,5 +522,169 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
+  @Override
+  <T extends Formula> BooleanFormula toBooleanFormula(T f) {
+    // If this is not a predicate, make it a predicate by adding a "!= 0"
+    if (!(f instanceof BooleanFormula)) {
+      T zero = fmgr.makeNumber(fmgr.getFormulaType(f), 0);
+      return bfmgr.not(fmgr.makeEqual(f, zero));
+    } else {
+      return (BooleanFormula) f;
+    }
+  }
+
+  public PathFormulaWithUF makeAnd(final PathFormulaWithUF oldFormula, final CFAEdge edge) throws CPATransferException {
+
+    if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
+      return oldFormula;
+    }
+
+    final String function = edge.getPredecessor() != null ? edge.getPredecessor().getFunctionName() : null;
+    final SSAMapBuilder ssa = oldFormula.getSsa().builder();
+    final PointerTargetSetBuilder pts = oldFormula.getPointerTargetSet().builder();
+    final Constraints constraints = new Constraints(bfmgr);
+
+    BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints, pts);
+    edgeFormula = bfmgr.and(edgeFormula, constraints.get());
+
+    final SSAMap newSsa = ssa.build();
+    final PointerTargetSet newPts = pts.build();
+    final BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
+    int newLength = oldFormula.getLength() + 1;
+    return new PathFormulaWithUF(newFormula, newSsa, newPts, newLength);
+  }
+
+  private ExpressionToFormulaWithUFVisitor getExpressionToFormulaWithUFVisitor(final CFAEdge cfaEdge,
+                                                                               final String function,
+                                                                               final SSAMapBuilder ssa,
+                                                                               final Constraints constraints,
+                                                                               final PointerTargetSetBuilder pts) {
+    return new ExpressionToFormulaWithUFVisitor(this, cfaEdge, function, ssa, constraints, pts);
+  }
+
+  private LvalueToPointerTargetPatternVisitor getLvalueToPointerTargetPatternVisitor(
+    final CFAEdge cfaEdge,
+    final PointerTargetSetBuilder pts) {
+    return new LvalueToPointerTargetPatternVisitor(this, cfaEdge, pts);
+  }
+
+  private StatementToFormulaWithUFVisitor getStatementToFormulaWithUFVisitor(final CFAEdge cfaEdge,
+                                                                             final String function,
+                                                                             final SSAMapBuilder ssa,
+                                                                             final Constraints constraints,
+                                                                             final PointerTargetSetBuilder pts) {
+    final ExpressionToFormulaWithUFVisitor delegate = getExpressionToFormulaWithUFVisitor(cfaEdge,
+                                                                                          function,
+                                                                                          ssa,
+                                                                                          constraints,
+                                                                                          pts);
+    final LvalueToPointerTargetPatternVisitor lvalueVisitor = getLvalueToPointerTargetPatternVisitor(cfaEdge, pts);
+    return new StatementToFormulaWithUFVisitor(delegate, lvalueVisitor);
+  }
+
+  protected BooleanFormula makeReturn(final CExpression result,
+                                      final CReturnStatementEdge returnEdge,
+                                      final String function,
+                                      final SSAMapBuilder ssa,
+                                      final Constraints constraints,
+                                      final PointerTargetSetBuilder pts) throws CPATransferException {
+    if (result == null) {
+      // this is a return from a void function, do nothing
+      return bfmgr.makeBoolean(true);
+    } else {
+      // we have to save the information about the return value,
+      // so that we can use it later on, if it is assigned to
+      // a variable. We create a function::__retval__ variable
+      // that will hold the return value
+      final String returnVariableName = getReturnVarName(function);
+      final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(returnEdge,
+                                                                                                  function,
+                                                                                                  ssa,
+                                                                                                  constraints,
+                                                                                                  pts);
+      final CType returnType = ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getFunctionDefinition()
+                                                                                              .getType()
+                                                                                              .getReturnType();
+      final CExpressionAssignmentStatement assignment =
+          new CExpressionAssignmentStatement(result.getFileLocation(),
+                                             new CIdExpression(result.getFileLocation(),
+                                                               returnType,
+                                                               returnVariableName,
+                                                               null),
+                                             result);
+
+      return assignment.accept(statementVisitor);
+    }
+  }
+
+
+
+  private BooleanFormula createFormulaForEdge(final CFAEdge edge,
+                                              final String function,
+                                              final SSAMapBuilder ssa,
+                                              final Constraints constraints,
+                                              final PointerTargetSetBuilder pts) throws CPATransferException {
+    switch (edge.getEdgeType()) {
+    case StatementEdge: {
+      final CStatementEdge statementEdge = (CStatementEdge) edge;
+      final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(edge,
+                                                                                                  function,
+                                                                                                  ssa,
+                                                                                                  constraints,
+                                                                                                  pts);
+      return statementEdge.getStatement().accept(statementVisitor);
+    }
+    case ReturnStatementEdge: {
+      final CReturnStatementEdge returnEdge = (CReturnStatementEdge) edge;
+      return makeReturn(returnEdge.getExpression(), returnEdge, function, ssa, constraints, pts);
+    }
+
+    case DeclarationEdge: {
+      CDeclarationEdge d = (CDeclarationEdge)edge;
+      return makeDeclaration(d, function, ssa, constraints);
+    }
+
+    case AssumeEdge: {
+      return makeAssume((CAssumeEdge)edge, function, ssa, constraints);
+    }
+
+    case BlankEdge: {
+      assert false : "Handled above";
+      return bfmgr.makeBoolean(true);
+    }
+
+    case FunctionCallEdge: {
+      return makeFunctionCall((CFunctionCallEdge)edge, function, ssa, constraints);
+    }
+
+    case FunctionReturnEdge: {
+      // get the expression from the summary edge
+      CFunctionSummaryEdge ce = ((CFunctionReturnEdge)edge).getSummaryEdge();
+      return makeExitFunction(ce, function, ssa, constraints);
+    }
+
+    case MultiEdge: {
+      BooleanFormula multiEdgeFormula = bfmgr.makeBoolean(true);
+
+      // unroll the MultiEdge
+      for (CFAEdge singleEdge : (MultiEdge)edge) {
+        if (singleEdge instanceof BlankEdge) {
+          continue;
+        }
+        multiEdgeFormula = bfmgr.and(multiEdgeFormula, createFormulaForEdge(singleEdge, function, ssa, constraints));
+      }
+
+      return multiEdgeFormula;
+    }
+
+    default:
+      throw new UnrecognizedCFAEdgeException(edge);
+    }
+  }
+
   private final RationalFormulaManagerView rfmgr;
+
+  String successfulAllocFunctionName = "__VERIFIER_successful_alloc";
+  String successfulZallocFunctionName = "__VERIFIER_successful_zalloc";
+  String MemsetFunctionName = "__VERIFIER_memset";
 }

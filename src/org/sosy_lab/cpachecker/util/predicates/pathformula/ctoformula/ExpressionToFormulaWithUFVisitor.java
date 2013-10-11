@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
@@ -71,10 +72,10 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     final int size = pts.getSize(e.getExpressionType());
     final Formula coeff = conv.fmgr.makeNumber(pts.getPointerType(), size);
     final Formula offset = conv.fmgr.makeMultiply(coeff, index);
-    lastAddress = conv.fmgr.makePlus(base, offset);
+    lastTarget = conv.fmgr.makePlus(base, offset);
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
-    return conv.isCompositeType(resultType) ? lastAddress :
-           conv.makeDereferece(resultType, lastAddress, ssa, pts);
+    return conv.isCompositeType(resultType) ? (Formula) lastTarget :
+           conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
   }
 
   @Override
@@ -84,7 +85,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     if (variable != null) {
       if (!conv.isCompositeType(resultType)) {
-        lastAddress = null;
+        lastTarget = variable.getName();
         return conv.makeVariable(variable, ssa);
       } else {
         throw new UnrecognizedCCodeException("Unhandled reference to composite as a whole", edge, e);
@@ -94,12 +95,12 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
       if (fieldOwnerType instanceof CCompositeType) {
         final Formula base = e.getFieldOwner().accept(this);
         final String fieldName = e.getFieldName();
-        fields.add(Pair.of((CCompositeType) fieldOwnerType, fieldName));
+        usedFields.add(Pair.of((CCompositeType) fieldOwnerType, fieldName));
         final Formula offset = conv.fmgr.makeNumber(pts.getPointerType(),
                                                     pts.getOffset((CCompositeType) fieldOwnerType, fieldName));
-        lastAddress = conv.fmgr.makePlus(base, offset);
-        return conv.isCompositeType(resultType) ? lastAddress :
-               conv.makeDereferece(resultType, lastAddress, ssa, pts);
+        lastTarget = conv.fmgr.makePlus(base, offset);
+        return conv.isCompositeType(resultType) ? (Formula) lastTarget :
+               conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
       } else {
         throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
       }
@@ -112,16 +113,16 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     if (variable != null) {
       if (!conv.isCompositeType(resultType)) {
-        lastAddress = null;
+        lastTarget = variable.getName();
         return conv.makeVariable(variable, ssa);
       } else {
         throw new UnrecognizedCCodeException("Unhandled reference to composite as a whole", edge, e);
       }
     } else {
       variable = conv.scopedIfNecessary(e, ssa, function);
-      lastAddress = conv.makeConstant(variable.withType(new CPointerType(true, false, e.getExpressionType())), ssa);
-      return conv.isCompositeType(resultType) ? lastAddress :
-             conv.makeDereferece(resultType, lastAddress, ssa, pts);
+      lastTarget = conv.makeConstant(variable.withType(new CPointerType(true, false, e.getExpressionType())), ssa);
+      return conv.isCompositeType(resultType) ? (Formula) lastTarget :
+             conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
     }
   }
 
@@ -154,14 +155,14 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     case TILDE:
       return super.visit(e);
     case SIZEOF:
-      return handleSizeof(e, e.getExpressionType());
+      return handleSizeof(e, operand.getExpressionType());
     case STAR:
       if (!(resultType instanceof CFunctionType)) {
-        lastAddress = operand.accept(this);
-        return conv.isCompositeType(resultType) ? lastAddress :
-               conv.makeDereferece(resultType, lastAddress, ssa, pts);
+        lastTarget = operand.accept(this);
+        return conv.isCompositeType(resultType) ? (Formula) lastTarget :
+               conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
       } else {
-        lastAddress = null;
+        lastTarget = null;
         return operand.accept(this);
       }
     case AMPER:
@@ -170,8 +171,8 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         if (baseVariable == null) {
           Formula addressExpression = operand.accept(this);
           if (!conv.isCompositeType(PointerTargetSet.simplifyType(operand.getExpressionType()))) {
-            addressExpression = lastAddress;
-            lastAddress = null;
+            addressExpression = (Formula) lastTarget;
+            lastTarget = null;
             return addressExpression;
           } else {
             return addressExpression;
@@ -182,18 +183,18 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
           conv.addSharingConstraints(edge,
                                      baseAddress,
                                      baseVariable,
-                                     fields,
+                                     initializedFields,
                                      ssa,
                                      constraints,
                                      pts);
           if (ssa.getIndex(baseVariable.getName()) != CToFormulaWithUFConverter.VARIABLE_UNSET) {
             ssa.deleteVariable(baseVariable.getName());
           }
-          pts.addBase(baseVariable.getName(), baseVariable.getType());
+          sharedBases.add(Pair.of(baseVariable.getName(), baseVariable.getType()));
           return visit(e);
         }
       } else {
-        lastAddress = null;
+        lastTarget = null;
         return operand.accept(this);
       }
       default:
@@ -201,8 +202,27 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     }
   }
 
-  public Formula getLastAddress() {
-    return lastAddress;
+  public Object getLastTarget() {
+    return lastTarget;
+  }
+
+  public List<Pair<CCompositeType, String>> getUsedFields() {
+    return Collections.unmodifiableList(usedFields);
+  }
+
+  public List<Pair<CCompositeType, String>> getInitializedFields() {
+    return Collections.unmodifiableList(initializedFields);
+  }
+
+  public List<Pair<String, CType>> getSharedBases() {
+    return Collections.unmodifiableList(sharedBases);
+  }
+
+  public void reset() {
+    lastTarget = null;
+    sharedBases.clear();
+    usedFields.clear();
+    initializedFields.clear();
   }
 
   @SuppressWarnings("hiding")
@@ -211,6 +231,8 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
 
   protected final BaseVisitor baseVisitor;
 
-  protected Formula lastAddress;
-  protected final List<Pair<CCompositeType, String>> fields = new ArrayList<>();
+  protected Object lastTarget;
+  protected final List<Pair<String, CType>> sharedBases = new ArrayList<>();
+  protected final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>();
+  protected final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();
 }

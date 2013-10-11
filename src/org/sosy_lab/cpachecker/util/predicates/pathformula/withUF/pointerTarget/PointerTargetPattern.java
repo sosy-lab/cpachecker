@@ -47,6 +47,13 @@ public class PointerTargetPattern implements Serializable {
     this.matchRange = false;
   }
 
+  public PointerTargetPattern(final String base, final int containerOffset, final int properOffset) {
+    this.base = base;
+    this.containerOffset = containerOffset;
+    this.properOffset = properOffset;
+    this.matchRange = false;
+  }
+
   /**
    * Constructor for matching several adjacent targets at once
    * @param base
