@@ -177,7 +177,7 @@ public class PointerTargetSet implements Serializable {
     return type.getCanonicalType();
   }
 
-  public static String cTypeToString(final CType type) {
+  public static String typeToString(final CType type) {
     return type.getCanonicalType().toString();
   }
 
@@ -205,7 +205,7 @@ public class PointerTargetSet implements Serializable {
                                             final PointerTargetPattern pattern,
                                             final boolean matches,
                                             final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
-    final List<PointerTarget> targetsForType = targets.get(cTypeToString(type));
+    final List<PointerTarget> targetsForType = targets.get(typeToString(type));
     final Iterator<PointerTarget> resultIterator = new Iterator<PointerTarget>() {
 
       @Override
@@ -366,7 +366,7 @@ public class PointerTargetSet implements Serializable {
                            final CType containerType,
                            final int properOffset,
                            final int containerOffset) {
-      final String type = cTypeToString(targetType);
+      final String type = typeToString(targetType);
       PersistentList<PointerTarget> targetsForType = targets.get(type);
       if (targetsForType == null) {
         targetsForType = PersistentList.<PointerTarget>empty();
@@ -399,7 +399,7 @@ public class PointerTargetSet implements Serializable {
       } else if (cType instanceof CCompositeType) {
         final CCompositeType compositeType = (CCompositeType) cType;
         assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-        final String type = cTypeToString(compositeType);
+        final String type = typeToString(compositeType);
         addCompositeType(compositeType);
         int offset = 0;
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
@@ -457,7 +457,7 @@ public class PointerTargetSet implements Serializable {
     }
 
     public boolean tracksField(final CCompositeType compositeType, final String fieldName) {
-      return fields.containsKey(CompositeField.of(cTypeToString(compositeType), fieldName));
+      return fields.containsKey(CompositeField.of(typeToString(compositeType), fieldName));
     }
 
     public FormulaType<?> getPointerType() {
@@ -488,7 +488,7 @@ public class PointerTargetSet implements Serializable {
       } else if (cType instanceof CCompositeType) {
         final CCompositeType compositeType = (CCompositeType) cType;
         assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-        final String type = cTypeToString(compositeType);
+        final String type = typeToString(compositeType);
         int offset = 0;
         final boolean isTargetComposite = type.equals(composite);
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
@@ -507,7 +507,7 @@ public class PointerTargetSet implements Serializable {
     }
 
     public boolean addField(final CCompositeType composite, final String fieldName) {
-      final String type = cTypeToString(composite);
+      final String type = typeToString(composite);
       final CompositeField field = CompositeField.of(type, fieldName);
       if (fields.containsKey(field)) {
         return true; // The field has already been added
@@ -521,7 +521,7 @@ public class PointerTargetSet implements Serializable {
     }
 
     public void shallowRemoveField(final CCompositeType composite, final String fieldName) {
-      final String type = cTypeToString(composite);
+      final String type = typeToString(composite);
       final CompositeField field = CompositeField.of(type, fieldName);
       fields = fields.removeAndCopy(field);
     }

@@ -114,7 +114,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   private static String getUFName(final CType type) {
-    return "*" + PointerTargetSet.cTypeToString(type).replace(' ', '_');
+    return "*" + PointerTargetSet.typeToString(type).replace(' ', '_');
   }
 
   static String getReturnVarName() {
