@@ -667,7 +667,7 @@ public class PointerTargetSet implements Serializable {
     }
     final int size2 = list2.size();
     final ArrayList<T> arrayList2 = new ArrayList<>(size2);
-    for (final T element : list1) {
+    for (final T element : list2) {
       arrayList2.add(element);
     }
     int sizeCommon = 0;
@@ -724,7 +724,7 @@ public class PointerTargetSet implements Serializable {
     // If one iterator fails behind, the other is not forwarded until the first catches up.
     // The advantage of this is it is in O(n log(n))
     // (n iterations, log(n) per update).
-    while (it1.hasNext() && it2.hasNext()) {
+    while ((e1 != null || it1.hasNext()) && (e2 != null || it2.hasNext())) {
       if (e1 == null) {
         e1 = it1.next();
       }
@@ -806,7 +806,7 @@ public class PointerTargetSet implements Serializable {
     // If one iterator fails behind, the other is not forwarded until the first catches up.
     // The advantage of this is it is in O(n log(n))
     // (n iterations, log(n) per update).
-    while (it1.hasNext() && it2.hasNext()) {
+    while ((e1 != null || it1.hasNext()) && (e2 != null || it2.hasNext())) {
       if (e1 == null) {
         e1 = it1.next();
       }
@@ -844,7 +844,7 @@ public class PointerTargetSet implements Serializable {
 
     // Now copy the rest of the mappings from s2.
     // For s1 this is not necessary.
-    while (e1 != null || it2.hasNext()) {
+    while (e2 != null || it2.hasNext()) {
       if (e2 == null) {
         e2 = it2.next();
       }
