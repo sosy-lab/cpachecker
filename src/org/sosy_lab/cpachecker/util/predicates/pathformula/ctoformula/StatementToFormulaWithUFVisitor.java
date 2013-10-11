@@ -77,7 +77,6 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.DeferredAllocationPool;
@@ -725,9 +724,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         }
         if (newType != null) {
           final CType newBaseType = PointerTargetSet.getBaseType(newType);
-          final String allocVariableName = CToFormulaWithUFConverter.getAllocVariableName(functionName, newType);
-          final String newBaseName = FormulaManagerView.makeName(allocVariableName,
-                                       conv.makeFreshIndex(allocVariableName, newBaseType, ssa));
+          final String newBaseName = conv.makeAllocVariableName(functionName, newType, newBaseType, ssa);
           return conv.makeAllocation(functionName.equals(conv.successfulZallocFunctionName),
                                      newType,
                                      newBaseName,
@@ -735,12 +732,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                      constraints,
                                      pts);
         } else {
-          final String allocVariableName = CToFormulaWithUFConverter.getAllocVariableName(functionName,
-                                                                                          PointerTargetSet.VOID);
-          final String newBaseName = FormulaManagerView.makeName(allocVariableName,
-                                                                 conv.makeFreshIndex(allocVariableName,
-                                                                                     PointerTargetSet.POINTER_TO_VOID,
-                                                                                     ssa));
+          final String newBaseName = conv.makeAllocVariableName(functionName,
+                                                               PointerTargetSet.VOID,
+                                                               PointerTargetSet.POINTER_TO_VOID,
+                                                               ssa);
           pts.addTemporaryDeferredAllocation(functionName.equals(conv.successfulZallocFunctionName),
                                              size != null ? new CIntegerLiteralExpression(parameter.getFileLocation(),
                                                                                           parameter.getExpressionType(),

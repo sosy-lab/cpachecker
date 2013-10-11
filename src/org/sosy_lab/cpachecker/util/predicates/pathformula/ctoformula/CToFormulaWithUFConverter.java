@@ -130,8 +130,18 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  static String getAllocVariableName(final String functionName, final CType type) {
-    return functionName + "_" + getUFName(type);
+  @Override
+  @Deprecated
+  int makeFreshIndex(final String name, final CType type, final SSAMapBuilder ssa) {
+    throw new UnsupportedOperationException("Use more specific methods instead");
+  }
+
+  String makeAllocVariableName(final String functionName,
+                              final CType type,
+                              final CType baseType,
+                              final SSAMapBuilder ssa) {
+    final String allocVariableName = NOMERGE_NAME_PREFIX + functionName + "_" + getUFName(type);
+    return  allocVariableName + FRESH_INDEX_SEPARATOR + super.makeFreshIndex(allocVariableName, baseType, ssa);
   }
 
   static String getReturnVarName() {
@@ -242,14 +252,16 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return super.makeFreshVariable(name, type, ssa);
   }
 
-  Formula makeFreshVariable(final String name,
+  Formula makeFreshVariable(String name,
                             final CType type,
                             final SSAMapBuilder ssa,
                             final PointerTargetSetBuilder pts) {
+    name = NOMERGE_NAME_PREFIX + name;
     final int oldIndex = getIndex(name, type, ssa);
     final int newIndex = oldIndex + 1;
     ssa.setIndex(name, type, newIndex);
-    return fmgr.makeVariable(getFormulaTypeFromCType(type, pts), name, newIndex);
+    return fmgr.makeVariable(getFormulaTypeFromCType(type, pts),
+                             name + FRESH_INDEX_SEPARATOR + newIndex);
   }
 
   Formula makeDereferece(CType type,
@@ -1128,9 +1140,13 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   public static final String UF_NAME_PREFIX = "*";
 
+  public static final String NOMERGE_NAME_PREFIX = "__NOMERGE__";
+
   public static final String FIELD_NAME_SEPARATOR = "$";
 
-  static final String INDEX_SEPARATOR =  FormulaManagerView.makeName("", 0).substring(0, 1);
+  static final String FRESH_INDEX_SEPARATOR = "#";
+
+  static final String SSA_INDEX_SEPARATOR =  FormulaManagerView.makeName("", 0).substring(0, 1);
 
   private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
 }
