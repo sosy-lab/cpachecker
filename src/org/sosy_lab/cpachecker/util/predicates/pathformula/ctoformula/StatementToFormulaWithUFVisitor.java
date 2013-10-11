@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -141,7 +142,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       if (type instanceof CArrayType) {
         if (typeSize != size) {
           conv.log(Level.WARNING, "Array size of the revealed type differs form the allocation size: " + type +
-                                   " : " + typeSize + " != " + size);
+                                  " : " + typeSize + " != " + size);
         }
         return type;
       } else {
@@ -161,11 +162,12 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     }
   }
 
-  private CType getAllocationType(final @Nonnull CType type, final @Nonnull CIntegerLiteralExpression sizeLiteral) {
+  private CType getAllocationType(final @Nonnull CType type, final @Nullable CIntegerLiteralExpression sizeLiteral) {
     if (type instanceof CPointerType) {
-      return refineType(((CPointerType) type).getType(), sizeLiteral);
+      return sizeLiteral != null ? refineType(((CPointerType) type).getType(), sizeLiteral) :
+                                   ((CPointerType) type).getType();
     } else if (type instanceof CArrayType) {
-      return refineType(type, sizeLiteral);
+      return sizeLiteral != null ? refineType(type, sizeLiteral) : type;
     } else {
       throw new IllegalArgumentException("Either pointer or array type expected");
     }
@@ -345,7 +347,9 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final PointerTargetPattern pattern = lastTarget instanceof String ? null : lhs.accept(lvalueVisitor);
 
     boolean isAllocation = false;
-    if ((conv.revealAllocationTypeFromLhs || conv.deferUntypedAllocations) && rhsObject instanceof Formula) {
+    if ((conv.revealAllocationTypeFromLhs || conv.deferUntypedAllocations) &&
+        rhs instanceof CFunctionCallExpression &&
+        rhsObject instanceof Formula) {
       final Set<String> rhsVariables = conv.fmgr.extractVariables(rhsFormula);
       for (final String variable : rhsVariables) {
         if (pts.isTemporaryDeferredAllocationPointer(variable)) {
