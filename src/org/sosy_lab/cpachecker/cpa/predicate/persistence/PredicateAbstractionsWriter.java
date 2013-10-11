@@ -107,13 +107,14 @@ public class PredicateAbstractionsWriter {
     try (Writer writer = Files.openOutputFile(abstractionsFile)) {
       while (!worklist.isEmpty()) {
         ARGState state = worklist.pop();
+        Set<ARGState> stateSuccessors = successors.get(state);
 
         if (done.contains(state)) {
           continue;
         }
 
         // Handle successors
-        for (ARGState successor : successors.get(state)) {
+        for (ARGState successor : stateSuccessors) {
           worklist.add(successor);
         }
 
@@ -137,7 +138,7 @@ public class PredicateAbstractionsWriter {
       writer.append("\n\n");
 
       // -- then the assertions
-      for (ARGState state : stateToAssert.keySet()) {
+      for (ARGState state : successors.keySet()) {
         StringBuilder stateSuccessorsSb = new StringBuilder();
         for (ARGState successor : successors.get(state)) {
           if (stateSuccessorsSb.length() > 0) {
@@ -146,10 +147,9 @@ public class PredicateAbstractionsWriter {
           stateSuccessorsSb.append(getAbstractionId(successor));
         }
 
-        writer.append(String.format("%d (%s) @%d:\n",
+        writer.append(String.format("%d (%s):\n",
             getAbstractionId(state),
-            stateSuccessorsSb.toString(),
-            AbstractStates.extractLocation(state).getNodeNumber()));
+            stateSuccessorsSb.toString()));
         writer.append(stateToAssert.get(state));
         writer.append("\n\n");
       }

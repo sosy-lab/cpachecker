@@ -38,7 +38,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -56,14 +56,12 @@ public class ARG_CPAStrategy extends AbstractStrategy {
   private List<AbstractState> visitedStates;
   private ARGState root;
   private PropertyCheckerCPA cpa;
-  private final ShutdownNotifier shutdownNotifier;
 
-  public ARG_CPAStrategy(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
+  public ARG_CPAStrategy(Configuration pConfig, LogManager pLogger, PropertyCheckerCPA pCpa)
+      throws InvalidConfigurationException {
     super(pConfig, pLogger);
     pConfig.inject(this);
     cpa = pCpa;
-    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
@@ -96,7 +94,7 @@ public class ARG_CPAStrategy extends AbstractStrategy {
     pReachedSet.add(root, initialPrecision);
 
     while (pReachedSet.hasWaitingState()) {
-      shutdownNotifier.shutdownIfNecessary();
+      CPAchecker.stopIfNecessary();
 
       stats.countIterations++;
       ARGState state = (ARGState) pReachedSet.popFromWaitlist();

@@ -859,7 +859,7 @@ public enum CompoundStateFormulaManager {
   }
 
   private InvariantsFormula<CompoundState> unionAll(CompoundState pConstantPart, Collection<InvariantsFormula<CompoundState>> pFormulas) {
-    if (pFormulas.isEmpty() || pConstantPart.isTop()) {
+    if (pFormulas.isEmpty()) {
       return asConstant(pConstantPart);
     }
     InvariantsFormula<CompoundState> result = null;

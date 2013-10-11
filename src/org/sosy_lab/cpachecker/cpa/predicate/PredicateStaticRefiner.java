@@ -177,7 +177,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
     }
   }
 
-  private boolean isContradicting(AssumeEdge assume, AStatementEdge stmt) throws CPATransferException, InterruptedException {
+  private boolean isContradicting(AssumeEdge assume, AStatementEdge stmt) throws CPATransferException {
     // Check stmt ==> assume?
 
     BooleanFormula stmtFormula = pathFormulaManager.makeAnd(
@@ -207,7 +207,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
      */
   }
 
-  private boolean hasContradictingOperationInFlow(AssumeEdge e) throws CPATransferException, InterruptedException {
+  private boolean hasContradictingOperationInFlow(AssumeEdge e) throws CPATransferException {
     buildDirectlyAffectingStatements();
 
     Multimap<String, String> referenced = varClasses.getVariablesOfExpression(e, (CExpression) e.getExpression());
@@ -225,7 +225,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
     return false;
   }
 
-  private Set<AssumeEdge> getAllNonLoopControlFlowAssumes() throws CPATransferException, InterruptedException {
+  private Set<AssumeEdge> getAllNonLoopControlFlowAssumes() throws CPATransferException {
     Set<AssumeEdge> result = new HashSet<>();
 
     for (CFANode u : cfa.getAllNodes()) {
@@ -244,7 +244,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
     return result;
   }
 
-  private Set<AssumeEdge> getAssumeEdgesAlongPath(UnmodifiableReachedSet reached, ARGState targetState) throws CPATransferException, InterruptedException {
+  private Set<AssumeEdge> getAssumeEdgesAlongPath(UnmodifiableReachedSet reached, ARGState targetState) throws CPATransferException {
     Set<AssumeEdge> result = new HashSet<>();
 
     Set<ARGState> allStatesOnPath = ARGUtils.getAllStatesOnPathsTo(targetState);
@@ -283,10 +283,9 @@ public class PredicateStaticRefiner extends StaticRefiner {
    *
    * @return a precision for the predicate CPA
    * @throws CPATransferException
-   * @throws InterruptedException
    */
   public PredicatePrecision extractPrecisionFromCfa(UnmodifiableReachedSet pReached,
-      List<ARGState> abstractionStatesTrace, boolean atomicPredicates) throws CPATransferException, InterruptedException {
+      List<ARGState> abstractionStatesTrace, boolean atomicPredicates) throws CPATransferException {
     logger.log(Level.FINER, "Extracting precision from CFA...");
 
     // Predicates that should be tracked on function scope

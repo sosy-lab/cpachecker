@@ -115,7 +115,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException {
     return abstractDomain.isLessOrEqual(pElement, pOtherElement);
   }
 }

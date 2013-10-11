@@ -37,13 +37,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
@@ -58,7 +56,6 @@ class FunctionScope implements Scope {
 
   private final Map<String, CFunctionDeclaration> functions = new HashMap<>();
   private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
-  private final Map<String, CTypeDefDeclaration> typedefs = new HashMap<>();
   private final Deque<Map<String, CVariableDeclaration>> labelsStack = new ArrayDeque<>();
   private final Deque<Map<String, CLabelNode>> labelsNodeStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsStack = new ArrayDeque<>();
@@ -70,13 +67,11 @@ class FunctionScope implements Scope {
 
   public FunctionScope(ImmutableMap<String, CFunctionDeclaration> pFunctions,
       ImmutableMap<String, CComplexTypeDeclaration> pTypes,
-      ImmutableMap<String, CTypeDefDeclaration> pTypedefs,
       ImmutableMap<String, CSimpleDeclaration> pGlobalVars,
       Set<String> pAlreadyTykeTypes) {
 
     functions.putAll(pFunctions);
     typesStack.addLast(pTypes);
-    typedefs.putAll(pTypedefs);
     varsStack.push(pGlobalVars);
     varsList.push(pGlobalVars);
     alreayTakenTypeNames = pAlreadyTykeTypes;
@@ -87,7 +82,6 @@ class FunctionScope implements Scope {
   public FunctionScope() {
     this(ImmutableMap.<String, CFunctionDeclaration>of(),
          ImmutableMap.<String, CComplexTypeDeclaration>of(),
-         ImmutableMap.<String, CTypeDefDeclaration>of(),
          ImmutableMap.<String, CSimpleDeclaration>of(),
          new HashSet<String>());
   }
@@ -174,18 +168,6 @@ class FunctionScope implements Scope {
         return declaration.getType();
       }
     }
-    return null;
-  }
-
-  @Override
-  public CType lookupTypedef(final String name) {
-    checkNotNull(name);
-
-    final CTypeDefDeclaration declaration = typedefs.get(name);
-    if (declaration != null) {
-      return declaration.getType();
-    }
-
     return null;
   }
 

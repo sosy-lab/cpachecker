@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -112,14 +111,11 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
 
   private final Configuration config;
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
   private final MachineModel machineModel;
 
-  private ExplicitCPA(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
+  private ExplicitCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     this.config = config;
     this.logger = logger;
-    this.shutdownNotifier = pShutdownNotifier;
     this.machineModel = cfa.getMachineModel();
 
     config.inject(this);
@@ -296,10 +292,6 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     return logger;
   }
 
-  public ShutdownNotifier getShutdownNotifier() {
-    return shutdownNotifier;
-  }
-
   public MachineModel getMachineModel() {
     return machineModel;
   }
@@ -343,7 +335,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException {
      return abstractDomain.isLessOrEqual(pState, pOtherState);
   }
 }

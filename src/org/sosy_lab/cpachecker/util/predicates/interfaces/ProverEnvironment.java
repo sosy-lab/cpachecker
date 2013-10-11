@@ -54,9 +54,8 @@ public interface ProverEnvironment extends AutoCloseable {
 
   /**
    * Check whether the conjunction of all formulas on the stack is unsatisfiable.
-   * @throws InterruptedException
    */
-  boolean isUnsat() throws InterruptedException;
+  boolean isUnsat();
 
   /**
    * Get a satisfying assignment.
@@ -74,10 +73,9 @@ public interface ProverEnvironment extends AutoCloseable {
    * @param solveTime A timer to use for time which the solver needs for finding out whether the formula is satisfiable (without enumerating all the models).
    * @param regionTime A NestedTimer to use for timing model enumeration (outer: solver; inner: region creation).
    * @return A region representing all satisfying models of the formula.
-   * @throws InterruptedException
    */
   AllSatResult allSat(Collection<BooleanFormula> important,
-                      RegionCreator mgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException;
+                      RegionCreator mgr, Timer solveTime, NestedTimer enumTime);
 
   @Override
   void close();
@@ -87,7 +85,7 @@ public interface ProverEnvironment extends AutoCloseable {
     /**
      * The result of an allSat call as an abstract formula.
      */
-    public Region getResult() throws InterruptedException;
+    public Region getResult();
 
     /**
      * The number of satisfying assignments contained in the result, of

@@ -322,7 +322,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException {
     return stopOperator.isCoveredBy(pElement, pOtherElement, cpas);
   }
 }

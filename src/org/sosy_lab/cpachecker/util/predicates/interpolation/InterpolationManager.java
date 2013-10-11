@@ -57,10 +57,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Model;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -76,8 +74,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -116,7 +112,6 @@ public final class InterpolationManager {
 
 
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PathFormulaManager pmgr;
@@ -180,12 +175,10 @@ public final class InterpolationManager {
       Solver pSolver,
       FormulaManagerFactory pFmgrFactory,
       Configuration config,
-      ShutdownNotifier pShutdownNotifier,
       LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, InterpolationManager.class);
 
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = pPmgr;
@@ -215,7 +208,7 @@ public final class InterpolationManager {
   }
 
   public Appender dumpCounterexample(CounterexampleTraceInfo cex) {
-    return fmgr.dumpFormula(bfmgr.and(cex.getCounterExampleFormulas()));
+    return fmgr.dumpFormula(bfmgr.conjunction(cex.getCounterExampleFormulas()));
   }
 
   /**
@@ -297,7 +290,7 @@ public final class InterpolationManager {
 
       // Check if refinement problem is not too big
       if (maxRefinementSize > 0) {
-        int size = fmgr.dumpFormula(bfmgr.and(f)).toString().length();
+        int size = fmgr.dumpFormula(bfmgr.conjunction(f)).toString().length();
         if (size > maxRefinementSize) {
           logger.log(Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
           throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
@@ -359,7 +352,7 @@ public final class InterpolationManager {
    * @param f The list of formulas to check.
    * @return A sublist of f that contains the useful formulas.
    */
-  private List<BooleanFormula> getUsefulBlocks(List<BooleanFormula> f) throws InterruptedException {
+  private List<BooleanFormula> getUsefulBlocks(List<BooleanFormula> f) {
 
     cexAnalysisGetUsefulBlocksTimer.start();
 
@@ -520,7 +513,7 @@ public final class InterpolationManager {
    * @return A list of all the interpolants.
    */
   private <T> List<BooleanFormula> getInterpolants(
-      InterpolatingProverEnvironment<T> pItpProver, List<T> itpGroupsIds) throws InterruptedException {
+      InterpolatingProverEnvironment<T> pItpProver, List<T> itpGroupsIds) {
 
     List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(itpGroupsIds.size()-1);
 
@@ -539,7 +532,6 @@ public final class InterpolationManager {
     }
 
     for (int i = 0; i < itpGroupsIds.size()-1; ++i) {
-      shutdownNotifier.shutdownIfNecessary();
       // last iteration is left out because B would be empty
       final int start_of_a = (wellScopedPredicates ? entryPoints.peek() : 0);
 
@@ -695,33 +687,7 @@ public final class InterpolationManager {
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);
-      return new Model(fmgr); // return empty model
-    }
-  }
-
-  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException {
-    PathFormula pf = pmgr.makeFormulaForPath(pPath);
-    BooleanFormula f = !(pf instanceof PathFormulaWithUF) ?
-                          pf.getFormula() :
-                          ((PathFormulaWithUF) pf).getFormulaWithConstraints();
-
-    try (ProverEnvironment thmProver = solver.newProverEnvironmentWithModelGeneration()) {
-      thmProver.push(f);
-      if (thmProver.isUnsat()) {
-        return CounterexampleTraceInfo.infeasible(ImmutableList.<BooleanFormula>of());
-      } else {
-        return CounterexampleTraceInfo.feasible(ImmutableList.of(f), getModel(thmProver), ImmutableMap.<Integer, Boolean>of());
-      }
-    }
-  }
-
-  private <T> Model getModel(ProverEnvironment thmProver) {
-    try {
-      return thmProver.getModel();
-    } catch (SolverException e) {
-      logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
-      logger.logDebugException(e);
-      return new Model(fmgr); // return empty model
+      return Model.empty();
     }
   }
 

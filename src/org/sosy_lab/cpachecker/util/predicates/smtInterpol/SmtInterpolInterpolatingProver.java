@@ -90,7 +90,7 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
   }
 
   @Override
-  public boolean isUnsat() throws InterruptedException {
+  public boolean isUnsat() {
     return !env.checkSat();
   }
 
@@ -138,9 +138,9 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
   @Override
   public void close() {
     Preconditions.checkNotNull(env);
-    env.pop(assertedFormulas.size());
-    assertedFormulas.clear();
-    annotatedTerms.clear();
+    while (!assertedFormulas.isEmpty()) { // cleanup stack
+      pop();
+    }
     assert assertedFormulas.size() == annotatedTerms.size();
     env = null;
   }

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import static org.junit.Assert.*;
 
 import java.math.BigInteger;
-import java.util.List;
 
 import org.junit.Test;
 
@@ -81,19 +80,6 @@ public class CompoundStateTest {
     assertEquals(zeroToThree, zeroToThree.unionWith(CompoundState.singleton(2)));
     assertEquals(zeroToThree, zeroToThree.unionWith(CompoundState.singleton(3)));
     assertEquals(zeroToThree, zeroToThree.unionWith(zeroToThree));
-
-    CompoundState steps = CompoundState.bottom();
-    for (int i = -6; i <= 6; i += 2) {
-      steps = steps.unionWith(CompoundState.singleton(i));
-    }
-    steps = steps.extendToNegativeInfinity().extendToPositiveInfinity();
-    for (int i = -6; i <= 6; i += 2) {
-      assertTrue(steps.contains(i));
-    }
-    CompoundState stepsNegInf = steps.unionWith(CompoundState.singleton(BigInteger.valueOf(-4)).extendToNegativeInfinity());
-    for (int i = -6; i <= 6; i += 2) {
-      assertTrue(stepsNegInf.contains(i));
-    }
   }
 
   @Test
@@ -189,31 +175,6 @@ public class CompoundStateTest {
   @Test
   public void binaryNotTest() {
     CompoundState.singleton(1).extendToNegativeInfinity().binaryNot();
-  }
-
-  @Test
-  public void testMultiply() {
-    CompoundState topMultNeg2 = CompoundState.top().multiply(BigInteger.valueOf(-2));
-    List<SimpleInterval> intervals = topMultNeg2.getIntervals();
-    int i = 0;
-    BigInteger lastUpperBound = null;
-    for (SimpleInterval interval : intervals) {
-      if (i == 0) {
-        assertFalse(interval.hasLowerBound());
-      } else {
-        assertTrue(interval.hasLowerBound());
-        // Check that intervals to not overlap, touch or are in the wrong order
-        assertTrue(interval.getLowerBound().subtract(lastUpperBound).compareTo(BigInteger.ONE) > 0);
-      }
-      if (i == intervals.size() - 1) {
-        assertFalse(interval.hasUpperBound());
-      }
-      if (interval.hasUpperBound()) {
-        lastUpperBound = interval.getUpperBound();
-      }
-      ++i;
-    }
-    assertEquals(topMultNeg2, topMultNeg2.unionWith(topMultNeg2));
   }
 
 }

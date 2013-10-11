@@ -46,7 +46,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -55,7 +54,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.base.Throwables;
 
@@ -85,8 +83,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
   private Future<UnmodifiableReachedSet> invariantGenerationFuture = null;
 
-  public CPAInvariantGenerator(Configuration config, LogManager pLogger,
-      ReachedSetFactory reachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException, CPAException {
+  public CPAInvariantGenerator(Configuration config, LogManager pLogger, ReachedSetFactory reachedSetFactory, CFA cfa) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     logger = pLogger;
 
@@ -99,8 +96,8 @@ public class CPAInvariantGenerator implements InvariantGenerator {
       throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
 
-    invariantCPAs = new CPABuilder(invariantConfig, logger, pShutdownNotifier, reachedSetFactory).buildCPAs(cfa);
-    invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger, invariantConfig, pShutdownNotifier);
+    invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory).buildCPAs(cfa);
+    invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger, invariantConfig);
     reached = new ReachedSetFactory(invariantConfig, logger).create();
   }
 
@@ -161,9 +158,6 @@ public class CPAInvariantGenerator implements InvariantGenerator {
     try {
       assert invariantAlgorithm != null;
       invariantAlgorithm.run(reached);
-
-      CPAs.closeCpaIfPossible(invariantCPAs, logger);
-      CPAs.closeIfPossible(invariantAlgorithm, logger);
 
       if (reached.hasWaitingState()) {
         // We may not return the reached set in this case

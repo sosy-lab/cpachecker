@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 
-import java.util.List;
-
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -95,11 +93,6 @@ public class ReplaceHelperBooleanFormulaManager implements BooleanFormulaManager
   @Override
   public BooleanFormula and(BooleanFormula pBits1, BooleanFormula pBits2) {
     return rawBooleanManager.and(pBits1, pBits2);
-  }
-
-  @Override
-  public BooleanFormula and(List<BooleanFormula> pBits) {
-    return rawBooleanManager.and(pBits);
   }
 
   @Override

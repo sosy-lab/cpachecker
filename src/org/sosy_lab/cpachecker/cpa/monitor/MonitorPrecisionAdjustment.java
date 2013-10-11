@@ -56,7 +56,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public Triple<AbstractState, Precision, Action> prec(
       AbstractState pElement, Precision oldPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
+      UnmodifiableReachedSet pElements) throws CPAException {
 
     Preconditions.checkArgument(pElement instanceof MonitorState);
     MonitorState element = (MonitorState)pElement;

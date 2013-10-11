@@ -64,9 +64,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -324,9 +324,8 @@ public class CFunctionPointerResolver {
                                               (CSimpleDeclaration)fNode.getFunctionDefinition());
       CUnaryExpression amper = new CUnaryExpression(nameExp.getFileLocation(),
           func.getExpressionType(), func, CUnaryExpression.UnaryOperator.AMPER);
-
-      final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
-      CBinaryExpression condition = binExprBuilder.buildBinaryExpression(nameExp, amper, BinaryOperator.EQUALS);
+      CBinaryExpression condition = new CBinaryExpression(fExp.getFileLocation(),
+          CNumericTypes.INT, nameExp, amper, BinaryOperator.EQUALS);
 
       addConditionEdges(condition, rootNode, thenNode, elseNode, start.getLineNumber());
 

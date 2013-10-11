@@ -88,7 +88,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -1296,11 +1295,17 @@ public class SMGTransferRelation implements TransferRelation {
             BinaryOperator newOperation =
                 (operation == BinaryOperator.PLUS) ? BinaryOperator.MINUS : BinaryOperator.PLUS;
 
-            final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(machineModel, logger);
-            final CBinaryExpression sum = binExprBuilder.buildBinaryExpression(
-                riteOperand, riteAddend, newOperation);
-            final CBinaryExpression assume = binExprBuilder.buildBinaryExpression(
-                leftAddend, sum, operator);
+            CBinaryExpression sum = new CBinaryExpression(expr.getFileLocation(),
+                getRealExpressionType(expr),
+                riteOperand,
+                riteAddend,
+                newOperation);
+
+            CBinaryExpression assume = new CBinaryExpression(expression.getFileLocation(),
+                getRealExpressionType(binaryExpression),
+                leftAddend,
+                sum,
+                operator);
             return assume;
           }
         }

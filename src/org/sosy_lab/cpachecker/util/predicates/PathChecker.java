@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -61,7 +62,7 @@ public class PathChecker {
     solver = pSolver;
   }
 
-  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException {
+  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException {
     List<SSAMap> ssaMaps = new ArrayList<>(pPath.size());
 
     PathFormula pathFormula = pmgr.makeEmptyPathFormula();
@@ -70,7 +71,9 @@ public class PathChecker {
       ssaMaps.add(pathFormula.getSsa());
     }
 
-    BooleanFormula f = pathFormula.getFormula();
+    BooleanFormula f = !(pathFormula instanceof PathFormulaWithUF) ?
+                         pathFormula.getFormula() :
+                         ((PathFormulaWithUF) pathFormula).getFormulaWithConstraints();
 
     try (ProverEnvironment thmProver = solver.newProverEnvironmentWithModelGeneration()) {
       thmProver.push(f);

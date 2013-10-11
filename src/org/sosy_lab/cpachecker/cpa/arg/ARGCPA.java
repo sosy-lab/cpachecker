@@ -206,7 +206,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return stopOperator.isCoveredBy(pElement, pOtherElement, wrappedProofChecker);
   }

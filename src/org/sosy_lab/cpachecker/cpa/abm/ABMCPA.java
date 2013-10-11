@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -92,7 +91,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private Class<? extends PartitioningHeuristic> blockHeuristic = FunctionAndLoopPartitioning.class;
 
   public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger,
-      ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException, CPAException {
+      ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException, CPAException {
     super(pCpa);
     config.inject(this);
 
@@ -111,7 +110,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     }
     reducer = new TimedReducer(wrappedReducer);
     prec = new ABMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
-    transfer = new ABMTransferRelation(config, logger, this, wrappedProofChecker, pReachedSetFactory, pShutdownNotifier);
+    transfer = new ABMTransferRelation(config, logger, this, wrappedProofChecker, pReachedSetFactory);
     prec.setABMTransferRelation(transfer);
     merge = new ABMMergeOperator(pCpa.getMergeOperator(), transfer);
     stop = new ABMStopOperator(getWrappedCpa().getStopOperator());
@@ -206,7 +205,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return wrappedProofChecker.isCoveredBy(pState, pOtherState);
   }

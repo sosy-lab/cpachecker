@@ -51,8 +51,7 @@ public interface AbstractDomain {
    * @param state2 an abstract state
    * @return (state1 <= state2)
    * @throws CPAException If any error occurred.
-   * @throws InterruptedException If the operation could not complete due to a shutdown request.
    */
-  public boolean isLessOrEqual(AbstractState state1, AbstractState state2) throws CPAException, InterruptedException;
+  public boolean isLessOrEqual(AbstractState state1, AbstractState state2) throws CPAException;
 
 }

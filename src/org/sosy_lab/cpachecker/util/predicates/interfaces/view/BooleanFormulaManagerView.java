@@ -34,9 +34,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
-
 
 public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> implements BooleanFormulaManager {
 
@@ -59,19 +56,6 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
   public BooleanFormula and(BooleanFormula pBits1, BooleanFormula pBits2) {
     return wrapInView(manager.and(extractFromView(pBits1), extractFromView(pBits2)));
   }
-
-  @Override
-  public BooleanFormula and(List<BooleanFormula> pBits) {
-    BooleanFormula result = manager.and(Lists.transform(pBits,
-        new Function<BooleanFormula, BooleanFormula>() {
-          @Override
-          public BooleanFormula apply(BooleanFormula pInput) {
-            return extractFromView(pInput);
-          }
-        }));
-    return wrapInView(result);
-  }
-
   @Override
   public BooleanFormula or(BooleanFormula pBits1, BooleanFormula pBits2) {
     return wrapInView(manager.or(extractFromView(pBits1), extractFromView(pBits2)));
@@ -165,6 +149,14 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
   @Override
   public boolean isEquivalence(BooleanFormula pFormula) {
     return manager.isEquivalence(extractFromView(pFormula));
+  }
+
+  public BooleanFormula conjunction(List<BooleanFormula> f) {
+    BooleanFormula result = manager.makeBoolean(true);
+    for (BooleanFormula formula : f) {
+      result = manager.and(result, extractFromView(formula));
+    }
+    return wrapInView(result);
   }
 
   public BooleanFormula implication(BooleanFormula p, BooleanFormula q) {

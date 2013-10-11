@@ -102,20 +102,18 @@ public class CoreComponentsFactory {
 
   private final Configuration config;
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
 
   private final ReachedSetFactory reachedSetFactory;
   private final CPABuilder cpaFactory;
 
-  public CoreComponentsFactory(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public CoreComponentsFactory(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
 
     config.inject(this);
 
     reachedSetFactory = new ReachedSetFactory(config, logger);
-    cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
+    cpaFactory = new CPABuilder(config, logger, reachedSetFactory);
   }
 
   public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
@@ -127,31 +125,31 @@ public class CoreComponentsFactory {
 
     if (useProofCheckAlgorithm) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
-      algorithm = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier);
+      algorithm = new ProofCheckAlgorithm(cpa, config, logger);
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
-      algorithm = new RestartAlgorithm(config, logger, shutdownNotifier, programDenotation, cfa);
+      algorithm = new RestartAlgorithm(config, logger, programDenotation, cfa);
 
     } else if (useImpactAlgorithm) {
-      algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
+      algorithm = new ImpactAlgorithm(config, logger, cpa, cfa);
 
     } else {
-      algorithm = new CPAAlgorithm(cpa, logger, config, shutdownNotifier);
+      algorithm = new CPAAlgorithm(cpa, logger, config);
 
       if (useRefinement) {
         algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
       }
 
       if (useBMC) {
-        algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, shutdownNotifier, cfa);
+        algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
       }
 
       if (useCBMC) {
-        algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa, programDenotation);
+        algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, cfa, programDenotation);
       }
 
       if (useBDDCPARestriction) {
-        algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa, programDenotation);
+        algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger, cfa, programDenotation);
       }
 
       if (useAssumptionCollector) {
@@ -172,7 +170,7 @@ public class CoreComponentsFactory {
       }
 
       if (useResultCheckAlgorithm) {
-        algorithm = new ResultCheckAlgorithm(algorithm, cpa, cfa, config, logger, shutdownNotifier);
+        algorithm = new ResultCheckAlgorithm(algorithm, cpa, cfa, config, logger);
       }
     }
 

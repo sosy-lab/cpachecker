@@ -1098,17 +1098,17 @@ public class CtoFormulaConverter {
     }
 
     case MultiEdge: {
-      List<BooleanFormula> multiEdgeFormulas = new ArrayList<>(((MultiEdge)edge).getEdges().size());
+      BooleanFormula multiEdgeFormula = bfmgr.makeBoolean(true);
 
       // unroll the MultiEdge
       for (CFAEdge singleEdge : (MultiEdge)edge) {
         if (singleEdge instanceof BlankEdge) {
           continue;
         }
-        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, constraints));
+        multiEdgeFormula = bfmgr.and(multiEdgeFormula, createFormulaForEdge(singleEdge, function, ssa, constraints));
       }
 
-      return bfmgr.and(multiEdgeFormulas);
+      return multiEdgeFormula;
     }
 
     default:

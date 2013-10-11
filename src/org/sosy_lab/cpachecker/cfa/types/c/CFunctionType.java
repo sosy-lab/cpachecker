@@ -153,7 +153,6 @@ public class CFunctionType extends AFunctionType implements CType {
     int result = 7;
     result = prime * result + Objects.hashCode(isConst);
     result = prime * result + Objects.hashCode(isVolatile);
-    result = prime * result + Objects.hashCode(name);
     result = prime * result + super.hashCode();
     return result;
   }

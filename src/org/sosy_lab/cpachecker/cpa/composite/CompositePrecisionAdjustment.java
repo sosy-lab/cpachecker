@@ -88,7 +88,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public Triple<AbstractState, Precision, Action> prec(AbstractState pElement,
                                                Precision pPrecision,
-                                               UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
+                                               UnmodifiableReachedSet pElements) throws CPAException {
     CompositeState comp = (CompositeState) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
     assert (comp.getWrappedStates().size() == prec.getPrecisions().size());

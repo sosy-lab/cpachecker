@@ -343,7 +343,7 @@ public class ARGReachedSet {
    * @return whether the covering was successful
    * @throws CPAException
    */
-  public boolean tryToCover(ARGState v) throws CPAException, InterruptedException {
+  public boolean tryToCover(ARGState v) throws CPAException {
     assert v.mayCover();
 
     cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));

@@ -56,7 +56,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
   @Override
   public boolean stop(AbstractState pElement,
-      Collection<AbstractState> pReached, Precision pPrecision) throws CPAException, InterruptedException {
+      Collection<AbstractState> pReached, Precision pPrecision) throws CPAException {
 
     ARGState argElement = (ARGState)pElement;
     assert !argElement.isCovered() : "Passing element to stop which is already covered: " + argElement;
@@ -112,7 +112,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   }
 
   private boolean stop(ARGState pElement, ARGState pReachedState, Precision pPrecision)
-                                                      throws CPAException, InterruptedException {
+                                                      throws CPAException {
 
     if (!pReachedState.mayCover()) {
       return false;
@@ -139,7 +139,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     return stop;
   }
 
-  boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement, ProofChecker wrappedProofChecker) throws CPAException, InterruptedException {
+  boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement, ProofChecker wrappedProofChecker) throws CPAException {
     ARGState argElement = (ARGState)pElement;
     ARGState otherArtElement = (ARGState)pOtherElement;
 
@@ -150,7 +150,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   }
 
   @Override
-  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedState, Precision pPrecision) throws CPAException, InterruptedException {
+  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedState, Precision pPrecision) throws CPAException {
     if (!(wrappedStop instanceof ForcedCoveringStopOperator)) {
       return false;
     }

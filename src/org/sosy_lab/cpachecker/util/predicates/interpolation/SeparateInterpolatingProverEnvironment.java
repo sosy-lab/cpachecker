@@ -64,7 +64,7 @@ public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingP
   }
 
   @Override
-  public boolean isUnsat() throws InterruptedException {
+  public boolean isUnsat() {
     return itpEnv.isUnsat();
   }
 

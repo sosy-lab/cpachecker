@@ -38,7 +38,7 @@ public class ARGMergeJoin implements MergeOperator {
 
   @Override
   public AbstractState merge(AbstractState pElement1,
-      AbstractState pElement2, Precision pPrecision) throws CPAException, InterruptedException {
+      AbstractState pElement2, Precision pPrecision) throws CPAException {
 
     ARGState argElement1 = (ARGState)pElement1;
     ARGState argElement2 = (ARGState)pElement2;

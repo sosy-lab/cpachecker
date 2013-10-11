@@ -44,7 +44,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public Triple<AbstractState, Precision, Action> prec(AbstractState pElement,
-      Precision oldPrecision, UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
+      Precision oldPrecision, UnmodifiableReachedSet pElements) throws CPAException {
 
     Preconditions.checkArgument(pElement instanceof ARGState);
     ARGState element = (ARGState)pElement;

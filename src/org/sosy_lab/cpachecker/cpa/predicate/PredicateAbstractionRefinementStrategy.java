@@ -243,7 +243,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   @Override
   public void performRefinement(ARGReachedSet pReached, List<ARGState> abstractionStatesTrace,
-      List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
+      List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException {
 
     pRepeatedCounterexample = !lastRefinementUsedHeuristics && pRepeatedCounterexample;
 

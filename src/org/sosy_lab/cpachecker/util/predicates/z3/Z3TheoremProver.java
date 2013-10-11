@@ -27,18 +27,18 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
 
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.core.Model;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
 
 import com.google.common.base.Preconditions;
 
@@ -191,7 +191,6 @@ public class Z3TheoremProver implements ProverEnvironment {
   class Z3AllSatResult implements AllSatResult {
 
     private final RegionCreator rmgr;
-    private final RegionBuilder builder;
 
     private final Timer solveTime;
     private final NestedTimer enumTime;
@@ -200,13 +199,22 @@ public class Z3TheoremProver implements ProverEnvironment {
     private int count = 0;
 
     private Region formula;
+    private final Deque<Region> cubes = new ArrayDeque<>();
 
     public Z3AllSatResult(RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime) {
       this.rmgr = rmgr;
+      this.formula = rmgr.makeFalse();
       this.solveTime = pSolveTime;
       this.enumTime = pEnumTime;
-      builder = rmgr.newRegionBuilder(ShutdownNotifier.create()); // TODO real instance
     }
+
+    /*
+         public void setInfiniteNumberOfModels() {
+          count = Integer.MAX_VALUE;
+          cubes.clear();
+          formula = rmgr.makeTrue();
+        }
+    */
 
     @Override
     public int getCount() {
@@ -214,17 +222,22 @@ public class Z3TheoremProver implements ProverEnvironment {
     }
 
     @Override
-    public Region getResult() throws InterruptedException {
-      if (formula == null) {
-        enumTime.startBoth();
-        try {
-          formula = builder.getResult();
-          builder.close();
-        } finally {
-          enumTime.stopBoth();
-        }
+    public Region getResult() {
+      if (cubes.size() > 0) {
+        buildBalancedOr();
       }
       return formula;
+    }
+
+    private void buildBalancedOr() {
+      cubes.add(formula);
+      while (cubes.size() > 1) {
+        Region b1 = cubes.remove();
+        Region b2 = cubes.remove();
+        cubes.add(rmgr.makeOr(b1, b2));
+      }
+      assert (cubes.size() == 1);
+      formula = cubes.remove();
     }
 
     public void callback(long[] model) {
@@ -239,16 +252,29 @@ public class Z3TheoremProver implements ProverEnvironment {
       // the abstraction is created simply by taking the disjunction
       // of all the models found by the all-sat-loop, and storing them in a BDD
       // first, let's create the BDD corresponding to the model
-      builder.startNewConjunction();
+      Deque<Region> curCube = new ArrayDeque<>(model.length + 1);
+      Region m = rmgr.makeTrue();
       for (long t : model) {
+        Region region;
         if (isOP(z3context, t, Z3_OP_NOT)) {
           t = get_app_arg(z3context, t, 0);
-          builder.addNegativeRegion(rmgr.getPredicate(encapsulate(t)));
+          region = rmgr.getPredicate(encapsulate(t));
+          region = rmgr.makeNot(region);
         } else {
-          builder.addPositiveRegion(rmgr.getPredicate(encapsulate(t)));
+          region = rmgr.getPredicate(encapsulate(t));
         }
+        curCube.add(region);
       }
-      builder.finishConjunction();
+      // now, add the model to the bdd
+      curCube.add(m);
+      while (curCube.size() > 1) {
+        Region v1 = curCube.remove();
+        Region v2 = curCube.remove();
+        curCube.add(rmgr.makeAnd(v1, v2));
+      }
+      assert (curCube.size() == 1);
+      m = curCube.remove();
+      cubes.add(m);
 
       count++;
 

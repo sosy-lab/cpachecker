@@ -33,7 +33,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
@@ -52,12 +51,12 @@ public class ProofGenerator {
 
   private final LogManager logger;
 
-  public ProofGenerator(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+  public ProofGenerator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
 
-    checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, pLogger, pShutdownNotifier, null);
+    checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, pLogger, null);
   }
 
   public void generateProof(CPAcheckerResult pResult) {

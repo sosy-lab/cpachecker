@@ -7,15 +7,13 @@
   All tools for which a corresponding module in scripts/benchmark/tool exists are supported.
   Examples are "cbmc" and "cpachecker".
 
-  "timelimit" is an optional cpu-time limit in seconds.
-  "hardtimelimit" is an optional cpu-time limit after which the tool will be killed forcefully
-    equal to "timelimit" if not specified).
+  "timelimit" is an optional time limit in seconds.
   "memlimit" is an optional memory limit in megabytes.
   "cpuCores" is an optional number of CPU cores to use per run (otherwise all available cores are used).
   "threads" is the number of parallel executions of verification runs.
   This values can be overriden on the command line when running benchmark.py
 -->
-<benchmark tool="cbmc" timelimit="1800" hardtimelimit="2000" memlimit="200">
+<benchmark tool="cbmc" timelimit="1800" memlimit="200">
 
   <!--
     There are two important top-level tags:

@@ -61,7 +61,7 @@ public class LoggingProverEnvironment implements ProverEnvironment {
   }
 
   @Override
-  public boolean isUnsat() throws InterruptedException {
+  public boolean isUnsat() {
     boolean result = wrapped.isUnsat();
     logger.log(Level.FINE, "unsat-check returned:", result);
     return result;
@@ -76,7 +76,7 @@ public class LoggingProverEnvironment implements ProverEnvironment {
 
   @Override
   public AllSatResult allSat(Collection<BooleanFormula> important,
-      RegionCreator mgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException {
+      RegionCreator mgr, Timer solveTime, NestedTimer enumTime) {
     AllSatResult asr = wrapped.allSat(important, mgr, solveTime, enumTime);
     logger.log(Level.FINE, "allsat-result:", asr);
     return asr;

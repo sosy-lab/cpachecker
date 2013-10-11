@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import java.util.List;
-
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.Term;
@@ -92,11 +90,6 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
   @Override
   public Term and(Term pBits1, Term pBits2) {
     return theory.and(pBits1, pBits2);
-  }
-
-  @Override
-  protected Term andImpl(List<Term> pParams) {
-    return theory.and(SmtInterpolUtil.toTermArray(pParams));
   }
 
   @Override

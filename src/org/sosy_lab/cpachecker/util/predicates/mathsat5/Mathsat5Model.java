@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.Model.Constant;
 import org.sosy_lab.cpachecker.core.Model.Function;
 import org.sosy_lab.cpachecker.core.Model.TermType;
 import org.sosy_lab.cpachecker.core.Model.Variable;

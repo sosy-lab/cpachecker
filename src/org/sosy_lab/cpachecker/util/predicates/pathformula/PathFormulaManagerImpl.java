@@ -357,58 +357,60 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     BooleanFormula mergeFormula2 = bfmgr.makeBoolean(true);
 
     for (final Triple<String, Integer, Integer> symbolDifference : symbolDifferences) {
-      final String symbolName = symbolDifference.getFirst();
-      final int index1 = symbolDifference.getSecond();
-      final int index2 = symbolDifference.getThird();
+      if (symbolDifference.getSecond() != null && symbolDifference.getThird() != null) {
+        final String symbolName = symbolDifference.getFirst();
+        final int index1 = symbolDifference.getSecond();
+        final int index2 = symbolDifference.getThird();
 
-      BooleanFormula mergeFormula = bfmgr.makeBoolean(true);
-      if (!symbolName.startsWith(CToFormulaWithUFConverter.NOMERGE_NAME_PREFIX)) {
-        if (index1 > index2 && index1 > 1) {
-          // i2:smaller, i1:bigger
-          // => need correction term for i2
+        BooleanFormula mergeFormula = bfmgr.makeBoolean(true);
+        if (!symbolName.startsWith(CToFormulaWithUFConverter.NOMERGE_NAME_PREFIX)) {
+          if (index1 > index2 && index1 > 1) {
+            // i2:smaller, i1:bigger
+            // => need correction term for i2
 
-          if (useNondetFlags && index2 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE)) {
-            mergeFormula = makeNondetFlagMerger(index2, index1);
-          } else if (index2 > 0 && !symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
-            mergeFormula = makeNondetMiddleVariableMerger(symbolName,
-                                                          resultSSA.getType(symbolName),
-                                                          index2,
-                                                          index1,
-                                                          pts2);
-          } else if (index2 > 0) {
-            final CType symbolType = resultSSA.getType(symbolName);
-            mergeFormula = makeNondetMiddleUFMerger(CToFormulaWithUFConverter.getUFName(symbolType),
-                                                    symbolType,
-                                                    index2,
-                                                    index1,
-                                                    pts2);
+            if (useNondetFlags && index2 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE)) {
+              mergeFormula = makeNondetFlagMerger(index2, index1);
+            } else if (index2 > 0 && !symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
+              mergeFormula = makeNondetMiddleVariableMerger(symbolName,
+                                                            resultSSA.getType(symbolName),
+                                                            index2,
+                                                            index1,
+                                                            pts2);
+            } else if (index2 > 0) {
+              final CType symbolType = resultSSA.getType(symbolName);
+              mergeFormula = makeNondetMiddleUFMerger(CToFormulaWithUFConverter.getUFName(symbolType),
+                                                      symbolType,
+                                                      index2,
+                                                      index1,
+                                                      pts2);
+            }
+
+            mergeFormula2 = bfmgr.and(mergeFormula2, mergeFormula);
+
+          } else if (index2 > 1) {
+            assert index1 < index2;
+            // i1:smaller, i2:bigger
+            // => need correction term for i1
+
+            if (useNondetFlags && index1 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE)) {
+              mergeFormula = makeNondetFlagMerger(index1, index2);
+            } else if (index1 > 0 && !symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
+              mergeFormula = makeNondetMiddleVariableMerger(symbolName,
+                                                            resultSSA.getType(symbolName),
+                                                            index1,
+                                                            index2,
+                                                            pts1);
+            } else if (index2 > 0) {
+              final CType symbolType = resultSSA.getType(symbolName);
+              mergeFormula = makeNondetMiddleUFMerger(CToFormulaWithUFConverter.getUFName(symbolType),
+                                                      symbolType,
+                                                      index1,
+                                                      index2,
+                                                      pts1);
+            }
+
+            mergeFormula1 = bfmgr.and(mergeFormula1, mergeFormula);
           }
-
-          mergeFormula2 = bfmgr.and(mergeFormula2, mergeFormula);
-
-        } else if (index2 > 1) {
-          assert index1 < index2;
-          // i1:smaller, i2:bigger
-          // => need correction term for i1
-
-          if (useNondetFlags && index1 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE)) {
-            mergeFormula = makeNondetFlagMerger(index1, index2);
-          } else if (index1 > 0 && !symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
-            mergeFormula = makeNondetMiddleVariableMerger(symbolName,
-                                                          resultSSA.getType(symbolName),
-                                                          index1,
-                                                          index2,
-                                                          pts1);
-          } else if (index2 > 0) {
-            final CType symbolType = resultSSA.getType(symbolName);
-            mergeFormula = makeNondetMiddleUFMerger(CToFormulaWithUFConverter.getUFName(symbolType),
-                                                    symbolType,
-                                                    index1,
-                                                    index2,
-                                                    pts1);
-          }
-
-          mergeFormula1 = bfmgr.and(mergeFormula1, mergeFormula);
         }
       }
     }

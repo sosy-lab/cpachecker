@@ -41,7 +41,7 @@ public class ABMStopOperator implements StopOperator {
 
   @Override
   public boolean stop(AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
-      throws CPAException, InterruptedException {
+      throws CPAException {
     if (pState == ABMARGBlockStartState.getDummy()) { return false; }
     return wrappedStop.stop(pState, pReached, pPrecision);
   }

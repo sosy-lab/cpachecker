@@ -54,17 +54,13 @@ class Mathsat5NativeApi {
 
   interface AllSatModelCallback {
 
-    void callback(long[] model) throws InterruptedException;
-  }
-
-  static interface TerminationTest {
-    boolean shouldTerminate() throws InterruptedException;
+    void callback(long[] model);
   }
 
   // wrappers for some of the native methods with a different number
   // of arguments
   public static int msat_all_sat(long e, long[] important,
-      AllSatModelCallback func) throws InterruptedException {
+      AllSatModelCallback func) {
 
     int result = msat_all_sat(e, important, important.length, func);
     return result;
@@ -74,7 +70,7 @@ class Mathsat5NativeApi {
    * Solve environment and check for satisfiability.
    * Return true if sat, false if unsat.
    */
-  public static boolean msat_check_sat(long e) throws InterruptedException {
+  public static boolean msat_check_sat(long e) {
     int res = msat_solve(e);
     switch (res) {
     case MSAT_SAT:
@@ -319,10 +315,10 @@ class Mathsat5NativeApi {
   public static native void msat_assert_formula(long e, long formula);
   //public static native int msat_add_preferred_for_branching(long e, long termBoolvar);
   //public static native int msat_clear_preferred_for_branching(long e)
-  private static native int msat_solve(long e) throws InterruptedException;
+  private static native int msat_solve(long e);
   //public static native int msat_solve_with_assumptions(long e, long[] assumptions, size numAssumptions)
   private static native int msat_all_sat(long e, long[] important, int num_important,
-      AllSatModelCallback func) throws InterruptedException;
+      AllSatModelCallback func);
   //private static native int msat_solve_diversify(long e, DiversifyModelCallback func, long userData)
   public static native long[] msat_get_asserted_formulas(long e);
   public static native long[] msat_get_theory_lemmas(long e);
@@ -355,8 +351,6 @@ class Mathsat5NativeApi {
   /*
    * Special functions
    */
-  public static native long msat_set_termination_test(long e, TerminationTest callback);
-  public static native void msat_free_termination_test(long t);
   public static native String msat_get_version();
   public static native String msat_last_error_message(long e);
 }

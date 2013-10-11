@@ -23,15 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
-import java.util.List;
-
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 
 
 public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
@@ -91,31 +86,6 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
 
   protected abstract TFormulaInfo and(TFormulaInfo pParam1, TFormulaInfo pParam2);
 
-  @Override
-  public BooleanFormula and(List<BooleanFormula> pBits) {
-    if (pBits.isEmpty()) {
-      return makeBoolean(true);
-    }
-    if (pBits.size() == 1) {
-      return pBits.get(0);
-    }
-    TFormulaInfo result = andImpl(Lists.transform(pBits,
-        new Function<BooleanFormula, TFormulaInfo>() {
-          @Override
-          public TFormulaInfo apply(BooleanFormula pInput) {
-            return extractInfo(pInput);
-          }
-        }));
-    return wrap(result);
-  }
-
-  protected TFormulaInfo andImpl(List<TFormulaInfo> pParams) {
-    TFormulaInfo result = makeBooleanImpl(true);
-    for (TFormulaInfo formula : pParams) {
-      result = and(result, formula);
-    }
-    return result;
-  }
 
   @Override
   public BooleanFormula or(BooleanFormula pBits1, BooleanFormula pBits2) {

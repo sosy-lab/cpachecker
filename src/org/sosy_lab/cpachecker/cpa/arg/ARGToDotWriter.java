@@ -250,11 +250,8 @@ class ARGToDotWriter {
       return "red";
     }
 
-    if (!currentElement.wasExpanded()) {
-      return "orange";
-    }
-
-    if (ARGUtils.IMPORTANT_FOR_ANALYSIS.apply(currentElement)) {
+    PredicateAbstractState abselem = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
+    if (abselem != null && abselem.isAbstractionState()) {
       return "cornflowerblue";
     }
 

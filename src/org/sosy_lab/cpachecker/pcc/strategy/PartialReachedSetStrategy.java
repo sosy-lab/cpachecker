@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -52,8 +52,8 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
 
   public PartialReachedSetStrategy(Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
-    super(pConfig, pLogger, pShutdownNotifier, pCpa);
+      PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
+    super(pConfig, pLogger, pCpa);
   }
 
   @Override
@@ -123,7 +123,7 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
       Collection<? extends AbstractState> successors;
       while (!certificate.isEmpty()) {
 
-        shutdownNotifier.shutdownIfNecessary();
+        CPAchecker.stopIfNecessary();
         stats.countIterations++;
 
         try {
@@ -149,7 +149,7 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
               stats.stopTimer.stop();
             }
           }
-        } catch (CPATransferException e) {
+        } catch (CPATransferException | InterruptedException e) {
           logger.logException(Level.FINE, e, "Computation of successors failed.");
           return false;
         } catch (CPAException e) {

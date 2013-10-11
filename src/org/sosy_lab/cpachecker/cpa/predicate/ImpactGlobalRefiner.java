@@ -337,7 +337,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    */
   private <T> void performRefinementOnPath(List<T> itpStack, final ARGState unreachableState,
       Map<ARGState, ARGState> predecessors, ReachedSet reached,
-      InterpolatingProverEnvironment<T> itpProver) throws CPAException, InterruptedException {
+      InterpolatingProverEnvironment<T> itpProver) throws CPAException {
     assert !itpStack.isEmpty();
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
     assert bfmgr.isFalse(itpProver.getInterpolant(itpStack)); // last interpolant is False
@@ -397,7 +397,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    *          on all of the state's parents is also not necessary)
    */
   private boolean performRefinementForState(BooleanFormula interpolant,
-      ARGState state) throws InterruptedException {
+      ARGState state) {
 
     // Passing null as lastAbstraction is ok because
     // we check for impact.requirePreviousBlockAbstraction() in the constructor.
@@ -424,7 +424,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    * @throws CPAException
    */
   private void finishRefinementOfPath(final ARGState unreachableState, List<ARGState> affectedStates,
-      ReachedSet reached) throws CPAException, InterruptedException {
+      ReachedSet reached) throws CPAException {
     ARGReachedSet arg = new ARGReachedSet(reached, argCpa);
 
     argUpdate.start();

@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -70,20 +69,18 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   private LogManager logger;
   private Configuration config;
-  private final ShutdownNotifier shutdownNotifier;
   private Algorithm analysisAlgorithm;
   private ConfigurableProgramAnalysis cpa;
   private CFA analyzedProgram;
   private ResultCheckStatistics stats;
 
   public ResultCheckAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, CFA pCfa,
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     analysisAlgorithm = pAlgorithm;
     analyzedProgram = pCfa;
     cpa = pCpa;
     logger = pLogger;
     config = pConfig;
-    shutdownNotifier = pShutdownNotifier;
     stats = new ResultCheckStatistics();
   }
 
@@ -105,8 +102,8 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Analysis successful.", "Start checking analysis result");
       try {
         stats.checkTimer.start();
-        ProofCheckAlgorithm checker = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, pReachedSet);
-        CoreComponentsFactory factory = new CoreComponentsFactory(config, logger, shutdownNotifier);
+        ProofCheckAlgorithm checker = new ProofCheckAlgorithm(cpa, config, logger, pReachedSet);
+        CoreComponentsFactory factory = new CoreComponentsFactory(config, logger);
         ReachedSet reached = factory.createReachedSet();
         reached.add(cpa.getInitialState(analyzedProgram.getMainFunction()),
             cpa.getInitialPrecision(analyzedProgram.getMainFunction()));

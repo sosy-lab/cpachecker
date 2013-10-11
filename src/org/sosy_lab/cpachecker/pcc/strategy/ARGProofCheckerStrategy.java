@@ -34,7 +34,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
@@ -52,10 +52,8 @@ public class ARGProofCheckerStrategy extends AbstractStrategy {
   private ARGState root;
   private ProofChecker checker;
   private PropertyChecker propChecker;
-  private final ShutdownNotifier shutdownNotifier;
 
-  public ARGProofCheckerStrategy(Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, ProofChecker pChecker)
+  public ARGProofCheckerStrategy(Configuration pConfig, LogManager pLogger, ProofChecker pChecker)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     checker = pChecker;
@@ -63,7 +61,6 @@ public class ARGProofCheckerStrategy extends AbstractStrategy {
     if (pChecker instanceof PropertyCheckerCPA) {
       propChecker = ((PropertyCheckerCPA) pChecker).getPropChecker();
     }
-    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
@@ -110,7 +107,7 @@ public class ARGProofCheckerStrategy extends AbstractStrategy {
       postponedStates.clear();
 
       while (pReachedSet.hasWaitingState()) {
-        shutdownNotifier.shutdownIfNecessary();
+        CPAchecker.stopIfNecessary();
 
         stats.countIterations++;
         ARGState state = (ARGState) pReachedSet.popFromWaitlist();

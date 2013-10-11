@@ -84,7 +84,7 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException {
     return (getAbstractDomain().isLessOrEqual(pElement, pOtherElement)) || ((CallstackState) pElement)
         .sameStateInProofChecking((CallstackState) pOtherElement);
   }

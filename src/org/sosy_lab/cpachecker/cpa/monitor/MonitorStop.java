@@ -42,7 +42,7 @@ public class MonitorStop implements StopOperator {
 
   @Override
   public boolean stop(AbstractState pElement,
-      Collection<AbstractState> pReached, Precision pPrecision) throws CPAException, InterruptedException {
+      Collection<AbstractState> pReached, Precision pPrecision) throws CPAException {
 
     MonitorState monitorState = (MonitorState)pElement;
     if (monitorState.mustDumpAssumptionForAvoidance()) {

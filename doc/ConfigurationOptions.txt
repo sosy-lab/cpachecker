@@ -639,31 +639,9 @@ cpa.interval.splitIntervals = false
 # at most that many intervals will be tracked per variable
 cpa.interval.threshold = 0
 
-# determine variables relevant to the decision whether or not a target path
-# assume edge is taken and limit the analyis to those variables.
-cpa.invariants.analyzeRelevantVariablesOnly = true
-
-# determine target locations in advance and analyse paths to the target
-# locations only.
-cpa.invariants.analyzeTargetPathsOnly = true
-
-# the maximum number of predicates to consider as interesting. -1 one
-# disables the limit, but this is not recommended. 0 means that guessing
-# interesting predicates is disabled.
-cpa.invariants.interestingPredicatesLimit = 0
-
-# the maximum number of variables to consider as interesting. -1 one disables
-# the limit, but this is not recommended. 0 means that guessing interesting
-# variables is disabled.
-cpa.invariants.interestingVariableLimit = 2
-
 # which merge operator to use for InvariantCPA
 cpa.invariants.merge = "JOIN"
   allowed values: [JOIN, SEP]
-
-# whether or not to use a bit vector formula manager when extracting
-# invariant approximations from states.
-cpa.invariants.useBitvectors = false
 
 # threshold for unrolling loops of the program (0 is infinite)
 # works only if assumption storage CPA is enabled, because otherwise it would
@@ -770,8 +748,8 @@ cpa.predicate.blk.useCache = true
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
 
-# Used deferred allocation heuristic that tracks void * variables until the
-# actual type of the allocation is figured out
+# Use deferred allocation heuristic that tracks void * variables until the
+# actual type of the allocation is figured out.
 cpa.predicate.deferUntypedAllocations = false
 
 # Enable the possibility to precompute explicit abstraction locations.
@@ -833,26 +811,25 @@ cpa.predicate.mathsat5.furtherOptions = ""
 cpa.predicate.mathsat5.logAllQueries = false
 cpa.predicate.mathsat5.logfile = "mathsat5.%03d.smt2"
 
+# Max. number of edge of the abstraction tree to prescan for reuse
+cpa.predicate.maxAbstractionReusePrescan = 1
+
 # Maximum size of allocations for which all structure fields are regarded
-# always essential, regardless of whether they were ever really used in code
+# always essential, regardless of whether they were ever really used in code.
 cpa.predicate.maxPreFilledAllocationSize = 0
 
-# list of functions that provide new memory on the heap. This is only used,
-# when handling of pointers is enabled.
-# List of functions that non-deterministically provide new memory on the
-# heap, i.e. they can return either a valid pointer or zero. This is only
-# used, when handling of pointers is enabled.
+# Set of functions that non-deterministically provide new memory on the heap,
+# i.e. they can return either a valid pointer or zero.
 cpa.predicate.memoryAllocationFunctions = {
-      "malloc", "__kmalloc", "kzalloc"
+      "malloc", "__kmalloc", "kzalloc", "kmalloc"
       }
-cpa.predicate.memoryAllocationFunctions = {"malloc", "kmalloc", "__kmalloc"}
 
-# List of functions that non-deterministically provide new zeroed memory on
+# Set of functions that non-deterministically provide new zeroed memory on
 # the heap, i.e. they can return either a valid pointer or zero. This is only
-# used, when handling of pointers is enabled.
+# used, when handling of pointers with UFs is enabled.
 cpa.predicate.memoryAllocationFunctionsWithZeroing = {"kzalloc"}
 
-# Setting this to true makes memoryAllocationFunctions* always return a valid
+# Setting this to true makes memoryAllocationFunctions always return a valid
 # pointer.
 cpa.predicate.memoryAllocationsAlwaysSucceed = false
 
@@ -1018,11 +995,25 @@ cpa.predicate.solver = MATHSAT5
 # all solvers might support this.
 cpa.predicate.solver.useIntegers = false
 
-# The function used to model successful heap object allocation.  This is only
+# log some solver actions, this may be slow!
+cpa.predicate.solver.useLogger = false
+
+# Export solver queries in Smtlib2 format.
+cpa.predicate.solver.z3.logger.logfile = "z3smtlog.%d.smt2"
+
+# Export solver queries in Smtlib2 format, there are small differences for
+# different solvers, choose target-solver.
+cpa.predicate.solver.z3.logger.target = Z3
+  allowed values: [Z3, MATHSAT5]
+
+# simplify formulas when they are asserted in a solver.
+cpa.predicate.solver.z3.simplifyFormulas = false
+
+# The function used to model successful heap object allocation. This is only
 # used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
 
-# The function used to model successful heap object allocation with zeroing. 
+# The function used to model successful heap object allocation with zeroing.
 # This is only used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulZallocFunctionName = "__VERIFIER_successful_zalloc"
 
@@ -1106,14 +1097,6 @@ java.version = JavaCore.VERSION_1_7
 # C or Java?
 language = C
   enum:     [C, JAVA]
-
-# Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
-# for infinite)
-limits.time.cpu = -1
-
-# Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
-# for infinite)
-limits.time.wall = -1
 
 # C dialect for parser
 parser.dialect = GNUC

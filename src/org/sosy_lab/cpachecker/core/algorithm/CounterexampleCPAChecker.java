@@ -43,7 +43,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -51,14 +50,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
-import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 @Options(prefix="counterexample.checker")
 public class CounterexampleCPAChecker implements CounterexampleChecker {
 
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
   private final String filename;
 
@@ -68,10 +64,9 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   private File configFile = new File("config/explicitAnalysis-no-cbmc.properties");
 
   public CounterexampleCPAChecker(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, CFA pCfa, String pFilename) throws InvalidConfigurationException {
+      CFA pCfa, String pFilename) throws InvalidConfigurationException {
     this.logger = logger;
     config.inject(this);
-    this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
     this.filename = pFilename;
   }
@@ -106,20 +101,14 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
               .loadFromFile(configFile)
               .setOption("specification", automatonFile.toAbsolutePath().toString())
               .build();
-      ShutdownNotifier lShutdownNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
-      ResourceLimitChecker.fromConfiguration(lConfig, logger, lShutdownNotifier).start();
 
-      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger, lShutdownNotifier);
+      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger);
       ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, null);
       ReachedSet lReached = factory.createReachedSet();
       lReached.add(lCpas.getInitialState(entryNode), lCpas.getInitialPrecision(entryNode));
 
       lAlgorithm.run(lReached);
-
-      lShutdownNotifier.requestShutdown("Analysis terminated");
-      CPAs.closeCpaIfPossible(lCpas, logger);
-      CPAs.closeIfPossible(lAlgorithm, logger);
 
       // counterexample is feasible if a target state is reachable
       return from(lReached).anyMatch(IS_TARGET_STATE);
@@ -128,9 +117,6 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       throw new CounterexampleAnalysisFailed("Invalid configuration in counterexample-check config: " + e.getMessage(), e);
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed(e.getMessage(), e);
-    } catch (InterruptedException e) {
-      shutdownNotifier.shutdownIfNecessary();
-      throw new CounterexampleAnalysisFailed("Counterexample check aborted", e);
     }
   }
 

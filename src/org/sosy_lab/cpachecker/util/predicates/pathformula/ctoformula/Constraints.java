@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 
@@ -37,20 +34,21 @@ class Constraints {
 
   private final BooleanFormulaManagerView bfmgr;
 
-  private final List<BooleanFormula> constraints = new ArrayList<>();
+  private BooleanFormula constraints;
 
   /**
    * @param pCtoFormulaConverter
    */
   Constraints(BooleanFormulaManagerView pBfmgr) {
     bfmgr = pBfmgr;
+    constraints = bfmgr.makeBoolean(true);
   }
 
   void addConstraint(BooleanFormula pCo) {
-    constraints.add(pCo);
+    constraints = bfmgr.and(constraints, pCo);
   }
 
   public BooleanFormula get() {
-    return bfmgr.and(constraints);
+    return constraints;
   }
 }

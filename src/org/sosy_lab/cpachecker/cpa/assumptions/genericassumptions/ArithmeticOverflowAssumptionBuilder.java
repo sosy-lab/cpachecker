@@ -122,13 +122,13 @@ implements GenericAssumptionBuilder {
 
     if (bounds.getFirst() != null) {
 
-      result.add(new CBinaryExpression(null, null, null, exp,
+      result.add(new CBinaryExpression(null, null, exp,
               bounds.getFirst(), BinaryOperator.GREATER_EQUAL));
     }
 
     if (bounds.getSecond() != null) {
 
-      result.add(new CBinaryExpression(null, null, null, exp,
+      result.add(new CBinaryExpression(null, null, exp,
               bounds.getSecond(), BinaryOperator.LESS_EQUAL));
     }
   }

@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
@@ -77,7 +78,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     final Formula base = e.getArrayExpression().accept(this);
     final CExpression subscript = e.getSubscriptExpression();
     final CType subscriptType = PointerTargetSet.simplifyType(subscript.getExpressionType());
-    final Formula index = conv.makeCast(subscriptType, PointerTargetSet.POINTER_TO_VOID, subscript.accept(this));
+    final Formula index = conv.makeCast(subscriptType, PointerTargetSet.POINTER_TO_VOID, subscript.accept(this), edge);
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     final int size = pts.getSize(resultType);
     final Formula coeff = conv.fmgr.makeNumber(pts.getPointerType(), size);
@@ -251,15 +252,6 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
       return super.visit(e);
     case SIZEOF:
       return handleSizeof(e, PointerTargetSet.simplifyType(operand.getExpressionType()));
-    case STAR:
-      if (!(resultType instanceof CFunctionType)) {
-        lastTarget = operand.accept(this);
-        return conv.isCompositeType(resultType) ? (Formula) lastTarget :
-               conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
-      } else {
-        lastTarget = null;
-        return operand.accept(this);
-      }
     case AMPER:
       if (!(resultType instanceof CFunctionType)) {
         final Variable baseVariable = operand.accept(baseVisitor);
@@ -301,6 +293,20 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
       }
       default:
         throw new UnrecognizedCCodeException("Unknown unary operator", edge, e);
+    }
+  }
+
+  @Override
+  public Formula visit(CPointerExpression e) throws UnrecognizedCCodeException {
+    final CExpression operand = e.getOperand();
+    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
+    if (!(resultType instanceof CFunctionType)) {
+      lastTarget = operand.accept(this);
+      return conv.isCompositeType(resultType) ? (Formula) lastTarget :
+             conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
+    } else {
+      lastTarget = null;
+      return operand.accept(this);
     }
   }
 

@@ -131,7 +131,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   }
 
   private boolean isNondetFunctionName(final String name) {
-    return conv.nondetFunctions.contains(name) || conv.nondetFunctionsPattern.matcher(name).matches();
+    return conv.options.isNondetFunction(name);
   }
 
   private CType refineType(final @Nonnull CType type, final @Nonnull CIntegerLiteralExpression sizeLiteral) {
@@ -140,16 +140,22 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       final int typeSize = pts.getSize(type);
       if (type instanceof CArrayType) {
         if (typeSize != size) {
-          conv.log(Level.WARNING, "Array size of the revealed type differs form the allocation size: " + type +
-                                  " : " + typeSize + " != " + size);
+          conv.logger.logf(Level.WARNING,
+                           "Array size of the revealed type differs form the allocation size: %s : %d != %d",
+                           type.toString(),
+                           typeSize,
+                           size);
         }
         return type;
       } else {
         final int n = size / typeSize;
         final int remainder = size % typeSize;
         if (n == 0 || remainder != 0) {
-          conv.log(Level.WARNING, "Can't refine allocation type, but the sizes differ: " + type + " : " + typeSize +
-                                  " != " + size);
+          conv.logger.logf(Level.WARNING,
+                           "Can't refine allocation type, but the sizes differ: %s : %d != %d",
+                           type.toString(),
+                           typeSize +
+                           size);
           return type;
         }
         return new CArrayType(false, false, type, new CIntegerLiteralExpression(sizeLiteral.getFileLocation(),
@@ -173,12 +179,14 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   }
 
   private void handleDeferredAllocationTypeRevelation(final @Nonnull String pointerVariable,
-                                                      final @Nonnull CType type) {
+                                                      final @Nonnull CType type)
+  throws UnrecognizedCCodeException {
     final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
     for (final String baseVariable : deferredAllocationPool.getBaseVariables()) {
       conv.makeAllocation(deferredAllocationPool.wasAllocationZeroing(),
                           getAllocationType(type, deferredAllocationPool.getSize()),
                           baseVariable,
+                          edge,
                           ssa,
                           constraints,
                           pts);
@@ -187,12 +195,15 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
 
   private void handleDeferredAllocationPointerRemoval(final CAssignment e, final String pointerVariable) {
     if (pts.removeDeferredAllocatinPointer(pointerVariable)) {
-      conv.log(Level.WARNING, "Assignment to the void * pointer " + pointerVariable +
-                              " produces garbage! (in assignment: " + e + ")");
+      conv.logger.logf(Level.WARNING,
+                       "Assignment to the void * pointer %s produces garbage! (in assignment: %s)",
+                       pointerVariable,
+                       e.toString());
     }
   }
 
-  private void handleDeferredAllocationPointerEscape(final CAssignment e, final String pointerVariable) {
+  private void handleDeferredAllocationPointerEscape(final CAssignment e, final String pointerVariable)
+  throws UnrecognizedCCodeException {
     final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
     final CIntegerLiteralExpression size = deferredAllocationPool.getSize() != null ?
                                              deferredAllocationPool.getSize() :
@@ -200,9 +211,12 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                                            PointerTargetSet.CHAR,
                                                                            BigInteger.valueOf(PointerTargetSet
                                                                                             .DEFAULT_ALLOCATION_SIZE));
-    conv.log(Level.WARNING, "The void * pointer " + pointerVariable + " to a deferred allocation " +
-                            "escaped form tracking! Allocating array void[" +
-                             deferredAllocationPool.getSize() + "]. (in assignment: " + e + ")");
+    conv.logger.logf(Level.WARNING,
+                     "The void * pointer %s to a deferred allocation escaped form tracking! " +
+                       "Allocating array void[%d]. (in assignment: %s)",
+                     pointerVariable,
+                     deferredAllocationPool.getSize(),
+                     e.toString());
     for (final String baseVariable : deferredAllocationPool.getBaseVariables()) {
       conv.makeAllocation(deferredAllocationPool.wasAllocationZeroing(),
                           new CArrayType(false,
@@ -210,6 +224,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                          PointerTargetSet.VOID,
                                          size),
                           baseVariable,
+                          edge,
                           ssa,
                           constraints,
                           pts);
@@ -220,7 +235,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                      final Object lhsTarget,
                                                      final Object rhsTarget,
                                                      final Map<String, CType> lhsUsedDeferredAllocationPointers,
-                                                     final Map<String, CType> rhsUsedDeferredAllocationPointers) {
+                                                     final Map<String, CType> rhsUsedDeferredAllocationPointers)
+  throws UnrecognizedCCodeException {
     boolean passed = false;
     for (final Map.Entry<String, CType> usedPointer : rhsUsedDeferredAllocationPointers.entrySet()) {
       boolean handled = false;
@@ -277,7 +293,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   }
 
   private void handleDeferredAllocationsInAssume(final CExpression e,
-                                                 final Map<String, CType> usedDeferredAllocationPointers) {
+                                                 final Map<String, CType> usedDeferredAllocationPointers)
+  throws UnrecognizedCCodeException {
     for (final Map.Entry<String, CType> usedPointer : usedDeferredAllocationPointers.entrySet()) {
       if (!usedPointer.getValue().equals(PointerTargetSet.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
@@ -346,7 +363,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final PointerTargetPattern pattern = lastTarget instanceof String ? null : lhs.accept(lvalueVisitor);
 
     boolean isAllocation = false;
-    if ((conv.revealAllocationTypeFromLhs || conv.deferUntypedAllocations) &&
+    if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) &&
         rhs instanceof CFunctionCallExpression &&
         rhsObject instanceof Formula) {
       final Set<String> rhsVariables = conv.fmgr.extractVariables(rhsFormula);
@@ -374,7 +391,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       }
     }
 
-    if (conv.deferUntypedAllocations && !isAllocation) {
+    if (conv.options.deferUntypedAllocations() && !isAllocation) {
       handleDeferredAllocationsInAssignment(e,
                                             lastTarget,
                                             rhsName,
@@ -383,18 +400,41 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     }
 
     final BooleanFormula result =
-      conv.makeAssignment(lhsType, rhsType, lastTarget, rhsObject, pattern, true, false, null, ssa, constraints, pts);
+      conv.makeAssignment(lhsType,
+                          rhsType,
+                          lastTarget,
+                          rhsObject,
+                          pattern,
+                          true,
+                          false,
+                          null,
+                          edge,
+                          ssa,
+                          constraints,
+                          pts);
 
     addEssentialFields(lhsUsedFields, pts);
     addEssentialFields(rhsUsedFields, pts);
     return result;
   }
 
-  public BooleanFormula visitComplexInitialization(final CDeclaration declaration, final List<?> initializerList) {
+  public BooleanFormula visitComplexInitialization(final CDeclaration declaration, final List<?> initializerList)
+  throws UnrecognizedCCodeException {
     final CType type = PointerTargetSet.simplifyType(declaration.getType());
     final String lhs = declaration.getQualifiedName();
     if (!pts.isBase(declaration.getQualifiedName()) && !PointerTargetSet.containsArray(type)) {
-      return conv.makeAssignment(type, type, lhs, initializerList, null, true, false, null, ssa, constraints, pts);
+      return conv.makeAssignment(type,
+                                 type,
+                                 lhs,
+                                 initializerList,
+                                 null,
+                                 true,
+                                 false,
+                                 null,
+                                 edge,
+                                 ssa,
+                                 constraints,
+                                 pts);
     } else {
       final PointerTargetPattern pattern = new PointerTargetPattern(lhs, 0, 0);
       final CType baseType = PointerTargetSet.getBaseType(type);
@@ -406,6 +446,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                         false,
                                                         false,
                                                         null,
+                                                        edge,
                                                         ssa,
                                                         constraints,
                                                         pts);
@@ -420,7 +461,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
 
     BooleanFormula result = conv.toBooleanFormula(e.accept(delegate));
 
-    if (conv.deferUntypedAllocations) {
+    if (conv.options.deferUntypedAllocations()) {
       handleDeferredAllocationsInAssume(e, delegate.getUsedDeferredAllocationPointers());
     }
 
@@ -503,8 +544,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           final List<CDesignator> designators = designatedInitializer.getDesignators();
           final CDesignator designator;
           if (designators.size() > 1) {
-            conv.log(Level.WARNING, "Nested designators are unsupported: " + designatedInitializer + " in line "+
-                                    designatedInitializer.getFileLocation().getStartingLineNumber());
+            conv.logger.logf(Level.WARNING,
+                             "Nested designators are unsupported: %s in line %d",
+                             designatedInitializer,
+                             designatedInitializer.getFileLocation().getStartingLineNumber());
             continue;
           } else {
             designator = Iterables.getOnlyElement(designators);
@@ -568,8 +611,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           final List<CDesignator> designators = designatedInitializer.getDesignators();
           final CDesignator designator;
           if (designators.size() > 1) {
-            conv.log(Level.WARNING, "Nested designators are unsupported: " + designatedInitializer + " in line "+
-                                    designatedInitializer.getFileLocation().getStartingLineNumber());
+            conv.logger.logf(Level.WARNING,
+                            "Nested designators are unsupported: %s in line %d",
+                            designatedInitializer,
+                            designatedInitializer.getFileLocation().getStartingLineNumber());
             continue;
           } else {
             designator = Iterables.getOnlyElement(designators);
@@ -644,7 +689,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       final Formula initializer = initializerExpression.accept(this);
       final CType initializerExpressionType = CToFormulaWithUFConverter.implicitCastToPointer(
                                                                           initializerExpression.getExpressionType());
-      return conv.makeCast(initializerExpressionType, type, initializer);
+      return conv.makeCast(initializerExpressionType, type, initializer, edge);
     }
   }
 
@@ -686,8 +731,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         final BooleanFormula condition = visitAssume(parameters.get(0), true);
         constraints.addConstraint(condition);
         return conv.makeFreshVariable(functionName, returnType, ssa, pts);
-      } else if ((functionName.equals(conv.successfulAllocFunctionName) ||
-                  functionName.equals(conv.successfulZallocFunctionName)) &&
+      } else if ((conv.options.isSuccessfulAllocFunctionName(functionName) ||
+                  conv.options.isSuccessfulZallocFunctionName(functionName)) &&
                   parameters.size() == 1) {
         final CExpression parameter = parameters.get(0);
         Integer size = null;
@@ -707,7 +752,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           }
         } else {
           size = parameter.accept(pts.getEvaluatingVisitor());
-          if (!conv.revealAllocationTypeFromLhs && !conv.deferUntypedAllocations) {
+          if (!conv.options.revealAllocationTypeFromLHS() && !conv.options.deferUntypedAllocations()) {
             final CExpression length;
             if (size == null) {
               size = PointerTargetSet.DEFAULT_ALLOCATION_SIZE;
@@ -725,9 +770,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         if (newType != null) {
           final CType newBaseType = PointerTargetSet.getBaseType(newType);
           final String newBaseName = conv.makeAllocVariableName(functionName, newType, newBaseType, ssa);
-          return conv.makeAllocation(functionName.equals(conv.successfulZallocFunctionName),
+          return conv.makeAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                      newType,
                                      newBaseName,
+                                     edge,
                                      ssa,
                                      constraints,
                                      pts);
@@ -736,7 +782,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                                PointerTargetSet.VOID,
                                                                PointerTargetSet.POINTER_TO_VOID,
                                                                ssa);
-          pts.addTemporaryDeferredAllocation(functionName.equals(conv.successfulZallocFunctionName),
+          pts.addTemporaryDeferredAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                              size != null ? new CIntegerLiteralExpression(parameter.getFileLocation(),
                                                                                           parameter.getExpressionType(),
                                                                                           BigInteger.valueOf(size)) :
@@ -744,12 +790,12 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                              newBaseName);
           return conv.makeConstant(newBaseName, PointerTargetSet.POINTER_TO_VOID, ssa, pts);
         }
-      } else if ((conv.memoryAllocationFunctions.contains(functionName) ||
-                  conv.memoryAllocationFunctionsWithZeroing.contains(functionName)) &&
+      } else if ((conv.options.isMemoryAllocationFunction(functionName) ||
+                  conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) &&
                   parameters.size() == 1) {
-        final String delegateFunctionName = !conv.memoryAllocationFunctionsWithZeroing.contains(functionName) ?
-                                              conv.successfulAllocFunctionName :
-                                              conv.successfulZallocFunctionName;
+        final String delegateFunctionName = !conv.options.isMemoryAllocationFunctionWithZeroing(functionName) ?
+                                              conv.options.getSuccessfulAllocFunctionName() :
+                                              conv.options.getSuccessfulZallocFunctionName();
         final CExpression delegateFuncitonNameExpression = new CIdExpression(functionNameExpression.getFileLocation(),
                                                                              functionNameExpression.getExpressionType(),
                                                                              delegateFunctionName,
@@ -761,7 +807,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                       delegateFuncitonNameExpression,
                                       parameters,
                                       e.getDeclaration());
-        if (!conv.memoryAllocationsAlwaysSucceed) {
+        if (!conv.options.makeMemoryAllocationsAlwaysSucceed()) {
           final Formula nondet = conv.makeFreshVariable(functionName,
                                                         PointerTargetSet.POINTER_TO_VOID,
                                                         ssa,
@@ -771,10 +817,9 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         } else {
           return visit(delegateCall);
         }
-      } else if (conv.nondetFunctions.contains(functionName) ||
-                 conv.nondetFunctionsPattern.matcher(functionName).matches()) {
+      } else if (conv.options.isNondetFunction(functionName)) {
         return null; // Nondet
-      } else if (conv.externModelFunctionName.equals(functionName)) {
+      } else if (conv.options.isExternModelFunction(functionName)) {
         assert parameters.size() > 0 : "No external model given!";
         // the parameter comes in C syntax (with ")
         final String fileName = parameters.get(0).toASTString().replaceAll("\"", "");
@@ -789,15 +834,19 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
         if (parameters.isEmpty()) {
           // function of arity 0
-          conv.log(Level.INFO, "Assuming external function " + functionName + " to be a constant function.");
+          conv.logger.logfOnce(Level.INFO,
+                               "Assuming external function %s to be a constant function.",
+                                functionName);
         } else {
-          conv.log(Level.INFO, "Assuming external function " + functionName + " to be a pure function.");
+          conv.logger.logfOnce(Level.INFO,
+                               "Assuming external function %s to be a pure function.",
+                               functionName);
         }
       }
     } else {
-      conv.log(Level.WARNING,
-               CtoFormulaConverter.getLogMessage("Ignoring function call through function pointer",
-               e));
+      conv.logger.logfOnce(Level.WARNING,
+                           "Ignoring function call through function pointer %s",
+                           e.toString());
       functionName = "<func>{" +
                      CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(functionNameExpression),
                                                 function) +
@@ -808,8 +857,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final CType resultType = PointerTargetSet.simplifyType(conv.getReturnType(e, edge));
     if (resultType instanceof CCompositeType ||
         PointerTargetSet.containsArray(resultType)) {
-      conv.log(Level.WARNING,
-               "Pure functions returning composites are currently unsupported. Assuming nondet: (" +
+      conv.logger.logf(Level.WARNING,
+                      "Pure functions returning composites are currently unsupported. Assuming nondet: (" +
                  e.toASTString() + ").");
       return null;
     }
@@ -822,7 +871,9 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       final CFunctionDeclaration functionDeclaration = e.getDeclaration();
       if (functionDeclaration == null) {
         // This should not happen
-        conv.log(Level.WARNING, "Cant get declaration of function. Ignoring the call (" + e.toASTString() + ").");
+        conv.logger.logf(Level.WARNING,
+                         "Cant get declaration of function. Ignoring the call (%s).",
+                         e.toASTString());
         return null; // Nondet
       }
 
@@ -853,7 +904,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         parameter = conv.makeCastFromArrayToPointerIfNecessary(parameter, parameterType);
 
         final Formula argument = parameter.accept(this);
-        arguments.add(conv.makeCast(parameter.getExpressionType(), parameterType, argument));
+        arguments.add(conv.makeCast(parameter.getExpressionType(), parameterType, argument, edge));
       }
       assert !parameterTypesIterator.hasNext() && !parametersIterator.hasNext();
 

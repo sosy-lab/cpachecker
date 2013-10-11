@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.core.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import java.io.File;
@@ -45,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -59,7 +57,6 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 import com.google.common.io.Resources;
 
 @Options(prefix="analysis")
@@ -74,12 +71,12 @@ public class CPAchecker {
   private static class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
 
     private final ReachedSet reached;
-    private final ShutdownNotifier shutdownNotifier;
+    private final Thread cpacheckerThread;
 
-    public CPAcheckerBean(ReachedSet pReached, LogManager logger, ShutdownNotifier pShutdownNotifier) {
+    public CPAcheckerBean(ReachedSet pReached, LogManager logger) {
       super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
       reached = pReached;
-      shutdownNotifier = pShutdownNotifier;
+      cpacheckerThread = Thread.currentThread();
       register();
     }
 
@@ -90,7 +87,7 @@ public class CPAchecker {
 
     @Override
     public void stop() {
-      shutdownNotifier.requestShutdown("A stop request was received via the JMX interface.");
+      cpacheckerThread.interrupt();
     }
 
   }
@@ -108,8 +105,17 @@ public class CPAchecker {
 
   private final LogManager logger;
   private final Configuration config;
-  private final ShutdownNotifier shutdownNotifier;
   private final CoreComponentsFactory factory;
+
+  /**
+   * This method will throw an exception if the user has requested CPAchecker to
+   * stop immediately. This exception should not be caught by the caller.
+   */
+  public static void stopIfNecessary() throws InterruptedException {
+    if (Thread.interrupted()) {
+      throw new InterruptedException();
+    }
+  }
 
   // The content of this String is read from a file that is created by the
   // ant task "init".
@@ -135,14 +141,12 @@ public class CPAchecker {
     return version;
   }
 
-  public CPAchecker(Configuration pConfiguration, LogManager pLogManager,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public CPAchecker(Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
     config = pConfiguration;
     logger = pLogManager;
-    shutdownNotifier = pShutdownNotifier;
 
     config.inject(this);
-    factory = new CoreComponentsFactory(pConfiguration, pLogManager, shutdownNotifier);
+    factory = new CoreComponentsFactory(pConfiguration, pLogManager);
   }
 
   public CPAcheckerResult run(String programDenotation) {
@@ -152,9 +156,6 @@ public class CPAchecker {
     MainCPAStatistics stats = null;
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
-
-    final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
-    shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
       stats = new MainCPAStatistics(config, logger, programDenotation);
@@ -173,7 +174,7 @@ public class CPAchecker {
       } else {
         CFA cfa = parse(programDenotation, stats);
         GlobalInfo.getInstance().storeCFA(cfa);
-        shutdownNotifier.shutdownIfNecessary();
+        stopIfNecessary();
 
         ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, stats);
 
@@ -190,7 +191,7 @@ public class CPAchecker {
       printConfigurationWarnings();
 
       stats.creationTime.stop();
-      shutdownNotifier.shutdownIfNecessary();
+      stopIfNecessary();
       // now everything necessary has been instantiated
 
       if (disableAnalysis) {
@@ -224,15 +225,9 @@ public class CPAchecker {
       // CPAchecker must exit because it was asked to
       // we return normally instead of propagating the exception
       // so we can return the partial result we have so far
-      if (!Strings.isNullOrEmpty(e.getMessage())) {
-        logger.logUserException(Level.WARNING, e, "Analysis stopped");
-      }
 
     } catch (CPAException e) {
       logger.logUserException(Level.SEVERE, e, null);
-
-    } finally {
-      shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
     return new CPAcheckerResult(result, reached, stats);
   }
@@ -259,7 +254,7 @@ public class CPAchecker {
   private CFA parse(String filename, MainCPAStatistics stats) throws InvalidConfigurationException, IOException,
       ParserException, InterruptedException {
     // parse file and create CFA
-    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+    CFACreator cfaCreator = new CFACreator(config, logger);
     stats.setCFACreator(cfaCreator);
 
     CFA cfa = cfaCreator.parseFileAndCreateCFA(filename);
@@ -289,7 +284,7 @@ public class CPAchecker {
     boolean isComplete = true;
 
     // register management interface for CPAchecker
-    CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger, shutdownNotifier);
+    CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
 
     stats.startAnalysisTimer();
     try {

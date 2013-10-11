@@ -39,7 +39,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -52,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -106,16 +106,16 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                  final MachineModel machineModel,
                                                  final LogManager logger)
   throws InvalidConfigurationException {
-    return new CToFormulaWithUFConverter(config, fmgr, machineModel, logger);
+    final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
+    return new CToFormulaWithUFConverter(options, fmgr, machineModel, logger);
   }
 
-  CToFormulaWithUFConverter(final Configuration config,
+  CToFormulaWithUFConverter(final FormulaEncodingOptions options,
                             final FormulaManagerView formulaManagerView,
                             final MachineModel machineModel,
                             final LogManager logger)
   throws InvalidConfigurationException {
-    super(config, formulaManagerView, machineModel, logger);
-    config.inject(this);
+    super(options, formulaManagerView, machineModel, logger);
     rfmgr = formulaManagerView.getRationalFormulaManager();
   }
 
@@ -294,7 +294,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                         final boolean forcePreFill,
                         final PointerTargetSetBuilder pts) {
     pts.addBase(baseName, type);
-    if (forcePreFill || (maxPreFilledAllocationSize > 0 && pts.getSize(type) <= maxPreFilledAllocationSize)) {
+    if (forcePreFill ||
+        (options.maxPreFilledAllocationSize() > 0 && pts.getSize(type) <= options.maxPreFilledAllocationSize())) {
       addAllFields(type, pts);
     }
   }
@@ -302,9 +303,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   Formula makeAllocation(final boolean isZeroing,
                          final CType type,
                          final String baseName,
+                         final CFAEdge edge,
                          final SSAMapBuilder ssa,
                          final Constraints constraints,
-                         final PointerTargetSetBuilder pts) {
+                         final PointerTargetSetBuilder pts)
+  throws UnrecognizedCCodeException {
     final CType baseType = PointerTargetSet.getBaseType(type);
     final Formula result = makeConstant(Variable.create(baseName, baseType), ssa, pts);
     if (isZeroing) {
@@ -317,6 +320,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         false,
         false,
         null,
+        edge,
         ssa,
         constraints,
         pts);
@@ -552,9 +556,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                 final boolean update,
                                 final boolean batch,
                                 Set<CType> types,
+                                final @Nonnull CFAEdge edge,
                                 final @Nonnull SSAMapBuilder ssa,
                                 final @Nonnull Constraints constraints,
-                                final @Nonnull PointerTargetSetBuilder pts) {
+                                final @Nonnull PointerTargetSetBuilder pts)
+  throws UnrecognizedCCodeException {
     Preconditions.checkArgument(lvalue instanceof Formula || lvalue instanceof String, "Illegal left hand side");
     Preconditions.checkArgument(rvalue == null || rvalue instanceof String || rvalue instanceof Formula ||
                                 rvalue instanceof List,
@@ -608,6 +614,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                               update,
                                               true,
                                               types,
+                                              edge,
                                               ssa,
                                               constraints,
                                               pts));
@@ -686,6 +693,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                 update,
                                                 lvalue instanceof Formula,
                                                 types,
+                                                edge,
                                                 ssa,
                                                 constraints,
                                                 pts));
@@ -740,7 +748,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final int newIndex = update ? oldIndex + 1 : oldIndex;
       if (rvalue != null) {
         rvalueType = implicitCastToPointer(rvalueType);
-        final Formula rhs = makeCast(rvalueType, lvalueType, (Formula) rvalue);
+        final Formula rhs = makeCast(rvalueType, lvalueType, (Formula) rvalue, edge);
         if (lvalue instanceof String) {
           result = fmgr.makeEqual(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
         } else {
@@ -969,10 +977,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                              edge);
       }
       if (!SAFE_VAR_ARG_FUNCTIONS.contains(entryNode.getFunctionName())) {
-        log(Level.WARNING, "Ignoring parameters passed as varargs to function " +
-                           entryNode.getFunctionName() +
-                           " in line " +
-                           edge.getLineNumber());
+        logger.logf(Level.WARNING,
+                    "Ignoring parameters passed as varargs to function %s in line %d",
+                    entryNode.getFunctionName(),
+                    edge.getLineNumber());
       }
     } else {
       if (parameters.size() != arguments.size()) {
@@ -1028,14 +1036,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                                   statementVisitor
                                                                                     .getFuncitonName()),
                                                                            null));
-      CExpression lhs = expression.getLeftHandSide();
+      CLeftHandSide lhs = expression.getLeftHandSide();
 
       BooleanFormula assignment = statementVisitor.visit(
         new CExpressionAssignmentStatement(functionCallExpression.getFileLocation(), lhs, rhs));
 
       return assignment;
     } else {
-      throw new UnrecognizedCCodeException("Unknown function exit expression", summaryEdge, returnExpression.asStatement());
+      throw new UnrecognizedCCodeException("Unknown function exit expression", summaryEdge, returnExpression);
     }
   }
 
@@ -1093,45 +1101,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   public boolean isDynamicAllocVariableName(final String name) {
-    return name.startsWith(successfulAllocFunctionName) || name.startsWith(successfulZallocFunctionName);
+    return options.isSuccessfulAllocFunctionName(name) || options.isSuccessfulZallocFunctionName(name);
   }
 
   private final RationalFormulaManagerView rfmgr;
-
-  @Option(description = "The function used to model successful heap object allocation. " +
-                        " This is only used, when pointer analysis with UFs is enabled.")
-  String successfulAllocFunctionName = "__VERIFIER_successful_alloc";
-  @Option(description = "The function used to model successful heap object allocation with zeroing. " +
-                        " This is only used, when pointer analysis with UFs is enabled.")
-  String successfulZallocFunctionName = "__VERIFIER_successful_zalloc";
-
-  String memsetFunctionName = "__VERIFIER_memset";
-
-  @SuppressWarnings("hiding")
-  @Option(description = "List of functions that non-deterministically provide new memory on the heap, " +
-                        "i.e. they can return either a valid pointer or zero. " +
-                        "This is only used, when handling of pointers is enabled.")
-  Set<String> memoryAllocationFunctions = ImmutableSet.of("malloc", "kmalloc", "__kmalloc");
-
-  @Option(description = "List of functions that non-deterministically provide new zeroed memory on the heap, " +
-                        "i.e. they can return either a valid pointer or zero. " +
-                        "This is only used, when handling of pointers is enabled.")
-  Set<String> memoryAllocationFunctionsWithZeroing = ImmutableSet.of("kzalloc");
-
-  @Option(description = "Setting this to true makes memoryAllocationFunctions* always return a valid pointer.")
-  boolean memoryAllocationsAlwaysSucceed = false;
-
-  @Option(description = "Enable the option to allow detecting the allocation type by type " +
-                        "of the LHS of the assignment, e.g. char *arr = malloc(size) is detected as char[size]")
-  boolean revealAllocationTypeFromLhs = false;
-
-  @Option(description = "Used deferred allocation heuristic that tracks void * variables until the actual type " +
-                        "of the allocation is figured out")
-  boolean deferUntypedAllocations = false;
-
-  @Option(description = "Maximum size of allocations for which all structure fields are regarded always essential, " +
-                        "regardless of whether they were ever really used in code")
-  private int maxPreFilledAllocationSize = 0;
 
   @SuppressWarnings("hiding")
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of("printf", "printk");

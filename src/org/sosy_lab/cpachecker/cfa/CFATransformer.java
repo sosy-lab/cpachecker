@@ -283,7 +283,7 @@ public class CFATransformer extends DefaultCFAVisitor {
         final CFunctionReturnEdge oldFunctionReturnEdge = (CFunctionReturnEdge) oldEdge;
         final CFunctionSummaryEdge oldSummaryEdge = oldFunctionReturnEdge.getSummaryEdge();
         final CFunctionCall oldFunctionCall = oldSummaryEdge.getExpression();
-        final CFunctionCall functionCall = (CFunctionCall) oldFunctionCall.asStatement().accept(statementVisitor);
+        final CFunctionCall functionCall = (CFunctionCall) oldFunctionCall.accept(statementVisitor);
         if (functionCall != oldFunctionCall) {
           edge = new CFunctionReturnEdge(oldFunctionReturnEdge.getLineNumber(),
                                          oldFunctionReturnEdge.getPredecessor(),

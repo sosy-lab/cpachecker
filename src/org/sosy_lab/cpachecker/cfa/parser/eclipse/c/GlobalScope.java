@@ -127,18 +127,6 @@ class GlobalScope implements Scope {
   }
 
   @Override
-  public CType lookupTypedef(final String name) {
-    checkNotNull(name);
-
-    final CTypeDefDeclaration declaration = typedefs.get(name);
-    if (declaration != null) {
-      return declaration.getType();
-    }
-
-    return null;
-  }
-
-  @Override
   public boolean isTypeNameAvailable(String name) {
     return !alreayTakenTypeNames.contains(name);
   }

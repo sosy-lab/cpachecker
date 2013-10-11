@@ -620,7 +620,7 @@ class AutomatonASTComparator {
 
     @Override
     protected CType getFieldValueFrom(CCastExpression pSource) {
-      return pSource.getExpressionType();
+      return pSource.getType();
     }
   }
 

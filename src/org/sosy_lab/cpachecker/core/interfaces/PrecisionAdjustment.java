@@ -58,5 +58,5 @@ public interface PrecisionAdjustment {
    */
   public Triple<AbstractState, Precision, Action> prec(
       AbstractState state, Precision precision, UnmodifiableReachedSet states)
-      throws CPAException, InterruptedException;
+      throws CPAException;
 }

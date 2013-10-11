@@ -23,13 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.util.logging.Level;
-
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeTraverser;
@@ -73,31 +69,5 @@ public class CPAs {
              : ImmutableList.<ConfigurableProgramAnalysis>of();
       }
     }.preOrderTraversal(pCpa);
-  }
-
-  /**
-   * Close all CPAs (including wrapped CPAs) if they support this.
-   * @param cpa A CPA (possibly a WrapperCPA).
-   */
-  public static void closeCpaIfPossible(ConfigurableProgramAnalysis cpa, LogManager logger) {
-    for (ConfigurableProgramAnalysis currentCpa : CPAs.asIterable(cpa)) {
-      closeIfPossible(currentCpa, logger);
-    }
-  }
-
-  /**
-   * Call {@link AutoCloseable#close()} on an supplied object if it implements
-   * {@link AutoCloseable}. Checked exceptions are logged but not re-thrown.
-   * @param obj An object.
-   */
-  public static void closeIfPossible(Object obj, LogManager logger) {
-    if (obj instanceof AutoCloseable) {
-      try {
-        ((AutoCloseable)obj).close();
-      } catch (Exception e) {
-        Throwables.propagateIfPossible(e);
-        logger.logUserException(Level.WARNING, e, "Failed to close " + obj.getClass().getSimpleName());
-      }
-    }
   }
 }

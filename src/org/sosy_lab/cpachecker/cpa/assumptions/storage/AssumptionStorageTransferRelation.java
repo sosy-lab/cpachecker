@@ -116,7 +116,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
       return null; // nothing has changed
 
     } else {
-      return Collections.singleton(new AssumptionStorageState(formulaManager, assumption, stopFormula));
+      return Collections.singleton(new AssumptionStorageState(bfmgr, assumption, stopFormula));
     }
   }
 }

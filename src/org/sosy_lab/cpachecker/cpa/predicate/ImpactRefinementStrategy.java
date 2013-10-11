@@ -115,7 +115,7 @@ class ImpactRefinementStrategy extends RefinementStrategy {
    */
   @Override
   protected boolean performRefinementForState(BooleanFormula itp,
-      ARGState s) throws InterruptedException {
+      ARGState s) {
     checkArgument(!fmgr.getBooleanFormulaManager().isTrue(itp));
     checkArgument(!fmgr.getBooleanFormulaManager().isFalse(itp));
 
@@ -139,7 +139,7 @@ class ImpactRefinementStrategy extends RefinementStrategy {
   protected void finishRefinementOfPath(ARGState infeasiblePartOfART,
       List<ARGState> changedElements, ARGReachedSet pReached,
       boolean pRepeatedCounterexample)
-      throws CPAException, InterruptedException {
+      throws CPAException {
     checkState(lastAbstraction != null);
     lastAbstraction = null;
 

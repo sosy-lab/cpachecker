@@ -27,7 +27,6 @@ import java.io.PrintStream;
 import java.util.Set;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
@@ -45,7 +44,7 @@ public interface RegionManager {
    * @param f2 an AbstractFormula
    * @return true if (f1 => f2), false otherwise
    */
-  public boolean entails(Region f1, Region f2) throws InterruptedException;
+  public boolean entails(Region f1, Region f2);
 
   /**
    * @return a representation of logical truth
@@ -151,46 +150,4 @@ public interface RegionManager {
    * Prints some information about the RegionManager.
    */
   public void printStatistics(PrintStream out);
-
-  /**
-   * Return a new {@link RegionBuilder} instance.
-   */
-  public RegionBuilder builder(ShutdownNotifier pShutdownNotifier);
-
-  /**
-   * A stateful region builder for regions that are disjunctions
-   * of conjunctive literals.
-   */
-  public static interface RegionBuilder extends AutoCloseable {
-
-    /**
-     * Start a new conjunctive clause.
-     */
-    void startNewConjunction();
-
-    /**
-     * Add a region to the current conjunctive clause.
-     */
-    void addPositiveRegion(Region r);
-
-    /**
-     * Add the negation of a region to the current conjunctive clause.
-     * @param r
-     */
-    void addNegativeRegion(Region r);
-
-    /**
-     * End the current conjunctive clause and add it to the global disjunction.
-     */
-    void finishConjunction();
-
-    /**
-     * Retrieve the disjunction of all the conjunctive clauses created
-     * with this builder so far.
-     */
-    Region getResult() throws InterruptedException;
-
-    @Override
-    public void close();
-  }
 }

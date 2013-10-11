@@ -49,7 +49,7 @@ public class CompositeDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) throws CPAException, InterruptedException {
+  public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) throws CPAException {
     CompositeState comp1 = (CompositeState)pElement1;
     CompositeState comp2 = (CompositeState)pElement2;
 

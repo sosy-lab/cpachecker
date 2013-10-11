@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -77,12 +76,11 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   private PCCStrategy checkingStrategy;
 
 
-  public ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig,
-      LogManager logger, ShutdownNotifier pShutdownNotifier)
+  public ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig, LogManager logger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, logger, pShutdownNotifier, cpa);
+    checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, logger, cpa);
 
     this.logger = logger;
 
@@ -103,12 +101,11 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     System.gc();
   }
 
-  protected ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig,
-      LogManager logger, ShutdownNotifier pShutdownNotifier, ReachedSet pReachedSet)
+  protected ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig, LogManager logger, ReachedSet pReachedSet)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, logger, pShutdownNotifier, cpa);
+    checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, logger, cpa);
     this.logger = logger;
 
     if (pReachedSet == null || pReachedSet.hasWaitingState()) { throw new IllegalArgumentException(

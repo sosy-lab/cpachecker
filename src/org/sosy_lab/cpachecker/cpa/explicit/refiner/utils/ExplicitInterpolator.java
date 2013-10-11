@@ -40,7 +40,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
@@ -59,8 +58,6 @@ public class ExplicitInterpolator {
    * the configuration of the interpolator
    */
   private Configuration config = null;
-
-  private final ShutdownNotifier shutdownNotifier;
 
   /**
    * the transfer relation in use
@@ -92,9 +89,7 @@ public class ExplicitInterpolator {
   /**
    * This method acts as the constructor of the class.
    */
-  public ExplicitInterpolator(final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final MachineModel pMachineModel) throws CPAException {
-    shutdownNotifier = pShutdownNotifier;
+  public ExplicitInterpolator(final LogManager pLogger, final MachineModel pMachineModel) throws CPAException {
     try {
       config      = Configuration.builder().build();
       transfer    = new ExplicitTransferRelation(config, pLogger, pMachineModel);
@@ -142,7 +137,6 @@ public class ExplicitInterpolator {
     Set<Pair<String, Long>> interpolant = new HashSet<>();
     List<String> list = Lists.newArrayList(initialSuccessor.getTrackedVariableNames());
     for (String currentVariable : list) {
-      shutdownNotifier.shutdownIfNecessary();
       ExplicitState successor = initialSuccessor.clone();
 
       // remove the value of the current and all already-found-to-be-irrelevant variables from the successor

@@ -44,7 +44,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCChecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -92,7 +91,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
 
   public BDDCPARestrictionAlgorithm(Algorithm algorithm,
       ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, CFA cfa, String filename) throws InvalidConfigurationException, CPAException {
+      CFA cfa, String filename) throws InvalidConfigurationException, CPAException {
     this.algorithm = algorithm;
     this.logger = logger;
     config.inject(this);
@@ -106,7 +105,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
     if (checkerName.equals("CBMC")) {
       checker = new CBMCChecker(config, logger, cfa);
     } else if (checkerName.equals("CPACHECKER")) {
-      checker = new CounterexampleCPAChecker(config, logger, pShutdownNotifier, cfa, filename);
+      checker = new CounterexampleCPAChecker(config, logger, cfa, filename);
     } else {
       throw new AssertionError();
     }

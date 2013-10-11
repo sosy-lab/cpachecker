@@ -32,7 +32,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -52,13 +52,10 @@ public class ReachedSetStrategy extends AbstractStrategy {
   protected AbstractState[] reachedSet;
   protected Multimap<CFANode, AbstractState> statesPerLocation;
   protected PropertyCheckerCPA cpa;
-  protected final ShutdownNotifier shutdownNotifier;
 
-  public ReachedSetStrategy(Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
+  public ReachedSetStrategy(Configuration pConfig, LogManager pLogger, PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger);
     cpa= pCpa;
-    shutdownNotifier = pShutdownNotifier;
   }
 
 
@@ -98,7 +95,7 @@ public class ReachedSetStrategy extends AbstractStrategy {
     Collection<? extends AbstractState> successors;
     for (AbstractState state : reachedSet) {
 
-      shutdownNotifier.shutdownIfNecessary();
+      CPAchecker.stopIfNecessary();
       stats.countIterations++;
 
       try {
@@ -119,7 +116,7 @@ public class ReachedSetStrategy extends AbstractStrategy {
             stats.stopTimer.stop();
           }
         }
-      } catch (CPATransferException e) {
+      } catch (CPATransferException | InterruptedException e) {
         logger.logException(Level.FINE, e, "Computation of successors failed.");
         return false;
       } catch (CPAException e) {

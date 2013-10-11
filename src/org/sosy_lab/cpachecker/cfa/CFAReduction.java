@@ -37,7 +37,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -45,7 +44,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -66,9 +64,8 @@ public class CFAReduction {
 
   private final Configuration config;
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
 
-  public CFAReduction(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public CFAReduction(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
     if (config.getProperty("specification") == null) {
@@ -77,7 +74,6 @@ public class CFAReduction {
 
     this.config = config;
     this.logger = logger;
-    this.shutdownNotifier = pShutdownNotifier;
   }
 
 
@@ -136,16 +132,13 @@ public class CFAReduction {
                                            .clearOption("CompositeCPA.cpas")
                                            .build();
 
-      CPABuilder lBuilder = new CPABuilder(lConfig, logger, shutdownNotifier, lReachedSetFactory);
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger, lReachedSetFactory);
       ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs(cfa);
-      Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger, lConfig, shutdownNotifier);
+      Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger, lConfig);
       ReachedSet lReached = lReachedSetFactory.create();
       lReached.add(lCpas.getInitialState(cfa.getMainFunction()), lCpas.getInitialPrecision(cfa.getMainFunction()));
 
       lAlgorithm.run(lReached);
-
-      CPAs.closeCpaIfPossible(lCpas, logger);
-      CPAs.closeIfPossible(lAlgorithm, logger);
 
       return from(lReached)
                .filter(IS_TARGET_STATE)

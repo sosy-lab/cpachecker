@@ -195,11 +195,11 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     // create list of formulas on path
     final List<BooleanFormula> formulas;
     if (!pointerAnalysisWithUFs) {
-      formulas = getFormulasForPath(path, pPath.getFirst().getFirst());
+      formulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirst().getFirst());
     } else {
-      final List<BooleanFormula> blockFormulas = getFormulasForPath(path, pPath.getFirst().getFirst());
+      final List<BooleanFormula> blockFormulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirst().getFirst());
       final int last = blockFormulas.size() - 1;
-      final PathFormula lastPathFormula = AbstractStates.extractStateByType(path.get(last),
+      final PathFormula lastPathFormula = AbstractStates.extractStateByType(abstractionStatesTrace.get(last),
                                                                             PredicateAbstractState.class)
                                                         .getAbstractionFormula()
                                                         .getBlockFormula();
@@ -208,9 +208,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
                               .add(((PathFormulaWithUF) lastPathFormula).getFormulaWithConstraints())
                               .build();
     }
-    assert path.size() == formulas.size();
-
-    boolean refineUsingInterpolation = (extractor == null) || (heuristicsCount > 0);
+    assert abstractionStatesTrace.size() == formulas.size();
 
     // build the counterexample
     final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath, strategy.needsInterpolants());
@@ -314,7 +312,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
   }
 
-  private Pair<ARGPath, CounterexampleTraceInfo> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo counterexample) throws InterruptedException {
+  private Pair<ARGPath, CounterexampleTraceInfo> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo counterexample) {
     errorPathProcessing.start();
     try {
 

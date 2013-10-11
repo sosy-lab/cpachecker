@@ -176,9 +176,6 @@ public class CompoundState {
           lastInterval = interval;
           result.intervals.add(lastInterval);
         }
-      } else if (!currentInserted) {
-        lastInterval = interval;
-        result.intervals.add(lastInterval);
       }
     }
     if (!inserted) {
@@ -707,14 +704,8 @@ public class CompoundState {
     CompoundState result = applyOperationToAllAndUnite(ISCOperator.MULTIPLY_OPERATOR, pValue);
     if (result.isTop()) {
       result = new CompoundState();
-      if (pValue.signum() >= 0) {
-        for (int i = -3; i <= 3; ++i) {
-          result.intervals.add(SimpleInterval.singleton(pValue.multiply(BigInteger.valueOf(i))));
-        }
-      } else {
-        for (int i = 3; i >= -3; --i) {
-          result.intervals.add(SimpleInterval.singleton(pValue.multiply(BigInteger.valueOf(i))));
-        }
+      for (int i = -3; i <= 3; ++i) {
+        result.intervals.add(SimpleInterval.singleton(pValue.multiply(BigInteger.valueOf(i))));
       }
       result = result.extendToNegativeInfinity().extendToPositiveInfinity();
     }

@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.Model;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
@@ -187,8 +186,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   public BMCAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa,
                       Configuration config, LogManager logger,
-                      ReachedSetFactory pReachedSetFactory,
-                      ShutdownNotifier pShutdownNotifier, CFA pCfa)
+                      ReachedSetFactory pReachedSetFactory, CFA pCfa)
                       throws InvalidConfigurationException, CPAException {
     config.inject(this);
     this.algorithm = algorithm;
@@ -198,7 +196,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     cfa = pCfa;
 
     if (induction && useInvariantsForInduction) {
-      invariantGenerator = new CPAInvariantGenerator(config, logger, reachedSetFactory, pShutdownNotifier, cfa);
+      invariantGenerator = new CPAInvariantGenerator(config, logger, reachedSetFactory, cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator(reachedSetFactory);
     }
@@ -271,9 +269,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   /**
    * This method tries to find a feasible path to (one of) the target state(s).
    * It does so by asking the solver for a satisfying assignment.
-   * @throws InterruptedException
    */
-  private void createErrorPath(final ReachedSet pReachedSet, final ProverEnvironment prover) throws CPATransferException, InterruptedException {
+  private void createErrorPath(final ReachedSet pReachedSet, final ProverEnvironment prover) throws CPATransferException {
     if (!(cpa instanceof ARGCPA)) {
       logger.log(Level.INFO, "Error found, but error path cannot be created without ARGCPA");
       return;
@@ -350,7 +347,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         } else {
           counterexample = CounterexampleInfo.feasible(targetPath, info.getModel());
 
-          counterexample.addFurtherInformation(fmgr.dumpFormula(bfmgr.and(info.getCounterExampleFormulas())),
+          counterexample.addFurtherInformation(fmgr.dumpFormula(bfmgr.conjunction(info.getCounterExampleFormulas())),
               dumpCounterexampleFormula);
         }
 
@@ -367,7 +364,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private boolean checkTargetStates(final ReachedSet pReachedSet, final ProverEnvironment prover) throws InterruptedException {
+  private boolean checkTargetStates(final ReachedSet pReachedSet, final ProverEnvironment prover) {
     List<AbstractState> targetStates = from(pReachedSet)
                                             .filter(IS_TARGET_STATE)
                                             .toList();
@@ -396,7 +393,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private boolean checkBoundingAssertions(final ReachedSet pReachedSet, final ProverEnvironment prover) throws InterruptedException {
+  private boolean checkBoundingAssertions(final ReachedSet pReachedSet, final ProverEnvironment prover) {
     FluentIterable<AbstractState> stopStates = from(pReachedSet)
                                                     .filter(IS_STOP_STATE);
 

@@ -39,7 +39,7 @@ public class ABMMergeOperator implements MergeOperator {
   }
 
   @Override
-  public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision) throws CPAException, InterruptedException {
+  public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision) throws CPAException {
       return trans.attachAdditionalInfoToCallNode(wrappedMergeOp.merge(pState1, pState2, pPrecision));
   }
 

@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -55,9 +56,9 @@ public class CStatementTransformer implements CStatementVisitor<CStatement, Unre
   @Override
   public CExpressionAssignmentStatement visit(final CExpressionAssignmentStatement s)
   throws UnrecognizedCCodeException {
-    final CExpression oldLhs = s.getLeftHandSide();
+    final CLeftHandSide oldLhs = s.getLeftHandSide();
     final CExpression oldRhs = s.getRightHandSide();
-    final CExpression lhs = (CExpression) oldLhs.accept(expressionVisitor);
+    final CLeftHandSide lhs = (CLeftHandSide) oldLhs.accept(expressionVisitor);
     final CExpression rhs = (CExpression) oldRhs.accept(expressionVisitor);
 
     return lhs == oldLhs && rhs == oldRhs ? s :
@@ -96,9 +97,9 @@ public class CStatementTransformer implements CStatementVisitor<CStatement, Unre
   @Override
   public CFunctionCallAssignmentStatement visit(final CFunctionCallAssignmentStatement s)
   throws UnrecognizedCCodeException {
-    final CExpression oldLhs = s.getLeftHandSide();
+    final CLeftHandSide oldLhs = s.getLeftHandSide();
     final CFunctionCallExpression oldFunctionCall = s.getRightHandSide();
-    final CExpression lhs = (CExpression) oldLhs.accept(expressionVisitor);
+    final CLeftHandSide lhs = (CLeftHandSide) oldLhs.accept(expressionVisitor);
     final CFunctionCallExpression functionCall = visitCFunctionCallExpression(oldFunctionCall);
 
     return lhs == oldLhs && functionCall == oldFunctionCall ? s :

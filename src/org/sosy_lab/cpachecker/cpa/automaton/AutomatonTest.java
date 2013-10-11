@@ -37,7 +37,6 @@ import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -303,8 +302,7 @@ public class AutomatonTest {
                                         .build();
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
     LogManager logger = new BasicLogManager(config, stringLogHandler);
-    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
-    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownNotifier);
+    CPAchecker cpaChecker = new CPAchecker(config, logger);
     CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
     return new TestResults(stringLogHandler.getLog(), results);
   }

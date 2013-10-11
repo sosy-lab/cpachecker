@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -155,7 +156,6 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       case MINUS:
       case PLUS:
       case NOT:
-      case STAR:
       case TILDE:
         return null;
       case SIZEOF:
@@ -163,6 +163,11 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       default:
         throw new UnrecognizedCCodeException("Unrecognized unary operator", cfaEdge, e);
       }
+    }
+
+    @Override
+    public PointerTargetPattern visit(final CPointerExpression e) throws UnrecognizedCCodeException {
+      return null;
     }
   }
 
@@ -247,29 +252,32 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       throw new UnrecognizedCCodeException("Illegal unary operator", cfaEdge, e);
     case PLUS:
       return operand.accept(this);
-    case STAR:
-      final CType type = PointerTargetSet.simplifyType(operand.getExpressionType());
-      final PointerTargetPattern result = e.getOperand().accept(pointerVisitor);
-      if (type instanceof CPointerType) {
-        if (result != null) {
-          result.clear();
-          return result;
-        } else {
-          return new PointerTargetPattern();
-        }
-      } else if (type instanceof CArrayType) {
-        if (result != null) {
-          result.shift(type, 0);
-          return result;
-        } else {
-          return new PointerTargetPattern();
-        }
-      } else {
-        throw new UnrecognizedCCodeException("Dereferencing non-pointer expression", cfaEdge, e);
-      }
-
     default:
       throw new UnrecognizedCCodeException("Unhandled unary operator", cfaEdge, e);
+    }
+  }
+
+  @Override
+  public PointerTargetPattern visit(final CPointerExpression e) throws UnrecognizedCCodeException {
+    final CExpression operand = e.getOperand();
+    final CType type = PointerTargetSet.simplifyType(operand.getExpressionType());
+    final PointerTargetPattern result = e.getOperand().accept(pointerVisitor);
+    if (type instanceof CPointerType) {
+      if (result != null) {
+        result.clear();
+        return result;
+      } else {
+        return new PointerTargetPattern();
+      }
+    } else if (type instanceof CArrayType) {
+      if (result != null) {
+        result.shift(type, 0);
+        return result;
+      } else {
+        return new PointerTargetPattern();
+      }
+    } else {
+      throw new UnrecognizedCCodeException("Dereferencing non-pointer expression", cfaEdge, e);
     }
   }
 

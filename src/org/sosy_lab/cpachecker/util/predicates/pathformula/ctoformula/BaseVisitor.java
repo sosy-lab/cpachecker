@@ -27,11 +27,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
@@ -63,6 +66,11 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
 
   @Override
   public Variable visit(final CCastExpression e) throws UnrecognizedCCodeException {
+    return e.getOperand().accept(this);
+  }
+
+  @Override
+  public Variable visit(final CComplexCastExpression e) throws UnrecognizedCCodeException {
     return e.getOperand().accept(this);
   }
 
@@ -107,6 +115,11 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
   }
 
   @Override
+  public Variable visit(CImaginaryLiteralExpression e) throws UnrecognizedCCodeException {
+    throw new UnrecognizedCCodeException("Imaginary literal in place of lvalue", cfaEdge, e);
+  }
+
+  @Override
   public Variable visit(final CTypeIdExpression e) throws UnrecognizedCCodeException {
     throw new UnrecognizedCCodeException("TypeId in place of lvalue", cfaEdge, e);
   }
@@ -129,11 +142,14 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
       throw new UnrecognizedCCodeException("Arithmetic in place of lvalue", cfaEdge, e);
     case SIZEOF:
       throw new UnrecognizedCCodeException("Constant in place of lvalue", cfaEdge, e);
-    case STAR:
-      return null;
     default:
       throw new UnrecognizedCCodeException("Unrecognized code in place of lvalue", cfaEdge, e);
     }
+  }
+
+  @Override
+  public Variable visit(final CPointerExpression e) throws UnrecognizedCCodeException {
+    return null;
   }
 
   public Variable getLastBase() {

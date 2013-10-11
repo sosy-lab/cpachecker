@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
@@ -38,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
@@ -235,10 +237,9 @@ public class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, 
       return new CFieldReference(e.getFileLocation(),
                                  expressionType,
                                  e.getFieldName(),
-                                 new CUnaryExpression(e.getFileLocation(),
-                                                      ownerType,
-                                                      fieldOwner,
-                                                      UnaryOperator.STAR),
+                                 new CPointerExpression(e.getFileLocation(),
+                                                        ownerType,
+                                                        fieldOwner),
                                  false);
     } else {
       return fieldOwner == oldFieldOwner && expressionType == oldExpressionType ? e :
@@ -302,32 +303,22 @@ public class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, 
   }
 
   @Override
-  public CExpression visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
-    // Detect expression of the form
-    // "* &v", "* ((t *) &v)", and "* f" where f is a function pointer
-    if (e.getOperator() == UnaryOperator.STAR) {
-      if (transformStarAmper && e.getOperand() instanceof CUnaryExpression &&
-          ((CUnaryExpression) e.getOperand()).getOperator() == UnaryOperator.AMPER) {
-        // "* &v" -> "v"
-        return (CExpression) ((CUnaryExpression) e.getOperand()).getOperand().accept(this);
-      } /* else if (e.getOperand() instanceof CCastExpression &&
-                 ((CCastExpression) e.getOperand()).getOperand() instanceof CUnaryExpression &&
-                 ((CUnaryExpression) ((CCastExpression) e.getOperand()).getOperand()).getOperator() ==
-                   UnaryOperator.AMPER) {
-        // "* ((t *)) &v)" -> "(t) v"
-        return new CCastExpression(e.getFileLocation(),
-                                   e.getExpressionType(),
-                                   (CExpression)
-                                   ((CUnaryExpression) ((CCastExpression) e.getOperand()).getOperand()).getOperand()
-                                                                                                       .accept(this),
-                                   ((CCastExpression) e.getOperand()).getType());
-      } */ else if (transformFunctionPointers && e.getOperand().getExpressionType() instanceof CPointerType &&
-                    ((CPointerType)e.getOperand().getExpressionType()).getType() instanceof CFunctionType) {
-        // "* f" -> "f"
-        return (CExpression) e.getOperand().accept(this);
-      }
-    }
+  public CComplexCastExpression visit(final CComplexCastExpression e) throws UnrecognizedCCodeException {
+    final CExpression oldOperand = e.getOperand();
+    final CExpression operand = (CExpression) oldOperand.accept(this);
+    final CType oldExpressionType = e.getExpressionType();
+    final CType expressionType = oldExpressionType.accept(typeVisitor);
 
+    return operand == oldOperand && expressionType == oldExpressionType ? e :
+           new CComplexCastExpression(e.getFileLocation(),
+                                      expressionType,
+                                      operand,
+                                      e.getType(),
+                                      e.isRealCast());
+  }
+
+  @Override
+  public CExpression visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
     final CExpression oldOperand = e.getOperand();
     final CExpression operand = (CExpression) oldOperand.accept(this);
     final CType oldExpressionType = e.getExpressionType();
@@ -346,8 +337,6 @@ public class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, 
       break;
     case SIZEOF:
       break;
-    case STAR:
-      break;
     case TILDE:
       break;
     }
@@ -357,6 +346,42 @@ public class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, 
                                 expressionType,
                                 operand,
                                 e.getOperator());
+  }
+
+  @Override
+  public CExpression visit(final CPointerExpression e) throws UnrecognizedCCodeException {
+    // Detect expression of the form
+    // "* &v", "* ((t *) &v)", and "* f" where f is a function pointer
+    if (transformStarAmper && e.getOperand() instanceof CUnaryExpression &&
+        ((CUnaryExpression) e.getOperand()).getOperator() == UnaryOperator.AMPER) {
+      // "* &v" -> "v"
+      return (CExpression) ((CUnaryExpression) e.getOperand()).getOperand().accept(this);
+    } /* else if (e.getOperand() instanceof CCastExpression &&
+               ((CCastExpression) e.getOperand()).getOperand() instanceof CUnaryExpression &&
+               ((CUnaryExpression) ((CCastExpression) e.getOperand()).getOperand()).getOperator() ==
+                 UnaryOperator.AMPER) {
+      // "* ((t *)) &v)" -> "(t) v"
+      return new CCastExpression(e.getFileLocation(),
+                                 e.getExpressionType(),
+                                 (CExpression)
+                                 ((CUnaryExpression) ((CCastExpression) e.getOperand()).getOperand()).getOperand()
+                                                                                                     .accept(this),
+                                 ((CCastExpression) e.getOperand()).getType());
+    } */ else if (transformFunctionPointers && e.getOperand().getExpressionType() instanceof CPointerType &&
+                  ((CPointerType)e.getOperand().getExpressionType()).getType() instanceof CFunctionType) {
+      // "* f" -> "f"
+      return (CExpression) e.getOperand().accept(this);
+    }
+
+    final CExpression oldOperand = e.getOperand();
+    final CExpression operand = (CExpression) oldOperand.accept(this);
+    final CType oldExpressionType = e.getExpressionType();
+    final CType expressionType = oldExpressionType.accept(typeVisitor);
+
+    return operand == oldOperand && expressionType == oldExpressionType ? e :
+      new CPointerExpression(e.getFileLocation(),
+                             expressionType,
+                             operand);
   }
 
   public void setCurrentEdge(final CFAEdge e) {

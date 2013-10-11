@@ -61,7 +61,7 @@ public class AssumptionStorageDomain implements AbstractDomain {
     }
 
     return new AssumptionStorageState(
-        formulaManager,
+        bfmgr,
         bfmgr.and(storageElement1.getAssumption(),
                                storageElement2.getAssumption()),
         newStopFormula);
