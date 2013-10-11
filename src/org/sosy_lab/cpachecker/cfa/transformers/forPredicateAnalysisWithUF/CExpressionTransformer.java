@@ -239,9 +239,9 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
       break;
     }
     return new CTypeIdExpression(e.getFileLocation(), // This is for TYPEID case, to prevent error message
-        e.getExpressionType(),
-        TypeIdOperator.TYPEOF,
-        e.getType());
+                                 e.getExpressionType(),
+                                 TypeIdOperator.TYPEOF,
+                                 e.getType());
   }
 
   @Override
@@ -278,7 +278,7 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
                                                                                                        .accept(this),
                                    ((CCastExpression) e.getOperand()).getType());
       } */ else if (e.getOperand().getExpressionType() instanceof CPointerType &&
-                 ((CPointerType)e.getOperand().getExpressionType()).getType() instanceof CFunctionType) {
+                    ((CPointerType)e.getOperand().getExpressionType()).getType() instanceof CFunctionType) {
         // "* f" -> "f"
         return (CExpression) e.getOperand().accept(this);
       }
