@@ -67,17 +67,22 @@ class Mathsat5Model {
     }
   }
 
-  private static Variable toVariable(long env, long pVariableId) {
-    if (!msat_term_is_constant(env, pVariableId)) {
-      throw new IllegalArgumentException("Given mathsat id doesn't correspond to a variable! (" + msat_term_repr(pVariableId) + ")");
+  private static Constant toConstant(final long env, final long variableId) {
+    if (!msat_term_is_constant(env, variableId)) {
+      throw new IllegalArgumentException("Given mathsat id doesn't correspond to a constant! (" +
+                                         msat_term_repr(variableId) + ")");
     }
 
-    long lDeclarationId = msat_term_get_decl(pVariableId);
-    String lName = msat_decl_get_name(lDeclarationId);
-    TermType lType = toMathsatType(env, msat_decl_get_return_type(lDeclarationId));
+    final long declarationId = msat_term_get_decl(variableId);
+    final String name = msat_decl_get_name(declarationId);
+    final TermType type = toMathsatType(env, msat_decl_get_return_type(declarationId));
 
-    Pair<String, Integer> lSplitName = FormulaManagerView.parseName(lName);
-    return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
+    final Pair<String, Integer> nameIndex = FormulaManagerView.parseName(name);
+    if (nameIndex.getSecond() != null) {
+      return new Variable(nameIndex.getFirst(), nameIndex.getSecond(), type);
+    } else {
+      return new Constant(nameIndex.getFirst(), type);
+    }
   }
 
 
@@ -121,7 +126,7 @@ class Mathsat5Model {
     if (!msat_term_is_constant(env, pTermId)) {
       return toFunction(env, pTermId);
     } else {
-      return toVariable(env, pTermId);
+      return toConstant(env, pTermId);
     }
   }
 

@@ -751,13 +751,15 @@ public class FormulaManagerView {
   // cache for uninstantiating terms (see uninstantiate() below)
   private final Map<Formula, Formula> uninstantiateCache = new HashMap<>();
 
-  public static Pair<String, Integer> parseName(String var) {
-    String[] s = var.split(INDEX_SEPARATOR);
-    if (s.length != 2) {
-      throw new IllegalArgumentException("Not an instantiated variable: " + var);
+  public static Pair<String, Integer> parseName(final String name) {
+    String[] s = name.split(INDEX_SEPARATOR);
+    if (s.length == 2) {
+      return Pair.of(s[0], Integer.parseInt(s[1]));
+    } else if (s.length == 1) {
+      return Pair.of(s[0], null);
+    } else {
+      throw new IllegalArgumentException("Not an instantiated variable nor constant: " + name);
     }
-
-    return Pair.of(s[0], Integer.parseInt(s[1]));
   }
 
   private <T extends Formula> T myUninstantiate(T f) {
