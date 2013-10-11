@@ -84,6 +84,8 @@ import org.eclipse.cdt.core.dom.ast.c.ICASTDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTFieldDesignator;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTIdExpression;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -557,10 +559,12 @@ class ASTConverter {
   private CAstNode convert(IASTCastExpression e) {
     final CExpression operand;
     if (!ignoreAllocCasts ||
-        !(e.getOperand() instanceof CFunctionCallExpression) ||
-        !(((CFunctionCallExpression) e.getOperand()).getFunctionNameExpression() instanceof CIdExpression) ||
+        !(e.getOperand() instanceof CASTFunctionCallExpression) ||
+        !(((CASTFunctionCallExpression) e.getOperand()).getFunctionNameExpression() instanceof CASTIdExpression) ||
         !memoryAllocationFunctionPattern.matcher(
-          ((CIdExpression) ((CFunctionCallExpression) e.getOperand()).getFunctionNameExpression()).getName())
+          ((CASTIdExpression) ((CASTFunctionCallExpression) e.getOperand()).getFunctionNameExpression())
+                                                                           .getName()
+                                                                           .toString())
             .matches()) {
       operand = convertExpressionWithoutSideEffects(e.getOperand());
     } else {
