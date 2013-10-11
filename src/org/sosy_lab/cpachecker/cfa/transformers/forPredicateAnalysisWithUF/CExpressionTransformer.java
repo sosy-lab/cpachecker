@@ -204,8 +204,8 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
                                  e.getExpressionType(),
                                  e.getFieldName(),
                                  new CUnaryExpression(e.getFileLocation(),
-                                                      ((CPointerType) e.getFieldOwner().getExpressionType()).getType(),
-                                                      e.getFieldOwner(),
+                                                      ((CPointerType) fieldOwner.getExpressionType()).getType(),
+                                                      fieldOwner,
                                                       UnaryOperator.STAR),
                                  false);
     } else {
