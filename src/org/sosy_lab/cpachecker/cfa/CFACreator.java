@@ -65,7 +65,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
 import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplifier;
-import org.sosy_lab.cpachecker.cfa.transformers.for_uif_analysis.CFATransformer;
+import org.sosy_lab.cpachecker.cfa.transformers.forPredicateAnalysisWithUF.CFATransformer;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;

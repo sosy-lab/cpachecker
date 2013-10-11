@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.transformers.for_uif_analysis;
+package org.sosy_lab.cpachecker.cfa.transformers.forPredicateAnalysisWithUF;
 
 import java.util.ArrayList;
 import java.util.List;
