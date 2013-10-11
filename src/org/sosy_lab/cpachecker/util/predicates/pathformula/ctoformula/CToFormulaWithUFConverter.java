@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -51,8 +52,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -485,8 +488,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  private void updateSSA(final Set<CType> types,
-                        final SSAMapBuilder ssa) {
+  private void updateSSA(final Set<CType> types, final SSAMapBuilder ssa) {
     for (final CType type : types) {
       final String ufName = getUFName(type);
       final int newIndex = getIndex(ufName, type, ssa) + 1;
@@ -497,7 +499,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   public static CType implicitCastToPointer(CType type) {
     type = PointerTargetSet.simplifyType(type);
     if (type instanceof CArrayType) {
-      return new CPointerType(false, false,
+      return new CPointerType(false,
+                              false,
                               PointerTargetSet.simplifyType(((CArrayType) type).getType()));
     } else if (type instanceof CFunctionType) {
       return new CPointerType(false, false, type);
@@ -577,10 +580,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final CType lvalueElementType = PointerTargetSet.simplifyType(lvalueArrayType.getType());
       if (!(rvalueType instanceof CArrayType) ||
           PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType()).equals(lvalueElementType)) {
-        assert lvalueArrayType.getLength() != null : "CFA should be transformed to elimintate unsized arrays";
-        Integer length = lvalueArrayType.getLength().accept(pts.getEvaluatingVisitor());
+        Integer length = lvalueArrayType.getLength() != null ?
+                           lvalueArrayType.getLength().accept(pts.getEvaluatingVisitor()) : null;
         if (length == null || length > PointerTargetSet.DEFAULT_ARRAY_LENGTH) {
-          length = PointerTargetSet.DEFAULT_ARRAY_LENGTH;
+          if (rvalue instanceof List && ((List<?>) rvalue).size() < PointerTargetSet.DEFAULT_ARRAY_LENGTH) {
+            length = ((List<?>) rvalue).size();
+          } else {
+            length = PointerTargetSet.DEFAULT_ARRAY_LENGTH;
+          }
         }
         if (!(rvalue instanceof List) || ((List<?>) rvalue).size() >= length) {
           final Iterator<?> rvalueIterator = rvalue instanceof List ? ((List<?>) rvalue).iterator() : null;
@@ -915,7 +922,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     if (declarationEdge.getDeclaration() instanceof CTypeDeclaration &&
         ((CTypeDeclaration) declarationEdge.getDeclaration()).getType() instanceof CCompositeType) {
       statementVisitor.declareCompositeType(
-          (CCompositeType) ((CTypeDeclaration) declarationEdge.getDeclaration()).getType());
+        (CCompositeType) ((CTypeDeclaration) declarationEdge.getDeclaration()).getType());
     }
 
     if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
@@ -924,15 +931,47 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
     }
 
-    final CVariableDeclaration declaration = (CVariableDeclaration) declarationEdge.getDeclaration();
+    CVariableDeclaration declaration = (CVariableDeclaration) declarationEdge.getDeclaration();
 
     // makeFreshIndex(variableName, declaration.getType(), ssa); // TODO: Make sure about
                                                                  // correctness of SSA indices without this trick!
 
     // if there is an initializer associated to this variable,
     // take it into account
-    final CType declarationType = PointerTargetSet.simplifyType(declaration.getType());
+    CType declarationType = PointerTargetSet.simplifyType(declaration.getType());
     final CInitializer initializer = declaration.getInitializer();
+    // Fixing unsized array declarations
+    if (declarationType instanceof CArrayType && ((CArrayType) declarationType).getLength() == null) {
+      final Integer actualLength;
+      if (initializer instanceof  CInitializerList) {
+        actualLength = ((CInitializerList) initializer).getInitializers().size();
+      } else if (initializer instanceof CInitializerExpression &&
+                 ((CInitializerExpression) initializer).getExpression() instanceof CStringLiteralExpression) {
+        actualLength = ((CStringLiteralExpression) ((CInitializerExpression) initializer).getExpression())
+                         .getContentString()
+                         .length() + 1;
+      } else {
+        actualLength = null;
+      }
+
+      if (actualLength != null) {
+        declarationType = new CArrayType(declarationType.isConst(),
+                                         declarationType.isVolatile(),
+                                         ((CArrayType) declarationType).getType(),
+                                         new CIntegerLiteralExpression(declaration.getFileLocation(),
+                                                                       machineModel.getPointerDiffType(),
+                                                                       BigInteger.valueOf(actualLength)));
+
+        declaration = new CVariableDeclaration(declaration.getFileLocation(),
+                                               declaration.isGlobal(),
+                                               declaration.getCStorageClass(),
+                                               declarationType,
+                                               declaration.getName(),
+                                               declaration.getOrigName(),
+                                               declaration.getQualifiedName(),
+                                               initializer);
+      }
+    }
     if (initializer instanceof CInitializerExpression || initializer == null) {
       final CExpressionAssignmentStatement assignment = new CExpressionAssignmentStatement(
         declaration.getFileLocation(),
@@ -1048,7 +1087,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   private BooleanFormula createFormulaForEdge(final CFAEdge edge,
-                                              final StatementToFormulaWithUFVisitor statementVisitor) throws CPATransferException {
+                                              final StatementToFormulaWithUFVisitor statementVisitor)
+  throws CPATransferException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       final CStatementEdge statementEdge = (CStatementEdge) edge;

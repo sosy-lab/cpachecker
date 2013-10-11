@@ -255,7 +255,7 @@ public class PointerTargetSet implements Serializable {
   public static class CSizeofVisitor extends BaseSizeofVisitor
                                      implements CTypeVisitor<Integer, IllegalArgumentException> {
 
-    public CSizeofVisitor(final CEvaluatingVisitor evaluatingVisitor) {
+    public CSizeofVisitor(final EvaluatingCExpressionVisitor evaluatingVisitor) {
       super(evaluatingVisitor.getMachineModel());
       this.evaluatingVisitor = evaluatingVisitor;
     }
@@ -264,8 +264,6 @@ public class PointerTargetSet implements Serializable {
     public Integer visit(final CArrayType t) throws IllegalArgumentException {
 
       final CExpression arrayLength = t.getLength();
-      assert arrayLength != null : "CFA should be transformed to eliminate unsized arrays"; // TODO: weaken the req.
-
       Integer length = null;
 
       if (arrayLength != null) {
@@ -280,7 +278,7 @@ public class PointerTargetSet implements Serializable {
       return length * sizeOfType;
     }
 
-    private final CEvaluatingVisitor evaluatingVisitor;
+    private final EvaluatingCExpressionVisitor evaluatingVisitor;
   }
 
   /**
@@ -342,14 +340,7 @@ public class PointerTargetSet implements Serializable {
    * @return The corresponding simplfied canonical type
    */
   public static CType simplifyType(final @Nonnull CType type) {
-    CType canonicalType = canonicalTypeCache.get(type);
-    if (canonicalType != null) {
-      return canonicalType;
-    } else {
-      canonicalType = type.getCanonicalType();
-      canonicalTypeCache.put(type, canonicalType);
-      return canonicalType;
-    }
+    return type.accept(typeVisitor);
   }
 
   /**
@@ -602,8 +593,7 @@ public class PointerTargetSet implements Serializable {
       assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
-        assert arrayType.getLength() != null : "CFA should be transformed to eliminate unsized arrays";
-        Integer length = arrayType.getLength().accept(evaluatingVisitor);
+        Integer length = arrayType.getLength() != null ? arrayType.getLength().accept(evaluatingVisitor) : null;
         if (length == null || length > DEFAULT_ARRAY_LENGTH) {
           length = DEFAULT_ARRAY_LENGTH;
         }
@@ -688,8 +678,7 @@ public class PointerTargetSet implements Serializable {
       assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
-        assert arrayType.getLength() != null : "CFA should be transformed to eliminate unsized arrays";
-        Integer length = arrayType.getLength().accept(evaluatingVisitor);
+        Integer length = arrayType.getLength() != null ? arrayType.getLength().accept(evaluatingVisitor) : null;
         if (length == null || length > DEFAULT_ARRAY_LENGTH) {
           length = DEFAULT_ARRAY_LENGTH;
         }
@@ -858,7 +847,7 @@ public class PointerTargetSet implements Serializable {
     }
   }
 
-  public CEvaluatingVisitor getEvaluatingVisitor() {
+  public EvaluatingCExpressionVisitor getEvaluatingVisitor() {
     return evaluatingVisitor;
   }
 
@@ -910,7 +899,7 @@ public class PointerTargetSet implements Serializable {
   public static final PointerTargetSet emptyPointerTargetSet(final MachineModel machineModel,
                                                               final BooleanFormula truthFormula,
                                                               final FormulaManagerView formulaManager) {
-    final CEvaluatingVisitor evaluatingVisitor = new CEvaluatingVisitor(machineModel);
+    final EvaluatingCExpressionVisitor evaluatingVisitor = new EvaluatingCExpressionVisitor(machineModel);
     return new PointerTargetSet(evaluatingVisitor,
                                 new CSizeofVisitor(evaluatingVisitor),
                                 PathCopyingPersistentTreeMap.<String, CType>of(),
@@ -1360,7 +1349,7 @@ public class PointerTargetSet implements Serializable {
     }
   }
 
-  private PointerTargetSet(final CEvaluatingVisitor evaluatingVisitor,
+  private PointerTargetSet(final EvaluatingCExpressionVisitor evaluatingVisitor,
                            final CSizeofVisitor sizeofVisitor,
                            final PersistentSortedMap<String, CType> bases,
                            final String lastBase,
@@ -1399,7 +1388,7 @@ public class PointerTargetSet implements Serializable {
 
   private static final Joiner joiner = Joiner.on(" ");
 
-  protected final CEvaluatingVisitor evaluatingVisitor;
+  protected final EvaluatingCExpressionVisitor evaluatingVisitor;
   protected final CSizeofVisitor sizeofVisitor;
 
   protected final FormulaManagerView formulaManager;
@@ -1413,6 +1402,8 @@ public class PointerTargetSet implements Serializable {
    */
   private static final Multiset<CCompositeType> sizes = HashMultiset.create();
   private static final Map<CCompositeType, Multiset<String>> offsets = new HashMap<>();
+
+  private static final CachingCaninizingCTypeVisitor typeVisitor = new CachingCaninizingCTypeVisitor(true, true);
 
   // The following fields are modified in the derived class only
 
@@ -1435,14 +1426,6 @@ public class PointerTargetSet implements Serializable {
   public static final CType VOID =
     new CSimpleType(false, false, CBasicType.VOID, false, false, false, false, false, false, false);
   public static final CType POINTER_TO_VOID = new CPointerType(false, false, VOID);
-
-  private static final Map<CType, CType> canonicalTypeCache = new HashMap<>();
-
-  static {
-    canonicalTypeCache.put(CHAR, CHAR);
-    canonicalTypeCache.put(VOID, VOID);
-    canonicalTypeCache.put(POINTER_TO_VOID, POINTER_TO_VOID);
-  }
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";

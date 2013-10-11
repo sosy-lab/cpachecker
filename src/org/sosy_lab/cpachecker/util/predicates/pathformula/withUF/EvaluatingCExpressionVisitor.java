@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
 @SuppressWarnings("unused")
-class CEvaluatingVisitor extends DefaultCExpressionVisitor<Integer, IllegalArgumentException> {
+class EvaluatingCExpressionVisitor extends DefaultCExpressionVisitor<Integer, IllegalArgumentException> {
 
   @Override
   protected Integer visitDefault(final CExpression e) {
@@ -224,7 +224,7 @@ class CEvaluatingVisitor extends DefaultCExpressionVisitor<Integer, IllegalArgum
     return machineModel;
   }
 
-  public CEvaluatingVisitor(MachineModel model) {
+  public EvaluatingCExpressionVisitor(MachineModel model) {
     this.machineModel = model;
   }
 

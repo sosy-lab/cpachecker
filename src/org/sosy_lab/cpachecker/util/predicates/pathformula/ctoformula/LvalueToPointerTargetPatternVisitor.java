@@ -212,8 +212,10 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   }
 
   @Override
-  public PointerTargetPattern visit(final CFieldReference e) throws UnrecognizedCCodeException {
-    assert !e.isPointerDereference() : "CFA should be transformed to eliminate ->s";
+  public PointerTargetPattern visit(CFieldReference e) throws UnrecognizedCCodeException {
+
+    e = ExpressionToFormulaWithUFVisitor.eliminateArrow(e, cfaEdge);
+
     final CExpression ownerExpression = e.getFieldOwner();
     final PointerTargetPattern result = ownerExpression.accept(this);
     if (result != null) {

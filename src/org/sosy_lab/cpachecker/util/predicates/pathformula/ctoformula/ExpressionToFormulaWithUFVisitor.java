@@ -88,9 +88,31 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
            conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
   }
 
+  static CFieldReference eliminateArrow(final CFieldReference e, final CFAEdge edge)
+  throws UnrecognizedCCodeException {
+    if (e.isPointerDereference()) {
+      final CType fieldOwnerType = PointerTargetSet.simplifyType(e.getFieldOwner().getExpressionType());
+      if (fieldOwnerType instanceof CPointerType) {
+        return new CFieldReference(e.getFileLocation(),
+                                   e.getExpressionType(),
+                                   e.getFieldName(),
+                                   new CPointerExpression(e.getFieldOwner().getFileLocation(),
+                                                          ((CPointerType) fieldOwnerType).getType(),
+                                                          e.getFieldOwner()),
+                                   false);
+      } else {
+        throw new UnrecognizedCCodeException("Can't dereference a non-pointer in the field reference", edge, e);
+      }
+    } else {
+      return e;
+    }
+  }
+
   @Override
-  public Formula visit(final CFieldReference e) throws UnrecognizedCCodeException {
-    assert !e.isPointerDereference() : "CFA should be transformed to eliminate ->s";
+  public Formula visit(CFieldReference e) throws UnrecognizedCCodeException {
+
+    e = eliminateArrow(e, edge);
+
     final Variable variable = e.accept(baseVisitor);
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     if (variable != null) {
@@ -270,8 +292,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
           }
         } else {
           final Variable oldBaseVariable = baseVisitor.getLastBase();
-          final Variable newBaseVariable = oldBaseVariable.withType(
-                                             PointerTargetSet.getBaseType(oldBaseVariable.getType()));
+          final Variable newBaseVariable = oldBaseVariable.withType(PointerTargetSet.getBaseType(oldBaseVariable.getType()));
           final Formula baseAddress = conv.makeConstant(newBaseVariable, ssa, pts);
           conv.addSharingConstraints(edge,
                                      baseAddress,

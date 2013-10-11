@@ -125,36 +125,6 @@ public class CFACreator {
       description="combine sequences of simple edges into a single edge")
   private boolean useMultiEdges = false;
 
-  @Option(name="cfa.ignoreConst",
-          description="remove const specifier from the all types in the CFA")
-  private boolean ignoreConst = false;
-
-  @Option(name="cfa.ignoreVolatile",
-          description="remove volatile specifier from the all types in the CFA")
-  private boolean ignoreVolatile = false;
-
-  @Option(name="cfa.transformUnsizedArrays",
-          description="convert unsized arrays either to pointers or to sized arrays (when initialized)")
-  private boolean transformUnsizedArrays = false;
-
-  @Option(name="cfa.transformPointerArithmetic",
-          description="convert pointer arithmetic into array subscripts (e.g. *(p + 1) into p[1]")
-  private boolean transformPointerArithmetic = false;
-
-  @Option(name="cfa.transformArrows",
-          description="convert field references through pointers e.g. a->b into *(a).b. This DOES NOT imply " +
-                      "any simplifications of pointer expressions (to contain at maximum one dereference, " +
-                      "for instance). Use cfa.simplifyPointerExpressions if simplification is needed.")
-  private boolean transformArrows = false;
-
-  @Option(name="cfa.transformStarAmper",
-          description="convert * &s into just s")
-  private boolean transformStarAmper = false;
-
-  @Option(name="cfa.transformFunctionPointers",
-          description="convert *f and &f into just f for function pointers")
-  private boolean transformFunctionPointers = false;
-
   @Option(name="cfa.removeIrrelevantForSpecification",
           description="remove paths from CFA that cannot lead to a specification violation")
   private boolean removeIrrelevantForSpecification = false;
@@ -425,25 +395,6 @@ public class CFACreator {
 
       if (useMultiEdges) {
         MultiEdgeCreator.createMultiEdges(cfa);
-      }
-
-      if (transformUnsizedArrays ||
-          ignoreConst ||
-          ignoreVolatile ||
-          transformPointerArithmetic ||
-          transformArrows ||
-          transformStarAmper ||
-          transformFunctionPointers) {
-        CFATransformer.transformCFA(cfa,
-                                    logger,
-                                    machineModel,
-                                    transformUnsizedArrays,
-                                    ignoreConst,
-                                    ignoreVolatile,
-                                    transformPointerArithmetic,
-                                    transformArrows,
-                                    transformStarAmper,
-                                    transformFunctionPointers);
       }
 
       final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);

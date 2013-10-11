@@ -476,9 +476,11 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
 
   private CInitializerList stringLiteralToInitializerList(final CStringLiteralExpression e,
                                                           final CExpression lengthExpression) {
-    final Integer length = lengthExpression.accept(pts.getEvaluatingVisitor());
-    assert length != null : "CFA should be transformed to eliminate unsized arrays";
+    Integer length = lengthExpression.accept(pts.getEvaluatingVisitor());
     final String s = e.getContentString();
+    if (length == null) {
+      length = s.length() + 1;
+    }
     assert length >= s.length();
     // http://stackoverflow.com/a/6915917
     // As the C99 Draft Specification's 32nd Example in §6.7.8 (p. 130) states

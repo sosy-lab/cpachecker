@@ -272,12 +272,6 @@ cfa.file = "cfa.dot"
 # Ignore type castings in calls to memory allocation functions
 cfa.ignoreAllocCasts = false
 
-# remove const specifier from the all types in the CFA
-cfa.ignoreConst = false
-
-# remove volatile specifier from the all types in the CFA
-cfa.ignoreVolatile = false
-
 # Also initialize local variables with default values, or leave them
 # uninitialized.
 cfa.initializeAllVariables = false
@@ -289,25 +283,6 @@ cfa.removeIrrelevantForSpecification = false
 # is simplified until at maximum one pointer is allowed for left- and
 # rightHandSide
 cfa.simplifyPointerExpressions = false
-
-# convert field references through pointers e.g. a->b into *(a).b. This DOES
-# NOT imply any simplifications of pointer expressions (to contain at maximum
-# one dereference, for instance). Use cfa.simplifyPointerExpressions if
-# simplification is needed.
-cfa.transformArrows = false
-
-# convert *f and &f into just f for function pointers
-cfa.transformFunctionPointers = false
-
-# convert pointer arithmetic into array subscripts (e.g. *(p + 1) into p[1]
-cfa.transformPointerArithmetic = false
-
-# convert * &s into just s
-cfa.transformStarAmper = false
-
-# convert unsized arrays either to pointers or to sized arrays (when
-# initialized)
-cfa.transformUnsizedArrays = false
 
 # combine sequences of simple edges into a single edge
 cfa.useMultiEdges = false
