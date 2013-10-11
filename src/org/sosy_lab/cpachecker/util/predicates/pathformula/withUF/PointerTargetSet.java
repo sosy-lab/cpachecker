@@ -49,8 +49,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
@@ -256,6 +256,12 @@ public class PointerTargetSet implements Serializable {
 
       this.targets = pointerTargetSet.targets;
       this.disjointnessFormula = pointerTargetSet.disjointnessFormula;
+
+      final MachineModel machineModel = pointerTargetSet.evaluatingVisitor.getMachineModel();
+      final int pointerSize = machineModel.getSizeofPtr();
+      final int bitsPerByte = machineModel.getSizeofCharInBits();
+      this.pointerType = pointerTargetSet.formulaManager.getBitvectorFormulaManager()
+                                                        .getFormulaType(pointerSize * bitsPerByte);
     }
 
     public void addCompositeType(final CCompositeType compositeType) {
@@ -386,17 +392,17 @@ public class PointerTargetSet implements Serializable {
       bases = bases.putAndCopy(name, type);
 
       final FormulaManagerView fm = pointerTargetSet.formulaManager;
-      final RationalFormula base = fm.makeVariable(FormulaType.RationalType, name);
+      final Formula base = fm.makeVariable(pointerType, name);
       if (bases.isEmpty()) { // Initial assumption b_0 > 0
-        disjointnessFormula = fm.makeGreaterThan(base, fm.makeNumber(FormulaType.RationalType, 0L), true);
+        disjointnessFormula = fm.makeGreaterThan(base, fm.makeNumber(pointerType, 0L), true);
       } else { // b_i >= b_{i-1} + sizeof(b_{i-1})
         final String lastBase = bases.lastKey();
         final int lastSize = getSize(bases.get(lastBase));
         disjointnessFormula = fm.makeAnd(disjointnessFormula,
                                          fm.makeGreaterOrEqual(base,
-                                                               fm.makePlus(fm.makeVariable(FormulaType.RationalType,
+                                                               fm.makePlus(fm.makeVariable(pointerType,
                                                                                            lastBase),
-                                                                           fm.makeNumber(FormulaType.RationalType,
+                                                                           fm.makeNumber(pointerType,
                                                                                          lastSize)), true));
       }
       return flag;
@@ -404,13 +410,21 @@ public class PointerTargetSet implements Serializable {
 
     BooleanFormula addBase(BooleanFormula disjointnessFormula, String name, String lastBase, int lastSize) {
       final FormulaManagerView fm = pointerTargetSet.formulaManager;
-      final RationalFormula base = fm.makeVariable(FormulaType.RationalType, name);
+      final Formula base = fm.makeVariable(pointerType, name);
       return  fm.makeAnd(disjointnessFormula,
                          fm.makeGreaterOrEqual(base,
-                                               fm.makePlus(fm.makeVariable(FormulaType.RationalType,
+                                               fm.makePlus(fm.makeVariable(pointerType,
                                                                            lastBase),
-                                                           fm.makeNumber(FormulaType.RationalType,
+                                                           fm.makeNumber(pointerType,
                                                                          lastSize)), true));
+    }
+
+    public boolean isBase(final String name) {
+      return bases.containsKey(name);
+    }
+
+    public FormulaType<?> getPointerType() {
+      return pointerType;
     }
 
     private void addTargets(final String base,
@@ -501,6 +515,11 @@ public class PointerTargetSet implements Serializable {
 
     private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
     private BooleanFormula disjointnessFormula;
+    private final FormulaType<?> pointerType;
+  }
+
+  public boolean isBase(final String name) {
+    return bases.containsKey(name);
   }
 
   public static final PointerTargetSet emptyPointerTargetSet(final MachineModel machineModel,
