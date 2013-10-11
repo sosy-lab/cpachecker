@@ -1070,7 +1070,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @Option(description = "List of functions that non-deterministically provide new memory on the heap, " +
                         "i.e. they can return either a valid pointer or zero. " +
                         "This is only used, when handling of pointers is enabled.")
-  Set<String> memoryAllocationFunctions = ImmutableSet.of("malloc", "__kmalloc");
+  Set<String> memoryAllocationFunctions = ImmutableSet.of("malloc", "kmalloc", "__kmalloc");
 
   @Option(description = "List of functions that non-deterministically provide new zeroed memory on the heap, " +
                         "i.e. they can return either a valid pointer or zero. " +
