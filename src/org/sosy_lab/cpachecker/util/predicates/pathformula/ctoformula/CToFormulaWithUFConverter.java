@@ -119,12 +119,12 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     rfmgr = formulaManagerView.getRationalFormulaManager();
   }
 
-  private static String getUFName(final CType type) {
+  public static String getUFName(final CType type) {
     String result = ufNameCache.get(type);
     if (result != null) {
       return result;
     } else {
-      result = "*" + PointerTargetSet.typeToString(type).replace(' ', '_');
+      result = UF_NAME_PREFIX + PointerTargetSet.typeToString(type).replace(' ', '_');
       ufNameCache.put(type, result);
       return result;
     }
@@ -145,7 +145,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return super.getFormulaTypeFromCType(type);
   }
 
-  public FormulaType<?> getFormulaTypeFromCType(final CType type, @Nullable final PointerTargetSetBuilder pts) {
+  public FormulaType<?> getFormulaTypeFromCType(final CType type, @Nullable final PointerTargetSet pts) {
     final int size = pts != null ? pts.getSize(type) : super.getSizeof(type);
     final int bitsPerByte = machineModel.getSizeofCharInBits();
     return efmgr.getFormulaType(size * bitsPerByte);
@@ -280,7 +280,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
         final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
-        final Variable newBase = Variable.create(base.getName() + BaseVisitor.NAME_SEPARATOR + memberName,
+        final Variable newBase = Variable.create(base.getName() + FIELD_NAME_SEPARATOR + memberName,
                                                  memberType);
         if (hasIndex(newBase.getName(), newBase.getType(), ssa)) {
           fields.add(Pair.of(compositeType, memberName));
@@ -580,14 +580,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                 rvalue instanceof List || // It's initialization, need to assign anyway
                 pts.tracksField(lvalueCompositeType, memberName) || // The field is essential for shared variables
                 rvalue instanceof String && // The field of a pure structure was used somewhere (i.e. has SSA index)
-                hasIndex(rvalue + BaseVisitor.NAME_SEPARATOR + memberName, newLvalueType, ssa)) {
+                hasIndex(rvalue + FIELD_NAME_SEPARATOR + memberName, newLvalueType, ssa)) {
               final CType newRvalueType = rvalueType instanceof CCompositeType ? newLvalueType : rvalueType;
               final Formula offsetFormula = fmgr.makeNumber(pts.getPointerType(), offset);
               final Object newLvalue = lvalue instanceof Formula ?
                                          fmgr.makePlus((Formula) lvalue, offsetFormula) :
-                                         lvalue + BaseVisitor.NAME_SEPARATOR + memberName;
+                                         lvalue + FIELD_NAME_SEPARATOR + memberName;
               final Object newRvalue = rvalue == null ? null:
-                                       rvalue instanceof String ? rvalue + BaseVisitor.NAME_SEPARATOR + memberName :
+                                       rvalue instanceof String ? rvalue + FIELD_NAME_SEPARATOR + memberName :
                                        rvalue instanceof Formula ?
                                          rvalueType instanceof CCompositeType ?
                                            fmgr.makePlus((Formula) rvalue, offsetFormula) :
@@ -1037,6 +1037,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of("printf", "printk");
 
   private static final String RETURN_VARIABLE_NAME = "__retval__";
+
+  public static final String UF_NAME_PREFIX = "*";
+
+  public static final String FIELD_NAME_SEPARATOR = "$";
 
   private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
 }

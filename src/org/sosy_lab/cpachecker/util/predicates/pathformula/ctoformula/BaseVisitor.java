@@ -70,7 +70,8 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
   public Variable visit(final CFieldReference e) throws UnrecognizedCCodeException {
     final Variable base = e.getFieldOwner().accept(this);
     if (base != null) {
-      return Variable.create(base.getName()  + NAME_SEPARATOR + e.getFieldName(), e.getExpressionType());
+      return Variable.create(base.getName()  + CToFormulaWithUFConverter.FIELD_NAME_SEPARATOR +
+               e.getFieldName(), e.getExpressionType());
     } else {
       return null;
     }
@@ -144,6 +145,4 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
   private final CFAEdge cfaEdge;
 
   private Variable lastBase = null;
-
-  static final String NAME_SEPARATOR = "$";
 }

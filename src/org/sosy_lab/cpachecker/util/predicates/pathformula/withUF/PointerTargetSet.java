@@ -35,6 +35,7 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -277,6 +278,10 @@ public class PointerTargetSet implements Serializable {
     return getTargets(type, pattern, false, targets);
   }
 
+  public Iterable<PointerTarget> getAllTargets(final CType type) {
+    return Collections.unmodifiableCollection(targets.get(typeToString(type)));
+  }
+
   /**
    * Builder for PointerTargetSet. Its state starts with an existing set, but may be
    * changed later. It supports read access, but it is not recommended to use
@@ -285,22 +290,16 @@ public class PointerTargetSet implements Serializable {
    *
    * This class is not thread-safe.
    */
-  public static class PointerTargetSetBuilder {
+  public final static class PointerTargetSetBuilder extends PointerTargetSet {
 
     private PointerTargetSetBuilder(final PointerTargetSet pointerTargetSet) {
-      this.pointerTargetSet = pointerTargetSet;
-
-      this.bases = pointerTargetSet.bases;
-      this.fields = pointerTargetSet.fields;
-
-      this.targets = pointerTargetSet.targets;
-      this.disjointnessFormula = pointerTargetSet.disjointnessFormula;
-
-      final MachineModel machineModel = pointerTargetSet.evaluatingVisitor.getMachineModel();
-      final int pointerSize = machineModel.getSizeofPtr();
-      final int bitsPerByte = machineModel.getSizeofCharInBits();
-      this.pointerType = pointerTargetSet.formulaManager.getBitvectorFormulaManager()
-                                                        .getFormulaType(pointerSize * bitsPerByte);
+      super(pointerTargetSet.evaluatingVisitor,
+            pointerTargetSet.sizeofVisitor,
+            pointerTargetSet.bases,
+            pointerTargetSet.fields,
+            pointerTargetSet.targets,
+            pointerTargetSet.disjointnessFormula,
+            pointerTargetSet.formulaManager);
     }
 
     public void addCompositeType(CCompositeType compositeType) {
@@ -311,7 +310,7 @@ public class PointerTargetSet implements Serializable {
         return; // The type has already been added
       }
 
-      final Integer size = compositeType.accept(pointerTargetSet.sizeofVisitor);
+      final Integer size = compositeType.accept(sizeofVisitor);
 
       assert size != null : "Can't evaluate size of a composite type: " + compositeType;
 
@@ -341,7 +340,7 @@ public class PointerTargetSet implements Serializable {
           if (memberCompositeType != null) {
             offset += sizes.count(memberCompositeType);
           } else {
-            offset += memberDeclaration.getType().accept(pointerTargetSet.sizeofVisitor);
+            offset += memberDeclaration.getType().accept(sizeofVisitor);
           }
         }
       }
@@ -351,24 +350,6 @@ public class PointerTargetSet implements Serializable {
 
       sizes.setCount(compositeType, size);
       offsets.put(compositeType, members);
-    }
-
-    public int getSize(final CType cType) {
-      return pointerTargetSet.getSize(cType);
-    }
-
-    public int getOffset(final CCompositeType compositeType, final String memberName) {
-      return pointerTargetSet.getOffset(compositeType, memberName);
-    }
-
-    public Iterable<PointerTarget> getMatchingTargets(final CType type,
-                                                      final PointerTargetPattern pattern) {
-      return getTargets(type, pattern, true, targets);
-    }
-
-    public Iterable<PointerTarget> getSpuriousTargets(final CType type,
-                                                      final PointerTargetPattern pattern) {
-      return getTargets(type, pattern, false, targets);
     }
 
     private void addTarget(final String base,
@@ -398,7 +379,7 @@ public class PointerTargetSet implements Serializable {
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
         assert arrayType.getLength() != null : "CFA should be transformed to eliminate unsized arrays";
-        Integer length = arrayType.getLength().accept(pointerTargetSet.evaluatingVisitor);
+        Integer length = arrayType.getLength().accept(evaluatingVisitor);
         if (length == null) {
           length = DEFAULT_ARRAY_LENGTH;
         }
@@ -432,7 +413,7 @@ public class PointerTargetSet implements Serializable {
         return true; // The base has already been added
       }
 
-      final FormulaManagerView fm = pointerTargetSet.formulaManager;
+      final FormulaManagerView fm = formulaManager;
       final Formula base = fm.makeVariable(pointerType, name);
       if (bases.isEmpty()) { // Initial assumption b_0 > 0
         disjointnessFormula = fm.makeGreaterThan(base, fm.makeNumber(pointerType, 0L), true);
@@ -455,7 +436,7 @@ public class PointerTargetSet implements Serializable {
                            final String name,
                            final String lastBase,
                            final int lastSize) {
-      final FormulaManagerView fm = pointerTargetSet.formulaManager;
+      final FormulaManagerView fm = formulaManager;
       final Formula base = fm.makeVariable(pointerType, name);
       final Formula rhs = fm.makePlus(fm.makeVariable(pointerType, lastBase), fm.makeNumber(pointerType, lastSize));
       return  fm.makeAnd(disjointnessFormula,
@@ -463,22 +444,8 @@ public class PointerTargetSet implements Serializable {
                                     fm.makeGreaterOrEqual(base, rhs, true)));
     }
 
-    public boolean isBase(final String name) {
-      return bases.containsKey(name);
-    }
-
-    public boolean isBase(final String name, CType type) {
-      type = simplifyType(type);
-      final CType baseType = bases.get(name);
-      return baseType != null && baseType.equals(type);
-    }
-
     public boolean tracksField(final CCompositeType compositeType, final String fieldName) {
       return fields.containsKey(CompositeField.of(typeToString(compositeType), fieldName));
-    }
-
-    public FormulaType<?> getPointerType() {
-      return pointerType;
     }
 
     private void addTargets(final String base,
@@ -493,7 +460,7 @@ public class PointerTargetSet implements Serializable {
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
         assert arrayType.getLength() != null : "CFA should be transformed to eliminate unsized arrays";
-        Integer length = arrayType.getLength().accept(pointerTargetSet.evaluatingVisitor);
+        Integer length = arrayType.getLength().accept(evaluatingVisitor);
         if (length == null) {
           length = DEFAULT_ARRAY_LENGTH;
         }
@@ -552,29 +519,26 @@ public class PointerTargetSet implements Serializable {
      * Returns an immutable PointerTargetSet with all the changes made to the builder.
      */
     public PointerTargetSet build() {
-      return new PointerTargetSet(pointerTargetSet.evaluatingVisitor,
-                                  pointerTargetSet.sizeofVisitor,
+      return new PointerTargetSet(evaluatingVisitor,
+                                  sizeofVisitor,
                                   bases,
                                   fields,
                                   targets,
                                   disjointnessFormula,
-                                  pointerTargetSet.formulaManager);
-    }
-
-    public CEvaluatingVisitor getEvaluatingVisitor() {
-      return pointerTargetSet.evaluatingVisitor;
+                                  formulaManager);
     }
 
     private boolean flag; // Used by addBase() addField() to detect essential additions
 
-    private final PointerTargetSet pointerTargetSet;
+    private static final long serialVersionUID = 5692271309582052121L;
+  }
 
-    private PersistentSortedMap<String, CType> bases;
-    private PersistentSortedMap<CompositeField, Boolean> fields;
+  public CEvaluatingVisitor getEvaluatingVisitor() {
+    return evaluatingVisitor;
+  }
 
-    private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
-    private BooleanFormula disjointnessFormula;
-    private final FormulaType<?> pointerType;
+  public FormulaType<?> getPointerType() {
+    return pointerType;
   }
 
   public BooleanFormula withDisjointnessConstraints(final BooleanFormula formula) {
@@ -604,7 +568,9 @@ public class PointerTargetSet implements Serializable {
                                 formulaManager);
   }
 
-  public PointerTargetSet mergeWith(final PointerTargetSet other) {
+  public Pair<PointerTargetSet, Pair<PersistentSortedMap<String, CType>, PersistentSortedMap<String, CType>>>
+    mergeWith(final PointerTargetSet other) {
+
     final boolean reverseBases = other.bases.size() > bases.size();
     final Triple<PersistentSortedMap<String, CType>,
                  PersistentSortedMap<String, CType>,
@@ -648,22 +614,25 @@ public class PointerTargetSet implements Serializable {
       builder2.addBase(entry.getKey(), entry.getValue());
     }
 
-    BooleanFormula disjointessFormula;
-    String lastBase;
-    int lastSize;
-    if (reverseBases) {
-      disjointessFormula = this.disjointnessFormula;
-      lastBase = bases.lastKey();
-      lastSize = getSize(bases.get(lastBase));
-
+    BooleanFormula mergedDisjointnessFormula;
+    String lastBase = null;
+    int lastSize = 0;
+    if (!reverseBases) {
+      mergedDisjointnessFormula = this.disjointnessFormula;
+      if (!bases.isEmpty()) {
+        lastBase = bases.lastKey();
+        lastSize = getSize(bases.get(lastBase));
+      }
     } else {
-      disjointessFormula = other.disjointnessFormula;
-      lastBase = other.bases.lastKey();
-      lastSize = other.getSize(other.bases.get(lastBase));
+      mergedDisjointnessFormula = other.disjointnessFormula;
+      if (!other.bases.isEmpty()) {
+        lastBase = other.bases.lastKey();
+        lastSize = other.getSize(other.bases.get(lastBase));
+      }
     }
 
     for (final Map.Entry<String, CType> entry : mergedBases.getSecond().entrySet()) {
-      disjointessFormula = builder1.addBase(disjointessFormula, entry.getKey(), lastBase, lastSize);
+      mergedDisjointnessFormula = builder1.addBase(mergedDisjointnessFormula, entry.getKey(), lastBase, lastSize);
       lastBase = entry.getKey();
       lastSize = builder1.getSize(entry.getValue());
     }
@@ -671,18 +640,21 @@ public class PointerTargetSet implements Serializable {
     final ConflictHandler<PersistentList<PointerTarget>> conflictHandler =
                                                            PointerTargetSet.<PointerTarget>destructiveMergeOnConflict();
 
-    return new PointerTargetSet(evaluatingVisitor,
-                                sizeofVisitor,
-                                mergedBases.getThird(),
-                                mergedFields.getThird(),
-                                mergeSortedMaps(
-                                  mergeSortedMaps(mergedTargets,
-                                                  builder1.targets,
-                                                  conflictHandler),
-                                  builder2.targets,
-                                  conflictHandler),
-                                disjointnessFormula,
-                                formulaManager);
+    final PointerTargetSet result  =
+      new PointerTargetSet(evaluatingVisitor,
+                           sizeofVisitor,
+                           mergedBases.getThird(),
+                           mergedFields.getThird(),
+                           mergeSortedMaps(
+                             mergeSortedMaps(mergedTargets,
+                                             builder1.targets,
+                                             conflictHandler),
+                             builder2.targets,
+                             conflictHandler),
+                           mergedDisjointnessFormula,
+                           formulaManager);
+    return Pair.of(result, !reverseBases ? Pair.of(mergedBases.getFirst(), mergedBases.getSecond()) :
+                                           Pair.of(mergedBases.getSecond(), mergedBases.getFirst()));
   }
 
   private static <T> PersistentList<T> mergePersistentLists(final PersistentList<T> list1,
@@ -731,8 +703,8 @@ public class PointerTargetSet implements Serializable {
   }
 
   private static <K extends Comparable<? super K>, V> Triple<PersistentSortedMap<K, V>,
-                                                     PersistentSortedMap<K, V>,
-                                                     PersistentSortedMap<K, V>> mergeSortedSets(
+                                                             PersistentSortedMap<K, V>,
+                                                             PersistentSortedMap<K, V>> mergeSortedSets(
     final PersistentSortedMap<K, V> set1,
     final PersistentSortedMap<K, V> set2) {
 
@@ -782,16 +754,22 @@ public class PointerTargetSet implements Serializable {
       }
     }
 
-    while (it1.hasNext()) {
-      e1 = it1.next();
+    while (e1 != null || it1.hasNext()) {
+      if (e1 == null) {
+        e1 = it1.next();
+      }
       fromSet1 = fromSet1.putAndCopy(e1.getKey(), e1.getValue());
+      e1 = null;
     }
 
-    while (it2.hasNext()) {
-      e2 = it2.next();
+    while (e2 != null || it2.hasNext()) {
+      if (e2 == null) {
+        e2 = it2.next();
+      }
       fromSet2 = fromSet2.putAndCopy(e2.getKey(), e2.getValue());
       assert !union.containsKey(e2.getKey());
       union = union.putAndCopy(e2.getKey(), e2.getValue());
+      e2 = null;
     }
 
     return Triple.of(fromSet1, fromSet2, union);
@@ -865,9 +843,12 @@ public class PointerTargetSet implements Serializable {
 
     // Now copy the rest of the mappings from s2.
     // For s1 this is not necessary.
-    while (it2.hasNext()) {
-      e2 = it2.next();
+    while (e1 != null || it2.hasNext()) {
+      if (e2 == null) {
+        e2 = it2.next();
+      }
       result = result.putAndCopy(e2.getKey(), e2.getValue());
+      e2 = null;
     }
 
     assert result.size() >= Math.max(map1.size(), map2.size());
@@ -935,6 +916,12 @@ public class PointerTargetSet implements Serializable {
 
     this.targets = targets;
     this.disjointnessFormula = disjointnessFormula;
+
+    final MachineModel machineModel = this.evaluatingVisitor.getMachineModel();
+    final int pointerSize = machineModel.getSizeofPtr();
+    final int bitsPerByte = machineModel.getSizeofCharInBits();
+    this.pointerType = this.formulaManager.getBitvectorFormulaManager()
+                                          .getFormulaType(pointerSize * bitsPerByte);
   }
 
   /**
@@ -946,10 +933,10 @@ public class PointerTargetSet implements Serializable {
 
   private static final Joiner joiner = Joiner.on(" ");
 
-  private final CEvaluatingVisitor evaluatingVisitor;
-  private final CSizeofVisitor sizeofVisitor;
+  protected final CEvaluatingVisitor evaluatingVisitor;
+  protected final CSizeofVisitor sizeofVisitor;
 
-  private final FormulaManagerView formulaManager;
+  protected final FormulaManagerView formulaManager;
 
   /*
    * Use Multiset<String> instead of Map<String, Integer> because it is more
@@ -961,11 +948,15 @@ public class PointerTargetSet implements Serializable {
   private static final Multiset<CCompositeType> sizes = HashMultiset.create();
   private static final Map<CCompositeType, Multiset<String>> offsets = new HashMap<>();
 
-  private final PersistentSortedMap<String, CType> bases;
-  private final PersistentSortedMap<CompositeField, Boolean> fields;
+  // The following fields are modified in the derived class only
 
-  private final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
-  private final BooleanFormula disjointnessFormula;
+  protected /*final*/ PersistentSortedMap<String, CType> bases;
+  protected /*final*/ PersistentSortedMap<CompositeField, Boolean> fields;
+
+  protected /*final*/ PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
+  protected /*final*/ BooleanFormula disjointnessFormula;
+
+  protected final FormulaType<?> pointerType;
 
   public static final int DEFAULT_ARRAY_LENGTH = 100;
   public static final int DEFAULT_ALLOCATION_SIZE = 4;
