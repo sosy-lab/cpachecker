@@ -75,7 +75,6 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
 
   @Override
   public Pair<CExpression, Number> visit(final CBinaryExpression expr) {
-    System.out.println(expr);
     final BinaryOperator binaryOperator = expr.getOperator();
 
     final CExpression op1 = expr.getOperand1();
