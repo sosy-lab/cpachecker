@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import java.io.File;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -45,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -65,8 +68,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
@@ -333,7 +338,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       final Map<String, Pair<Integer, CType>> members = new HashMap<>(size);
       final List<CType> memberTypes = new ArrayList<>(size);
       int index = 0;
-      for (final CCompositeTypeMemberDeclaration memberDeclaration : ((CCompositeType) type).getMembers()) {
+      for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
         members.put(memberDeclaration.getName(), Pair.of(index, memberType));
         memberTypes.add(memberType);
@@ -363,7 +368,6 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
             designator = Iterables.getOnlyElement(designators);
           }
           if (designator instanceof CFieldDesignator) {
-
             final Pair<Integer, CType> indexType = members.get(((CFieldDesignator) designator).getFieldName());
             final Object rhs = visitInitializer(indexType.getSecond(),
                                                 designatedInitializer.getRightHandSide(),
@@ -374,6 +378,58 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           }
         }
         index++;
+      }
+      return result;
+    } else if (type instanceof CCompositeType && ((CCompositeType) type).getKind() == ComplexTypeKind.UNION) {
+      final CCompositeType compositeType = (CCompositeType) type;
+      final int membersCount = compositeType.getMembers().size();
+      final List<Object> result = new ArrayList<>(membersCount);
+      for (int i = 0; i < membersCount; ++i) {
+        result.add(null);
+      }
+      if (!(topInitializer instanceof CDesignatedInitializer)) {
+        if (topInitializer instanceof CInitializerList) {
+          final CInitializerList topInitializerList = (CInitializerList) topInitializer;
+          if (topInitializerList.getInitializers().size() == 1) {
+            result.set(0, visitInitializer(compositeType.getMembers().get(0).getType(),
+                                           topInitializerList.getInitializers().get(0),
+                                           isAutomatic));
+          } else {
+            throw new  UnrecognizedCCodeException("Wrong union initializer list size", edge, topInitializer);
+          }
+        } else {
+          throw new  UnrecognizedCCodeException("Wrong union initializer", edge, topInitializer);
+        }
+      } else {
+        final CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) topInitializer;
+        final CDesignator designator = designatedInitializer.getDesignators().get(0);
+        if (designator instanceof CFieldDesignator) {
+          final String fieldName = ((CFieldDesignator) designator).getFieldName();
+          int index = 0;
+          for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+            if (memberDeclaration.getName().equals(fieldName)) {
+              final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
+              final CInitializer newInitializer;
+              if (designatedInitializer.getDesignators().size() == 1) {
+                newInitializer = designatedInitializer.getRightHandSide();
+              } else {
+                newInitializer = new CDesignatedInitializer(designatedInitializer.getFileLocation(),
+                                                            designatedInitializer.getDesignators().subList(
+                                                              1,
+                                                              designatedInitializer.getDesignators().size()),
+                                                            designatedInitializer.getRightHandSide());
+              }
+              result.set(index, visitInitializer(memberType, newInitializer, isAutomatic));
+              break;
+            }
+            index++;
+          }
+          if (index >= compositeType.getMembers().size()) {
+            throw new UnrecognizedCCodeException("Unrecognized field designator", edge, designator);
+          }
+        } else {
+          throw new UnrecognizedCCodeException("Wrong designator", edge, designator);
+        }
       }
       return result;
     } else {
