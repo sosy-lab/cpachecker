@@ -476,7 +476,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final CType lvalueElementType = PointerTargetSet.simplifyType(lvalueArrayType.getType());
       if (!(rvalueType instanceof CArrayType) ||
           PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType())
-            .equals(lvalueElementType.getCanonicalType())) {
+            .equals(PointerTargetSet.simplifyType(lvalueElementType))) {
         assert lvalueArrayType.getLength() != null : "CFA should be transformed to elimintate unsized arrays";
         Integer length = lvalueArrayType.getLength().accept(pts.getEvaluatingVisitor());
         if (length == null) {
@@ -543,7 +543,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final CCompositeType lvalueCompositeType = (CCompositeType) lvalueType;
       assert lvalueCompositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + lvalueCompositeType;
       if (!(rvalueType instanceof CCompositeType) ||
-          rvalueType.getCanonicalType().equals(lvalueType.getCanonicalType())) {
+          PointerTargetSet.simplifyType(rvalueType).equals(PointerTargetSet.simplifyType(lvalueType))) {
         if (!(rvalue instanceof List) || ((List<?>) rvalue).size() >= lvalueCompositeType.getMembers().size()) {
           final Iterator<?> rvalueIterator = rvalue instanceof List ? ((List<?>) rvalue).iterator() : null;
           if (!batch) {

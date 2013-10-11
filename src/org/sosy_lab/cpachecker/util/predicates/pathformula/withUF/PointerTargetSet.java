@@ -177,11 +177,18 @@ public class PointerTargetSet implements Serializable {
   }
 
   public static CType simplifyType(final CType type) {
-    return type.getCanonicalType();
+    CType canonicalType = canonicalTypeCache.get(type);
+    if (canonicalType != null) {
+      return canonicalType;
+    } else {
+      canonicalType = type.getCanonicalType();
+      canonicalTypeCache.put(type, canonicalType);
+      return canonicalType;
+    }
   }
 
   public static String typeToString(final CType type) {
-    return type.getCanonicalType().toString();
+    return simplifyType(type).toString();
   }
 
   public int getSize(CType cType) {
@@ -956,6 +963,14 @@ public class PointerTargetSet implements Serializable {
   public static final CType VOID =
     new CSimpleType(false, false, CBasicType.VOID, false, false, false, false, false, false, false);
   public static final CType POINTER_TO_VOID = new CPointerType(true, false, VOID);
+
+  private static final Map<CType, CType> canonicalTypeCache = new HashMap<>();
+
+  static {
+    canonicalTypeCache.put(CONST_CHAR, CONST_CHAR);
+    canonicalTypeCache.put(VOID, VOID);
+    canonicalTypeCache.put(POINTER_TO_VOID, POINTER_TO_VOID);
+  }
 
   private static final long serialVersionUID = 2102505458322248624L;
 }
