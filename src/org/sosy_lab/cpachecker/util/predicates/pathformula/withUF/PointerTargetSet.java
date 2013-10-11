@@ -499,6 +499,7 @@ public class PointerTargetSet implements Serializable {
       super(pointerTargetSet.evaluatingVisitor,
             pointerTargetSet.sizeofVisitor,
             pointerTargetSet.bases,
+            pointerTargetSet.lastBase,
             pointerTargetSet.fields,
             pointerTargetSet.deferredAllocations,
             pointerTargetSet.targets,
@@ -648,7 +649,6 @@ public class PointerTargetSet implements Serializable {
       if (bases.isEmpty()) { // Initial assumption b_0 > 0
         disjointnessFormula = fm.makeGreaterThan(base, fm.makeNumber(pointerType, 0L), true);
       } else { // b_i >= b_{i-1} + sizeof(b_{i-1}) && b_{i-1}  + sizeof(b_{i-1}) > 0
-        final String lastBase = bases.lastKey();
         final int lastSize = getSize(bases.get(lastBase));
         final Formula  rhs = fm.makePlus(fm.makeVariable(pointerType, lastBase), fm.makeNumber(pointerType, lastSize));
         disjointnessFormula = fm.makeAnd(disjointnessFormula,
@@ -659,6 +659,7 @@ public class PointerTargetSet implements Serializable {
       flag = false;
       addTargets(name, type, null, 0, 0);
       bases = bases.putAndCopy(name, type);
+      lastBase = name;
       return flag;
     }
 
@@ -812,6 +813,7 @@ public class PointerTargetSet implements Serializable {
       return new PointerTargetSet(evaluatingVisitor,
                                   sizeofVisitor,
                                   bases,
+                                  lastBase,
                                   fields,
                                   deferredAllocations,
                                   targets,
@@ -868,7 +870,6 @@ public class PointerTargetSet implements Serializable {
     // In case we have deferred memory allocations, add the appropriate constraints
     if (!deferredAllocations.isEmpty()) {
       final Set<String> addedBaseVariables = new HashSet<>();
-      String lastBase = bases.lastKey();
       int lastSize = getSize(bases.get(lastBase));
       for (Map.Entry<String, DeferredAllocationPool> pointerVariableEntry : deferredAllocations.entrySet()) {
         final DeferredAllocationPool deferredAllocationPool = pointerVariableEntry.getValue();
@@ -907,6 +908,7 @@ public class PointerTargetSet implements Serializable {
     return new PointerTargetSet(evaluatingVisitor,
                                 new CSizeofVisitor(evaluatingVisitor),
                                 PathCopyingPersistentTreeMap.<String, CType>of(),
+                                null,
                                 PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
                                 PathCopyingPersistentTreeMap.<String, DeferredAllocationPool>of(),
                                 PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of(),
@@ -1042,13 +1044,13 @@ public class PointerTargetSet implements Serializable {
     if (!reverseBases) {
       mergedDisjointnessFormula = this.disjointnessFormula;
       if (!bases.isEmpty()) {
-        lastBase = bases.lastKey();
+        lastBase = this.lastBase;
         lastSize = getSize(bases.get(lastBase));
       }
     } else {
       mergedDisjointnessFormula = other.disjointnessFormula;
       if (!other.bases.isEmpty()) {
-        lastBase = other.bases.lastKey();
+        lastBase = other.lastBase;
         lastSize = other.getSize(other.bases.get(lastBase));
       }
     }
@@ -1066,6 +1068,7 @@ public class PointerTargetSet implements Serializable {
       new PointerTargetSet(evaluatingVisitor,
                            sizeofVisitor,
                            mergedBases.getThird(),
+                           lastBase,
                            mergedFields.getThird(),
                            mergedDeferredAllocations,
                            mergeSortedMaps(
@@ -1354,6 +1357,7 @@ public class PointerTargetSet implements Serializable {
   private PointerTargetSet(final CEvaluatingVisitor evaluatingVisitor,
                            final CSizeofVisitor sizeofVisitor,
                            final PersistentSortedMap<String, CType> bases,
+                           final String lastBase,
                            final PersistentSortedMap<CompositeField, Boolean> fields,
                            final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations,
                            final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
@@ -1365,6 +1369,7 @@ public class PointerTargetSet implements Serializable {
     this.formulaManager = formulaManager;
 
     this.bases = bases;
+    this.lastBase = lastBase;
     this.fields = fields;
 
     this.deferredAllocations = deferredAllocations;
@@ -1406,6 +1411,7 @@ public class PointerTargetSet implements Serializable {
   // The following fields are modified in the derived class only
 
   protected /*final*/ PersistentSortedMap<String, CType> bases;
+  protected /*final*/ String lastBase;
   protected /*final*/ PersistentSortedMap<CompositeField, Boolean> fields;
 
   protected /*final*/ PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
