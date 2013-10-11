@@ -378,7 +378,9 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       return result;
     } else {
       assert topInitializer instanceof CInitializerExpression : "Unrecognized initializer";
-      return ((CInitializerExpression) topInitializer).getExpression().accept(this);
+      final CExpression initializerExpression = ((CInitializerExpression) topInitializer).getExpression();
+      final Formula initializer = initializerExpression.accept(this);
+      return conv.makeCast(initializerExpression.getExpressionType(), type, initializer);
     }
   }
 
