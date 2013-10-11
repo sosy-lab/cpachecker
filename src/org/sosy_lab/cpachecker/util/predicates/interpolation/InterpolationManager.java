@@ -57,6 +57,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -75,6 +76,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -692,7 +695,33 @@ public final class InterpolationManager {
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);
-      return Model.empty();
+      return new Model(fmgr); // return empty model
+    }
+  }
+
+  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException {
+    PathFormula pf = pmgr.makeFormulaForPath(pPath);
+    BooleanFormula f = !(pf instanceof PathFormulaWithUF) ?
+                          pf.getFormula() :
+                          ((PathFormulaWithUF) pf).getFormulaWithConstraints();
+
+    try (ProverEnvironment thmProver = solver.newProverEnvironmentWithModelGeneration()) {
+      thmProver.push(f);
+      if (thmProver.isUnsat()) {
+        return CounterexampleTraceInfo.infeasible(ImmutableList.<BooleanFormula>of());
+      } else {
+        return CounterexampleTraceInfo.feasible(ImmutableList.of(f), getModel(thmProver), ImmutableMap.<Integer, Boolean>of());
+      }
+    }
+  }
+
+  private <T> Model getModel(ProverEnvironment thmProver) {
+    try {
+      return thmProver.getModel();
+    } catch (SolverException e) {
+      logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
+      logger.logDebugException(e);
+      return new Model(fmgr); // return empty model
     }
   }
 
