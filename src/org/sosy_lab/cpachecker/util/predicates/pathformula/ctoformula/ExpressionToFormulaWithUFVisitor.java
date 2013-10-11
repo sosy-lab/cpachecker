@@ -88,12 +88,8 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     final Variable variable = e.accept(baseVisitor);
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     if (variable != null) {
-      if (!conv.isCompositeType(resultType)) {
         lastTarget = variable.getName();
         return conv.makeVariable(variable, ssa, pts);
-      } else {
-        throw new UnrecognizedCCodeException("Unhandled reference to composite as a whole", edge, e);
-      }
     } else {
       final CType fieldOwnerType = PointerTargetSet.simplifyType(e.getFieldOwner().getExpressionType());
       if (fieldOwnerType instanceof CCompositeType) {
@@ -116,12 +112,8 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     Variable variable = e.accept(baseVisitor);
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     if (variable != null) {
-      if (!conv.isCompositeType(resultType)) {
         lastTarget = variable.getName();
         return conv.makeVariable(variable, ssa, pts);
-      } else {
-        throw new UnrecognizedCCodeException("Unhandled reference to composite as a whole", edge, e);
-      }
     } else {
       variable = conv.scopedIfNecessary(e, ssa, function);
       lastTarget = conv.makeConstant(variable.withType(new CPointerType(true, false, resultType)), ssa, pts);
