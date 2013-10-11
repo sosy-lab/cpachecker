@@ -467,6 +467,12 @@ public class PointerTargetSet implements Serializable {
       return bases.containsKey(name);
     }
 
+    public boolean isBase(final String name, CType type) {
+      type = simplifyType(type);
+      final CType baseType = bases.get(name);
+      return baseType != null && baseType.equals(type);
+    }
+
     public boolean tracksField(final CCompositeType compositeType, final String fieldName) {
       return fields.containsKey(CompositeField.of(typeToString(compositeType), fieldName));
     }
@@ -577,6 +583,12 @@ public class PointerTargetSet implements Serializable {
 
   public boolean isBase(final String name) {
     return bases.containsKey(name);
+  }
+
+  public boolean isBase(final String name, CType type) {
+    type = simplifyType(type);
+    final CType baseType = bases.get(name);
+    return baseType != null && baseType.equals(type);
   }
 
   public static final PointerTargetSet emptyPointerTargetSet(final MachineModel machineModel,

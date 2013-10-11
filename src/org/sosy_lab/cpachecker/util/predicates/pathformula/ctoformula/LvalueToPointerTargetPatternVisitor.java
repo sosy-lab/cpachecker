@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -50,20 +51,132 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   public LvalueToPointerTargetPatternVisitor(final CToFormulaWithUFConverter conv,
                                              final CFAEdge cfaEdge,
                                              final PointerTargetSetBuilder pts) {
+    this.pointerVisitor = new PointerTargetEvaluatingVisitor();
     this.conv = conv;
     this.cfaEdge = cfaEdge;
     this.pts = pts;
   }
 
+  private class PointerTargetEvaluatingVisitor
+    extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeException>
+    implements CExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeException> {
+
+    @Override
+    protected PointerTargetPattern visitDefault(final CExpression e) throws UnrecognizedCCodeException {
+      return null;
+    }
+
+    @Override
+    public PointerTargetPattern visit(final CBinaryExpression e) throws UnrecognizedCCodeException {
+      final CExpression operand1 = e.getOperand1();
+      final CExpression operand2 = e.getOperand2();
+
+      switch (e.getOperator()) {
+      case BINARY_AND:
+      case BINARY_OR:
+      case BINARY_XOR:
+      case DIVIDE:
+      case EQUALS:
+      case GREATER_EQUAL:
+      case GREATER_THAN:
+      case LESS_EQUAL:
+      case LESS_THAN:
+      case MODULO:
+      case MULTIPLY:
+      case NOT_EQUALS:
+      case SHIFT_LEFT:
+      case SHIFT_RIGHT:
+        return null;
+
+      case MINUS: {
+        final PointerTargetPattern result = operand1.accept(this);
+        if (result != null) {
+          final Integer offset = operand2.accept(pts.getEvaluatingVisitor());
+          final Integer oldOffset = result.getProperOffset();
+          if (offset != null && oldOffset != null && offset < oldOffset) {
+            result.setProperOffset(oldOffset - offset);
+          } else {
+            result.retainBase();
+          }
+          return result;
+        } else {
+          return null;
+        }
+      }
+
+      case PLUS: {
+        PointerTargetPattern result = operand1.accept(this);
+        final Integer offset;
+        if (result == null) {
+          result = operand2.accept(pointerVisitor);
+          offset = operand1.accept(pts.getEvaluatingVisitor());
+        } else {
+          offset = operand2.accept(pts.getEvaluatingVisitor());
+        }
+        if (result != null) {
+          final Integer remaining = result.getRemainingOffset(pts);
+          if (offset != null && remaining != null && offset < remaining) {
+            assert result.getProperOffset() != null : "Unexpected nondet proper offset";
+            result.setProperOffset(result.getProperOffset() + offset);
+          } else {
+            result.retainBase();
+          }
+          return result;
+        } else {
+          return null;
+        }
+      }
+
+      default:
+        throw new UnrecognizedCCodeException("Unhandled binary operator", cfaEdge, e);
+      }
+    }
+
+    @Override
+    public PointerTargetPattern visit(final CCastExpression e) throws UnrecognizedCCodeException {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public PointerTargetPattern visit(final CIdExpression e) throws UnrecognizedCCodeException {
+      final Variable variable = conv.scopedIfNecessary(e, null, null);
+      final CType expressionType = PointerTargetSet.simplifyType(e.getExpressionType());
+      if (!pts.isBase(variable.getName(), expressionType) && !PointerTargetSet.containsArray(expressionType)) {
+        return null;
+      } else {
+        return new PointerTargetPattern(variable.getName(), 0, 0);
+      }
+    }
+
+    @Override
+    public PointerTargetPattern visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
+      final CExpression operand = e.getOperand();
+      switch (e.getOperator()) {
+      case AMPER:
+        return operand.accept(LvalueToPointerTargetPatternVisitor.this);
+      case MINUS:
+      case PLUS:
+      case NOT:
+      case STAR:
+      case TILDE:
+        return null;
+      case SIZEOF:
+        throw new UnrecognizedCCodeException("Illegal unary operator", cfaEdge, e);
+      default:
+        throw new UnrecognizedCCodeException("Unrecognized unary operator", cfaEdge, e);
+      }
+    }
+  }
+
   @Override
-  protected PointerTargetPattern visitDefault(CExpression e) throws UnrecognizedCCodeException {
+  protected PointerTargetPattern visitDefault(final CExpression e) throws UnrecognizedCCodeException {
     throw new UnrecognizedCCodeException("Illegal expression in lhs", cfaEdge, e);
   }
 
   @Override
   public PointerTargetPattern visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
     final CExpression arrayExpression = e.getArrayExpression();
-    final PointerTargetPattern result = arrayExpression.accept(this);
+    final PointerTargetPattern result = arrayExpression.accept(pointerVisitor);
     if (result != null) {
       CType containerType = PointerTargetSet.simplifyType(arrayExpression.getExpressionType());
       if (containerType instanceof CArrayType || containerType instanceof CPointerType) {
@@ -88,72 +201,6 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       }
     } else {
       throw new UnrecognizedCCodeException("Subscripting pure variable", cfaEdge, e);
-    }
-  }
-
-  @Override
-  public PointerTargetPattern visit(final CBinaryExpression e) throws UnrecognizedCCodeException {
-    final CExpression operand1 = e.getOperand1();
-    final CExpression operand2 = e.getOperand2();
-
-    switch (e.getOperator()) {
-    case BINARY_AND:
-    case BINARY_OR:
-    case BINARY_XOR:
-    case DIVIDE:
-    case EQUALS:
-    case GREATER_EQUAL:
-    case GREATER_THAN:
-    case LESS_EQUAL:
-    case LESS_THAN:
-    case MODULO:
-    case MULTIPLY:
-    case NOT_EQUALS:
-    case SHIFT_LEFT:
-    case SHIFT_RIGHT:
-      throw new UnrecognizedCCodeException("Illegal binary operator", cfaEdge, e);
-
-    case MINUS: {
-      final PointerTargetPattern result = operand1.accept(this);
-      if (result != null) {
-        final Integer offset = operand2.accept(pts.getEvaluatingVisitor());
-        final Integer oldOffset = result.getProperOffset();
-        if (offset != null && oldOffset != null && offset < oldOffset) {
-          result.setProperOffset(oldOffset - offset);
-        } else {
-          result.retainBase();
-        }
-        return result;
-      } else {
-        throw new UnrecognizedCCodeException("Address arithmetic with pure variable", cfaEdge, e);
-      }
-    }
-
-    case PLUS:{
-      PointerTargetPattern result = operand1.accept(this);
-      final Integer offset;
-      if (result == null) {
-        result = operand2.accept(this);
-        offset = operand1.accept(pts.getEvaluatingVisitor());
-      } else {
-        offset = operand2.accept(pts.getEvaluatingVisitor());
-      }
-      if (result != null) {
-        final Integer remaining = result.getRemainingOffset(pts);
-        if (offset != null && remaining != null && offset < remaining) {
-          assert result.getProperOffset() != null : "Unexpected nondet proper offset";
-          result.setProperOffset(result.getProperOffset() + offset);
-        } else {
-          result.retainBase();
-        }
-        return result;
-      } else {
-        throw new UnrecognizedCCodeException("Pointer addition", cfaEdge, e);
-      }
-    }
-
-    default:
-      throw new UnrecognizedCCodeException("Unhandled binary operator", cfaEdge, e);
     }
   }
 
@@ -200,12 +247,12 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
     case NOT:
     case SIZEOF:
     case TILDE:
-      throw new UnrecognizedCCodeException("Illegal binary operator", cfaEdge, e);
+      throw new UnrecognizedCCodeException("Illegal unary operator", cfaEdge, e);
     case PLUS:
       return operand.accept(this);
     case STAR:
       final CType type = PointerTargetSet.simplifyType(operand.getExpressionType());
-      final PointerTargetPattern result = e.getOperand().accept(this);
+      final PointerTargetPattern result = e.getOperand().accept(pointerVisitor);
       if (type instanceof CPointerType) {
         if (result != null) {
           result.clear();
@@ -220,10 +267,12 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
         throw new UnrecognizedCCodeException("Dereferencing non-pointer expression", cfaEdge, e);
       }
 
-      default:
-        throw new UnrecognizedCCodeException("Unhandled unary operator", cfaEdge, e);
+    default:
+      throw new UnrecognizedCCodeException("Unhandled unary operator", cfaEdge, e);
     }
   }
+
+  private final PointerTargetEvaluatingVisitor pointerVisitor;
 
   private final CToFormulaWithUFConverter conv;
   private final PointerTargetSetBuilder pts;
