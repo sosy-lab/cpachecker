@@ -863,7 +863,7 @@ public class PointerTargetSet implements Serializable {
 
   @Override
   public int hashCode() {
-    return (31 + bases.hashCode()) * 31 + fields.hashCode();
+    return (31 + bases.keySet().hashCode()) * 31 + fields.hashCode();
   }
 
   @Override

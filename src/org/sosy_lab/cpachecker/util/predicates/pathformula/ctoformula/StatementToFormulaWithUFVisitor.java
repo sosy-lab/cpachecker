@@ -130,7 +130,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
 
     delegate.reset();
     lhs.accept(delegate);
-    addBases(delegate.getSharedBases(), pts);
+    // addBases(delegate.getSharedBases(), pts);
     addEssentialFields(delegate.getInitializedFields(), pts);
     final List<Pair<CCompositeType, String>> lhsUsedFields = ImmutableList.copyOf(delegate.getUsedFields());
 
@@ -145,7 +145,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
             ((CIdExpression)((CFunctionCallExpression) rhs).getFunctionNameExpression()).getName()))) {
       delegate.reset();
       rhsFormula = rhs.accept(this);
-      addBases(delegate.getSharedBases(), pts);
+      // addBases(delegate.getSharedBases(), pts);
       addEssentialFields(delegate.getInitializedFields(), pts);
     } else {
       rhsFormula = null;
@@ -204,7 +204,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     if (!truthAssumtion) {
       result = conv.bfmgr.not(result);
     }
-    addBases(delegate.getSharedBases(), pts);
+    // addBases(delegate.getSharedBases(), pts);
     addEssentialFields(delegate.getInitializedFields(), pts);
     addEssentialFields(delegate.getUsedFields(), pts);
     return result;

@@ -30,7 +30,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 public class PathFormulaWithUF extends PathFormula {
 
-  public PathFormulaWithUF(BooleanFormula formula, SSAMap ssa, PointerTargetSet pointerTargetSet, int length) {
+  public PathFormulaWithUF(final BooleanFormula formula,
+                           final SSAMap ssa,
+                           final PointerTargetSet pointerTargetSet,
+                           final int length) {
     super(formula, ssa, length);
     this.pointerTargetSet = pointerTargetSet;
   }

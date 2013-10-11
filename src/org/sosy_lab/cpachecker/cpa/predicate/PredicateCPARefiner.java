@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -192,15 +193,22 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
 
     // create list of formulas on path
-    final List<BooleanFormula> formulas = getFormulasForPath(path, pPath.getFirst().getFirst());
-    if (pointerAnalysisWithUFs) {
-      final int last = formulas.size() - 1;
-      final BooleanFormula lastFormula = formulas.get(last);
-      final PathFormula lastPathFomrula = AbstractStates.extractStateByType(path.get(last),
-                                                            PredicateAbstractState.class)
-                                        .getPathFormula();
-      formulas.set(last, ((PathFormulaWithUF) lastPathFomrula).getPointerTargetSet()
-                                                              .withDisjointnessConstraints(lastFormula));
+    final List<BooleanFormula> formulas;
+    if (!pointerAnalysisWithUFs) {
+      formulas = getFormulasForPath(path, pPath.getFirst().getFirst());
+    } else {
+      final List<BooleanFormula> blockFormulas = getFormulasForPath(path, pPath.getFirst().getFirst());
+      final int last = blockFormulas.size() - 1;
+      final BooleanFormula lastFormula = blockFormulas.get(last);
+      final PathFormula lastPathFormula = AbstractStates.extractStateByType(path.get(last),
+                                                                            PredicateAbstractState.class)
+                                                        .getPathFormula();
+      formulas = ImmutableList.<BooleanFormula>builder()
+                              .addAll(blockFormulas.subList(0, last))
+                              .add(((PathFormulaWithUF) lastPathFormula)
+                                     .getPointerTargetSet()
+                                     .withDisjointnessConstraints(lastFormula))
+                              .build();
     }
     assert path.size() == formulas.size();
 

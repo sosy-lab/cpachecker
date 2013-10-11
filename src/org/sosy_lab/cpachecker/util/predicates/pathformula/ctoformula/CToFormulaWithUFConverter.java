@@ -94,10 +94,18 @@ import com.google.common.collect.ImmutableSet;
 
 public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
-  CToFormulaWithUFConverter(Configuration config,
-                            FormulaManagerView formulaManagerView,
-                            MachineModel machineModel,
-                            LogManager logger)
+  public static CToFormulaWithUFConverter create(final Configuration config,
+                                                 final FormulaManagerView fmgr,
+                                                 final MachineModel machineModel,
+                                                 final LogManager logger)
+  throws InvalidConfigurationException {
+    return new CToFormulaWithUFConverter(config, fmgr, machineModel, logger);
+  }
+
+  CToFormulaWithUFConverter(final Configuration config,
+                            final FormulaManagerView formulaManagerView,
+                            final MachineModel machineModel,
+                            final LogManager logger)
   throws InvalidConfigurationException {
     super(config, formulaManagerView, machineModel, logger);
     rfmgr = formulaManagerView.getRationalFormulaManager();
@@ -114,12 +122,12 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @Override
-  Formula makeConstant(String name, CType type, SSAMapBuilder ssa) {
+  Formula makeConstant(final String name, final CType type, final SSAMapBuilder ssa) {
     return fmgr.makeVariable(getFormulaTypeFromCType(type), name);
   }
 
   @Override
-  Formula makeConstant(Variable var, SSAMapBuilder ssa) {
+  Formula makeConstant(final Variable var, final SSAMapBuilder ssa) {
     return makeConstant(var.getName(), var.getType(), ssa);
   }
 
@@ -129,7 +137,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                          final PointerTargetSetBuilder pts) {
     type = PointerTargetSet.simplifyType(type);
     final String ufName = getUFName(type);
-    final int index = ssa.getIndex(ufName);
+    final int index = getIndex(ufName, type, ssa);
     final FormulaType<?> returnType = getFormulaTypeForCType(type, pts);
     return ffmgr.createFuncAndCall(ufName, index, returnType, ImmutableList.of(address));
   }
@@ -152,7 +160,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         final String fieldName = memberDeclaration.getName();
         final Variable newBase = Variable.create(base + BaseVisitor.NAME_SEPARATOR + fieldName,
                                                  memberDeclaration.getType());
-        if (ssa.getIndex(newBase.getName()) > 1) {
+        if (getIndex(newBase.getName(), newBase.getType(), ssa) > 1) {
           fields.add(Pair.of(compositeType, fieldName));
           addSharingConstraints(cfaEdge,
                                 fmgr.makePlus(address, fmgr.makeNumber(pts.getPointerType(), offset)),
@@ -238,7 +246,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       BooleanFormula consequent = bfmgr.makeBoolean(true);
       for (final CType type : types) {
         final String ufName = getUFName(type);
-        final int oldIndex = ssa.getIndex(ufName);
+        final int oldIndex = getIndex(ufName, type, ssa);
         final int newIndex = oldIndex + 1;
         final FormulaType<?> returnType = getFormulaTypeForCType(type, pts);
         for (final PointerTarget spurious : pts.getSpuriousTargets(type, exact)) {
@@ -267,7 +275,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     final PointerTargetPattern any = new PointerTargetPattern();
     for (final CType type : types) {
       final String ufName = getUFName(type);
-      final int oldIndex = ssa.getIndex(ufName);
+      final int oldIndex = getIndex(ufName, type, ssa);
       final int newIndex = oldIndex + 1;
       final FormulaType<?> returnType = getFormulaTypeForCType(type, pts);
       for (final PointerTarget spurious : pts.getSpuriousTargets(type, any)) {
@@ -292,7 +300,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                         final SSAMapBuilder ssa) {
     for (final CType type : types) {
       final String ufName = getUFName(type);
-      final int newIndex = ssa.getIndex(ufName) + 1;
+      final int newIndex = getIndex(ufName, type, ssa) + 1;
       ssa.setIndex(ufName, type, newIndex);
     }
   }
@@ -405,7 +413,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
               pattern.setRange(offset);
               for (final CType type : types) {
                 final String ufName = getUFName(type);
-                final int oldIndex = ssa.getIndex(ufName);
+                final int oldIndex = getIndex(ufName, type, ssa);
                 final int newIndex = oldIndex + 1;
                 final FormulaType<?> returnType = getFormulaTypeForCType(type, pts);
                 addRetentionConstraints(pattern, type, ufName, oldIndex, newIndex, returnType, null, constraints, pts);
@@ -474,7 +482,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
               pattern.setRange(offset);
               for (final CType type : types) {
                 final String ufName = getUFName(type);
-                final int oldIndex = ssa.getIndex(ufName);
+                final int oldIndex = getIndex(ufName, type, ssa);
                 final int newIndex = oldIndex + 1;
                 final FormulaType<?> returnType = getFormulaTypeForCType(type, pts);
                 addRetentionConstraints(pattern, type, ufName, oldIndex, newIndex, returnType, null, constraints, pts);
@@ -505,7 +513,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
       final String targetName = lvalue instanceof String ? (String) lvalue : getUFName(lvalueType);
       final FormulaType<?> targetType = getFormulaTypeForCType(lvalueType, pts);
-      final int oldIndex = ssa.getIndex(targetName);
+      final int oldIndex = getIndex(targetName, lvalueType, ssa);
       final int newIndex = oldIndex + 1;
       if (rvalue != null) {
         if (lvalue instanceof String) {
@@ -521,16 +529,18 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       } else {
         result = bfmgr.makeBoolean(true);
       }
-      if (!batch && lvalue instanceof Formula) {
-        addRetentionConstraints(pattern,
-                                lvalueType,
-                                targetName,
-                                oldIndex,
-                                newIndex,
-                                targetType,
-                                (Formula) lvalue,
-                                constraints,
-                                pts);
+      if (!batch) {
+        if (lvalue instanceof Formula) {
+          addRetentionConstraints(pattern,
+                                  lvalueType,
+                                  targetName,
+                                  oldIndex,
+                                  newIndex,
+                                  targetType,
+                                  (Formula) lvalue,
+                                  constraints,
+                                  pts);
+        }
         ssa.setIndex(targetName, lvalueType, newIndex);
       }
       return result;

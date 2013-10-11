@@ -78,7 +78,7 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
 
   @Override
   public Variable visit(final CIdExpression e) throws UnrecognizedCCodeException {
-    if (!pts.isBase(e.getName())) {
+    if (!pts.isBase(e.getDeclaration().getQualifiedName())) {
       return lastBase = conv.scopedIfNecessary(e, null, null);
     } else {
       return null;
