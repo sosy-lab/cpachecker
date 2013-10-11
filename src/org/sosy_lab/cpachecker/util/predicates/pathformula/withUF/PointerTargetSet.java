@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -233,7 +234,9 @@ public class PointerTargetSet implements Serializable {
         throw new UnsupportedOperationException();
       }
 
-      private Iterator<PointerTarget> iterator = targetsForType.iterator();
+      private Iterator<PointerTarget> iterator = targetsForType != null ? targetsForType.iterator() :
+                                                                          Collections.<PointerTarget>emptyList()
+                                                                                     .iterator();
       private PointerTarget last = null;
      };
      return new Iterable<PointerTarget>() {
