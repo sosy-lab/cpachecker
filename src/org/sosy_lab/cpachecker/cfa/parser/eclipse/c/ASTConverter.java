@@ -903,8 +903,14 @@ class ASTConverter {
 
       CBinaryExpression postExp = binExprBuilder.buildBinaryExpression(operand, CNumericTypes.ONE, postOp);
       CLeftHandSide lhsPost = (CLeftHandSide) operand;
+      CExpressionAssignmentStatement result = new CExpressionAssignmentStatement(fileLoc, lhsPost, postExp);
 
-      return new CExpressionAssignmentStatement(fileLoc, lhsPost, postExp);
+      if (!(e.getParent() instanceof IASTStatement)) {
+        postSideAssignments.add(result);
+        return lhsPost;
+      }
+
+      return result;
 
     default:
       return new CUnaryExpression(fileLoc, type, operand, ASTOperatorConverter.convertUnaryOperator(e));
