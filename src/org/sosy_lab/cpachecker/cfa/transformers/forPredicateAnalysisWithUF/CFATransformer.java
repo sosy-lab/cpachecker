@@ -137,9 +137,9 @@ public class CFATransformer extends DefaultCFAVisitor {
                                                       functionCallExpression);
           } else /*oldFunctionCall instanceof CFunctionCallAssignmentStatement*/ {
             functionCall = new CFunctionCallAssignmentStatement(((CFunctionCallAssignmentStatement) oldFunctionCall)
-                                                                 .getFileLocation(),
+                                                                   .getFileLocation(),
                                                                  ((CFunctionCallAssignmentStatement) oldFunctionCall)
-                                                                 .getLeftHandSide(),
+                                                                   .getLeftHandSide(),
                                                                   functionCallExpression);
           }
           edge = new CFunctionCallEdge(functionCallEdge.getRawStatement(),
@@ -276,17 +276,37 @@ public class CFATransformer extends DefaultCFAVisitor {
     return TraversalProcess.CONTINUE;
   }
 
-  private CFATransformer(final LogManager logger) {
+  private CFATransformer(final LogManager logger,
+                         final boolean transformPointerArithmetic,
+                         final boolean transformArrows,
+                         final boolean transformStarAmper,
+                         final boolean transformFunctionPointers) {
+    expressionVisitor = new CExpressionTransformer(transformPointerArithmetic,
+                                                   transformArrows,
+                                                   transformStarAmper,
+                                                   transformFunctionPointers);
+    statementVisitor = new CStatementTransformer(expressionVisitor);
+    rhsVisitor = new CRightHandSideTransformer(expressionVisitor);
     this.logger = logger;
   }
 
-  public static void transformCFA(MutableCFA cfa, final LogManager logger) {
-    CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(cfa.getMainFunction(), new CFATransformer(logger));
+  public static void transformCFA(final MutableCFA cfa,
+                                  final LogManager logger,
+                                  final boolean transformPointerArithmetic,
+                                  final boolean transformArrows,
+                                  final boolean transformStarAmper,
+                                  final boolean transformFunctionPointers) {
+    CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(cfa.getMainFunction(),
+                                                         new CFATransformer(logger,
+                                                                            transformPointerArithmetic,
+                                                                            transformArrows,
+                                                                            transformStarAmper,
+                                                                            transformFunctionPointers));
   }
 
-  private final CExpressionTransformer expressionVisitor = new CExpressionTransformer(true, true, true, true);
-  private final CStatementTransformer statementVisitor = new CStatementTransformer(expressionVisitor);
-  private final CRightHandSideTransformer rhsVisitor = new CRightHandSideTransformer(expressionVisitor);
+  private final CExpressionTransformer expressionVisitor;
+  private final CStatementTransformer statementVisitor;
+  private final CRightHandSideTransformer rhsVisitor;
   private final List<CFAEdge> edges = new ArrayList<>(2);
   private final LogManager logger;
 }

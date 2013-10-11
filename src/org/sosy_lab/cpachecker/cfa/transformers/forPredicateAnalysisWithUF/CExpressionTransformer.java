@@ -54,11 +54,11 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
   CExpressionTransformer(final boolean transformPointerArithmetic,
                          final boolean transformArrows,
                          final boolean transformStarAmper,
-                         final boolean transformFuncitonPointers) {
+                         final boolean transformFunctionPointers) {
     this.transformPointerArithmetic = transformPointerArithmetic;
     this.transformArrows = transformArrows;
     this.transformStarAmper = transformStarAmper;
-    this.transformFuncitonPointers = transformFuncitonPointers;
+    this.transformFunctionPointers = transformFunctionPointers;
   }
 
   @Override
@@ -90,26 +90,32 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
     case BINARY_OR:
     case BINARY_XOR:
     case SHIFT_LEFT:
-    case SHIFT_RIGHT:
+    case SHIFT_RIGHT: {
       break;
+    }
     case DIVIDE:
     case MODULO:
-    case MULTIPLY:
+    case MULTIPLY: {
       break;
+    }
     case EQUALS:
     case NOT_EQUALS:
     case GREATER_EQUAL:
     case GREATER_THAN:
     case LESS_EQUAL:
-    case LESS_THAN:
+    case LESS_THAN: {
       break;
-    case MINUS:
-      if (!(type1 instanceof CPointerType) && !(type2 instanceof CPointerType)) { // just subtraction e.g. 6 - 7
+    }
+    case MINUS: {
+      if (!transformPointerArithmetic) {
+        break;
+      } else if (!(type1 instanceof CPointerType) && !(type2 instanceof CPointerType)) { // just subtraction e.g. 6 - 7
 
       } else if (!(type2 instanceof CPointerType)) { // operand1 is a pointer => transform `-' into array subscript
         final CUnaryExpression minusOperand2 = new CUnaryExpression(operand2.getFileLocation(),
                                                                     operand2.getExpressionType(),
-                                                                    operand2, UnaryOperator.MINUS);
+                                                                    operand2,
+                                                                    UnaryOperator.MINUS);
         final CPointerType resultType = (CPointerType) type1;
         // &operand1[-operand2]
         return new CUnaryExpression(fileLocation,
@@ -144,8 +150,11 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
         throw new UnrecognizedCCodeException("Can't subtract pointer from a non-pointer", currentEdge, e);
       }
       break;
-    case PLUS:
-      if (!(type1 instanceof CPointerType) && !(type2 instanceof CPointerType)) { // just addition e.g. 6 + 7
+    }
+    case PLUS: {
+      if (!transformPointerArithmetic) {
+        break;
+      } else if (!(type1 instanceof CPointerType) && !(type2 instanceof CPointerType)) { // just addition e.g. 6 + 7
 
       } else if (!(type2 instanceof CPointerType)) { // operand1 is a pointer => transform `+' into array subscript
         final CPointerType resultType = (CPointerType) type1;
@@ -171,6 +180,7 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
         throw new UnrecognizedCCodeException("Can't add pointers", currentEdge, e);
       }
       break;
+    }
     default:
       break;
     }
@@ -199,7 +209,7 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
   public CFieldReference visit(final CFieldReference e) throws UnrecognizedCCodeException {
     final CExpression oldFieldOwner = e.getFieldOwner();
     final CExpression fieldOwner = (CExpression) oldFieldOwner.accept(this);
-    if (e.isPointerDereference()) { // transform p->f into (*p).f
+    if (transformArrows && e.isPointerDereference()) { // transform p->f into (*p).f
       return new CFieldReference(e.getFileLocation(),
                                  e.getExpressionType(),
                                  e.getFieldName(),
@@ -262,7 +272,7 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
     // Detect expression of the form
     // "* &v", "* ((t *) &v)", and "* f" where f is a function pointer
     if (e.getOperator() == UnaryOperator.STAR) {
-      if (e.getOperand() instanceof CUnaryExpression &&
+      if (transformStarAmper && e.getOperand() instanceof CUnaryExpression &&
           ((CUnaryExpression) e.getOperand()).getOperator() == UnaryOperator.AMPER) {
         // "* &v" -> "v"
         return (CExpression) ((CUnaryExpression) e.getOperand()).getOperand().accept(this);
@@ -277,7 +287,7 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
                                    ((CUnaryExpression) ((CCastExpression) e.getOperand()).getOperand()).getOperand()
                                                                                                        .accept(this),
                                    ((CCastExpression) e.getOperand()).getType());
-      } */ else if (e.getOperand().getExpressionType() instanceof CPointerType &&
+      } */ else if (transformFunctionPointers && e.getOperand().getExpressionType() instanceof CPointerType &&
                     ((CPointerType)e.getOperand().getExpressionType()).getType() instanceof CFunctionType) {
         // "* f" -> "f"
         return (CExpression) e.getOperand().accept(this);
@@ -289,7 +299,7 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
 
     switch (e.getOperator()) {
     case AMPER:
-      if (e.getOperand().getExpressionType() instanceof CFunctionType) {
+      if (transformFunctionPointers && e.getOperand().getExpressionType() instanceof CFunctionType) {
         return (CExpression) e.getOperand().accept(this); // &f -> f
       }
       break;
@@ -324,7 +334,7 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
   private final boolean transformPointerArithmetic;
   private final boolean transformArrows;
   private final boolean transformStarAmper;
-  private final boolean transformFuncitonPointers;
+  private final boolean transformFunctionPointers;
 
   private CFAEdge currentEdge = null;
   private final CInitializerVisitor<CAstNode, UnrecognizedCCodeException> initializerTransformer =
