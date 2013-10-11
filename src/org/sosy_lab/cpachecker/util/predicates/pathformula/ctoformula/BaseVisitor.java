@@ -38,85 +38,86 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 
 
-class BaseVisitor implements CExpressionVisitor<String, UnrecognizedCCodeException>{
+class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeException>{
 
-  public BaseVisitor(final CFAEdge cfaEdge, final PointerTargetSetBuilder pts) {
+  public BaseVisitor(final CToFormulaWithUFConverter conv, final CFAEdge cfaEdge, final PointerTargetSetBuilder pts) {
+    this.conv = conv;
     this.cfaEdge = cfaEdge;
     this.pts = pts;
   }
 
   @Override
-  public String visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
+  public Variable visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
     assert e.getArrayExpression().accept(this) == null : "Array access can't be encoded as a varaible";
     return null;
   }
 
   @Override
-  public String visit(final CBinaryExpression e) throws UnrecognizedCCodeException {
+  public Variable visit(final CBinaryExpression e) throws UnrecognizedCCodeException {
     return null;
   }
 
   @Override
-  public String visit(final CCastExpression e) throws UnrecognizedCCodeException {
+  public Variable visit(final CCastExpression e) throws UnrecognizedCCodeException {
     return e.getOperand().accept(this);
   }
 
   @Override
-  public String visit(final CFieldReference e) throws UnrecognizedCCodeException {
-    final String base = e.getFieldOwner().accept(this);
+  public Variable visit(final CFieldReference e) throws UnrecognizedCCodeException {
+    final Variable base = e.getFieldOwner().accept(this);
     if (base != null) {
-      return base + NAME_SEPARATOR + e.getFieldName();
+      return Variable.create(base.getName()  + NAME_SEPARATOR + e.getFieldName(), e.getExpressionType());
     } else {
       return null;
     }
   }
 
   @Override
-  public String visit(final CIdExpression e) throws UnrecognizedCCodeException {
-    final String name = e.getName();
-    if (!pts.isBase(name)) {
-      return name;
+  public Variable visit(final CIdExpression e) throws UnrecognizedCCodeException {
+    if (!pts.isBase(e.getName())) {
+      return lastBase = conv.scopedIfNecessary(e, null, null);
     } else {
       return null;
     }
   }
 
   @Override
-  public String visit(final CCharLiteralExpression e) throws UnrecognizedCCodeException {
+  public Variable visit(final CCharLiteralExpression e) throws UnrecognizedCCodeException {
     throw new UnrecognizedCCodeException("Char literal in place of lvalue", cfaEdge, e);
   }
 
   @Override
-  public String visit(final CFloatLiteralExpression e) throws UnrecognizedCCodeException {
+  public Variable visit(final CFloatLiteralExpression e) throws UnrecognizedCCodeException {
     throw new UnrecognizedCCodeException("Float literal in place of lvalue", cfaEdge, e);
   }
 
   @Override
-  public String visit(final CIntegerLiteralExpression e) throws UnrecognizedCCodeException {
+  public Variable visit(final CIntegerLiteralExpression e) throws UnrecognizedCCodeException {
     throw new UnrecognizedCCodeException("Integer literal in place of lvalue", cfaEdge, e);
   }
 
   @Override
-  public String visit(final CStringLiteralExpression e) throws UnrecognizedCCodeException {
+  public Variable visit(final CStringLiteralExpression e) throws UnrecognizedCCodeException {
     throw new UnrecognizedCCodeException("String literal in place of lvalue", cfaEdge, e);
   }
 
   @Override
-  public String visit(final CTypeIdExpression e) throws UnrecognizedCCodeException {
+  public Variable visit(final CTypeIdExpression e) throws UnrecognizedCCodeException {
     throw new UnrecognizedCCodeException("TypeId in place of lvalue", cfaEdge, e);
   }
 
   @Override
-  public String visit(final CTypeIdInitializerExpression e) throws UnrecognizedCCodeException {
+  public Variable visit(final CTypeIdInitializerExpression e) throws UnrecognizedCCodeException {
     // TODO: Type id initializers should be supported
     throw new UnrecognizedCCodeException("Typeid initializers are currently unsupported", cfaEdge);
   }
 
   @Override
-  public String visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
+  public Variable visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
     switch (e.getOperator()) {
     case AMPER:
       throw new UnrecognizedCCodeException("Address in place of lvalue", cfaEdge, e);
@@ -134,7 +135,15 @@ class BaseVisitor implements CExpressionVisitor<String, UnrecognizedCCodeExcepti
     }
   }
 
+  public Variable getLastBase() {
+    return lastBase;
+  }
+
+  private final CToFormulaWithUFConverter conv;
   private final PointerTargetSetBuilder pts;
   private final CFAEdge cfaEdge;
+
+  private Variable lastBase = null;
+
   static final String NAME_SEPARATOR = "$";
 }

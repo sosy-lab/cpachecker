@@ -224,7 +224,7 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
   }
 
   @Override
-  public Formula visit(CIdExpression idExp) {
+  public Formula visit(CIdExpression idExp) throws UnrecognizedCCodeException {
 
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator)idExp.getDeclaration();

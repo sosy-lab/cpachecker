@@ -23,15 +23,28 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 
 public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor {
@@ -48,13 +61,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     this.conv = cToFormulaConverter;
     this.pts = pts;
 
-    this.baseVisitor = new BaseVisitor(cfaEdge, pts);
-  }
-
-  @Override
-  protected Formula visitDefault(CExpression pExp) throws UnrecognizedCCodeException {
-    // TODO Auto-generated method stub
-    return null;
+    this.baseVisitor = new BaseVisitor(conv, cfaEdge, pts);
   }
 
   @Override
@@ -64,20 +71,21 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     final int size = pts.getSize(e.getExpressionType());
     final Formula coeff = conv.fmgr.makeNumber(pts.getPointerType(), size);
     final Formula offset = conv.fmgr.makeMultiply(coeff, index);
-    final Formula address = conv.fmgr.makePlus(base, offset);
-    final CType resultType = e.getExpressionType();
-    return conv.isCompositeType(resultType) ? address :
-           conv.makeDereferece(resultType, address, ssa, pts);
+    lastAddress = conv.fmgr.makePlus(base, offset);
+    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
+    return conv.isCompositeType(resultType) ? lastAddress :
+           conv.makeDereferece(resultType, lastAddress, ssa, pts);
   }
 
   @Override
   public Formula visit(final CFieldReference e) throws UnrecognizedCCodeException {
-    final String baseName = e.getFieldOwner().accept(baseVisitor);
-    final String fieldName = e.getFieldName();
-    final CType resultType = e.getExpressionType();
-    if (baseName != null) {
+    assert !e.isPointerDereference() : "CFA should be transformed to eliminate ->s";
+    final Variable variable = e.accept(baseVisitor);
+    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
+    if (variable != null) {
       if (!conv.isCompositeType(resultType)) {
-        return conv.makeVariable(baseName + BaseVisitor.NAME_SEPARATOR + fieldName, resultType, ssa);
+        lastAddress = null;
+        return conv.makeVariable(variable, ssa);
       } else {
         throw new UnrecognizedCCodeException("Unhandled reference to composite as a whole", edge, e);
       }
@@ -85,19 +93,124 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
       final CType fieldOwnerType = e.getFieldOwner().getExpressionType();
       if (fieldOwnerType instanceof CCompositeType) {
         final Formula base = e.getFieldOwner().accept(this);
+        final String fieldName = e.getFieldName();
+        fields.add(Pair.of((CCompositeType) fieldOwnerType, fieldName));
         final Formula offset = conv.fmgr.makeNumber(pts.getPointerType(),
                                                     pts.getOffset((CCompositeType) fieldOwnerType, fieldName));
-        final Formula address = conv.fmgr.makePlus(base, offset);
-        return conv.isCompositeType(resultType) ? address :
-               conv.makeDereferece(resultType, address, ssa, pts);
+        lastAddress = conv.fmgr.makePlus(base, offset);
+        return conv.isCompositeType(resultType) ? lastAddress :
+               conv.makeDereferece(resultType, lastAddress, ssa, pts);
       } else {
         throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
       }
     }
   }
 
+  @Override
+  public Formula visit(final CIdExpression e) throws UnrecognizedCCodeException {
+    Variable variable = e.accept(baseVisitor);
+    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
+    if (variable != null) {
+      if (!conv.isCompositeType(resultType)) {
+        lastAddress = null;
+        return conv.makeVariable(variable, ssa);
+      } else {
+        throw new UnrecognizedCCodeException("Unhandled reference to composite as a whole", edge, e);
+      }
+    } else {
+      variable = conv.scopedIfNecessary(e, ssa, function);
+      lastAddress = conv.makeConstant(variable.withType(new CPointerType(true, false, e.getExpressionType())), ssa);
+      return conv.isCompositeType(resultType) ? lastAddress :
+             conv.makeDereferece(resultType, lastAddress, ssa, pts);
+    }
+  }
+
+  @Override
+  public Formula visit(final CTypeIdExpression e) throws UnrecognizedCCodeException {
+    if (e.getOperator() == TypeIdOperator.SIZEOF) {
+      return handleSizeof(e, e.getType());
+    } else {
+      return visitDefault(e);
+    }
+  }
+
+  private Formula handleSizeof(final CExpression e, final CType type) throws UnrecognizedCCodeException {
+    return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(e.getExpressionType()), pts.getSize(type));
+  }
+
+  @Override
+  public Formula visit(CTypeIdInitializerExpression e) throws UnrecognizedCCodeException {
+    throw new UnrecognizedCCodeException("Unhandled initializer", edge, e);
+  }
+
+  @Override
+  public Formula visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
+    final CExpression operand = e.getOperand();
+    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
+    switch (e.getOperator()) {
+    case MINUS:
+    case PLUS:
+    case NOT:
+    case TILDE:
+      return super.visit(e);
+    case SIZEOF:
+      return handleSizeof(e, e.getExpressionType());
+    case STAR:
+      if (!(resultType instanceof CFunctionType)) {
+        lastAddress = operand.accept(this);
+        return conv.isCompositeType(resultType) ? lastAddress :
+               conv.makeDereferece(resultType, lastAddress, ssa, pts);
+      } else {
+        lastAddress = null;
+        return operand.accept(this);
+      }
+    case AMPER:
+      if (!(resultType instanceof CFunctionType)) {
+        Variable baseVariable = operand.accept(baseVisitor);
+        if (baseVariable == null) {
+          Formula addressExpression = operand.accept(this);
+          if (!conv.isCompositeType(PointerTargetSet.simplifyType(operand.getExpressionType()))) {
+            addressExpression = lastAddress;
+            lastAddress = null;
+            return addressExpression;
+          } else {
+            return addressExpression;
+          }
+        } else {
+          baseVariable = baseVisitor.getLastBase();
+          final Formula baseAddress = conv.makeConstant(baseVariable, ssa);
+          conv.addSharingConstraints(edge,
+                                     baseAddress,
+                                     baseVariable,
+                                     fields,
+                                     ssa,
+                                     constraints,
+                                     pts);
+          if (ssa.getIndex(baseVariable.getName()) != CToFormulaWithUFConverter.VARIABLE_UNSET) {
+            ssa.deleteVariable(baseVariable.getName());
+          }
+          pts.addBase(baseVariable.getName(), baseVariable.getType());
+          return visit(e);
+        }
+      } else {
+        lastAddress = null;
+        return operand.accept(this);
+      }
+      default:
+        throw new UnrecognizedCCodeException("Unknown unary operator", edge, e);
+    }
+  }
+
+  public Formula getLastAddress() {
+    return lastAddress;
+  }
+
+  @SuppressWarnings("hiding")
   protected final CToFormulaWithUFConverter conv;
   protected final PointerTargetSetBuilder pts;
 
   protected final BaseVisitor baseVisitor;
+
+  protected Formula lastAddress;
+  protected final List<Pair<CCompositeType, String>> fields = new ArrayList<>();
 }

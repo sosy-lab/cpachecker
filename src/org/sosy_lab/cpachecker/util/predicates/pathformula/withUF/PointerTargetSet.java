@@ -506,6 +506,14 @@ public class PointerTargetSet implements Serializable {
                                   pointerTargetSet.formulaManager);
     }
 
+    public CEvaluatingVisitor getEvaluatingVisitor() {
+      return pointerTargetSet.evaluatingVisitor;
+    }
+
+    public int getDefaultArrayLength() {
+      return PointerTargetSet.DEFAULT_ARRAY_LENGTH;
+    }
+
     private boolean flag; // Used by addBase() addField() to detect essential additions
 
     private final PointerTargetSet pointerTargetSet;
