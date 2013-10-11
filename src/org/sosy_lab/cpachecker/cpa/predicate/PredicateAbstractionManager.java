@@ -156,11 +156,6 @@ public class PredicateAbstractionManager {
       description="Identify those predicates where the result is trivially known before abstraction computation and omit them.")
   private boolean identifyTrivialPredicates = false;
 
-  @Option(name="pointerAnalysisWithUFs",
-      description="Use CToFormulaConverterWithUF for converting edges to path formulae. This enables encoding of " +
-                  "aliased variables with uninterpreted function calls.")
-  private boolean pointerAnalysisWithUFs = false;
-
   private boolean warnedOfCartesianAbstraction = false;
 
   private final Map<Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
@@ -219,10 +214,6 @@ public class PredicateAbstractionManager {
     abstractionStorage = new PredicateAbstractionsStorage(reuseAbstractionsFrom, logger, fmgr);
   }
 
-  private BooleanFormula getFormula(final PathFormula pathFormula) {
-    return pathFormula.getFormula();
-  }
-
   /**
    * Compute an abstraction of the conjunction of an AbstractionFormula and
    * a PathFormula. The AbstractionFormula will be used in its instantiated form,
@@ -251,7 +242,7 @@ public class PredicateAbstractionManager {
     logger.log(Level.ALL, "Predicates:", pPredicates);
 
     BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
-    BooleanFormula symbFormula = buildFormula(getFormula(pathFormula));
+    BooleanFormula symbFormula = buildFormula(pathFormula.getFormula());
     BooleanFormula f = bfmgr.and(absFormula, symbFormula);
     final SSAMap ssa = pathFormula.getSsa();
 
@@ -701,7 +692,7 @@ public class PredicateAbstractionManager {
    */
   public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2) {
     BooleanFormula absFormula = a1.asInstantiatedFormula();
-    BooleanFormula symbFormula = buildFormula(getFormula(p1));
+    BooleanFormula symbFormula = buildFormula(p1.getFormula());
     BooleanFormula a = bfmgr.and(absFormula, symbFormula);
 
     // get formula of a2 with the indices of p1
@@ -738,7 +729,7 @@ public class PredicateAbstractionManager {
                                        .visit(mergedPathFormulae.getFormula());
 
     //quick syntactic check
-    if (fmgr.checkSyntacticEntails(leftFormula, getFormula(a2))) {
+    if (fmgr.checkSyntacticEntails(leftFormula, a2.getFormula())) {
       stats.numSyntacticEntailedPathFormulae++;
       return true;
     }
@@ -746,7 +737,7 @@ public class PredicateAbstractionManager {
 
     //check formulae
     // TODO: should leftFormula be used instead of mergedPathFormulae here?
-    if (!solver.implies(getFormula(mergedPathFormulae), getFormula(a2))) { return false; }
+    if (!solver.implies(mergedPathFormulae.getFormula(), a2.getFormula())) { return false; }
     stats.numSemanticEntailedPathFormulae++;
 
     return true;
@@ -760,7 +751,7 @@ public class PredicateAbstractionManager {
    */
   public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula) {
     BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
-    BooleanFormula symbFormula = buildFormula(getFormula(pathFormula));
+    BooleanFormula symbFormula = buildFormula(pathFormula.getFormula());
     BooleanFormula f = bfmgr.and(absFormula, symbFormula);
     logger.log(Level.ALL, "Checking satisfiability of formula", f);
 

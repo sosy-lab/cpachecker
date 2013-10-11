@@ -1442,7 +1442,7 @@ public class PointerTargetSet implements Serializable {
   private static final Multiset<CCompositeType> sizes = HashMultiset.create();
   private static final Map<CCompositeType, Multiset<String>> offsets = new HashMap<>();
 
-  private static final CachingCaninizingCTypeVisitor typeVisitor = new CachingCaninizingCTypeVisitor(true, true);
+  private static final CachingCanonizingCTypeVisitor typeVisitor = new CachingCanonizingCTypeVisitor(true, true);
 
   // The following fields are modified in the derived class only
 

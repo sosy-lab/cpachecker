@@ -80,7 +80,7 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     return conv.makeVariableUnsafe(exp, function, ssa, false);
   }
 
-  private Formula getPointerTargetSizeofLiteral(final CPointerType pointerType, final CType implicitType) {
+  private Formula getPointerTargetSizeLiteral(final CPointerType pointerType, final CType implicitType) {
     final int pointerTargetSize = conv.getSizeof(pointerType.getType());
     return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
   }
@@ -134,12 +134,12 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
       } else if (!(promT2 instanceof CPointerType)) {
         // operand1 is a pointer => we should multiply the second summand by the size of the pointer target
         ret =  conv.fmgr.makePlus(f1, conv.fmgr.makeMultiply(f2,
-                                                             getPointerTargetSizeofLiteral((CPointerType) promT1,
+                                                             getPointerTargetSizeLiteral((CPointerType) promT1,
                                                              implicitType)));
       } else if (!(promT1 instanceof CPointerType)) {
         // operand2 is a pointer => we should multiply the first summand by the size of the pointer target
         ret =  conv.fmgr.makePlus(f2, conv.fmgr.makeMultiply(f1,
-                                                             getPointerTargetSizeofLiteral((CPointerType) promT2,
+                                                             getPointerTargetSizeLiteral((CPointerType) promT2,
                                                              implicitType)));
       } else {
         throw new UnrecognizedCCodeException("Can't add pointers", edge, exp);
@@ -153,13 +153,13 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
       } else if (!(promT2 instanceof CPointerType)) {
         // operand1 is a pointer => we should multiply the subtrahend by the size of the pointer target
         ret =  conv.fmgr.makeMinus(f1, conv.fmgr.makeMultiply(f2,
-                                                              getPointerTargetSizeofLiteral((CPointerType) promT1,
+                                                              getPointerTargetSizeLiteral((CPointerType) promT1,
                                                                                             implicitType)));
       } else if (promT1 instanceof CPointerType) {
         // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
         if (promT1.equals(promT2)) {
           ret = conv.fmgr.makeDivide(conv.fmgr.makeMinus(f1, f2),
-                                     getPointerTargetSizeofLiteral((CPointerType) promT1, implicitType),
+                                     getPointerTargetSizeLiteral((CPointerType) promT1, implicitType),
                                      true);
         } else {
           throw new UnrecognizedCCodeException("Can't subtract pointers of different types", edge, exp);

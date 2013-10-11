@@ -87,11 +87,6 @@ import com.google.common.base.Predicates;
 @Options(prefix="cpa.predicate.refinement")
 public class PredicateCPARefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
 
-  @Option(name="pointerAnalysisWithUFs",
-      description="Use CToFormulaConverterWithUF for converting edges to path formulae. This enables encoding of " +
-                  "aliased variables with uninterpreted function calls.")
-  private boolean pointerAnalysisWithUFs = false;
-
   @Option(description="slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
 
@@ -189,8 +184,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
 
     // create list of formulas on path
-    final List<BooleanFormula> formulas;
-    formulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirst().getFirst());
+    final List<BooleanFormula> formulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirst().getFirst());
     assert abstractionStatesTrace.size() == formulas.size();
 
     // build the counterexample

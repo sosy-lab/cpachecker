@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 
-public class CachingCaninizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeException> {
+public class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeException> {
 
   private class CTypeTransformerVisitor implements CTypeVisitor<CType, RuntimeException> {
 
@@ -56,7 +56,7 @@ public class CachingCaninizingCTypeVisitor extends DefaultCTypeVisitor<CType, Ru
     @Override
     public CType visit(final CArrayType t) {
       final CType oldType = t.getType();
-      final CType type = oldType.accept(CachingCaninizingCTypeVisitor.this);
+      final CType type = oldType.accept(CachingCanonizingCTypeVisitor.this);
       return type == oldType && (!t.isConst() || !ignoreConst) && (!t.isVolatile() || !ignoreVolatile) ? t :
         new CArrayType(!ignoreConst && t.isConst(),
                        !ignoreVolatile && t.isVolatile(),
@@ -70,7 +70,7 @@ public class CachingCaninizingCTypeVisitor extends DefaultCTypeVisitor<CType, Ru
       int i = 0;
       for (CCompositeTypeMemberDeclaration oldMemberDeclaration : t.getMembers()) {
         final CType oldMemberType = oldMemberDeclaration.getType();
-        final CType memberType = oldMemberType.accept(CachingCaninizingCTypeVisitor.this);
+        final CType memberType = oldMemberType.accept(CachingCanonizingCTypeVisitor.this);
         if (memberType != oldMemberType && memberDeclarations == null) {
           memberDeclarations = new ArrayList<>();
           memberDeclarations.addAll(t.getMembers().subList(0, i));
@@ -95,7 +95,7 @@ public class CachingCaninizingCTypeVisitor extends DefaultCTypeVisitor<CType, Ru
     public CElaboratedType visit(final CElaboratedType t) {
       final CComplexType oldRealType = t.getRealType();
       final CComplexType realType = oldRealType != null ?
-                                      (CComplexType) oldRealType.accept(CachingCaninizingCTypeVisitor.this) :
+                                      (CComplexType) oldRealType.accept(CachingCanonizingCTypeVisitor.this) :
                                       null;
 
       return realType == oldRealType && (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
@@ -109,7 +109,7 @@ public class CachingCaninizingCTypeVisitor extends DefaultCTypeVisitor<CType, Ru
     @Override
     public CPointerType visit(final CPointerType t) {
       final CType oldType = t.getType();
-      final CType type = oldType.accept(CachingCaninizingCTypeVisitor.this);
+      final CType type = oldType.accept(CachingCanonizingCTypeVisitor.this);
 
       return type == oldType && (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
              new CPointerType(!ignoreConst && t.isConst(),
@@ -120,7 +120,7 @@ public class CachingCaninizingCTypeVisitor extends DefaultCTypeVisitor<CType, Ru
     @Override
     public CTypedefType visit(final CTypedefType t) {
       final CType oldRealType = t.getRealType();
-      final CType realType = oldRealType.accept(CachingCaninizingCTypeVisitor.this);
+      final CType realType = oldRealType.accept(CachingCanonizingCTypeVisitor.this);
 
       return realType == oldRealType && (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
              new CTypedefType(!ignoreConst && t.isConst(), !ignoreConst && t.isVolatile(), t.getName(), realType);
@@ -129,12 +129,12 @@ public class CachingCaninizingCTypeVisitor extends DefaultCTypeVisitor<CType, Ru
     @Override
     public CFunctionType visit(final CFunctionType t) {
       final CType oldReturnType = t.getReturnType();
-      final CType returnType = oldReturnType.accept(CachingCaninizingCTypeVisitor.this);
+      final CType returnType = oldReturnType.accept(CachingCanonizingCTypeVisitor.this);
 
       List<CType> parameterTypes = null;
       int i = 0;
       for (CType oldType : t.getParameters()) {
-        final CType type = oldType.accept(CachingCaninizingCTypeVisitor.this);
+        final CType type = oldType.accept(CachingCanonizingCTypeVisitor.this);
         if (type != oldType && parameterTypes == null) {
           parameterTypes = new ArrayList<>();
           parameterTypes.addAll(t.getParameters().subList(0, i));
@@ -197,7 +197,7 @@ public class CachingCaninizingCTypeVisitor extends DefaultCTypeVisitor<CType, Ru
     private final boolean ignoreVolatile;
   }
 
-  public CachingCaninizingCTypeVisitor(final boolean ignoreConst,
+  public CachingCanonizingCTypeVisitor(final boolean ignoreConst,
                              final boolean ignoreVolatile) {
     typeVisitor = new CTypeTransformerVisitor(ignoreConst, ignoreVolatile);
   }

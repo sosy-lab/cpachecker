@@ -126,7 +126,7 @@ public class CFACreator {
   private boolean useMultiEdges = false;
 
   @Option(name="cfa.removeIrrelevantForSpecification",
-          description="remove paths from CFA that cannot lead to a specification violation")
+      description="remove paths from CFA that cannot lead to a specification violation")
   private boolean removeIrrelevantForSpecification = false;
 
   @Option(name="cfa.export",
