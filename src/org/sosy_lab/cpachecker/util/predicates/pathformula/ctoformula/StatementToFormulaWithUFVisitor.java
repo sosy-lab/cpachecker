@@ -129,7 +129,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final CExpression lhs = e.getLeftHandSide();
     final CType lhsType = PointerTargetSet.simplifyType(lhs.getExpressionType());
     final CType rhsType = rhs != null ? PointerTargetSet.simplifyType(rhs.getExpressionType()) :
-      new CSimpleType(true, false, CBasicType.CHAR, false,false, false, false, false, false, false);
+                            PointerTargetSet.CHAR;
 
     delegate.reset();
     lhs.accept(delegate);
@@ -236,13 +236,13 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       initializers.add(new CInitializerExpression(
                              e.getFileLocation(),
                              new CCharLiteralExpression(e.getFileLocation(),
-                                                        PointerTargetSet.CONST_CHAR,
+                                                        PointerTargetSet.CHAR,
                                                         s.charAt(i))));
     }
     if (zeroTerminated) {
       initializers.add(new CInitializerExpression(
                              e.getFileLocation(),
-                             new CCharLiteralExpression(e.getFileLocation(), PointerTargetSet.CONST_CHAR, '\0')));
+                             new CCharLiteralExpression(e.getFileLocation(), PointerTargetSet.CHAR, '\0')));
     }
     return new CInitializerList(e.getFileLocation(), initializers);
   }
@@ -250,7 +250,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   public Object visitInitializer(CType type, CInitializer topInitializer, final boolean isAutomatic)
   throws UnrecognizedCCodeException {
     type = PointerTargetSet.simplifyType(type);
-    final Formula zero = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(PointerTargetSet.CONST_CHAR, pts), 0);
+    final Formula zero = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(PointerTargetSet.CHAR, pts), 0);
     if (type instanceof CArrayType) {
       if (topInitializer instanceof CInitializerExpression &&
           ((CArrayType) type).getType() instanceof CSimpleType &&
@@ -432,9 +432,9 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           final CType operand1Type = getSizeofType(product.getOperand1());
           final CType operand2Type = getSizeofType(product.getOperand2());
           if (operand1Type != null) {
-            newType = new CArrayType(true, false, operand1Type, product.getOperand2());
+            newType = new CArrayType(false, false, operand1Type, product.getOperand2());
           } else if (operand2Type != null) {
-            newType = new CArrayType(true, false, operand2Type, product.getOperand1());
+            newType = new CArrayType(false, false, operand2Type, product.getOperand1());
           } else {
             throw new UnrecognizedCCodeException("Can't determine type for internal memory allocation", edge, e);
           }
@@ -447,7 +447,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                    parameter.getExpressionType(),
                                                    BigInteger.valueOf(size));
           }
-          newType = new CArrayType(true, false, PointerTargetSet.VOID, length);
+          newType = new CArrayType(false, false, PointerTargetSet.VOID, length);
         }
         final CType newBaseType = PointerTargetSet.getBaseType(newType);
         final String allocVariableName = CToFormulaWithUFConverter.getAllocVairiableName(functionName, newBaseType);
@@ -455,13 +455,11 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                      conv.makeFreshIndex(allocVariableName, newBaseType, ssa));
         final Formula result = conv.makeConstant(Variable.create(newBaseName, newBaseType), ssa, pts);
         if (functionName.equals(conv.successfulZallocFunctionName)) {
-          final CSimpleType integerType =
-            new CSimpleType(true, false, CBasicType.CHAR, false, false, true, false, false, false, false);
           final BooleanFormula initialization = conv.makeAssignment(
               newType,
-              integerType,
+              PointerTargetSet.CHAR,
               result,
-              conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(integerType, pts), 0),
+              conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(PointerTargetSet.CHAR, pts), 0),
               new PointerTargetPattern(newBaseName, 0, 0),
               false,
               null,

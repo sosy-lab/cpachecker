@@ -170,13 +170,13 @@ public class PointerTargetSet implements Serializable {
   public static CType getBaseType(CType type) {
     type = simplifyType(type);
     if (!(type instanceof CArrayType)) {
-      return new CPointerType(true, false, type);
+      return new CPointerType(false, false, type);
     } else {
-      return new CPointerType(true, false, ((CArrayType) type).getType());
+      return new CPointerType(false, false, ((CArrayType) type).getType());
     }
   }
 
-  public static CType simplifyType(final CType type) {
+  public static CType simplifyType(final @Nonnull CType type) {
     CType canonicalType = canonicalTypeCache.get(type);
     if (canonicalType != null) {
       return canonicalType;
@@ -970,16 +970,16 @@ public class PointerTargetSet implements Serializable {
   public static final int DEFAULT_ARRAY_LENGTH = 100;
   public static final int DEFAULT_ALLOCATION_SIZE = 4;
 
-  public static final CSimpleType CONST_CHAR =
-    new CSimpleType(true, false, CBasicType.CHAR, false, false, true, false, false, false, false);
+  public static final CSimpleType CHAR =
+    new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
   public static final CType VOID =
     new CSimpleType(false, false, CBasicType.VOID, false, false, false, false, false, false, false);
-  public static final CType POINTER_TO_VOID = new CPointerType(true, false, VOID);
+  public static final CType POINTER_TO_VOID = new CPointerType(false, false, VOID);
 
   private static final Map<CType, CType> canonicalTypeCache = new HashMap<>();
 
   static {
-    canonicalTypeCache.put(CONST_CHAR, CONST_CHAR);
+    canonicalTypeCache.put(CHAR, CHAR);
     canonicalTypeCache.put(VOID, VOID);
     canonicalTypeCache.put(POINTER_TO_VOID, POINTER_TO_VOID);
   }
