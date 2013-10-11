@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget
 
 import java.io.Serializable;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.base.Preconditions;
 
@@ -47,7 +47,7 @@ public class PointerTargetPattern implements Serializable {
    * Constructor for matching array elements
    * @param containerType
    */
-  public PointerTargetPattern(CCompositeType containerType) {
+  public PointerTargetPattern(CType containerType) {
     this.matchBase = false;
     this.containerType = containerType;
     this.matchContainerType = true;
@@ -61,7 +61,7 @@ public class PointerTargetPattern implements Serializable {
    * @param containerType
    * @param properOffset
    */
-  public PointerTargetPattern(CCompositeType containerType, int properOffset) {
+  public PointerTargetPattern(CType containerType, int properOffset) {
     this.matchBase = false;
     this.containerType = containerType;
     this.matchContainerType = true;
@@ -93,7 +93,7 @@ public class PointerTargetPattern implements Serializable {
     this.matchBase = true;
   }
 
-  public void setContainerType(CCompositeType containerType) {
+  public void setContainerType(CType containerType) {
     assert !matchContainerType && !matchOffset : "Contradiction in target pattern: containerType";
     this.containerType = containerType;
     this.matchContainerType = true;
@@ -154,7 +154,7 @@ public class PointerTargetPattern implements Serializable {
   }
 
   private String base = null;
-  private CCompositeType containerType = null;
+  private CType containerType = null;
   private int properOffset = 0;
   private int containerOffset = 0;
 

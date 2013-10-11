@@ -25,8 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget
 
 import java.io.Serializable;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class PointerTarget implements Serializable {
 
@@ -48,7 +47,7 @@ public class PointerTarget implements Serializable {
    * @param containerType
    * @param properOffset
    */
-  public PointerTarget(String base, CCompositeType containerType, int properOffset) {
+  public PointerTarget(String base, CType containerType, int properOffset) {
     this.base = base;
     this.containerType = containerType;
     this.properOffset = properOffset;
@@ -62,7 +61,7 @@ public class PointerTarget implements Serializable {
    * @param properOffset
    * @param containerOffset
    */
-  public PointerTarget(String base, CCompositeType containerType, int properOffset, int containerOffset) {
+  public PointerTarget(String base, CType containerType, int properOffset, int containerOffset) {
     this.base = base;
     this.containerType = containerType;
     this.properOffset = properOffset;
@@ -86,7 +85,7 @@ public class PointerTarget implements Serializable {
     return containerType == null;
   }
 
-  public CCompositeType getContainerType() {
+  public CType getContainerType() {
     return containerType;
   }
 
@@ -96,7 +95,7 @@ public class PointerTarget implements Serializable {
   }
 
   final String base;
-  final CCompositeType containerType;
+  final CType containerType;
   final int properOffset;
   final int containerOffset;
 

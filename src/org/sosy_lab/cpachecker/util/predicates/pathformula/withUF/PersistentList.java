@@ -39,7 +39,7 @@ import com.google.common.base.Joiner;
 @Immutable
 public class PersistentList<T> extends AbstractSequentialList<T> {
 
-  private PersistentList(T head, PersistentList<T> tail) {
+  private PersistentList(final T head, final PersistentList<T> tail) {
     this.head = head;
     this.tail = tail;
   }
@@ -61,28 +61,28 @@ public class PersistentList<T> extends AbstractSequentialList<T> {
   /** Returns a list containing the specified value.
    *  @return A list containing the specified value */
   @SuppressWarnings("unchecked")
-  public static <T> PersistentList<T> of(T value) {
+  public static <T> PersistentList<T> of(final T value) {
     return new PersistentList<>(value, EMPTY);
   }
 
   /** Returns a list containing the specified values.
    *  @return A list containing the specified values */
   @SuppressWarnings("unchecked")
-  public static <T> PersistentList<T> of(T v1, T v2) {
+  public static <T> PersistentList<T> of(final T v1, final T v2) {
     return EMPTY.with(v2).with(v1);
   }
 
   /** Returns a list containing the specified values.
    *  @return A list containing the specified values */
   @SuppressWarnings("unchecked")
-  public static <T> PersistentList<T> of(T v1, T v2, T v3) {
+  public static <T> PersistentList<T> of(final T v1, final T v2, final T v3) {
     return EMPTY.with(v3).with(v2).with(v1);
   }
 
   /** Returns a list containing the specified values.
    *  @return A list containing the specified values */
   @SuppressWarnings("unchecked")
-  public static <T> PersistentList<T> of(T... values) {
+  public static <T> PersistentList<T> of(final T ... values) {
     PersistentList<T> result = EMPTY;
     for (int i = values.length - 1; i >= 0; --i) {
       result = result.with(values[i]);
@@ -92,7 +92,7 @@ public class PersistentList<T> extends AbstractSequentialList<T> {
 
   /** Returns A new list with the values from the Iterable.
    *  @return A new list with the values from the Iterable */
-  public static <T> PersistentList<T> copyOf(Iterable<T> values) {
+  public static <T> PersistentList<T> copyOf(final Iterable<T> values) {
     return new Builder<T>().addAll(values).build();
   }
 
@@ -110,7 +110,7 @@ public class PersistentList<T> extends AbstractSequentialList<T> {
 
   /** Returns a new list with value as the head and the old list as the tail.
    *  @return A new list with value as the head and the old list as the tail */
-  public PersistentList<T> with(T value) {
+  public PersistentList<T> with(final T value) {
     checkNotNull(value);
     return new PersistentList<>(value, this);
   }
@@ -131,7 +131,7 @@ public class PersistentList<T> extends AbstractSequentialList<T> {
    *  Note: O(N)
    *  @return A new list omitting the specified value
    */
-  public PersistentList<T> without(T value) {
+  public PersistentList<T> without(final T value) {
     if (!contains(value)) {
       return this;
     }
@@ -151,7 +151,7 @@ public class PersistentList<T> extends AbstractSequentialList<T> {
 
   /** Note: O(N) */
   @Override
-  public boolean contains(Object value) {
+  public boolean contains(final Object value) {
     for (PersistentList<T> list = this; list != EMPTY; list = list.tail) {
       if (value.equals(list.head())) {
         return true;
@@ -162,7 +162,7 @@ public class PersistentList<T> extends AbstractSequentialList<T> {
 
   @Override
   @SuppressWarnings("unchecked")
-  public boolean equals(Object other) {
+  public boolean equals(final Object other) {
     if (this == other) {
       return true;
     }
@@ -215,12 +215,12 @@ public class PersistentList<T> extends AbstractSequentialList<T> {
 
   public static class Builder<T> {
 
-    public Builder<T> add(T value) {
+    public Builder<T> add(final T value) {
       list = list.with(value);
       return this;
     }
 
-    public Builder<T> addAll(Iterable<? extends T> values) {
+    public Builder<T> addAll(final Iterable<? extends T> values) {
       for (T value : values) {
         add(value);
       }
@@ -282,7 +282,7 @@ public class PersistentList<T> extends AbstractSequentialList<T> {
   }
 
   @Override
-  public ListIterator<T> listIterator(int index) {
+  public ListIterator<T> listIterator(final int index) {
     throw new UnsupportedOperationException();
   }
 
