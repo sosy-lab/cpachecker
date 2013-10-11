@@ -438,16 +438,16 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
 
     BooleanFormula result = conv.toBooleanFormula(e.accept(delegate));
 
+    if (conv.deferUntypedAllocations) {
+      handleDeferredAllocationsInAssume(e, delegate.getUsedDeferredAllocationPointers());
+    }
+
     if (!truthAssumtion) {
       result = conv.bfmgr.not(result);
     }
     // addBases(delegate.getSharedBases(), pts);
     addEssentialFields(delegate.getInitializedFields(), pts);
     addEssentialFields(delegate.getUsedFields(), pts);
-
-    if (conv.deferUntypedAllocations) {
-      handleDeferredAllocationsInAssume(e, delegate.getUsedDeferredAllocationPointers());
-    }
     return result;
   }
 
