@@ -174,9 +174,8 @@ public class PointerTargetSet implements Serializable {
   public int getSize(CType cType) {
     cType = simplifyType(cType);
     if (cType instanceof CCompositeType) {
-      final String type = cTypeToString(cType);
-      if (sizes.contains(type)) {
-        return sizes.count(type);
+      if (sizes.contains(cType)) {
+        return sizes.count(cType);
       } else {
         return cType.accept(sizeofVisitor);
       }
@@ -185,10 +184,10 @@ public class PointerTargetSet implements Serializable {
     }
   }
 
-  public int getOffset(final CCompositeType compositeType, final String memberName) {
+  public int getOffset(CCompositeType compositeType, final String memberName) {
+    compositeType = (CCompositeType) simplifyType(compositeType);
     assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-    final String type = cTypeToString(compositeType);
-    return offsets.get(type).count(memberName);
+    return offsets.get(compositeType).count(memberName);
   }
 
   private static Iterable<PointerTarget> getTargets(
@@ -284,10 +283,11 @@ public class PointerTargetSet implements Serializable {
                                                         .getFormulaType(pointerSize * bitsPerByte);
     }
 
-    public void addCompositeType(final CCompositeType compositeType) {
-      String type = cTypeToString(compositeType);
-      if (sizes.contains(type)) {
-        assert offsets.containsKey(type) : "Illegal state of PointerTargetSet: no offsets for type:" + type;
+    public void addCompositeType(CCompositeType compositeType) {
+      compositeType = (CCompositeType) simplifyType(compositeType);
+      if (sizes.contains(compositeType)) {
+        assert offsets.containsKey(compositeType) : "Illegal state of PointerTargetSet: no offsets for type:" +
+                                                    compositeType;
         return; // The type has already been added
       }
 
@@ -302,22 +302,24 @@ public class PointerTargetSet implements Serializable {
       int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         members.setCount(memberDeclaration.getName(), offset);
-        final CType cType = simplifyType(memberDeclaration.getType());
-        type = null;
-        if (cType instanceof CCompositeType) {
-          final CCompositeType compositeMemberType = (CCompositeType) cType;
-          if (compositeMemberType.getKind() == ComplexTypeKind.STRUCT ||
-              compositeMemberType.getKind() == ComplexTypeKind.UNION) {
-            type = cTypeToString(compositeMemberType);
-            if (!sizes.contains(type)) {
-              assert !offsets.containsKey(type) : "Illegal state of PointerTargetSet: offsets for type:" + type;
-              addCompositeType(compositeMemberType);
+        final CType memberType = simplifyType(memberDeclaration.getType());
+        final CCompositeType memberCompositeType;
+        if (memberType instanceof CCompositeType) {
+          memberCompositeType = (CCompositeType) memberType;
+          if (memberCompositeType.getKind() == ComplexTypeKind.STRUCT ||
+              memberCompositeType.getKind() == ComplexTypeKind.UNION) {
+            if (!sizes.contains(memberCompositeType)) {
+              assert !offsets.containsKey(memberCompositeType) :
+                       "Illegal state of PointerTargetSet: offsets for type:" + memberCompositeType;
+              addCompositeType(memberCompositeType);
             }
           }
+        } else {
+          memberCompositeType = null;
         }
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-          if (type != null) {
-            offset += sizes.count(type);
+          if (memberCompositeType != null) {
+            offset += sizes.count(memberCompositeType);
           } else {
             offset += memberDeclaration.getType().accept(pointerTargetSet.sizeofVisitor);
           }
@@ -326,8 +328,8 @@ public class PointerTargetSet implements Serializable {
 
       assert offset == size : "Incorrect sizeof or offset of the last member: " + compositeType;
 
-      sizes.setCount(type, size);
-      offsets.put(type, members);
+      sizes.setCount(compositeType, size);
+      offsets.put(compositeType, members);
     }
 
     public int getSize(final CType cType) {
@@ -921,8 +923,8 @@ public class PointerTargetSet implements Serializable {
    * Multiset.count(key). This is better because the Multiset internally uses
    * modifiable integers instead of the immutable Integer class.
    */
-  private static final Multiset<String> sizes = HashMultiset.create();
-  private static final Map<String, Multiset<String>> offsets = new HashMap<>();
+  private static final Multiset<CCompositeType> sizes = HashMultiset.create();
+  private static final Map<CCompositeType, Multiset<String>> offsets = new HashMap<>();
 
   private final PersistentSortedMap<String, CType> bases;
   private final PersistentSortedMap<CompositeField, Boolean> fields;
