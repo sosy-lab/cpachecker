@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -58,8 +57,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   }
 
   private class PointerTargetEvaluatingVisitor
-    extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeException>
-    implements CExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeException> {
+    extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeException> {
 
     @Override
     protected PointerTargetPattern visitDefault(final CExpression e) throws UnrecognizedCCodeException {

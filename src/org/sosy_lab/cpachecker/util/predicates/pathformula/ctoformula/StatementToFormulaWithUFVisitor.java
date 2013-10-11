@@ -131,16 +131,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final CType rhsType = rhs != null ? PointerTargetSet.simplifyType(rhs.getExpressionType()) :
                             PointerTargetSet.CHAR;
 
-    delegate.reset();
-    lhs.accept(delegate);
-    // addBases(delegate.getSharedBases(), pts);
-    addEssentialFields(delegate.getInitializedFields(), pts);
-    final ImmutableList<Pair<CCompositeType, String>> lhsUsedFields = ImmutableList.copyOf(delegate.getUsedFields());
-
-    final Object lastTarget = delegate.getLastTarget();
-    assert lastTarget instanceof String || lastTarget instanceof Formula;
-
-    final List<Pair<CCompositeType, String>> rhsAddressedFields;
+    final List<Pair<CCompositeType, String>> rhsUsedFields;
     final Formula rhsFormula;
     if (rhs != null &&
         (!(rhs instanceof CFunctionCallExpression) ||
@@ -151,19 +142,28 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       rhsFormula = rhs.accept(this);
       // addBases(delegate.getSharedBases(), pts);
       addEssentialFields(delegate.getInitializedFields(), pts);
-      rhsAddressedFields = delegate.getAddressedFields();
+      rhsUsedFields = delegate.getUsedFields();
     } else {
       rhsFormula = null;
-      rhsAddressedFields = ImmutableList.<Pair<CCompositeType,String>>of();
+      rhsUsedFields = ImmutableList.<Pair<CCompositeType,String>>of();
     }
-
     final String rhsName = delegate.getLastTarget() instanceof String ? (String) delegate.getLastTarget() : null;
     final Object rhsObject = !(rhsType instanceof CCompositeType) || rhsName == null ? rhsFormula : rhsName;
+
+    delegate.reset();
+    lhs.accept(delegate);
+    // addBases(delegate.getSharedBases(), pts);
+    addEssentialFields(delegate.getInitializedFields(), pts);
+    final ImmutableList<Pair<CCompositeType, String>> lhsUsedFields = ImmutableList.copyOf(delegate.getUsedFields());
+    final Object lastTarget = delegate.getLastTarget();
+    assert lastTarget instanceof String || lastTarget instanceof Formula;
     final PointerTargetPattern pattern = lastTarget instanceof String ? null : lhs.accept(lvalueVisitor);
+
     final BooleanFormula result =
       conv.makeAssignment(lhsType, rhsType, lastTarget, rhsObject, pattern, false, null, ssa, constraints, pts);
+
     addEssentialFields(lhsUsedFields, pts);
-    addEssentialFields(rhsAddressedFields, pts);
+    addEssentialFields(rhsUsedFields, pts);
     return result;
   }
 
@@ -185,7 +185,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   public BooleanFormula visitComplexInitialization(final CDeclaration declaration, final List<?> initializerList) {
     final CType type = PointerTargetSet.simplifyType(declaration.getType());
     final String lhs = declaration.getQualifiedName();
-    if (!PointerTargetSet.containsArray(type)) {
+    if (!pts.isBase(declaration.getQualifiedName()) && !PointerTargetSet.containsArray(type)) {
       return conv.makeAssignment(type, type, lhs, initializerList, null, false, null, ssa, constraints, pts);
     } else {
       final PointerTargetPattern pattern = new PointerTargetPattern(lhs, 0, 0);
