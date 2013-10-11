@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +50,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor {
 
@@ -90,12 +92,12 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     final Variable variable = e.accept(baseVisitor);
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     if (variable != null) {
-        final String variableName = variable.getName();
-        lastTarget = variableName;
-        if (pts.isDeferredAllocationPointer(variableName)) {
-          usedDeferredAllocationPointers.put(variableName, null);
-        }
-        return conv.makeVariable(variable, ssa, pts);
+      final String variableName = variable.getName();
+      lastTarget = variableName;
+      if (pts.isDeferredAllocationPointer(variableName)) {
+        usedDeferredAllocationPointers.put(variableName, PointerTargetSet.POINTER_TO_VOID);
+      }
+      return conv.makeVariable(variable, ssa, pts);
     } else {
       final CType fieldOwnerType = PointerTargetSet.simplifyType(e.getFieldOwner().getExpressionType());
       if (fieldOwnerType instanceof CCompositeType) {
@@ -137,7 +139,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         lastTarget instanceof String &&
         pts.isDeferredAllocationPointer(((String) lastTarget))) {
       assert usedDeferredAllocationPointers.containsKey(lastTarget) &&
-             usedDeferredAllocationPointers.get(lastTarget) == null :
+             usedDeferredAllocationPointers.get(lastTarget).equals(PointerTargetSet.POINTER_TO_VOID) :
              "Wrong assumptions on deferred allocations tracking: unknown pointer encountered";
       usedDeferredAllocationPointers.put((String) lastTarget, resultType);
     }
@@ -198,12 +200,12 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     Variable variable = e.accept(baseVisitor);
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     if (variable != null) {
-        final String variableName = variable.getName();
-        lastTarget = variableName;
-        if (pts.isDeferredAllocationPointer(variableName)) {
-          usedDeferredAllocationPointers.put(variableName, null);
-        }
-        return conv.makeVariable(variable, ssa, pts);
+      final String variableName = variable.getName();
+      lastTarget = variableName;
+      if (pts.isDeferredAllocationPointer(variableName)) {
+        usedDeferredAllocationPointers.put(variableName, PointerTargetSet.POINTER_TO_VOID);
+      }
+      return conv.makeVariable(variable, ssa, pts);
     } else {
       variable = conv.scopedIfNecessary(e, ssa, function);
       lastTarget = conv.makeConstant(variable.withType(PointerTargetSet.getBaseType(resultType)), ssa, pts);
@@ -423,24 +425,24 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     return lastTarget;
   }
 
-  public List<Pair<CCompositeType, String>> getUsedFields() {
-    return Collections.unmodifiableList(usedFields);
+  public ImmutableList<Pair<CCompositeType, String>> getUsedFields() {
+    return ImmutableList.copyOf(usedFields);
   }
 
-  public List<Pair<CCompositeType, String>> getAddressedFields() {
-    return Collections.unmodifiableList(addressedFields);
+  public ImmutableList<Pair<CCompositeType, String>> getAddressedFields() {
+    return ImmutableList.copyOf(addressedFields);
   }
 
-  public List<Pair<CCompositeType, String>> getInitializedFields() {
-    return Collections.unmodifiableList(initializedFields);
+  public ImmutableList<Pair<CCompositeType, String>> getInitializedFields() {
+    return ImmutableList.copyOf(initializedFields);
   }
 
-  public List<Pair<String, CType>> getSharedBases() {
-    return Collections.unmodifiableList(sharedBases);
+  public ImmutableList<Pair<String, CType>> getSharedBases() {
+    return ImmutableList.copyOf(sharedBases);
   }
 
-  public Map<String, CType> getUsedDeferredAllocationPointers() {
-    return Collections.unmodifiableMap(usedDeferredAllocationPointers);
+  public ImmutableMap<String, CType> getUsedDeferredAllocationPointers() {
+    return ImmutableMap.copyOf(usedDeferredAllocationPointers);
   }
 
   public void reset() {

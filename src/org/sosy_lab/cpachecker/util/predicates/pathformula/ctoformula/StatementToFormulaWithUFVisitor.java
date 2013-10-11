@@ -225,7 +225,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     boolean passed = false;
     for (final Map.Entry<String, CType> usedPointer : rhsUsedDeferredAllocationPointers.entrySet()) {
       boolean handled = false;
-      if (usedPointer.getValue() != null) {
+      if (!usedPointer.getValue().equals(PointerTargetSet.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
         handled = true;
       } else if (e.getRightHandSide() instanceof CExpression &&
@@ -261,7 +261,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       }
     }
     for (final Map.Entry<String, CType> usedPointer : lhsUsedDeferredAllocationPointers.entrySet()) {
-      if (usedPointer.getValue() != null) {
+      if (!usedPointer.getValue().equals(PointerTargetSet.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
       } else if (ExpressionToFormulaWithUFVisitor.isSimpleTarget(e.getLeftHandSide())) {
         assert lhsTarget instanceof String &&
@@ -280,7 +280,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   private void handleDeferredAllocationsInAssume(final CExpression e,
                                                  final Map<String, CType> usedDeferredAllocationPointers) {
     for (final Map.Entry<String, CType> usedPointer : usedDeferredAllocationPointers.entrySet()) {
-      if (usedPointer.getValue() != null) {
+      if (!usedPointer.getValue().equals(PointerTargetSet.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
       } else if (e instanceof CBinaryExpression) {
         final CBinaryExpression binaryExpression = (CBinaryExpression) e;
@@ -315,8 +315,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final CType rhsType = rhs != null ? PointerTargetSet.simplifyType(rhs.getExpressionType()) :
                             PointerTargetSet.CHAR;
 
-    final List<Pair<CCompositeType, String>> rhsUsedFields;
-    final Map<String, CType> rhsUsedDeferredAllocationPointers;
+    final ImmutableList<Pair<CCompositeType, String>> rhsUsedFields;
+    final ImmutableMap<String, CType> rhsUsedDeferredAllocationPointers;
     final Formula rhsFormula;
     if (rhs != null &&
         (!(rhs instanceof CFunctionCallExpression) ||
@@ -341,7 +341,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     lhs.accept(delegate);
     // addBases(delegate.getSharedBases(), pts);
     addEssentialFields(delegate.getInitializedFields(), pts);
-    final ImmutableList<Pair<CCompositeType, String>> lhsUsedFields = ImmutableList.copyOf(delegate.getUsedFields());
+    final ImmutableList<Pair<CCompositeType, String>> lhsUsedFields = delegate.getUsedFields();
     final Object lastTarget = delegate.getLastTarget();
     assert lastTarget instanceof String || lastTarget instanceof Formula;
     final PointerTargetPattern pattern = lastTarget instanceof String ? null : lhs.accept(lvalueVisitor);
@@ -375,7 +375,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     if (conv.deferUntypedAllocations && !isAllocation) {
       handleDeferredAllocationsInAssignment(e,
                                             lastTarget,
-                                            rhsObject,
+                                            rhsName,
                                             delegate.getUsedDeferredAllocationPointers(),
                                             rhsUsedDeferredAllocationPointers);
     }
