@@ -568,7 +568,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                 newLvalue,
                                                 newRvalue,
                                                 pattern,
-                                                true,
+                                                lvalue instanceof Formula,
                                                 types,
                                                 ssa,
                                                 constraints,
