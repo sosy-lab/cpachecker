@@ -193,6 +193,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
 
   @Override
   public PointerTargetPattern visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
+    final CExpression operand = e.getOperand();
     switch (e.getOperator()) {
     case AMPER:
     case MINUS:
@@ -201,13 +202,17 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
     case TILDE:
       throw new UnrecognizedCCodeException("Illegal binary operator", cfaEdge, e);
     case PLUS:
-      return e.getOperand().accept(this);
+      return operand.accept(this);
     case STAR:
-      final CType type = PointerTargetSet.simplifyType(e.getExpressionType());
+      final CType type = PointerTargetSet.simplifyType(operand.getExpressionType());
       final PointerTargetPattern result = e.getOperand().accept(this);
       if (type instanceof CPointerType) {
-        result.clear();
-        return result;
+        if (result != null) {
+          result.clear();
+          return result;
+        } else {
+          return new PointerTargetPattern();
+        }
       } else if (type instanceof CArrayType) {
         result.shift(type, 0);
         return result;
