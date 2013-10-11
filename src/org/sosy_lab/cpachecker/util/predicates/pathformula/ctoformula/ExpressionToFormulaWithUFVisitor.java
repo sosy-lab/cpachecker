@@ -167,7 +167,11 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
       if (!(resultType instanceof CFunctionType)) {
         final Variable baseVariable = operand.accept(baseVisitor);
         if (baseVariable == null) {
+          final int oldUsedFieldsSize = usedFields.size();
           Formula addressExpression = operand.accept(this);
+          for (int i = oldUsedFieldsSize; i < usedFields.size(); i++) {
+            addressedFields.add(usedFields.get(i));
+          }
           if (!conv.isCompositeType(PointerTargetSet.simplifyType(operand.getExpressionType()))) {
             addressExpression = (Formula) lastTarget;
             lastTarget = null;
@@ -211,6 +215,10 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     return Collections.unmodifiableList(usedFields);
   }
 
+  public List<Pair<CCompositeType, String>> getAddressedFields() {
+    return Collections.unmodifiableList(addressedFields);
+  }
+
   public List<Pair<CCompositeType, String>> getInitializedFields() {
     return Collections.unmodifiableList(initializedFields);
   }
@@ -223,6 +231,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     lastTarget = null;
     sharedBases.clear();
     usedFields.clear();
+    addressedFields.clear();
     initializedFields.clear();
   }
 
@@ -235,6 +244,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
   protected Object lastTarget;
   protected final List<Pair<String, CType>> sharedBases = new ArrayList<>();
   protected final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>();
+  protected final List<Pair<CCompositeType, String>> addressedFields = new ArrayList<>();
   protected final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();
 
   private static final CType pointerToVoid = new CPointerType(true, false,

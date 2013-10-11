@@ -132,11 +132,12 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     lhs.accept(delegate);
     // addBases(delegate.getSharedBases(), pts);
     addEssentialFields(delegate.getInitializedFields(), pts);
-    final List<Pair<CCompositeType, String>> lhsUsedFields = ImmutableList.copyOf(delegate.getUsedFields());
+    final ImmutableList<Pair<CCompositeType, String>> lhsUsedFields = ImmutableList.copyOf(delegate.getUsedFields());
 
     final Object lastTarget = delegate.getLastTarget();
     assert lastTarget instanceof String || lastTarget instanceof Formula;
 
+    final List<Pair<CCompositeType, String>> rhsAddressedFields;
     final Formula rhsFormula;
     if (rhs != null &&
         (!(rhs instanceof CFunctionCallExpression) ||
@@ -147,8 +148,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       rhsFormula = rhs.accept(this);
       // addBases(delegate.getSharedBases(), pts);
       addEssentialFields(delegate.getInitializedFields(), pts);
+      rhsAddressedFields = delegate.getAddressedFields();
     } else {
       rhsFormula = null;
+      rhsAddressedFields = ImmutableList.<Pair<CCompositeType,String>>of();
     }
 
     final String rhsName = delegate.getLastTarget() instanceof String ? (String) delegate.getLastTarget() : null;
@@ -157,6 +160,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final BooleanFormula result =
       conv.makeAssignment(lhsType, rhsType, lastTarget, rhsObject, pattern, false, null, ssa, constraints, pts);
     addEssentialFields(lhsUsedFields, pts);
+    addEssentialFields(rhsAddressedFields, pts);
     return result;
   }
 
