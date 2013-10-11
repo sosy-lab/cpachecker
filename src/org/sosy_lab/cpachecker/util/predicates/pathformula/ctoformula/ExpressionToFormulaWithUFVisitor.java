@@ -38,8 +38,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -68,7 +70,9 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
   @Override
   public Formula visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
     final Formula base = e.getArrayExpression().accept(this);
-    final Formula index = e.getSubscriptExpression().accept(this);
+    final CExpression subscript = e.getSubscriptExpression();
+    final CType subscriptType = PointerTargetSet.simplifyType(subscript.getExpressionType());
+    final Formula index = conv.makeCast(subscriptType, pointerToVoid, subscript.accept(this));
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     final int size = pts.getSize(resultType);
     final Formula coeff = conv.fmgr.makeNumber(pts.getPointerType(), size);
@@ -240,4 +244,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
   protected final List<Pair<String, CType>> sharedBases = new ArrayList<>();
   protected final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>();
   protected final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();
+
+  private static final CType pointerToVoid = new CPointerType(true, false,
+    new CSimpleType(false, false, CBasicType.VOID, false, false, false, false, false, false, false));
 }
