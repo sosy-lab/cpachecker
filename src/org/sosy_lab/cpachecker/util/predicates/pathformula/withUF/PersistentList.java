@@ -180,6 +180,16 @@ public class PersistentList<T> extends AbstractSequentialList<T> {
   }
 
   @Override
+  public int hashCode() {
+    final int prime = 3571;
+    int result = 0;
+    for (PersistentList<T> p = this; p != EMPTY; p = p.tail) {
+      result = result * prime + p.head.hashCode();
+    }
+    return result;
+  }
+
+  @Override
   public String toString() {
     return "[" + Joiner.on(", ").join(this) + "]";
   }
