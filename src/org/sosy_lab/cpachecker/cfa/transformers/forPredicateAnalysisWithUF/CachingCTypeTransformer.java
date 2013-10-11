@@ -273,7 +273,13 @@ public class CachingCTypeTransformer extends DefaultCTypeVisitor<CType, RuntimeE
 
   @Override
   public CType visitDefault(final CType t) {
-    CType result = typeCache.get(t);
+    CType result;
+    if (!(t instanceof CArrayType) ||
+        ((CArrayType) t).getLength() != null) {
+      result = typeCache.get(t);
+    } else {
+      result = null;
+    }
     if (result != null) {
       return result;
     } else {
