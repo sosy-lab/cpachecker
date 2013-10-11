@@ -115,6 +115,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                             final LogManager logger)
   throws InvalidConfigurationException {
     super(config, formulaManagerView, machineModel, logger);
+    config.inject(this);
     rfmgr = formulaManagerView.getRationalFormulaManager();
   }
 
@@ -1028,6 +1029,9 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                         "i.e. they can return either a valid pointer or zero. " +
                         "This is only used, when handling of pointers is enabled.")
   Set<String> memoryAllocationFunctionsWithZeroing = ImmutableSet.of("kzalloc");
+
+  @Option(description = "Setting this to true makes memoryAllocationFunctions* always return a valid pointer.")
+  boolean memoryAllocationsAlwaysSucceed = false;
 
   @SuppressWarnings("hiding")
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of("printf", "printk");

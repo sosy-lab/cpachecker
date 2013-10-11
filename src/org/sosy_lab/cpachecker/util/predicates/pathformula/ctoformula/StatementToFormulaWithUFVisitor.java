@@ -473,10 +473,6 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       } else if ((conv.memoryAllocationFunctions.contains(functionName) ||
                   conv.memoryAllocationFunctionsWithZeroing.contains(functionName)) &&
                   parameters.size() == 1) {
-        final Formula nondet = conv.makeFreshVariable(functionName,
-                                                      PointerTargetSet.POINTER_TO_VOID,
-                                                      ssa,
-                                                      pts);
         final String delegateFunctionName = !conv.memoryAllocationFunctionsWithZeroing.contains(functionName) ?
                                               conv.successfulAllocFunctionName :
                                               conv.successfulZallocFunctionName;
@@ -491,8 +487,16 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                       delegateFuncitonNameExpression,
                                       parameters,
                                       e.getDeclaration());
-        final Formula zero = conv.fmgr.makeNumber(pts.getPointerType(), 0);
-        return conv.bfmgr.ifThenElse(conv.bfmgr.not(conv.fmgr.makeEqual(nondet, zero)), visit(delegateCall), zero);
+        if (!conv.memoryAllocationsAlwaysSucceed) {
+          final Formula nondet = conv.makeFreshVariable(functionName,
+                                                        PointerTargetSet.POINTER_TO_VOID,
+                                                        ssa,
+                                                        pts);
+          final Formula zero = conv.fmgr.makeNumber(pts.getPointerType(), 0);
+          return conv.bfmgr.ifThenElse(conv.bfmgr.not(conv.fmgr.makeEqual(nondet, zero)), visit(delegateCall), zero);
+        } else {
+          return visit(delegateCall);
+        }
       } else {
         return super.visit(e);
       }
