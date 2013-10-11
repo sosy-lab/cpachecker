@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -36,11 +38,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultiset;
@@ -131,6 +138,70 @@ public class PointerTargetSet implements Serializable {
     return CTypeUtils.simplifyType(type).toString();
   }
 
+  public int getSize(CType cType) {
+    cType = CTypeUtils.simplifyType(cType);
+    if (cType instanceof CCompositeType) {
+      final String type = cTypeToString(cType);
+      if (sizes.contains(type)) {
+        return sizes.count(type);
+      } else {
+        return cType.accept(sizeofVisitor);
+      }
+    } else {
+      return cType.accept(sizeofVisitor);
+    }
+  }
+
+  public int getOffset(final CCompositeType compositeType, final String memberName) {
+    assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+    final String type = cTypeToString(compositeType);
+    return offsets.get(type).count(memberName);
+  }
+
+  public Iterator<PointerTarget> getTargets(final CType type, final PointerTargetPattern pattern) {
+    final List<PointerTarget> targetsForType = targets.get(cTypeToString(type));
+    return new Iterator<PointerTarget>() {
+
+      @Override
+      public boolean hasNext() {
+        if (last != null) {
+          return true;
+        }
+        while (iterator.hasNext()) {
+          last = iterator.next();
+          if (pattern.matches(last)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      @Override
+      public PointerTarget next() {
+        PointerTarget result = last;
+        if (result != null) {
+          last = null;
+          return result;
+        }
+        while (iterator.hasNext()) {
+          result = iterator.next();
+          if (pattern.matches(result)) {
+            return result;
+          }
+        }
+        return null;
+      }
+
+      @Override
+      public void remove() {
+        throw new UnsupportedOperationException();
+      }
+
+      private Iterator<PointerTarget> iterator = targetsForType.iterator();
+      private PointerTarget last = null;
+     };
+  }
+
   /**
    * Builder for PointerTargetSet. Its state starts with an existing set, but may be
    * changed later. It supports read access, but it is not recommended to use
@@ -197,24 +268,12 @@ public class PointerTargetSet implements Serializable {
       offsets.put(type, members);
     }
 
-    public int getSize(CType cType) {
-      cType = CTypeUtils.simplifyType(cType);
-      if (cType instanceof CCompositeType) {
-        final String type = cTypeToString(cType);
-        if (sizes.contains(type)) {
-          return sizes.count(type);
-        } else {
-          return cType.accept(pointerTargetSet.sizeofVisitor);
-        }
-      } else {
-        return cType.accept(pointerTargetSet.sizeofVisitor);
-      }
+    public int getSize(final CType cType) {
+      return pointerTargetSet.getSize(cType);
     }
 
     public int getOffset(final CCompositeType compositeType, final String memberName) {
-      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-      final String type = cTypeToString(compositeType);
-      return offsets.get(type).count(memberName);
+      return pointerTargetSet.getOffset(compositeType, memberName);
     }
 
     private void addTarget(final String base,
@@ -239,6 +298,7 @@ public class PointerTargetSet implements Serializable {
                             final int properOffset,
                             final int containerOffset) {
       final CType cType = CTypeUtils.simplifyType(currentType);
+      assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
         Integer length = arrayType.getLength().accept(pointerTargetSet.evaluatingVisitor);
@@ -252,6 +312,7 @@ public class PointerTargetSet implements Serializable {
         }
       } else if (cType instanceof CCompositeType) {
         final CCompositeType compositeType = (CCompositeType) cType;
+        assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
         final String type = cTypeToString(compositeType);
         addCompositeType(compositeType);
         int offset = 0;
@@ -268,13 +329,83 @@ public class PointerTargetSet implements Serializable {
       }
     }
 
-    private void addBase(final String name, CType type) {
+    public void addBase(final String name, CType type) {
       type = CTypeUtils.simplifyType(type);
       if (bases.containsKey(name)) {
         return; // The base has already been added
       }
       addTargets(name, type, null, 0, 0);
       bases = bases.putAndCopy(name, type);
+
+      final FormulaManagerView fm = pointerTargetSet.formulaManager;
+      final RationalFormula base = fm.makeVariable(FormulaType.RationalType, name);
+      if (bases.isEmpty()) { // Initial assumption b_0 > 0
+        disjointnessFormula = fm.makeGreaterThan(base, fm.makeNumber(FormulaType.RationalType, 0L), true);
+      } else { // b_i >= b_{i-1} + sizeof(b_{i-1})
+        final String lastBase = bases.lastKey();
+        final int lastSize = getSize(bases.get(lastBase));
+        disjointnessFormula = fm.makeAnd(disjointnessFormula,
+                                         fm.makeGreaterOrEqual(base,
+                                                               fm.makePlus(fm.makeVariable(FormulaType.RationalType,
+                                                                                           lastBase),
+                                                                           fm.makeNumber(FormulaType.RationalType,
+                                                                                         lastSize)), true));
+      }
+    }
+
+    private void addTargets(final String base,
+                            final CType currentType,
+                            final CType containerType,
+                            final int properOffset,
+                            final int containerOffset,
+                            final String composite,
+                            final String memberName) {
+      final CType cType = CTypeUtils.simplifyType(currentType);
+      assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
+      if (cType instanceof CArrayType) {
+        final CArrayType arrayType = (CArrayType) cType;
+        Integer length = arrayType.getLength().accept(pointerTargetSet.evaluatingVisitor);
+        if (length == null) {
+          length = DEFAULT_ARRAY_LENGTH;
+        }
+        int offset = 0;
+        for (int i = 0; i < length; ++i) {
+          addTargets(base, arrayType.getType(), arrayType, offset, containerOffset + properOffset,
+                     composite, memberName);
+          offset += getSize(arrayType.getType());
+        }
+      } else if (cType instanceof CCompositeType) {
+        final CCompositeType compositeType = (CCompositeType) cType;
+        assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+        final String type = cTypeToString(compositeType);
+        int offset = 0;
+        final boolean isTargetComposite = type.equals(composite);
+        for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+          if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
+            addTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset,
+                       composite, memberName);
+          }
+          if (isTargetComposite && memberDeclaration.getName().equals(memberName)) {
+            addTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset);
+          }
+          if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
+            offset += getSize(memberDeclaration.getType());
+          }
+        }
+      }
+    }
+
+    public void addField(CCompositeType composite, final String fieldName) {
+      composite = (CCompositeType) CTypeUtils.simplifyType(composite);
+      final String type = cTypeToString(composite);
+      final CompositeField field = CompositeField.of(type, fieldName);
+      if (fields.containsKey(field)) {
+        return; // The field has already been added
+      }
+      for (final PersistentSortedMap.Entry<String, CType> baseEntry : bases.entrySet()) {
+        addTargets(baseEntry.getKey(), baseEntry.getValue(), null, 0, 0, type, fieldName);
+      }
+      fields = fields.putAndCopy(field, true);
     }
 
     /**
@@ -286,7 +417,8 @@ public class PointerTargetSet implements Serializable {
                                   bases,
                                   fields,
                                   targets,
-                                  disjointnessFormula);
+                                  disjointnessFormula,
+                                  pointerTargetSet.formulaManager);
     }
 
     private final PointerTargetSet pointerTargetSet;
@@ -299,14 +431,16 @@ public class PointerTargetSet implements Serializable {
   }
 
   private static final PointerTargetSet emptyPointerTargetSet(final MachineModel machineModel,
-                                                              final BooleanFormula truthFormula) {
+                                                              final BooleanFormula truthFormula,
+                                                              final FormulaManagerView formulaManager) {
     final CEvaluatingVisitor evaluatingVisitor = new CEvaluatingVisitor(machineModel);
     return new PointerTargetSet(evaluatingVisitor,
                                 new CSizeofVisitor(evaluatingVisitor),
                                 PathCopyingPersistentTreeMap.<String, CType>of(),
                                 PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
                                 PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of(),
-                                truthFormula);
+                                truthFormula,
+                                formulaManager);
   }
 
   @Override
@@ -336,9 +470,12 @@ public class PointerTargetSet implements Serializable {
                            final PersistentSortedMap<String, CType> bases,
                            final PersistentSortedMap<CompositeField, Boolean> fields,
                            final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
-                           final BooleanFormula disjointnessFormula) {
+                           final BooleanFormula disjointnessFormula,
+                           final FormulaManagerView formulaManager) {
     this.evaluatingVisitor = evaluatingVisitor;
     this.sizeofVisitor = sizeofVisitor;
+
+    this.formulaManager = formulaManager;
 
     this.bases = bases;
     this.fields = fields;
@@ -358,6 +495,8 @@ public class PointerTargetSet implements Serializable {
 
   private final CEvaluatingVisitor evaluatingVisitor;
   private final CSizeofVisitor sizeofVisitor;
+
+  private final FormulaManagerView formulaManager;
 
   /*
    * Use Multiset<String> instead of Map<String, Integer> because it is more
