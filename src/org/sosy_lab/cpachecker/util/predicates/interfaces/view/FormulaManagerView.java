@@ -126,7 +126,7 @@ public class FormulaManagerView {
   @Option(name="pointerAnalysisWithUFs",
       description="Use CToFormulaConverterWithUF for converting edges to path formulae. This enables encoding of " +
                   "aliased variables with uninterpreted function calls.")
-  private boolean pointerAnalysisWithUFs;
+  private boolean pointerAnalysisWithUFs = false;
 
   // TODO move option solver.useIntegers here to replace Bitvectors with LIA and EUF generically
 
