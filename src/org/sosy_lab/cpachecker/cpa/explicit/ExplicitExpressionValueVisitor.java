@@ -148,24 +148,11 @@ public class ExplicitExpressionValueVisitor
   @Override
   public Long visit(final CBinaryExpression pE) throws UnrecognizedCCodeException {
     final BinaryOperator binaryOperator = pE.getOperator();
-    final CExpression op1 = pE.getOperand1();
-    final CExpression op2 = pE.getOperand2();
+    final CType calculationType = pE.getCalculationType();
 
-    // commonType is the converted eclipse-type, that is not always correct.
-    // the eclipse-type is the _simplest_ type of a read-access to the expression.
-    // this leads to (almost) non-deterministic types in a binExpr.
-    // the type may not be correct for the evaluation.
-    // example: INT op LONG_LONG_INT
-    // -> commonType is one of {INT, LONG_LONG_INT}, but should be LONG_LONG_INT.
-    // TODO fix this, either manually here or directly in C-TypeConverter?
-    final CType commonType = pE.getExpressionType();
-
-    //    final CType t1 = op1.getExpressionType();
-    //    final CType t2 = op2.getExpressionType();
-
-    final Long lVal = evaluate(op1, commonType);
+    final Long lVal = evaluate(pE.getOperand1(), calculationType);
     if (lVal == null) { return null; }
-    final Long rVal = evaluate(op2, commonType);
+    final Long rVal = evaluate(pE.getOperand2(), calculationType);
     if (rVal == null) { return null; }
 
     Long result;
@@ -182,7 +169,7 @@ public class ExplicitExpressionValueVisitor
     case BINARY_XOR: {
 
       result = arithmeticOperation(lVal, rVal, binaryOperator);
-      result = castCValue(result, commonType);
+      result = castCValue(result, pE.getExpressionType());
 
       break;
     }
@@ -197,6 +184,7 @@ public class ExplicitExpressionValueVisitor
       final boolean tmp = booleanOperation(lVal, rVal, binaryOperator);
       // return 1 if expression holds, 0 otherwise
       result = tmp ? 1L : 0L;
+      // we do not cast here, because 0 and 1 should be small enough for every type.
 
       break;
     }
@@ -209,19 +197,20 @@ public class ExplicitExpressionValueVisitor
     return result;
   }
 
-  private long arithmeticOperation(long l, long r, BinaryOperator op) {
-    // TODO machinemodel
+  private long arithmeticOperation(final long l, final long r, final BinaryOperator op) {
     switch (op) {
     case PLUS:
       return l + r;
     case MINUS:
       return l - r;
     case DIVIDE:
-      // TODO signal a division by zero error?
-      if (r == 0) { return 0; }
+      if (r == 0) {
+        logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
+        return 0;
+      }
       return l / r;
     case MODULO:
-      return l % r;
+      return l % r; // TODO in C always sign of first operand?
     case MULTIPLY:
       return l * r;
     case SHIFT_LEFT:
@@ -240,8 +229,7 @@ public class ExplicitExpressionValueVisitor
     }
   }
 
-  private boolean booleanOperation(long l, long r, BinaryOperator op) {
-    // TODO machinemodel
+  private boolean booleanOperation(final long l, final long r, final BinaryOperator op) {
     switch (op) {
     case EQUALS:
       return (l == r);
@@ -336,11 +324,11 @@ public class ExplicitExpressionValueVisitor
     final UnaryOperator unaryOperator = unaryExpression.getOperator();
     final CExpression unaryOperand = unaryExpression.getOperand();
 
+    if (unaryOperator == UnaryOperator.SIZEOF) { return (long) machineModel.getSizeof(unaryOperand.getExpressionType()); }
+
     final Long value = unaryOperand.accept(this);
 
-    if (value == null && unaryOperator != UnaryOperator.SIZEOF) {
-      return null;
-    }
+    if (value == null && unaryOperator != UnaryOperator.SIZEOF) { return null; }
 
     switch (unaryOperator) {
     case PLUS:
@@ -353,7 +341,7 @@ public class ExplicitExpressionValueVisitor
       return (value == 0L) ? 1L : 0L;
 
     case SIZEOF:
-      return (long) machineModel.getSizeof(unaryOperand.getExpressionType());
+      throw new AssertionError("SIZEOF should be handled before!");
 
     case AMPER: // valid expression, but it's a pointer value
     case TILDE:
