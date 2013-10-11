@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -772,8 +773,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                          final StatementToFormulaWithUFVisitor statementVisitor)
   throws CPATransferException {
 
+    if (declarationEdge.getDeclaration() instanceof CTypeDeclaration &&
+        ((CTypeDeclaration) declarationEdge.getDeclaration()).getType() instanceof CCompositeType) {
+      statementVisitor.declareCompositeType(
+          (CCompositeType) ((CTypeDeclaration) declarationEdge.getDeclaration()).getType());
+    }
+
     if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
-      // struct prototype, function declaration, typedef etc.
+      // function declaration, typedef etc.
       logDebug("Ignoring declaration", declarationEdge);
       return bfmgr.makeBoolean(true);
     }

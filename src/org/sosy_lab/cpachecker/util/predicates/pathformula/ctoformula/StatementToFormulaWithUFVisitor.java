@@ -421,6 +421,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     pts.addBase(declaration.getQualifiedName(), declaration.getType());
   }
 
+  public void declareCompositeType(final CCompositeType compositeType) {
+    pts.addCompositeType(compositeType);
+  }
+
   @SuppressWarnings("hiding")
   protected final CToFormulaWithUFConverter conv;
   protected final PointerTargetSetBuilder pts;
