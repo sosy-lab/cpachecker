@@ -75,7 +75,10 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
   }
 
   @Override
-  public Variable visit(final CFieldReference e) throws UnrecognizedCCodeException {
+  public Variable visit(CFieldReference e) throws UnrecognizedCCodeException {
+
+    e = ExpressionToFormulaWithUFVisitor.eliminateArrow(e, cfaEdge);
+
     final Variable base = e.getFieldOwner().accept(this);
     if (base != null) {
       return Variable.create(base.getName()  + CToFormulaWithUFConverter.FIELD_NAME_SEPARATOR +
@@ -107,7 +110,7 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
 
   @Override
   public Variable visit(final CIntegerLiteralExpression e) throws UnrecognizedCCodeException {
-    throw new UnrecognizedCCodeException("Integer literal in place of lvalue", cfaEdge, e);
+    return null;
   }
 
   @Override
