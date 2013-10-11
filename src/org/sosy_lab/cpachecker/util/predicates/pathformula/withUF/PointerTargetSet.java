@@ -71,13 +71,13 @@ public class PointerTargetSet implements Serializable {
       return new CompositeField(compositeType, fieldName);
     }
 
-    public String compositeType() {
-      return compositeType;
-    }
+//    public String compositeType() {
+//      return compositeType;
+//    }
 
-    public String fieldName() {
-      return fieldName;
-    }
+//    public String fieldName() {
+//      return fieldName;
+//    }
 
     @Override
     public String toString() {
@@ -456,7 +456,7 @@ public class PointerTargetSet implements Serializable {
     }
 
     public boolean addField(final CCompositeType composite, final String fieldName) {
-       final String type = cTypeToString(composite);
+      final String type = cTypeToString(composite);
       final CompositeField field = CompositeField.of(type, fieldName);
       if (fields.containsKey(field)) {
         return true; // The field has already been added

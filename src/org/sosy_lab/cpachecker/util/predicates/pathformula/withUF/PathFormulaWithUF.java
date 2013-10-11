@@ -23,9 +23,44 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 
 public class PathFormulaWithUF extends PathFormula {
 
+  public PathFormulaWithUF(BooleanFormula formula, SSAMap ssa, PointerTargetSet pointerTargetSet, int length) {
+    super(formula, ssa, length);
+    this.pointerTargetSet = pointerTargetSet;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof PathFormulaWithUF)) {
+      return false;
+    }
+
+    final PathFormulaWithUF other = (PathFormulaWithUF) o;
+    return getFormula().equals(other.getFormula())
+        && getSsa().equals(other.getSsa())
+        && pointerTargetSet.equals(other.pointerTargetSet)
+        && (getLength() == other.getLength());
+  }
+
+  public PointerTargetSet getPointerTargetSet() {
+    return pointerTargetSet;
+  }
+
+  @Override
+  public int hashCode() {
+    return (getFormula().hashCode() * 31 + getSsa().hashCode() * 17 + pointerTargetSet.hashCode()) * 53 + getLength();
+  }
+
+  private final PointerTargetSet pointerTargetSet;
+
+  private static final long serialVersionUID = 3298647820263644655L;
 }
