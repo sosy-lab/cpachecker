@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
-class CRightHandSideTransformer extends ForwardingCExpressionVisitor<CAstNode, UnrecognizedCCodeException>
-                                implements CRightHandSideVisitor<CAstNode, UnrecognizedCCodeException> {
+public class CRightHandSideTransformer extends ForwardingCExpressionVisitor<CAstNode, UnrecognizedCCodeException>
+                                       implements CRightHandSideVisitor<CAstNode, UnrecognizedCCodeException> {
 
   @Override
   public CFunctionCallExpression visit(final CFunctionCallExpression e) throws UnrecognizedCCodeException {
@@ -70,7 +70,7 @@ class CRightHandSideTransformer extends ForwardingCExpressionVisitor<CAstNode, U
                                        e.getDeclaration());
   }
 
-  CRightHandSideTransformer(final CTypeVisitor<CType, RuntimeException> typeVisitor,
+  public CRightHandSideTransformer(final CTypeVisitor<CType, RuntimeException> typeVisitor,
                             final CExpressionTransformer delegate) {
     super(delegate);
     this.typeVisitor = typeVisitor;

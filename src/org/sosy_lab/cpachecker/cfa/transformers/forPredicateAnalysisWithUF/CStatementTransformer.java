@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
-class CStatementTransformer implements CStatementVisitor<CStatement, UnrecognizedCCodeException> {
+public class CStatementTransformer implements CStatementVisitor<CStatement, UnrecognizedCCodeException> {
 
   @Override
   public CExpressionStatement visit(final CExpressionStatement s) throws UnrecognizedCCodeException {

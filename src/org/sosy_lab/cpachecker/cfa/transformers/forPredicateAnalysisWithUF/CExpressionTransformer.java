@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.transformers.forPredicateAnalysisWithUF;
 
+import java.util.Map;
+
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -48,15 +51,17 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
-class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, UnrecognizedCCodeException>
+public class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, UnrecognizedCCodeException>
                              implements CExpressionVisitor<CAstNode, UnrecognizedCCodeException> {
 
-  CExpressionTransformer(final CachingCTypeTransformer typeVisitor,
-                         final boolean transformPointerArithmetic,
-                         final boolean transformArrows,
-                         final boolean transformStarAmper,
-                         final boolean transformFunctionPointers) {
+  public CExpressionTransformer(final CachingCTypeTransformer typeVisitor,
+                                final Map<String, CDeclaration> declarationCache,
+                                final boolean transformPointerArithmetic,
+                                final boolean transformArrows,
+                                final boolean transformStarAmper,
+                                final boolean transformFunctionPointers) {
     this.typeVisitor = typeVisitor;
+    this.declarationCache = declarationCache;
     this.transformPointerArithmetic = transformPointerArithmetic;
     this.transformArrows = transformArrows;
     this.transformStarAmper = transformStarAmper;
@@ -236,7 +241,7 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
     } else {
       return fieldOwner == oldFieldOwner && expressionType == oldExpressionType ? e :
              new CFieldReference(e.getFileLocation(),
-                                 e.getExpressionType(),
+                                 expressionType,
                                  e.getFieldName(),
                                  fieldOwner,
                                  false);
@@ -247,9 +252,15 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
   public CIdExpression visit(final CIdExpression e) throws UnrecognizedCCodeException {
     final CType oldExpressionType = e.getExpressionType();
     final CType expressionType = oldExpressionType.accept(typeVisitor);
+    final CDeclaration declaration = e.getDeclaration() != null ?
+                                     declarationCache.get(e.getDeclaration().getQualifiedName()) :
+                                     null;
 
-    return expressionType == oldExpressionType ? e :
-           new CIdExpression(e.getFileLocation(), expressionType, e.getName(), e.getDeclaration());
+    return expressionType == oldExpressionType && declaration == null ? e :
+           new CIdExpression(e.getFileLocation(),
+                             expressionType,
+                             e.getName(),
+                             declaration != null ? declaration : e.getDeclaration());
   }
 
   @Override
@@ -360,6 +371,7 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
   private final boolean transformFunctionPointers;
 
   private CFAEdge currentEdge = null;
+  private final Map<String, CDeclaration> declarationCache;
   private final CInitializerVisitor<CAstNode, UnrecognizedCCodeException> initializerTransformer =
             new CInitializerTransformer(this);
   private final CachingCTypeTransformer typeVisitor;
