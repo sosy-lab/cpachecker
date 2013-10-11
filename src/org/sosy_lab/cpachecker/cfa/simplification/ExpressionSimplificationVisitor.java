@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
 
 import com.google.common.collect.Sets;
 
@@ -74,6 +75,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
 
   @Override
   public Pair<CExpression, Number> visit(final CBinaryExpression expr) {
+    System.out.println(expr);
     final BinaryOperator binaryOperator = expr.getOperator();
 
     final CExpression op1 = expr.getOperand1();
@@ -96,101 +98,18 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       return Pair.of((CExpression) newExpr, null);
     }
 
-    long value1 = pair1.getSecond().longValue();
-    long value2 = pair2.getSecond().longValue();
-    long result;
-
-    switch (binaryOperator) {
-    case PLUS:
-    case MINUS:
-    case DIVIDE:
-    case MODULO:
-    case MULTIPLY:
-    case SHIFT_LEFT:
-    case SHIFT_RIGHT:
-    case BINARY_AND:
-    case BINARY_OR:
-    case BINARY_XOR: {
-
-      result = arithmeticOperation(value1, value2, binaryOperator);
-
-      break;
-    }
-
-    case EQUALS:
-    case NOT_EQUALS:
-    case GREATER_THAN:
-    case GREATER_EQUAL:
-    case LESS_THAN:
-    case LESS_EQUAL: {
-
-      final boolean tmp = booleanOperation(value1, value2, binaryOperator);
-      // return 1 if expression holds, 0 otherwise
-      result = tmp ? 1L : 0L;
-
-      break;
-    }
-
-    default:
-      throw new AssertionError("unknown binary operation: " + binaryOperator);
-    }
+    final CType calculationType = expr.getCalculationType();
+    long value1 = ExplicitExpressionValueVisitor.castCValue(
+        pair1.getSecond().longValue(), calculationType, machineModel, logger, null);
+    long value2 = ExplicitExpressionValueVisitor.castCValue(
+        pair2.getSecond().longValue(), calculationType, machineModel, logger, null);
+    long result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
+        value1, value2, binaryOperator, expr.getExpressionType(), machineModel, logger, null);
 
     return Pair.<CExpression, Number> of(
         new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(result)),
         result);
-  }
-
-  private long arithmeticOperation(long l, long r, BinaryOperator op) {
-    // TODO machinemodel
-    switch (op) {
-    case PLUS:
-      return l + r;
-    case MINUS:
-      return l - r;
-    case DIVIDE:
-      // TODO signal a division by zero error?
-      if (r == 0) { return 0; }
-      return l / r;
-    case MODULO:
-      return l % r;
-    case MULTIPLY:
-      return l * r;
-    case SHIFT_LEFT:
-      return l << r;
-    case SHIFT_RIGHT: // TODO Java vs C?
-      return l >> r;
-    case BINARY_AND:
-      return l & r;
-    case BINARY_OR:
-      return l | r;
-    case BINARY_XOR:
-      return l ^ r;
-
-    default:
-      throw new AssertionError("unknown binary operation: " + op);
-    }
-  }
-
-  private boolean booleanOperation(long l, long r, BinaryOperator op) {
-    // TODO machinemodel
-    switch (op) {
-    case EQUALS:
-      return (l == r);
-    case NOT_EQUALS:
-      return (l != r);
-    case GREATER_THAN:
-      return (l > r);
-    case GREATER_EQUAL:
-      return (l >= r);
-    case LESS_THAN:
-      return (l < r);
-    case LESS_EQUAL:
-      return (l <= r);
-
-    default:
-      throw new AssertionError("unknown binary operation: " + op);
-    }
   }
 
   @Override
