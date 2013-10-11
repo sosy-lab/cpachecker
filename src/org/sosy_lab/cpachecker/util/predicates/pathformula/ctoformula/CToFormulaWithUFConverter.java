@@ -1081,11 +1081,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   boolean memoryAllocationsAlwaysSucceed = false;
 
   @Option(description = "Enable the option to allow detecting the allocation type by type " +
-  		                  "of the LHS of the assignment, e.g. char *arr = malloc(size) is detected as char[size]")
+                        "of the LHS of the assignment, e.g. char *arr = malloc(size) is detected as char[size]")
   boolean revealAllocationTypeFromLhs = false;
 
   @Option(description = "Used deferred allocation heuristic that tracks void * variables until the actual type " +
-  		                  "of the allocation is figured out")
+                        "of the allocation is figured out")
   boolean deferUntypedAllocations = false;
 
   @SuppressWarnings("hiding")
