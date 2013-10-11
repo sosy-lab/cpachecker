@@ -37,8 +37,6 @@ public class CArrayType extends AArrayType implements CType {
   private boolean   isConst;
   private boolean   isVolatile;
 
-  private Integer hashCode = null; // to speed up hash code computation (since the objects are immutable)
-
   public CArrayType(boolean pConst, boolean pVolatile,
       CType pType, CExpression pLength) {
     super(pType);
@@ -88,16 +86,12 @@ public class CArrayType extends AArrayType implements CType {
 
   @Override
   public int hashCode() {
-    if (hashCode != null) {
-      return hashCode;
-    }
     final int prime = 31;
     int result = 7;
     result = prime * result + Objects.hashCode(length);
     result = prime * result + Objects.hashCode(isConst);
     result = prime * result + Objects.hashCode(isVolatile);
     result = prime * result + super.hashCode();
-    hashCode = result;
     return result;
   }
 
