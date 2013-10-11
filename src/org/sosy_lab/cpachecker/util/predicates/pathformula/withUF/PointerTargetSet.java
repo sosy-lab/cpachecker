@@ -672,7 +672,9 @@ public class PointerTargetSet implements Serializable {
       arrayList2.add(element);
     }
     int sizeCommon = 0;
-    for (int i = 0; i < arrayList1.size() && arrayList1.get(i).equals(arrayList2.get(i)); i++) {
+    for (int i = 0;
+         i < arrayList1.size() && i < arrayList2.size() && arrayList1.get(i).equals(arrayList2.get(i));
+         i++) {
       ++sizeCommon;
     }
     PersistentList<T> result;
