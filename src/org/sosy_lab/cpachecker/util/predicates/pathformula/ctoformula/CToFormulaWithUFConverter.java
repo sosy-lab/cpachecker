@@ -39,6 +39,11 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -63,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -608,16 +614,27 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
       final String returnVariableName = getReturnVarName(statementVisitor.getFuncitonName());
-      final CType returnType = ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getFunctionDefinition()
-                                                                                              .getType()
-                                                                                              .getReturnType();
+      final CFunctionDeclaration functionDeclaration = ((CFunctionEntryNode) returnEdge.getSuccessor()
+                                                                                       .getEntryNode())
+                                                                                         .getFunctionDefinition();
+      final CType returnType = functionDeclaration.getType().getReturnType();
       final CExpressionAssignmentStatement assignment =
-          new CExpressionAssignmentStatement(result.getFileLocation(),
-                                             new CIdExpression(result.getFileLocation(),
-                                                               returnType,
-                                                               returnVariableName,
-                                                               null),
-                                             result);
+        new CExpressionAssignmentStatement(result.getFileLocation(),
+                                           new CIdExpression(result.getFileLocation(),
+                                                             returnType,
+                                                             returnVariableName,
+                                                             new CVariableDeclaration(functionDeclaration
+                                                                                        .getFileLocation(),
+                                                                                      false,
+                                                                                      CStorageClass.AUTO,
+                                                                                      returnType,
+                                                                                      returnVariableName,
+                                                                                      returnVariableName,
+                                                                                      scoped(returnVariableName,
+                                                                                             statementVisitor
+                                                                                               .getFuncitonName()),
+                                                                                      null)),
+                                           result);
 
       return assignment.accept(statementVisitor);
     }
@@ -725,6 +742,44 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return result;
   }
 
+  protected BooleanFormula makeExitFunction(final CFunctionSummaryEdge summaryEdge,
+                                            final StatementToFormulaWithUFVisitor statementVisitor)
+  throws CPATransferException {
+
+    final CFunctionCall returnExpression = summaryEdge.getExpression();
+    if (returnExpression instanceof CFunctionCallStatement) {
+      // this should be a void return, just do nothing...
+      return bfmgr.makeBoolean(true);
+    } else if (returnExpression instanceof CFunctionCallAssignmentStatement) {
+      final CFunctionCallAssignmentStatement expression = (CFunctionCallAssignmentStatement) returnExpression;
+      final String returnVariableName = getReturnVarName(statementVisitor.getFuncitonName());
+      final CFunctionCallExpression functionCallExpression = expression.getRightHandSide();
+      final CType returnType = getReturnType(functionCallExpression, summaryEdge);
+      final CIdExpression rhs = new CIdExpression(functionCallExpression.getFileLocation(),
+                                                  returnType,
+                                                  returnVariableName,
+                                                  new CVariableDeclaration(functionCallExpression.getDeclaration()
+                                                                                                 .getFileLocation(),
+                                                                           false,
+                                                                           CStorageClass.AUTO,
+                                                                           returnType,
+                                                                           returnVariableName,
+                                                                           returnVariableName,
+                                                                           scoped(returnVariableName,
+                                                                                  statementVisitor
+                                                                                    .getFuncitonName()),
+                                                                           null));
+      CExpression lhs = expression.getLeftHandSide();
+
+      BooleanFormula assignment = statementVisitor.visit(
+        new CExpressionAssignmentStatement(functionCallExpression.getFileLocation(), lhs, rhs));
+
+      return assignment;
+    } else {
+      throw new UnrecognizedCCodeException("Unknown function exit expression", summaryEdge, returnExpression.asStatement());
+    }
+  }
+
   private BooleanFormula createFormulaForEdge(final CFAEdge edge,
                                               final StatementToFormulaWithUFVisitor statementVisitor) throws CPATransferException {
     switch (edge.getEdgeType()) {
@@ -756,8 +811,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     case FunctionReturnEdge: {
       // get the expression from the summary edge
-      CFunctionSummaryEdge ce = ((CFunctionReturnEdge)edge).getSummaryEdge();
-      return makeExitFunction(ce, function, ssa, constraints);
+      final CFunctionSummaryEdge summaryEdge = ((CFunctionReturnEdge) edge).getSummaryEdge();
+      return makeExitFunction(summaryEdge, statementVisitor);
     }
 
     case MultiEdge: {
