@@ -169,8 +169,8 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
     final PointerTargetPattern result = ownerExpression.accept(this);
     if (result != null) {
       final CType containerType = PointerTargetSet.simplifyType(ownerExpression.getExpressionType());
-      if (!(containerType instanceof CCompositeType) ||
-          ((CCompositeType) containerType).getKind() == ComplexTypeKind.ENUM) {
+      if (containerType instanceof CCompositeType) {
+        assert  ((CCompositeType) containerType).getKind() != ComplexTypeKind.ENUM : "Enums are not composites!";
         result.shift(containerType, pts.getOffset((CCompositeType) containerType, e.getFieldName()));
         return result;
       } else {

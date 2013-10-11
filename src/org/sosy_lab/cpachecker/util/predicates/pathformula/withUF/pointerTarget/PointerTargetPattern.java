@@ -112,10 +112,12 @@ public class PointerTargetPattern implements Serializable {
   public void shift(final CType containerType) {
     assert !matchRange : "Contradiction in target pattern: shift";
     this.containerType = containerType;
-    if (properOffset != null) {
-      containerOffset += properOffset;
-    } else {
-      containerOffset = null;
+    if (containerOffset != null) {
+      if (properOffset != null) {
+        containerOffset += properOffset;
+      } else {
+        containerOffset = null;
+      }
     }
     properOffset = null;
   }
