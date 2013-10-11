@@ -116,7 +116,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         return conv.makeVariable(variable, ssa, pts);
     } else {
       variable = conv.scopedIfNecessary(e, ssa, function);
-      lastTarget = conv.makeConstant(variable.withType(new CPointerType(true, false, resultType)), ssa, pts);
+      lastTarget = conv.makeConstant(variable.withType(PointerTargetSet.getBaseType(resultType)), ssa, pts);
       return conv.isCompositeType(resultType) ? (Formula) lastTarget :
              conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
     }
@@ -182,7 +182,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         } else {
           final Variable oldBaseVariable = baseVisitor.getLastBase();
           final Variable newBaseVariable = oldBaseVariable.withType(
-            new CPointerType(true, false, oldBaseVariable.getType()));
+                                             PointerTargetSet.getBaseType(oldBaseVariable.getType()));
           final Formula baseAddress = conv.makeConstant(newBaseVariable, ssa, pts);
           conv.addSharingConstraints(edge,
                                      baseAddress,

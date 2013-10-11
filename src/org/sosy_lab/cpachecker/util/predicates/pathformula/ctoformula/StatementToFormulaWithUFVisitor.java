@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -186,9 +185,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       return conv.makeAssignment(type, type, lhs, initializerList, null, false, null, ssa, constraints, pts);
     } else {
       final PointerTargetPattern pattern = new PointerTargetPattern(lhs, 0, 0);
+      final CType baseType = PointerTargetSet.getBaseType(type);
       final BooleanFormula result = conv.makeAssignment(type,
                                                         type,
-                                                        conv.makeConstant(Variable.create(lhs, type), ssa, pts),
+                                                        conv.makeConstant(Variable.create(lhs, baseType), ssa, pts),
                                                         initializerList,
                                                         pattern,
                                                         false,
@@ -372,34 +372,33 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                   functionName.equals(conv.successfulZallocFunctionName)) &&
                   parameters.size() == 1) {
         final CExpression parameter = parameters.get(0);
-        final CType newBaseType;
+        final CType newType;
         if (parameter instanceof CUnaryExpression) {
-          newBaseType = getSizeofType(parameter);
+          newType = getSizeofType(parameter);
         } else if (parameter instanceof CBinaryExpression &&
                    ((CBinaryExpression) parameter).getOperator() == BinaryOperator.MULTIPLY) {
           final CBinaryExpression product = (CBinaryExpression) parameter;
           final CType operand1Type = getSizeofType(product.getOperand1());
           final CType operand2Type = getSizeofType(product.getOperand2());
           if (operand1Type != null) {
-            newBaseType = new CArrayType(false, false, operand1Type, product.getOperand2());
+            newType = new CArrayType(false, false, operand1Type, product.getOperand2());
           } else if (operand2Type != null) {
-            newBaseType = new CArrayType(false, false, operand2Type, product.getOperand1());
+            newType = new CArrayType(false, false, operand2Type, product.getOperand1());
           } else {
             throw new UnrecognizedCCodeException("Can't determine type for internal memory allocation", edge, e);
           }
         } else {
           throw new UnrecognizedCCodeException("Can't determine type for internal memory allocation", edge, e);
         }
+        final CType newBaseType = PointerTargetSet.getBaseType(newType);
         final String newBaseName = FormulaManagerView.makeName(functionName,
-                                                      conv.makeFreshIndex(functionName,
-                                                                          new CPointerType(true, false, newBaseType),
-                                                                          ssa));
+                                                      conv.makeFreshIndex(functionName, newBaseType, ssa));
         final Formula result = conv.makeConstant(Variable.create(newBaseName, newBaseType), ssa, pts);
         if (functionName.equals(conv.successfulZallocFunctionName)) {
           final CSimpleType integerType =
             new CSimpleType(true, false, CBasicType.CHAR, false, false, true, false, false, false, false);
           final BooleanFormula initialization = conv.makeAssignment(
-              newBaseType,
+              newType,
               integerType,
               result,
               conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(integerType, pts), 0),
@@ -411,7 +410,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
               pts);
           constraints.addConstraint(initialization);
         }
-        pts.addBase(newBaseName, newBaseType);
+        pts.addBase(newBaseName, newType);
         return result;
       } else {
         return super.visit(e);
