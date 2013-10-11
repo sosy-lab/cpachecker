@@ -109,17 +109,17 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     return visit((CAssignment) e);
   }
 
-  private static void addBases(final List<Pair<String, CType>> bases, final PointerTargetSetBuilder pts) {
-    for (final Pair<String, CType> base : bases) {
-      pts.addBase(base.getFirst(), base.getSecond());
-    }
-  }
-
-  private static void addFields(final List<Pair<CCompositeType, String>> fields, final PointerTargetSetBuilder pts) {
-    for (final Pair<CCompositeType, String> field : fields) {
-      pts.addField(field.getFirst(), field.getSecond());
-    }
-  }
+//  private static void addBases(final List<Pair<String, CType>> bases, final PointerTargetSetBuilder pts) {
+//    for (final Pair<String, CType> base : bases) {
+//      pts.addBase(base.getFirst(), base.getSecond());
+//    }
+//  }
+//
+//  private static void addFields(final List<Pair<CCompositeType, String>> fields, final PointerTargetSetBuilder pts) {
+//    for (final Pair<CCompositeType, String> field : fields) {
+//      pts.addField(field.getFirst(), field.getSecond());
+//    }
+//  }
 
   private static void addEssentialFields(final List<Pair<CCompositeType, String>> fields,
                                          final PointerTargetSetBuilder pts) {

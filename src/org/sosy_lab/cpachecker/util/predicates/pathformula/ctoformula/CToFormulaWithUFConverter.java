@@ -86,7 +86,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -119,7 +118,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                             final LogManager logger)
   throws InvalidConfigurationException {
     super(options, formulaManagerView, machineModel, logger);
-    rfmgr = formulaManagerView.getRationalFormulaManager();
+//    rfmgr = formulaManagerView.getRationalFormulaManager();
   }
 
   public static String getUFName(final CType type) {
@@ -1142,7 +1141,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return options.isSuccessfulAllocFunctionName(name) || options.isSuccessfulZallocFunctionName(name);
   }
 
-  private final RationalFormulaManagerView rfmgr;
+//  private final RationalFormulaManagerView rfmgr;
 
   @SuppressWarnings("hiding")
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of("printf", "printk");

@@ -7,7 +7,7 @@
 <listEntry value="1"/>
 </listAttribute>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
-<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-setprop cpa.predicate.solver=MATHSAT5&#10;-setprop cpa.predicate.replaceBitvectorWithRationalAndFunctionTheory=false&#10;-config /home/mikhail/repos/cpachecker/config/predicateAnalysis-PredAbsRefiner-ABElft-UF.properties&#10;-spec /home/mikhail/repos/cpachecker/config/specification/sv-comp.spc&#10;-setprop analysis.machineModel=LINUX32&#10;-setprop output.disable=false&#10;-setprop log.level=OFF&#10;-setprop analysis.summaryEdges=true&#10;-setprop analysis.functionPointerCalls=true&#10;-setprop cpa.callstack.skipRecursion=true&#10;-setprop cpa.conditions.global.time.wall=-1&#10;/home/mikhail/benchmarking/sv-benchmarks/trunk/c/heap-manipulation/bubble_sort_linux_safe.cil.c"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-config &quot;${project_loc}/config/predicateAnalysis-PredAbsRefiner-ABEl-UF.properties&quot;&#10;-setprop output.disable=false&#10;-setprop log.level=ALL&#10;&quot;${file_prompt:the C program to verify:${workspace_loc}/${project_path}/test/programs/simple/loop1.c}&quot;"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="CPAchecker"/>
 <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea&#10;-Xmx2500m"/>
 </launchConfiguration>

@@ -498,19 +498,27 @@ class ASTConverter {
            ((IBasicType)((IPointerType) e.getExpressionType()).getType()).getKind() == Kind.eVoid;
   }
 
+  private static boolean isRightHandSide(final IASTExpression e) {
+    return e.getParent() instanceof IASTBinaryExpression &&
+           ((IASTBinaryExpression) e.getParent()).getOperator() == IASTBinaryExpression.op_assign &&
+           ((IASTBinaryExpression) e.getParent()).getOperand2() == e;
+  }
+
   private CAstNode convert(IASTCastExpression e) {
     final CExpression operand;
+    final FileLocation loc = getLocation(e);
+    final CType type = typeConverter.convert(e.getExpressionType());
+    final CType castType = convert(e.getTypeId());
+
+    // To recognize and simplify constructs e.g. struct s *ps = (struct s *) malloc(.../* e.g. sizeof(struct s)*/);
     if (e.getOperand() instanceof CASTFunctionCallExpression &&
-        isPointerToVoid(e.getOperand()) &&
-        e.getTypeId() instanceof IPointerType) {
+        castType.getCanonicalType() instanceof CPointerType &&
+        isRightHandSide(e) &&
+        isPointerToVoid(e.getOperand())) {
       return convertExpressionWithSideEffects(e.getOperand());
     } else {
       operand = convertExpressionWithoutSideEffects(e.getOperand());
     }
-
-    final FileLocation loc = getLocation(e);
-    final CType type = typeConverter.convert(e.getExpressionType());
-    final CType castType = convert(e.getTypeId());
 
     if("__imag__".equals(e.getTypeId().getRawSignature())) {
       return new CComplexCastExpression(loc, type, operand, castType, false);
