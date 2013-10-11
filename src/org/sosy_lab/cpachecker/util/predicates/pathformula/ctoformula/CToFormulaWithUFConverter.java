@@ -181,6 +181,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return index;
   }
 
+  boolean hasIndex(final String name, final CType type, final SSAMapBuilder ssa) {
+    checkSsaSavedType(name, type, ssa);
+    return ssa.getIndex(name) > 0;
+  }
+
   @Override
   @Deprecated
   Formula makeConstant(final String name, final CType type, final SSAMapBuilder ssa) {
@@ -276,7 +281,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
         final Variable newBase = Variable.create(base.getName() + BaseVisitor.NAME_SEPARATOR + memberName,
                                                  memberType);
-        if (getIndex(newBase.getName(), newBase.getType(), ssa) > 1) {
+        if (hasIndex(newBase.getName(), newBase.getType(), ssa)) {
           fields.add(Pair.of(compositeType, memberName));
           addSharingConstraints(cfaEdge,
                                 fmgr.makePlus(address, fmgr.makeNumber(pts.getPointerType(), offset)),
@@ -566,8 +571,15 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
           int offset = 0;
           for (final CCompositeTypeMemberDeclaration memberDeclaration : lvalueCompositeType.getMembers()) {
             final String memberName = memberDeclaration.getName();
-            if (lvalue instanceof String || (pts.tracksField(lvalueCompositeType, memberName))) {
-              final CType newLvalueType = PointerTargetSet.simplifyType(memberDeclaration.getType());
+            final CType newLvalueType = PointerTargetSet.simplifyType(memberDeclaration.getType());
+            // Optimizing away the assignments from uninitialized fields
+            if (lvalue instanceof String || // Assignment is pure i.e. surely not big, let's just add it
+                newLvalueType instanceof CCompositeType || // That's not a simple assignment, check the nested composite
+                !(rvalueType instanceof CCompositeType) || // We're not assigning from a composite, nothing to check
+                rvalue instanceof List || // It's initialization, need to assign anyway
+                pts.tracksField(lvalueCompositeType, memberName) || // The field is essential for shared variables
+                rvalue instanceof String && // The field of a pure structure was used somewhere (i.e. has SSA index)
+                hasIndex(rvalue + BaseVisitor.NAME_SEPARATOR + memberName, newLvalueType, ssa)) {
               final CType newRvalueType = rvalueType instanceof CCompositeType ? newLvalueType : rvalueType;
               final Formula offsetFormula = fmgr.makeNumber(pts.getPointerType(), offset);
               final Object newLvalue = lvalue instanceof Formula ?
