@@ -76,6 +76,9 @@ public class CTypeTransformer extends DefaultCTypeVisitor<CType, UnrecognizedCCo
 
   @Override
   public CType visit(final CCompositeType t) throws UnrecognizedCCodeException {
+    initializerSize = null;
+    fileLocation = null;
+
     List<CCompositeTypeMemberDeclaration> memberDeclarations = null;
     int i = 0;
     for (CCompositeTypeMemberDeclaration oldMemberDeclaration : t.getMembers()) {
@@ -101,6 +104,9 @@ public class CTypeTransformer extends DefaultCTypeVisitor<CType, UnrecognizedCCo
 
   @Override
   public CType visit(final CElaboratedType t) throws UnrecognizedCCodeException {
+    initializerSize = null;
+    fileLocation = null;
+
     final CComplexType oldRealType = t.getRealType();
     final CComplexType realType = oldRealType != null ? (CComplexType) oldRealType.accept(this) : null;
 
@@ -119,6 +125,9 @@ public class CTypeTransformer extends DefaultCTypeVisitor<CType, UnrecognizedCCo
 
   @Override
   public CType visit(final CTypedefType t) throws UnrecognizedCCodeException {
+    initializerSize = null;
+    fileLocation = null;
+
     final CType oldRealType = t.getRealType();
     final CType realType = oldRealType.accept(this);
 
@@ -160,6 +169,9 @@ public class CTypeTransformer extends DefaultCTypeVisitor<CType, UnrecognizedCCo
 
   @Override
   public CType visitDefault(final CType t) {
+    initializerSize = null;
+    fileLocation = null;
+
     return t;
   }
 
