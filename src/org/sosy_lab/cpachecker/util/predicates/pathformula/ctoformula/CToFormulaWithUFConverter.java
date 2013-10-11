@@ -278,7 +278,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         result,
         fmgr.makeNumber(getFormulaTypeFromCType(PointerTargetSet.CHAR, pts), 0),
         new PointerTargetPattern(baseName, 0, 0),
-        false,
+        true,
         null,
         ssa,
         constraints,

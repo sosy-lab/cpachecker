@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
@@ -83,6 +84,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetS
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 
@@ -159,11 +161,22 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     }
   }
 
-  private void handleDeferredAllocationTypeRevelation(final String pointerVariable, final CType type) {
+  private CType getAllocationType(final @Nonnull CType type, final @Nonnull CIntegerLiteralExpression sizeLiteral) {
+    if (type instanceof CPointerType) {
+      return refineType(((CPointerType) type).getType(), sizeLiteral);
+    } else if (type instanceof CArrayType) {
+      return refineType(type, sizeLiteral);
+    } else {
+      throw new IllegalArgumentException("Either pointer or array type expected");
+    }
+  }
+
+  private void handleDeferredAllocationTypeRevelation(final @Nonnull String pointerVariable,
+                                                      final @Nonnull CType type) {
     final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
     for (final String baseVariable : deferredAllocationPool.getBaseVariables()) {
       conv.makeAllocation(deferredAllocationPool.wasAllocationZeroing(),
-                          type,
+                          getAllocationType(type, deferredAllocationPool.getSize()),
                           baseVariable,
                           ssa,
                           constraints,
@@ -237,9 +250,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           passed = true;
           handled = true;
         } else if (ExpressionToFormulaWithUFVisitor.isRevealingType(lhsType)) {
-          final CType type = lhsType instanceof CPointerType ? ((CPointerType) lhsType).getType() :
-                                                               ((CArrayType) lhsType).getType();
-          handleDeferredAllocationTypeRevelation(usedPointer.getKey(), type);
+          handleDeferredAllocationTypeRevelation(usedPointer.getKey(), lhsType);
           handled = true;
         }
       }
@@ -303,6 +314,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                             PointerTargetSet.CHAR;
 
     final List<Pair<CCompositeType, String>> rhsUsedFields;
+    final Map<String, CType> rhsUsedDeferredAllocationPointers;
     final Formula rhsFormula;
     if (rhs != null &&
         (!(rhs instanceof CFunctionCallExpression) ||
@@ -314,9 +326,11 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       // addBases(delegate.getSharedBases(), pts);
       addEssentialFields(delegate.getInitializedFields(), pts);
       rhsUsedFields = delegate.getUsedFields();
+      rhsUsedDeferredAllocationPointers = delegate.getUsedDeferredAllocationPointers();
     } else {
       rhsFormula = null;
       rhsUsedFields = ImmutableList.<Pair<CCompositeType,String>>of();
+      rhsUsedDeferredAllocationPointers = ImmutableMap.<String, CType>of();
     }
     final String rhsName = delegate.getLastTarget() instanceof String ? (String) delegate.getLastTarget() : null;
     final Object rhsObject = !(rhsType instanceof CCompositeType) || rhsName == null ? rhsFormula : rhsName;
@@ -329,6 +343,38 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final Object lastTarget = delegate.getLastTarget();
     assert lastTarget instanceof String || lastTarget instanceof Formula;
     final PointerTargetPattern pattern = lastTarget instanceof String ? null : lhs.accept(lvalueVisitor);
+
+    boolean isAllocation = false;
+    if ((conv.revealAllocationTypeFromLhs || conv.deferUntypedAllocations) && rhsObject instanceof Formula) {
+      final Set<String> rhsVariables = conv.fmgr.extractVariables(rhsFormula);
+      for (final String variable : rhsVariables) {
+        if (pts.isTemporaryDeferredAllocationPointer(variable)) {
+          if (!isAllocation) {
+            if (ExpressionToFormulaWithUFVisitor.isRevealingType(lhsType)) {
+              handleDeferredAllocationTypeRevelation(variable, lhsType);
+            } else if (lhsType.equals(PointerTargetSet.POINTER_TO_VOID) &&
+                       ExpressionToFormulaWithUFVisitor.isSimpleTarget(e.getLeftHandSide()) &&
+                       lastTarget instanceof String) {
+              pts.addDeferredAllocationPointer((String) lastTarget, variable);
+              handleDeferredAllocationPointerRemoval(e, variable);
+            } else {
+              throw new UnrecognizedCCodeException("Can't handle LHS of the allocation", edge, e);
+            }
+            isAllocation = true;
+          } else {
+            throw new UnrecognizedCCodeException("Can't handle ambiguous allocation", edge, e);
+          }
+        }
+      }
+    }
+
+    if (conv.deferUntypedAllocations && !isAllocation) {
+      handleDeferredAllocationsInAssignment(e,
+                                            lastTarget,
+                                            rhsObject,
+                                            delegate.getUsedDeferredAllocationPointers(),
+                                            rhsUsedDeferredAllocationPointers);
+    }
 
     final BooleanFormula result =
       conv.makeAssignment(lhsType, rhsType, lastTarget, rhsObject, pattern, false, null, ssa, constraints, pts);
@@ -366,7 +412,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                         conv.makeConstant(Variable.create(lhs, baseType), ssa, pts),
                                                         initializerList,
                                                         pattern,
-                                                        false,
+                                                        true,
                                                         null,
                                                         ssa,
                                                         constraints,
@@ -382,13 +428,19 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   public BooleanFormula visitAssume(final CExpression e, final boolean truthAssumtion)
   throws UnrecognizedCCodeException {
     delegate.reset();
+
     BooleanFormula result = conv.toBooleanFormula(e.accept(delegate));
+
     if (!truthAssumtion) {
       result = conv.bfmgr.not(result);
     }
     // addBases(delegate.getSharedBases(), pts);
     addEssentialFields(delegate.getInitializedFields(), pts);
     addEssentialFields(delegate.getUsedFields(), pts);
+
+    if (conv.deferUntypedAllocations) {
+      handleDeferredAllocationsInAssume(e, delegate.getUsedDeferredAllocationPointers());
+    }
     return result;
   }
 
@@ -699,13 +751,12 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                                  conv.makeFreshIndex(allocVariableName,
                                                                                      PointerTargetSet.POINTER_TO_VOID,
                                                                                      ssa));
-          pts.addDeferredAllocation(newBaseName,
-                                    functionName.equals(conv.successfulZallocFunctionName),
-                                    size != null ? new CIntegerLiteralExpression(parameter.getFileLocation(),
-                                                                                 parameter.getExpressionType(),
-                                                                                 BigInteger.valueOf(size)) :
-                                                   null,
-                                    newBaseName);
+          pts.addTemporaryDeferredAllocation(functionName.equals(conv.successfulZallocFunctionName),
+                                             size != null ? new CIntegerLiteralExpression(parameter.getFileLocation(),
+                                                                                          parameter.getExpressionType(),
+                                                                                          BigInteger.valueOf(size)) :
+                                                            null,
+                                             newBaseName);
           return conv.makeConstant(newBaseName, PointerTargetSet.POINTER_TO_VOID, ssa, pts);
         }
       } else if ((conv.memoryAllocationFunctions.contains(functionName) ||

@@ -734,8 +734,10 @@ public class PointerTargetSet implements Serializable {
                                                                                       baseVariable));
     }
 
-    public boolean isDeferredAllocationPointer(final String pointerVariable) {
-      return deferredAllocations.containsKey(pointerVariable);
+    public void addTemporaryDeferredAllocation(final boolean isZeroing,
+                                               final CIntegerLiteralExpression size,
+                                               final String baseVariable) {
+      addDeferredAllocation(baseVariable, isZeroing, size, baseVariable);
     }
 
     public void addDeferredAllocationPointer(final String newPointerVariable,
@@ -794,6 +796,17 @@ public class PointerTargetSet implements Serializable {
     private boolean flag; // Used by addBase() addField() to detect essential additions
 
     private static final long serialVersionUID = 5692271309582052121L;
+  }
+
+  public boolean isTemporaryDeferredAllocationPointer(final String pointerVariable) {
+    final DeferredAllocationPool deferredAllocationPool = deferredAllocations.get(pointerVariable);
+    assert deferredAllocationPool == null || deferredAllocationPool.getBaseVariables().size() >= 1 :
+           "Inconsistent deferred alloction pool: no bases";
+    return deferredAllocationPool != null && deferredAllocationPool.getBaseVariables().get(0).equals(pointerVariable);
+  }
+
+  public boolean isDeferredAllocationPointer(final String pointerVariable) {
+    return deferredAllocations.containsKey(pointerVariable);
   }
 
   private static final String getUnitedFieldBaseName(final int index) {
