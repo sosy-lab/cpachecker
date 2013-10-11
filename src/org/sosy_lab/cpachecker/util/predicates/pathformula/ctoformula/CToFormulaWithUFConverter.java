@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,6 +40,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -76,6 +83,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
@@ -541,10 +549,15 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     final String function = edge.getPredecessor() != null ? edge.getPredecessor().getFunctionName() : null;
     final SSAMapBuilder ssa = oldFormula.getSsa().builder();
-    final PointerTargetSetBuilder pts = oldFormula.getPointerTargetSet().builder();
     final Constraints constraints = new Constraints(bfmgr);
+    final PointerTargetSetBuilder pts = oldFormula.getPointerTargetSet().builder();
+    final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(edge,
+                                                                                                function,
+                                                                                                ssa,
+                                                                                                constraints,
+                                                                                                pts);
 
-    BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints, pts);
+    BooleanFormula edgeFormula = createFormulaForEdge(edge, statementVisitor);
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
 
     final SSAMap newSsa = ssa.build();
@@ -584,10 +597,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   protected BooleanFormula makeReturn(final CExpression result,
                                       final CReturnStatementEdge returnEdge,
-                                      final String function,
-                                      final SSAMapBuilder ssa,
-                                      final Constraints constraints,
-                                      final PointerTargetSetBuilder pts) throws CPATransferException {
+                                      final StatementToFormulaWithUFVisitor statementVisitor)
+  throws CPATransferException {
     if (result == null) {
       // this is a return from a void function, do nothing
       return bfmgr.makeBoolean(true);
@@ -596,12 +607,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       // so that we can use it later on, if it is assigned to
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
-      final String returnVariableName = getReturnVarName(function);
-      final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(returnEdge,
-                                                                                                  function,
-                                                                                                  ssa,
-                                                                                                  constraints,
-                                                                                                  pts);
+      final String returnVariableName = getReturnVarName(statementVisitor.getFuncitonName());
       final CType returnType = ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getFunctionDefinition()
                                                                                               .getType()
                                                                                               .getReturnType();
@@ -617,35 +623,126 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
+  private static String getLogMessage(final String msg, final CFAEdge edge) {
+    return "Line " + edge.getLineNumber()
+            + ": " + msg
+            + ": " + edge.getDescription();
+  }
 
+  private void logDebug(final String msg, final CFAEdge edge) {
+    if (logger.wouldBeLogged(Level.ALL)) {
+      logger.log(Level.ALL, getLogMessage(msg, edge));
+    }
+  }
+
+  private BooleanFormula makeDeclaration(final CDeclarationEdge declarationEdge,
+                                         final StatementToFormulaWithUFVisitor statementVisitor)
+  throws CPATransferException {
+
+    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
+      // struct prototype, function declaration, typedef etc.
+      logDebug("Ignoring declaration", declarationEdge);
+      return bfmgr.makeBoolean(true);
+    }
+
+    final CVariableDeclaration declaration = (CVariableDeclaration) declarationEdge.getDeclaration();
+
+    // makeFreshIndex(variableName, declaration.getType(), ssa); // TODO: Make sure about
+                                                                 // correctness of SSA indices without this trick!
+
+    // if there is an initializer associated to this variable,
+    // take it into account
+    final CInitializer initializer = declaration.getInitializer();
+    if (initializer instanceof CInitializerExpression || initializer == null) {
+      final CExpressionAssignmentStatement assignment = new CExpressionAssignmentStatement(
+        declaration.getFileLocation(),
+        new CIdExpression(declaration.getFileLocation(), declaration.getType(), declaration.getName(), declaration),
+        initializer != null ? ((CInitializerExpression) initializer).getExpression() : null);
+      return assignment.accept(statementVisitor);
+    } else if (initializer instanceof CInitializerList) {
+      final Object initializerList = statementVisitor.visitInitializer(declaration.getType(),
+                                                                       initializer,
+                                                                       !declaration.isGlobal());
+      assert initializerList instanceof List : "Wrong initializer";
+      return statementVisitor.visitComplexInitialization(declaration,
+                                                         (List<?>) initializerList);
+    } else {
+      throw new UnrecognizedCCodeException("Unrecognized initializer", declarationEdge, initializer);
+    }
+  }
+
+  private BooleanFormula makeAssume(final CAssumeEdge assume,
+                                    final StatementToFormulaWithUFVisitor statementVisitor)
+  throws CPATransferException {
+
+    return statementVisitor.visitAssume(assume.getExpression(), assume.getTruthAssumption());
+  }
+
+  private BooleanFormula makeFunctionCall(final CFunctionCallEdge edge,
+                                          final StatementToFormulaWithUFVisitor statementVisitor)
+  throws CPATransferException {
+
+    final List<CExpression> arguments = edge.getArguments();
+    final CFunctionEntryNode entryNode = edge.getSuccessor();
+    final List<CParameterDeclaration> parameters = entryNode.getFunctionParameters();
+
+    if (entryNode.getFunctionDefinition().getType().takesVarArgs()) {
+      if (parameters.size() > arguments.size()) {
+        throw new UnrecognizedCCodeException("Number of parameters on function call does " +
+                                             "not match function definition",
+                                             edge);
+      }
+      if (!SAFE_VAR_ARG_FUNCTIONS.contains(entryNode.getFunctionName())) {
+        log(Level.WARNING, "Ignoring parameters passed as varargs to function " +
+                           entryNode.getFunctionName() +
+                           " in line " +
+                           edge.getLineNumber());
+      }
+    } else {
+      if (parameters.size() != arguments.size()) {
+        throw new UnrecognizedCCodeException("Number of parameters on function call does " +
+                                             "not match function definition",
+                                             edge);
+      }
+    }
+
+    int i = 0;
+    BooleanFormula result = bfmgr.makeBoolean(true);
+    for (CParameterDeclaration formalParameter : parameters) {
+      final CExpression argument = arguments.get(i++);
+      final CType parameterType = formalParameter.getType();
+      if (PointerTargetSet.containsArray(parameterType)) {
+        statementVisitor.forceShared(formalParameter);
+      }
+      final CExpressionAssignmentStatement assignmentStatement = new CExpressionAssignmentStatement(
+        argument.getFileLocation(),
+        new CIdExpression(argument.getFileLocation(), parameterType, formalParameter.getName(), formalParameter),
+        argument);
+      final BooleanFormula assignment = assignmentStatement.accept(statementVisitor);
+      result = bfmgr.and(result, assignment);
+    }
+
+    return result;
+  }
 
   private BooleanFormula createFormulaForEdge(final CFAEdge edge,
-                                              final String function,
-                                              final SSAMapBuilder ssa,
-                                              final Constraints constraints,
-                                              final PointerTargetSetBuilder pts) throws CPATransferException {
+                                              final StatementToFormulaWithUFVisitor statementVisitor) throws CPATransferException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       final CStatementEdge statementEdge = (CStatementEdge) edge;
-      final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(edge,
-                                                                                                  function,
-                                                                                                  ssa,
-                                                                                                  constraints,
-                                                                                                  pts);
       return statementEdge.getStatement().accept(statementVisitor);
     }
     case ReturnStatementEdge: {
       final CReturnStatementEdge returnEdge = (CReturnStatementEdge) edge;
-      return makeReturn(returnEdge.getExpression(), returnEdge, function, ssa, constraints, pts);
+      return makeReturn(returnEdge.getExpression(), returnEdge, statementVisitor);
     }
 
     case DeclarationEdge: {
-      CDeclarationEdge d = (CDeclarationEdge)edge;
-      return makeDeclaration(d, function, ssa, constraints);
+      final CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
+      return makeDeclaration(declarationEdge, statementVisitor);
     }
-
     case AssumeEdge: {
-      return makeAssume((CAssumeEdge)edge, function, ssa, constraints);
+      return makeAssume((CAssumeEdge) edge, statementVisitor);
     }
 
     case BlankEdge: {
@@ -654,7 +751,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
 
     case FunctionCallEdge: {
-      return makeFunctionCall((CFunctionCallEdge)edge, function, ssa, constraints);
+      return makeFunctionCall((CFunctionCallEdge) edge, statementVisitor);
     }
 
     case FunctionReturnEdge: {
@@ -665,15 +762,12 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     case MultiEdge: {
       BooleanFormula multiEdgeFormula = bfmgr.makeBoolean(true);
-
-      // unroll the MultiEdge
       for (CFAEdge singleEdge : (MultiEdge)edge) {
         if (singleEdge instanceof BlankEdge) {
           continue;
         }
-        multiEdgeFormula = bfmgr.and(multiEdgeFormula, createFormulaForEdge(singleEdge, function, ssa, constraints));
+        multiEdgeFormula = bfmgr.and(multiEdgeFormula, createFormulaForEdge(singleEdge, statementVisitor));
       }
-
       return multiEdgeFormula;
     }
 
@@ -687,4 +781,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   String successfulAllocFunctionName = "__VERIFIER_successful_alloc";
   String successfulZallocFunctionName = "__VERIFIER_successful_zalloc";
   String MemsetFunctionName = "__VERIFIER_memset";
+
+  @SuppressWarnings("hiding")
+  private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of("printf", "printk");
 }

@@ -23,17 +23,32 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEmptyDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
@@ -41,7 +56,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -50,6 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
@@ -107,7 +125,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final CRightHandSide rhs = e.getRightHandSide();
     final CExpression lhs = e.getLeftHandSide();
     final CType lhsType = lhs.getExpressionType();
-    final CType rhsType = rhs.getExpressionType();
+    final CType rhsType = rhs != null ? rhs.getExpressionType() :
+      new CSimpleType(true, false, CBasicType.CHAR, false,false, false, false, false, false, false);
 
     delegate.reset();
     lhs.accept(delegate);
@@ -119,9 +138,11 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     assert lastTarget instanceof String || lastTarget instanceof Formula;
 
     final Formula rhsFormula;
-    if (!(rhs instanceof CFunctionCallExpression) ||
-        !(((CFunctionCallExpression) rhs).getFunctionNameExpression() instanceof CIdExpression) ||
-        !isNondetFunctionName(((CIdExpression)((CFunctionCallExpression) rhs).getFunctionNameExpression()).getName())) {
+    if (rhs != null &&
+        (!(rhs instanceof CFunctionCallExpression) ||
+         !(((CFunctionCallExpression) rhs).getFunctionNameExpression() instanceof CIdExpression) ||
+         !isNondetFunctionName(
+            ((CIdExpression)((CFunctionCallExpression) rhs).getFunctionNameExpression()).getName()))) {
       delegate.reset();
       rhsFormula = rhs.accept(this);
       addBases(delegate.getSharedBases(), pts);
@@ -139,13 +160,175 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     return result;
   }
 
-  public BooleanFormula visitAssume(final CExpression e) throws UnrecognizedCCodeException {
+  private static void addFields(final CCompositeType type, final PointerTargetSetBuilder pts) {
+    for (CCompositeTypeMemberDeclaration memberDeclaration : type.getMembers()) {
+      pts.addField(type, memberDeclaration.getName());
+      if (memberDeclaration.getType() instanceof CCompositeType) {
+        addFields((CCompositeType) memberDeclaration.getType(), pts);
+      } else if (memberDeclaration.getType() instanceof CArrayType &&
+                 ((CArrayType) memberDeclaration.getType()).getType() instanceof CCompositeType) {
+        addFields((CCompositeType) ((CArrayType) memberDeclaration.getType()).getType(), pts);
+      }
+    }
+  }
+
+  public BooleanFormula visitComplexInitialization(final CDeclaration declaration, final List<?> initializerList) {
+    final CType type = PointerTargetSet.simplifyType(declaration.getType());
+    final String lhs = declaration.getQualifiedName();
+    if (!PointerTargetSet.containsArray(type)) {
+      return conv.makeAssignment(type, type, lhs, initializerList, null, false, null, ssa, constraints, pts);
+    } else {
+      final PointerTargetPattern pattern = new PointerTargetPattern(lhs, 0, 0);
+      final BooleanFormula result = conv.makeAssignment(type,
+                                                        type,
+                                                        conv.makeConstant(Variable.create(lhs, type), ssa),
+                                                        initializerList,
+                                                        pattern,
+                                                        false,
+                                                        null,
+                                                        ssa,
+                                                        constraints,
+                                                        pts);
+      pts.addBase(lhs, type);
+      if (type instanceof CCompositeType) {
+        addFields((CCompositeType) type, pts);
+      }
+      return result;
+    }
+  }
+
+  public BooleanFormula visitAssume(final CExpression e, final boolean truthAssumtion)
+  throws UnrecognizedCCodeException {
     delegate.reset();
-    final BooleanFormula result = conv.toBooleanFormula(e.accept(delegate));
+    BooleanFormula result = conv.toBooleanFormula(e.accept(delegate));
+    if (!truthAssumtion) {
+      result = conv.bfmgr.not(result);
+    }
     addBases(delegate.getSharedBases(), pts);
     addEssentialFields(delegate.getInitializedFields(), pts);
     addEssentialFields(delegate.getUsedFields(), pts);
     return result;
+  }
+
+  public Object visitInitializer(CType type, final CInitializer topInitializer, final boolean isAutomatic)
+  throws UnrecognizedCCodeException {
+    type = PointerTargetSet.simplifyType(type);
+    final CSimpleType integerType =
+        new CSimpleType(true, false, CBasicType.CHAR, false, false, true, false, false, false, false);
+    final Formula zero = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(integerType), 0);
+    if (type instanceof CArrayType) {
+      assert topInitializer instanceof CInitializerList : "Wrong array initializer";
+      final CInitializerList initializerList = (CInitializerList) topInitializer;
+      final CType elementType = ((CArrayType) type).getType();
+      final CExpression lengthExpression = ((CArrayType) type).getLength();
+      final Integer length;
+      if (lengthExpression != null) {
+        length = lengthExpression.accept(pts.getEvaluatingVisitor());
+      } else {
+        length = initializerList.getInitializers().size();
+      }
+      if (length == null) {
+        throw new UnrecognizedCCodeException("Can't evaluate array size for initialization", edge, initializerList);
+      }
+      final List<Object> result = new ArrayList<>(length);
+      for (int i = 0; i < length; ++i) {
+        if (isAutomatic) {
+          result.add(zero);
+        } else {
+          result.add(null);
+        }
+      }
+      int index = 0;
+      for (final CInitializer initializer : initializerList.getInitializers()) {
+        if (!(initializer instanceof CDesignatedInitializer)) {
+          result.set(index, visitInitializer(elementType, initializer, isAutomatic));
+        } else {
+          final CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) initializer;
+          final CDesignator designator = designatedInitializer.getLeftHandSide();
+          final Object rhs = visitInitializer(elementType, designatedInitializer.getRightHandSide(), isAutomatic);
+          if (designator instanceof CArrayRangeDesignator) {
+            final Integer floor = ((CArrayRangeDesignator) designator).getFloorExpression()
+                                                                      .accept(pts.getEvaluatingVisitor());
+            final Integer ceiling = ((CArrayRangeDesignator) designator).getFloorExpression()
+                                                                        .accept(pts.getEvaluatingVisitor());
+            if (floor != null && ceiling != null) {
+              for (int i = floor; i <= ceiling; i++) {
+                result.set(i, rhs);
+              }
+              index = ceiling;
+            } else {
+              throw new UnrecognizedCCodeException("Can't evaluate array range designator bounds", edge, designator);
+            }
+          } else if (designator instanceof CArrayDesignator) {
+            final Integer subscript = ((CArrayDesignator) designator).getSubscriptExpression()
+                                                                      .accept(pts.getEvaluatingVisitor());
+            if (subscript != null) {
+              index = subscript;
+              result.set(index, rhs);
+            } else {
+              throw new UnrecognizedCCodeException("Can't evaluate array designator subscript", edge, designator);
+            }
+          } else if (designator instanceof CEmptyDesignator) {
+            result.set(index, rhs);
+          }
+        }
+        ++index;
+      }
+      return result;
+    } else if (type instanceof CCompositeType && ((CCompositeType) type).getKind() == ComplexTypeKind.STRUCT) {
+      assert topInitializer instanceof CInitializerList : "Wrong structure initializer";
+      final CInitializerList initializerList = (CInitializerList) topInitializer;
+      final CCompositeType compositeType = (CCompositeType) type;
+      final int size = compositeType.getMembers().size();
+      final Map<String, Pair<Integer, CType>> members = new HashMap<>(size);
+      final List<CType> memberTypes = new ArrayList<>(size);
+      int index = 0;
+      for (final CCompositeTypeMemberDeclaration memberDeclaration : ((CCompositeType) type).getMembers()) {
+        members.put(memberDeclaration.getName(), Pair.of(index, memberDeclaration.getType()));
+        memberTypes.add(memberDeclaration.getType());
+        index++;
+      }
+      final List<Object> result = new ArrayList<>(size);
+      for (int i = 0; i < size; ++i) {
+        if (isAutomatic) {
+          result.add(zero);
+        } else {
+          result.add(null);
+        }
+      }
+      index = 0;
+      for (final CInitializer initializer : initializerList.getInitializers()) {
+        if (!(initializer instanceof CDesignatedInitializer)) {
+          result.set(index, visitInitializer(memberTypes.get(index), initializer, isAutomatic));
+        } else {
+          final CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) initializer;
+          final CDesignator designator = designatedInitializer.getLeftHandSide();
+          if (designator instanceof CFieldDesignator) {
+            if (!(((CFieldDesignator) designator).getFieldOwner() instanceof CEmptyDesignator)) {
+              conv.log(Level.WARNING, "Nested designators are unsupported: " + designator + " in line "+
+                                      designator.getFileLocation().getStartingLineNumber());
+              continue;
+            }
+            final Pair<Integer, CType> indexType = members.get(((CFieldDesignator) designator).getFieldName());
+            final Object rhs = visitInitializer(indexType.getSecond(),
+                                                designatedInitializer.getRightHandSide(),
+                                                isAutomatic);
+            result.set(indexType.getFirst(), rhs);
+          } else if (designator instanceof CEmptyDesignator) {
+            result.set(index, visitInitializer(memberTypes.get(index),
+                                               designatedInitializer.getRightHandSide(),
+                                               isAutomatic));
+          } else {
+            throw new UnrecognizedCCodeException("Wrong designator", edge, designator);
+          }
+        }
+        index++;
+      }
+      return result;
+    } else {
+      assert topInitializer instanceof CInitializerExpression : "Unrecognized initializer";
+      return ((CInitializerExpression) topInitializer).getExpression().accept(this);
+    }
   }
 
   private static CType getSizeofType(CExpression e) {
@@ -168,7 +351,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     if (functionNameExpression instanceof CIdExpression) {
       final String functionName = ((CIdExpression) functionNameExpression).getName();
       if (functionName.equals(CToFormulaWithUFConverter.ASSUME_FUNCTION_NAME) && parameters.size() == 1) {
-        final BooleanFormula condition = visitAssume(parameters.get(0));
+        final BooleanFormula condition = visitAssume(parameters.get(0), true);
         constraints.addConstraint(condition);
         return conv.makeFreshVariable(functionName, resultType, ssa);
       } else if ((functionName.equals(conv.successfulAllocFunctionName) ||
@@ -222,6 +405,14 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     } else {
       return super.visit(e);
     }
+  }
+
+  public String getFuncitonName() {
+    return function;
+  }
+
+  public void forceShared(final CParameterDeclaration declaration) {
+    pts.addBase(declaration.getQualifiedName(), declaration.getType());
   }
 
   @SuppressWarnings("hiding")

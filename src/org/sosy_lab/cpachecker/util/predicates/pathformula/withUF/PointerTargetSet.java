@@ -145,6 +145,24 @@ public class PointerTargetSet implements Serializable {
     private final CEvaluatingVisitor evaluatingVisitor;
   }
 
+  public static boolean containsArray(CType type) {
+    type = simplifyType(type);
+    if (type instanceof CArrayType) {
+      return true;
+    } else if (type instanceof CCompositeType) {
+      final CCompositeType compositeType = (CCompositeType) type;
+      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite!";
+      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        if (containsArray(memberDeclaration.getType())) {
+          return true;
+        }
+      }
+      return false;
+    } else {
+      return false;
+    }
+  }
+
   public static CType simplifyType(final CType type) {
     return CTypeUtils.simplifyType(type.getCanonicalType());
   }
