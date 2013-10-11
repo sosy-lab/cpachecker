@@ -555,93 +555,94 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         } else {
           return visit(delegateCall);
         }
-      } else {
-        return super.visit(e);
+      } else if (conv.nondetFunctions.contains(functionName) ||
+                 conv.nondetFunctionsPattern.matcher(functionName).matches()) {
+        return conv.makeFreshVariable(functionName, returnType, ssa, pts);
+      } else if (conv.externModelFunctionName.equals(functionName)) {
+        assert parameters.size() > 0 : "No external model given!";
+        // the parameter comes in C syntax (with ")
+        final String fileName = parameters.get(0).toASTString().replaceAll("\"", "");
+        final File modelFile = new File(fileName);
+        final BooleanFormula externalModel = loadExternalFormula(modelFile);
+        final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType, pts);
+        return conv.bfmgr.ifThenElse(externalModel,
+                                     conv.fmgr.makeNumber(returnFormulaType, 1),
+                                     conv.fmgr.makeNumber(returnFormulaType, 0));
+      } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
+        throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
+      } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
+        if (parameters.isEmpty()) {
+          // function of arity 0
+          conv.log(Level.INFO, "Assuming external function " + functionName + " to be a constant function.");
+        } else {
+          conv.log(Level.INFO, "Assuming external function " + functionName + " to be a pure function.");
+        }
       }
     } else {
-      return super.visit(e);
+      conv.log(Level.WARNING,
+               CtoFormulaConverter.getLogMessage("Ignoring function call through function pointer",
+               e));
+      functionName = "<func>{" +
+                     CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(functionNameExpression),
+                                                function) +
+                     "}";
     }
-//      } else if (conv.nondetFunctions.contains(functionName) ||
-//                 conv.nondetFunctionsPattern.matcher(functionName).matches()) {
-//        return conv.makeFreshVariable(functionName, returnType, ssa, pts);
-//      } else if (conv.externModelFunctionName.equals(functionName)) {
-//        assert parameters.size() > 0 : "No external model given!";
-//        // the parameter comes in C syntax (with ")
-//        final String fileName = parameters.get(0).toASTString().replaceAll("\"", "");
-//        final File modelFile = new File(fileName);
-//        final BooleanFormula externalModel = loadExternalFormula(modelFile);
-//        final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType, pts);
-//        return conv.bfmgr.ifThenElse(externalModel,
-//                                     conv.fmgr.makeNumber(returnFormulaType, 1),
-//                                     conv.fmgr.makeNumber(returnFormulaType, 0));
-//      } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
-//        throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
-//      } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
-//        if (parameters.isEmpty()) {
-//          // function of arity 0
-//          conv.log(Level.INFO, "Assuming external function " + functionName + " to be a constant function.");
-//        } else {
-//          conv.log(Level.INFO, "Assuming external function " + functionName + " to be a pure function.");
-//        }
-//      }
-//    } else {
-//      conv.log(Level.WARNING,
-//               CtoFormulaConverter.getLogMessage("Ignoring function call through function pointer",
-//               e));
-//      functionName = "<func>{" +
-//                     CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(functionNameExpression),
-//                                                function) +
-//                     "}";
-//    }
-//
-//    // Now let's handle "normal" functions assumed to be pure
-//    if (parameters.isEmpty()) {
-//      // This is a function of arity 0 and we assume its constant.
-//      return conv.makeConstant(functionName, returnType, ssa, pts);
-//    } else {
-//      final CFunctionDeclaration functionDeclaration = e.getDeclaration();
-//      if (functionDeclaration == null) {
-//        // This should not happen
-//        conv.log(Level.WARNING, "Cant get declaration of function. Ignoring the call (" + e.toASTString() + ").");
-//        return conv.makeFreshVariable(functionName, returnType, ssa, pts); // TODO: BUG when resultType == void
-//      }
-//      if (functionDeclaration.getType().takesVarArgs()) {
-//        // Create a fresh variable instead of an UF for vararg functions.
-//        // This is sound but slightly more imprecise (we loose the UF axioms).
-//        return conv.makeFreshVariable(functionName, returnType, ssa, pts);
-//      }
-//
-//      final List<CType> parameterTypes = functionDeclaration.getType().getParameters();
-//      // functionName += "{" + parameterTypes.size() + "}";
-//      // add #arguments to function name to cope with vararg functions
-//      // TODO: Handled above?
-//
-//      if (parameterTypes.size() != parameters.size()) {
-//        throw new UnrecognizedCCodeException("Function " + functionDeclaration + " received " +
-//                                             parameters.size() + " parameters instead of the expected " +
-//                                             parameterTypes.size(),
-//                                             edge,
-//                                             e);
-//      }
-//
-//      final List<Formula> arguments = new ArrayList<>(parameters.size());
-//      final Iterator<CType> parameterTypesIterator = parameterTypes.iterator();
-//      final Iterator<CExpression> parametersIterator = parameters.iterator();
-//      while (parameterTypesIterator.hasNext() && parametersIterator.hasNext()) {
-//
-//        final CType parameterType= parameterTypesIterator.next();
-//        CExpression parameter = parametersIterator.next();
-//        parameter = conv.makeCastFromArrayToPointerIfNecessary(parameter, parameterType);
-//
-//        final Formula argument = parameter.accept(this);
-//        arguments.add(conv.makeCast(parameter.getExpressionType(), parameterType, argument));
-//      }
-//      assert !parameterTypesIterator.hasNext() && !parametersIterator.hasNext();
-//
-//      final CType resultType = conv.getReturnType(e, edge);
-//      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(resultType, pts);
-//      return conv.ffmgr.createFuncAndCall(functionName, resultFormulaType, arguments);
-//    }
+
+    // Now let's handle "normal" functions assumed to be pure
+    if (parameters.isEmpty()) {
+      // This is a function of arity 0 and we assume its constant.
+      return conv.makeConstant(functionName, returnType, ssa, pts);
+    } else {
+
+      final CFunctionDeclaration functionDeclaration = e.getDeclaration();
+      if (functionDeclaration == null) {
+        // This should not happen
+        conv.log(Level.WARNING, "Cant get declaration of function. Ignoring the call (" + e.toASTString() + ").");
+        return conv.makeFreshVariable(functionName, returnType, ssa, pts); // TODO: BUG when resultType == void
+      }
+
+      final CType resultType = PointerTargetSet.simplifyType(conv.getReturnType(e, edge));
+      if (resultType instanceof CCompositeType ||
+          PointerTargetSet.containsArray(resultType)) {
+        conv.log(Level.WARNING, "Pure functions returning composites are currently unsupported. Assuming nondet: (" +
+                                e.toASTString() + ").");
+        return null;
+      }
+
+      if (functionDeclaration.getType().takesVarArgs()) {
+        // Create a fresh variable instead of an UF for vararg functions.
+        // This is sound but slightly more imprecise (we loose the UF axioms).
+        return conv.makeFreshVariable(functionName, returnType, ssa, pts);
+      }
+
+      final List<CType> parameterTypes = functionDeclaration.getType().getParameters();
+      // functionName += "{" + parameterTypes.size() + "}";
+      // add #arguments to function name to cope with vararg functions
+      // TODO: Handled above?
+      if (parameterTypes.size() != parameters.size()) {
+        throw new UnrecognizedCCodeException("Function " + functionDeclaration + " received " +
+                                             parameters.size() + " parameters instead of the expected " +
+                                             parameterTypes.size(),
+                                             edge,
+                                             e);
+      }
+
+      final List<Formula> arguments = new ArrayList<>(parameters.size());
+      final Iterator<CType> parameterTypesIterator = parameterTypes.iterator();
+      final Iterator<CExpression> parametersIterator = parameters.iterator();
+      while (parameterTypesIterator.hasNext() && parametersIterator.hasNext()) {
+        final CType parameterType= parameterTypesIterator.next();
+        CExpression parameter = parametersIterator.next();
+        parameter = conv.makeCastFromArrayToPointerIfNecessary(parameter, parameterType);
+
+        final Formula argument = parameter.accept(this);
+        arguments.add(conv.makeCast(parameter.getExpressionType(), parameterType, argument));
+      }
+      assert !parameterTypesIterator.hasNext() && !parametersIterator.hasNext();
+
+      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(resultType, pts);
+      return conv.ffmgr.createFuncAndCall(functionName, resultFormulaType, arguments);
+    }
   }
 
   public String getFuncitonName() {
