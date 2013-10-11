@@ -112,7 +112,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
       }
     } else {
       conv.logfOnce(Level.WARNING, edge, "Ignoring function call through function pointer %s", fn);
-      func = "<func>{" + CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(fn), function) + "}";
+      func = ("<func>{" + CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(fn), function) + "}").intern();
     }
 
     if (pexps.isEmpty()) {

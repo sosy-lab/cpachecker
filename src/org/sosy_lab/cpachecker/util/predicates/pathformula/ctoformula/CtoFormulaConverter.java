@@ -299,7 +299,7 @@ public class CtoFormulaConverter {
   * Call only if you are sure you have a local variable!
   */
   static String scoped(String var, String function) {
-    return function + "::" + var;
+    return (function + "::" + var).intern();
   }
 
   /**

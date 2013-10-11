@@ -107,7 +107,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
   /** Takes a (scoped) variable name and returns the pointer variable name. */
   static String makePointerMaskName(String scopedId, int size, SSAMapBuilder ssa) {
     checkArgument(size >= 0, "Illegal size %s for target of pointer %s", size, scopedId);
-    return "__content__" + size + "__of__" + scopedId + "__at__" + ssa.getIndex(scopedId) + "__end";
+    return ("__content__" + size + "__of__" + scopedId + "__at__" + ssa.getIndex(scopedId) + "__end").intern();
   }
 
   Variable makePointerMask(Variable pointerVar, SSAMapBuilder ssa) {
@@ -159,7 +159,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
 
   /**Returns the concatenation of MEMORY_ADDRESS_VARIABLE_PREFIX and varName */
   private static String makeMemoryLocationVariableName(String varName) {
-    return MEMORY_ADDRESS_VARIABLE_PREFIX + varName;
+    return (MEMORY_ADDRESS_VARIABLE_PREFIX + varName).intern();
   }
 
   /**Returns the concatenation of MEMORY_ADDRESS_VARIABLE_PREFIX and varName */
@@ -1401,7 +1401,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
     }
 
     ssa.setIndex(PointerAliasHandling.MALLOC_COUNTER_VARIABLE_NAME, pT, idx + 1);
-    return PointerAliasHandling.MALLOC_VARIABLE_PREFIX + idx;
+    return (PointerAliasHandling.MALLOC_VARIABLE_PREFIX + idx).intern();
   }
 
   /** Returns the variable name of a memory address variable */
