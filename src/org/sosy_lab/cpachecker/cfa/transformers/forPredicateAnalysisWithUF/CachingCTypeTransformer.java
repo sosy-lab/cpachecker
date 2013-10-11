@@ -26,6 +26,9 @@ package org.sosy_lab.cpachecker.cfa.transformers.forPredicateAnalysisWithUF;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -124,6 +127,11 @@ public class CachingCTypeTransformer extends CTypeTransformer {
       typeCache.put(t, result);
       return result;
     }
+  }
+
+  @Override
+  public void setInitializerSize(final int size, final @Nonnull FileLocation fileLocation) {
+    super.setInitializerSize(size, fileLocation);
   }
 
   private final Map<CType, CType> typeCache = new HashMap<>();

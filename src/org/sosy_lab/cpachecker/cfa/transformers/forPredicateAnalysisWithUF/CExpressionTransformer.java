@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, UnrecognizedCCodeException>
                              implements CExpressionVisitor<CAstNode, UnrecognizedCCodeException> {
 
-  CExpressionTransformer(final CTypeTransformer typeVisitor,
+  CExpressionTransformer(final CachingCTypeTransformer typeVisitor,
                          final boolean transformPointerArithmetic,
                          final boolean transformArrows,
                          final boolean transformStarAmper,
@@ -362,5 +362,5 @@ class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, Unrecog
   private CFAEdge currentEdge = null;
   private final CInitializerVisitor<CAstNode, UnrecognizedCCodeException> initializerTransformer =
             new CInitializerTransformer(this);
-  private final CTypeTransformer typeVisitor;
+  private final CachingCTypeTransformer typeVisitor;
 }
