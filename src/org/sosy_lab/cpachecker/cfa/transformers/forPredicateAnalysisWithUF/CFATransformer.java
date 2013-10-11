@@ -29,18 +29,23 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -52,6 +57,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -89,38 +96,101 @@ public class CFATransformer extends DefaultCFAVisitor {
         final CDeclaration declaration = declarationEdge.getDeclaration();
         if (declaration instanceof CVariableDeclaration) {
           final CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
-          if (variableDeclaration.getInitializer() != null) {
-            final CInitializer oldInitializer = variableDeclaration.getInitializer();
-            final CInitializer initializer =
-              (CInitializer) oldInitializer.accept(expressionVisitor.getInitializerTransformer());
+          final CInitializer oldInitializer = variableDeclaration.getInitializer();
+          final CInitializer initializer = oldInitializer == null ? null :
+            (CInitializer) oldInitializer.accept(expressionVisitor.getInitializerTransformer());
+          final CType oldVariableType = variableDeclaration.getType();
+          if (initializer instanceof CInitializerList) {
+            typeVisitor.setInitializerSize(((CInitializerList) initializer).getInitializers().size(),
+                                           initializer.getFileLocation());
+          } else if (initializer instanceof CInitializerExpression &&
+                     ((CInitializerExpression) initializer).getExpression() instanceof CStringLiteralExpression) {
+            typeVisitor.setInitializerSize(
+                ((CStringLiteralExpression) ((CInitializerExpression) initializer).getExpression())
+                  .getContentString()
+                  .length() + 1,
+                initializer.getFileLocation());
+          }
+          final CType variableType = oldVariableType.accept(typeVisitor);
+          if (initializer != oldInitializer || variableType != oldVariableType) {
+            edge = new CDeclarationEdge(declarationEdge.getRawStatement(),
+                                        declarationEdge.getLineNumber(),
+                                        declarationEdge.getPredecessor(),
+                                        declarationEdge.getSuccessor(),
+                                        new CVariableDeclaration(variableDeclaration.getFileLocation(),
+                                                                 variableDeclaration.isGlobal(),
+                                                                 variableDeclaration.getCStorageClass(),
+                                                                 variableType,
+                                                                 variableDeclaration.getName(),
+                                                                 variableDeclaration.getOrigName(),
+                                                                 variableDeclaration.getQualifiedName(),
+                                                                 initializer));
+          }
+        } else if (declaration instanceof CFunctionDeclaration) {
+          final CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) declaration;
+          final CFunctionType oldFunctionType = functionDeclaration.getType();
+          final CFunctionType functionType = (CFunctionType) oldFunctionType.accept(typeVisitor);
 
-            final CType oldVariableType = variableDeclaration.getType();
-            if (initializer instanceof CInitializerList) {
-              typeVisitor.setInitializerSize(((CInitializerList) initializer).getInitializers().size(),
-                                             initializer.getFileLocation());
-            } else if (initializer instanceof CInitializerExpression &&
-                       ((CInitializerExpression) initializer).getExpression() instanceof CStringLiteralExpression) {
-              typeVisitor.setInitializerSize(
-                  ((CStringLiteralExpression) ((CInitializerExpression) initializer).getExpression())
-                    .getContentString()
-                    .length() + 1,
-                  initializer.getFileLocation());
+          List<CParameterDeclaration> parameterDeclarations = null;
+          int i = 0;
+          for (CParameterDeclaration oldDeclaration : functionDeclaration.getParameters()) {
+            final CType oldDeclarationType = oldDeclaration.getType();
+            final CType declarationType = oldDeclarationType.accept(typeVisitor);
+
+            if (declarationType != oldDeclarationType && parameterDeclarations == null) {
+              parameterDeclarations = new ArrayList<>();
+              parameterDeclarations.addAll(functionDeclaration.getParameters().subList(0, i));
             }
-            final CType variableType = oldVariableType.accept(typeVisitor);
-            if (initializer != oldInitializer || variableType != oldVariableType) {
-              edge = new CDeclarationEdge(declarationEdge.getRawStatement(),
-                                          declarationEdge.getLineNumber(),
-                                          declarationEdge.getPredecessor(),
-                                          declarationEdge.getSuccessor(),
-                                          new CVariableDeclaration(variableDeclaration.getFileLocation(),
-                                                                   variableDeclaration.isGlobal(),
-                                                                   variableDeclaration.getCStorageClass(),
-                                                                   variableType,
-                                                                   variableDeclaration.getName(),
-                                                                   variableDeclaration.getOrigName(),
-                                                                   variableDeclaration.getQualifiedName(),
-                                                                   initializer));
+            if (parameterDeclarations != null) {
+              if (declarationType != oldDeclarationType) {
+                parameterDeclarations.add(new CParameterDeclaration(oldDeclaration.getFileLocation(),
+                                                                    declarationType,
+                                                                    oldDeclaration.getName()));
+              } else {
+                parameterDeclarations.add(oldDeclaration);
+              }
             }
+            ++i;
+          }
+
+          if (functionType != oldFunctionType || parameterDeclarations != null) {
+            edge = new CDeclarationEdge(declarationEdge.getRawStatement(),
+                                        declarationEdge.getLineNumber(),
+                                        declarationEdge.getPredecessor(),
+                                        declarationEdge.getSuccessor(),
+                                        new CFunctionDeclaration(functionDeclaration.getFileLocation(),
+                                                                 functionType,
+                                                                 functionDeclaration.getName(),
+                                                                 parameterDeclarations != null ?
+                                                                   parameterDeclarations :
+                                                                   functionDeclaration.getParameters()));
+          }
+        } else if (declaration instanceof CTypeDeclaration) {
+          final CTypeDeclaration oldTypeDeclaration = (CTypeDeclaration) declaration;
+          final CType oldType = oldTypeDeclaration.getType();
+          final CType type = oldType.accept(typeVisitor);
+
+          if (type != oldType) {
+            final CTypeDeclaration typeDeclaration;
+            if (oldTypeDeclaration instanceof CComplexTypeDeclaration) {
+              typeDeclaration = new CComplexTypeDeclaration(oldTypeDeclaration.getFileLocation(),
+                                                            oldTypeDeclaration.isGlobal(),
+                                                            (CComplexType) type);
+            } else if (oldTypeDeclaration instanceof CTypeDefDeclaration) {
+               typeDeclaration = new CTypeDefDeclaration(oldTypeDeclaration.getFileLocation(),
+                                                         oldTypeDeclaration.isGlobal(),
+                                                         type,
+                                                         oldTypeDeclaration.getName(),
+                                                         oldTypeDeclaration.getQualifiedName());
+            } else {
+              throw new IllegalArgumentException("Unexpected type declaration kind");
+            }
+            edge = new CDeclarationEdge(declarationEdge.getRawStatement(),
+                                        declarationEdge.getLineNumber(),
+                                        declarationEdge.getPredecessor(),
+                                        declarationEdge.getSuccessor(),
+                                        typeDeclaration);
+
           }
         }
         break;

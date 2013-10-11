@@ -88,10 +88,12 @@ public class CTypeTransformer extends DefaultCTypeVisitor<CType, UnrecognizedCCo
         memberDeclarations = new ArrayList<>();
         memberDeclarations.addAll(t.getMembers().subList(0, i));
       }
-      if (memberDeclarations != null && oldMemberType != memberType) {
-        memberDeclarations.add(new CCompositeTypeMemberDeclaration(memberType, oldMemberDeclaration.getName()));
-      } else if (memberDeclarations != null) {
-        memberDeclarations.add(oldMemberDeclaration);
+      if (memberDeclarations != null) {
+        if (memberType != oldMemberType) {
+          memberDeclarations.add(new CCompositeTypeMemberDeclaration(memberType, oldMemberDeclaration.getName()));
+        } else {
+          memberDeclarations.add(oldMemberDeclaration);
+        }
       }
       ++i;
     }

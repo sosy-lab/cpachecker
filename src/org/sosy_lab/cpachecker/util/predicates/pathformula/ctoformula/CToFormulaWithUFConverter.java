@@ -936,6 +936,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final CStatementEdge statementEdge = (CStatementEdge) edge;
       return statementEdge.getStatement().accept(statementVisitor);
     }
+
     case ReturnStatementEdge: {
       final CReturnStatementEdge returnEdge = (CReturnStatementEdge) edge;
       return makeReturn(returnEdge.getExpression(), returnEdge, statementVisitor);
@@ -945,6 +946,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
       return makeDeclaration(declarationEdge, statementVisitor);
     }
+
     case AssumeEdge: {
       return makeAssume((CAssumeEdge) edge, statementVisitor);
     }
