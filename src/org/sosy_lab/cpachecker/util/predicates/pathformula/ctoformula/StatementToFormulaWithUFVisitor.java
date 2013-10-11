@@ -391,21 +391,6 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     return result;
   }
 
-  private static void addFields(final CCompositeType type, final PointerTargetSetBuilder pts) {
-    for (CCompositeTypeMemberDeclaration memberDeclaration : type.getMembers()) {
-      pts.addField(type, memberDeclaration.getName());
-      final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
-      if (memberType instanceof CCompositeType) {
-        addFields((CCompositeType) memberType, pts);
-      } else if (memberType instanceof CArrayType) {
-        final CType elementType = PointerTargetSet.simplifyType(((CArrayType) memberType).getType());
-        if (elementType instanceof CCompositeType) {
-          addFields((CCompositeType) elementType, pts);
-        }
-      }
-    }
-  }
-
   public BooleanFormula visitComplexInitialization(final CDeclaration declaration, final List<?> initializerList) {
     final CType type = PointerTargetSet.simplifyType(declaration.getType());
     final String lhs = declaration.getQualifiedName();
@@ -425,9 +410,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                         constraints,
                                                         pts);
       pts.addBase(lhs, type);
-      if (type instanceof CCompositeType) {
-        addFields((CCompositeType) type, pts);
-      }
+      CToFormulaWithUFConverter.addAllFields(type, pts);
       return result;
     }
   }
@@ -889,11 +872,11 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   }
 
   public void forceShared(final CDeclaration declaration) {
-    pts.addBase(declaration.getQualifiedName(), declaration.getType());
+    conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), pts);
   }
 
   public void forceShared(final CParameterDeclaration declaration) {
-    pts.addBase(declaration.getQualifiedName(), declaration.getType());
+    conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), pts);
   }
 
   public void declareCompositeType(final CCompositeType compositeType) {

@@ -263,6 +263,27 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return ffmgr.createFuncAndCall(ufName, index, returnType, ImmutableList.of(address));
   }
 
+  static void addAllFields(final CType type, final PointerTargetSetBuilder pts) {
+    if (type instanceof CCompositeType) {
+      final CCompositeType compositeType = (CCompositeType) type;
+      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        pts.addField(compositeType, memberDeclaration.getName());
+        final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
+        addAllFields(memberType, pts);
+      }
+    } else if (type instanceof CArrayType) {
+      final CType elementType = PointerTargetSet.simplifyType(((CArrayType) type).getType());
+      addAllFields(elementType, pts);
+    }
+  }
+
+  void addPreFilledBase(final String baseName, final CType type, final PointerTargetSetBuilder pts) {
+    pts.addBase(baseName, type);
+    if (maxPreFilledAllocationSize > 0 && pts.getSize(type) <= maxPreFilledAllocationSize) {
+      addAllFields(type, pts);
+    }
+  }
+
   Formula makeAllocation(final boolean isZeroing,
                          final CType type,
                          final String baseName,
@@ -285,7 +306,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         pts);
       constraints.addConstraint(initialization);
     }
-    pts.addBase(baseName, type);
+    addPreFilledBase(baseName, type, pts);
     return result;
   }
 
@@ -1087,6 +1108,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @Option(description = "Used deferred allocation heuristic that tracks void * variables until the actual type " +
                         "of the allocation is figured out")
   boolean deferUntypedAllocations = false;
+
+  @Option(description = "Maximum size of allocations for which all structure fields are regarded always essential, " +
+                        "regardless of whether they were ever really used in code")
+  private int maxPreFilledAllocationSize = 0;
 
   @SuppressWarnings("hiding")
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of("printf", "printk");
