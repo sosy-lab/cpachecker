@@ -105,7 +105,9 @@ public class PointerTarget implements Serializable {
       return properOffset == o.properOffset &&
              containerOffset == o.containerOffset &&
              base.equals(o.base) &&
-             containerType.getCanonicalType().equals(o.containerType.getCanonicalType());
+             (containerType != null ?
+                o.containerType != null && containerType.getCanonicalType().equals(o.containerType.getCanonicalType()) :
+                o.containerType == null);
     }
   }
 
