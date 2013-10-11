@@ -58,12 +58,15 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -86,6 +89,11 @@ import com.google.common.base.Predicates;
  */
 @Options(prefix="cpa.predicate.refinement")
 public class PredicateCPARefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
+
+  @Option(name="pointerAnalysisWithUFs",
+      description="Use CToFormulaConverterWithUF for converting edges to path formulae. This enables encoding of " +
+                  "aliased variables with uninterpreted funciton calls.")
+  private boolean pointerAnalysisWithUFs;
 
   @Option(description="slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
@@ -184,8 +192,19 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
 
     // create list of formulas on path
-    final List<BooleanFormula> formulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirst().getFirst());
-    assert abstractionStatesTrace.size() == formulas.size();
+    final List<BooleanFormula> formulas = getFormulasForPath(path, pPath.getFirst().getFirst());
+    if (pointerAnalysisWithUFs) {
+      final int last = formulas.size() - 1;
+      final BooleanFormula lastFormula = formulas.get(last);
+      final PathFormula lastPathFomrula = AbstractStates.extractStateByType(path.get(last),
+                                                            PredicateAbstractState.class)
+                                        .getPathFormula();
+      formulas.set(last, ((PathFormulaWithUF) lastPathFomrula).getPointerTargetSet()
+                                                              .withDisjointnessConstraints(lastFormula));
+    }
+    assert path.size() == formulas.size();
+
+    boolean refineUsingInterpolation = (extractor == null) || (heuristicsCount > 0);
 
     // build the counterexample
     final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath, strategy.needsInterpolants());

@@ -61,7 +61,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CToFormulaWithUFConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
@@ -78,6 +81,11 @@ import com.google.common.collect.Maps;
 @Options(prefix="cpa.predicate")
 public class PathFormulaManagerImpl implements PathFormulaManager {
 
+  @Option(name="pointerAnalysisWithUFs",
+          description="Use CToFormulaConverterWithUF for converting edges to path formulae. This enables encoding of " +
+                      "aliased variables with uninterpreted funciton calls.")
+  private boolean pointerAnalysisWithUFs = false;
+
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
@@ -90,6 +98,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
+  private final MachineModel machineModel;
   private final CtoFormulaConverter converter;
   private final LogManager logger;
 
@@ -101,7 +110,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           throws InvalidConfigurationException {
     config.inject(this, PathFormulaManagerImpl.class);
 
-    converter = CtoFormulaConverter.create(config, pFmgr, pMachineModel, pLogger);
+    machineModel = pMachineModel;
+    if (!pointerAnalysisWithUFs) {
+     converter = CtoFormulaConverter.create(config, pFmgr, pMachineModel, pLogger);
+    } else {
+     converter = CToFormulaWithUFConverter.create(config, pFmgr, pMachineModel, pLogger);
+    }
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     ffmgr = fmgr.getFunctionFormulaManager();
@@ -112,8 +126,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeAnd(final PathFormula pOldFormula,
-      final CFAEdge pEdge) throws CPATransferException {
-    PathFormula result = converter.makeAnd(pOldFormula, pEdge);
+                             final CFAEdge pEdge) throws CPATransferException {
+    PathFormula result;
+    if (!pointerAnalysisWithUFs) {
+      result = converter.makeAnd(pOldFormula, pEdge);
+    } else {
+      result = ((CToFormulaWithUFConverter) converter).makeAnd((PathFormulaWithUF) pOldFormula, pEdge);
+    }
 
     if (useNondetFlags) {
       SSAMapBuilder ssa = result.getSsa().builder();
@@ -147,21 +166,47 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula() {
-    return new PathFormula(bfmgr.makeBoolean(true), SSAMap.emptySSAMap(), 0);
+    if (!pointerAnalysisWithUFs) {
+      return new PathFormula(bfmgr.makeBoolean(true), SSAMap.emptySSAMap(), 0);
+    } else {
+      return new PathFormulaWithUF(bfmgr.makeBoolean(true),
+                                   SSAMap.emptySSAMap(),
+                                   PointerTargetSet.emptyPointerTargetSet(machineModel,
+                                                                          bfmgr.makeBoolean(true),
+                                                                          fmgr),
+                                   0);
+    }
   }
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
-    return new PathFormula(bfmgr.makeBoolean(true), oldFormula.getSsa(), 0);
+    if (!pointerAnalysisWithUFs) {
+      return new PathFormula(bfmgr.makeBoolean(true), oldFormula.getSsa(), 0);
+    } else {
+      return new PathFormulaWithUF(bfmgr.makeBoolean(true),
+                                   oldFormula.getSsa(),
+                                   ((PathFormulaWithUF) oldFormula).getPointerTargetSet(), 0);
+    }
   }
 
   @Override
   public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
-    return new PathFormula(oldFormula.getFormula(), m, oldFormula.getLength());
+    if (!pointerAnalysisWithUFs) {
+      return new PathFormula(oldFormula.getFormula(), m, oldFormula.getLength());
+    } else {
+      return new PathFormulaWithUF(oldFormula.getFormula(),
+                                   m,
+                                   ((PathFormulaWithUF) oldFormula).getPointerTargetSet(),
+                                   oldFormula.getLength());
+    }
   }
 
   @Override
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
+    if (pointerAnalysisWithUFs) {
+      throw new UnsupportedOperationException("Merging is still unsupported for path formulas with UFs");
+    }
+
     BooleanFormula formula1 = pF1.getFormula();
     BooleanFormula formula2 = pF2.getFormula();
     SSAMap ssa1 = pF1.getSsa();
@@ -186,7 +231,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     SSAMap ssa = pPathFormula.getSsa();
     BooleanFormula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);
     BooleanFormula resultFormula = bfmgr.and(pPathFormula.getFormula(), otherFormula);
-    return new PathFormula(resultFormula, ssa, pPathFormula.getLength());
+    if (!pointerAnalysisWithUFs) {
+      return new PathFormula(resultFormula, ssa, pPathFormula.getLength());
+    } else {
+      final PointerTargetSet pts = ((PathFormulaWithUF) pPathFormula).getPointerTargetSet();
+      return new PathFormulaWithUF(resultFormula, ssa, pts, pPathFormula.getLength());
+    }
   }
 
   /**

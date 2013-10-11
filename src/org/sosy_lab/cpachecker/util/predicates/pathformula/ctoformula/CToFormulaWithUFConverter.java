@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
@@ -544,6 +545,15 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       return bfmgr.not(fmgr.makeEqual(f, zero));
     } else {
       return (BooleanFormula) f;
+    }
+  }
+
+  @Override
+  public PathFormulaWithUF makeAnd(final PathFormula oldFormula, final CFAEdge edge) throws CPATransferException {
+    if (oldFormula instanceof PathFormulaWithUF) {
+      return makeAnd((PathFormulaWithUF) oldFormula, edge);
+    } else {
+      throw new CPATransferException("CToFormulaWithUF converter requires PathFormulaIWhtUF");
     }
   }
 

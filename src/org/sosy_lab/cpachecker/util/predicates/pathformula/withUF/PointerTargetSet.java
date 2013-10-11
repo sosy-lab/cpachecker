@@ -543,6 +543,10 @@ public class PointerTargetSet implements Serializable {
     private final FormulaType<?> pointerType;
   }
 
+  public BooleanFormula withDisjointnessConstraints(final BooleanFormula formula) {
+    return formulaManager.getBooleanFormulaManager().and(formula, disjointnessFormula);
+  }
+
   public boolean isBase(final String name) {
     return bases.containsKey(name);
   }
