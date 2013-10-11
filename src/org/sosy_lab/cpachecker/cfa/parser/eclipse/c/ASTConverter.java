@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
@@ -164,9 +165,13 @@ class ASTConverter {
         "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide")
   private boolean simplifyPointerExpressions = false;
 
-  private final boolean simplifyConstExpressions;
-  private final ExpressionSimplificationVisitor expressionSimplificator;
-  private final CBinaryExpressionBuilder binExprBuilder;
+  @Option(name="cfa.ignoreAllocCasts", description = "Ignore type castings in calls to memory allocation functions")
+  private boolean ignoreAllocCasts = false;
+
+  @Option(name="cfa.allocationFunctionPattern", description = "Regex pattern matching allocation functions")
+  private String memoryAllocationFunctionPatternString = ".*alloc";
+
+  private Pattern memoryAllocationFunctionPattern = Pattern.compile(memoryAllocationFunctionPatternString);
 
   private final LogManager logger;
   private final ASTLiteralConverter literalConverter;
@@ -549,19 +554,22 @@ class ASTConverter {
       return t.getType().accept(this);
     }
 
-    @Override
-    public Boolean visit(final CProblemType t) {
-      return true;
+  private CAstNode convert(IASTCastExpression e) {
+    final CExpression operand;
+    if (!ignoreAllocCasts ||
+        !(e.getOperand() instanceof CFunctionCallExpression) ||
+        !(((CFunctionCallExpression) e.getOperand()).getFunctionNameExpression() instanceof CIdExpression) ||
+        !memoryAllocationFunctionPattern.matcher(
+          ((CIdExpression) ((CFunctionCallExpression) e.getOperand()).getFunctionNameExpression()).getName())
+            .matches()) {
+      operand = convertExpressionWithoutSideEffects(e.getOperand());
+    } else {
+      return convertExpressionWithSideEffects(e.getOperand());
     }
-
-    @Override
-    public Boolean visit(final CSimpleType t) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CTypedefType t) {
-      return t.getRealType().accept(this);
+    if (e.getOperand() instanceof IASTFieldReference && ((IASTFieldReference)e.getOperand()).isPointerDereference()) {
+      return createInitializedTemporaryVariable(e, new CCastExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), operand, convert(e.getTypeId())));
+    } else {
+      return new CCastExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), operand, convert(e.getTypeId()));
     }
   }
 
