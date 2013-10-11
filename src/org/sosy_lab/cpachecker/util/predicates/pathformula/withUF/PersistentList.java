@@ -213,6 +213,21 @@ public class PersistentList<T> extends AbstractSequentialList<T> {
     return result;
   }
 
+  /**
+   * Returns concatenation of the list with the given list,
+   * updating the tail of the last element of this list.
+   * Note: updating operating, not persistent!
+   * @return Concatenation of this list with the given list
+   */
+  public PersistentList<T> destructiveBuildOnto(PersistentList<T> newTail) {
+    PersistentList<T> last = this;
+    for (PersistentList<T> p = tail; p != empty(); p = p.tail) {
+      last = p;
+    }
+    last.tail = newTail;
+    return this;
+  }
+
   public static class Builder<T> {
 
     public Builder<T> add(final T value) {
@@ -233,10 +248,28 @@ public class PersistentList<T> extends AbstractSequentialList<T> {
      */
     @SuppressWarnings("unchecked")
     public PersistentList<T> build() {
-      return buildOnto((PersistentList<T>) empty());
+      return list;
     }
 
-    public PersistentList<T> buildOnto(PersistentList<T> tail) {
+    public PersistentList<T> buildOnto(final PersistentList<T> tail) {
+      PersistentList<T> last = list;
+      for (PersistentList<T> p = list.tail; p != empty(); p = p.tail) {
+        last = p;
+      }
+      last.tail = tail;
+      return list;
+    }
+
+    /**
+     * The Builder cannot be used after calling build()
+     * @return The list
+     */
+    @SuppressWarnings("unchecked")
+    public PersistentList<T> buildReversed() {
+      return buildReversedOnto((PersistentList<T>) empty());
+    }
+
+    public PersistentList<T> buildReversedOnto(PersistentList<T> tail) {
       // reverse in place by changing pointers (no allocation)
       for (PersistentList<T> p = list; p != empty();) {
         final PersistentList<T> next = p.tail;

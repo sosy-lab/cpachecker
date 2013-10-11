@@ -24,11 +24,17 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import javax.annotation.Nonnull;
+
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -61,7 +67,7 @@ public class PointerTargetSet implements Serializable {
       this.fieldName = fieldName;
     }
 
-    public static CompositeField of(final String compositeType, final String fieldName) {
+    public static CompositeField of(final @Nonnull String compositeType, final @Nonnull String fieldName) {
       return new CompositeField(compositeType, fieldName);
     }
 
@@ -100,6 +106,11 @@ public class PointerTargetSet implements Serializable {
       }
     }
 
+    @Override
+    public int hashCode() {
+      return compositeType.hashCode() * 17 + fieldName.hashCode();
+    }
+
     private String compositeType;
     private String fieldName;
   }
@@ -134,12 +145,16 @@ public class PointerTargetSet implements Serializable {
     private final CEvaluatingVisitor evaluatingVisitor;
   }
 
-  public static String cTypeToString(CType type) {
-    return CTypeUtils.simplifyType(type).toString();
+  public static CType simplifyType(final CType type) {
+    return CTypeUtils.simplifyType(type.getCanonicalType());
+  }
+
+  public static String cTypeToString(final CType type) {
+    return CTypeUtils.simplifyType(type.getCanonicalType()).toString();
   }
 
   public int getSize(CType cType) {
-    cType = CTypeUtils.simplifyType(cType);
+    cType = simplifyType(cType);
     if (cType instanceof CCompositeType) {
       final String type = cTypeToString(cType);
       if (sizes.contains(type)) {
@@ -158,9 +173,13 @@ public class PointerTargetSet implements Serializable {
     return offsets.get(type).count(memberName);
   }
 
-  public Iterator<PointerTarget> getTargets(final CType type, final PointerTargetPattern pattern) {
+  private static Iterable<PointerTarget> getTargets(
+                                            final CType type,
+                                            final PointerTargetPattern pattern,
+                                            final boolean matches,
+                                            final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
     final List<PointerTarget> targetsForType = targets.get(cTypeToString(type));
-    return new Iterator<PointerTarget>() {
+    final Iterator<PointerTarget> resultIterator = new Iterator<PointerTarget>() {
 
       @Override
       public boolean hasNext() {
@@ -169,7 +188,7 @@ public class PointerTargetSet implements Serializable {
         }
         while (iterator.hasNext()) {
           last = iterator.next();
-          if (pattern.matches(last)) {
+          if (pattern.matches(last) == matches) {
             return true;
           }
         }
@@ -185,7 +204,7 @@ public class PointerTargetSet implements Serializable {
         }
         while (iterator.hasNext()) {
           result = iterator.next();
-          if (pattern.matches(result)) {
+          if (pattern.matches(result) == matches) {
             return result;
           }
         }
@@ -200,6 +219,23 @@ public class PointerTargetSet implements Serializable {
       private Iterator<PointerTarget> iterator = targetsForType.iterator();
       private PointerTarget last = null;
      };
+     return new Iterable<PointerTarget>() {
+
+      @Override
+      public Iterator<PointerTarget> iterator() {
+        return resultIterator;
+      }
+    };
+  }
+
+  public Iterable<PointerTarget> getMatchingTargets(final CType type,
+                                                    final PointerTargetPattern pattern) {
+    return getTargets(type, pattern, true, targets);
+  }
+
+  public Iterable<PointerTarget> getSpuriousTargets(final CType type,
+                                                    final PointerTargetPattern pattern) {
+    return getTargets(type, pattern, false, targets);
   }
 
   /**
@@ -240,7 +276,7 @@ public class PointerTargetSet implements Serializable {
       int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         members.setCount(memberDeclaration.getName(), offset);
-        final CType cType = CTypeUtils.simplifyType(memberDeclaration.getType());
+        final CType cType = simplifyType(memberDeclaration.getType());
         type = null;
         if (cType instanceof CCompositeType) {
           final CCompositeType compositeMemberType = (CCompositeType) cType;
@@ -276,6 +312,16 @@ public class PointerTargetSet implements Serializable {
       return pointerTargetSet.getOffset(compositeType, memberName);
     }
 
+    public Iterable<PointerTarget> getMatchingTargets(final CType type,
+                                                      final PointerTargetPattern pattern) {
+      return getTargets(type, pattern, true, targets);
+    }
+
+    public Iterable<PointerTarget> getSpuriousTargets(final CType type,
+                                                      final PointerTargetPattern pattern) {
+      return getTargets(type, pattern, false, targets);
+    }
+
     private void addTarget(final String base,
                            final CType targetType,
                            final CType containerType,
@@ -290,6 +336,7 @@ public class PointerTargetSet implements Serializable {
                                                                                containerType,
                                                                                properOffset,
                                                                                containerOffset)));
+      flag = true;
     }
 
     private void addTargets(final String base,
@@ -297,7 +344,7 @@ public class PointerTargetSet implements Serializable {
                             final CType containerType,
                             final int properOffset,
                             final int containerOffset) {
-      final CType cType = CTypeUtils.simplifyType(currentType);
+      final CType cType = simplifyType(currentType);
       assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
@@ -329,11 +376,12 @@ public class PointerTargetSet implements Serializable {
       }
     }
 
-    public void addBase(final String name, CType type) {
-      type = CTypeUtils.simplifyType(type);
+    public boolean addBase(final String name, CType type) {
+      type = simplifyType(type);
       if (bases.containsKey(name)) {
-        return; // The base has already been added
+        return true; // The base has already been added
       }
+      flag = false;
       addTargets(name, type, null, 0, 0);
       bases = bases.putAndCopy(name, type);
 
@@ -351,6 +399,18 @@ public class PointerTargetSet implements Serializable {
                                                                            fm.makeNumber(FormulaType.RationalType,
                                                                                          lastSize)), true));
       }
+      return flag;
+    }
+
+    BooleanFormula addBase(BooleanFormula disjointnessFormula, String name, String lastBase, int lastSize) {
+      final FormulaManagerView fm = pointerTargetSet.formulaManager;
+      final RationalFormula base = fm.makeVariable(FormulaType.RationalType, name);
+      return  fm.makeAnd(disjointnessFormula,
+                         fm.makeGreaterOrEqual(base,
+                                               fm.makePlus(fm.makeVariable(FormulaType.RationalType,
+                                                                           lastBase),
+                                                           fm.makeNumber(FormulaType.RationalType,
+                                                                         lastSize)), true));
     }
 
     private void addTargets(final String base,
@@ -360,7 +420,7 @@ public class PointerTargetSet implements Serializable {
                             final int containerOffset,
                             final String composite,
                             final String memberName) {
-      final CType cType = CTypeUtils.simplifyType(currentType);
+      final CType cType = simplifyType(currentType);
       assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
@@ -395,17 +455,28 @@ public class PointerTargetSet implements Serializable {
       }
     }
 
-    public void addField(CCompositeType composite, final String fieldName) {
-      composite = (CCompositeType) CTypeUtils.simplifyType(composite);
-      final String type = cTypeToString(composite);
+    public boolean addField(final CCompositeType composite, final String fieldName) {
+       final String type = cTypeToString(composite);
       final CompositeField field = CompositeField.of(type, fieldName);
       if (fields.containsKey(field)) {
-        return; // The field has already been added
+        return true; // The field has already been added
       }
+      flag = false;
       for (final PersistentSortedMap.Entry<String, CType> baseEntry : bases.entrySet()) {
         addTargets(baseEntry.getKey(), baseEntry.getValue(), null, 0, 0, type, fieldName);
       }
       fields = fields.putAndCopy(field, true);
+      return flag;
+    }
+
+    public void shallowRemoveField(final CCompositeType composite, final String fieldName) {
+      final String type = cTypeToString(composite);
+      final CompositeField field = CompositeField.of(type, fieldName);
+      fields = fields.removeAndCopy(field);
+    }
+
+    void setFields(PersistentSortedMap<CompositeField, Boolean> fields) {
+      this.fields = fields;
     }
 
     /**
@@ -421,6 +492,8 @@ public class PointerTargetSet implements Serializable {
                                   pointerTargetSet.formulaManager);
     }
 
+    private boolean flag; // Used by addBase() addField() to detect essential additions
+
     private final PointerTargetSet pointerTargetSet;
 
     private PersistentSortedMap<String, CType> bases;
@@ -430,7 +503,7 @@ public class PointerTargetSet implements Serializable {
     private BooleanFormula disjointnessFormula;
   }
 
-  private static final PointerTargetSet emptyPointerTargetSet(final MachineModel machineModel,
+  public static final PointerTargetSet emptyPointerTargetSet(final MachineModel machineModel,
                                                               final BooleanFormula truthFormula,
                                                               final FormulaManagerView formulaManager) {
     final CEvaluatingVisitor evaluatingVisitor = new CEvaluatingVisitor(machineModel);
@@ -441,6 +514,298 @@ public class PointerTargetSet implements Serializable {
                                 PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of(),
                                 truthFormula,
                                 formulaManager);
+  }
+
+  public PointerTargetSet mergeWith(final PointerTargetSet other) {
+    final boolean reverseBases = other.bases.size() > bases.size();
+    final Triple<PersistentSortedMap<String, CType>,
+                 PersistentSortedMap<String, CType>,
+                 PersistentSortedMap<String, CType>> mergedBases =
+      !reverseBases ? mergeSortedSets(bases, other.bases) : mergeSortedSets(other.bases, bases);
+
+    final boolean reverseFields = other.fields.size() > fields.size();
+    final Triple<PersistentSortedMap<CompositeField, Boolean>,
+                 PersistentSortedMap<CompositeField, Boolean>,
+                 PersistentSortedMap<CompositeField, Boolean>> mergedFields =
+      !reverseBases ? mergeSortedSets(fields, other.fields) : mergeSortedSets(other.fields, fields);
+
+    final boolean reverseTargets = other.targets.size() > targets.size();
+    final PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
+      !reverseTargets ? mergeSortedMaps(targets, other.targets,PointerTargetSet.<PointerTarget>mergeOnConflict()) :
+                        mergeSortedMaps(other.targets, targets, PointerTargetSet.<PointerTarget>mergeOnConflict());
+
+    final PointerTargetSetBuilder builder1 = new PointerTargetSetBuilder(emptyPointerTargetSet(
+                                                                               evaluatingVisitor.getMachineModel(),
+                                                                               formulaManager.getBooleanFormulaManager()
+                                                                                             .makeBoolean(true),
+                                                                               formulaManager)),
+                                  builder2 = new PointerTargetSetBuilder(emptyPointerTargetSet(
+                                                                               evaluatingVisitor.getMachineModel(),
+                                                                               formulaManager.getBooleanFormulaManager()
+                                                                                             .makeBoolean(true),
+                                                                               formulaManager));
+    if (reverseBases == reverseFields) {
+      builder1.setFields(mergedFields.getFirst());
+      builder2.setFields(mergedFields.getSecond());
+    } else {
+      builder1.setFields(mergedFields.getSecond());
+      builder2.setFields(mergedFields.getFirst());
+    }
+
+    for (final Map.Entry<String, CType> entry : mergedBases.getSecond().entrySet()) {
+      builder1.addBase(entry.getKey(), entry.getValue());
+    }
+
+    for (final Map.Entry<String, CType> entry : mergedBases.getFirst().entrySet()) {
+      builder2.addBase(entry.getKey(), entry.getValue());
+    }
+
+    BooleanFormula disjointessFormula;
+    String lastBase;
+    int lastSize;
+    if (reverseBases) {
+      disjointessFormula = this.disjointnessFormula;
+      lastBase = bases.lastKey();
+      lastSize = getSize(bases.get(lastBase));
+
+    } else {
+      disjointessFormula = other.disjointnessFormula;
+      lastBase = other.bases.lastKey();
+      lastSize = other.getSize(other.bases.get(lastBase));
+    }
+
+    for (final Map.Entry<String, CType> entry : mergedBases.getSecond().entrySet()) {
+      disjointessFormula = builder1.addBase(disjointessFormula, entry.getKey(), lastBase, lastSize);
+      lastBase = entry.getKey();
+      lastSize = builder1.getSize(entry.getValue());
+    }
+
+    final ConflictHandler<PersistentList<PointerTarget>> conflictHandler =
+                                                           PointerTargetSet.<PointerTarget>destructiveMergeOnConflict();
+
+    return new PointerTargetSet(evaluatingVisitor,
+                                sizeofVisitor,
+                                mergedBases.getThird(),
+                                mergedFields.getThird(),
+                                mergeSortedMaps(
+                                  mergeSortedMaps(mergedTargets,
+                                                  builder1.targets,
+                                                  conflictHandler),
+                                  builder2.targets,
+                                  conflictHandler),
+                                disjointnessFormula,
+                                formulaManager);
+  }
+
+  private static <T> PersistentList<T> mergePersistentLists(final PersistentList<T> list1,
+                                                            final PersistentList<T> list2) {
+    final int size1 = list1.size();
+    final ArrayList<T> arrayList1 = new ArrayList<>(size1);
+    for (final T element : list1) {
+      arrayList1.add(element);
+    }
+    final int size2 = list2.size();
+    final ArrayList<T> arrayList2 = new ArrayList<>(size2);
+    for (final T element : list1) {
+      arrayList2.add(element);
+    }
+    int sizeCommon = 0;
+    for (int i = 0; i < arrayList1.size() && arrayList1.get(i).equals(arrayList2.get(i)); i++) {
+      ++sizeCommon;
+    }
+    PersistentList<T> result;
+    final ArrayList<T> biggerArrayList, smallerArrayList;
+    final int biggerCommonStart, smallerCommonStart;
+    if (size1 > size2) {
+      result = list1;
+      biggerArrayList = arrayList1;
+      smallerArrayList = arrayList2;
+      biggerCommonStart = size1 - sizeCommon;
+      smallerCommonStart = size2 - sizeCommon;
+    } else {
+      result = list2;
+      biggerArrayList = arrayList2;
+      smallerArrayList = arrayList1;
+      biggerCommonStart = size2 - sizeCommon;
+      smallerCommonStart = size1 - sizeCommon;
+    }
+    final Set<T> fromBigger = new HashSet<>(2 * biggerCommonStart, 1.0f);
+    for (int i = 0; i < biggerCommonStart; i++) {
+      fromBigger.add(biggerArrayList.get(i));
+    }
+    for (int i = 0; i < smallerCommonStart; i++) {
+      final T target = smallerArrayList.get(i);
+      if (!fromBigger.contains(target)) {
+        result = result.with(target);
+      }
+    }
+    return result;
+  }
+
+  private static <K extends Comparable<? super K>, V> Triple<PersistentSortedMap<K, V>,
+                                                     PersistentSortedMap<K, V>,
+                                                     PersistentSortedMap<K, V>> mergeSortedSets(
+    final PersistentSortedMap<K, V> set1,
+    final PersistentSortedMap<K, V> set2) {
+
+    PersistentSortedMap<K, V> fromSet1 = PathCopyingPersistentTreeMap.<K, V>of();
+    PersistentSortedMap<K, V> fromSet2 = PathCopyingPersistentTreeMap.<K, V>of();
+    PersistentSortedMap<K, V> union = set1; // Here we assume that the set1 is bigger
+
+    final Iterator<Map.Entry<K, V>> it1 = set1.entrySet().iterator();
+    final Iterator<Map.Entry<K, V>> it2 = set2.entrySet().iterator();
+
+    Map.Entry<K, V> e1 = null;
+    Map.Entry<K, V> e2 = null;
+
+    // This loop iterates synchronously through both sets
+    // by trying to keep the keys equal.
+    // If one iterator fails behind, the other is not forwarded until the first catches up.
+    // The advantage of this is it is in O(n log(n))
+    // (n iterations, log(n) per update).
+    while (it1.hasNext() && it2.hasNext()) {
+      if (e1 == null) {
+        e1 = it1.next();
+      }
+      if (e2 == null) {
+        e2 = it2.next();
+      }
+
+      final int flag = e1.getKey().compareTo(e2.getKey());
+
+      if (flag < 0) {
+        // e1 < e2
+        fromSet1 = fromSet1.putAndCopy(e1.getKey(), e1.getValue());
+        // Forward e1 until it catches up with e2
+        e1 = null;
+      } else if (flag > 0) {
+        // e1 > e2
+        fromSet2 = fromSet2.putAndCopy(e2.getKey(), e2.getValue());
+        assert !union.containsKey(e2.getKey());
+        union = union.putAndCopy(e2.getKey(), e2.getValue());
+        // Forward e2 until it catches up with e1
+        e2 = null;
+      } else {
+        // e1 == e2
+        assert e1.getValue().equals(e1.getValue()) : "Can't merge maps as sets: values differ";
+        // Forward both iterators
+        e1 = null;
+        e2 = null;
+      }
+    }
+
+    while (it1.hasNext()) {
+      e1 = it1.next();
+      fromSet1 = fromSet1.putAndCopy(e1.getKey(), e1.getValue());
+    }
+
+    while (it2.hasNext()) {
+      e2 = it2.next();
+      fromSet2 = fromSet2.putAndCopy(e2.getKey(), e2.getValue());
+      assert !union.containsKey(e2.getKey());
+      union = union.putAndCopy(e2.getKey(), e2.getValue());
+    }
+
+    return Triple.of(fromSet1, fromSet2, union);
+  }
+
+  /**
+   * Merge two PersistentSortedMaps.
+   * The result has all key-value pairs where the key is only in one of the map,
+   * those which are identical in both map,
+   * and for those keys that have a different value in both maps a handler is called,
+   * and the result is put in the resulting map.
+   * @param map1 The first map.
+   * @param map2 The second map.
+   * @param conflictHandler The handler that is called for a key with two different values.
+   * @return
+   */
+  private static <K extends Comparable<? super K>, V> PersistentSortedMap<K, V> mergeSortedMaps(
+    final PersistentSortedMap<K, V> map1,
+    final PersistentSortedMap<K, V> map2,
+    final ConflictHandler<V> conflictHandler) {
+
+    // map1 is the bigger one, so we use it as the base.
+    PersistentSortedMap<K, V> result = map1;
+
+    final Iterator<Map.Entry<K, V>> it1 = map1.entrySet().iterator();
+    final Iterator<Map.Entry<K, V>> it2 = map2.entrySet().iterator();
+
+    Map.Entry<K, V> e1 = null;
+    Map.Entry<K, V> e2 = null;
+
+    // This loop iterates synchronously through both sets
+    // by trying to keep the keys equal.
+    // If one iterator fails behind, the other is not forwarded until the first catches up.
+    // The advantage of this is it is in O(n log(n))
+    // (n iterations, log(n) per update).
+    while (it1.hasNext() && it2.hasNext()) {
+      if (e1 == null) {
+        e1 = it1.next();
+      }
+      if (e2 == null) {
+        e2 = it2.next();
+      }
+
+      final int flag = e1.getKey().compareTo(e2.getKey());
+
+      if (flag < 0) {
+        // e1 < e2
+        // forward e1 until it catches up with e2
+        e1 = null;
+      } else if (flag > 0) {
+        // e1 > e2
+        // e2 is not in map
+        assert !result.containsKey(e2.getKey());
+        result = result.putAndCopy(e2.getKey(), e2.getValue());
+        // forward e2 until it catches up with e1
+        e2 = null;
+      } else {
+        // e1 == e2
+        final K key = e1.getKey();
+        final V value1 = e1.getValue();
+        final V value2 = e2.getValue();
+
+        if (!value1.equals(value2)) {
+          result = result.putAndCopy(key, conflictHandler.resolveConflict(value1, value2));
+        }
+        // forward both iterators
+        e1 = null;
+        e2 = null;
+      }
+    }
+
+    // Now copy the rest of the mappings from s2.
+    // For s1 this is not necessary.
+    while (it2.hasNext()) {
+      e2 = it2.next();
+      result = result.putAndCopy(e2.getKey(), e2.getValue());
+    }
+
+    assert result.size() >= Math.max(map1.size(), map2.size());
+    return result;
+  }
+
+  private static interface ConflictHandler<V> {
+    public V resolveConflict(V value1, V value2);
+  }
+
+  private static <T> ConflictHandler<PersistentList<T>> mergeOnConflict() {
+    return new ConflictHandler<PersistentList<T>>() {
+      @Override
+      public PersistentList<T> resolveConflict(PersistentList<T> list1, PersistentList<T> list2) {
+        return mergePersistentLists(list1, list2);
+      }
+    };
+  }
+
+  private static <T> ConflictHandler<PersistentList<T>> destructiveMergeOnConflict() {
+    return new ConflictHandler<PersistentList<T>>() {
+      @Override
+      public PersistentList<T> resolveConflict(PersistentList<T> list1, PersistentList<T> list2) {
+        return list2.destructiveBuildOnto(list1);
+      }
+    };
   }
 
   @Override
@@ -515,5 +880,7 @@ public class PointerTargetSet implements Serializable {
   private final BooleanFormula disjointnessFormula;
 
   private static final int DEFAULT_ARRAY_LENGTH = 100;
+
+  private static final long serialVersionUID = 2102505458322248624L;
 }
 

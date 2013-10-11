@@ -94,6 +94,26 @@ public class PointerTarget implements Serializable {
     return containerOffset;
   }
 
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    } else if (!(other instanceof PointerTarget)) {
+      return false;
+    } else {
+      final PointerTarget o = (PointerTarget) other;
+      return properOffset == o.properOffset &&
+             containerOffset == o.containerOffset &&
+             base.equals(o.base) &&
+             containerType.getCanonicalType().equals(o.containerType.getCanonicalType());
+    }
+  }
+
+  @Override
+  public int hashCode() {
+    return 31 * base.hashCode() + 17 * containerOffset + properOffset;
+  }
+
   final String base;
   final CType containerType;
   final int properOffset;
