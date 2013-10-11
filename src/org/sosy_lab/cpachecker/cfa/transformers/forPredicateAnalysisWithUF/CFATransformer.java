@@ -36,9 +36,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -96,6 +98,13 @@ public class CFATransformer extends DefaultCFAVisitor {
             if (initializer instanceof CInitializerList) {
               typeVisitor.setInitializerSize(((CInitializerList) initializer).getInitializers().size(),
                                              initializer.getFileLocation());
+            } else if (initializer instanceof CInitializerExpression &&
+                       ((CInitializerExpression) initializer).getExpression() instanceof CStringLiteralExpression) {
+              typeVisitor.setInitializerSize(
+                  ((CStringLiteralExpression) ((CInitializerExpression) initializer).getExpression())
+                    .getContentString()
+                    .length() + 1,
+                  initializer.getFileLocation());
             }
             final CType variableType = oldVariableType.accept(typeVisitor);
             if (initializer != oldInitializer || variableType != oldVariableType) {
