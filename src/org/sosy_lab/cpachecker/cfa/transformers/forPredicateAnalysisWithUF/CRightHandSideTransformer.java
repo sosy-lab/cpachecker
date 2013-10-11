@@ -60,7 +60,7 @@ class CRightHandSideTransformer extends ForwardingCExpressionVisitor<CAstNode, U
            new CFunctionCallExpression(e.getFileLocation(),
                                        e.getExpressionType(),
                                        functionNameExpression,
-                                       parameters,
+                                       parameters != null ? parameters : e.getParameterExpressions(),
                                        e.getDeclaration());
   }
 

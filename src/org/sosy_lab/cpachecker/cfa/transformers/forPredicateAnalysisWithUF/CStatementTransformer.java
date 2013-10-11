@@ -85,7 +85,7 @@ class CStatementTransformer implements CStatementVisitor<CStatement, Unrecognize
            new CFunctionCallExpression(e.getFileLocation(),
                                        e.getExpressionType(),
                                        functionName,
-                                       parameters,
+                                       parameters != null ? parameters : e.getParameterExpressions(),
                                        e.getDeclaration());
   }
 
