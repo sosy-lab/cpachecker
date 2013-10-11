@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import javax.annotation.Nonnull;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -65,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -75,6 +78,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.DeferredAllocationPool;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
@@ -126,6 +130,168 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
 
   private boolean isNondetFunctionName(final String name) {
     return conv.nondetFunctions.contains(name) || conv.nondetFunctionsPattern.matcher(name).matches();
+  }
+
+  private CType refineType(final @Nonnull CType type, final @Nonnull CIntegerLiteralExpression sizeLiteral) {
+    if (sizeLiteral.getValue() != null) {
+      final int size = sizeLiteral.getValue().intValue();
+      final int typeSize = pts.getSize(type);
+      if (type instanceof CArrayType) {
+        if (typeSize != size) {
+          conv.log(Level.WARNING, "Array size of the revealed type differs form the allocation size: " + type +
+                                   " : " + typeSize + " != " + size);
+        }
+        return type;
+      } else {
+        final int n = size / typeSize;
+        final int remainder = size % typeSize;
+        if (n == 0 || remainder != 0) {
+          conv.log(Level.WARNING, "Can't refine allocation type, but the sizes differ: " + type + " : " + typeSize +
+                                  " != " + size);
+          return type;
+        }
+        return new CArrayType(false, false, type, new CIntegerLiteralExpression(sizeLiteral.getFileLocation(),
+                                                                                sizeLiteral.getExpressionType(),
+                                                                                BigInteger.valueOf(n)));
+      }
+    } else {
+      return type;
+    }
+  }
+
+  private void handleDeferredAllocationTypeRevelation(final String pointerVariable, final CType type) {
+    final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
+    for (final String baseVariable : deferredAllocationPool.getBaseVariables()) {
+      conv.makeAllocation(deferredAllocationPool.wasAllocationZeroing(),
+                          type,
+                          baseVariable,
+                          ssa,
+                          constraints,
+                          pts);
+    }
+  }
+
+  private void handleDeferredAllocationPointerRemoval(final CAssignment e, final String pointerVariable) {
+    if (pts.removeDeferredAllocatinPointer(pointerVariable)) {
+      conv.log(Level.WARNING, "Assignment to the void * pointer " + pointerVariable +
+                              " produces garbage! (in assignment: " + e + ")");
+    }
+  }
+
+  private void handleDeferredAllocationPointerEscape(final CAssignment e, final String pointerVariable) {
+    final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
+    final CIntegerLiteralExpression size = deferredAllocationPool.getSize() != null ?
+                                             deferredAllocationPool.getSize() :
+                                             new CIntegerLiteralExpression(e.getFileLocation(),
+                                                                           PointerTargetSet.CHAR,
+                                                                           BigInteger.valueOf(PointerTargetSet
+                                                                                            .DEFAULT_ALLOCATION_SIZE));
+    conv.log(Level.WARNING, "The void * pointer " + pointerVariable + " to a deferred allocation " +
+                            "escaped form tracking! Allocating array void[" +
+                             deferredAllocationPool.getSize() + "]. (in assignment: " + e + ")");
+    for (final String baseVariable : deferredAllocationPool.getBaseVariables()) {
+      conv.makeAllocation(deferredAllocationPool.wasAllocationZeroing(),
+                          new CArrayType(false,
+                                         false,
+                                         PointerTargetSet.VOID,
+                                         size),
+                          baseVariable,
+                          ssa,
+                          constraints,
+                          pts);
+    }
+  }
+
+  private void handleDeferredAllocationsInAssignment(final CAssignment e,
+                                                     final Object lhsTarget,
+                                                     final Object rhsTarget,
+                                                     final Map<String, CType> lhsUsedDeferredAllocationPointers,
+                                                     final Map<String, CType> rhsUsedDeferredAllocationPointers) {
+    boolean passed = false;
+    for (final Map.Entry<String, CType> usedPointer : rhsUsedDeferredAllocationPointers.entrySet()) {
+      boolean handled = false;
+      if (usedPointer.getValue() != null) {
+        handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
+        handled = true;
+      } else if (e.getRightHandSide() instanceof CExpression &&
+                 ExpressionToFormulaWithUFVisitor.isSimpleTarget((CExpression) e.getRightHandSide())) {
+        assert rhsTarget instanceof String &&
+               ((String) rhsTarget).equals(usedPointer.getKey()) &&
+               rhsUsedDeferredAllocationPointers.size() == 1:
+               "Wrong assumptions on deferred allocations tracking: rhs is not a single pointer";
+        final CType lhsType = PointerTargetSet.simplifyType(e.getLeftHandSide().getExpressionType());
+        if (lhsType.equals(PointerTargetSet.POINTER_TO_VOID) &&
+            ExpressionToFormulaWithUFVisitor.isSimpleTarget(e.getLeftHandSide()) &&
+            lhsTarget instanceof String) {
+          final Map.Entry<String, CType> lhsUsedPointer = !lhsUsedDeferredAllocationPointers.isEmpty() ?
+                                                       lhsUsedDeferredAllocationPointers.entrySet().iterator().next() :
+                                                       null;
+          assert lhsUsedDeferredAllocationPointers.size() <= 1 &&
+                 lhsTarget instanceof String &&
+                 (lhsUsedPointer == null || ((String) lhsTarget).equals(lhsUsedPointer.getKey())) :
+                 "Wrong assumptions on deferred allocations tracking: unrecognized lhs";
+          if (lhsUsedPointer != null) {
+            handleDeferredAllocationPointerRemoval(e, lhsUsedPointer.getKey());
+          }
+          pts.addDeferredAllocationPointer((String) lhsTarget, usedPointer.getKey());
+          passed = true;
+          handled = true;
+        } else if (ExpressionToFormulaWithUFVisitor.isRevealingType(lhsType)) {
+          final CType type = lhsType instanceof CPointerType ? ((CPointerType) lhsType).getType() :
+                                                               ((CArrayType) lhsType).getType();
+          handleDeferredAllocationTypeRevelation(usedPointer.getKey(), type);
+          handled = true;
+        }
+      }
+      if (!handled) {
+        handleDeferredAllocationPointerEscape(e, usedPointer.getKey());
+      }
+    }
+    for (final Map.Entry<String, CType> usedPointer : lhsUsedDeferredAllocationPointers.entrySet()) {
+      if (usedPointer.getValue() != null) {
+        handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
+      } else if (ExpressionToFormulaWithUFVisitor.isSimpleTarget(e.getLeftHandSide())) {
+        assert lhsTarget instanceof String &&
+               ((String) lhsTarget).equals(usedPointer.getKey()) &&
+               lhsUsedDeferredAllocationPointers.size() == 1:
+               "Wrong assumptions on deferred allocations tracking: lhs is not a single pointer";
+        if (!passed) {
+          handleDeferredAllocationPointerRemoval(e, usedPointer.getKey());
+        }
+      } else {
+        handleDeferredAllocationPointerEscape(e, usedPointer.getKey());
+      }
+    }
+  }
+
+  private void handleDeferredAllocationsInAssume(final CExpression e,
+                                                 final Map<String, CType> usedDeferredAllocationPointers) {
+    for (final Map.Entry<String, CType> usedPointer : usedDeferredAllocationPointers.entrySet()) {
+      if (usedPointer.getValue() != null) {
+        handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
+      } else if (e instanceof CBinaryExpression) {
+        final CBinaryExpression binaryExpression = (CBinaryExpression) e;
+        switch (binaryExpression.getOperator()) {
+        case EQUALS:
+        case GREATER_EQUAL:
+        case GREATER_THAN:
+        case LESS_EQUAL:
+        case LESS_THAN:
+          final CType operand1Type = PointerTargetSet.simplifyType(binaryExpression.getOperand1().getExpressionType());
+          final CType operand2Type = PointerTargetSet.simplifyType(binaryExpression.getOperand2().getExpressionType());
+          CType type = null;
+          if (ExpressionToFormulaWithUFVisitor.isRevealingType(operand1Type)) {
+            type = operand1Type;
+          } else if (ExpressionToFormulaWithUFVisitor.isRevealingType(operand2Type)) {
+            type = operand2Type;
+          }
+          if (type != null) {
+            handleDeferredAllocationTypeRevelation(usedPointer.getKey(), type);
+          }
+          break;
+        }
+      }
+    }
   }
 
   @Override
@@ -483,6 +649,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                   functionName.equals(conv.successfulZallocFunctionName)) &&
                   parameters.size() == 1) {
         final CExpression parameter = parameters.get(0);
+        Integer size = null;
         final CType newType;
         if (isSizeof(parameter)) {
           newType = getSizeofType(parameter);
@@ -498,37 +665,49 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
             throw new UnrecognizedCCodeException("Can't determine type for internal memory allocation", edge, e);
           }
         } else {
-          Integer size = parameter.accept(pts.getEvaluatingVisitor());
-          CExpression length = parameter;
-          if (size == null) {
-            size = PointerTargetSet.DEFAULT_ALLOCATION_SIZE;
-            length = new CIntegerLiteralExpression(parameter.getFileLocation(),
-                                                   parameter.getExpressionType(),
-                                                   BigInteger.valueOf(size));
+          size = parameter.accept(pts.getEvaluatingVisitor());
+          if (!conv.revealAllocationTypeFromLhs && !conv.deferUntypedAllocations) {
+            final CExpression length;
+            if (size == null) {
+              size = PointerTargetSet.DEFAULT_ALLOCATION_SIZE;
+              length = new CIntegerLiteralExpression(parameter.getFileLocation(),
+                                                     parameter.getExpressionType(),
+                                                     BigInteger.valueOf(size));
+            } else {
+              length = parameter;
+            }
+            newType = new CArrayType(false, false, PointerTargetSet.VOID, length);
+          } else {
+            newType = null;
           }
-          newType = new CArrayType(false, false, PointerTargetSet.VOID, length);
         }
-        final CType newBaseType = PointerTargetSet.getBaseType(newType);
-        final String allocVariableName = CToFormulaWithUFConverter.getAllocVairiableName(functionName, newBaseType);
-        final String newBaseName = FormulaManagerView.makeName(allocVariableName,
-                                     conv.makeFreshIndex(allocVariableName, newBaseType, ssa));
-        final Formula result = conv.makeConstant(Variable.create(newBaseName, newBaseType), ssa, pts);
-        if (functionName.equals(conv.successfulZallocFunctionName)) {
-          final BooleanFormula initialization = conv.makeAssignment(
-              newType,
-              PointerTargetSet.CHAR,
-              result,
-              conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(PointerTargetSet.CHAR, pts), 0),
-              new PointerTargetPattern(newBaseName, 0, 0),
-              false,
-              null,
-              ssa,
-              constraints,
-              pts);
-          constraints.addConstraint(initialization);
+        if (newType != null) {
+          final CType newBaseType = PointerTargetSet.getBaseType(newType);
+          final String allocVariableName = CToFormulaWithUFConverter.getAllocVariableName(functionName, newType);
+          final String newBaseName = FormulaManagerView.makeName(allocVariableName,
+                                       conv.makeFreshIndex(allocVariableName, newBaseType, ssa));
+          return conv.makeAllocation(functionName.equals(conv.successfulZallocFunctionName),
+                                     newType,
+                                     newBaseName,
+                                     ssa,
+                                     constraints,
+                                     pts);
+        } else {
+          final String allocVariableName = CToFormulaWithUFConverter.getAllocVariableName(functionName,
+                                                                                          PointerTargetSet.VOID);
+          final String newBaseName = FormulaManagerView.makeName(allocVariableName,
+                                                                 conv.makeFreshIndex(allocVariableName,
+                                                                                     PointerTargetSet.POINTER_TO_VOID,
+                                                                                     ssa));
+          pts.addDeferredAllocation(newBaseName,
+                                    functionName.equals(conv.successfulZallocFunctionName),
+                                    size != null ? new CIntegerLiteralExpression(parameter.getFileLocation(),
+                                                                                 parameter.getExpressionType(),
+                                                                                 BigInteger.valueOf(size)) :
+                                                   null,
+                                    newBaseName);
+          return conv.makeConstant(newBaseName, PointerTargetSet.POINTER_TO_VOID, ssa, pts);
         }
-        pts.addBase(newBaseName, newType);
-        return result;
       } else if ((conv.memoryAllocationFunctions.contains(functionName) ||
                   conv.memoryAllocationFunctionsWithZeroing.contains(functionName)) &&
                   parameters.size() == 1) {

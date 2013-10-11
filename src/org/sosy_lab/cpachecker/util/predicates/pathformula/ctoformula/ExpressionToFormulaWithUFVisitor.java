@@ -25,11 +25,14 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -38,7 +41,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -85,7 +90,11 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     final Variable variable = e.accept(baseVisitor);
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     if (variable != null) {
-        lastTarget = variable.getName();
+        final String variableName = variable.getName();
+        lastTarget = variableName;
+        if (pts.isDeferredAllocationPointer(variableName)) {
+          usedDeferredAllocationPointers.put(variableName, null);
+        }
         return conv.makeVariable(variable, ssa, pts);
     } else {
       final CType fieldOwnerType = PointerTargetSet.simplifyType(e.getFieldOwner().getExpressionType());
@@ -102,6 +111,37 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
       }
     }
+  }
+
+  static boolean isSimpleTarget(final CExpression e) {
+    if (e instanceof CIdExpression) {
+      return true;
+    } else if (e instanceof CFieldReference) {
+      return isSimpleTarget(((CFieldReference) e).getFieldOwner());
+    } else {
+      return false;
+    }
+  }
+
+  static boolean isRevealingType(final CType type) {
+    return (type instanceof CPointerType || type instanceof CArrayType) &&
+           !type.equals(PointerTargetSet.POINTER_TO_VOID);
+  }
+
+  @Override
+  public Formula visit(final CCastExpression e) throws UnrecognizedCCodeException {
+    final CExpression operand = e.getOperand();
+    final Formula result = super.visit(e);
+    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
+    if (isRevealingType(resultType) && isSimpleTarget(operand) &&
+        lastTarget instanceof String &&
+        pts.isDeferredAllocationPointer(((String) lastTarget))) {
+      assert usedDeferredAllocationPointers.containsKey(lastTarget) &&
+             usedDeferredAllocationPointers.get(lastTarget) == null :
+             "Wrong assumptions on deferred allocations tracking: unknown pointer encountered";
+      usedDeferredAllocationPointers.put((String) lastTarget, resultType);
+    }
+    return result;
   }
 
 //  @Override
@@ -158,7 +198,11 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     Variable variable = e.accept(baseVisitor);
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     if (variable != null) {
-        lastTarget = variable.getName();
+        final String variableName = variable.getName();
+        lastTarget = variableName;
+        if (pts.isDeferredAllocationPointer(variableName)) {
+          usedDeferredAllocationPointers.put(variableName, null);
+        }
         return conv.makeVariable(variable, ssa, pts);
     } else {
       variable = conv.scopedIfNecessary(e, ssa, function);
@@ -395,12 +439,17 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     return Collections.unmodifiableList(sharedBases);
   }
 
+  public Map<String, CType> getUsedDeferredAllocationPointers() {
+    return Collections.unmodifiableMap(usedDeferredAllocationPointers);
+  }
+
   public void reset() {
     lastTarget = null;
     sharedBases.clear();
     usedFields.clear();
     addressedFields.clear();
     initializedFields.clear();
+    usedDeferredAllocationPointers.clear();
   }
 
   @SuppressWarnings("hiding")
@@ -414,4 +463,5 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
   protected final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>();
   protected final List<Pair<CCompositeType, String>> addressedFields = new ArrayList<>();
   protected final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();
+  protected final Map<String, CType> usedDeferredAllocationPointers = new HashMap<>();
 }

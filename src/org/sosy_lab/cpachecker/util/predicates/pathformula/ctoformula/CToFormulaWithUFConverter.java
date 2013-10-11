@@ -130,7 +130,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  static String getAllocVairiableName(final String functionName, final CType type) {
+  static String getAllocVariableName(final String functionName, final CType type) {
     return functionName + "_" + getUFName(type);
   }
 
@@ -261,6 +261,32 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     final int index = getIndex(ufName, type, ssa);
     final FormulaType<?> returnType = getFormulaTypeFromCType(type, pts);
     return ffmgr.createFuncAndCall(ufName, index, returnType, ImmutableList.of(address));
+  }
+
+  Formula makeAllocation(final boolean isZeroing,
+                         final CType type,
+                         final String baseName,
+                         final SSAMapBuilder ssa,
+                         final Constraints constraints,
+                         final PointerTargetSetBuilder pts) {
+    final CType baseType = PointerTargetSet.getBaseType(type);
+    final Formula result = makeConstant(Variable.create(baseName, baseType), ssa, pts);
+    if (isZeroing) {
+      final BooleanFormula initialization = makeAssignment(
+        type,
+        PointerTargetSet.CHAR,
+        result,
+        fmgr.makeNumber(getFormulaTypeFromCType(PointerTargetSet.CHAR, pts), 0),
+        new PointerTargetPattern(baseName, 0, 0),
+        false,
+        null,
+        ssa,
+        constraints,
+        pts);
+      constraints.addConstraint(initialization);
+    }
+    pts.addBase(baseName, type);
+    return result;
   }
 
   void addSharingConstraints(final CFAEdge cfaEdge,
@@ -1053,6 +1079,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   @Option(description = "Setting this to true makes memoryAllocationFunctions* always return a valid pointer.")
   boolean memoryAllocationsAlwaysSucceed = false;
+
+  @Option(description = "Enable the option to allow detecting the allocation type by type " +
+  		                  "of the LHS of the assignment, e.g. char *arr = malloc(size) is detected as char[size]")
+  boolean revealAllocationTypeFromLhs = false;
+
+  @Option(description = "Used deferred allocation heuristic that tracks void * variables until the actual type " +
+  		                  "of the allocation is figured out")
+  boolean deferUntypedAllocations = false;
 
   @SuppressWarnings("hiding")
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of("printf", "printk");
