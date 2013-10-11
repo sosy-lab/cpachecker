@@ -68,6 +68,8 @@ import com.google.common.collect.Multiset.Entry;
  */
 public class SSAMap implements Serializable {
 
+  private static final int INDEX_NOT_CONTAINED = -1;
+
   private static final long serialVersionUID = 7618801653203679876L;
 
   /**
@@ -154,7 +156,7 @@ public class SSAMap implements Serializable {
 
     public void deleteVariable(String variable) {
       int index = getIndex(variable);
-      if (index != -1) {
+      if (index != INDEX_NOT_CONTAINED) {
         vars = vars.removeAndCopy(variable);
         varTypes = varTypes.removeAndCopy(variable);
       }
@@ -504,7 +506,7 @@ public class SSAMap implements Serializable {
       return i;
     } else {
       // no index found, return -1
-      return -1;
+      return INDEX_NOT_CONTAINED;
     }
   }
 
@@ -514,7 +516,7 @@ public class SSAMap implements Serializable {
       return i;
     } else {
       // no index found, return -1
-      return -1;
+      return INDEX_NOT_CONTAINED;
     }
   }
 
