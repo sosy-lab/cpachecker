@@ -279,7 +279,8 @@ public class PointerTargetSet implements Serializable {
   }
 
   public Iterable<PointerTarget> getAllTargets(final CType type) {
-    return Collections.unmodifiableCollection(targets.get(typeToString(type)));
+    final PersistentList<PointerTarget> result = targets.get(typeToString(type));
+    return result != null ? Collections.unmodifiableCollection(result) : Collections.<PointerTarget>emptyList();
   }
 
   /**
