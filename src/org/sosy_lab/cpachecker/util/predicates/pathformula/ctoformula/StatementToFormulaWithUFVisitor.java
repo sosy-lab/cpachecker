@@ -364,7 +364,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
               pts.addDeferredAllocationPointer((String) lastTarget, variable);
               handleDeferredAllocationPointerRemoval(e, variable);
             } else {
-              throw new UnrecognizedCCodeException("Can't handle LHS of the allocation", edge, e);
+              handleDeferredAllocationPointerEscape(e, variable);
             }
             isAllocation = true;
           } else {
