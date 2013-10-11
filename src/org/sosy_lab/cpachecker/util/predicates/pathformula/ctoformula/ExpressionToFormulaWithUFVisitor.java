@@ -69,11 +69,11 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
   public Formula visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
     final Formula base = e.getArrayExpression().accept(this);
     final Formula index = e.getSubscriptExpression().accept(this);
-    final int size = pts.getSize(e.getExpressionType());
+    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
+    final int size = pts.getSize(resultType);
     final Formula coeff = conv.fmgr.makeNumber(pts.getPointerType(), size);
     final Formula offset = conv.fmgr.makeMultiply(coeff, index);
     lastTarget = conv.fmgr.makePlus(base, offset);
-    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     return conv.isCompositeType(resultType) ? (Formula) lastTarget :
            conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
   }
@@ -91,7 +91,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         throw new UnrecognizedCCodeException("Unhandled reference to composite as a whole", edge, e);
       }
     } else {
-      final CType fieldOwnerType = e.getFieldOwner().getExpressionType();
+      final CType fieldOwnerType = PointerTargetSet.simplifyType(e.getFieldOwner().getExpressionType());
       if (fieldOwnerType instanceof CCompositeType) {
         final Formula base = e.getFieldOwner().accept(this);
         final String fieldName = e.getFieldName();
@@ -120,7 +120,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
       }
     } else {
       variable = conv.scopedIfNecessary(e, ssa, function);
-      lastTarget = conv.makeConstant(variable.withType(new CPointerType(true, false, e.getExpressionType())), ssa, pts);
+      lastTarget = conv.makeConstant(variable.withType(new CPointerType(true, false, resultType)), ssa, pts);
       return conv.isCompositeType(resultType) ? (Formula) lastTarget :
              conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
     }
@@ -136,7 +136,9 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
   }
 
   private Formula handleSizeof(final CExpression e, final CType type) throws UnrecognizedCCodeException {
-    return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(e.getExpressionType(), pts), pts.getSize(type));
+    return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(PointerTargetSet.simplifyType(e.getExpressionType()),
+                                                             pts),
+                                pts.getSize(type));
   }
 
   @Override
@@ -155,7 +157,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     case TILDE:
       return super.visit(e);
     case SIZEOF:
-      return handleSizeof(e, operand.getExpressionType());
+      return handleSizeof(e, PointerTargetSet.simplifyType(operand.getExpressionType()));
     case STAR:
       if (!(resultType instanceof CFunctionType)) {
         lastTarget = operand.accept(this);
