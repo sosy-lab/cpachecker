@@ -181,7 +181,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       final PointerTargetPattern pattern = new PointerTargetPattern(lhs, 0, 0);
       final BooleanFormula result = conv.makeAssignment(type,
                                                         type,
-                                                        conv.makeConstant(Variable.create(lhs, type), ssa),
+                                                        conv.makeConstant(Variable.create(lhs, type), ssa, pts),
                                                         initializerList,
                                                         pattern,
                                                         false,
@@ -215,7 +215,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     type = PointerTargetSet.simplifyType(type);
     final CSimpleType integerType =
         new CSimpleType(true, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-    final Formula zero = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(integerType), 0);
+    final Formula zero = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(integerType, pts), 0);
     if (type instanceof CArrayType) {
       assert topInitializer instanceof CInitializerList : "Wrong array initializer";
       final CInitializerList initializerList = (CInitializerList) topInitializer;
@@ -359,7 +359,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       if (functionName.equals(CToFormulaWithUFConverter.ASSUME_FUNCTION_NAME) && parameters.size() == 1) {
         final BooleanFormula condition = visitAssume(parameters.get(0), true);
         constraints.addConstraint(condition);
-        return conv.makeFreshVariable(functionName, resultType, ssa);
+        return conv.makeFreshVariable(functionName, resultType, ssa, pts);
       } else if ((functionName.equals(conv.successfulAllocFunctionName) ||
                   functionName.equals(conv.successfulZallocFunctionName)) &&
                   parameters.size() == 1) {
@@ -386,7 +386,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                       conv.makeFreshIndex(functionName,
                                                                           new CPointerType(true, false, newBaseType),
                                                                           ssa));
-        final Formula result = conv.makeConstant(Variable.create(newBaseName, newBaseType), ssa);
+        final Formula result = conv.makeConstant(Variable.create(newBaseName, newBaseType), ssa, pts);
         if (functionName.equals(conv.successfulZallocFunctionName)) {
           final CSimpleType integerType =
             new CSimpleType(true, false, CBasicType.CHAR, false, false, true, false, false, false, false);
