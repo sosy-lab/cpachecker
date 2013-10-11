@@ -612,14 +612,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final int oldIndex = getIndex(targetName, lvalueType, ssa);
       final int newIndex = oldIndex + 1;
       if (rvalue != null) {
+        final Formula rhs = makeCast(rvalueType, lvalueType, (Formula) rvalue);
         if (lvalue instanceof String) {
-          result = fmgr.makeEqual(fmgr.makeVariable(targetType, targetName, newIndex), (Formula) rvalue);
+          result = fmgr.makeEqual(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
         } else {
           final Formula lhs = ffmgr.createFuncAndCall(targetName,
                                                       newIndex,
                                                       targetType,
                                                       ImmutableList.of((Formula) lvalue));
-          final Formula rhs = makeCast(rvalueType, lvalueType, (Formula) rvalue);
           result = fmgr.makeEqual(lhs, rhs);
         }
       } else {
