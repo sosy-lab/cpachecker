@@ -514,12 +514,16 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                           rvalueType;
             final Formula offsetFormula = fmgr.makeNumber(pts.getPointerType(), offset);
             final Formula newLvalue = fmgr.makePlus((Formula) lvalue, offsetFormula);
-            final Object newRvalue = rvalue == null ? null :
+                  Object newRvalue = rvalue == null ? null :
                                      rvalue instanceof Formula ?
                                        rvalueType instanceof CArrayType ?
                                          fmgr.makePlus((Formula) rvalue, offsetFormula) :
                                          rvalue :
                                      rvalueIterator.next();
+            if (rvalue instanceof Formula && rvalueType instanceof CArrayType &&
+                !(newRvalueType instanceof CArrayType) && !(newRvalueType instanceof CCompositeType)) {
+              newRvalue = makeDereferece(newRvalueType, (Formula) newRvalue, ssa, pts);
+            }
             result = bfmgr.and(result,
                                makeAssignment(lvalueElementType,
                                               newRvalueType,
@@ -586,13 +590,17 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
               final Object newLvalue = lvalue instanceof Formula ?
                                          fmgr.makePlus((Formula) lvalue, offsetFormula) :
                                          lvalue + FIELD_NAME_SEPARATOR + memberName;
-              final Object newRvalue = rvalue == null ? null:
+                    Object newRvalue = rvalue == null ? null:
                                        rvalue instanceof String ? rvalue + FIELD_NAME_SEPARATOR + memberName :
                                        rvalue instanceof Formula ?
                                          rvalueType instanceof CCompositeType ?
                                            fmgr.makePlus((Formula) rvalue, offsetFormula) :
                                            rvalue :
                                        rvalueIterator.next();
+              if (rvalue instanceof Formula && rvalueType instanceof CCompositeType &&
+                  !(newRvalueType instanceof CArrayType) && !(newRvalueType instanceof CCompositeType)) {
+                newRvalue = makeDereferece(newRvalueType, (Formula) newRvalue, ssa, pts);
+              }
               result = bfmgr.and(result,
                                  makeAssignment(newLvalueType,
                                                 newRvalueType,
