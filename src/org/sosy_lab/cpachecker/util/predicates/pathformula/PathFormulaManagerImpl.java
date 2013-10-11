@@ -121,7 +121,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     ffmgr = fmgr.getFunctionFormulaManager();
     logger = pLogger;
 
-    NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
+    if (!pointerAnalysisWithUFs) {
+      NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
+    } else {
+      NONDET_FORMULA_TYPE = ((CToFormulaWithUFConverter) converter).getFormulaTypeFromCType(NONDET_TYPE, null);
+    }
   }
 
   @Override

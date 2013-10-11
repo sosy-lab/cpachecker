@@ -128,8 +128,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return super.getFormulaTypeFromCType(type);
   }
 
-  public FormulaType<?> getFormulaTypeFromCType(final CType type, final PointerTargetSetBuilder pts) {
-    final int size = pts.getSize(type);
+  public FormulaType<?> getFormulaTypeFromCType(final CType type, @Nullable final PointerTargetSetBuilder pts) {
+    final int size = pts != null ? pts.getSize(type) : super.getSizeof(type);
     final int bitsPerByte = machineModel.getSizeofCharInBits();
     return efmgr.getFormulaType(size * bitsPerByte);
   }
@@ -168,8 +168,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @Override
   @Deprecated
   Formula makeConstant(final String name, final CType type, final SSAMapBuilder ssa) {
-    // throw new UnsupportedOperationException("Use the method with pts argument instead");
-    return super.makeConstant(name, type, ssa);
+    throw new UnsupportedOperationException("Use the method with pts argument instead");
   }
 
   @Override

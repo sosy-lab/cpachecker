@@ -170,7 +170,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
    * @param pModelFile File with the dimacs model.
    * @return BooleanFormula
    */
-  private BooleanFormula loadExternalFormula(File pModelFile) {
+  BooleanFormula loadExternalFormula(File pModelFile) {
     if (! pModelFile.getName().endsWith(".dimacs")) {
       throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
     }
