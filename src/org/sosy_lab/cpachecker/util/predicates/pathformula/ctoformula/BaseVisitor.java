@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 
 
@@ -52,7 +53,6 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
 
   @Override
   public Variable visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
-    assert e.getArrayExpression().accept(this) == null : "Array access can't be encoded as a varaible";
     return null;
   }
 
@@ -78,7 +78,7 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
 
   @Override
   public Variable visit(final CIdExpression e) throws UnrecognizedCCodeException {
-    if (!pts.isBase(e.getDeclaration().getQualifiedName())) {
+    if (!pts.isBase(e.getDeclaration().getQualifiedName()) && !PointerTargetSet.containsArray(e.getExpressionType())) {
       return lastBase = conv.scopedIfNecessary(e, null, null);
     } else {
       return null;

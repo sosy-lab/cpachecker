@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -734,26 +735,28 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final CFunctionDeclaration functionDeclaration = ((CFunctionEntryNode) returnEdge.getSuccessor()
                                                                                        .getEntryNode())
                                                                                          .getFunctionDefinition();
-      final CType returnType = functionDeclaration.getType().getReturnType();
+      final CType returnType = PointerTargetSet.simplifyType(functionDeclaration.getType().getReturnType());
+      final CVariableDeclaration returnVariableDeclaration =
+        new CVariableDeclaration(functionDeclaration.getFileLocation(),
+                                 false,
+                                 CStorageClass.AUTO,
+                                 returnType,
+                                 returnVariableName,
+                                 returnVariableName,
+                                 scoped(returnVariableName, statementVisitor.getFuncitonName()),
+                                 null);
       final CExpressionAssignmentStatement assignment =
-        new CExpressionAssignmentStatement(result.getFileLocation(),
-                                           new CIdExpression(result.getFileLocation(),
+        new CExpressionAssignmentStatement(resultExpression.getFileLocation(),
+                                           new CIdExpression(resultExpression.getFileLocation(),
                                                              returnType,
                                                              returnVariableName,
-                                                             new CVariableDeclaration(functionDeclaration
-                                                                                        .getFileLocation(),
-                                                                                      false,
-                                                                                      CStorageClass.AUTO,
-                                                                                      returnType,
-                                                                                      returnVariableName,
-                                                                                      returnVariableName,
-                                                                                      scoped(returnVariableName,
-                                                                                             statementVisitor
-                                                                                               .getFuncitonName()),
-                                                                                      null)),
-                                           result);
-
-      return assignment.accept(statementVisitor);
+                                                             returnVariableDeclaration),
+                                           resultExpression);
+      final BooleanFormula result = assignment.accept(statementVisitor);
+      if (PointerTargetSet.containsArray(returnType)) {
+        statementVisitor.forceShared(returnVariableDeclaration);
+      }
+      return result;
     }
   }
 
@@ -792,15 +795,20 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     // if there is an initializer associated to this variable,
     // take it into account
+    final CType declarationType = PointerTargetSet.simplifyType(declaration.getType());
     final CInitializer initializer = declaration.getInitializer();
     if (initializer instanceof CInitializerExpression || initializer == null) {
       final CExpressionAssignmentStatement assignment = new CExpressionAssignmentStatement(
         declaration.getFileLocation(),
-        new CIdExpression(declaration.getFileLocation(), declaration.getType(), declaration.getName(), declaration),
+        new CIdExpression(declaration.getFileLocation(), declarationType, declaration.getName(), declaration),
         initializer != null ? ((CInitializerExpression) initializer).getExpression() : null);
-      return assignment.accept(statementVisitor);
+      final BooleanFormula result = assignment.accept(statementVisitor);
+      if (PointerTargetSet.containsArray(declarationType)) {
+        statementVisitor.forceShared(declaration);
+      }
+      return result;
     } else if (initializer instanceof CInitializerList) {
-      final Object initializerList = statementVisitor.visitInitializer(declaration.getType(),
+      final Object initializerList = statementVisitor.visitInitializer(declarationType,
                                                                        initializer,
                                                                        !declaration.isGlobal());
       assert initializerList instanceof List : "Wrong initializer";
@@ -850,16 +858,16 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (CParameterDeclaration formalParameter : parameters) {
       final CExpression argument = arguments.get(i++);
-      final CType parameterType = formalParameter.getType();
-      if (PointerTargetSet.containsArray(parameterType)) {
-        statementVisitor.forceShared(formalParameter);
-      }
+      final CType parameterType = PointerTargetSet.simplifyType(formalParameter.getType());
       final CExpressionAssignmentStatement assignmentStatement = new CExpressionAssignmentStatement(
         argument.getFileLocation(),
         new CIdExpression(argument.getFileLocation(), parameterType, formalParameter.getName(), formalParameter),
         argument);
       final BooleanFormula assignment = assignmentStatement.accept(statementVisitor);
       result = bfmgr.and(result, assignment);
+      if (PointerTargetSet.containsArray(parameterType)) {
+        statementVisitor.forceShared(formalParameter);
+      }
     }
 
     return result;
