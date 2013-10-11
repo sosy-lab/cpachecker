@@ -41,7 +41,7 @@ public final class CCompositeType implements CComplexType {
 
   private boolean   isInHashCodeComputation = false; // A trick to allow computing hash codes of
                                                      // recursive composite types
-  private Integer hashCode = null; // to speed up hash code computation (since the objects are immutable)
+  private Integer hashCode = null; // to speed up hash code computation (since the objects are (mostly) immutable)
 
   public CCompositeType(final boolean pConst, final boolean pVolatile,
       final CComplexType.ComplexTypeKind pKind, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName) {
@@ -65,6 +65,7 @@ public final class CCompositeType implements CComplexType {
 
   public void setMembers(List<CCompositeTypeMemberDeclaration> list) {
     members = ImmutableList.copyOf(list);
+    hashCode = null;
   }
 
   @Override
