@@ -25,10 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget
 
 import java.io.Serializable;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
-import com.google.common.base.Preconditions;
-
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 
 public class PointerTargetPattern implements Serializable {
 
@@ -36,24 +35,21 @@ public class PointerTargetPattern implements Serializable {
    * Constructor for matching any possible target
    */
   public PointerTargetPattern() {
-    this.matchBase = false;
-    this.matchContainerType = false;
-    this.matchProperOffset = false;
-    this.matchContainerOffset = false;
-    this.matchOffset = false;
+    this.matchRange = false;
+  }
+
+  public PointerTargetPattern(final String base) {
+    this.base = base;
+    this.matchRange = false;
   }
 
   /**
    * Constructor for matching array elements
    * @param containerType
    */
-  public PointerTargetPattern(CType containerType) {
-    this.matchBase = false;
+  public PointerTargetPattern(final CType containerType) {
     this.containerType = containerType;
-    this.matchContainerType = true;
-    this.matchProperOffset = false;
-    this.matchContainerOffset = false;
-    this.matchOffset = false;
+    this.matchRange = false;
   }
 
   /**
@@ -61,14 +57,10 @@ public class PointerTargetPattern implements Serializable {
    * @param containerType
    * @param properOffset
    */
-  public PointerTargetPattern(CType containerType, int properOffset) {
-    this.matchBase = false;
+  public PointerTargetPattern(final CType containerType, final int properOffset) {
     this.containerType = containerType;
-    this.matchContainerType = true;
     this.properOffset = properOffset;
-    this.matchProperOffset = true;
-    this.matchContainerOffset = false;
-    this.matchOffset = false;
+    this.matchRange = false;
   }
 
   /**
@@ -77,92 +69,104 @@ public class PointerTargetPattern implements Serializable {
    * @param startOffset
    * @param endOffset
    */
-  public PointerTargetPattern(int startOffset, int endOffset) {
-    this.matchBase = false;
-    this.matchContainerType = false;
-    this.matchProperOffset = false;
-    this.matchContainerOffset = false;
+  public PointerTargetPattern(final int startOffset, final int endOffset) {
     this.containerOffset = startOffset;
     this.properOffset = endOffset;
-    this.matchOffset = true;
+    this.matchRange = true;
   }
 
-  public void setBase(String base) {
-    assert !matchBase : "Contradiction in target pattern: base";
+  public void setBase(final String base) {
     this.base = base;
-    this.matchBase = true;
   }
 
-  public void setContainerType(CType containerType) {
-    assert !matchContainerType && !matchOffset : "Contradiction in target pattern: containerType";
+  public void setContainerType(final CType containerType) {
+    assert !matchRange : "Contradiction in target pattern: containerType";
     this.containerType = containerType;
-    this.matchContainerType = true;
   }
 
-  public void setProperOffset(int properOffset) {
-    assert !matchProperOffset && !matchOffset : "Contradiction in target pattern: properOffset";
+  public void unsetContainerType() {
+    assert !matchRange : "Contradiction in target pattern: containerType";
+    containerType = null;
+  }
+
+  public void setProperOffset(final int properOffset) {
+    assert !matchRange : "Contradiction in target pattern: properOffset";
     this.properOffset = properOffset;
-    this.matchProperOffset = true;
   }
 
-  public void setContainerOffset(int containerOffset) {
-    assert !matchContainerOffset && !matchOffset : "Contradiction in target pattern: containerOffset";
+  public void unsetProperOffset() {
+    assert !matchRange : "Contradiction in target pattern: properOffset";
+    properOffset = null;
+  }
+
+  public void setContainerOffset(final int containerOffset) {
+    assert !matchRange : "Contradiction in target pattern: containerOffset";
     this.containerOffset = containerOffset;
-    this.matchContainerOffset = true;
   }
 
-  public void addContainerOffset(int dContainerOffset) {
-    assert !matchOffset : "Contradiction in target pattern: containerOffset";
-    Preconditions.checkArgument(dContainerOffset > 0);
-    if (matchContainerOffset) {
-      containerOffset += dContainerOffset;
+  public void shiftContainerOffset() {
+    assert !matchRange : "Contradiction in target pattern: containerOffset";
+    if (properOffset != null) {
+      containerOffset += properOffset;
     } else {
-      containerOffset = dContainerOffset;
-      matchContainerOffset = true;
+      containerOffset = null;
     }
+    properOffset = null;
   }
 
   public void unsetContainerOffset() {
-    assert matchContainerOffset && !matchOffset : "Contradiction in target pattern: containerOffset";
-    matchContainerOffset = false;
+    assert !matchRange : "Contradiction in target pattern: containerOffset";
+    containerOffset = null;
   }
 
-  public boolean matches(PointerTarget target) {
-    if (!matchOffset) {
-      if (matchProperOffset && target.properOffset != properOffset) {
+  public boolean matches(final PointerTarget target) {
+    if (!matchRange) {
+      if (properOffset != null && target.properOffset != properOffset) {
         return false;
       }
-      if (matchContainerOffset && target.containerOffset != containerOffset) {
+      if (containerOffset != null && target.containerOffset != containerOffset) {
         return false;
       }
-      if (matchBase && !target.base.equals(base)) {
+      if (base != null && !target.base.equals(base)) {
         return false;
       }
-      if (matchContainerType && !target.containerType.equals(containerType)) {
-        return false;
+      if (containerType != null && !target.containerType.equals(containerType)) {
+        if (!(target.containerType instanceof CArrayType) || !(containerType instanceof CArrayType)) {
+          return false;
+        } else {
+          return ((CArrayType) target.containerType).getType().equals(((CArrayType) containerType).getType());
+        }
       }
     } else {
       final int offset = target.containerOffset + target.properOffset;
       if (offset < containerOffset || offset >= properOffset) {
         return false;
       }
-      if (matchBase && !target.base.equals(base)) {
+      if (base != null && !target.base.equals(base)) {
         return false;
       }
     }
     return true;
   }
 
+  public Integer getProperOffset() {
+    return properOffset;
+  }
+
+  public Integer getRemaining(PointerTargetSetBuilder pts) {
+    if (containerOffset != null && properOffset != null) {
+      return pts.getSize(containerType) - properOffset;
+    } else {
+      return null;
+    }
+  }
+
   private String base = null;
   private CType containerType = null;
-  private int properOffset = 0;
-  private int containerOffset = 0;
+  private Integer properOffset = null;
+  private Integer containerOffset = null;
 
-  private boolean matchBase = false;
-  private boolean matchContainerType = false;
-  private boolean matchProperOffset = false;
-  private boolean matchContainerOffset = false;
-  private boolean matchOffset = false;
+  private boolean matchRange = false;
 
   private static final long serialVersionUID = -2918663736813010025L;
 }

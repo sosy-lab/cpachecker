@@ -510,10 +510,6 @@ public class PointerTargetSet implements Serializable {
       return pointerTargetSet.evaluatingVisitor;
     }
 
-    public int getDefaultArrayLength() {
-      return PointerTargetSet.DEFAULT_ARRAY_LENGTH;
-    }
-
     private boolean flag; // Used by addBase() addField() to detect essential additions
 
     private final PointerTargetSet pointerTargetSet;
@@ -906,7 +902,7 @@ public class PointerTargetSet implements Serializable {
   private final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
   private final BooleanFormula disjointnessFormula;
 
-  private static final int DEFAULT_ARRAY_LENGTH = 100;
+  public static final int DEFAULT_ARRAY_LENGTH = 100;
 
   private static final long serialVersionUID = 2102505458322248624L;
 }
