@@ -558,7 +558,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         }
       } else if (conv.nondetFunctions.contains(functionName) ||
                  conv.nondetFunctionsPattern.matcher(functionName).matches()) {
-        return conv.makeFreshVariable(functionName, returnType, ssa, pts);
+        return null; // Nondet
       } else if (conv.externModelFunctionName.equals(functionName)) {
         assert parameters.size() > 0 : "No external model given!";
         // the parameter comes in C syntax (with ")
@@ -589,25 +589,26 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                      "}";
     }
 
+    // Pure functions returning composites are unsupported, return null that'll be interpreted as nondet
+    final CType resultType = PointerTargetSet.simplifyType(conv.getReturnType(e, edge));
+    if (resultType instanceof CCompositeType ||
+        PointerTargetSet.containsArray(resultType)) {
+      conv.log(Level.WARNING,
+               "Pure functions returning composites are currently unsupported. Assuming nondet: (" +
+                 e.toASTString() + ").");
+      return null;
+    }
+
     // Now let's handle "normal" functions assumed to be pure
     if (parameters.isEmpty()) {
       // This is a function of arity 0 and we assume its constant.
       return conv.makeConstant(functionName, returnType, ssa, pts);
     } else {
-
       final CFunctionDeclaration functionDeclaration = e.getDeclaration();
       if (functionDeclaration == null) {
         // This should not happen
         conv.log(Level.WARNING, "Cant get declaration of function. Ignoring the call (" + e.toASTString() + ").");
         return conv.makeFreshVariable(functionName, returnType, ssa, pts); // TODO: BUG when resultType == void
-      }
-
-      final CType resultType = PointerTargetSet.simplifyType(conv.getReturnType(e, edge));
-      if (resultType instanceof CCompositeType ||
-          PointerTargetSet.containsArray(resultType)) {
-        conv.log(Level.WARNING, "Pure functions returning composites are currently unsupported. Assuming nondet: (" +
-                                e.toASTString() + ").");
-        return null;
       }
 
       if (functionDeclaration.getType().takesVarArgs()) {
