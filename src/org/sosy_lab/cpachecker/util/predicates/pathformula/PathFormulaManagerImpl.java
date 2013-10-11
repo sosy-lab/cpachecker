@@ -435,28 +435,34 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
     for (final Map.Entry<String, CType> baseFromPTS1 : ptsMergeResult.getSecond().getFirst().entrySet()) {
-      final FormulaType<?> baseFormulaType = ((CToFormulaWithUFConverter) converter)
-                                               .getFormulaTypeFromCType(
-                                                 PointerTargetSet.getBaseType(baseFromPTS1.getValue()), pts1);
-      mergeFormula2 = bfmgr.and(mergeFormula2, makeSharingConstraints(fmgr.makeVariable(baseFormulaType,
-                                                                                        baseFromPTS1.getKey()),
-                                                                      baseFromPTS1.getKey(),
-                                                                      baseFromPTS1.getValue(),
-                                                                      sharedFields,
-                                                                      resultSSA,
-                                                                      pts2));
+      if (!((CToFormulaWithUFConverter) converter).isDynamicAllocVariableName(baseFromPTS1.getKey()) &&
+          !PointerTargetSet.containsArray(baseFromPTS1.getValue())) {
+        final FormulaType<?> baseFormulaType = ((CToFormulaWithUFConverter) converter)
+                                                 .getFormulaTypeFromCType(
+                                                   PointerTargetSet.getBaseType(baseFromPTS1.getValue()), pts1);
+        mergeFormula2 = bfmgr.and(mergeFormula2, makeSharingConstraints(fmgr.makeVariable(baseFormulaType,
+                                                                                          baseFromPTS1.getKey()),
+                                                                        baseFromPTS1.getKey(),
+                                                                        baseFromPTS1.getValue(),
+                                                                        sharedFields,
+                                                                        resultSSA,
+                                                                        pts2));
+      }
     }
     for (final Map.Entry<String, CType> baseFromPTS2 : ptsMergeResult.getSecond().getSecond().entrySet()) {
-      final FormulaType<?> baseFormulaType = ((CToFormulaWithUFConverter) converter)
-                                               .getFormulaTypeFromCType(
-                                                 PointerTargetSet.getBaseType(baseFromPTS2.getValue()), pts1);
-      mergeFormula1 = bfmgr.and(mergeFormula1, makeSharingConstraints(fmgr.makeVariable(baseFormulaType,
-                                                                                        baseFromPTS2.getKey()),
-                                                                      baseFromPTS2.getKey(),
-                                                                      baseFromPTS2.getValue(),
-                                                                      sharedFields,
-                                                                      resultSSA,
-                                                                      pts1));
+      if (!((CToFormulaWithUFConverter) converter).isDynamicAllocVariableName(baseFromPTS2.getKey()) &&
+          !PointerTargetSet.containsArray(baseFromPTS2.getValue())) {
+        final FormulaType<?> baseFormulaType = ((CToFormulaWithUFConverter) converter)
+                                                 .getFormulaTypeFromCType(
+                                                   PointerTargetSet.getBaseType(baseFromPTS2.getValue()), pts1);
+        mergeFormula1 = bfmgr.and(mergeFormula1, makeSharingConstraints(fmgr.makeVariable(baseFormulaType,
+                                                                                          baseFromPTS2.getKey()),
+                                                                        baseFromPTS2.getKey(),
+                                                                        baseFromPTS2.getValue(),
+                                                                        sharedFields,
+                                                                        resultSSA,
+                                                                        pts1));
+      }
     }
 
     PointerTargetSet resultPTS = ptsMergeResult.getFirst();

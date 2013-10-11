@@ -1008,6 +1008,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
+  public boolean isDynamicAllocVariableName(final String name) {
+    return name.startsWith(successfulAllocFunctionName) || name.startsWith(successfulZallocFunctionName);
+  }
+
   private final RationalFormulaManagerView rfmgr;
 
   @Option(description = "The function used to model successful heap object allocation. " +
