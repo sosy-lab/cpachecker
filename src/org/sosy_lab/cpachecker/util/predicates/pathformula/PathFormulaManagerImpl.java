@@ -564,13 +564,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         }
       }
     } else {
-      assert ssa.getIndex(variablePrefix) > 0 : "sharing non-existent variable";
-      final FormulaType<?> variableFormulaType = ((CToFormulaWithUFConverter) converter)
-                                                   .getFormulaTypeFromCType(variableType, pts);
-      result = bfmgr.and(result, fmgr.makeEqual(makeDereferece(variableType, address, ssa, pts),
-                                                fmgr.makeVariable(variableFormulaType,
-                                                                  variablePrefix,
-                                                                  ssa.getIndex(variablePrefix))));
+      if (ssa.getIndex(variablePrefix) > 0) {
+        final FormulaType<?> variableFormulaType = ((CToFormulaWithUFConverter) converter)
+                                                     .getFormulaTypeFromCType(variableType, pts);
+        result = bfmgr.and(result, fmgr.makeEqual(makeDereferece(variableType, address, ssa, pts),
+                                                  fmgr.makeVariable(variableFormulaType,
+                                                                    variablePrefix,
+                                                                    ssa.getIndex(variablePrefix))));
+      }
     }
 
     return result;
