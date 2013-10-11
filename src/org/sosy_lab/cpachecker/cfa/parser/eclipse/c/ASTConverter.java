@@ -770,10 +770,18 @@ class ASTConverter {
     if (containsProblemType(returnType)) {
       // workaround for Eclipse CDT problems
       if (declaration != null) {
+        returnType = declaration.getType().getReturnType();
         logger.log(Level.FINE, "Replacing return type", returnType, "of function call", e.getRawSignature(),
             "in line", e.getFileLocation().getStartingLineNumber(),
-            "with", declaration.getType().getReturnType());
-        returnType = declaration.getType().getReturnType();
+            "with", returnType);
+      } else {
+        final CType functionType = functionName.getExpressionType().getCanonicalType();
+        if (functionType instanceof CFunctionType) {
+          returnType = ((CFunctionType) functionType).getReturnType();
+          logger.log(Level.FINE, "Replacing return type", returnType, "of function call", e.getRawSignature(),
+              "in line", e.getFileLocation().getStartingLineNumber(),
+              "with", returnType);
+        }
       }
     }
 
@@ -835,12 +843,25 @@ class ASTConverter {
     FileLocation fileLoc = getLocation(e);
     CType type = typeConverter.convert(e.getExpressionType());
 
-
     switch (e.getOperator()) {
     case IASTUnaryExpression.op_bracketedPrimary:
       return operand;
 
     case IASTUnaryExpression.op_star:
+
+      if (containsProblemType(type)) {
+        final CType operandType = operand.getExpressionType();
+        if (operandType instanceof CPointerType) {
+          type = ((CPointerType) operand.getExpressionType()).getType();
+        } else if (operandType instanceof CArrayType) {
+          type = ((CArrayType) operand.getExpressionType()).getType();
+        } else {
+          logger.logf(Level.WARNING,
+                      "Dereferencing of a non-pointer in expression %s (%s)",
+                      e.getRawSignature(),
+                      operand.getExpressionType().toString());
+        }
+      }
 
       // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
       if (simplifyPointerExpressions) {
@@ -880,6 +901,12 @@ class ASTConverter {
       return new CPointerExpression(fileLoc, type, operand);
 
     case IASTUnaryExpression.op_amper:
+
+      if (containsProblemType(type)) {
+        final CType operandType = operand.getExpressionType();
+        type = new CPointerType(true, false, operandType);
+      }
+
       // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
       // in case of *& both can be left out
       if (simplifyPointerExpressions && operand instanceof CPointerExpression) {
@@ -893,6 +920,11 @@ class ASTConverter {
 
     case IASTUnaryExpression.op_prefixIncr:
     case IASTUnaryExpression.op_prefixDecr:
+
+      if (containsProblemType(type)) {
+        type = operand.getExpressionType();
+      }
+
       // instead of ++x, create "x = x+1"
 
       BinaryOperator preOp;
@@ -914,6 +946,11 @@ class ASTConverter {
 
     case IASTUnaryExpression.op_postFixIncr:
     case IASTUnaryExpression.op_postFixDecr:
+
+      if (containsProblemType(type)) {
+        type = operand.getExpressionType();
+      }
+
       // instead of x++ create "x = x + 1"
 
       BinaryOperator postOp;
