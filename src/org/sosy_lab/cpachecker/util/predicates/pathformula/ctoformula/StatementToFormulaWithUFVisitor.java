@@ -817,19 +817,19 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     // Now let's handle "normal" functions assumed to be pure
     if (parameters.isEmpty()) {
       // This is a function of arity 0 and we assume its constant.
-      return conv.makeConstant(functionName, returnType, ssa, pts);
+      return conv.makeConstant(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName, returnType, ssa, pts);
     } else {
       final CFunctionDeclaration functionDeclaration = e.getDeclaration();
       if (functionDeclaration == null) {
         // This should not happen
         conv.log(Level.WARNING, "Cant get declaration of function. Ignoring the call (" + e.toASTString() + ").");
-        return conv.makeFreshVariable(functionName, returnType, ssa, pts); // TODO: BUG when resultType == void
+        return null; // Nondet
       }
 
       if (functionDeclaration.getType().takesVarArgs()) {
-        // Create a fresh variable instead of an UF for vararg functions.
+        // Return nondet instead of an UF for vararg functions.
         // This is sound but slightly more imprecise (we loose the UF axioms).
-        return conv.makeFreshVariable(functionName, returnType, ssa, pts);
+        return null; // Nondet
       }
 
       final List<CType> parameterTypes = functionDeclaration.getType().getParameters();
@@ -858,7 +858,9 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       assert !parameterTypesIterator.hasNext() && !parametersIterator.hasNext();
 
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(resultType, pts);
-      return conv.ffmgr.createFuncAndCall(functionName, resultFormulaType, arguments);
+      return conv.ffmgr.createFuncAndCall(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName,
+                                          resultFormulaType,
+                                          arguments);
     }
   }
 

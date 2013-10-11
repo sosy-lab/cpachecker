@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
@@ -200,12 +201,16 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     Variable variable = e.accept(baseVisitor);
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     if (variable != null) {
-      final String variableName = variable.getName();
-      lastTarget = variableName;
-      if (pts.isDeferredAllocationPointer(variableName)) {
-        usedDeferredAllocationPointers.put(variableName, PointerTargetSet.POINTER_TO_VOID);
+      if (!(e.getDeclaration() instanceof CFunctionDeclaration)) {
+        final String variableName = variable.getName();
+        lastTarget = variableName;
+        if (pts.isDeferredAllocationPointer(variableName)) {
+          usedDeferredAllocationPointers.put(variableName, PointerTargetSet.POINTER_TO_VOID);
+        }
+        return conv.makeVariable(variable, ssa, pts);
+      } else {
+        return conv.makeConstant(variable, ssa, pts);
       }
-      return conv.makeVariable(variable, ssa, pts);
     } else {
       variable = conv.scopedIfNecessary(e, ssa, function);
       lastTarget = conv.makeConstant(variable.withType(PointerTargetSet.getBaseType(resultType)), ssa, pts);
