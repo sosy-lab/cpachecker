@@ -115,12 +115,12 @@ class CStatementTransformer implements CStatementVisitor<CStatement, Unrecognize
     return functionCall == oldFunctionCall ? s : new CFunctionCallStatement(s.getFileLocation(), functionCall);
   }
 
-  public CStatementTransformer(final CTypeVisitor<CType, UnrecognizedCCodeException> typeVisitor,
+  public CStatementTransformer(final CTypeVisitor<CType, RuntimeException> typeVisitor,
                                final CExpressionVisitor<CAstNode, UnrecognizedCCodeException> expressionVisitor) {
     this.typeVisitor = typeVisitor;
     this.expressionVisitor = expressionVisitor;
   }
 
   private final CExpressionVisitor<CAstNode, UnrecognizedCCodeException> expressionVisitor;
-  private final CTypeVisitor<CType, UnrecognizedCCodeException> typeVisitor;
+  private final CTypeVisitor<CType, RuntimeException> typeVisitor;
 }

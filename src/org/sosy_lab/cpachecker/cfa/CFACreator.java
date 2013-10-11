@@ -127,6 +127,14 @@ public class CFACreator {
       description="combine sequences of simple edges into a single edge")
   private boolean useMultiEdges = false;
 
+  @Option(name="cfa.ignoreConst",
+          description="remove const specifier from the all types in the CFA")
+  private boolean ignoreConst = false;
+
+  @Option(name="cfa.ignoreVolatile",
+          description="remove volatile specifier from the all types in the CFA")
+  private boolean ignoreVolatile = false;
+
   @Option(name="cfa.transformUnsizedArrays",
           description="convert unsized arrays either to pointers or to sized arrays (when initialized)")
   private boolean transformUnsizedArrays = false;
@@ -421,7 +429,10 @@ public class CFACreator {
         MultiEdgeCreator.createMultiEdges(cfa);
       }
 
-      if (transformPointerArithmetic ||
+      if (transformUnsizedArrays ||
+          ignoreConst ||
+          ignoreVolatile ||
+          transformPointerArithmetic ||
           transformArrows ||
           transformStarAmper ||
           transformFunctionPointers) {
@@ -429,6 +440,8 @@ public class CFACreator {
                                     logger,
                                     machineModel,
                                     transformUnsizedArrays,
+                                    ignoreConst,
+                                    ignoreVolatile,
                                     transformPointerArithmetic,
                                     transformArrows,
                                     transformStarAmper,

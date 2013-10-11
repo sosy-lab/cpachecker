@@ -375,13 +375,15 @@ public class CFATransformer extends DefaultCFAVisitor {
   private CFATransformer(final LogManager logger,
                          final MachineModel machineModel,
                          final boolean transformUnsizedArrays,
+                         final boolean ignoreConst,
+                         final boolean ignoreVolatile,
                          final boolean transformPointerArithmetic,
                          final boolean transformArrows,
                          final boolean transformStarAmper,
                          final boolean transformFunctionPointers) {
 
     // Caching is mandatory to prevent infinite recursion
-    typeVisitor = new CachingCTypeTransformer(machineModel, transformUnsizedArrays);
+    typeVisitor = new CachingCTypeTransformer(machineModel, transformUnsizedArrays, ignoreConst, ignoreVolatile);
     expressionVisitor = new CExpressionTransformer(typeVisitor,
                                                    transformPointerArithmetic,
                                                    transformArrows,
@@ -396,6 +398,8 @@ public class CFATransformer extends DefaultCFAVisitor {
                                   final LogManager logger,
                                   final MachineModel machineModel,
                                   final boolean transformUnsizedArrays,
+                                  final boolean ignoreConst,
+                                  final boolean ignoreVolatile,
                                   final boolean transformPointerArithmetic,
                                   final boolean transformArrows,
                                   final boolean transformStarAmper,
@@ -404,6 +408,8 @@ public class CFATransformer extends DefaultCFAVisitor {
                                                          new CFATransformer(logger,
                                                                             machineModel,
                                                                             transformUnsizedArrays,
+                                                                            ignoreConst,
+                                                                            ignoreVolatile,
                                                                             transformPointerArithmetic,
                                                                             transformArrows,
                                                                             transformStarAmper,

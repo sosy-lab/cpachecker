@@ -123,10 +123,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     if (result != null) {
       return result;
     } else {
-      result = "*" + PointerTargetSet.typeToString(type)
-                                     .replace("const ", "")
-                                     .replace("volatile ", "")
-                                     .replace(' ', '_');
+      result = "*" + PointerTargetSet.typeToString(type).replace(' ', '_');
       ufNameCache.put(type, result);
       return result;
     }

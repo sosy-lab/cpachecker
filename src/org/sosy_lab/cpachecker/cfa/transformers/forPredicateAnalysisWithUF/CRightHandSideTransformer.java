@@ -70,11 +70,11 @@ class CRightHandSideTransformer extends ForwardingCExpressionVisitor<CAstNode, U
                                        e.getDeclaration());
   }
 
-  CRightHandSideTransformer(final CTypeVisitor<CType, UnrecognizedCCodeException> typeVisitor,
+  CRightHandSideTransformer(final CTypeVisitor<CType, RuntimeException> typeVisitor,
                             final CExpressionTransformer delegate) {
     super(delegate);
     this.typeVisitor = typeVisitor;
   }
 
-  private final CTypeVisitor<CType, UnrecognizedCCodeException> typeVisitor;
+  private final CTypeVisitor<CType, RuntimeException> typeVisitor;
 }

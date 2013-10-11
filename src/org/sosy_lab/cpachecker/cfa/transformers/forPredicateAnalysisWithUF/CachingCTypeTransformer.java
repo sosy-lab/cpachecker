@@ -23,97 +23,251 @@
  */
 package org.sosy_lab.cpachecker.cfa.transformers.forPredicateAnalysisWithUF;
 
+import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 
-@SuppressWarnings("deprecation") // Deprecation is the superclass means this class should be used instead
-public class CachingCTypeTransformer extends CTypeTransformer {
+public class CachingCTypeTransformer extends DefaultCTypeVisitor<CType, RuntimeException> {
 
-   public CachingCTypeTransformer(final MachineModel machineModel, final boolean transformUnsizedArrays) {
-     super(machineModel, transformUnsizedArrays);
-   }
+  private class CTypeTransformer implements CTypeVisitor<CType, RuntimeException> {
 
-   @Override
-   public CType visit(final CArrayType t) {
-     CType result = typeCache.get(t);
-     if (result != null) {
-       return result;
-     } else {
-       result = super.visit(t);
-       typeCache.put(t, result);
-       return result;
-     }
-   }
-
-  @Override
-  public CType visit(final CCompositeType t) throws UnrecognizedCCodeException {
-    final CType result = typeCache.get(t);
-    if (result != null) {
-      return result;
-    } else {
-      typeCache.put(t, t); // This prevents infinite recursion
-      return super.visit(t);
+    public CTypeTransformer(final MachineModel machineModel,
+                            final boolean transformUnsizedArrays,
+                            final boolean ignoreConst,
+                            final boolean ignoreVolatile) {
+      this.machineModel = machineModel;
+      this.transformUnsizedArrays = transformUnsizedArrays;
+      this.ignoreConst = ignoreConst;
+      this.ignoreVolatile = ignoreVolatile;
     }
+
+    @Override
+    public CType visit(final CArrayType t) {
+      if (transformUnsizedArrays && t.getLength() == null) {
+        if (initializerSize != null) {
+          assert fileLocation != null : "Unexpected null file location";
+          final CIntegerLiteralExpression length =
+            new CIntegerLiteralExpression(fileLocation,
+                                          machineModel.getPointerEquivalentSimpleType(),
+                                          BigInteger.valueOf(initializerSize));
+          initializerSize = null;
+          fileLocation = null;
+          return new CArrayType(!ignoreConst && t.isConst(), !ignoreVolatile && t.isVolatile(), t.getType(), length);
+        } else {
+          return new CPointerType(!ignoreConst && t.isConst(), !ignoreVolatile && t.isVolatile(), t.getType());
+        }
+      } else if (ignoreConst && t.isConst() || ignoreVolatile && t.isVolatile()) {
+        return new CArrayType(!ignoreConst && t.isConst(),
+                              !ignoreVolatile && t.isVolatile(),
+                              t.getType(),
+                              t.getLength());
+      } else {
+        return t;
+      }
+    }
+
+    @Override
+    public CCompositeType visit(final CCompositeType t) {
+      List<CCompositeTypeMemberDeclaration> memberDeclarations = null;
+      int i = 0;
+      for (CCompositeTypeMemberDeclaration oldMemberDeclaration : t.getMembers()) {
+        final CType oldMemberType = oldMemberDeclaration.getType();
+        final CType memberType = oldMemberType.accept(CachingCTypeTransformer.this);
+        if (memberType != oldMemberType && memberDeclarations == null) {
+          memberDeclarations = new ArrayList<>();
+          memberDeclarations.addAll(t.getMembers().subList(0, i));
+        }
+        if (memberDeclarations != null) {
+          if (memberType != oldMemberType) {
+            memberDeclarations.add(new CCompositeTypeMemberDeclaration(memberType, oldMemberDeclaration.getName()));
+          } else {
+            memberDeclarations.add(oldMemberDeclaration);
+          }
+        }
+        ++i;
+      }
+
+      if (memberDeclarations != null) { // Here CCompositeType mutability is used to prevent infinite recursion
+        t.setMembers(memberDeclarations);
+      }
+      return t;
+    }
+
+    @Override
+    public CElaboratedType visit(final CElaboratedType t) {
+      initializerSize = null;
+      fileLocation = null;
+
+      final CComplexType oldRealType = t.getRealType();
+      final CComplexType realType = oldRealType != null ?
+                                      (CComplexType) oldRealType.accept(CachingCTypeTransformer.this) :
+                                      null;
+
+      return realType == oldRealType && (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
+             new CElaboratedType(!ignoreConst && t.isConst(),
+                                 !ignoreVolatile && t.isVolatile(),
+                                 t.getKind(),
+                                 t.getName(),
+                                 realType);
+    }
+
+    @Override
+    public CPointerType visit(final CPointerType t) {
+      final CType oldType = t.getType();
+      final CType type = oldType.accept(CachingCTypeTransformer.this);
+
+      return type == oldType && (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
+             new CPointerType(!ignoreConst && t.isConst(),
+                              !ignoreVolatile && t.isVolatile(),
+                              type);
+    }
+
+    @Override
+    public CTypedefType visit(final CTypedefType t) {
+      initializerSize = null;
+      fileLocation = null;
+
+      final CType oldRealType = t.getRealType();
+      final CType realType = oldRealType.accept(CachingCTypeTransformer.this);
+
+      return realType == oldRealType && (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
+             new CTypedefType(!ignoreConst && t.isConst(), !ignoreConst && t.isVolatile(), t.getName(), realType);
+    }
+
+    @Override
+    public CFunctionType visit(final CFunctionType t) {
+      final CType oldReturnType = t.getReturnType();
+      final CType returnType = oldReturnType.accept(CachingCTypeTransformer.this);
+
+      List<CType> parameterTypes = null;
+      int i = 0;
+      for (CType oldType : t.getParameters()) {
+        final CType type = oldType.accept(CachingCTypeTransformer.this);
+        if (type != oldType && parameterTypes == null) {
+          parameterTypes = new ArrayList<>();
+          parameterTypes.addAll(t.getParameters().subList(0, i));
+        }
+        if (parameterTypes != null) {
+          parameterTypes.add(type);
+        }
+        ++i;
+      }
+
+
+      final CFunctionType result;
+      if (returnType == oldReturnType &&
+          parameterTypes == null &&
+          (!ignoreConst || !t.isConst()) &&
+          (!ignoreVolatile || !t.isVolatile())) {
+        result = t;
+      } else {
+        result = new CFunctionType(!ignoreConst && t.isConst(),
+                                   !ignoreVolatile && t.isVolatile(),
+                                   returnType,
+                                   parameterTypes != null ? parameterTypes : t.getParameters(),
+                                   t.takesVarArgs());
+        result.setName(t.getName());
+      }
+
+      return result;
+    }
+
+    @Override
+    public CEnumType visit(final CEnumType t) {
+      return (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
+             new CEnumType(!ignoreConst && t.isConst(),
+                           !ignoreVolatile && t.isVolatile(),
+                           t.getEnumerators(),
+                           t.getName());
+    }
+
+    @Override
+    public CProblemType visit(final CProblemType t) {
+      return t;
+    }
+
+    @Override
+    public CSimpleType visit(final CSimpleType t) {
+      return (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
+              new CSimpleType(!ignoreConst && t.isConst(),
+                              !ignoreVolatile && t.isVolatile(),
+                              t.getType(),
+                              t.isLong(),
+                              t.isShort(),
+                              t.isSigned(),
+                              t.isUnsigned(),
+                              t.isComplex(),
+                              t.isImaginary(),
+                              t.isLongLong());
+    }
+
+    public void setInitializerSize(final int initializerSize, @Nonnull final FileLocation fileLocation) {
+      this.initializerSize = initializerSize;
+      this.fileLocation = fileLocation;
+    }
+
+    public void unsetInitializerSize() {
+      this.initializerSize = null;
+      this.fileLocation = null;
+    }
+
+    private final boolean transformUnsizedArrays;
+    private final boolean ignoreConst;
+    private final boolean ignoreVolatile;
+    private final MachineModel machineModel;
+    private Integer initializerSize;
+    private FileLocation fileLocation;
+  }
+
+  public CachingCTypeTransformer(final MachineModel machineModel,
+                                 final boolean transformUnsizedArrays,
+                                 final boolean ignoreConst,
+                                 final boolean ignoreVolatile) {
+    typeVisitor = new CTypeTransformer(machineModel,
+                                       transformUnsizedArrays,
+                                       ignoreConst,
+                                       ignoreVolatile);
   }
 
   @Override
-  public CType visit(final CElaboratedType t) throws UnrecognizedCCodeException {
-    CType result = typeCache.get(t);
+  public CCompositeType visit(final CCompositeType t) {
+    final CCompositeType result = (CCompositeType) typeCache.get(t);
     if (result != null) {
       return result;
     } else {
-      result = super.visit(t);
-      typeCache.put(t, result);
-      return result;
-    }
-  }
-
-  @Override
-  public CType visit(final CFunctionType t) throws UnrecognizedCCodeException {
-    CType result = typeCache.get(t);
-    if (result != null) {
-      return result;
-    } else {
-      result = super.visit(t);
-      typeCache.put(t, result);
-      return result;
-    }
-  }
-
-  @Override
-  public CType visit(final CPointerType t) throws UnrecognizedCCodeException {
-    CType result = typeCache.get(t);
-    if (result != null) {
-      return result;
-    } else {
-      result = super.visit(t);
-      typeCache.put(t, result);
-      return result;
-    }
-  }
-
-  @Override
-  public CType visit(final CTypedefType t) throws UnrecognizedCCodeException {
-    CType result = typeCache.get(t);
-    if (result != null) {
-      return result;
-    } else {
-      result = super.visit(t);
-      typeCache.put(t, result);
-      return result;
+      // This prevents infinite recursion
+      if ((!typeVisitor.ignoreConst || !t.isConst()) && (!typeVisitor.ignoreVolatile || !t.isVolatile())) {
+        typeCache.put(t, t);
+      } else {
+        typeCache.put(t, new CCompositeType(!typeVisitor.ignoreConst && !t.isConst(),
+                                            !typeVisitor.ignoreVolatile && !t.isVolatile(),
+                                            t.getKind(),
+                                            t.getMembers(),
+                                            t.getName()));
+      }
+      return typeVisitor.visit(t);
     }
   }
 
@@ -123,16 +277,19 @@ public class CachingCTypeTransformer extends CTypeTransformer {
     if (result != null) {
       return result;
     } else {
-      result = super.visitDefault(t);
+      if (!(t instanceof CArrayType)) {
+        typeVisitor.unsetInitializerSize();
+      }
+      result = t.accept(typeVisitor);
       typeCache.put(t, result);
       return result;
     }
   }
 
-  @Override
   public void setInitializerSize(final int size, final @Nonnull FileLocation fileLocation) {
-    super.setInitializerSize(size, fileLocation);
+    typeVisitor.setInitializerSize(size, fileLocation);
   }
 
   private final Map<CType, CType> typeCache = new HashMap<>();
+  private final CTypeTransformer typeVisitor;
 }
