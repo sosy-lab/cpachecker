@@ -1213,7 +1213,11 @@ public class CtoFormulaConverter {
       if (expressionType instanceof CFunctionType) {
         CFunctionType funcPtrType = (CFunctionType)expressionType;
         retType = funcPtrType.getReturnType();
-      } else {
+      } else if (expressionType instanceof CPointerType &&
+                 ((CPointerType) expressionType).getType().getCanonicalType() instanceof CFunctionType) {
+        CFunctionType funcPtrType = (CFunctionType) ((CPointerType) expressionType).getType().getCanonicalType();
+        retType = funcPtrType.getReturnType();
+      } else{
         throw new UnrecognizedCCodeException("Cannot handle function pointer call with unknown type " + expressionType, edge, funcCallExp);
       }
       assert retType != null;
