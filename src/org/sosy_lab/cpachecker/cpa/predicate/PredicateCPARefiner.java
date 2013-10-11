@@ -93,7 +93,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   @Option(name="pointerAnalysisWithUFs",
       description="Use CToFormulaConverterWithUF for converting edges to path formulae. This enables encoding of " +
-                  "aliased variables with uninterpreted funciton calls.")
+                  "aliased variables with uninterpreted function calls.")
   private boolean pointerAnalysisWithUFs;
 
   @Option(description="slice block formulas, experimental feature!")
@@ -199,15 +199,13 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     } else {
       final List<BooleanFormula> blockFormulas = getFormulasForPath(path, pPath.getFirst().getFirst());
       final int last = blockFormulas.size() - 1;
-      final BooleanFormula lastFormula = blockFormulas.get(last);
       final PathFormula lastPathFormula = AbstractStates.extractStateByType(path.get(last),
                                                                             PredicateAbstractState.class)
-                                                        .getPathFormula();
+                                                        .getAbstractionFormula()
+                                                        .getBlockFormula();
       formulas = ImmutableList.<BooleanFormula>builder()
                               .addAll(blockFormulas.subList(0, last))
-                              .add(((PathFormulaWithUF) lastPathFormula)
-                                     .getPointerTargetSet()
-                                     .withDisjointnessConstraints(lastFormula))
+                              .add(((PathFormulaWithUF) lastPathFormula).getFormulaWithConstraints())
                               .build();
     }
     assert path.size() == formulas.size();

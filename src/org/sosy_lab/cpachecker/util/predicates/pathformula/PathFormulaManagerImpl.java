@@ -83,7 +83,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Option(name="pointerAnalysisWithUFs",
           description="Use CToFormulaConverterWithUF for converting edges to path formulae. This enables encoding of " +
-                      "aliased variables with uninterpreted funciton calls.")
+                      "aliased variables with uninterpreted function calls.")
   private boolean pointerAnalysisWithUFs = false;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";

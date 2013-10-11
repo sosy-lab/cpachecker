@@ -58,6 +58,10 @@ public class PathFormulaWithUF extends PathFormula {
     return pointerTargetSet;
   }
 
+  public BooleanFormula getFormulaWithConstraints() {
+    return pointerTargetSet.withDisjointnessConstraints(getFormula());
+  }
+
   @Override
   public int hashCode() {
     return (getFormula().hashCode() * 31 + getSsa().hashCode() * 17 + pointerTargetSet.hashCode()) * 53 + getLength();
