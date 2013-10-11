@@ -334,12 +334,12 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final ImmutableList<Pair<CCompositeType, String>> rhsUsedFields;
     final ImmutableMap<String, CType> rhsUsedDeferredAllocationPointers;
     final Formula rhsFormula;
+    delegate.reset();
     if (rhs != null &&
         (!(rhs instanceof CFunctionCallExpression) ||
          !(((CFunctionCallExpression) rhs).getFunctionNameExpression() instanceof CIdExpression) ||
          !isNondetFunctionName(
             ((CIdExpression)((CFunctionCallExpression) rhs).getFunctionNameExpression()).getName()))) {
-      delegate.reset();
       rhsFormula = rhs.accept(this);
       // addBases(delegate.getSharedBases(), pts);
       addEssentialFields(delegate.getInitializedFields(), pts);
@@ -367,7 +367,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         rhs instanceof CFunctionCallExpression &&
         rhsObject instanceof Formula) {
       final Set<String> rhsVariables = conv.fmgr.extractVariables(rhsFormula);
-      for (final String variable : rhsVariables) {
+      for (String variable : rhsVariables) {
+        if (PointerTargetSet.isBaseName(variable)) {
+          variable = PointerTargetSet.getBase(variable);
+        }
         if (pts.isTemporaryDeferredAllocationPointer(variable)) {
           if (!isAllocation) {
             if (ExpressionToFormulaWithUFVisitor.isRevealingType(lhsType)) {
@@ -422,7 +425,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   throws UnrecognizedCCodeException {
     final CType type = PointerTargetSet.simplifyType(declaration.getType());
     final String lhs = declaration.getQualifiedName();
-    if (!pts.isBase(declaration.getQualifiedName()) && !PointerTargetSet.containsArray(type)) {
+    if (!pts.isActualBase(declaration.getQualifiedName()) && !PointerTargetSet.containsArray(type)) {
       declareSharedBase(declaration, false);
       return conv.makeAssignment(type,
                                  type,
@@ -441,7 +444,11 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       final CType baseType = PointerTargetSet.getBaseType(type);
       final BooleanFormula result = conv.makeAssignment(type,
                                                         type,
-                                                        conv.makeConstant(Variable.create(lhs, baseType), ssa, pts),
+                                                        conv.makeConstant(Variable.create(
+                                                                            PointerTargetSet.getBaseName(lhs),
+                                                                            baseType),
+                                                                          ssa,
+                                                                          pts),
                                                         initializerList,
                                                         pattern,
                                                         false,
@@ -772,16 +779,16 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         }
         if (newType != null) {
           final CType newBaseType = PointerTargetSet.getBaseType(newType);
-          final String newBaseName = conv.makeAllocVariableName(functionName, newType, newBaseType);
+          final String newBase = conv.makeAllocVariableName(functionName, newType, newBaseType);
           return conv.makeAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                      newType,
-                                     newBaseName,
+                                     newBase,
                                      edge,
                                      ssa,
                                      constraints,
                                      pts);
         } else {
-          final String newBaseName = conv.makeAllocVariableName(functionName,
+          final String newBase = conv.makeAllocVariableName(functionName,
                                                                 PointerTargetSet.VOID,
                                                                 PointerTargetSet.POINTER_TO_VOID);
           pts.addTemporaryDeferredAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
@@ -789,8 +796,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                                                           parameter.getExpressionType(),
                                                                                           BigInteger.valueOf(size)) :
                                                             null,
-                                             newBaseName);
-          return conv.makeConstant(newBaseName, PointerTargetSet.POINTER_TO_VOID, ssa, pts);
+                                             newBase);
+          return conv.makeConstant(PointerTargetSet.getBaseName(newBase), PointerTargetSet.POINTER_TO_VOID, ssa, pts);
         }
       } else if ((conv.options.isMemoryAllocationFunction(functionName) ||
                   conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) &&

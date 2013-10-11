@@ -326,6 +326,18 @@ public class PointerTargetSet implements Serializable {
     }
   }
 
+  public static String getBaseName(final String name){
+    return BASE_PREFIX + name;
+  }
+
+  public static boolean isBaseName(final String name) {
+    return name.startsWith(BASE_PREFIX);
+  }
+
+  public static String getBase(final String baseName) {
+    return baseName.replaceFirst(BASE_PREFIX, "");
+  }
+
   /**
    * <p>
    * The method should be used everywhere the type of any expression is determined. This is because the encoding uses
@@ -861,10 +873,11 @@ public class PointerTargetSet implements Serializable {
   protected BooleanFormula getNextBaseAddressInequality(final String newBase,
                                                         final String lastBase) {
     final FormulaManagerView fm = formulaManager;
-    final Formula newBaseFormula = fm.makeVariable(pointerType, newBase);
+    final Formula newBaseFormula = fm.makeVariable(pointerType, getBaseName(newBase));
     if (lastBase != null) {
       final Integer lastSize = getSize(bases.get(lastBase));
-      final Formula rhs = fm.makePlus(fm.makeVariable(pointerType, lastBase), fm.makeNumber(pointerType, lastSize));
+      final Formula rhs = fm.makePlus(fm.makeVariable(pointerType, getBaseName(lastBase)),
+                                      fm.makeNumber(pointerType, lastSize));
       // The condition rhs > 0 prevents overflows in case of bit-vector encoding
       return fm.makeAnd(fm.makeGreaterThan(rhs, fm.makeNumber(pointerType, 0L), true),
                         fm.makeGreaterOrEqual(newBaseFormula, rhs, true));
@@ -904,8 +917,12 @@ public class PointerTargetSet implements Serializable {
     return formulaManager.getBooleanFormulaManager().and(formula, disjointnessFormula);
   }
 
-  public boolean isBase(final String name) {
+  public boolean isActualBase(final String name) {
     return bases.containsKey(name) && !isFakeBaseType(bases.get(name));
+  }
+
+  public boolean isPreparedBase(final String name) {
+    return bases.containsKey(name);
   }
 
   public boolean isBase(final String name, CType type) {
@@ -1056,7 +1073,7 @@ public class PointerTargetSet implements Serializable {
       // Nothing to do, as there were no divergence with regard to base allocations
     } else {
       final CType fakeBaseType = getFakeBaseType(0);
-      final String fakeBaseName = CToFormulaWithUFConverter.NOMERGE_NAME_PREFIX + FAKE_ALLOC_FUNCTION_NAME +
+      final String fakeBaseName = FAKE_ALLOC_FUNCTION_NAME +
                                   CToFormulaWithUFConverter.getUFName(fakeBaseType) +
                                   CToFormulaWithUFConverter.FRESH_INDEX_SEPARATOR +
                                   PointerTargetSetBuilder.getNextDynamicAllocationIndex();
@@ -1454,6 +1471,7 @@ public class PointerTargetSet implements Serializable {
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
 
   private static final String FAKE_ALLOC_FUNCTION_NAME = "__VERIFIER_fake_alloc";
+  private static final String BASE_PREFIX = "__ADDRESS_OF_";
 
   private static final long serialVersionUID = 2102505458322248624L;
 }

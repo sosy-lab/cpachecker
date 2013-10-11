@@ -443,7 +443,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                                                  .getFormulaTypeFromCType(
                                                    PointerTargetSet.getBaseType(baseFromPTS1.getValue()), pts1);
         mergeFormula2 = bfmgr.and(mergeFormula2, makeSharingConstraints(fmgr.makeVariable(baseFormulaType,
-                                                                                          baseFromPTS1.getKey()),
+                                                                                          PointerTargetSet.getBaseName(
+                                                                                            baseFromPTS1.getKey())),
                                                                         baseFromPTS1.getKey(),
                                                                         baseFromPTS1.getValue(),
                                                                         sharedFields,
@@ -458,7 +459,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                                                  .getFormulaTypeFromCType(
                                                    PointerTargetSet.getBaseType(baseFromPTS2.getValue()), pts1);
         mergeFormula1 = bfmgr.and(mergeFormula1, makeSharingConstraints(fmgr.makeVariable(baseFormulaType,
-                                                                                          baseFromPTS2.getKey()),
+                                                                                          PointerTargetSet.getBaseName(
+                                                                                              baseFromPTS2.getKey())),
                                                                         baseFromPTS2.getKey(),
                                                                         baseFromPTS2.getValue(),
                                                                         sharedFields,
@@ -505,7 +507,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                                                 .getFormulaTypeFromCType(returnType, pts);
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (final PointerTarget target : pts.getAllTargets(returnType)) {
-      final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(pts.getPointerType(), target.getBase()),
+      final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(pts.getPointerType(), target.getBaseName()),
                                                   fmgr.makeNumber(pts.getPointerType(), target.getOffset()));
 
       final BooleanFormula retention = fmgr.makeEqual(ffmgr.createFuncAndCall(functionName,

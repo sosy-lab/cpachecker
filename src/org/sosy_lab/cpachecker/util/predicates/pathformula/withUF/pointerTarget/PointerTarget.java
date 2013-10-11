@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget
 import java.io.Serializable;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 
 public class PointerTarget implements Serializable {
 
@@ -70,6 +71,10 @@ public class PointerTarget implements Serializable {
 
   public String getBase() {
     return base;
+  }
+
+  public String getBaseName() {
+    return PointerTargetSet.getBaseName(base);
   }
 
   public int getOffset() {

@@ -236,7 +236,10 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
       }
     } else {
       variable = conv.scopedIfNecessary(e, ssa, function);
-      lastTarget = conv.makeConstant(variable.withType(PointerTargetSet.getBaseType(resultType)), ssa, pts);
+      lastTarget = conv.makeConstant(Variable.create(PointerTargetSet.getBaseName(variable.getName()),
+                                                     PointerTargetSet.getBaseType(resultType)),
+                                     ssa,
+                                     pts);
       return conv.isCompositeType(resultType) ? (Formula) lastTarget :
              conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
     }
@@ -292,8 +295,10 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
           }
         } else {
           final Variable oldBaseVariable = baseVisitor.getLastBase();
-          final Variable newBaseVariable = oldBaseVariable.withType(PointerTargetSet.getBaseType(oldBaseVariable.getType()));
-          final Formula baseAddress = conv.makeConstant(newBaseVariable, ssa, pts);
+          final Variable newBaseVariable = oldBaseVariable.withType(
+            PointerTargetSet.getBaseType(oldBaseVariable.getType()));
+          final Formula baseAddress = conv.makeConstant(
+            newBaseVariable.withName(PointerTargetSet.getBaseName(oldBaseVariable.getName())), ssa, pts);
           conv.addSharingConstraints(edge,
                                      baseAddress,
                                      oldBaseVariable,
@@ -304,7 +309,12 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
           if (ssa.getIndex(oldBaseVariable.getName()) != CToFormulaWithUFConverter.VARIABLE_UNSET) {
             ssa.deleteVariable(oldBaseVariable.getName());
           }
-          conv.addPreFilledBase(newBaseVariable.getName(), oldBaseVariable.getType(), true, false, constraints, pts);
+          conv.addPreFilledBase(newBaseVariable.getName(),
+                                oldBaseVariable.getType(),
+                                pts.isPreparedBase(newBaseVariable.getName()),
+                                false,
+                                constraints,
+                                pts);
           sharedBases.add(Pair.of(newBaseVariable.getName(), oldBaseVariable.getType()));
           return visit(e);
         }

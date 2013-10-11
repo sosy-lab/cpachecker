@@ -235,7 +235,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   @Override
   public PointerTargetPattern visit(final CIdExpression e) throws UnrecognizedCCodeException {
     final Variable variable = conv.scopedIfNecessary(e, null, null);
-    if (!pts.isBase(variable.getName()) && !PointerTargetSet.containsArray(e.getExpressionType())) {
+    if (!pts.isActualBase(variable.getName()) && !PointerTargetSet.containsArray(e.getExpressionType())) {
       return null;
     } else {
       return new PointerTargetPattern(variable.getName(), 0, 0);
