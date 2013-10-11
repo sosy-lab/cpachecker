@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 public class CFATransformer extends DefaultCFAVisitor {
 
-  private CFAEdge transformEdge(CFAEdge oldEdge) {
+  private CFAEdge transformSimpleEdge(final CFAEdge oldEdge) {
 
     CFAEdge edge = null;
 
@@ -212,7 +212,10 @@ public class CFATransformer extends DefaultCFAVisitor {
                                                      summaryStatementEdge.getFunctionName());
           }
         }
+        break;
       }
+      default:
+        throw new IllegalArgumentException("Illegal edge type: " + oldEdge);
       }
     } catch (UnrecognizedCCodeException e) {
       logger.log(Level.WARNING, "UnrecognizedCCodeException while pre-processing edge", new Object[]{edge, e});
@@ -225,17 +228,16 @@ public class CFATransformer extends DefaultCFAVisitor {
     }
   }
 
-  @Override
-  public TraversalProcess visitEdge(final CFAEdge oldEdge) {
+  public CFAEdge transformEdge(final CFAEdge oldEdge) {
     final CFANode predecessor = oldEdge.getPredecessor();
     final CFANode successor = oldEdge.getSuccessor();
 
-    CFAEdge edge = null;
+    final CFAEdge newEdge;
     if (oldEdge instanceof MultiEdge) {
       List<CFAEdge> edges = null;
       int i = 0;
       for (CFAEdge oldSubEdge : ((MultiEdge) oldEdge).getEdges()) {
-        final CFAEdge subEdge = transformEdge(oldSubEdge);
+        final CFAEdge subEdge = transformSimpleEdge(oldSubEdge);
         if (edges == null && subEdge != oldSubEdge) {
           edges = new ArrayList<>();
           edges.addAll(((MultiEdge) oldEdge).getEdges().subList(0, i));
@@ -246,21 +248,29 @@ public class CFATransformer extends DefaultCFAVisitor {
         ++i;
       }
       if (edges != null) {
-        edge = new MultiEdge(predecessor, successor, edges);
+        newEdge = new MultiEdge(predecessor, successor, edges);
+      } else {
+        newEdge = oldEdge;
       }
     } else {
-      final CFAEdge newEdge = transformEdge(oldEdge);
-      if (newEdge != oldEdge) {
-        edge = newEdge;
-      }
+      newEdge = transformSimpleEdge(oldEdge);
     }
 
-    if (edge != null) {
-      predecessor.removeLeavingEdge(oldEdge);
-      successor.removeEnteringEdge(oldEdge);
+    return newEdge;
+  }
 
-      predecessor.addLeavingEdge(edge);
-      successor.addEnteringEdge(edge);
+  @Override
+  public TraversalProcess visitNode(final CFANode node) {
+    edges.clear();
+    for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+      edges.add(node.getLeavingEdge(i));
+    }
+    for (final CFAEdge oldEdge : edges) {
+      final CFAEdge newEdge = transformEdge(oldEdge);
+      if (newEdge != oldEdge) {
+        node.removeLeavingEdge(oldEdge);
+        node.addLeavingEdge(newEdge);
+      }
     }
 
     return TraversalProcess.CONTINUE;
@@ -274,8 +284,9 @@ public class CFATransformer extends DefaultCFAVisitor {
     CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(cfa.getMainFunction(), new CFATransformer(logger));
   }
 
-  private CExpressionTransformer expressionVisitor = new CExpressionTransformer(true, true, true, true);
-  private CStatementTransformer statementVisitor = new CStatementTransformer(expressionVisitor);
-  private CRightHandSideTransformer rhsVisitor = new CRightHandSideTransformer(expressionVisitor);
+  private final CExpressionTransformer expressionVisitor = new CExpressionTransformer(true, true, true, true);
+  private final CStatementTransformer statementVisitor = new CStatementTransformer(expressionVisitor);
+  private final CRightHandSideTransformer rhsVisitor = new CRightHandSideTransformer(expressionVisitor);
+  private final List<CFAEdge> edges = new ArrayList<>(2);
   private final LogManager logger;
 }
