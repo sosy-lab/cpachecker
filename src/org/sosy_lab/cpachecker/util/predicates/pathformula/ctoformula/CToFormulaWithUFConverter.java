@@ -448,7 +448,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   BooleanFormula makeAssignment(@Nonnull CType lvalueType,
                                 @Nonnull CType rvalueType,
                                 final @Nonnull Object lvalue,
-                                final @Nullable Object rvalue,
+                                      @Nullable Object rvalue,
                                 final @Nullable PointerTargetPattern pattern,
                                 final boolean batch,
                                 List<CType> types,
@@ -610,6 +610,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         throw new IllegalArgumentException("Assigning incompatible composite");
       }
     } else {
+      // This happens within recursive call for pure structure field assignment
+      if (rvalue instanceof String) {
+        assert ((String) rvalue).contains("$");
+        rvalue = makeVariable((String) rvalue, rvalueType, ssa, pts);
+      }
       assert rvalue == null || rvalue instanceof Formula : "Illegal right hand side";
       assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
       final String targetName = lvalue instanceof String ? (String) lvalue : getUFName(lvalueType);
