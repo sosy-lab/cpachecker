@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 public class CFATransformer extends DefaultCFAVisitor {
@@ -518,10 +519,11 @@ public class CFATransformer extends DefaultCFAVisitor {
                                                              transformStarAmper,
                                                              transformFunctionPointers);
     CFATraversal cfaTraversal = CFATraversal.dfs().ignoreSummaryEdges();
-    cfaTraversal.traverseOnce(cfa.getMainFunction(), cfaTransformer);
-//    for (CFANode functionHead : cfa.getAllFunctionHeads()) {
-//      cfaTraversal.traverseOnce(functionHead, cfaTransformer);
-//    }
+//    cfaTraversal.traverseOnce(cfa.getMainFunction(), cfaTransformer);
+    final NodeCollectingCFAVisitor cfaVisitor = new NodeCollectingCFAVisitor(cfaTransformer);
+    for (CFANode functionHead : cfa.getAllFunctionHeads()) {
+      cfaTraversal.traverse(functionHead, cfaVisitor);
+    }
   }
 
   private final MutableCFA cfa;
