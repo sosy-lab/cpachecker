@@ -286,7 +286,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
           if (ssa.getIndex(oldBaseVariable.getName()) != CToFormulaWithUFConverter.VARIABLE_UNSET) {
             ssa.deleteVariable(oldBaseVariable.getName());
           }
-          conv.addPreFilledBase(newBaseVariable.getName(), oldBaseVariable.getType(), pts);
+          conv.addPreFilledBase(newBaseVariable.getName(), oldBaseVariable.getType(), false, pts);
           sharedBases.add(Pair.of(newBaseVariable.getName(), oldBaseVariable.getType()));
           return visit(e);
         }

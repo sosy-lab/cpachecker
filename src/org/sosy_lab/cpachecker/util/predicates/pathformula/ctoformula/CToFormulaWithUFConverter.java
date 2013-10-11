@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -277,9 +277,12 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  void addPreFilledBase(final String baseName, final CType type, final PointerTargetSetBuilder pts) {
+  void addPreFilledBase(final String baseName,
+                        final CType type,
+                        final boolean forcePreFill,
+                        final PointerTargetSetBuilder pts) {
     pts.addBase(baseName, type);
-    if (maxPreFilledAllocationSize > 0 && pts.getSize(type) <= maxPreFilledAllocationSize) {
+    if (forcePreFill || (maxPreFilledAllocationSize > 0 && pts.getSize(type) <= maxPreFilledAllocationSize)) {
       addAllFields(type, pts);
     }
   }
@@ -299,14 +302,15 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         result,
         fmgr.makeNumber(getFormulaTypeFromCType(PointerTargetSet.CHAR, pts), 0),
         new PointerTargetPattern(baseName, 0, 0),
-        true,
+        false,
+        false,
         null,
         ssa,
         constraints,
         pts);
       constraints.addConstraint(initialization);
     }
-    addPreFilledBase(baseName, type, pts);
+    addPreFilledBase(baseName, type, isZeroing, pts);
     return result;
   }
 
@@ -401,7 +405,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                 final CType firstElementType,
                                                 final Formula startAddress,
                                                 final int size,
-                                                final List<CType> types,
+                                                final Set<CType> types,
                                                 final SSAMapBuilder ssa,
                                                 final Constraints constraints,
                                                 final PointerTargetSetBuilder pts) {
@@ -437,7 +441,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   private void addInexactRetentionConstraints(final Formula startAddress,
                                               final int size,
-                                              final List<CType> types,
+                                              final Set<CType> types,
                                               final SSAMapBuilder ssa,
                                               final Constraints constraints,
                                               final PointerTargetSetBuilder pts) {
@@ -465,7 +469,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  private void updateSSA(final List<CType> types,
+  private void updateSSA(final Set<CType> types,
                         final SSAMapBuilder ssa) {
     for (final CType type : types) {
       final String ufName = getUFName(type);
@@ -533,8 +537,9 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                 final @Nonnull Object lvalue,
                                       @Nullable Object rvalue,
                                 final @Nullable PointerTargetPattern pattern,
+                                final boolean update,
                                 final boolean batch,
-                                List<CType> types,
+                                Set<CType> types,
                                 final @Nonnull SSAMapBuilder ssa,
                                 final @Nonnull Constraints constraints,
                                 final @Nonnull PointerTargetSetBuilder pts) {
@@ -553,8 +558,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final CArrayType lvalueArrayType = (CArrayType) lvalueType;
       final CType lvalueElementType = PointerTargetSet.simplifyType(lvalueArrayType.getType());
       if (!(rvalueType instanceof CArrayType) ||
-          PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType())
-            .equals(PointerTargetSet.simplifyType(lvalueElementType))) {
+          PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType()).equals(lvalueElementType)) {
         assert lvalueArrayType.getLength() != null : "CFA should be transformed to elimintate unsized arrays";
         Integer length = lvalueArrayType.getLength().accept(pts.getEvaluatingVisitor());
         if (length == null) {
@@ -562,8 +566,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         }
         if (!(rvalue instanceof List) || ((List<?>) rvalue).size() >= length) {
           final Iterator<?> rvalueIterator = rvalue instanceof List ? ((List<?>) rvalue).iterator() : null;
-          if (!batch) {
-            types = new ArrayList<>();
+          if (update && !batch) {
+            types = new HashSet<>();
           }
           result = bfmgr.makeBoolean(true);
           int offset = 0;
@@ -589,6 +593,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                               newLvalue,
                                               newRvalue,
                                               pattern,
+                                              update,
                                               true,
                                               types,
                                               ssa,
@@ -596,7 +601,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                               pts));
             offset += pts.getSize(lvalueArrayType.getType());
           }
-          if (!batch) {
+          if (update && !batch) {
             if (pattern.isExact()) {
               pattern.setRange(offset);
               for (final CType type : types) {
@@ -628,8 +633,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
           PointerTargetSet.simplifyType(rvalueType).equals(PointerTargetSet.simplifyType(lvalueType))) {
         if (!(rvalue instanceof List) || ((List<?>) rvalue).size() >= lvalueCompositeType.getMembers().size()) {
           final Iterator<?> rvalueIterator = rvalue instanceof List ? ((List<?>) rvalue).iterator() : null;
-          if (!batch) {
-            types = new ArrayList<>();
+          if (update && !batch) {
+            types = new HashSet<>();
           }
           result = bfmgr.makeBoolean(true);
           int offset = 0;
@@ -666,6 +671,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                 newLvalue,
                                                 newRvalue,
                                                 pattern,
+                                                update,
                                                 lvalue instanceof Formula,
                                                 types,
                                                 ssa,
@@ -676,7 +682,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
               offset += pts.getSize(memberDeclaration.getType());
             }
           }
-          if (!batch && pattern != null) {
+          if (update && !batch && pattern != null) {
             if (pattern.isExact()) {
               pattern.setRange(offset);
               for (final CType type : types) {
@@ -719,7 +725,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final String targetName = lvalue instanceof String ? (String) lvalue : getUFName(lvalueType);
       final FormulaType<?> targetType = getFormulaTypeFromCType(lvalueType, pts);
       final int oldIndex = getIndex(targetName, lvalueType, ssa);
-      final int newIndex = oldIndex + 1;
+      final int newIndex = update ? oldIndex + 1 : oldIndex;
       if (rvalue != null) {
         rvalueType = implicitCastToPointer(rvalueType);
         final Formula rhs = makeCast(rvalueType, lvalueType, (Formula) rvalue);
@@ -735,7 +741,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       } else {
         result = bfmgr.makeBoolean(true);
       }
-      if (!batch) {
+      if (update && !batch) {
         if (lvalue instanceof Formula) {
           addRetentionConstraints(pattern,
                                   lvalueType,
@@ -748,6 +754,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                   pts);
         }
         ssa.setIndex(targetName, lvalueType, newIndex);
+      } else if (update) {
+        types.add(lvalueType);
       }
       return result;
     }

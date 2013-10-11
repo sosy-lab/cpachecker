@@ -384,7 +384,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     }
 
     final BooleanFormula result =
-      conv.makeAssignment(lhsType, rhsType, lastTarget, rhsObject, pattern, false, null, ssa, constraints, pts);
+      conv.makeAssignment(lhsType, rhsType, lastTarget, rhsObject, pattern, true, false, null, ssa, constraints, pts);
 
     addEssentialFields(lhsUsedFields, pts);
     addEssentialFields(rhsUsedFields, pts);
@@ -395,7 +395,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final CType type = PointerTargetSet.simplifyType(declaration.getType());
     final String lhs = declaration.getQualifiedName();
     if (!pts.isBase(declaration.getQualifiedName()) && !PointerTargetSet.containsArray(type)) {
-      return conv.makeAssignment(type, type, lhs, initializerList, null, false, null, ssa, constraints, pts);
+      return conv.makeAssignment(type, type, lhs, initializerList, null, true, false, null, ssa, constraints, pts);
     } else {
       final PointerTargetPattern pattern = new PointerTargetPattern(lhs, 0, 0);
       final CType baseType = PointerTargetSet.getBaseType(type);
@@ -404,13 +404,13 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                         conv.makeConstant(Variable.create(lhs, baseType), ssa, pts),
                                                         initializerList,
                                                         pattern,
-                                                        true,
+                                                        false,
+                                                        false,
                                                         null,
                                                         ssa,
                                                         constraints,
                                                         pts);
-      pts.addBase(lhs, type);
-      CToFormulaWithUFConverter.addAllFields(type, pts);
+      conv.addPreFilledBase(lhs, type, true, pts);
       return result;
     }
   }
@@ -872,11 +872,11 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   }
 
   public void forceShared(final CDeclaration declaration) {
-    conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), pts);
+    conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), false, pts);
   }
 
   public void forceShared(final CParameterDeclaration declaration) {
-    conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), pts);
+    conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), false, pts);
   }
 
   public void declareCompositeType(final CCompositeType compositeType) {
