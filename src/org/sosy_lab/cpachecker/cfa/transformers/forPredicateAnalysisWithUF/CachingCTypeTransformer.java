@@ -65,6 +65,7 @@ public class CachingCTypeTransformer extends DefaultCTypeVisitor<CType, RuntimeE
 
     @Override
     public CType visit(final CArrayType t) {
+      final CType oldType = t.getType();
       if (transformUnsizedArrays && t.getLength() == null) {
         if (initializerSize != null) {
           assert fileLocation != null : "Unexpected null file location";
@@ -72,19 +73,22 @@ public class CachingCTypeTransformer extends DefaultCTypeVisitor<CType, RuntimeE
             new CIntegerLiteralExpression(fileLocation,
                                           machineModel.getPointerEquivalentSimpleType(),
                                           BigInteger.valueOf(initializerSize));
-          initializerSize = null;
-          fileLocation = null;
-          return new CArrayType(!ignoreConst && t.isConst(), !ignoreVolatile && t.isVolatile(), t.getType(), length);
+          return new CArrayType(!ignoreConst && t.isConst(),
+                                !ignoreVolatile && t.isVolatile(),
+                                oldType.accept(CachingCTypeTransformer.this),
+                                length);
         } else {
-          return new CPointerType(!ignoreConst && t.isConst(), !ignoreVolatile && t.isVolatile(), t.getType());
+          return new CPointerType(!ignoreConst && t.isConst(),
+                                  !ignoreVolatile && t.isVolatile(),
+                                  oldType.accept(CachingCTypeTransformer.this));
         }
-      } else if (ignoreConst && t.isConst() || ignoreVolatile && t.isVolatile()) {
-        return new CArrayType(!ignoreConst && t.isConst(),
-                              !ignoreVolatile && t.isVolatile(),
-                              t.getType(),
-                              t.getLength());
       } else {
-        return t;
+        final CType type = oldType.accept(CachingCTypeTransformer.this);
+        return type == oldType && (!t.isConst() || !ignoreConst) && (!t.isVolatile() || !ignoreVolatile) ? t :
+          new CArrayType(!ignoreConst && t.isConst(),
+                         !ignoreVolatile && t.isVolatile(),
+                         type,
+                         t.getLength());
       }
     }
 
@@ -117,9 +121,6 @@ public class CachingCTypeTransformer extends DefaultCTypeVisitor<CType, RuntimeE
 
     @Override
     public CElaboratedType visit(final CElaboratedType t) {
-      initializerSize = null;
-      fileLocation = null;
-
       final CComplexType oldRealType = t.getRealType();
       final CComplexType realType = oldRealType != null ?
                                       (CComplexType) oldRealType.accept(CachingCTypeTransformer.this) :
@@ -146,9 +147,6 @@ public class CachingCTypeTransformer extends DefaultCTypeVisitor<CType, RuntimeE
 
     @Override
     public CTypedefType visit(final CTypedefType t) {
-      initializerSize = null;
-      fileLocation = null;
-
       final CType oldRealType = t.getRealType();
       final CType realType = oldRealType.accept(CachingCTypeTransformer.this);
 
@@ -267,6 +265,7 @@ public class CachingCTypeTransformer extends DefaultCTypeVisitor<CType, RuntimeE
                                             t.getMembers(),
                                             t.getName()));
       }
+      typeVisitor.unsetInitializerSize();
       return typeVisitor.visit(t);
     }
   }
