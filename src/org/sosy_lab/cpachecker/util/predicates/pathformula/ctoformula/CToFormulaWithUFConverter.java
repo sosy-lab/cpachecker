@@ -1097,5 +1097,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   public static final String FIELD_NAME_SEPARATOR = "$";
 
+  static final String INDEX_SEPARATOR =  FormulaManagerView.makeName("", 0).substring(0, 1);
+
   private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
 }
