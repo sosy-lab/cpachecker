@@ -188,9 +188,7 @@ class ASTConverter {
 
   private static final ContainsProblemTypeVisitor containsProblemTypeVisitor = new ContainsProblemTypeVisitor();
 
-  public ASTConverter(Configuration config, Scope pScope, LogManager pLogger,
-      MachineModel pMachineModel, String staticVariablePrefix,
-      boolean pSimplifyConstExpressions) throws InvalidConfigurationException {
+  public ASTConverter(Configuration config, Scope pScope, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
     config.inject(this);
     scope = pScope;
     logger = pLogger;
@@ -571,6 +569,68 @@ class ASTConverter {
     return type.accept(containsProblemTypeVisitor);
   }
 
+  private static class ContainsProblemTypeVisitor implements CTypeVisitor<Boolean, RuntimeException> {
+
+    @Override
+    public Boolean visit(final CArrayType t) {
+      return t.getType().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CCompositeType t) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(final CElaboratedType t) {
+      final CType realType = t.getRealType();
+      if (realType != null) {
+        return realType.accept(this);
+      } else {
+        return false;
+      }
+    }
+
+    @Override
+    public Boolean visit(final CEnumType t) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(final CFunctionType t) {
+      for (CType parameterType : t.getParameters()) {
+        if (parameterType.accept(this)) {
+          return true;
+        }
+      }
+      return t.getReturnType().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CPointerType t) {
+      return t.getType().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CProblemType t) {
+      return true;
+    }
+
+    @Override
+    public Boolean visit(final CSimpleType t) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CTypedefType t) {
+      return t.getRealType().accept(this);
+    }
+  }
+
+  private static boolean containsProblemType(final CType type) {
+    return type.accept(containsProblemTypeVisitor);
+  }
+
   private CFieldReference convert(IASTFieldReference e) {
     CExpression owner = convertExpressionWithoutSideEffects(e.getFieldOwner());
     String fieldName = convert(e.getFieldName());
@@ -616,14 +676,10 @@ class ASTConverter {
       owner = createInitializedTemporaryVariable(loc, owner.getExpressionType(), owner);
     }
 
-    CType type = typeConverter.convert(e.getExpressionType());
     if (containsProblemType(type)) {
       CType ownerType = owner.getExpressionType().getCanonicalType();
-      if (e.isPointerDereference()) {
-        if (!(ownerType instanceof CPointerType)) {
-          throw new CFAGenerationRuntimeException("Dereferencing non-pointer type", e);
-        }
-        ownerType = ((CPointerType)ownerType).getType();
+      if (e.isPointerDereference() && ownerType instanceof CPointerType) {
+        ownerType = ((CPointerType) ownerType).getType();
       }
       ownerType = ownerType.getCanonicalType();
 
