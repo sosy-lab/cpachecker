@@ -230,11 +230,13 @@ public class CExpressionTransformer extends DefaultCExpressionVisitor<CAstNode, 
     final CType expressionType = oldExpressionType.accept(typeVisitor);
 
     if (transformArrows && e.isPointerDereference()) { // transform p->f into (*p).f
+      final CType oldOwnerType = ((CPointerType) fieldOwner.getExpressionType().getCanonicalType()).getType();
+      final CType ownerType = oldOwnerType.accept(typeVisitor);
       return new CFieldReference(e.getFileLocation(),
                                  expressionType,
                                  e.getFieldName(),
                                  new CUnaryExpression(e.getFileLocation(),
-                                                      ((CPointerType) fieldOwner.getExpressionType()).getType(),
+                                                      ownerType,
                                                       fieldOwner,
                                                       UnaryOperator.STAR),
                                  false);
