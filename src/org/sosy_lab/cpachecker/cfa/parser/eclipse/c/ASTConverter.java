@@ -905,12 +905,10 @@ class ASTConverter {
       CLeftHandSide lhsPost = (CLeftHandSide) operand;
       CExpressionAssignmentStatement result = new CExpressionAssignmentStatement(fileLoc, lhsPost, postExp);
 
-      if (!(e.getParent() instanceof IASTStatement)) {
-        postSideAssignments.add(result);
-        return lhsPost;
-      }
+      CExpression tmp = createInitializedTemporaryVariable(fileLoc, lhsPost.getExpressionType(), lhsPost);
+      preSideAssignments.add(result);
 
-      return result;
+      return tmp;
 
     default:
       return new CUnaryExpression(fileLoc, type, operand, ASTOperatorConverter.convertUnaryOperator(e));
