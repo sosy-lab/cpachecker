@@ -426,6 +426,8 @@ cpa.callstack.depth = 0
 
 # Skip recursion. Treat function call as a statement (the same as for
 # functions without bodies)
+# Skip recursion (this is unsound). Treat function call as a statement (the
+# same as for functions without bodies)
 cpa.callstack.skipRecursion = false
 
 # which composite merge operator to use (plain or agree)
