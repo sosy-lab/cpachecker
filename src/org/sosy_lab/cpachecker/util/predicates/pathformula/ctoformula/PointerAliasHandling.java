@@ -830,7 +830,8 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
     if (fn instanceof CIdExpression) {
       String fName = ((CIdExpression)fn).getName();
 
-      if (conv.options.isMemoryAllocationFunction(fName)) {
+      if (conv.options.isMemoryAllocationFunction(fName)
+          || conv.options.isMemoryAllocationFunctionWithZeroing(fName)) {
 
         CType expType = fexp.getExpressionType();
         if (!(expType instanceof CPointerType)) {

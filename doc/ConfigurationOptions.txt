@@ -739,6 +739,10 @@ cpa.predicate.blk.useCache = true
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
 
+# Use deferred allocation heuristic that tracks void * variables until the
+# actual type of the allocation is figured out.
+cpa.predicate.deferUntypedAllocations = false
+
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
@@ -801,10 +805,23 @@ cpa.predicate.mathsat5.logfile = "mathsat5.%03d.smt2"
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
 
-# Set of functions that provide new memory on the heap.
+# Maximum size of allocations for which all structure fields are regarded
+# always essential, regardless of whether they were ever really used in code.
+cpa.predicate.maxPreFilledAllocationSize = 0
+
+# Set of functions that non-deterministically provide new memory on the heap,
+# i.e. they can return either a valid pointer or zero.
 cpa.predicate.memoryAllocationFunctions = {
-      "malloc", "__kmalloc", "kzalloc"
+      "malloc", "__kmalloc", "kmalloc"
       }
+
+# Set of functions that non-deterministically provide new zeroed memory on
+# the heap, i.e. they can return either a valid pointer or zero.
+cpa.predicate.memoryAllocationFunctionsWithZeroing = {"kzalloc"}
+
+# Setting this to true makes memoryAllocationFunctions always return a valid
+# pointer.
+cpa.predicate.memoryAllocationsAlwaysSucceed = false
 
 # which merge operator to use for predicate cpa (usually ABE should be used)
 cpa.predicate.merge = "ABE"
@@ -826,6 +843,10 @@ cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-z]*"
 
 # Handle field aliasing formulas.
 cpa.predicate.omitNonPointerInFieldAliasing = true
+
+# Use CToFormulaConverterWithUF for converting edges to path formulae. This
+# enables encoding of aliased variables with uninterpreted function calls.
+cpa.predicate.pointerAnalysisWithUFs = false
 
 # Where to apply the found predicates to?
 cpa.predicate.precision.sharing = LOCATION
@@ -929,6 +950,10 @@ cpa.predicate.refinement.verifyInterpolants = false
 # replace the Bitvector with the Rational- and FunctionTheory
 cpa.predicate.replaceBitvectorWithRationalAndFunctionTheory = true
 
+# Enable the option to allow detecting the allocation type by type of the LHS
+# of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
+cpa.predicate.revealAllocationTypeFromLhs = false
+
 # maximum blocksize before a satisfiability check is done
 # (non-negative number, 0 means never, if positive should be smaller than
 # blocksize)
@@ -969,6 +994,14 @@ cpa.predicate.solver.z3.logger.target = Z3
 
 # simplify formulas when they are asserted in a solver.
 cpa.predicate.solver.z3.simplifyFormulas = false
+
+# The function used to model successful heap object allocation. This is only
+# used, when pointer analysis with UFs is enabled.
+cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
+
+# The function used to model successful heap object allocation with zeroing.
+# This is only used, when pointer analysis with UFs is enabled.
+cpa.predicate.successfulZallocFunctionName = "__VERIFIER_successful_zalloc"
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks

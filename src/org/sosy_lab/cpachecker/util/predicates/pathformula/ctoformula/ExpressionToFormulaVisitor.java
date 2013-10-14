@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -77,6 +78,11 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
   protected Formula visitDefault(CExpression exp)
       throws UnrecognizedCCodeException {
     return conv.makeVariableUnsafe(exp, function, ssa, false);
+  }
+
+  private Formula getPointerTargetSizeLiteral(final CPointerType pointerType, final CType implicitType) {
+    final int pointerTargetSize = conv.getSizeof(pointerType.getType());
+    return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
   }
 
   @Override
@@ -121,10 +127,46 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     Formula ret;
     switch (op) {
     case PLUS:
-      ret = conv.fmgr.makePlus(f1, f2);
+      promT1 = promT1.getCanonicalType();
+      promT2 = promT2.getCanonicalType();
+      if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just an addition e.g. 6 + 7
+        ret = conv.fmgr.makePlus(f1, f2);
+      } else if (!(promT2 instanceof CPointerType)) {
+        // operand1 is a pointer => we should multiply the second summand by the size of the pointer target
+        ret =  conv.fmgr.makePlus(f1, conv.fmgr.makeMultiply(f2,
+                                                             getPointerTargetSizeLiteral((CPointerType) promT1,
+                                                             implicitType)));
+      } else if (!(promT1 instanceof CPointerType)) {
+        // operand2 is a pointer => we should multiply the first summand by the size of the pointer target
+        ret =  conv.fmgr.makePlus(f2, conv.fmgr.makeMultiply(f1,
+                                                             getPointerTargetSizeLiteral((CPointerType) promT2,
+                                                             implicitType)));
+      } else {
+        throw new UnrecognizedCCodeException("Can't add pointers", edge, exp);
+      }
       break;
     case MINUS:
-      ret =  conv.fmgr.makeMinus(f1, f2);
+      promT1 = promT1.getCanonicalType();
+      promT2 = promT2.getCanonicalType();
+      if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
+        ret =  conv.fmgr.makeMinus(f1, f2);
+      } else if (!(promT2 instanceof CPointerType)) {
+        // operand1 is a pointer => we should multiply the subtrahend by the size of the pointer target
+        ret =  conv.fmgr.makeMinus(f1, conv.fmgr.makeMultiply(f2,
+                                                              getPointerTargetSizeLiteral((CPointerType) promT1,
+                                                                                            implicitType)));
+      } else if (promT1 instanceof CPointerType) {
+        // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
+        if (promT1.equals(promT2)) {
+          ret = conv.fmgr.makeDivide(conv.fmgr.makeMinus(f1, f2),
+                                     getPointerTargetSizeLiteral((CPointerType) promT1, implicitType),
+                                     true);
+        } else {
+          throw new UnrecognizedCCodeException("Can't subtract pointers of different types", edge, exp);
+        }
+      } else {
+        throw new UnrecognizedCCodeException("Can't subtract a pointer from a non-pointer", edge, exp);
+      }
       break;
     case MULTIPLY:
       ret =  conv.fmgr.makeMultiply(f1, f2);
@@ -224,7 +266,7 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
   }
 
   @Override
-  public Formula visit(CIdExpression idExp) {
+  public Formula visit(CIdExpression idExp) throws UnrecognizedCCodeException {
 
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator)idExp.getDeclaration();

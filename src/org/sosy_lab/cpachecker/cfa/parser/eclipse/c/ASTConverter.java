@@ -76,13 +76,17 @@ import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.eclipse.cdt.core.dom.ast.IBasicType;
+import org.eclipse.cdt.core.dom.ast.IBasicType.Kind;
 import org.eclipse.cdt.core.dom.ast.ICompositeType;
+import org.eclipse.cdt.core.dom.ast.IPointerType;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTFieldDesignator;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -488,11 +492,33 @@ class ASTConverter {
     }
   }
 
+  private static boolean isPointerToVoid(final IASTExpression e) {
+    return (e.getExpressionType() instanceof IPointerType) &&
+           ((IPointerType) e.getExpressionType()).getType() instanceof IBasicType &&
+           ((IBasicType)((IPointerType) e.getExpressionType()).getType()).getKind() == Kind.eVoid;
+  }
+
+  private static boolean isRightHandSide(final IASTExpression e) {
+    return e.getParent() instanceof IASTBinaryExpression &&
+           ((IASTBinaryExpression) e.getParent()).getOperator() == IASTBinaryExpression.op_assign &&
+           ((IASTBinaryExpression) e.getParent()).getOperand2() == e;
+  }
+
   private CAstNode convert(IASTCastExpression e) {
-    CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+    final CExpression operand;
     final FileLocation loc = getLocation(e);
     final CType type = typeConverter.convert(e.getExpressionType());
     final CType castType = convert(e.getTypeId());
+
+    // To recognize and simplify constructs e.g. struct s *ps = (struct s *) malloc(.../* e.g. sizeof(struct s)*/);
+    if (e.getOperand() instanceof CASTFunctionCallExpression &&
+        castType.getCanonicalType() instanceof CPointerType &&
+        isRightHandSide(e) &&
+        isPointerToVoid(e.getOperand())) {
+      return convertExpressionWithSideEffects(e.getOperand());
+    } else {
+      operand = convertExpressionWithoutSideEffects(e.getOperand());
+    }
 
     if("__imag__".equals(e.getTypeId().getRawSignature())) {
       return new CComplexCastExpression(loc, type, operand, castType, false);

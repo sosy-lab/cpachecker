@@ -67,62 +67,100 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
 
   }
 
-  public static class Variable implements AssignableTerm {
+  public static class Constant implements AssignableTerm {
 
-    private final String mName;
-    private final int mSSAIndex;
-    private final TermType mType;
-
-    public Variable(String pName, int pSSAIndex, TermType pType) {
-      mName = pName;
-      mSSAIndex = pSSAIndex;
-      mType = pType;
+    public Constant(final String name, final TermType type) {
+      this.name = name;
+      this.type = type;
     }
 
     @Override
     public String getName() {
-      return mName;
+      return name;
     }
 
     @Override
     public TermType getType() {
-      return mType;
-    }
-
-    public int getSSAIndex() {
-      return mSSAIndex;
+      return type;
     }
 
     @Override
     public String toString() {
-      return mName + "@" + mSSAIndex + " : " + mType;
+      return name + " : " + type;
     }
 
     @Override
     public int hashCode() {
-      return 324 + mName.hashCode() + mSSAIndex + mType.hashCode();
+      return 324 + name.hashCode() + type.hashCode();
     }
 
     @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
+    public boolean equals(final Object other) {
+      if (this == other) {
         return true;
       }
 
-      if (pOther == null) {
+      if (other == null) {
         return false;
       }
 
-      if (!getClass().equals(pOther.getClass())) {
+      if (!getClass().equals(other.getClass())) {
         return false;
       }
 
-      Variable lVariable = (Variable)pOther;
+      final Constant otherConstant = (Constant) other;
 
-      return mName.equals(lVariable.mName)
-          && (mSSAIndex == lVariable.mSSAIndex)
-          && mType.equals(lVariable.mType);
+      return name.equals(otherConstant.name)
+          && type.equals(otherConstant.type);
     }
+
+    protected final String name;
+    protected final TermType type;
+  }
+
+  public static class Variable extends Constant implements AssignableTerm {
+
+    public Variable(final String name, final int ssaIndex, final TermType type) {
+      super(name, type);
+      this.ssaIndex = ssaIndex;
+    }
+
+    public int getSSAIndex() {
+      return ssaIndex;
+    }
+
+    @Override
+    public String toString() {
+      return name + "@" + ssaIndex + " : " + type;
+    }
+
+    @Override
+    public int hashCode() {
+      return 324 + name.hashCode() + ssaIndex + type.hashCode();
+    }
+
+    @Override
+    public boolean equals(final Object other) {
+      if (this == other) {
+        return true;
+      }
+
+      if (other == null) {
+        return false;
+      }
+
+      if (!getClass().equals(other.getClass())) {
+        return false;
+      }
+
+      Variable otherVariable = (Variable) other;
+
+      return name.equals(otherVariable.name)
+          && (ssaIndex == otherVariable.ssaIndex)
+          && type.equals(otherVariable.type);
+    }
+
+    private final int ssaIndex;
   }
 
   public static class Function implements AssignableTerm {
