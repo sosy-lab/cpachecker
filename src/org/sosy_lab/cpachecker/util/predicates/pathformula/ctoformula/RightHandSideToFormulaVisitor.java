@@ -81,7 +81,8 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
         return conv.makeFreshVariable(func, expType, ssa);
 
       } else if (conv.options.isNondetFunction(func)
-          || conv.options.isMemoryAllocationFunction(func)) {
+          || conv.options.isMemoryAllocationFunction(func)
+          || conv.options.isMemoryAllocationFunctionWithZeroing(func)) {
         // Function call like "random()".
         // Also "malloc()" etc. just return a random value, so handle them similarly.
         // Ignore parameters and just create a fresh variable for it.

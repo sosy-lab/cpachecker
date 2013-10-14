@@ -80,7 +80,7 @@ class FormulaEncodingOptions {
   @Option(description = "Set of functions that non-deterministically provide new memory on the heap, " +
   		                  "i.e. they can return either a valid pointer or zero.")
   private Set<String> memoryAllocationFunctions = ImmutableSet.of(
-      "malloc", "__kmalloc", "kzalloc", "kmalloc"
+      "malloc", "__kmalloc", "kmalloc"
       );
 
 
@@ -93,8 +93,7 @@ class FormulaEncodingOptions {
   private String successfulZallocFunctionName = "__VERIFIER_successful_zalloc";
 
   @Option(description = "Set of functions that non-deterministically provide new zeroed memory on the heap, " +
-                        "i.e. they can return either a valid pointer or zero. " +
-                        "This is only used, when handling of pointers with UFs is enabled.")
+                        "i.e. they can return either a valid pointer or zero.")
   private Set<String> memoryAllocationFunctionsWithZeroing = ImmutableSet.of("kzalloc");
 
   @Option(description = "Setting this to true makes memoryAllocationFunctions always return a valid pointer.")

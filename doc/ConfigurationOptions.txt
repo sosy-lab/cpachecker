@@ -812,12 +812,11 @@ cpa.predicate.maxPreFilledAllocationSize = 0
 # Set of functions that non-deterministically provide new memory on the heap,
 # i.e. they can return either a valid pointer or zero.
 cpa.predicate.memoryAllocationFunctions = {
-      "malloc", "__kmalloc", "kzalloc", "kmalloc"
+      "malloc", "__kmalloc", "kmalloc"
       }
 
 # Set of functions that non-deterministically provide new zeroed memory on
-# the heap, i.e. they can return either a valid pointer or zero. This is only
-# used, when handling of pointers with UFs is enabled.
+# the heap, i.e. they can return either a valid pointer or zero.
 cpa.predicate.memoryAllocationFunctionsWithZeroing = {"kzalloc"}
 
 # Setting this to true makes memoryAllocationFunctions always return a valid
