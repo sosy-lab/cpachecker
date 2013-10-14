@@ -142,6 +142,7 @@ public class CPAMain {
     shutdownHook.disable();
     shutdownNotifier.unregister(forcedExitOnShutdown);
     limits.cancel();
+    Thread.interrupted(); // clear interrupted flag
 
     // generated proof (if enabled)
     proofGenerator.generateProof(result);
