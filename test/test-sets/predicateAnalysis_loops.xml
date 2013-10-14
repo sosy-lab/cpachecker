@@ -8,6 +8,7 @@
       <option name="-setprop">analysis.machineModel=Linux32</option>
     </sourcefiles>
     <option name="-noout"/>
+    <option name="-spec">sv-comp</option>
     <option name="-predicateAnalysis"/>
     <option name="-heap">2500M</option>
     <option name="-setprop">limits.time.cpu=3min</option>

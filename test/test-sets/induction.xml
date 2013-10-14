@@ -4,6 +4,9 @@
 
   <sourcefiles>
     <include>../programs/induction/*.c</include>
+  </sourcefiles>
+  <sourcefiles>
+    <option name="-spec">sv-comp</option>
     <include>../programs/benchmarks/ssh-simplified/s3_srvr*.cil.c</include>
     <include>../programs/benchmarks/ssh/s3_srvr*.cil.c</include>
   </sourcefiles>

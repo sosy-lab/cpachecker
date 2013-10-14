@@ -6,12 +6,15 @@
 
   <sourcefiles name="ControlFlowInteger-MemPrecise">
     <includesfile>../programs/benchmarks/ControlFlowInteger-MemPrecise.set</includesfile>
+    <option name="-spec">sv-comp</option>
   </sourcefiles>
   <sourcefiles name="ControlFlowInteger-MemSimple">
     <includesfile>../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
+    <option name="-spec">sv-comp</option>
   </sourcefiles>
   <sourcefiles name="SystemC">
     <includesfile>../programs/benchmarks/SystemC.set</includesfile>
+    <option name="-spec">sv-comp</option>
   </sourcefiles>
   <sourcefiles name="Nested">
     <includesfile>nested.set</includesfile>

@@ -15,6 +15,7 @@
 
   <option name="-heap">12500M</option>
   <option name="-noout"></option>
+  <option name="-spec">sv-comp</option>
 
   <rundefinition name="abelf">
     <option name="-predicateAnalysis-PredAbsRefiner-ABElf"/>
