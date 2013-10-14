@@ -47,6 +47,12 @@ COLOR_DIC = {result.RESULT_CORRECT_SAFE:   COLOR_GREEN,
              result.RESULT_WRONG_UNSAFE:   COLOR_RED,
              result.RESULT_WRONG_SAFE:     COLOR_RED,
              result.CATEGORY_UNKNOWN:      COLOR_DEFAULT,
+             result.RESULT_CORRECT_PROP_DEREF:    COLOR_GREEN,
+             result.RESULT_CORRECT_PROP_FREE:     COLOR_GREEN,
+             result.RESULT_CORRECT_PROP_MEMTRACK: COLOR_GREEN,
+             result.RESULT_WRONG_PROP_DEREF:      COLOR_RED,
+             result.RESULT_WRONG_PROP_FREE:       COLOR_RED,
+             result.RESULT_WRONG_PROP_MEMTRACK:   COLOR_RED,
              None: COLOR_DEFAULT}
 
 TERMINAL_TITLE=''
@@ -122,12 +128,10 @@ class OutputHandler:
         self.XMLHeader = ET.Element("result",
                     {"benchmarkname": self.benchmark.name, "date": self.benchmark.dateISO,
                      "tool": self.benchmark.toolName, "version": version})
-        if memlimit:
-            self.XMLHeader.set(MEMLIMIT, memlimit)
-        if timelimit:
-            self.XMLHeader.set(TIMELIMIT, timelimit)
-        if corelimit:
-            self.XMLHeader.set(CORELIMIT, corelimit)
+
+        self.XMLHeader.set(MEMLIMIT, memlimit if memlimit else '-')
+        self.XMLHeader.set(TIMELIMIT, timelimit if timelimit else '-')
+        self.XMLHeader.set(CORELIMIT, corelimit if corelimit else '-')
 
         if not self.benchmark.config.cloud:
             # store systemInfo in XML
