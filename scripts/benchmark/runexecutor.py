@@ -51,6 +51,7 @@ CPUSET = 'cpuset'
 MEMORY = 'memory'
 
 _BYTE_FACTOR = 1024 # byte in kilobyte
+_WALLTIME_LIMIT_OVERHEAD = 30 # seconds
 
 
 class RunExecutor():
@@ -220,7 +221,9 @@ class RunExecutor():
                 timelimitThread = _TimelimitThread(cgroups[CPUACCT], rlimits[TIMELIMIT], p, myCpuCount)
                 timelimitThread.start()
 
+            logging.debug("waiting for: pid:{0}".format(p.pid))
             pid, returnvalue, ru_child = os.wait4(p.pid, 0)
+            logging.debug("waiting finished: pid:{0}, retVal:{1}".format(pid, returnvalue))
 
         except OSError as e:
             returnvalue = 0
@@ -388,6 +391,7 @@ class _TimelimitThread(threading.Thread):
         daemon = True
         self.cgroupCpuacct = cgroupCpuacct
         self.timelimit = timelimit
+        self.latestKillTime = time.time() + timelimit + _WALLTIME_LIMIT_OVERHEAD
         self.cpuCount = cpuCount
         self.process = process
         self.finished = threading.Event()
@@ -395,7 +399,8 @@ class _TimelimitThread(threading.Thread):
     def run(self):
         while not self.finished.is_set():
             usedTime = _readCpuTime(self.cgroupCpuacct)
-            if usedTime >= self.timelimit:
+            logging.debug("latestkilltime: {0}, used time: {1}, current time: {2}".format(self.latestKillTime, usedTime, time.time()))
+            if usedTime >= self.timelimit or self.latestKillTime < time.time():
                 _killSubprocess(self.process)
                 self.finished.set()
                 return

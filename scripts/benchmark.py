@@ -133,7 +133,10 @@ class Worker(threading.Thread):
             run.wallTime = 0
             run.cpuTime = 0
             try:
-                os.remove(run.logFile)
+                if config.debug:
+                   os.rename(run.logFile, run.logFile + ".killed")
+                else:
+                   os.remove(run.logFile)
             except OSError:
                 pass
             return
