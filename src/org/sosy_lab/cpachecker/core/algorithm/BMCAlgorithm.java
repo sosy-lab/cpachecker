@@ -120,6 +120,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private final Timer inductionPreparation = new Timer();
     private final Timer inductionCheck = new Timer();
+    private Timer invariantGeneration;
     private int inductionCutPoints = 0;
 
     @Override
@@ -136,8 +137,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       if (inductionCheck.getNumberOfIntervals() > 0) {
         out.println("Number of cut points for induction:  " + inductionCutPoints);
         out.println("Time for induction formula creation: " + inductionPreparation);
-        if (invariantGenerator != null) {
-          out.println("  Time for invariant generation:     " + invariantGenerator.getTimeOfExecution());
+        if (invariantGeneration.getNumberOfIntervals() > 0) {
+          out.println("  Time for invariant generation:     " + invariantGeneration);
         }
         out.println("Time for induction check:            " + inductionCheck);
       }
@@ -202,6 +203,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     } else {
       invariantGenerator = new DoNothingInvariantGenerator(reachedSetFactory);
     }
+    stats.invariantGeneration = invariantGenerator.getTimeOfExecution();
 
     PredicateCPA predCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
     if (predCpa == null) {
