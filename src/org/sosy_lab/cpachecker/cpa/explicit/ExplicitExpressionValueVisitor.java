@@ -92,8 +92,8 @@ import com.google.common.collect.Sets;
 public class ExplicitExpressionValueVisitor
     extends DefaultCExpressionVisitor<Long, UnrecognizedCCodeException>
     implements CRightHandSideVisitor<Long, UnrecognizedCCodeException>,
-    JRightHandSideVisitor<Long, UnrecognizedCCodeException>,
-    JExpressionVisitor<Long, UnrecognizedCCodeException> {
+    JRightHandSideVisitor<Long, RuntimeException>,
+    JExpressionVisitor<Long, RuntimeException> {
 
 
   private final ExplicitState state;
@@ -155,6 +155,26 @@ public class ExplicitExpressionValueVisitor
     final Long rVal = evaluate(pE.getOperand2(), calculationType);
     if (rVal == null) { return null; }
 
+    Long result = calculateBinaryOperation(lVal, rVal, binaryOperator,
+        pE.getExpressionType(), machineModel, logger, edge);
+
+    return result;
+  }
+
+  /**
+   * This method calculates the exact result for a binary operation.
+   *
+   * @param lVal first operand, should be casted to calculation-type.
+   * @param rVal second operand, should be casted to calculation-type.
+   * @param binaryOperator this operation willbe performed
+   * @param resultType the result will be casted to this type
+   * @param machineModel information about types
+   * @param logger for logging
+   * @param edge only for logging
+   */
+  public static Long calculateBinaryOperation(final Long lVal, final Long rVal,
+      final BinaryOperator binaryOperator, final CType resultType,
+      final MachineModel machineModel, final LogManager logger, @Nullable CFAEdge edge) {
     Long result;
     switch (binaryOperator) {
     case PLUS:
@@ -168,8 +188,8 @@ public class ExplicitExpressionValueVisitor
     case BINARY_OR:
     case BINARY_XOR: {
 
-      result = arithmeticOperation(lVal, rVal, binaryOperator);
-      result = castCValue(result, pE.getExpressionType());
+      result = arithmeticOperation(lVal, rVal, binaryOperator, logger);
+      result = castCValue(result, resultType, machineModel, logger, edge);
 
       break;
     }
@@ -190,14 +210,14 @@ public class ExplicitExpressionValueVisitor
     }
 
     default:
-      // TODO check which cases can be handled (I think all)
-      result = null;
+      throw new AssertionError("unhandled binary operator");
     }
 
     return result;
   }
 
-  private long arithmeticOperation(final long l, final long r, final BinaryOperator op) {
+  private static long arithmeticOperation(final long l, final long r,
+      final BinaryOperator op, final LogManager logger) {
     switch (op) {
     case PLUS:
       return l + r;
@@ -229,7 +249,7 @@ public class ExplicitExpressionValueVisitor
     }
   }
 
-  private boolean booleanOperation(final long l, final long r, final BinaryOperator op) {
+  private static boolean booleanOperation(final long l, final long r, final BinaryOperator op) {
     switch (op) {
     case EQUALS:
       return (l == r);
@@ -251,7 +271,7 @@ public class ExplicitExpressionValueVisitor
 
   @Override
   public Long visit(CCastExpression pE) throws UnrecognizedCCodeException {
-    return castCValue(pE.getOperand().accept(this), pE.getExpressionType());
+    return castCValue(pE.getOperand().accept(this), pE.getExpressionType(), machineModel, logger, edge);
   }
 
   @Override
@@ -363,22 +383,22 @@ public class ExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(JCharLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Long visit(JCharLiteralExpression pE) {
     return (long) pE.getCharacter();
   }
 
   @Override
-  public Long visit(JThisExpression thisExpression) throws UnrecognizedCCodeException {
+  public Long visit(JThisExpression thisExpression) {
     return null;
   }
 
   @Override
-  public Long visit(JStringLiteralExpression pPaStringLiteralExpression) throws UnrecognizedCCodeException {
+  public Long visit(JStringLiteralExpression pPaStringLiteralExpression) {
     return null;
   }
 
   @Override
-  public Long visit(JBinaryExpression pE) throws UnrecognizedCCodeException {
+  public Long visit(JBinaryExpression pE) {
 
     org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator binaryOperator = pE.getOperator();
     JExpression lVarInBinaryExp = pE.getOperand1();
@@ -492,7 +512,7 @@ public class ExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(JIdExpression idExp) throws UnrecognizedCCodeException {
+  public Long visit(JIdExpression idExp) {
 
 
     IASimpleDeclaration decl = idExp.getDeclaration();
@@ -509,7 +529,7 @@ public class ExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(JUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
+  public Long visit(JUnaryExpression unaryExpression) {
 
     JUnaryExpression.UnaryOperator unaryOperator = unaryExpression.getOperator();
     JExpression unaryOperand = unaryExpression.getOperand();
@@ -544,68 +564,68 @@ public class ExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(JIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Long visit(JIntegerLiteralExpression pE) {
     return pE.asLong();
   }
 
   @Override
-  public Long visit(JBooleanLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Long visit(JBooleanLiteralExpression pE) {
     return ((pE.getValue()) ? 1l : 0l);
   }
 
   @Override
-  public Long visit(JFloatLiteralExpression pJBooleanLiteralExpression) throws UnrecognizedCCodeException {
+  public Long visit(JFloatLiteralExpression pJBooleanLiteralExpression) {
     return null;
   }
 
   @Override
-  public Long visit(JMethodInvocationExpression pAFunctionCallExpression) throws UnrecognizedCCodeException {
+  public Long visit(JMethodInvocationExpression pAFunctionCallExpression) {
     return null;
   }
 
   @Override
-  public Long visit(JArrayCreationExpression aCE) throws UnrecognizedCCodeException {
+  public Long visit(JArrayCreationExpression aCE) {
     return null;
   }
 
   @Override
-  public Long visit(JArrayInitializer pJArrayInitializer) throws UnrecognizedCCodeException {
+  public Long visit(JArrayInitializer pJArrayInitializer) {
     return null;
   }
 
   @Override
-  public Long visit(JArraySubscriptExpression pAArraySubscriptExpression) throws UnrecognizedCCodeException {
+  public Long visit(JArraySubscriptExpression pAArraySubscriptExpression) {
     return pAArraySubscriptExpression.getSubscriptExpression().accept(this);
   }
 
   @Override
-  public Long visit(JClassInstanceCreation pJClassInstanzeCreation) throws UnrecognizedCCodeException {
+  public Long visit(JClassInstanceCreation pJClassInstanzeCreation) {
     return null;
   }
 
   @Override
-  public Long visit(JVariableRunTimeType pJThisRunTimeType) throws UnrecognizedCCodeException {
+  public Long visit(JVariableRunTimeType pJThisRunTimeType) {
     return null;
   }
 
   @Override
-  public Long visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws UnrecognizedCCodeException {
+  public Long visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) {
     return null;
   }
 
   @Override
-  public Long visit(JNullLiteralExpression pJNullLiteralExpression) throws UnrecognizedCCodeException {
+  public Long visit(JNullLiteralExpression pJNullLiteralExpression) {
     return null;
   }
 
   @Override
-  public Long visit(JEnumConstantExpression pJEnumConstantExpression) throws UnrecognizedCCodeException {
+  public Long visit(JEnumConstantExpression pJEnumConstantExpression) {
     missingEnumComparisonInformation = true;
     return null;
   }
 
   @Override
-  public Long visit(JCastExpression pJCastExpression) throws UnrecognizedCCodeException {
+  public Long visit(JCastExpression pJCastExpression) {
     return pJCastExpression.getOperand().accept(this);
   }
 
@@ -640,7 +660,7 @@ public class ExplicitExpressionValueVisitor
    */
   public Long evaluate(final CExpression pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
-    return castCValue(pExp.accept(this), pTargetType);
+    return castCValue(pExp.accept(this), pTargetType, machineModel, logger, edge);
   }
 
   /**
@@ -654,7 +674,7 @@ public class ExplicitExpressionValueVisitor
    */
   public Long evaluate(final CRightHandSide pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
-    return castCValue(pExp.accept(this), pTargetType);
+    return castCValue(pExp.accept(this), pTargetType, machineModel, logger, edge);
   }
 
 
@@ -665,8 +685,15 @@ public class ExplicitExpressionValueVisitor
    * Example:
    * This method is called, when an value of type 'integer'
    * is assigned to a variable of type 'char'.
+   *
+   * @param value will be casted. If value is null, null is returned.
+   * @param targetType value will be casted to targetType.
+   * @param machineModel contains information about types
+   * @param logger for logging
+   * @param edge only for logging
    */
-  private Long castCValue(@Nullable final Long value, final CType targetType) {
+  public static Long castCValue(@Nullable final Long value, final CType targetType,
+      final MachineModel machineModel, final LogManager logger, @Nullable final CFAEdge edge) {
     if (value == null) { return null; }
 
     final CType type = targetType.getCanonicalType();

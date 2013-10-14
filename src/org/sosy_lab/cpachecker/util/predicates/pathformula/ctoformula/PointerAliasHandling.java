@@ -82,10 +82,11 @@ import com.google.common.base.Predicate;
 class PointerAliasHandling extends CtoFormulaConverter {
 
   private static final String POINTER_VARIABLE_PREFIX = "__content_of__";
+  private static final String POINTER_VARIABLE_LENGTH = "__length__";
 
   @VisibleForTesting
   static final Pattern POINTER_VARIABLE =
-      Pattern.compile("^" + POINTER_VARIABLE_PREFIX + "(.+)" + "__length__" + "[0-9]+" + "__at__" + "-?[0-9]+" + "__end" + "$");
+      Pattern.compile("^" + POINTER_VARIABLE_PREFIX + "(.+)" + POINTER_VARIABLE_LENGTH + "[0-9]+" + "__at__" + "-?[0-9]+" + "__end" + "$");
 
   /** The prefix used for variables representing memory locations. */
   static final String MEMORY_ADDRESS_VARIABLE_PREFIX = "__address_of__";
@@ -105,7 +106,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
   /** Takes a (scoped) variable name and returns the pointer variable name. */
   static String makePointerMaskName(String scopedId, int size, SSAMapBuilder ssa) {
     checkArgument(size >= 0, "Illegal size %s for target of pointer %s", size, scopedId);
-    return (POINTER_VARIABLE_PREFIX + scopedId + "__length__" + size + "__at__" + ssa.getIndex(scopedId) + "__end").intern();
+    return (POINTER_VARIABLE_PREFIX + scopedId + POINTER_VARIABLE_LENGTH + size + "__at__" + ssa.getIndex(scopedId) + "__end").intern();
   }
 
   Variable makePointerMask(Variable pointerVar, SSAMapBuilder ssa) {
@@ -172,13 +173,17 @@ class PointerAliasHandling extends CtoFormulaConverter {
 
     // Check if it has been used as a pointer before
     // by looking for __content_of__var__ in SSAMap.
-    final String searchedVarName = POINTER_VARIABLE_PREFIX + var.getName() + "__";
+    final String searchedVarName = POINTER_VARIABLE_PREFIX + var.getName() + POINTER_VARIABLE_LENGTH;
 
     // This is a subset of the SSAMap that is guaranteed to contain
     // the relevant variable if the SSAMap contains it.
-    Set<String> contentOfVarVariables = ssa.allVariablesWithPrefix(searchedVarName).keySet();
+    for (String candidateVar : ssa.allVariablesWithPrefix(searchedVarName).keySet()) {
+      if (removePointerMask(candidateVar).equals(var.getName())) {
+        return true;
+      }
+    }
 
-    return !contentOfVarVariables.isEmpty();
+    return false;
   }
 
   /**
@@ -211,11 +216,10 @@ class PointerAliasHandling extends CtoFormulaConverter {
       SSAMapBuilder ssa) {
 
     String newVar = removePointerMask(newPVar);
-    String searchedVarName = POINTER_VARIABLE_PREFIX + newVar + "__";
+    String searchedVarName = POINTER_VARIABLE_PREFIX + newVar + POINTER_VARIABLE_LENGTH;
 
     for (String ptrVarName : ssa.allVariablesWithPrefix(searchedVarName).keySet()) {
-      assert removePointerMask(ptrVarName).equals(newVar);
-      if (!ptrVarName.equals(newPVar)) {
+      if (removePointerMask(ptrVarName).equals(newVar) && !ptrVarName.equals(newPVar)) {
         // var is the same but ptrVar is different -> different index
         ssa.deleteVariable(ptrVarName);
       }

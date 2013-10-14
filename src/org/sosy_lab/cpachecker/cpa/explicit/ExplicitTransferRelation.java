@@ -618,7 +618,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
 
     @Override
-    public Long visit(JBinaryExpression pE) throws UnrecognizedCCodeException {
+    public Long visit(JBinaryExpression pE) {
       JBinaryExpression.BinaryOperator binaryOperator   = pE.getOperator();
 
       IAExpression lVarInBinaryExp  = pE.getOperand1();
@@ -738,7 +738,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     @Override
-    public Long visit(JBinaryExpression binaryExpression) throws UnrecognizedCCodeException {
+    public Long visit(JBinaryExpression binaryExpression) {
 
       if ((binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.EQUALS
           || binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.NOT_EQUALS)
@@ -752,7 +752,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       return super.visit(binaryExpression);
     }
 
-    private Long handleEnumComparison(JExpression operand1, JExpression operand2, JBinaryExpression.BinaryOperator operator) throws UnrecognizedCCodeException {
+    private Long handleEnumComparison(JExpression operand1, JExpression operand2,
+        JBinaryExpression.BinaryOperator operator) {
 
       String value1;
       String value2;
@@ -823,7 +824,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     @Override
-    public Long visit(JIdExpression idExp) throws UnrecognizedCCodeException {
+    public Long visit(JIdExpression idExp) {
 
       String varName = handleIdExpression(idExp);
 
