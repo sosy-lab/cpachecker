@@ -18,6 +18,7 @@
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
+      <option name="-skipRecursion"/>
       <option name="-64"/>
     </sourcefiles>
   </rundefinition>
