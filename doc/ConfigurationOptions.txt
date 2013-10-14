@@ -791,9 +791,6 @@ cpa.predicate.invariants.file = "invariants.txt"
 # file for precision that consists of invariants.
 cpa.predicate.invariants.precisionFile = "invariantPrecs.txt"
 
-# use uninterpreted functions for *, & and array access
-cpa.predicate.lvalsAsUIFs = false
-
 # List of further options which will be passed to Mathsat in addition to the
 # default options. Format is 'key1=value1,key2=value2'
 cpa.predicate.mathsat5.furtherOptions = ""

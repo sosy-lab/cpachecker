@@ -741,7 +741,7 @@ public class FormulaManagerView {
   }
 
   private boolean ufCanBeLvalue(String name) {
-    return name.startsWith(".{") || name.startsWith("->{") || name.startsWith("*");
+    return name.startsWith("*");
   }
 
   private boolean ufIndexDependsOnArgs(final String name) {

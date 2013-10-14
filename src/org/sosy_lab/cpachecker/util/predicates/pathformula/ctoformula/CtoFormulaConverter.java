@@ -1423,19 +1423,11 @@ public class CtoFormulaConverter {
 
   protected ExpressionToFormulaVisitor getCExpressionVisitor(CFAEdge pEdge, String pFunction,
       SSAMapBuilder pSsa, Constraints pCo) {
-    if (options.useUifForLvals()) {
-      return new ExpressionToFormulaVisitorUIF(this, pEdge, pFunction, pSsa, pCo);
-    } else {
-      return new ExpressionToFormulaVisitor(this, pEdge, pFunction, pSsa, pCo);
-    }
+    return new ExpressionToFormulaVisitor(this, pEdge, pFunction, pSsa, pCo);
   }
 
   protected LvalueVisitor getLvalueVisitor(CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
-    if (options.useUifForLvals()) {
-      return new LvalueVisitorUIF(this, pEdge, pFunction, pSsa, pCo);
-    } else {
-      return new LvalueVisitor(this, pEdge, pFunction, pSsa, pCo);
-    }
+    return new LvalueVisitor(this, pEdge, pFunction, pSsa, pCo);
   }
 
   /**

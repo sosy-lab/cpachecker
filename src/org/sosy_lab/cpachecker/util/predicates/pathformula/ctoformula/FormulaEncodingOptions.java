@@ -52,12 +52,6 @@ class FormulaEncodingOptions {
       + "This is slow and provides little benefit.")
   private boolean handleNondetPointerAliasing = false;
 
-  // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
-  // use variables
-  @Option(name="lvalsAsUIFs",
-      description="use uninterpreted functions for *, & and array access")
-  private boolean lvalsAsUif = false;
-
   @Option(description="Set of functions that should be considered as giving "
     + "a non-deterministic return value. "
     + "If you specify this option, the default values are not added automatically "
@@ -125,10 +119,6 @@ class FormulaEncodingOptions {
 
   public boolean handleNondetPointerAliasing() {
     return handleNondetPointerAliasing;
-  }
-
-  public boolean useUifForLvals() {
-    return lvalsAsUif;
   }
 
   public boolean isNondetFunction(String function) {
