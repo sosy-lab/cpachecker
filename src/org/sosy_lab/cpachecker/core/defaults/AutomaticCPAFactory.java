@@ -187,7 +187,9 @@ public class AutomaticCPAFactory implements CPAFactory {
 
   @Override
   public CPAFactory setLogger(LogManager pLogger) {
-    return set(pLogger, LogManager.class);
+    set(pLogger, org.sosy_lab.common.log.LogManager.class);
+    set(pLogger, LogManager.class);
+    return this;
   }
 
   @Override
