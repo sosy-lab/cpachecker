@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 
 /**
  * CPA used to capture the assumptions that ought to be dumped.
@@ -68,7 +69,7 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
 
   private AssumptionStorageCPA(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
     formulaManager = new FormulaManagerView(new FormulaManagerFactory(config, logger, pShutdownNotifier).getFormulaManager(), config, logger);
-    CtoFormulaConverter converter = CtoFormulaConverter.create(config, formulaManager, cfa.getMachineModel(), logger);
+    CtoFormulaConverter converter = new CtoFormulaConverter(new FormulaEncodingOptions(config), formulaManager, cfa.getMachineModel(), logger);
     abstractDomain = new AssumptionStorageDomain(formulaManager);
     stopOperator = new AssumptionStorageStop();
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();

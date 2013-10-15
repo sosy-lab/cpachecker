@@ -68,6 +68,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaMa
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CToFormulaWithUFConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.PointerAliasHandling;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
@@ -89,9 +91,11 @@ import com.google.common.collect.Maps;
 @Options(prefix="cpa.predicate")
 public class PathFormulaManagerImpl implements PathFormulaManager {
 
-  @Option(name="pointerAnalysisWithUFs",
-          description="Use CToFormulaConverterWithUF for converting edges to path formulae. This enables encoding of " +
-                      "aliased variables with uninterpreted function calls.")
+  @Option(description = "Handle aliasing of pointers. "
+      + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
+  private boolean handlePointerAliasing = true;
+
+  @Option(description = "Encode pointer aliasing information with uninterpreted functions (more precise) if pointer aliasing is handled.")
   private boolean pointerAnalysisWithUFs = false;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
@@ -118,16 +122,19 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           throws InvalidConfigurationException {
     config.inject(this, PathFormulaManagerImpl.class);
 
-    machineModel = pMachineModel;
-    if (!pointerAnalysisWithUFs) {
-     converter = CtoFormulaConverter.create(config, pFmgr, pMachineModel, pLogger);
-    } else {
-     converter = CToFormulaWithUFConverter.create(config, pFmgr, pMachineModel, pLogger);
+    if (pointerAnalysisWithUFs && !handlePointerAliasing) {
+      pLogger.log(Level.WARNING, "Ignoring option cpa.predicate.pointerAnalysisWithUFs because cpa.predicate.handlePointerAliasing is disabled, possibly imprecise analysis!");
+      pointerAnalysisWithUFs = false;
     }
+
+    machineModel = pMachineModel;
+
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     ffmgr = fmgr.getFunctionFormulaManager();
     logger = pLogger;
+
+    converter = createConverter(pFmgr, config, pLogger, pMachineModel);
 
     if (!pointerAnalysisWithUFs) {
       NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
@@ -136,15 +143,24 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
   }
 
+  private CtoFormulaConverter createConverter(FormulaManagerView pFmgr, Configuration config, LogManager pLogger,
+      MachineModel pMachineModel) throws InvalidConfigurationException {
+    final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
+    if (handlePointerAliasing) {
+      if (pointerAnalysisWithUFs) {
+        return new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, pLogger);
+      } else {
+        return new PointerAliasHandling(options, config, pFmgr, pMachineModel, pLogger);
+      }
+    } else {
+      return new CtoFormulaConverter(options, pFmgr, pMachineModel, pLogger);
+    }
+  }
+
   @Override
   public PathFormula makeAnd(final PathFormula pOldFormula,
                              final CFAEdge pEdge) throws CPATransferException {
-    PathFormula result;
-    if (!pointerAnalysisWithUFs) {
-      result = converter.makeAnd(pOldFormula, pEdge);
-    } else {
-      result = ((CToFormulaWithUFConverter) converter).makeAnd((PathFormulaWithUF) pOldFormula, pEdge);
-    }
+    PathFormula result = converter.makeAnd(pOldFormula, pEdge);
 
     if (useNondetFlags) {
       SSAMapBuilder ssa = result.getSsa().builder();

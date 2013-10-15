@@ -843,8 +843,8 @@ cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-z]*"
 # Handle field aliasing formulas.
 cpa.predicate.omitNonPointerInFieldAliasing = true
 
-# Use CToFormulaConverterWithUF for converting edges to path formulae. This
-# enables encoding of aliased variables with uninterpreted function calls.
+# Encode pointer aliasing information with uninterpreted functions (more
+# precise) if pointer aliasing is handled.
 cpa.predicate.pointerAnalysisWithUFs = false
 
 # Where to apply the found predicates to?

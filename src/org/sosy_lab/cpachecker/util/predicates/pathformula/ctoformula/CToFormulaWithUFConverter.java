@@ -38,9 +38,7 @@ import javax.annotation.Nullable;
 import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -100,19 +98,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-@Options(prefix="cpa.predicate")
 public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
-  public static CToFormulaWithUFConverter create(final Configuration config,
-                                                 final FormulaManagerView fmgr,
-                                                 final MachineModel machineModel,
-                                                 final LogManager logger)
-  throws InvalidConfigurationException {
-    final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-    return new CToFormulaWithUFConverter(options, fmgr, machineModel, logger);
-  }
-
-  CToFormulaWithUFConverter(final FormulaEncodingOptions options,
+  public CToFormulaWithUFConverter(final FormulaEncodingOptions options,
                             final FormulaManagerView formulaManagerView,
                             final MachineModel machineModel,
                             final LogManager logger)
@@ -811,7 +799,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  public PathFormulaWithUF makeAnd(final PathFormulaWithUF oldFormula, final CFAEdge edge) throws CPATransferException {
+  private PathFormulaWithUF makeAnd(final PathFormulaWithUF oldFormula, final CFAEdge edge) throws CPATransferException {
 
     if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
       return oldFormula;

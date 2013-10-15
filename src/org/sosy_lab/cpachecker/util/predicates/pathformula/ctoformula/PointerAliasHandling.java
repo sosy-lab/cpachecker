@@ -79,7 +79,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 
 @Options(prefix="cpa.predicate")
-class PointerAliasHandling extends CtoFormulaConverter {
+public class PointerAliasHandling extends CtoFormulaConverter {
 
   private static final String POINTER_VARIABLE_PREFIX = "__content_of__";
   private static final String POINTER_VARIABLE_LENGTH = "__length__";
@@ -235,7 +235,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
 
   private final TooComplexVisitor tooComplexVisitor;
 
-  PointerAliasHandling(FormulaEncodingOptions pOptions,
+  public PointerAliasHandling(FormulaEncodingOptions pOptions,
       Configuration pConfig, FormulaManagerView pFmgr,
       MachineModel pMachineModel, LogManager pLogger)
       throws InvalidConfigurationException {

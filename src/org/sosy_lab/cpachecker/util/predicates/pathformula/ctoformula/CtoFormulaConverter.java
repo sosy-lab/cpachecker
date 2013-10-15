@@ -36,8 +36,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -119,19 +117,6 @@ import com.google.common.collect.ImmutableSet;
  */
 public class CtoFormulaConverter {
 
-  public static CtoFormulaConverter create(Configuration config,
-      FormulaManagerView pFmgr, MachineModel pMachineModel, LogManager pLogger)
-          throws InvalidConfigurationException {
-
-    FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-
-    if (options.handlePointerAliasing()) {
-      return new PointerAliasHandling(options, config, pFmgr, pMachineModel, pLogger);
-    } else {
-      return new CtoFormulaConverter(options, pFmgr, pMachineModel, pLogger);
-    }
-  }
-
   static final String ASSUME_FUNCTION_NAME = "__VERIFIER_assume";
 
   // list of functions that are pure (no side-effects)
@@ -190,7 +175,7 @@ public class CtoFormulaConverter {
 
   private final FunctionFormulaType<BitvectorFormula> stringUfDecl;
 
-  CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
+  public CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
       MachineModel pMachineModel, LogManager logger) {
 
     this.fmgr = fmgr;
@@ -1609,11 +1594,6 @@ public class CtoFormulaConverter {
    * We call this method for unsupported Expressions and just make a new Variable.
    */
   Formula makeVariableUnsafe(CExpression exp, String function, SSAMapBuilder ssa, boolean makeFresh) {
-
-    // We actually support this expression?
-    assert !options.handlePointerAliasing() || !isSupportedExpression(exp)
-       : "A supported Expression is handled as unsupported!";
-
     if (makeFresh) {
       logger.logOnce(Level.WARNING, "Program contains array, or pointer (multiple level of indirection), or field (enable handleFieldAccess and handleFieldAliasing) access; analysis is imprecise in case of aliasing.");
     }

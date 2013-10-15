@@ -38,11 +38,7 @@ import com.google.common.collect.ImmutableSet;
  * the C-to-formula encoding process.
  */
 @Options(prefix="cpa.predicate")
-class FormulaEncodingOptions {
-
-  @Option(description = "Handle aliasing of pointers. "
-      + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
-  private boolean handlePointerAliasing = true;
+public class FormulaEncodingOptions {
 
   @Option(description = "Handle field access via extract and concat instead of new variables.")
   private boolean handleFieldAccess = false;
@@ -107,10 +103,6 @@ class FormulaEncodingOptions {
 
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-  }
-
-  public boolean handlePointerAliasing() {
-    return handlePointerAliasing;
   }
 
   public boolean handleFieldAccess() {
