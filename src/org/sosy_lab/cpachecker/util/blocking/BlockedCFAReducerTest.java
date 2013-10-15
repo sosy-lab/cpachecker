@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 @SuppressWarnings("unused")
 public class BlockedCFAReducerTest {
 
-  public static class LoggerForTest implements LogManager {
+  private static class LoggerForTest implements LogManager {
 
     @Override
     public void close() {
@@ -77,565 +77,475 @@ public class BlockedCFAReducerTest {
     public boolean wouldBeLogged(Level pArg0) {
       return false;
     }
-
-
   }
 
-  public static class ReducerUnderTest extends BlockedCFAReducer {
-
-    private final static LogManager logger = new LoggerForTest();
-
-    public ReducerUnderTest(Configuration pConfig) throws InvalidConfigurationException {
-      super(pConfig, logger);
-    }
-
-  }
+  private BlockedCFAReducer reducer;
 
   @Before
-  public void setUp() throws Exception {}
+  public void setUp() throws InvalidConfigurationException {
+    reducer = new BlockedCFAReducer(Configuration.defaultConfiguration(), new LoggerForTest());
+  }
 
   @Test
   public void testApplySequenceRule_SimpleSequence() {
-   try {
-     ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"), false);
-     ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
-     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
+    ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
+    ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-     ReducedNode n1 = new ReducedNode(new CFANode(2, "test"), false);
-     ReducedNode n2 = new ReducedNode(new CFANode(3, "test"), false);
-     ReducedNode n3 = new ReducedNode(new CFANode(4, "test"), false);
-     ReducedNode n4 = new ReducedNode(new CFANode(5, "test"), false);
-     ReducedNode n5 = new ReducedNode(new CFANode(6, "test"), false);
+    ReducedNode n1 = new ReducedNode(new CFANode(2, "test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode(3, "test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode(4, "test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode(5, "test"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode(6, "test"), false);
 
-     funct.addEdge(entryNode, n1);
-     funct.addEdge(n1, n2);
-     funct.addEdge(n2, n3);
-     funct.addEdge(n3, n4);
-     funct.addEdge(n4, n5);
-     funct.addEdge(n5, exitNode);
+    funct.addEdge(entryNode, n1);
+    funct.addEdge(n1, n2);
+    funct.addEdge(n2, n3);
+    funct.addEdge(n3, n4);
+    funct.addEdge(n4, n5);
+    funct.addEdge(n5, exitNode);
 
-     ReducerUnderTest reducer = new ReducerUnderTest(null);
-     assertEquals(reducer.applySequenceRule(funct), true);
-     assertEquals(2, funct.getNumOfActiveNodes());
+    assertEquals(reducer.applySequenceRule(funct), true);
+    assertEquals(2, funct.getNumOfActiveNodes());
 
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    }
   }
 
   @Test
   public void testApplySequenceRule_ForLoop() {
-   try {
-     ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"), false);
-     ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
-     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
+    ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
+    ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-     ReducedNode n1 = new ReducedNode(new CFANode(2, "test"), false);
-     ReducedNode n2 = new ReducedNode(new CFANode(3, "test"), false);
-     ReducedNode n3 = new ReducedNode(new CFANode(4, "test"), false);
-     ReducedNode n4 = new ReducedNode(new CFANode(5, "loophead"), false);
-     n4.getWrapped().setLoopStart();
+    ReducedNode n1 = new ReducedNode(new CFANode(2, "test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode(3, "test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode(4, "test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode(5, "loophead"), false);
+    n4.getWrapped().setLoopStart();
 
-     ReducedNode n5 = new ReducedNode(new CFANode(6, "test"), false);
-     ReducedNode n6 = new ReducedNode(new CFANode(7, "test"), false);
-     ReducedNode n7 = new ReducedNode(new CFANode(8, "test"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode(6, "test"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode(7, "test"), false);
+    ReducedNode n7 = new ReducedNode(new CFANode(8, "test"), false);
 
-     ReducedNode n8 = new ReducedNode(new CFANode(9, "test"), false);
-     ReducedNode n9 = new ReducedNode(new CFANode(10, "test"), false);
+    ReducedNode n8 = new ReducedNode(new CFANode(9, "test"), false);
+    ReducedNode n9 = new ReducedNode(new CFANode(10, "test"), false);
 
 
-     funct.addEdge(entryNode, n1);
-     funct.addEdge(n1, n2);
-     funct.addEdge(n2, n3);
-     funct.addEdge(n3, n4);
+    funct.addEdge(entryNode, n1);
+    funct.addEdge(n1, n2);
+    funct.addEdge(n2, n3);
+    funct.addEdge(n3, n4);
 
-     funct.addEdge(n4, n8);
-     funct.addEdge(n4, n5);
-     funct.addEdge(n5, n6);
-     funct.addEdge(n6, n7);
-     funct.addEdge(n7, n4);
+    funct.addEdge(n4, n8);
+    funct.addEdge(n4, n5);
+    funct.addEdge(n5, n6);
+    funct.addEdge(n6, n7);
+    funct.addEdge(n7, n4);
 
-     funct.addEdge(n8, n9);
-     funct.addEdge(n9, exitNode);
+    funct.addEdge(n8, n9);
+    funct.addEdge(n9, exitNode);
 
-     ReducerUnderTest reducer = new ReducerUnderTest(null);
-     while (reducer.applySequenceRule(funct)) {
-     }
-
-     assertEquals(3, funct.getNumOfActiveNodes());
-     assertEquals(2, funct.getNumLeavingEdges(n4));
-
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
+    while (reducer.applySequenceRule(funct)) {
     }
+
+    assertEquals(3, funct.getNumOfActiveNodes());
+    assertEquals(2, funct.getNumLeavingEdges(n4));
   }
 
   @Test
   public void testAllRules_ForLoopWithSequence_reduce() {
-   try {
-     ReducedNode entryNode = new ReducedNode(new CFANode(0, "test"), false);
-     ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
-     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
+    ReducedNode entryNode = new ReducedNode(new CFANode(0, "test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
+    ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-     ReducedNode n1 = new ReducedNode(new CFANode(1, "test"), false);
-     ReducedNode n2 = new ReducedNode(new CFANode(2, "test"), false);
-     ReducedNode n3 = new ReducedNode(new CFANode(3, "test"), false);
-     ReducedNode n4 = new ReducedNode(new CFANode(4, "loophead"), false);
-     n4.getWrapped().setLoopStart();
+    ReducedNode n1 = new ReducedNode(new CFANode(1, "test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode(2, "test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode(3, "test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode(4, "loophead"), false);
+    n4.getWrapped().setLoopStart();
 
-     ReducedNode n5 = new ReducedNode(new CFANode(5, "test"), false);
-     ReducedNode n6 = new ReducedNode(new CFANode(6, "test"), false);
-     ReducedNode n7 = new ReducedNode(new CFANode(7, "test"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode(5, "test"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode(6, "test"), false);
+    ReducedNode n7 = new ReducedNode(new CFANode(7, "test"), false);
 
-     ReducedNode n8 = new ReducedNode(new CFANode(8, "test"), false);
-     ReducedNode n9 = new ReducedNode(new CFANode(9, "test"), false);
+    ReducedNode n8 = new ReducedNode(new CFANode(8, "test"), false);
+    ReducedNode n9 = new ReducedNode(new CFANode(9, "test"), false);
 
-     ReducedNode n20 = new ReducedNode(new CFANode(20, "test"), false);
-     ReducedNode n21 = new ReducedNode(new CFANode(21, "test"), false);
-     ReducedNode n22 = new ReducedNode(new CFANode(22, "test"), false);
-     ReducedNode n23 = new ReducedNode(new CFANode(23, "test"), false);
-     ReducedNode n24 = new ReducedNode(new CFANode(24, "test"), false);
-     ReducedNode n25 = new ReducedNode(new CFANode(25, "test"), false);
-     ReducedNode n26 = new ReducedNode(new CFANode(26, "test"), false);
+    ReducedNode n20 = new ReducedNode(new CFANode(20, "test"), false);
+    ReducedNode n21 = new ReducedNode(new CFANode(21, "test"), false);
+    ReducedNode n22 = new ReducedNode(new CFANode(22, "test"), false);
+    ReducedNode n23 = new ReducedNode(new CFANode(23, "test"), false);
+    ReducedNode n24 = new ReducedNode(new CFANode(24, "test"), false);
+    ReducedNode n25 = new ReducedNode(new CFANode(25, "test"), false);
+    ReducedNode n26 = new ReducedNode(new CFANode(26, "test"), false);
 
-     funct.addEdge(entryNode, n4);
+    funct.addEdge(entryNode, n4);
 
-     funct.addEdge(n4, n8);
-     funct.addEdge(n4, n5);
-     funct.addEdge(n5, n6);
-     funct.addEdge(n6, n7);
-     funct.addEdge(n7, n4);
+    funct.addEdge(n4, n8);
+    funct.addEdge(n4, n5);
+    funct.addEdge(n5, n6);
+    funct.addEdge(n6, n7);
+    funct.addEdge(n7, n4);
 
-     funct.addEdge(n8, n9);
-     funct.addEdge(n9, n20);
-     funct.addEdge(n20, n21);
-     funct.addEdge(n21, n22);
-     funct.addEdge(n22, n23);
-     funct.addEdge(n23, n24);
-     funct.addEdge(n24, n25);
-     funct.addEdge(n25, exitNode);
+    funct.addEdge(n8, n9);
+    funct.addEdge(n9, n20);
+    funct.addEdge(n20, n21);
+    funct.addEdge(n21, n22);
+    funct.addEdge(n22, n23);
+    funct.addEdge(n23, n24);
+    funct.addEdge(n24, n25);
+    funct.addEdge(n25, exitNode);
 
-     ReducerUnderTest reducer = new ReducerUnderTest(null);
+    boolean sequenceApplied, choiceApplied;
+    do {
+      System.out.println("----------------");
+      Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
+      reducer.printInlinedCfa(inlinedCfa, System.out);
 
-     boolean sequenceApplied, choiceApplied;
-     do {
-       System.out.println("----------------");
-       Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
-       reducer.printInlinedCfa(inlinedCfa, System.out);
-
-       sequenceApplied = reducer.applySequenceRule(funct);
-     } while (sequenceApplied);
+      sequenceApplied = reducer.applySequenceRule(funct);
+    } while (sequenceApplied);
 
 
-     assertEquals(3, funct.getNumOfActiveNodes());
-     assertEquals(2, funct.getNumLeavingEdges(n4));
-
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    }
+    assertEquals(3, funct.getNumOfActiveNodes());
+    assertEquals(2, funct.getNumLeavingEdges(n4));
   }
 
   @Test
   public void testAllRules_ForLoopWithSequence() {
-   try {
-     ReducedNode entryNode = new ReducedNode(new CFANode(0, "test"), false);
-     ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
-     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
+    ReducedNode entryNode = new ReducedNode(new CFANode(0, "test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
+    ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-     ReducedNode n1 = new ReducedNode(new CFANode(1, "test"), false);
-     ReducedNode n2 = new ReducedNode(new CFANode(2, "test"), false);
-     ReducedNode n3 = new ReducedNode(new CFANode(3, "test"), false);
-     ReducedNode n4 = new ReducedNode(new CFANode(4, "loophead"), false);
-     n4.getWrapped().setLoopStart();
+    ReducedNode n1 = new ReducedNode(new CFANode(1, "test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode(2, "test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode(3, "test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode(4, "loophead"), false);
+    n4.getWrapped().setLoopStart();
 
-     ReducedNode n5 = new ReducedNode(new CFANode(5, "test"), false);
-     ReducedNode n6 = new ReducedNode(new CFANode(6, "test"), false);
-     ReducedNode n7 = new ReducedNode(new CFANode(7, "test"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode(5, "test"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode(6, "test"), false);
+    ReducedNode n7 = new ReducedNode(new CFANode(7, "test"), false);
 
-     ReducedNode n8 = new ReducedNode(new CFANode(8, "test"), false);
-     ReducedNode n9 = new ReducedNode(new CFANode(9, "test"), false);
+    ReducedNode n8 = new ReducedNode(new CFANode(8, "test"), false);
+    ReducedNode n9 = new ReducedNode(new CFANode(9, "test"), false);
 
-     ReducedNode n20 = new ReducedNode(new CFANode(20, "test"), false);
-     ReducedNode n21 = new ReducedNode(new CFANode(21, "test"), false);
-     ReducedNode n22 = new ReducedNode(new CFANode(22, "test"), false);
-     ReducedNode n23 = new ReducedNode(new CFANode(23, "test"), false);
-     ReducedNode n24 = new ReducedNode(new CFANode(24, "test"), false);
-     ReducedNode n25 = new ReducedNode(new CFANode(25, "test"), false);
-     ReducedNode n26 = new ReducedNode(new CFANode(26, "test"), false);
+    ReducedNode n20 = new ReducedNode(new CFANode(20, "test"), false);
+    ReducedNode n21 = new ReducedNode(new CFANode(21, "test"), false);
+    ReducedNode n22 = new ReducedNode(new CFANode(22, "test"), false);
+    ReducedNode n23 = new ReducedNode(new CFANode(23, "test"), false);
+    ReducedNode n24 = new ReducedNode(new CFANode(24, "test"), false);
+    ReducedNode n25 = new ReducedNode(new CFANode(25, "test"), false);
+    ReducedNode n26 = new ReducedNode(new CFANode(26, "test"), false);
 
-     funct.addEdge(entryNode, n1);
-     funct.addEdge(n1, n2);
-     funct.addEdge(n2, n3);
-     funct.addEdge(n3, n4);
+    funct.addEdge(entryNode, n1);
+    funct.addEdge(n1, n2);
+    funct.addEdge(n2, n3);
+    funct.addEdge(n3, n4);
 
-     funct.addEdge(n4, n8);
-     funct.addEdge(n4, n5);
-     funct.addEdge(n5, n6);
-     funct.addEdge(n6, n7);
-     funct.addEdge(n7, n4);
+    funct.addEdge(n4, n8);
+    funct.addEdge(n4, n5);
+    funct.addEdge(n5, n6);
+    funct.addEdge(n6, n7);
+    funct.addEdge(n7, n4);
 
-     funct.addEdge(n8, n9);
+    funct.addEdge(n8, n9);
 
-     funct.addEdge(n9, n20);
-     funct.addEdge(n20, n21);
-     funct.addEdge(n21, n22);
-     funct.addEdge(n22, n23);
-     funct.addEdge(n23, n24);
-     funct.addEdge(n24, n25);
-     funct.addEdge(n25, n26);
-     funct.addEdge(n26, exitNode);
+    funct.addEdge(n9, n20);
+    funct.addEdge(n20, n21);
+    funct.addEdge(n21, n22);
+    funct.addEdge(n22, n23);
+    funct.addEdge(n23, n24);
+    funct.addEdge(n24, n25);
+    funct.addEdge(n25, n26);
+    funct.addEdge(n26, exitNode);
 
-     ReducerUnderTest reducer = new ReducerUnderTest(null);
+    boolean sequenceApplied, choiceApplied;
+    do {
+      System.out.println("----------------");
+      Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
+      reducer.printInlinedCfa(inlinedCfa, System.out);
 
-     boolean sequenceApplied, choiceApplied;
-     do {
-       System.out.println("----------------");
-       Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
-       reducer.printInlinedCfa(inlinedCfa, System.out);
-
-       sequenceApplied = reducer.applySequenceRule(funct);
-       choiceApplied = reducer.applyChoiceRule(funct);
-     } while (sequenceApplied || choiceApplied);
+      sequenceApplied = reducer.applySequenceRule(funct);
+      choiceApplied = reducer.applyChoiceRule(funct);
+    } while (sequenceApplied || choiceApplied);
 
 
-     assertEquals(3, funct.getNumOfActiveNodes());
-     assertEquals(2, funct.getNumLeavingEdges(n4));
-
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    }
+    assertEquals(3, funct.getNumOfActiveNodes());
+    assertEquals(2, funct.getNumLeavingEdges(n4));
   }
 
   @Test
   public void testAllRules_ForLoopWithSequence2() {
-   try {
-     ReducedNode entryNode = new ReducedNode(new CFANode(0, "test"), false);
-     ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
-     ReducedNode n4 = new ReducedNode(new CFANode(4, "loophead"), false);
-     ReducedNode n6 = new ReducedNode(new CFANode(6, "test"), false);
-     n4.getWrapped().setLoopStart();
+    ReducedNode entryNode = new ReducedNode(new CFANode(0, "test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode(4, "loophead"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode(6, "test"), false);
+    n4.getWrapped().setLoopStart();
 
-     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
-
-
-     funct.addEdge(entryNode, n4);
-     funct.addEdge(n4, n6);
-     funct.addEdge(n6, n4);
-     funct.addEdge(n4, exitNode);
-
-     ReducerUnderTest reducer = new ReducerUnderTest(null);
-
-     boolean sequenceApplied, choiceApplied;
-     do {
-       System.out.println("----------------");
-       Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
-       reducer.printInlinedCfa(inlinedCfa, System.out);
-
-       sequenceApplied = reducer.applySequenceRule(funct);
-       choiceApplied = reducer.applyChoiceRule(funct);
-     } while (sequenceApplied || choiceApplied);
+    ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
 
-     assertEquals(3, funct.getNumOfActiveNodes());
-     assertEquals(2, funct.getNumLeavingEdges(n4));
+    funct.addEdge(entryNode, n4);
+    funct.addEdge(n4, n6);
+    funct.addEdge(n6, n4);
+    funct.addEdge(n4, exitNode);
 
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    }
+    boolean sequenceApplied, choiceApplied;
+    do {
+      System.out.println("----------------");
+      Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
+      reducer.printInlinedCfa(inlinedCfa, System.out);
+
+      sequenceApplied = reducer.applySequenceRule(funct);
+      choiceApplied = reducer.applyChoiceRule(funct);
+    } while (sequenceApplied || choiceApplied);
+
+
+    assertEquals(3, funct.getNumOfActiveNodes());
+    assertEquals(2, funct.getNumLeavingEdges(n4));
   }
 
   @Test
   public void testAllRules_ForLoopWithSequence3() {
-   try {
-     ReducedNode entryNode = new ReducedNode(new CFANode(0, "test"), false);
-     ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
-     ReducedNode n4 = new ReducedNode(new CFANode(4, "loophead"), false);
-     ReducedNode n6 = new ReducedNode(new CFANode(6, "test"), false);
-     ReducedNode n10 = new ReducedNode(new CFANode(10, "test"), false);
-     n4.getWrapped().setLoopStart();
+    ReducedNode entryNode = new ReducedNode(new CFANode(0, "test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode(4, "loophead"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode(6, "test"), false);
+    ReducedNode n10 = new ReducedNode(new CFANode(10, "test"), false);
+    n4.getWrapped().setLoopStart();
 
-     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
-
-
-     funct.addEdge(entryNode, n4);
-     funct.addEdge(n6, n4);
-     funct.addEdge(n4, n6);
-     funct.addEdge(n4, n10);
-     funct.addEdge(n10, exitNode);
-
-     ReducerUnderTest reducer = new ReducerUnderTest(null);
-
-     boolean sequenceApplied, choiceApplied;
-     do {
-       System.out.println("----------------");
-       Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
-       reducer.printInlinedCfa(inlinedCfa, System.out);
-
-       sequenceApplied = reducer.applySequenceRule(funct);
-       choiceApplied = reducer.applyChoiceRule(funct);
-     } while (sequenceApplied || choiceApplied);
+    ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
 
-     assertEquals(3, funct.getNumOfActiveNodes());
-     assertEquals(2, funct.getNumLeavingEdges(n4));
+    funct.addEdge(entryNode, n4);
+    funct.addEdge(n6, n4);
+    funct.addEdge(n4, n6);
+    funct.addEdge(n4, n10);
+    funct.addEdge(n10, exitNode);
 
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    }
+    boolean sequenceApplied, choiceApplied;
+    do {
+      System.out.println("----------------");
+      Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
+      reducer.printInlinedCfa(inlinedCfa, System.out);
+
+      sequenceApplied = reducer.applySequenceRule(funct);
+      choiceApplied = reducer.applyChoiceRule(funct);
+    } while (sequenceApplied || choiceApplied);
+
+
+    assertEquals(3, funct.getNumOfActiveNodes());
+    assertEquals(2, funct.getNumLeavingEdges(n4));
   }
 
 
 
   @Test
   public void testApplySequenceRule_RepeatUntilLoop() {
-   try {
-     ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"), false);
-     ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
-     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
+    ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
+    ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-     ReducedNode n1 = new ReducedNode(new CFANode(2, "test"), false);
-     ReducedNode n2 = new ReducedNode(new CFANode(3, "test"), false);
-     ReducedNode n3 = new ReducedNode(new CFANode(4, "test"), false);
-     ReducedNode n4 = new ReducedNode(new CFANode(5, "loophead"), false);
-     n4.getWrapped().setLoopStart();
+    ReducedNode n1 = new ReducedNode(new CFANode(2, "test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode(3, "test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode(4, "test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode(5, "loophead"), false);
+    n4.getWrapped().setLoopStart();
 
-     ReducedNode n5 = new ReducedNode(new CFANode(6, "test"), false);
-     ReducedNode n6 = new ReducedNode(new CFANode(7, "test"), false);
-     ReducedNode n7 = new ReducedNode(new CFANode(8, "test"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode(6, "test"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode(7, "test"), false);
+    ReducedNode n7 = new ReducedNode(new CFANode(8, "test"), false);
 
-     ReducedNode n8 = new ReducedNode(new CFANode(9, "test"), false);
-     ReducedNode n9 = new ReducedNode(new CFANode(10, "test"), false);
+    ReducedNode n8 = new ReducedNode(new CFANode(9, "test"), false);
+    ReducedNode n9 = new ReducedNode(new CFANode(10, "test"), false);
 
 
-     funct.addEdge(entryNode, n1);
-     funct.addEdge(n1, n2);
-     funct.addEdge(n2, n3);
-     funct.addEdge(n3, n4);
-     funct.addEdge(n4, n5);
-     funct.addEdge(n5, n6);
-     funct.addEdge(n6, n7);
+    funct.addEdge(entryNode, n1);
+    funct.addEdge(n1, n2);
+    funct.addEdge(n2, n3);
+    funct.addEdge(n3, n4);
+    funct.addEdge(n4, n5);
+    funct.addEdge(n5, n6);
+    funct.addEdge(n6, n7);
 
-     funct.addEdge(n7, n4);
-     funct.addEdge(n7, n8);
+    funct.addEdge(n7, n4);
+    funct.addEdge(n7, n8);
 
-     funct.addEdge(n8, n9);
-     funct.addEdge(n9, exitNode);
+    funct.addEdge(n8, n9);
+    funct.addEdge(n9, exitNode);
 
-     ReducerUnderTest reducer = new ReducerUnderTest(null);
-     do  {
-     } while (reducer.applySequenceRule(funct));
+    do  {
+    } while (reducer.applySequenceRule(funct));
 
-     assertEquals(3, funct.getNumOfActiveNodes());
-     assertEquals(2, funct.getNumEnteringEdges(n4));
-
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    }
+    assertEquals(3, funct.getNumOfActiveNodes());
+    assertEquals(2, funct.getNumEnteringEdges(n4));
   }
 
   @Test
   public void testApplySequenceRule_RepeatUntilLoop2() {
-   try {
-     ReducedNode entryNode = new ReducedNode(new CFANode(0, "test"), false);
-     ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
-     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
+    ReducedNode entryNode = new ReducedNode(new CFANode(0, "test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
+    ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-     ReducedNode n5 = new ReducedNode(new CFANode(5, "loophead"), false);
-     n5.getWrapped().setLoopStart();
-     ReducedNode n8 = new ReducedNode(new CFANode(8, "test"), false);
-     ReducedNode n9 = new ReducedNode(new CFANode(9, "test"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode(5, "loophead"), false);
+    n5.getWrapped().setLoopStart();
+    ReducedNode n8 = new ReducedNode(new CFANode(8, "test"), false);
+    ReducedNode n9 = new ReducedNode(new CFANode(9, "test"), false);
 
-     funct.addEdge(entryNode, n5);
-     funct.addEdge(n5, n8);
-     funct.addEdge(n8, n5);
-     funct.addEdge(n8, n9);
-     funct.addEdge(n9, exitNode);
+    funct.addEdge(entryNode, n5);
+    funct.addEdge(n5, n8);
+    funct.addEdge(n8, n5);
+    funct.addEdge(n8, n9);
+    funct.addEdge(n9, exitNode);
 
-     ReducerUnderTest reducer = new ReducerUnderTest(null);
-     do  {
-//       System.out.println("----------------");
-//       Map<ReducedNode, Map<ReducedNode, ReducedEdge>> inlinedCfa = funct.getInlinedCfa();
-//       reducer.printInlinedCfa(inlinedCfa, System.out);
-     } while (reducer.applySequenceRule(funct));
+    do  {
+      //       System.out.println("----------------");
+      //       Map<ReducedNode, Map<ReducedNode, ReducedEdge>> inlinedCfa = funct.getInlinedCfa();
+      //       reducer.printInlinedCfa(inlinedCfa, System.out);
+    } while (reducer.applySequenceRule(funct));
 
-     assertEquals(3, funct.getNumOfActiveNodes());
-     assertEquals(2, funct.getNumEnteringEdges(n5));
-
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    }
+    assertEquals(3, funct.getNumOfActiveNodes());
+    assertEquals(2, funct.getNumEnteringEdges(n5));
   }
 
   @Test
   public void testApplySequenceRule_RepeatUntilLoop3() {
-   try {
-     ReducedNode entryNode = new ReducedNode(new CFANode(0, "test"), false);
-     ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
-     ReducedNode n4 = new ReducedNode(new CFANode(4, "loophead"), false);
-     ReducedNode n7 = new ReducedNode(new CFANode(8, "test"), false);
-     n4.getWrapped().setLoopStart();
+    ReducedNode entryNode = new ReducedNode(new CFANode(0, "test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode(4, "loophead"), false);
+    ReducedNode n7 = new ReducedNode(new CFANode(8, "test"), false);
+    n4.getWrapped().setLoopStart();
 
-     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
+    ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-     funct.addEdge(entryNode, n4);
-     funct.addEdge(n4, exitNode);
-     funct.addEdge(n4, n7);
-     funct.addEdge(n7, n4);
+    funct.addEdge(entryNode, n4);
+    funct.addEdge(n4, exitNode);
+    funct.addEdge(n4, n7);
+    funct.addEdge(n7, n4);
 
-     ReducerUnderTest reducer = new ReducerUnderTest(null);
-     do  {
-//       System.out.println("----------------");
-//       Map<ReducedNode, Map<ReducedNode, ReducedEdge>> inlinedCfa = funct.getInlinedCfa();
-//       reducer.printInlinedCfa(inlinedCfa, System.out);
-     } while (reducer.applySequenceRule(funct));
+    do  {
+      //       System.out.println("----------------");
+      //       Map<ReducedNode, Map<ReducedNode, ReducedEdge>> inlinedCfa = funct.getInlinedCfa();
+      //       reducer.printInlinedCfa(inlinedCfa, System.out);
+    } while (reducer.applySequenceRule(funct));
 
-     assertEquals(3, funct.getNumOfActiveNodes());
-     assertEquals(2, funct.getNumEnteringEdges(n4));
-
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    }
+    assertEquals(3, funct.getNumOfActiveNodes());
+    assertEquals(2, funct.getNumEnteringEdges(n4));
   }
 
   @Test
   public void testApplySequenceRule_IfBranch() {
-   try {
-     ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"), false);
-     ReducedNode exitNode = new ReducedNode(new CFANode(10, "test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode(10, "test"), false);
 
-     ReducedNode n2 = new ReducedNode(new CFANode(2, "test"), false);
-     ReducedNode n3 = new ReducedNode(new CFANode(3, "test"), false);
-     ReducedNode n4 = new ReducedNode(new CFANode(4, "test"), false);
-     ReducedNode n5 = new ReducedNode(new CFANode(5, "test"), false);
-     ReducedNode n6 = new ReducedNode(new CFANode(6, "test"), false);
-     ReducedNode n7 = new ReducedNode(new CFANode(7, "test"), false);
-     ReducedNode n8 = new ReducedNode(new CFANode(8, "test"), false);
-     ReducedNode n9 = new ReducedNode(new CFANode(9, "test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode(2, "test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode(3, "test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode(4, "test"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode(5, "test"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode(6, "test"), false);
+    ReducedNode n7 = new ReducedNode(new CFANode(7, "test"), false);
+    ReducedNode n8 = new ReducedNode(new CFANode(8, "test"), false);
+    ReducedNode n9 = new ReducedNode(new CFANode(9, "test"), false);
 
-     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
+    ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-     funct.addEdge(entryNode, n2);
-     funct.addEdge(n2, n3);
-     funct.addEdge(n3, n4);
-     funct.addEdge(n3, n8);
-     funct.addEdge(n8, n9);
-     funct.addEdge(n9, n7);
-     funct.addEdge(n4, n5);
-     funct.addEdge(n5, n6);
-     funct.addEdge(n6, n7);
-     funct.addEdge(n7, exitNode);
+    funct.addEdge(entryNode, n2);
+    funct.addEdge(n2, n3);
+    funct.addEdge(n3, n4);
+    funct.addEdge(n3, n8);
+    funct.addEdge(n8, n9);
+    funct.addEdge(n9, n7);
+    funct.addEdge(n4, n5);
+    funct.addEdge(n5, n6);
+    funct.addEdge(n6, n7);
+    funct.addEdge(n7, exitNode);
 
-     ReducerUnderTest reducer = new ReducerUnderTest(null);
-     do  {
-       System.out.println("----------------");
-       Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
-       reducer.printInlinedCfa(inlinedCfa, System.out);
-     } while (reducer.applySequenceRule(funct));
+    do  {
+      System.out.println("----------------");
+      Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
+      reducer.printInlinedCfa(inlinedCfa, System.out);
+    } while (reducer.applySequenceRule(funct));
 
-     for (ReducedNode n: funct.getAllActiveNodes()) {
-       System.out.println(n.getWrapped().getLineNumber());
-     }
-     assertEquals(3, funct.getNumOfActiveNodes());
-
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
+    for (ReducedNode n: funct.getAllActiveNodes()) {
+      System.out.println(n.getWrapped().getLineNumber());
     }
+    assertEquals(3, funct.getNumOfActiveNodes());
   }
 
   @Test
   public void testApplyReductionSequences_IfBranch() {
-   try {
-     ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"), false);
-     ReducedNode exitNode = new ReducedNode(new CFANode(10, "test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode(10, "test"), false);
 
-     ReducedNode n2 = new ReducedNode(new CFANode(2, "test"), false);
-     ReducedNode n3 = new ReducedNode(new CFANode(3, "test"), false);
-     ReducedNode n4 = new ReducedNode(new CFANode(4, "test"), false);
-     ReducedNode n1000 = new ReducedNode(new CFANode(1000, "test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode(2, "test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode(3, "test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode(4, "test"), false);
+    ReducedNode n1000 = new ReducedNode(new CFANode(1000, "test"), false);
 
-     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
+    ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-     funct.addEdge(entryNode, n2);
-     funct.addEdge(n2, n1000);
-     funct.addEdge(n2, n3);
-     funct.addEdge(n3, n4);
-     funct.addEdge(n2, n4);
-     funct.addEdge(n4, exitNode);
+    funct.addEdge(entryNode, n2);
+    funct.addEdge(n2, n1000);
+    funct.addEdge(n2, n3);
+    funct.addEdge(n3, n4);
+    funct.addEdge(n2, n4);
+    funct.addEdge(n4, exitNode);
 
-     ReducerUnderTest reducer = new ReducerUnderTest(null);
+    Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
+    reducer.printInlinedCfa(inlinedCfa, System.out);
 
-     Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
-     reducer.printInlinedCfa(inlinedCfa, System.out);
+    reducer.applyReductionSequences(funct);
 
-     reducer.applyReductionSequences(funct);
+    System.out.println("Result:");
+    inlinedCfa = funct.getInlinedCfa();
+    reducer.printInlinedCfa(inlinedCfa, System.out);
 
-     System.out.println("Result:");
-     inlinedCfa = funct.getInlinedCfa();
-     reducer.printInlinedCfa(inlinedCfa, System.out);
-
-     assertEquals(3, funct.getNumOfActiveNodes());
-
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    }
+    assertEquals(3, funct.getNumOfActiveNodes());
   }
 
   @Test
   public void testApplyChoiceRule_IfBranch_NoChange() {
-   try {
-     ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"), false);
-     ReducedNode exitNode = new ReducedNode(new CFANode(10, "test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode(10, "test"), false);
 
-     ReducedNode n2 = new ReducedNode(new CFANode(2, "test"), false);
-     ReducedNode n3 = new ReducedNode(new CFANode(3, "test"), false);
-     ReducedNode n4 = new ReducedNode(new CFANode(4, "test"), false);
-     ReducedNode n5 = new ReducedNode(new CFANode(5, "test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode(2, "test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode(3, "test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode(4, "test"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode(5, "test"), false);
 
-     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
+    ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-     funct.addEdge(entryNode, n2);
-     funct.addEdge(n2, n3);
-     funct.addEdge(n2, n4);
-     funct.addEdge(n3, n5);
-     funct.addEdge(n4, n5);
-     funct.addEdge(n5, exitNode);
+    funct.addEdge(entryNode, n2);
+    funct.addEdge(n2, n3);
+    funct.addEdge(n2, n4);
+    funct.addEdge(n3, n5);
+    funct.addEdge(n4, n5);
+    funct.addEdge(n5, exitNode);
 
-     ReducerUnderTest reducer = new ReducerUnderTest(null);
-     do  {
-     } while (reducer.applyChoiceRule(funct));
+    do  {
+    } while (reducer.applyChoiceRule(funct));
 
-     assertEquals(6, funct.getNumOfActiveNodes());
-
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    }
+    assertEquals(6, funct.getNumOfActiveNodes());
   }
 
   @Test
   public void testApplyChoiceRule_IfBranch_Change() {
-   try {
-     ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"), false);
-     ReducedNode exitNode = new ReducedNode(new CFANode(10, "test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode(1, "test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode(10, "test"), false);
 
-     ReducedNode n2 = new ReducedNode(new CFANode(2, "test"), false);
-     ReducedNode n3 = new ReducedNode(new CFANode(3, "test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode(2, "test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode(3, "test"), false);
 
-     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
+    ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-     funct.addEdge(entryNode, n2);
-     funct.addEdge(n2, n3);
-     funct.addEdge(n2, n3);
-     funct.addEdge(n3, exitNode);
+    funct.addEdge(entryNode, n2);
+    funct.addEdge(n2, n3);
+    funct.addEdge(n2, n3);
+    funct.addEdge(n3, exitNode);
 
-     ReducerUnderTest reducer = new ReducerUnderTest(null);
-     do  {
-     } while (reducer.applyChoiceRule(funct));
+    do  {
+    } while (reducer.applyChoiceRule(funct));
 
-     assertEquals(4, funct.getNumOfActiveNodes());
-
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    }
+    assertEquals(4, funct.getNumOfActiveNodes());
   }
 
 }
