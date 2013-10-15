@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
-public class ReducedNode {
+class ReducedNode {
   private static int uniqueNodeIdSequence = 0;
 
   private final CFANode wrappedNode;
