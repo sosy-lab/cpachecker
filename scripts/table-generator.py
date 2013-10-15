@@ -441,6 +441,7 @@ def mergeFilelists(runSetResults, filenames):
             if fileResult == None:
                 fileResult = ET.Element('sourcefile') # create an empty dummy element
                 fileResult.logfile = None
+                fileResult.set('name', filename)
                 print ('    no result for {0}'.format(filename))
             result.filelist.append(fileResult)
 
