@@ -33,12 +33,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -73,11 +75,14 @@ public class BlockedCFAReducer implements BlockComputer {
   private int functionCallSeq = 0;
   private final Deque<FunctionEntryNode> inliningStack;
 
-  public BlockedCFAReducer(Configuration pConfig) throws InvalidConfigurationException {
+  private final LogManager logger;
+
+  public BlockedCFAReducer(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     if (pConfig != null) {
       pConfig.inject(this);
     }
 
+    this.logger = pLogger;
     this.inliningStack = new ArrayDeque<>();
   }
 
@@ -393,7 +398,7 @@ public class BlockedCFAReducer implements BlockComputer {
         out.flush();
         out.close();
       } catch (IOException e) {
-        e.printStackTrace();
+        logger.logException(Level.WARNING, e, "Error while writing the reduced CFA!");
       }
     }
 

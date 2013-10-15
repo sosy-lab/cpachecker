@@ -27,9 +27,11 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -37,10 +39,54 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 @SuppressWarnings("unused")
 public class BlockedCFAReducerTest {
 
+  public static class LoggerForTest implements LogManager {
+
+    @Override
+    public void close() {
+    }
+
+    @Override
+    public void flush() {
+    }
+
+    @Override
+    public void log(Level pArg0, Object... pArg1) {
+    }
+
+    @Override
+    public void logDebugException(Throwable pArg0) {
+    }
+
+    @Override
+    public void logDebugException(Throwable pArg0, String pArg1) {
+    }
+
+    @Override
+    public void logException(Level pArg0, Throwable pArg1, String pArg2) {
+    }
+
+    @Override
+    public void logUserException(Level pArg0, Throwable pArg1, String pArg2) {
+    }
+
+    @Override
+    public void logf(Level pArg0, String pArg1, Object... pArg2) {
+    }
+
+    @Override
+    public boolean wouldBeLogged(Level pArg0) {
+      return false;
+    }
+
+
+  }
+
   public static class ReducerUnderTest extends BlockedCFAReducer {
 
+    private final static LogManager logger = new LoggerForTest();
+
     public ReducerUnderTest(Configuration pConfig) throws InvalidConfigurationException {
-      super(pConfig);
+      super(pConfig, logger);
     }
 
   }

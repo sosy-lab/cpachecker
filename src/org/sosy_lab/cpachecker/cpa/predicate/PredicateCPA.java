@@ -133,7 +133,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.shutdownNotifier = pShutdownNotifier;
 
     if (enableBlockreducer) {
-      BlockComputer blockComputer = new BlockedCFAReducer(config);
+      BlockComputer blockComputer = new BlockedCFAReducer(config, logger);
       blk.setExplicitAbstractionNodes(blockComputer.computeAbstractionNodes(cfa));
     }
     blk.setCFA(cfa);
