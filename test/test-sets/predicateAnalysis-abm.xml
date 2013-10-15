@@ -10,6 +10,7 @@
   </sourcefiles>
   <sourcefiles name="ControlFlowInteger-MemSimple">
     <includesfile>../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
     <option name="-spec">sv-comp</option>
   </sourcefiles>
   <sourcefiles name="SystemC">

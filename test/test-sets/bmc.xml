@@ -11,6 +11,7 @@
   </sourcefiles>
   <sourcefiles name="ControlFlowInteger-MemSimple">
     <includesfile>../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
   </sourcefiles>
   <sourcefiles name="SystemC">
     <includesfile>../programs/benchmarks/SystemC.set</includesfile>
