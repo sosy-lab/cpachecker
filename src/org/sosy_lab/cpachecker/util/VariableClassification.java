@@ -146,6 +146,10 @@ public class VariableClassification {
   private Multimap<String, String> loopExitConditionVariables;
   private Multimap<String, String> loopExitIncDecConditionVariables;
 
+  /** used vars appear on the right side of an assignment or as argument in functioncalls */
+  private Multimap<String, String> usedVariables;
+  private Multimap<String, String> unusedVariables;
+
   private Set<Partition> intBoolPartitions;
   private Set<Partition> intEqualPartitions;
   private Set<Partition> intAddPartitions;
@@ -191,6 +195,7 @@ public class VariableClassification {
         "number of boolean vars:  " + numOfBooleans,
         "number of intEq vars:    " + numOfIntEquals,
         "number of intAdd vars:   " + numOfIntAdds,
+        "number of unused vars:   " + unusedVariables.size(),
         "number of all vars:      " + allVars.size(),
         "number of intBool partitions:  " + intBool.size(),
         "number of intEq partitions:    " + intEq.size(),
@@ -224,6 +229,9 @@ public class VariableClassification {
 
       loopExitConditionVariables = LinkedHashMultimap.create();
       loopExitIncDecConditionVariables = LinkedHashMultimap.create();
+
+      usedVariables = LinkedHashMultimap.create();
+      unusedVariables = LinkedHashMultimap.create();
 
       intBoolPartitions = new HashSet<>();
       intEqualPartitions = new HashSet<>();
@@ -274,7 +282,7 @@ public class VariableClassification {
 
     expr.accept(collector);
 
-    for (CIdExpression id: collector.getReferencedIdExpressions()) {
+    for (CIdExpression id : collector.getReferencedIdExpressions()) {
       Pair<String, String> assignToVar = idExpressionToVarPair(scopeOf, id);
       result.put(assignToVar.getFirst(), assignToVar.getSecond());
     }
@@ -295,7 +303,7 @@ public class VariableClassification {
         }
 
         // Get all variables that are incremented or decrement by literal values
-        for (CFAEdge e: l.getInnerLoopEdges()) {
+        for (CFAEdge e : l.getInnerLoopEdges()) {
           if (e instanceof CStatementEdge) {
             CStatementEdge stmtEdge = (CStatementEdge) e;
             if (stmtEdge.getStatement() instanceof CAssignment) {
@@ -309,7 +317,7 @@ public class VariableClassification {
                     BinaryOperator op = binExpr.getOperator();
                     if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
                       if (binExpr.getOperand1() instanceof CLiteralExpression
-                        || binExpr.getOperand2() instanceof CLiteralExpression) {
+                          || binExpr.getOperand2() instanceof CLiteralExpression) {
                         CIdExpression operandId = null;
                         if (binExpr.getOperand1() instanceof CIdExpression) {
                           operandId = (CIdExpression) binExpr.getOperand1();
@@ -335,15 +343,15 @@ public class VariableClassification {
     }
   }
 
-  public void dumpVariableTypeMapping(Path target)  {
+  public void dumpVariableTypeMapping(Path target) {
     try (Writer w = Files.openOutputFile(target)) {
       for (String function : getAllVars().keySet()) {
         for (String var : getAllVars().get(function)) {
           byte type = 0;
           if (getIntBoolVars().containsEntry(function, var)) {
-            type += 1+2+4; // IntBool is subset of IntEqualBool and IntAddEqBool
+            type += 1 + 2 + 4; // IntBool is subset of IntEqualBool and IntAddEqBool
           } else if (getIntEqualVars().containsEntry(function, var)) {
-            type += 2+4; // IntEqual is subset of IntAddEqBool
+            type += 2 + 4; // IntEqual is subset of IntAddEqBool
           } else if (getIntAddVars().containsEntry(function, var)) {
             type += 4;
           }
@@ -359,6 +367,16 @@ public class VariableClassification {
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write variable type mapping to file");
     }
+  }
+
+  /**
+   * All variables, that may be assigned, but never read.
+   * There is no read-access to the memory-location of these variables.
+   * The variables are returned as a collection of (functionName, varNames).
+   */
+  public Multimap<String, String> getUnusedVariables() {
+    build();
+    return unusedVariables;
   }
 
   /**
@@ -500,6 +518,11 @@ public class VariableClassification {
           intAddVars.put(function, s);
           intAddPartitions.add(getPartitionForVar(function, s));
         }
+
+        // we define: unusedVars == allVars without usedVars
+        if (!usedVariables.containsEntry(function, s)) {
+          unusedVariables.put(function, s);
+        }
       }
     }
   }
@@ -512,9 +535,12 @@ public class VariableClassification {
       CExpression exp = ((CAssumeEdge) edge).getExpression();
       CFANode pre = edge.getPredecessor();
 
-      DependencyCollectingVisitor dcv = new DependencyCollectingVisitor(pre);
-      Multimap<String, String> dep = exp.accept(dcv);
-      dependencies.addAll(dep, dcv.getValues(), edge, 0);
+      VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
+      Multimap<String, String> vars = exp.accept(dcv);
+      if (vars != null) {
+        usedVariables.putAll(vars);
+        dependencies.addAll(vars, dcv.getValues(), edge, 0);
+      }
 
       exp.accept(new BoolCollectingVisitor(pre));
       exp.accept(new IntEqualCollectingVisitor(pre));
@@ -685,9 +711,12 @@ public class VariableClassification {
         // TODO do we need the edge? ignore it?
 
         CFANode pre = edge.getPredecessor();
-        DependencyCollectingVisitor dcv = new DependencyCollectingVisitor(pre);
-        Multimap<String, String> dep = param.accept(dcv);
-        dependencies.addAll(dep, dcv.getValues(), edge, i);
+        VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
+        Multimap<String, String> vars = param.accept(dcv);
+        if (vars != null) {
+          usedVariables.putAll(vars);
+          dependencies.addAll(vars, dcv.getValues(), edge, i);
+        }
 
         param.accept(new BoolCollectingVisitor(pre));
         param.accept(new IntEqualCollectingVisitor(pre));
@@ -757,13 +786,15 @@ public class VariableClassification {
       String function, int id) {
     CFANode pre = edge.getPredecessor();
 
-    DependencyCollectingVisitor dcv = new DependencyCollectingVisitor(pre);
-    Multimap<String, String> dep = exp.accept(dcv);
-    if (dep == null) {
-      dep = HashMultimap.create(1, 1);
+    VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
+    Multimap<String, String> vars = exp.accept(dcv);
+    if (vars == null) {
+      vars = HashMultimap.create(1, 1);
+    } else {
+      usedVariables.putAll(vars);
     }
-    dep.put(function, varName);
-    dependencies.addAll(dep, dcv.getValues(), edge, id);
+    vars.put(function, varName);
+    dependencies.addAll(vars, dcv.getValues(), edge, id);
 
     BoolCollectingVisitor bcv = new BoolCollectingVisitor(pre);
     Multimap<String, String> possibleBoolean = exp.accept(bcv);
@@ -865,16 +896,15 @@ public class VariableClassification {
 
   /** This Visitor evaluates an Expression. It collects all variables.
    * a visit of IdExpression or CFieldReference returns a collection containing the varName,
-   * a visit of CastExpression return the containing visit,
-   * other visits return null.
-  * The Visitor collects all numbers used in the expression. */
-  private class DependencyCollectingVisitor implements
+   * other visits return the inner visit-results.
+  * The Visitor also collects all numbers used in the expression. */
+  private class VariablesCollectingVisitor implements
       CExpressionVisitor<Multimap<String, String>, RuntimeException> {
 
     private CFANode predecessor;
     private Set<BigInteger> values = new TreeSet<>();
 
-    public DependencyCollectingVisitor(CFANode pre) {
+    public VariablesCollectingVisitor(CFANode pre) {
       this.predecessor = pre;
     }
 
@@ -1029,7 +1059,7 @@ public class VariableClassification {
    * - null, if the expression is not boolean
    * - a collection, if the expression is boolean.
    * The collection contains all boolean vars. */
-  private class BoolCollectingVisitor extends DependencyCollectingVisitor {
+  private class BoolCollectingVisitor extends VariablesCollectingVisitor {
 
     public BoolCollectingVisitor(CFANode pre) {
       super(pre);
@@ -1122,7 +1152,7 @@ public class VariableClassification {
    * Each visit-function returns
    * - null, if the expression contains calculations
    * - a collection, if the expression is a number, unaryExp, == or != */
-  private class IntEqualCollectingVisitor extends DependencyCollectingVisitor {
+  private class IntEqualCollectingVisitor extends VariablesCollectingVisitor {
 
     public IntEqualCollectingVisitor(CFANode pre) {
       super(pre);
@@ -1244,7 +1274,7 @@ public class VariableClassification {
    * - a collection, if the expression is a var or a simple mathematical
    *   calculation (add, sub, <, >, <=, >=, ==, !=, !),
    * - else null */
-  private class IntAddCollectingVisitor extends DependencyCollectingVisitor {
+  private class IntAddCollectingVisitor extends VariablesCollectingVisitor {
 
     public IntAddCollectingVisitor(CFANode pre) {
       super(pre);
@@ -1331,17 +1361,16 @@ public class VariableClassification {
     }
   }
 
-  /** A Partition is a Wrapper for some vars, values and edges.
-   * After merging two Partitions, they wrap the same internals,
-   * so adding a value to the first modifies the other one, too. */
+  /** A Partition is a Wrapper for a Collection of vars, values and edges.
+   * The Partitions are disjunct, so no variable and no edge is in 2 Partitions. */
   public class Partition {
 
-    private Multimap<String, String> vars = LinkedHashMultimap.create();
-    private Set<BigInteger> values = Sets.newTreeSet();
-    private Multimap<CFAEdge, Integer> edges = HashMultimap.create();
+    private final Multimap<String, String> vars = LinkedHashMultimap.create();
+    private final Set<BigInteger> values = Sets.newTreeSet();
+    private final Multimap<CFAEdge, Integer> edges = HashMultimap.create();
 
-    private Map<Pair<String, String>, Partition> varToPartition;
-    private Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition;
+    private final Map<Pair<String, String>, Partition> varToPartition;
+    private final Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition;
 
     public Partition(Map<Pair<String, String>, Partition> varToPartition,
         Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition) {
@@ -1423,13 +1452,13 @@ public class VariableClassification {
   private class Dependencies {
 
     /** partitions, each of them contains vars */
-    private List<Partition> partitions = Lists.newArrayList();
+    private final List<Partition> partitions = Lists.newArrayList();
 
     /** map to get partition of a var */
-    private Map<Pair<String, String>, Partition> varToPartition = Maps.newHashMap();
+    private final Map<Pair<String, String>, Partition> varToPartition = Maps.newHashMap();
 
     /** table to get a partition for a edge. */
-    Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition = Maps.newHashMap();
+    private final Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition = Maps.newHashMap();
 
     public List<Partition> getPartitions() {
       return partitions;
@@ -1485,7 +1514,13 @@ public class VariableClassification {
 
     /** This function adds a group of vars to exactly one partition.
      * The values are stored in the partition.
-     * The partition is "connected" with the expression. */
+     * The partition is "connected" with the expression.
+     *
+     * @param vars group of variables tobe added
+     * @param values numbers, with are used in an expression together with the variables
+     * @param edge where is the expression
+     * @param index if an edge has several expressions, this index is the position ofthe expression
+     *  */
     public void addAll(Multimap<String, String> vars, Set<BigInteger> values,
         CFAEdge edge, int index) {
       if (vars == null || vars.isEmpty()) { return; }
