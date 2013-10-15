@@ -30,7 +30,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.cdt.internal.core.dom.parser.ProblemType;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -38,6 +37,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -139,8 +140,11 @@ public class CBinaryExpressionBuilder {
     // TODO if calculation- and result-function are never needed independent
     // from each other, we could merge them. --> speedup?
 
-    final CType t1 = op1.getExpressionType().getCanonicalType();
-    final CType t2 = op2.getExpressionType().getCanonicalType();
+    CType t1 = op1.getExpressionType().getCanonicalType();
+    CType t2 = op2.getExpressionType().getCanonicalType();
+
+    t1 = handleEnum(t1);
+    t2 = handleEnum(t2);
 
     final CType calculationType;
     final CType resultType;
@@ -159,6 +163,24 @@ public class CBinaryExpressionBuilder {
     }
 
     return new CBinaryExpression(op1.getFileLocation(), resultType, calculationType, op1, op2, op);
+  }
+
+
+  /**
+   * This method returns an SIGNED_INT for all enums, and the type itself otherwise.
+   */
+  private CType handleEnum(final CType pType) {
+    /* 6.7.2.2 Enumeration specifiers
+     * The expression, that defines the value of an enumeration constant,
+     * shall be an integer constant expression, that has a value representable as an int.
+     */
+    if (pType instanceof CEnumType ||
+        (pType instanceof CElaboratedType
+        && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM)) {
+      return CNumericTypes.SIGNED_INT;
+    } else {
+      return pType;
+    }
   }
 
   /**
@@ -194,37 +216,23 @@ public class CBinaryExpressionBuilder {
      * The type of the result is that of the promoted left operand.
      */
     if (shiftOperators.contains(pBinOperator)) {
-      assertIfNotIntOrEnum(pType1);
-      assertIfNotIntOrEnum(pType2);
-      return getPromotedCType(pType1);
+      assert integerTypes.contains(((CSimpleType) pType1).getType());
+      assert integerTypes.contains(((CSimpleType) pType2).getType());
+      return getPromotedCType((CSimpleType) pType1);
     }
 
     if (bitwiseOperators.contains(pBinOperator)) {
-      assertIfNotIntOrEnum(pType1);
-      assertIfNotIntOrEnum(pType2);
+      assert integerTypes.contains(((CSimpleType) pType1).getType());
+      assert integerTypes.contains(((CSimpleType) pType2).getType());
     }
 
     return getCalculationTypeForBinaryOperation(pType1, pType2, pBinOperator);
   }
 
-  private void assertIfNotIntOrEnum(CType type) {
-    if (type instanceof CSimpleType) {
-      assert integerTypes.contains(((CSimpleType) type).getType());
-    } else {
-      assert type instanceof CEnumType;
-    }
-  }
 
   /** returns INT, if the type is smaller than INT, else the type itself. */
-  private CSimpleType getPromotedCType(CType pType) {
+  private CSimpleType getPromotedCType(CSimpleType pType) {
 
-    if (pType instanceof CEnumType) {
-      return CNumericTypes.SIGNED_INT;
-    } else {
-      assert pType instanceof CSimpleType;
-    }
-
-    pType = pType.getCanonicalType();
     /*
      * ISO-C99 (6.3.1.1 #2):
      * If an int can represent all values of the original type, the value is
@@ -235,7 +243,7 @@ public class CBinaryExpressionBuilder {
     if (machineModel.getSizeof(pType) < machineModel.getSizeofInt()) {
       return CNumericTypes.SIGNED_INT;
     } else {
-      return (CSimpleType) pType;
+      return pType;
     }
   }
 
@@ -256,18 +264,6 @@ public class CBinaryExpressionBuilder {
    */
   CType getCalculationTypeForBinaryOperation(CType pType1, CType pType2,
       final BinaryOperator pBinOperator) {
-
-    /* 6.7.2.2 Enumeration specifiers
-     * The expression, that defines the value of an enumeration constant,
-     * shall be an integer constant expression, that has a value representable as an int.
-     */
-    if (pType1 instanceof CEnumType) {
-      pType1 = CNumericTypes.SIGNED_INT;
-    }
-    if (pType2 instanceof CEnumType) {
-      pType2 = CNumericTypes.SIGNED_INT;
-    }
-
 
     // both are simple types, we need a common simple type --> USUAL ARITHMETIC CONVERSIONS
     if (pType1 instanceof CSimpleType && pType2 instanceof CSimpleType) {
@@ -309,7 +305,7 @@ public class CBinaryExpressionBuilder {
   /**
    * This method returns the (simplified) type of the second operand,
    * if the first operand was from CSimpleType.
-   * This method does not depend on thefirst type.
+   * This method does not depend on the first type.
    *
    * @param pType type to analyse
    * @param pBinOperator for checks only
@@ -335,7 +331,7 @@ public class CBinaryExpressionBuilder {
       return new CPointerType(at.isConst(), at.isVolatile(), at.getType());
     }
 
-    if (pType instanceof ProblemType) { return CNumericTypes.SIGNED_INT; }
+    if (pType instanceof CProblemType) { return CNumericTypes.SIGNED_INT; }
     throw new AssertionError("unhandled type (secondtype to simple type): " + pType);
   }
 
