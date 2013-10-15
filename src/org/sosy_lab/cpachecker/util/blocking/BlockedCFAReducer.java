@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.blocking;
 
-import java.io.File;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -35,6 +38,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -70,7 +74,7 @@ public class BlockedCFAReducer implements BlockComputer {
 
   @Option(name="reducedCfaFile", description="write the reduced cfa to the specified file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File reducedCfaFile = new File("ReducedCfa.rsf");
+  private Path reducedCfaFile = Paths.get("ReducedCfa.rsf");
 
   private int functionCallSeq = 0;
   private final Deque<FunctionEntryNode> inliningStack;
@@ -78,11 +82,9 @@ public class BlockedCFAReducer implements BlockComputer {
   private final LogManager logger;
 
   public BlockedCFAReducer(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
-    if (pConfig != null) {
-      pConfig.inject(this);
-    }
+    pConfig.inject(this);
 
-    this.logger = pLogger;
+    this.logger = checkNotNull(pLogger);
     this.inliningStack = new ArrayDeque<>();
   }
 
@@ -361,17 +363,18 @@ public class BlockedCFAReducer implements BlockComputer {
   }
 
   /**
-   * Write the in-lined version of the CFA to the given PrintStream.
-   *
-   * @param pInlinedCfa
-   * @param pOut
+   * Write the in-lined version of the CFA to the given output.
    */
-  public void printInlinedCfa(Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> pInlinedCfa, PrintStream pOut) {
+  public void printInlinedCfa(Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> pInlinedCfa, BufferedWriter pOut) throws IOException {
     for (ReducedNode u: pInlinedCfa.keySet()) {
       Map<ReducedNode, Set<ReducedEdge>> uTarget = pInlinedCfa.get(u);
       for (ReducedNode v: uTarget.keySet()) {
         for (int i=0; i<uTarget.get(v).size(); i++) {
-          pOut.println(String.format("REL\t%s\t%s", getRsfEntryFor(u), getRsfEntryFor(v)));
+          pOut.append("REL\t")
+              .append(getRsfEntryFor(u))
+              .append('\t')
+              .append(getRsfEntryFor(v));
+          pOut.newLine();
         }
       }
     }
@@ -390,15 +393,11 @@ public class BlockedCFAReducer implements BlockComputer {
     ReducedFunction reducedProgram = inlineAndSummarize(pCfa.getMainFunction(), pCfa);
 
     if (reducedCfaFile != null) {
-      try {
-        Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = reducedProgram.getInlinedCfa();
-
-        PrintStream out = new PrintStream(reducedCfaFile);
-        printInlinedCfa(inlinedCfa, out);
-        out.flush();
-        out.close();
+      Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = reducedProgram.getInlinedCfa();
+      try (BufferedWriter w = Files.openOutputFile(reducedCfaFile)) {
+        printInlinedCfa(inlinedCfa, w);
       } catch (IOException e) {
-        logger.logException(Level.WARNING, e, "Error while writing the reduced CFA!");
+        logger.logUserException(Level.WARNING, e, "Could not write the reduced CFA to file");
       }
     }
 

@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.blocking;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -35,6 +37,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+
+import com.google.common.io.CharStreams;
 
 @SuppressWarnings("unused")
 public class BlockedCFAReducerTest {
@@ -84,6 +88,16 @@ public class BlockedCFAReducerTest {
   @Before
   public void setUp() throws InvalidConfigurationException {
     reducer = new BlockedCFAReducer(Configuration.defaultConfiguration(), new LoggerForTest());
+  }
+
+  private void assertCfaIsEmpty(Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa) {
+    StringBuilder sb = new StringBuilder();
+    try {
+      reducer.printInlinedCfa(inlinedCfa, new BufferedWriter(CharStreams.asWriter(sb)));
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    }
+    assertTrue(sb.length() == 0);
   }
 
   @Test
@@ -197,9 +211,8 @@ public class BlockedCFAReducerTest {
 
     boolean sequenceApplied, choiceApplied;
     do {
-      System.out.println("----------------");
       Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
-      reducer.printInlinedCfa(inlinedCfa, System.out);
+      assertCfaIsEmpty(inlinedCfa);
 
       sequenceApplied = reducer.applySequenceRule(funct);
     } while (sequenceApplied);
@@ -260,9 +273,8 @@ public class BlockedCFAReducerTest {
 
     boolean sequenceApplied, choiceApplied;
     do {
-      System.out.println("----------------");
       Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
-      reducer.printInlinedCfa(inlinedCfa, System.out);
+      assertCfaIsEmpty(inlinedCfa);
 
       sequenceApplied = reducer.applySequenceRule(funct);
       choiceApplied = reducer.applyChoiceRule(funct);
@@ -291,9 +303,8 @@ public class BlockedCFAReducerTest {
 
     boolean sequenceApplied, choiceApplied;
     do {
-      System.out.println("----------------");
       Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
-      reducer.printInlinedCfa(inlinedCfa, System.out);
+      assertCfaIsEmpty(inlinedCfa);
 
       sequenceApplied = reducer.applySequenceRule(funct);
       choiceApplied = reducer.applyChoiceRule(funct);
@@ -324,9 +335,8 @@ public class BlockedCFAReducerTest {
 
     boolean sequenceApplied, choiceApplied;
     do {
-      System.out.println("----------------");
       Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
-      reducer.printInlinedCfa(inlinedCfa, System.out);
+      assertCfaIsEmpty(inlinedCfa);
 
       sequenceApplied = reducer.applySequenceRule(funct);
       choiceApplied = reducer.applyChoiceRule(funct);
@@ -398,9 +408,8 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n9, exitNode);
 
     do  {
-      //       System.out.println("----------------");
       //       Map<ReducedNode, Map<ReducedNode, ReducedEdge>> inlinedCfa = funct.getInlinedCfa();
-      //       reducer.printInlinedCfa(inlinedCfa, System.out);
+      //       assertCfaIsEmpty(inlinedCfa);
     } while (reducer.applySequenceRule(funct));
 
     assertEquals(3, funct.getNumOfActiveNodes());
@@ -423,9 +432,8 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n7, n4);
 
     do  {
-      //       System.out.println("----------------");
       //       Map<ReducedNode, Map<ReducedNode, ReducedEdge>> inlinedCfa = funct.getInlinedCfa();
-      //       reducer.printInlinedCfa(inlinedCfa, System.out);
+      //       assertCfaIsEmpty(inlinedCfa);
     } while (reducer.applySequenceRule(funct));
 
     assertEquals(3, funct.getNumOfActiveNodes());
@@ -460,9 +468,8 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n7, exitNode);
 
     do  {
-      System.out.println("----------------");
       Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
-      reducer.printInlinedCfa(inlinedCfa, System.out);
+      assertCfaIsEmpty(inlinedCfa);
     } while (reducer.applySequenceRule(funct));
 
     for (ReducedNode n: funct.getAllActiveNodes()) {
@@ -491,13 +498,12 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n4, exitNode);
 
     Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
-    reducer.printInlinedCfa(inlinedCfa, System.out);
+    assertCfaIsEmpty(inlinedCfa);
 
     reducer.applyReductionSequences(funct);
 
-    System.out.println("Result:");
     inlinedCfa = funct.getInlinedCfa();
-    reducer.printInlinedCfa(inlinedCfa, System.out);
+    assertCfaIsEmpty(inlinedCfa);
 
     assertEquals(3, funct.getNumOfActiveNodes());
   }
