@@ -194,31 +194,36 @@ public class CBinaryExpressionBuilder {
      * The type of the result is that of the promoted left operand.
      */
     if (shiftOperators.contains(pBinOperator)) {
-      assert integerTypes.contains(((CSimpleType) pType1).getType());
-      assert integerTypes.contains(((CSimpleType) pType2).getType());
-      return getPromotedCType((CSimpleType) pType1);
+      assertIfNotIntOrEnum(pType1);
+      assertIfNotIntOrEnum(pType2);
+      return getPromotedCType(pType1);
     }
 
     if (bitwiseOperators.contains(pBinOperator)) {
-      if (pType1 instanceof CSimpleType) {
-        assert integerTypes.contains(((CSimpleType) pType1).getType());
-      } else {
-        assert pType1 instanceof CEnumType;
-      }
-
-      if (pType2 instanceof CSimpleType) {
-        assert integerTypes.contains(((CSimpleType) pType2).getType());
-      } else {
-        assert pType2 instanceof CEnumType;
-      }
+      assertIfNotIntOrEnum(pType1);
+      assertIfNotIntOrEnum(pType2);
     }
 
     return getCalculationTypeForBinaryOperation(pType1, pType2, pBinOperator);
   }
 
+  private void assertIfNotIntOrEnum(CType type) {
+    if (type instanceof CSimpleType) {
+      assert integerTypes.contains(((CSimpleType) type).getType());
+    } else {
+      assert type instanceof CEnumType;
+    }
+  }
 
   /** returns INT, if the type is smaller than INT, else the type itself. */
-  private CSimpleType getPromotedCType(CSimpleType pType) {
+  private CSimpleType getPromotedCType(CType pType) {
+
+    if (pType instanceof CEnumType) {
+      return CNumericTypes.SIGNED_INT;
+    } else {
+      assert pType instanceof CSimpleType;
+    }
+
     pType = pType.getCanonicalType();
     /*
      * ISO-C99 (6.3.1.1 #2):
@@ -230,7 +235,7 @@ public class CBinaryExpressionBuilder {
     if (machineModel.getSizeof(pType) < machineModel.getSizeofInt()) {
       return CNumericTypes.SIGNED_INT;
     } else {
-      return pType;
+      return (CSimpleType) pType;
     }
   }
 
