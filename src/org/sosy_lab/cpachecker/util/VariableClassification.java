@@ -51,7 +51,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -60,8 +61,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -71,7 +75,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -94,7 +100,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.base.Joiner;
@@ -149,6 +158,10 @@ public class VariableClassification {
   /** used vars appear on the right side of an assignment or as argument in functioncalls */
   private Multimap<String, String> usedVariables;
   private Multimap<String, String> unusedVariables;
+
+  private Multimap<CType, String> leftFields; // used in left side
+  private Multimap<CType, String> rightFields; // used in right side
+  private Multimap<CType, String> unusedFields; // leftField without rightFields
 
   private Set<Partition> intBoolPartitions;
   private Set<Partition> intEqualPartitions;
@@ -232,6 +245,10 @@ public class VariableClassification {
 
       usedVariables = LinkedHashMultimap.create();
       unusedVariables = LinkedHashMultimap.create();
+
+      leftFields = LinkedHashMultimap.create();
+      rightFields = LinkedHashMultimap.create();
+      unusedFields = LinkedHashMultimap.create();
 
       intBoolPartitions = new HashSet<>();
       intEqualPartitions = new HashSet<>();
@@ -380,6 +397,15 @@ public class VariableClassification {
   }
 
   /**
+   * All fields, that may be assigned, but never read.
+   * There is no read-access to the memory-location of the field of the type.
+   */
+  public Multimap<CType, String> getUnusedFields() {
+    build();
+    return unusedFields;
+  }
+
+  /**
    * Possible loop variables of the program
    * in form of a collection of (functionName, varNames)
    */
@@ -523,6 +549,16 @@ public class VariableClassification {
         if (!usedVariables.containsEntry(function, s)) {
           unusedVariables.put(function, s);
         }
+
+      }
+    }
+
+    // leftField without rightFields
+    for (final CType t : leftFields.keySet()) {
+      for (final String field : leftFields.get(t)) {
+        if (!rightFields.containsEntry(t, field)) {
+          unusedFields.put(t, field);
+        }
       }
     }
   }
@@ -633,7 +669,11 @@ public class VariableClassification {
       nonIntAddVars.put(function, varName);
     }
 
-    IAInitializer initializer = vdecl.getInitializer();
+    final CInitializer initializer = vdecl.getInitializer();
+    final CFANode pre = edge.getPredecessor();
+    final CType type = vdecl.getType().getCanonicalType();
+    handleInitializer(edge, initializer, pre, type, null);
+
     if ((initializer == null) || !(initializer instanceof CInitializerExpression)) { return; }
 
     CExpression exp = ((CInitializerExpression) initializer).getExpression();
@@ -641,6 +681,62 @@ public class VariableClassification {
 
     handleExpression(edge, exp, varName, function);
   }
+
+
+  private void handleInitializer(final CDeclarationEdge edge,
+      final CInitializer initializer, final CFANode pre,
+      final CType pType, final CType pParentType) {
+
+    if (initializer == null) { return; }
+
+    if (initializer instanceof CInitializerList) {
+
+      if (pType instanceof CCompositeType) {
+        final List<CInitializer> iList = ((CInitializerList) initializer).getInitializers();
+        final List<CCompositeTypeMemberDeclaration> tList = ((CCompositeType) pType).getMembers();
+        assert tList.size() >= iList.size();
+
+        for (int i = 0; i < iList.size(); i++) {
+          handleInitializer(edge, iList.get(i), pre,
+              tList.get(i).getType().getCanonicalType(), pType);
+        }
+      }
+
+    } else if (initializer instanceof CDesignatedInitializer) {
+      final CDesignatedInitializer di = (CDesignatedInitializer) initializer;
+      final List<CDesignator> ldi = di.getDesignators();
+
+      for (final CDesignator d : ldi) {
+        if (d instanceof CFieldDesignator) {
+          assert pParentType != null;
+          leftFields.put(pParentType, ((CFieldDesignator) d).getFieldName());
+        } else if (d instanceof CArrayDesignator || d instanceof CArrayRangeDesignator) {
+          // ignore
+        } else {
+          throw new AssertionError("unhandled CDesignator: " + d + "  " + d.getClass());
+        }
+      }
+
+      final CInitializer rhs = di.getRightHandSide();
+      if (rhs instanceof CInitializerExpression) {
+        final VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
+        /* Multimap<String, String> vars = */((CInitializerExpression) rhs).getExpression().accept(dcv);
+        // this ignores normal variables, we only look for fields
+
+      } else {
+        throw new AssertionError("unhandled assignment: " + edge.getRawStatement());
+      }
+
+    } else if (initializer instanceof CInitializerExpression) {
+      final VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
+      /* Multimap<String, String> vars = */((CInitializerExpression) initializer).getExpression().accept(dcv);
+      // this ignores normal variables, we only look for fields
+
+    } else {
+      throw new AssertionError("unhandled CInitializer: " + initializer + "  " + initializer.getClass());
+    }
+  }
+
 
   /** This function handles normal assignments of vars. */
   private void handleAssignment(final CFAEdge edge, final CAssignment assignment) {
@@ -657,6 +753,11 @@ public class VariableClassification {
     }
 
     dependencies.addVar(function, varName);
+
+    if (lhs instanceof CFieldReference) {
+      final CFieldReference fr = (CFieldReference) lhs;
+      leftFields.put(fr.getFieldOwner().getExpressionType().getCanonicalType(), fr.getFieldName());
+    }
 
     if (rhs instanceof CExpression) {
       handleExpression(edge, ((CExpression) rhs), varName, function);
@@ -793,6 +894,7 @@ public class VariableClassification {
     } else {
       usedVariables.putAll(vars);
     }
+
     vars.put(function, varName);
     dependencies.addAll(vars, dcv.getValues(), edge, id);
 
@@ -978,6 +1080,9 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CFieldReference exp) {
+      // this expression-visitor only visits right-sides, so we can directly process the field-access
+      rightFields.put(exp.getFieldOwner().getExpressionType().getCanonicalType(), exp.getFieldName());
+
       String varName = exp.toASTString(); // TODO "(*p).x" vs "p->x"
       String function = isGlobal(exp) ? null : predecessor.getFunctionName();
       HashMultimap<String, String> ret = HashMultimap.create(1, 1);
