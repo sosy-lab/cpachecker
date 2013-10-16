@@ -36,6 +36,7 @@ import os.path
 import glob
 import json
 import argparse
+import re
 import subprocess
 import time
 import tempita
@@ -55,6 +56,7 @@ TEMPLATE_FILE_NAME = os.path.join(os.path.dirname(__file__), 'table-generator-te
 TEMPLATE_FORMATS = ['html', 'csv']
 TEMPLATE_ENCODING = 'UTF-8'
 
+LOG_VALUE_EXTRACT_PATTERN = re.compile(': *([^ :]*)')
 
 class Util:
     """
@@ -501,12 +503,8 @@ class RunResult:
             # stop after the first line, that contains the searched text
             for line in lines:
                 if identifier in line:
-                    startPosition = line.find(':') + 1
-                    endPosition = line.find('(', startPosition) # bracket maybe not found -> (-1)
-                    if (endPosition == -1):
-                        return line[startPosition:].strip()
-                    else:
-                        return line[startPosition: endPosition].strip()
+                    match = LOG_VALUE_EXTRACT_PATTERN.search(line)
+                    return match.group(1).strip() if match else None
             return None
 
         status = Util.getColumnValue(sourcefileTag, 'status', '')
