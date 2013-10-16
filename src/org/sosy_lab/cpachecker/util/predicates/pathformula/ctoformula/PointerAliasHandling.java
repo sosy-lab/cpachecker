@@ -1258,10 +1258,12 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
       // external function call, p has an arbitrary value
       // update the aliasing to the existing pointers
       conv.buildDirectNondetSecondLevelAssignment(lVarName, constraints, ssa);
-      // make sure to add __content_of_lVarName so SSAMap so that we recognize it as pointer later on
-      Variable ptrLVar = conv.makePointerMask(lVarName, ssa);
-      if (ssa.getIndex(ptrLVar.getName()) == -1) {
-        ssa.setIndex(ptrLVar.getName(), ptrLVar.getType(), 1);
+      if (CtoFormulaConverter.hasRepresentableDereference(lVarName)) {
+        // make sure to add __content_of_lVarName so SSAMap so that we recognize it as pointer later on
+        Variable ptrLVar = conv.makePointerMask(lVarName, ssa);
+        if (ssa.getIndex(ptrLVar.getName()) == -1) {
+          ssa.setIndex(ptrLVar.getName(), ptrLVar.getType(), 1);
+        }
       }
     }
 
