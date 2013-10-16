@@ -6,7 +6,6 @@
 
   <rundefinition>
     <sourcefiles>
-      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <includesfile>integration-ControlFlowInteger-abm.set</includesfile>
       <includesfile>integration-HeapManipulation-abm.set</includesfile>
       <includesfile>integration-SystemC-abm.set</includesfile>

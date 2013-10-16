@@ -6,6 +6,7 @@
 
   <rundefinition>
     <sourcefiles>
+      <includesfile>../programs/simple/simple.set</includesfile>
       <includesfile>integration-ControlFlowInteger.set</includesfile>
       <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>

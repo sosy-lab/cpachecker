@@ -10,7 +10,6 @@
 
   <rundefinition>
     <sourcefiles>
-      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <includesfile>integration-ControlFlowInteger.set</includesfile>
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>integration-SystemC.set</includesfile>
