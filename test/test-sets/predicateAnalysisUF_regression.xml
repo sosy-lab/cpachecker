@@ -6,9 +6,6 @@
   <option name="-disable-java-assertions"/>
   <option name="-heap">13000M</option>
 
-  <sourcefiles name="FeatureChecks">
-    <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
-  </sourcefiles>
   <sourcefiles name="HeapManipulation">
     <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
     <option name="-skipRecursion"/>

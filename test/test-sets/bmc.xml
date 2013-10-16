@@ -6,15 +6,15 @@
   <option name="-bmc"/>
   <option name="-heap">1200M</option>
 
-  <sourcefiles name="ControlFlowInteger-MemPrecise">
-    <includesfile>../programs/benchmarks/ControlFlowInteger-MemPrecise.set</includesfile>
+  <sourcefiles name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
   </sourcefiles>
-  <sourcefiles name="ControlFlowInteger-MemSimple">
-    <includesfile>../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
+  <sourcefiles name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
   </sourcefiles>
-  <sourcefiles name="SystemC">
-    <includesfile>../programs/benchmarks/SystemC.set</includesfile>
+  <sourcefiles name="Sequenzialized">
+    <includesfile>../programs/benchmarks/Sequenzialized.set</includesfile>
   </sourcefiles>
 
   <rundefinition name="k1">

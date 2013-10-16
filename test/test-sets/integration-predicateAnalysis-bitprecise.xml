@@ -8,7 +8,6 @@
     <sourcefiles>
       <includesfile>../programs/simple/simple.set</includesfile>
       <includesfile>integration-ControlFlowInteger.set</includesfile>
-      <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
       <includesfile>integration-SystemC.set</includesfile>

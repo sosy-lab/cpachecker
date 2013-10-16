@@ -4,8 +4,7 @@
   <sourcefiles>
     <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
     <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
-    <includesfile>../programs/benchmarks/SystemC.set</includesfile>
-    <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
   </sourcefiles>
 
   <sourcefiles>

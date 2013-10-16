@@ -12,10 +12,10 @@
 	<option name="-setprop">cpa.explicit.merge=JOIN</option>
 		<sourcefiles name="BFS">
 			<option name="-setprop">analysis.traversal.order=BFS</option>
-			<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
-			<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
-			<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
-			<include>../programs/benchmarks/bitvector/s3*_safe.BV.c.cil.c</include>
+			<include>../programs/benchmarks/locks/test_locks_5_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_6_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_7_true.c</include>
+			<include>../programs/benchmarks/bitvector/s3*_true.BV.c.cil.c</include>
 		</sourcefiles>
 </rundefinition>
 
@@ -23,10 +23,10 @@
 	<option name="-reachingdef-explicit"/>
 		<sourcefiles name="BFS">
 			<option name="-setprop">analysis.traversal.order=BFS</option>
-			<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
-			<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
-			<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
-			<include>../programs/benchmarks/bitvector/s3*_safe.BV.c.cil.c</include>
+			<include>../programs/benchmarks/locks/test_locks_5_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_6_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_7_true.c</include>
+			<include>../programs/benchmarks/bitvector/s3*_true.BV.c.cil.c</include>
 		</sourcefiles>
 </rundefinition>
 
@@ -37,10 +37,10 @@
 	<option name="-setprop">cpa.reachdef.merge=SEP</option>
 		<sourcefiles name="BFS">
 			<option name="-setprop">analysis.traversal.order=BFS</option>
-			<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
-			<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
-			<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
-			<include>../programs/benchmarks/bitvector/s3*_safe.BV.c.cil.c</include>
+			<include>../programs/benchmarks/locks/test_locks_5_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_6_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_7_true.c</include>
+			<include>../programs/benchmarks/bitvector/s3*_true.BV.c.cil.c</include>
 		</sourcefiles>
 </rundefinition>
 
@@ -49,10 +49,10 @@
 	<option name="-setprop">cpa.reachdef.merge=SEP</option>
 		<sourcefiles name="DFS">
 			<option name="-setprop">analysis.traversal.order=DFS</option>
-			<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
-			<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
-			<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
-			<include>../programs/benchmarks/bitvector/s3*_safe.BV.c.cil.c</include>
+			<include>../programs/benchmarks/locks/test_locks_5_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_6_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_7_true.c</include>
+			<include>../programs/benchmarks/bitvector/s3*_true.BV.c.cil.c</include>
 		</sourcefiles>
 </rundefinition>
 
@@ -60,10 +60,10 @@
 	<option name="-reachingdefinition"/>
 		<sourcefiles name="BFS">
 			<option name="-setprop">analysis.traversal.order=BFS</option>
-			<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
-			<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
-			<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
-			<include>../programs/benchmarks/bitvector/s3*_safe.BV.c.cil.c</include>
+			<include>../programs/benchmarks/locks/test_locks_5_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_6_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_7_true.c</include>
+			<include>../programs/benchmarks/bitvector/s3*_true.BV.c.cil.c</include>
 		</sourcefiles>
 </rundefinition>
 
@@ -72,10 +72,10 @@
 	<option name="-setprop">cpa.explicit.merge=JOIN</option>
 		<sourcefiles name="BFS">
 			<option name="-setprop">analysis.traversal.order=BFS</option>
-			<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
-			<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
-			<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
-			<include>../programs/benchmarks/bitvector/s3*_safe.BV.c.cil.c</include>
+			<include>../programs/benchmarks/locks/test_locks_5_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_6_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_7_true.c</include>
+			<include>../programs/benchmarks/bitvector/s3*_true.BV.c.cil.c</include>
 		</sourcefiles>
 </rundefinition>
 
@@ -84,7 +84,7 @@
 	<option name="-setprop">cpa.explicit.merge=JOIN</option>
 		<sourcefiles name="BFS">
 			<option name="-setprop">analysis.traversal.order=BFS</option>
-			<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
+			<include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 			<include>../programs/nestedLocks/test_locks_while_seq_5_safe.c</include>
 			<include>../programs/nestedLocks/test_locks_while_mix_5_safe.c</include>
 			<include>../programs/nestedLocks/test_locks_while_nest_5_safe.c</include>

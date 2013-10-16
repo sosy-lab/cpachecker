@@ -9,7 +9,6 @@
       <includesfile>integration-ControlFlowInteger-abm.set</includesfile>
       <includesfile>integration-HeapManipulation-abm.set</includesfile>
       <includesfile>integration-SystemC-abm.set</includesfile>
-      <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>

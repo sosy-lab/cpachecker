@@ -13,7 +13,6 @@
       <includesfile>integration-ControlFlowInteger.set</includesfile>
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>integration-SystemC.set</includesfile>
-      <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>

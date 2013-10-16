@@ -9,24 +9,15 @@
   <sourcefiles name="BitVectors">
     <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
   </sourcefiles>
-  <sourcefiles name="ControlFlowInteger-MemPrecise">
-    <includesfile>../programs/benchmarks/ControlFlowInteger-MemPrecise.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="ControlFlowInteger-MemSimple">
-    <includesfile>../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
-    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+  <sourcefiles name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
   </sourcefiles>
   <sourcefiles name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
     <option name="-64"/>
-    <option name="-skipRecursion"/>
-  </sourcefiles>
-  <sourcefiles name="FeatureChecks">
-    <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
   </sourcefiles>
   <sourcefiles name="HeapManipulation">
     <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
-    <option name="-skipRecursion"/>
   </sourcefiles>
   <sourcefiles name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
@@ -34,16 +25,23 @@
   <sourcefiles name="ProductLines">
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
   </sourcefiles>
-  <sourcefiles name="SystemC">
-    <includesfile>../programs/benchmarks/SystemC.set</includesfile>
+  <sourcefiles name="Recursive">
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <!-- The following files are expected to have timeouts anyway. -->
-    <exclude>../programs/benchmarks/systemc/mem_slave_tlm.3_safe.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/mem_slave_tlm.4_safe.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/mem_slave_tlm.5_safe.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/token_ring.10_safe.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/token_ring.11_safe.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/token_ring.12_safe.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/token_ring.13_safe.cil.c</exclude>
+    <exclude>../programs/benchmarks/systemc/mem_slave_tlm.3_true.cil.c</exclude>
+    <exclude>../programs/benchmarks/systemc/mem_slave_tlm.4_true.cil.c</exclude>
+    <exclude>../programs/benchmarks/systemc/mem_slave_tlm.5_true.cil.c</exclude>
+    <exclude>../programs/benchmarks/systemc/token_ring.10_true.cil.c</exclude>
+    <exclude>../programs/benchmarks/systemc/token_ring.11_true.cil.c</exclude>
+    <exclude>../programs/benchmarks/systemc/token_ring.12_true.cil.c</exclude>
+    <exclude>../programs/benchmarks/systemc/token_ring.13_true.cil.c</exclude>
+  </sourcefiles>
+  <sourcefiles name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
   </sourcefiles>
 
   <rundefinition name="ABElf">
