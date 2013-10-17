@@ -91,6 +91,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -102,6 +103,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
@@ -155,17 +157,38 @@ public class VariableClassification {
   private Multimap<String, String> loopExitConditionVariables;
   private Multimap<String, String> loopExitIncDecConditionVariables;
 
-  /** used vars appear on the right side of an assignment or as argument in functioncalls */
-  private Multimap<String, String> usedVariables;
-  private Multimap<String, String> unusedVariables;
+  /** These sets contain all variables even ones of array, pointer or structure types.
+   *  Such variables cannot be classified even as Int, so they are only kept in these sets in order
+   *  not to break the classification of Int variables.*/
+  private Multimap<String, String> leftVariables; // Variables used in the left hand side
+  private Multimap<String, String> rightVariables; // Variables used in the right hand side
+  private Multimap<String, String> unusedVariables; // leftVariables without rightVariables
 
-  private Multimap<CType, String> leftFields; // used in left side
-  private Multimap<CType, String> rightFields; // used in right side
-  private Multimap<CType, String> unusedFields; // leftField without rightFields
+  /** Fields information doesn't take any aliasing information into account,
+   *  fields are considered per type, not per composite instance */
+  private Multimap<CCompositeType, String> leftFields; // Fields used in the left hand side
+  private Multimap<CCompositeType, String> rightFields; // Fields used in right hand side
+  private Multimap<CCompositeType, String> unusedFields; // leftFields without rightFields
 
   private Set<Partition> intBoolPartitions;
   private Set<Partition> intEqualPartitions;
   private Set<Partition> intAddPartitions;
+
+  /** It seems reasonable to treat variables and fields occurring only in external function calls as unused.
+   *  Because the only way they can influence reachability in this case is through congruence axioms,
+   *  but a pure external function assumption is by itself rather imprecise.
+   *  On the other hand, many fields are only used with debugging purposes in such external functions
+   *  as printf(), printk(), __dev_info() etc.
+   */
+  private boolean treatOccurrencesInExternalFunctionCallsAsUsed = false;
+
+  private LeftFieldsCollectingVisitor leftFieldsCollectingVisitor = null;
+  private RightFieldsCollectingVisitor rightFieldsCollectingVisitor = null;
+
+  private LeftVariablesCollectingVisitor leftVariablesCollectingVisitor = null;
+  private RightVariablesCollectingVisitor rightVariablesCollectingVisitor = null;
+
+  private static final String SCOPE_SEPARATOR = "::";
 
   private final CFA cfa;
   private final ImmutableMultimap<String, Loop> loopStructure;
@@ -208,8 +231,9 @@ public class VariableClassification {
         "number of boolean vars:  " + numOfBooleans,
         "number of intEq vars:    " + numOfIntEquals,
         "number of intAdd vars:   " + numOfIntAdds,
-        "number of unused vars:   " + unusedVariables.size(),
         "number of all vars:      " + allVars.size(),
+        "number of unused vars:   " + unusedVariables.size(),
+        "number of unused fields: " + unusedFields.size(),
         "number of intBool partitions:  " + intBool.size(),
         "number of intEq partitions:    " + intEq.size(),
         "number of intAdd partitions:   " + intAdd.size(),
@@ -243,7 +267,8 @@ public class VariableClassification {
       loopExitConditionVariables = LinkedHashMultimap.create();
       loopExitIncDecConditionVariables = LinkedHashMultimap.create();
 
-      usedVariables = LinkedHashMultimap.create();
+      leftVariables = LinkedHashMultimap.create();
+      rightVariables = LinkedHashMultimap.create();
       unusedVariables = LinkedHashMultimap.create();
 
       leftFields = LinkedHashMultimap.create();
@@ -253,6 +278,12 @@ public class VariableClassification {
       intBoolPartitions = new HashSet<>();
       intEqualPartitions = new HashSet<>();
       intAddPartitions = new HashSet<>();
+
+      leftFieldsCollectingVisitor = new LeftFieldsCollectingVisitor();
+      rightFieldsCollectingVisitor = new RightFieldsCollectingVisitor();
+
+      leftVariablesCollectingVisitor = new LeftVariablesCollectingVisitor();
+      rightVariablesCollectingVisitor = new RightVariablesCollectingVisitor();
 
       // fill maps
       collectVars();
@@ -390,6 +421,12 @@ public class VariableClassification {
    * All variables, that may be assigned, but never read.
    * There is no read-access to the memory-location of these variables.
    * The variables are returned as a collection of (functionName, varNames).
+   * <p>
+   * <strong>
+   * Note: the collection includes all variables, including pointers, arrays and structures, i.e.
+   *       non-Int variables.
+   * </strong>
+   * </p>
    */
   public Multimap<String, String> getUnusedVariables() {
     build();
@@ -397,10 +434,41 @@ public class VariableClassification {
   }
 
   /**
-   * All fields, that may be assigned, but never read.
-   * There is no read-access to the memory-location of the field of the type.
+   * All variables that are read somewhere.
+   * The variables are returned as a collection of (functionName, varNames).
+   * <p>
+   * <strong>
+   * Note: the collection includes all variables, including pointers, arrays and structures, i.e.
+   *       non-Int variables.
+   * </strong>
+   * </p>
    */
-  public Multimap<CType, String> getUnusedFields() {
+  public Multimap<String, String> getUsedVariables() {
+    build();
+    return rightVariables;
+  }
+
+  /**
+   * All fields that are read somewhere
+   * explicitly through either dot (.) or arrow (->) operator.
+   * There is explicit read access to the memory location of the field of the type.
+   *
+   * @return A collection of (CCompositeType, fieldName) mappings.
+   */
+  public Multimap<CCompositeType, String> getUsedFields() {
+    build();
+    return rightFields;
+  }
+
+  /**
+   * All fields that are written somewhere
+   * (explicitly with dot (.), arrow (->) operators or designated initializers), but
+   * are never read.
+   * There is no explicit read access to the memory location of the field of the type.
+   *
+   * @return A collection of (CCompositeType, fieldName) mappings.
+   */
+  public Multimap<CCompositeType, String> getUnusedFields() {
     build();
     return unusedFields;
   }
@@ -414,7 +482,7 @@ public class VariableClassification {
     return loopExitConditionVariables;
   }
 
-  /** This function returns a collection of (functionName, varNames).
+  /** This function returns a collection of (functionName, varNamess).
    * This collection contains all vars. */
   public Multimap<String, String> getAllVars() {
     build();
@@ -544,22 +612,39 @@ public class VariableClassification {
           intAddVars.put(function, s);
           intAddPartitions.add(getPartitionForVar(function, s));
         }
-
-        // we define: unusedVars == allVars without usedVars
-        if (!usedVariables.containsEntry(function, s)) {
-          unusedVariables.put(function, s);
-        }
-
       }
     }
 
-    // leftField without rightFields
-    for (final CType t : leftFields.keySet()) {
+    // leftFields without rightFields
+    for (final CCompositeType t : leftFields.keySet()) {
       for (final String field : leftFields.get(t)) {
         if (!rightFields.containsEntry(t, field)) {
           unusedFields.put(t, field);
         }
       }
+    }
+
+    // we define: unusedVars == leftVars without rightVars
+    for (final String function : leftVariables.keySet()) {
+      for (final String variable : leftVariables.get(function)) {
+        if (!rightVariables.containsEntry(function, variable)) {
+          unusedVariables.put(function, variable);
+        }
+      }
+    }
+  }
+
+  private static CCompositeType canonizeCompositeType(CCompositeType compositeType) {
+    compositeType = compositeType.getCanonicalType();
+    // Currently we don't pay attention to possible const and volatile modifiers
+    if (compositeType.isConst() || compositeType.isVolatile()) {
+      return new CCompositeType(false,
+                                false,
+                                compositeType.getKind(),
+                                compositeType.getMembers(),
+                                compositeType.getName());
+    } else {
+      return compositeType;
     }
   }
 
@@ -574,7 +659,6 @@ public class VariableClassification {
       VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
       Multimap<String, String> vars = exp.accept(dcv);
       if (vars != null) {
-        usedVariables.putAll(vars);
         dependencies.addAll(vars, dcv.getValues(), edge, 0);
       }
 
@@ -582,6 +666,8 @@ public class VariableClassification {
       exp.accept(new IntEqualCollectingVisitor(pre));
       exp.accept(new IntAddCollectingVisitor(pre));
 
+      exp.accept(rightVariablesCollectingVisitor);
+      exp.accept(rightFieldsCollectingVisitor);
       break;
     }
 
@@ -684,10 +770,14 @@ public class VariableClassification {
 
 
   private void handleInitializer(final CDeclarationEdge edge,
-      final CInitializer initializer, final CFANode pre,
-      final CType pType, final CType pParentType) {
+                                 final CInitializer initializer,
+                                 final CFANode pre,
+                                 final CType pType,
+                                 final CType pParentType) {
 
-    if (initializer == null) { return; }
+    if (initializer == null) {
+      return;
+    }
 
     if (initializer instanceof CInitializerList) {
 
@@ -697,8 +787,8 @@ public class VariableClassification {
         assert tList.size() >= iList.size();
 
         for (int i = 0; i < iList.size(); i++) {
-          handleInitializer(edge, iList.get(i), pre,
-              tList.get(i).getType().getCanonicalType(), pType);
+          handleInitializer(
+            edge, iList.get(i), pre, tList.get(i).getType().getCanonicalType(), pType);
         }
       }
 
@@ -709,31 +799,25 @@ public class VariableClassification {
       for (final CDesignator d : ldi) {
         if (d instanceof CFieldDesignator) {
           assert pParentType != null;
-          leftFields.put(pParentType, ((CFieldDesignator) d).getFieldName());
+          leftFields.put(canonizeCompositeType((CCompositeType) pParentType), ((CFieldDesignator) d).getFieldName());
         } else if (d instanceof CArrayDesignator || d instanceof CArrayRangeDesignator) {
           // ignore
         } else {
-          throw new AssertionError("unhandled CDesignator: " + d + "  " + d.getClass());
+          throw new AssertionError("Unhandled CDesignator: " + d + "  " + d.getClass());
         }
       }
 
       final CInitializer rhs = di.getRightHandSide();
       if (rhs instanceof CInitializerExpression) {
-        final VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
-        /* Multimap<String, String> vars = */((CInitializerExpression) rhs).getExpression().accept(dcv);
-        // this ignores normal variables, we only look for fields
-
+        ((CInitializerExpression) rhs).getExpression().accept(rightFieldsCollectingVisitor);
       } else {
-        throw new AssertionError("unhandled assignment: " + edge.getRawStatement());
+        throw new AssertionError("Unhandled assignment: " + edge.getRawStatement());
       }
 
     } else if (initializer instanceof CInitializerExpression) {
-      final VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
-      /* Multimap<String, String> vars = */((CInitializerExpression) initializer).getExpression().accept(dcv);
-      // this ignores normal variables, we only look for fields
-
+      ((CInitializerExpression) initializer).getExpression().accept(rightFieldsCollectingVisitor);
     } else {
-      throw new AssertionError("unhandled CInitializer: " + initializer + "  " + initializer.getClass());
+      throw new AssertionError("Unhandled CInitializer: " + initializer + "  " + initializer.getClass());
     }
   }
 
@@ -754,10 +838,8 @@ public class VariableClassification {
 
     dependencies.addVar(function, varName);
 
-    if (lhs instanceof CFieldReference) {
-      final CFieldReference fr = (CFieldReference) lhs;
-      leftFields.put(fr.getFieldOwner().getExpressionType().getCanonicalType(), fr.getFieldName());
-    }
+    lhs.accept(leftVariablesCollectingVisitor);
+    lhs.accept(leftFieldsCollectingVisitor);
 
     if (rhs instanceof CExpression) {
       handleExpression(edge, ((CExpression) rhs), varName, function);
@@ -815,13 +897,18 @@ public class VariableClassification {
         VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
         Multimap<String, String> vars = param.accept(dcv);
         if (vars != null) {
-          usedVariables.putAll(vars);
           dependencies.addAll(vars, dcv.getValues(), edge, i);
         }
 
         param.accept(new BoolCollectingVisitor(pre));
         param.accept(new IntEqualCollectingVisitor(pre));
         param.accept(new IntAddCollectingVisitor(pre));
+
+        // See the comment for treatOccurrencesInExternalFunctionCallsAsUsed
+        if (treatOccurrencesInExternalFunctionCallsAsUsed) {
+          param.accept(rightVariablesCollectingVisitor);
+          param.accept(rightFieldsCollectingVisitor);
+        }
       }
     }
   }
@@ -867,6 +954,9 @@ public class VariableClassification {
       String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
       dependencies.add(innerFunctionName, FUNCTION_RETURN_VARIABLE, function, varName);
 
+      lhs.accept(leftVariablesCollectingVisitor);
+      lhs.accept(leftFieldsCollectingVisitor);
+
       // f(); without assignment
     } else if (statement instanceof CFunctionCallStatement) {
       // next line is not necessary, but we do it for completeness, TODO correct?
@@ -891,8 +981,6 @@ public class VariableClassification {
     Multimap<String, String> vars = exp.accept(dcv);
     if (vars == null) {
       vars = HashMultimap.create(1, 1);
-    } else {
-      usedVariables.putAll(vars);
     }
 
     vars.put(function, varName);
@@ -909,6 +997,9 @@ public class VariableClassification {
     IntAddCollectingVisitor icv = new IntAddCollectingVisitor(pre);
     Multimap<String, String> possibleIntAddVars = exp.accept(icv);
     handleResult(varName, function, possibleIntAddVars, nonIntAddVars);
+
+    exp.accept(rightVariablesCollectingVisitor);
+    exp.accept(rightFieldsCollectingVisitor);
   }
 
   /** adds the variable to notPossibleVars, if possibleVars is null.  */
@@ -1080,9 +1171,6 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CFieldReference exp) {
-      // this expression-visitor only visits right-sides, so we can directly process the field-access
-      rightFields.put(exp.getFieldOwner().getExpressionType().getCanonicalType(), exp.getFieldName());
-
       String varName = exp.toASTString(); // TODO "(*p).x" vs "p->x"
       String function = isGlobal(exp) ? null : predecessor.getFunctionName();
       HashMultimap<String, String> ret = HashMultimap.create(1, 1);
@@ -1462,6 +1550,208 @@ public class VariableClassification {
       if (inner == null) { return null; }
 
       nonIntAddVars.putAll(inner);
+      return null;
+    }
+  }
+
+  private class LeftFieldsCollectingVisitor extends DefaultCExpressionVisitor<Void, RuntimeException> {
+
+    @Override
+    public Void visit(final CArraySubscriptExpression e) {
+      e.getArrayExpression().accept(this);
+      return e.getSubscriptExpression().accept(rightFieldsCollectingVisitor);
+    }
+
+    @Override
+    public Void visit(final CFieldReference e) {
+      CType fieldOwnerType = e.getFieldOwner().getExpressionType().getCanonicalType();
+      if (fieldOwnerType instanceof CPointerType) {
+        fieldOwnerType = ((CPointerType) fieldOwnerType).getType();
+      }
+      assert fieldOwnerType instanceof CCompositeType : "Field owner sould have composite type";
+      leftFields.put(canonizeCompositeType((CCompositeType) fieldOwnerType), e.getFieldName());
+      if (e.isPointerDereference()) {
+        return e.getFieldOwner().accept(rightFieldsCollectingVisitor);
+      } else {
+        return e.getFieldOwner().accept(this);
+      }
+    }
+
+    @Override
+    public Void visit(final CPointerExpression e) {
+      return e.getOperand().accept(rightFieldsCollectingVisitor);
+    }
+
+    @Override
+    public Void visit(final CComplexCastExpression e) {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public Void visit(final CCastExpression e) {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public Void visit(final CIdExpression e) {
+      return null;
+    }
+
+    @Override
+    protected Void visitDefault(final CExpression e)  {
+      throw new IllegalArgumentException("The expression should not occur in the left hand side");
+    }
+  }
+
+  private class RightFieldsCollectingVisitor extends DefaultCExpressionVisitor<Void, RuntimeException> {
+
+    @Override
+    public Void visit(final CArraySubscriptExpression e) {
+      e.getArrayExpression().accept(this);
+      return e.getSubscriptExpression().accept(this);
+    }
+
+    @Override
+    public Void visit(final CFieldReference e) {
+      CType fieldOwnerType = e.getFieldOwner().getExpressionType().getCanonicalType();
+      if (fieldOwnerType instanceof CPointerType) {
+        fieldOwnerType = ((CPointerType) fieldOwnerType).getType();
+      }
+      assert fieldOwnerType instanceof CCompositeType : "Field owner sould have composite type";
+      rightFields.put(canonizeCompositeType((CCompositeType) fieldOwnerType), e.getFieldName());
+      return e.getFieldOwner().accept(this);
+    }
+
+    @Override
+    public Void visit(final CBinaryExpression e) {
+      e.getOperand1().accept(this);
+      return e.getOperand2().accept(this);
+    }
+
+
+    @Override
+    public Void visit(final CUnaryExpression e) {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public Void visit(final CPointerExpression e) {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public Void visit(final CComplexCastExpression e) {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public Void visit(final CCastExpression e) {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    protected Void visitDefault(final CExpression e)  {
+      return null;
+    }
+  }
+
+  private void addUsedVariable(final Multimap<String, String> variableSet, final String qualifiedName) {
+    final int position = qualifiedName.indexOf(SCOPE_SEPARATOR);
+    variableSet.put(position >= 0 ? qualifiedName.substring(0, position) : null,
+                    position >= 0 ? qualifiedName.substring(position + SCOPE_SEPARATOR.length()) :qualifiedName);
+  }
+
+  private class LeftVariablesCollectingVisitor extends DefaultCExpressionVisitor<Void, RuntimeException> {
+    @Override
+    public Void visit(final CArraySubscriptExpression e) {
+      e.getArrayExpression().accept(this);
+      return e.getSubscriptExpression().accept(rightVariablesCollectingVisitor);
+    }
+
+    @Override
+    public Void visit(final CFieldReference e) {
+      if (e.isPointerDereference()) {
+        return e.getFieldOwner().accept(rightVariablesCollectingVisitor);
+      } else {
+        return e.getFieldOwner().accept(this);
+      }
+    }
+
+    @Override
+    public Void visit(final CPointerExpression e) {
+      return e.getOperand().accept(rightVariablesCollectingVisitor);
+    }
+
+    @Override
+    public Void visit(final CComplexCastExpression e) {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public Void visit(final CCastExpression e) {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public Void visit(final CIdExpression e) {
+      addUsedVariable(leftVariables, e.getDeclaration().getQualifiedName());
+      return null;
+    }
+
+    @Override
+    protected Void visitDefault(final CExpression e)  {
+      throw new IllegalArgumentException("The expression should not occur in the left hand side");
+    }
+  }
+
+  private class RightVariablesCollectingVisitor extends DefaultCExpressionVisitor<Void, RuntimeException> {
+
+    @Override
+    public Void visit(final CArraySubscriptExpression e) {
+      e.getArrayExpression().accept(this);
+      return e.getSubscriptExpression().accept(this);
+    }
+
+    @Override
+    public Void visit(final CFieldReference e) {
+      return e.getFieldOwner().accept(this);
+    }
+
+    @Override
+    public Void visit(final CBinaryExpression e) {
+      e.getOperand1().accept(this);
+      return e.getOperand2().accept(this);
+    }
+
+
+    @Override
+    public Void visit(final CUnaryExpression e) {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public Void visit(final CPointerExpression e) {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public Void visit(final CComplexCastExpression e) {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public Void visit(final CCastExpression e) {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public Void visit(final CIdExpression e) {
+      addUsedVariable(rightVariables, e.getDeclaration().getQualifiedName());
+      return null;
+    }
+
+    @Override
+    protected Void visitDefault(final CExpression e)  {
       return null;
     }
   }
