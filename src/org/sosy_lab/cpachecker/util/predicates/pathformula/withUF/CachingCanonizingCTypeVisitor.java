@@ -210,7 +210,7 @@ public class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, Ru
     } else {
       CCompositeType canonicalType = t.getCanonicalType();
       // This prevents infinite recursion
-      if (typeVisitor.ignoreConst && t.isConst() || typeVisitor.ignoreVolatile && !t.isVolatile()) {
+      if (typeVisitor.ignoreConst && t.isConst() || typeVisitor.ignoreVolatile && t.isVolatile()) {
         canonicalType = new CCompositeType(!typeVisitor.ignoreConst && !canonicalType.isConst(),
                                            !typeVisitor.ignoreVolatile && !canonicalType.isVolatile(),
                                            canonicalType.getKind(),

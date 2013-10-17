@@ -274,8 +274,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   boolean isUsedVariable(final CType type, final String function, final String name) {
     return !variableClassification.isPresent() ||
-           type instanceof CArrayType ||
-           type instanceof CCompositeType ||
            RETURN_VARIABLE_NAME.equals(name) ||
            variableClassification.get().getUsedVariables().containsEntry(function, name);
   }
@@ -724,6 +722,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                 ssa,
                                                 constraints,
                                                 pts));
+            } else if (rvalue instanceof List) {
+              rvalueIterator.next();
             }
             if (lvalueCompositeType.getKind() == ComplexTypeKind.STRUCT) {
               offset += pts.getSize(memberDeclaration.getType());
@@ -956,9 +956,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     CType declarationType = PointerTargetSet.simplifyType(declaration.getType());
 
-    if (!isUsedVariable(declarationType,
-                        declarationEdge.getPredecessor().getFunctionName(),
-                        declaration.getName())) {
+    if (!isUsedVariable(declarationType, declaration.getQualifiedName())) {
       // The variable is unused
       logDebug("Ignoring declaration of unused variable", declarationEdge);
       return bfmgr.makeBoolean(true);
