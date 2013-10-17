@@ -26,6 +26,8 @@ import logging
 import os
 import time
 import xml.etree.ElementTree as ET
+import result
+import sys
 
 from datetime import date
 
@@ -128,8 +130,8 @@ class Benchmark:
         toolModule = "benchmark.tools." + toolName
         try:
             self.tool = __import__(toolModule, fromlist=['Tool']).Tool()
-        except ImportError:
-            sys.exit('Unsupported tool "{0}" specified.'.format(toolName))
+        except ImportError as ie:
+            sys.exit('Unsupported tool "{0}" specified. ImportError: {1}'.format(toolName, ie))
         except AttributeError:
             sys.exit('The module for "{0}" does not define the necessary class.'.format(toolName))
 
@@ -467,8 +469,8 @@ class Run():
         # This should not be counted, so we overwrite the result with TIMEOUT
         # here. if this is the case.
         # However, we don't want to forget more specific results like SEGFAULT,
-        # so we do this only if the result is a "normal" one like SAFE.
-        if self.status in ['SAFE', 'UNSAFE', 'UNKNOWN'] and isTimeout:
+        # so we do this only if the result is a "normal" one like TRUE.
+        if self.status in [result.STR_TRUE, result.STR_FALSE, result.STR_UNKNOWN] and isTimeout:
             self.status = "TIMEOUT"
         if returnsignal == 9 \
                 and MEMLIMIT in rlimits \
