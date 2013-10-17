@@ -35,10 +35,14 @@ STR_PROP_MEMTRACK = 'false(valid-memtrack)'
 
 # string searched in filenames to determine correct or incorrect status.
 # use lower case! the dict contains assignments 'filename' --> 'status'
-FALSE_SUBSTRINGS = {'_false-valid-deref':    STR_PROP_DEREF,
+PROP_SUBSTRINGS ={'_false-valid-deref':   STR_PROP_DEREF,
                   '_false-valid-free':     STR_PROP_FREE,
-                  '_false-valid-memtrack': STR_PROP_MEMTRACK,
-                  '_unsafe':               STR_FALSE, # deprecated, maybe removed soon
+                  '_false-valid-memtrack': STR_PROP_MEMTRACK
+                  }
+
+assert all('_false' in k for k in PROP_SUBSTRINGS.keys())
+
+FALSE_SUBSTRINGS={'_unsafe':               STR_FALSE, # deprecated, maybe removed soon
                   '_false':                STR_FALSE
                   }
 
@@ -76,6 +80,10 @@ def statusOfFile(filename):
     This function returns the status of a file, 
     this is the property in the filename.
     """
+    # first check PROP, then check FALSE, because it is a substring of PROP
+    for key in PROP_SUBSTRINGS:
+        if key in filename.lower():
+            return PROP_SUBSTRINGS[key]
     for key in FALSE_SUBSTRINGS:
         if key in filename.lower():
             return FALSE_SUBSTRINGS[key]
