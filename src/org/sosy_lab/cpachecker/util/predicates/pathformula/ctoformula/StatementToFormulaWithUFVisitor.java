@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -327,6 +328,24 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   public BooleanFormula visit(final CAssignment e) throws UnrecognizedCCodeException {
     final CRightHandSide rhs = e.getRightHandSide();
     final CExpression lhs = e.getLeftHandSide();
+
+    // Optimization for unused variables and fields
+    if (lhs instanceof CIdExpression &&
+        !conv.isUsedVariable(lhs.getExpressionType(), ((CIdExpression) lhs).getDeclaration().getQualifiedName())) {
+      return conv.bfmgr.makeBoolean(true);
+    }
+    if (lhs instanceof CFieldReference) {
+      CType fieldOwnerType = PointerTargetSet.simplifyType(((CFieldReference) lhs).getFieldOwner().getExpressionType());
+      if (fieldOwnerType instanceof CPointerType) {
+        fieldOwnerType = ((CPointerType) fieldOwnerType).getType();
+      }
+      assert fieldOwnerType instanceof CCompositeType : "Field owner should have composite type";
+      if (!conv.isUsedField((CCompositeType) fieldOwnerType, ((CFieldReference) lhs).getFieldName(), pts)) {
+        return conv.bfmgr.makeBoolean(true);
+      }
+    }
+
+
     final CType lhsType = PointerTargetSet.simplifyType(lhs.getExpressionType());
     final CType rhsType = rhs != null ? PointerTargetSet.simplifyType(rhs.getExpressionType()) :
                             PointerTargetSet.CHAR;
@@ -743,7 +762,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         return conv.makeFreshVariable(functionName, returnType, ssa, pts);
       } else if ((conv.options.isSuccessfulAllocFunctionName(functionName) ||
                   conv.options.isSuccessfulZallocFunctionName(functionName)) &&
-                  parameters.size() == 1) {
+                  parameters.size() >= 1) {
         final CExpression parameter = parameters.get(0);
         Integer size = null;
         final CType newType;
@@ -801,7 +820,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         }
       } else if ((conv.options.isMemoryAllocationFunction(functionName) ||
                   conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) &&
-                  parameters.size() == 1) {
+                  parameters.size() >= 1) {
         final String delegateFunctionName = !conv.options.isMemoryAllocationFunctionWithZeroing(functionName) ?
                                               conv.options.getSuccessfulAllocFunctionName() :
                                               conv.options.getSuccessfulZallocFunctionName();
