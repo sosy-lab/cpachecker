@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.andersen;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -56,6 +58,8 @@ import org.sosy_lab.cpachecker.cpa.andersen.util.ComplexConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.SimpleConstraint;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+
+import com.google.common.collect.Iterables;
 
 @Options(prefix = "cpa.pointerA")
 public class AndersenTransferRelation implements TransferRelation {
@@ -95,6 +99,18 @@ public class AndersenTransferRelation implements TransferRelation {
     case BlankEdge:
       successor = andersenState.clone();
       break;
+    case MultiEdge:
+      successor = andersenState;
+      Iterator<CFAEdge> edgeIterator = ((MultiEdge) pCfaEdge).iterator();
+      while (pElement != null && edgeIterator.hasNext()) {
+        successor = Iterables.getFirst(getAbstractSuccessors(successor, pPrecision, edgeIterator.next()), null);
+      }
+      break;
+
+    case CallToReturnEdge:
+    case FunctionCallEdge:
+    case ReturnStatementEdge:
+    case FunctionReturnEdge:
     default:
       printWarning(pCfaEdge);
     }
