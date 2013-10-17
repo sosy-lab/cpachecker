@@ -95,6 +95,11 @@ def getResultCategory(filename, status):
     that shows the relation between status and file.
     '''
     status = status.lower()
+
+    # for backwards-compatibility only
+    if status == 'safe': status = STR_TRUE
+    if status == 'unsafe': status = STR_FALSE
+
     fileStatus = statusOfFile(filename)
 
     if status == fileStatus:
