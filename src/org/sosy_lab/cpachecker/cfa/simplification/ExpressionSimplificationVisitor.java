@@ -129,8 +129,13 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       return Pair.of((CExpression) newExpr, null);
     }
 
-    // TODO cast the number
-    return pair;
+    final long castedValue = ExplicitExpressionValueVisitor.castCValue(
+        pair.getSecond().longValue(), expr.getExpressionType(), machineModel, logger, null);
+
+    return Pair.<CExpression, Number> of(
+        new CIntegerLiteralExpression(expr.getFileLocation(),
+            expr.getExpressionType(), BigInteger.valueOf(castedValue)),
+        castedValue);
   }
 
   @Override
@@ -152,7 +157,6 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
 
   @Override
   public Pair<CExpression, Number> visit(CIntegerLiteralExpression expr) {
-    // TODO machinemodel
     return Pair.<CExpression, Number> of(expr, expr.asLong());
   }
 
