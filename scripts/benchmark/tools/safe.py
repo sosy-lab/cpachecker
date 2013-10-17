@@ -1,4 +1,5 @@
 import benchmark.tools.template
+import benchmark.result as result
 
 class Tool(benchmark.tools.template.BaseTool):
     """
@@ -16,4 +17,4 @@ class Tool(benchmark.tools.template.BaseTool):
         return [executable]
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        return 'SAFE'
+        return result.STR_TRUE

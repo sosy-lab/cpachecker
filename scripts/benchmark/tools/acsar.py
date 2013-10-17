@@ -4,6 +4,7 @@ import subprocess
 import benchmark.filewriter as filewriter
 import benchmark.util as Util
 import benchmark.tools.template
+import benchmark.result as result
 
 class Tool(benchmark.tools.template.BaseTool):
 
@@ -59,13 +60,13 @@ class Tool(benchmark.tools.template.BaseTool):
             status = "KILLED"
 
         elif "Error Location <<ERROR_LOCATION>> is not reachable" in output:
-            status = "SAFE"
+            status = result.STR_TRUE
 
         elif "Error Location <<ERROR_LOCATION>> is reachable via the following path" in output:
-            status = "UNSAFE"
+            status = result.STR_FALSE
 
         else:
-            status = "UNKNOWN"
+            status = result.STR_UNKNOWN
 
         # delete tmp-files
         os.remove(self.prepSourcefile)
