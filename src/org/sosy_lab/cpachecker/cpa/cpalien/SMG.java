@@ -479,10 +479,28 @@ public class SMG {
     return bs;
   }
 
+  /**
+   * Checks, whether a {@link SMGEdgePointsTo} edge exists with the
+   * given value as source.
+   *
+   *
+   * @param value the source of the {@link SMGEdgePointsTo} edge.
+   * @return true, if the {@link SMGEdgePointsTo} edge with the source
+   * {@link value} exists, otherwise false.
+   */
   public final boolean isPointer(Integer value) {
     return this.pt_edges.containsKey(value);
   }
 
+
+  /**
+   * Returns the {@link SMGEdgePointsTo} edge with the
+   * given value as source.
+   *
+   * @param value the source of the {@link SMGEdgePointsTo} edge.
+   * @return the {@link SMGEdgePointsTo} edge with the
+   * {@link value} as source.
+   */
   public final SMGEdgePointsTo getPointer(Integer value) {
     return this.pt_edges.get(value);
   }

@@ -102,10 +102,6 @@ public class SMGExpressionEvaluator {
    */
  public class LValueAssignmentVisitor extends AddressVisitor {
 
-    private final CFAEdge cfaEdge = getCfaEdge();
-    @SuppressWarnings("unused")
-    private final SMGState smgState = getSmgState();
-
     public LValueAssignmentVisitor(CFAEdge pEdge, SMGState pSmgState) {
       super(pEdge, pSmgState);
     }
@@ -113,7 +109,7 @@ public class SMGExpressionEvaluator {
     @Override
     public SMGAddress visit(CUnaryExpression lValue) throws CPATransferException {
 
-      throw new UnrecognizedCCodeException(lValue.toASTString() + " is not an lValue", cfaEdge, lValue);
+      throw new UnrecognizedCCodeException(lValue.toASTString() + " is not an lValue", getCfaEdge(), lValue);
     }
 
     @Override
@@ -131,12 +127,11 @@ public class SMGExpressionEvaluator {
 
     /* Points to the start of this struct or union.
      *
-     * Note that whether this field Reference is a pointer dereference a->b
-     * or not a.b is indirectly resolved by whether the type of a is
+     * Note that whether this field Reference is a pointer dereference x->b
+     * or not x.b is indirectly resolved by whether the type of x is
      * a pointer type, in which case its expression is evaluated, or
      * a struct type, in which case the address of the expression
-     * similar to &a is evaluated. The type check that if a is a pointer,
-     * it has to point to a struct, is NOT! performed.
+     * similar is evaluated.
      */
 
     SMGAddressValue fieldOwnerAddress = evaluateAddress(smgState, cfaEdge, fieldOwner);
@@ -195,11 +190,17 @@ public class SMGExpressionEvaluator {
 
   private SMGField getField(CFAEdge edge, CType ownerType, String fieldName) throws UnrecognizedCCodeException {
 
+    //TODO What if .getRealType = null ? Also, recursion unneccessary
+
     if (ownerType instanceof CElaboratedType) {
       return getField(edge, ((CElaboratedType) ownerType).getRealType(), fieldName);
     } else if (ownerType instanceof CCompositeType) {
       return getField(edge, (CCompositeType)ownerType, fieldName);
     } else if (ownerType instanceof CPointerType) {
+
+      /* We do not explicitly transform x->b,
+         so when we try to get the field b the ownerType of x
+         is a pointer type.*/
 
       CType type = ((CPointerType) ownerType).getType();
 
@@ -249,8 +250,6 @@ public class SMGExpressionEvaluator {
 
   public SMGExplicitValue evaluateExplicitValue(SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue)
       throws CPATransferException {
-
-
 
     ExplicitValueVisitor visitor = new ExplicitValueVisitor(smgState, cfaEdge);
     SMGExplicitValue value = rValue.accept(visitor);
@@ -395,6 +394,12 @@ public class SMGExpressionEvaluator {
     @Override
     public SMGAddress visit(CPointerExpression pointerExpression) throws CPATransferException {
 
+      /*
+       * The address of a pointer expression (*x) is defined as the
+       * evaluation of the pointer x. This is consistent with the meaning
+       * of a pointer expression in the left hand side of an assignment *x = ...
+       */
+
       CExpression operand = pointerExpression.getOperand();
 
       assert operand.getExpressionType().getCanonicalType() instanceof CPointerType;
@@ -482,6 +487,7 @@ public class SMGExpressionEvaluator {
       case MINUS:
       case NOT:
       case TILDE:
+      case PLUS:
       default:
         // Can't evaluate these Addresses
         // TODO we can, when the pointer points to the Null Object
@@ -585,8 +591,6 @@ public class SMGExpressionEvaluator {
 
       if (lVarIsAddress == rVarIsAddress) {
         return SMGUnknownValue.getInstance();
-        // TODO throw exception, result type of expression is not a pointer
-
       } else if (lVarIsAddress) {
         address = lVarInBinaryExp;
         pointerOffset = rVarInBinaryExp;
@@ -596,7 +600,6 @@ public class SMGExpressionEvaluator {
         pointerOffset = lVarInBinaryExp;
         addressType = (CPointerType) rVarInBinaryExpType;
       } else {
-        // TODO throw Exception, no Pointer
         return SMGUnknownValue.getInstance();
       }
 
@@ -718,7 +721,9 @@ public class SMGExpressionEvaluator {
 
   SMGAddressValue createAddress(SMGEdgePointsTo pEdge) {
 
-    if (pEdge == null) { return SMGUnknownValue.getInstance(); }
+    if (pEdge == null) {
+      return SMGUnknownValue.getInstance();
+    }
 
     return SMGKnownAddVal.valueOf(pEdge.getValue(), pEdge.getObject(), pEdge.getOffset());
   }
@@ -732,6 +737,24 @@ public class SMGExpressionEvaluator {
     return createAddress(pNewState, pAddress.getObject(), pAddress.getOffset());
   }
 
+  /**
+   * Is given a symbolic Value, looks into the smg to determine if the symbolic
+   * value represents a pointer, and transforms it into a {@link SMGAddressValue}
+   * containing the symbolic value that represents the pointer as well as the
+   * address the pointer is pointing to.
+   *
+   * Because all values in C represent an
+   * address, and can e cast to a pointer, the method returns a instance of
+   * {@link SMGUnknownValue} if the symbolic value does not represent a pointer
+   * in the smg.
+   *
+   *
+   *
+   * @param pSmgState This contains the SMG.
+   * @param pAddressValue the symbolic value that may represent a pointer in the smg
+   * @return The address, otherwise unknown
+   * @throws SMGInconsistentException thrown if the symbolic address is misinterpreted as a pointer.
+   */
    SMGAddressValue getAddressFromSymbolicValue(SMGState pSmgState,
       SMGSymbolicValue pAddressValue) throws SMGInconsistentException {
 
@@ -742,7 +765,6 @@ public class SMGExpressionEvaluator {
     if (pAddressValue.isUnknown()) {
       return SMGUnknownValue.getInstance();
     }
-
 
     if(!pSmgState.isPointer(pAddressValue.getAsInt())) {
       return SMGUnknownValue.getInstance();
@@ -825,7 +847,6 @@ public class SMGExpressionEvaluator {
 
       if (lVarIsAddress == rVarIsAddress) {
         return SMGAddress.UNKNOWN;
-        // TODO throw exception, result is no CArrayType
       } else if (lVarIsAddress) {
         address = lVarInBinaryExp;
         arrayOffset = rVarInBinaryExp;
@@ -835,7 +856,6 @@ public class SMGExpressionEvaluator {
         arrayOffset = lVarInBinaryExp;
         addressType = rVarInBinaryExpType;
       } else {
-        // TODO throw Exception, result is no CArrayType
         return SMGAddress.UNKNOWN;
       }
 
@@ -848,6 +868,7 @@ public class SMGExpressionEvaluator {
 
     @Override
     public SMGAddress visit(CCastExpression cast) throws CPATransferException {
+      //TODO Bug, can introduce non array type in visitor
       return cast.getOperand().accept(this);
     }
 

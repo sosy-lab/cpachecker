@@ -531,7 +531,6 @@ public class CLangSMG extends SMG {
     Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>> objectPTEdges = new HashSet<>();
 
     for(SMGEdgeHasValue object2HVEdge : object2HVEdges) {
-     //TODO needs hashCode to work
       if(!object1HVEdges.contains(object2HVEdge)) {
         return false;
       }

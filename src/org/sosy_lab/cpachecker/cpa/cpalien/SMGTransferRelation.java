@@ -176,8 +176,7 @@ public class SMGTransferRelation implements TransferRelation {
             "__VERIFIER_nondet_bool"
         }));
 
-    private void dumpSMGPlot(String name, SMGState currentState, String location)
-    {
+    private void dumpSMGPlot(String name, SMGState currentState, String location) {
       if (exportSMGFilePattern != null && currentState != null) {
         if (name == null) {
           if (currentState.getPredecessor() == null) {
@@ -542,7 +541,6 @@ public class SMGTransferRelation implements TransferRelation {
 
     logger.log(Level.FINEST, "Handling function return");
 
-
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
 
@@ -571,7 +569,6 @@ public class SMGTransferRelation implements TransferRelation {
 
       LValueAssignmentVisitor visitor = expressionEvaluator.getLValueAssignmentVisitor(functionReturnEdge, tmpState);
 
-
       address = lValue.accept(visitor);
 
       if (!address.isUnknown()) {
@@ -585,6 +582,8 @@ public class SMGTransferRelation implements TransferRelation {
         int offset = address.getOffset().getAsInt();
 
         assignFieldToState(newState, functionReturnEdge, object, offset, lValueType, rValue, rValueType);
+      } else {
+        //TODO missingInformation, exception
       }
     }
 

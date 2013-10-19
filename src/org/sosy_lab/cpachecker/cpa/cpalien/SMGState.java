@@ -54,6 +54,7 @@ public class SMGState implements AbstractQueryableState {
 
   private SMGRuntimeCheck runtimeCheckLevel;
 
+  //TODO These flags are not enough, they should contain more about the nature of the error.
   private boolean invalidWrite = false;
   private boolean invalidRead = false;
 
@@ -304,11 +305,9 @@ public class SMGState implements AbstractQueryableState {
    * Constant.
    *
    * @param pValue A value for which to return the Points-To edge
-   * @return A Points-To edge leading from the passed value. The value needs to be
-   * a pointer, i.e. it needs to have that edge. If it does not have it, the method raises
-   * an exception.
+   * @return True, if the smg contains a {@link SMGEdgePointsTo} edge
+   * with {@link pValue} as source, false otherwise.
    *
-   * @throws SMGInconsistentException When the value passed does not have a Points-To edge.
    */
   public boolean isPointer(Integer pValue) {
 
@@ -601,6 +600,10 @@ public class SMGState implements AbstractQueryableState {
     }
   }
 
+  /**
+   * Marks that an invalid write operation was performed on this smgState.
+   *
+   */
   public void setInvalidWrite() {
     this.invalidWrite = true;
   }
@@ -920,7 +923,6 @@ public class SMGState implements AbstractQueryableState {
     }
 
     int targetRangeSize = pTargetRangeOffset + copyRange;
-
 
     SMGEdgeHasValueFilter filterSource = new SMGEdgeHasValueFilter();
     filterSource.filterByObject(pSource);
