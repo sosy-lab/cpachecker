@@ -300,6 +300,23 @@ class RunSet:
         self.name = '.'.join(filter(None, names))
         self.fullName = self.benchmark.name + (("." + self.name) if self.name else "")
 
+        # Currently we store logfiles as "basename.log",
+        # so we cannot distinguish sourcefiles in different folder with same basename.
+        # For a 'local benchmark' this causes overriding of logfiles after reading them,
+        # so the result is correct, only the logfile is gone.
+        # For 'cloud-mode' the logfile is overridden before reading it,
+        # so the result will be wrong and every measured value will be missing.
+        if self.shouldBeExecuted():
+            sourcefilesSet = set()
+            for run in self.runs:
+                base = os.path.basename(run.sourcefile)
+                if base in sourcefilesSet:
+                    logging.warning("sourcefile with basename '" + base + 
+                    "' appears twice in runset. This could cause problems with equal logfile-names.")
+                else:
+                    sourcefilesSet.add(base)
+            del sourcefilesSet
+
 
     def shouldBeExecuted(self):
         return not self.benchmark.config.selectedRunDefinitions \
