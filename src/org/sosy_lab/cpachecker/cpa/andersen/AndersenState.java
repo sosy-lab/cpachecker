@@ -47,33 +47,33 @@ public class AndersenState implements AbstractState, Cloneable {
   /**
    * Add a (new) {@link BaseConstraint} to this element.
    *
-   * @param constr {@link BaseConstraint} that should be added.
+   * @param pConstr {@link BaseConstraint} that should be added.
    */
-  AndersenState addConstraint(BaseConstraint constr) {
+  AndersenState addConstraint(BaseConstraint pConstr) {
     AndersenState result = new AndersenState(localConstraintSystem);
-    result.localConstraintSystem.addConstraint(constr);
+    result.localConstraintSystem.addConstraint(pConstr);
     return result;
   }
 
   /**
    * Add a (new) {@link SimpleConstraint} to this element.
    *
-   * @param constr {@link SimpleConstraint} that should be added.
+   * @param pConstr {@link SimpleConstraint} that should be added.
    */
-  AndersenState addConstraint(SimpleConstraint constr) {
+  AndersenState addConstraint(SimpleConstraint pConstr) {
     AndersenState result = new AndersenState(localConstraintSystem);
-    result.localConstraintSystem.addConstraint(constr);
+    result.localConstraintSystem.addConstraint(pConstr);
     return result;
   }
 
   /**
    * Add a (new) {@link ComplexConstraint} to this element.
    *
-   * @param constr {@link ComplexConstraint} that should be added.
+   * @param pConstr {@link ComplexConstraint} that should be added.
    */
-  AndersenState addConstraint(ComplexConstraint constr) {
+  AndersenState addConstraint(ComplexConstraint pConstr) {
     AndersenState result = new AndersenState(localConstraintSystem);
-    result.localConstraintSystem.addConstraint(constr);
+    result.localConstraintSystem.addConstraint(pConstr);
     return result;
   }
 
