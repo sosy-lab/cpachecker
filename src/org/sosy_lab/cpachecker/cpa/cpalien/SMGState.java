@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoin;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoinStatus;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class SMGState implements AbstractQueryableState {
@@ -468,7 +470,11 @@ public class SMGState implements AbstractQueryableState {
    * @return True, if this state is covered by the given state, false otherwise.
    */
   public boolean isLessOrEqual(SMGState reachedState) {
-    // TODO Auto-generated method stub
+    SMGJoin join = new SMGJoin(reachedState.heap, this.heap);
+    if (join.isDefined() &&
+        (join.getStatus() == SMGJoinStatus.LEFT_ENTAIL || join.getStatus() == SMGJoinStatus.EQUAL)){
+      return true;
+    }
     return false;
   }
 
