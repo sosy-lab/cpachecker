@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
 
-class SMGJoinMapTargetAddress {
+final class SMGJoinMapTargetAddress {
   private SMG smg;
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;

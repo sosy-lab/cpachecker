@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 import com.google.common.collect.Iterables;
 
 
-final public class SMGJoinSubSMGs {
+final class SMGJoinSubSMGs {
   static private boolean performChecks = false;
   static public void performChecks(boolean pValue) {
     performChecks = pValue;

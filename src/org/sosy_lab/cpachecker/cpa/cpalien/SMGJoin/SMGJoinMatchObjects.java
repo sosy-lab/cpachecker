@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 
 import com.google.common.collect.Iterators;
 
-class SMGJoinMatchObjects {
+final class SMGJoinMatchObjects {
   private boolean defined = false;
   private SMGJoinStatus status;
 
