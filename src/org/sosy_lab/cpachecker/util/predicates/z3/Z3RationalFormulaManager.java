@@ -27,6 +27,8 @@ import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaMan
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
@@ -62,6 +64,17 @@ public class Z3RationalFormulaManager extends AbstractRationalFormulaManager<Lon
   protected Long makeNumberImpl(long i) {
     long sort = creator.getNumberType();
     return mk_int64(z3context, i, sort);
+  }
+
+  @Override
+  protected Long makeNumberImpl(BigInteger pI) {
+    return makeNumberImpl(pI.toString());
+  }
+
+  @Override
+  protected Long makeNumberImpl(String pI) {
+    long sort = creator.getNumberType();
+    return mk_numeral(z3context, pI, sort);
   }
 
   @Override

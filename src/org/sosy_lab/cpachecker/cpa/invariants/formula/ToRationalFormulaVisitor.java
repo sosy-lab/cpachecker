@@ -110,7 +110,7 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundState,
   private @Nullable RationalFormula evaluate(InvariantsFormula<CompoundState> pFormula, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     CompoundState value = pFormula.accept(this.evaluationVisitor, pEnvironment);
     if (value.isSingleton()) {
-      return this.rfmgr.makeNumber(value.getLowerBound().longValue());
+      return this.rfmgr.makeNumber(value.getLowerBound());
     }
     return null;
   }

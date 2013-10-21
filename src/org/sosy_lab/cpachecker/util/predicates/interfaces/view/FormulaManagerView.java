@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -219,9 +220,7 @@ public class FormulaManagerView {
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeNumber(FormulaType<T> formulaType, long value) {
     Formula t;
-    if (formulaType.isBooleanType()) {
-      t = booleanFormulaManager.makeBoolean(value != 0);
-    } else if (formulaType.isRationalType()) {
+    if (formulaType.isRationalType()) {
       t = rationalFormulaManager.makeNumber(value);
     } else if (formulaType.isBitvectorType()) {
       t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
@@ -231,6 +230,47 @@ public class FormulaManagerView {
 
     return (T) t;
   }
+
+  /**
+   * Make a variable of the given type.
+   * @param formulaType
+   * @param value
+   * @return
+   */
+  @SuppressWarnings("unchecked")
+  public <T extends Formula> T makeNumber(FormulaType<T> formulaType, BigInteger value) {
+    Formula t;
+    if (formulaType.isRationalType()) {
+      t = rationalFormulaManager.makeNumber(value);
+    } else if (formulaType.isBitvectorType()) {
+      t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
+    } else {
+      throw new IllegalArgumentException("Not supported interface");
+    }
+
+    return (T) t;
+  }
+
+  /**
+   * Make a variable of the given type.
+   * @param formulaType
+   * @param value
+   * @return
+   */
+  @SuppressWarnings("unchecked")
+  public <T extends Formula> T makeNumber(FormulaType<T> formulaType, String value) {
+    Formula t;
+    if (formulaType.isRationalType()) {
+      t = rationalFormulaManager.makeNumber(value);
+    } else if (formulaType.isBitvectorType()) {
+      t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
+    } else {
+      throw new IllegalArgumentException("Not supported interface");
+    }
+
+    return (T) t;
+  }
+
   @SuppressWarnings("unchecked")
   public  <T extends Formula> T makeNegate(T pNum) {
     Class<T> clazz = getInterface(pNum);

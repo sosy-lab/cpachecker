@@ -30,6 +30,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -480,6 +482,14 @@ class SmtInterpolEnvironment {
     }
   }
 
+  public Term numeral(BigInteger num) {
+    try {
+      return script.numeral(num);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
   public Term numeral(String num) {
     try {
       return script.numeral(num);
@@ -489,6 +499,14 @@ class SmtInterpolEnvironment {
   }
 
   public Term decimal(String num) {
+    try {
+      return script.decimal(num);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  public Term decimal(BigDecimal num) {
     try {
       return script.decimal(num);
     } catch (SMTLIBException e) {

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -316,7 +317,7 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
   @Override
   public Formula visit(CIntegerLiteralExpression iExp) throws UnrecognizedCCodeException {
     FormulaType<?> t = conv.getFormulaTypeFromCType(iExp.getExpressionType());
-    return conv.fmgr.makeNumber(t, iExp.getValue().longValue());
+    return conv.fmgr.makeNumber(t, iExp.getValue());
   }
 
   @Override
@@ -330,20 +331,18 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     final BigDecimal val = fExp.getValue();
     if (val.scale() <= 0) {
       // actually an integral number
-      return conv.fmgr.makeNumber(t, convertBigDecimalToLong(val, fExp));
+      return conv.fmgr.makeNumber(t, convertBigDecimalToBigInteger(val, fExp));
 
     } else {
       // represent x.y by xy / (10^z) where z is the number of digits in y
       // (the "scale" of a BigDecimal)
 
-      final long numerator;
       BigDecimal n = val.movePointRight(val.scale()); // this is "xy"
-      numerator = convertBigDecimalToLong(n, fExp);
+      BigInteger numerator = convertBigDecimalToBigInteger(n, fExp);
 
-      final long denominator;
       BigDecimal d = BigDecimal.ONE.scaleByPowerOfTen(val.scale()); // this is "10^z"
-      denominator = convertBigDecimalToLong(d, fExp);
-      assert denominator > 0;
+      BigInteger denominator = convertBigDecimalToBigInteger(d, fExp);
+      assert denominator.signum() > 0;
 
       return conv.fmgr.makeDivide(conv.fmgr.makeNumber(t, numerator),
                                    conv.fmgr.makeNumber(t, denominator),
@@ -351,10 +350,10 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     }
   }
 
-  private static long convertBigDecimalToLong(BigDecimal d, CFloatLiteralExpression fExp)
+  private static BigInteger convertBigDecimalToBigInteger(BigDecimal d, CFloatLiteralExpression fExp)
       throws NumberFormatException {
     try {
-      return d.longValueExact();
+      return d.toBigIntegerExact();
     } catch (ArithmeticException e) {
       NumberFormatException nfe = new NumberFormatException("Cannot represent floating point literal " + fExp.toASTString() + " as fraction because " + d + " cannot be represented as a long");
       nfe.initCause(e);
