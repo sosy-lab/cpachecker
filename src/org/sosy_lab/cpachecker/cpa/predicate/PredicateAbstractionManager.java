@@ -34,7 +34,6 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -125,7 +124,7 @@ public class PredicateAbstractionManager {
   private final PathFormulaManager pfmgr;
   private final Solver solver;
 
-  public static final Set<Integer> noAbstractionReuse = Collections.emptySet();
+  private static final Set<Integer> noAbstractionReuse = ImmutableSet.of();
 
   private static enum AbstractionType {
     CARTESIAN,
@@ -620,8 +619,7 @@ public class PredicateAbstractionManager {
       final CFANode location,
       final BooleanFormula f,
       final PathFormula blockFormula,
-      final Collection<AbstractionPredicate> predicates,
-      final Set<Integer> idsOfStoredAbstractionReused) throws InterruptedException {
+      final Collection<AbstractionPredicate> predicates) throws InterruptedException {
 
     PathFormula pf = new PathFormula(f, blockFormula.getSsa(), 0);
 
@@ -631,7 +629,7 @@ public class PredicateAbstractionManager {
     // fix block formula in result
     return new AbstractionFormula(fmgr, newAbstraction.asRegion(),
         newAbstraction.asFormula(), newAbstraction.asInstantiatedFormula(),
-        blockFormula, idsOfStoredAbstractionReused);
+        blockFormula, noAbstractionReuse);
   }
 
   /**
