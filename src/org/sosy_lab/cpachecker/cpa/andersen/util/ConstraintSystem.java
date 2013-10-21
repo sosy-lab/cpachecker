@@ -32,8 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
-
 public class ConstraintSystem {
 
   private final Set<BaseConstraint> baseConstraints = new HashSet<>();
@@ -42,7 +40,17 @@ public class ConstraintSystem {
 
   private final Map<String, String[]> pointsToSets = new HashMap<>();
 
-  private boolean changed = false;
+  private boolean computed = false;
+
+  public ConstraintSystem() {
+
+  }
+
+  public ConstraintSystem(ConstraintSystem pToCopy) {
+    this.baseConstraints.addAll(pToCopy.baseConstraints);
+    this.simpleConstraints.addAll(pToCopy.simpleConstraints);
+    this.complexConstraints.addAll(pToCopy.complexConstraints);
+  }
 
   public Set<BaseConstraint> getBaseConstraints() {
     return Collections.unmodifiableSet(baseConstraints);
@@ -56,14 +64,6 @@ public class ConstraintSystem {
     return Collections.unmodifiableSet(complexConstraints);
   }
 
-  private boolean isChanged() {
-    return changed;
-  }
-
-  private void setChanged(boolean changed) {
-    this.changed = changed;
-  }
-
   /**
    * Computes and returns the points-to sets for the constraint system.
    *
@@ -71,9 +71,9 @@ public class ConstraintSystem {
    */
   public Map<String, String[]> getPointsToSets() {
 
-    if (isChanged()) {
+    if (!computed) {
       computeDynTransitiveClosure(baseConstraints, simpleConstraints, complexConstraints, pointsToSets);
-      setChanged(false);
+      computed = true;
     }
 
     return this.pointsToSets;
@@ -83,7 +83,6 @@ public class ConstraintSystem {
   public int hashCode() {
     final int prime = 31;
     int result = prime + ((baseConstraints == null) ? 0 : baseConstraints.hashCode());
-    result = prime * result + (changed ? 1231 : 1237);
     result = prime * result + ((complexConstraints == null) ? 0 : complexConstraints.hashCode());
     result = prime * result + ((pointsToSets == null) ? 0 : pointsToSets.hashCode());
     result = prime * result + ((simpleConstraints == null) ? 0 : simpleConstraints.hashCode());
@@ -99,8 +98,7 @@ public class ConstraintSystem {
       ConstraintSystem other = (ConstraintSystem) pO;
       return this.baseConstraints.equals(other.baseConstraints)
           && this.complexConstraints.equals(other.complexConstraints)
-          && this.simpleConstraints.equals(other.simpleConstraints)
-          && this.changed == other.changed;
+          && this.simpleConstraints.equals(other.simpleConstraints);
     }
     return false;
   }
@@ -110,17 +108,28 @@ public class ConstraintSystem {
    *
    * @param pConstr {@link BaseConstraint} that should be added.
    */
-  public void addConstraint(BaseConstraint pConstr) {
-    setChanged(baseConstraints.add(pConstr));
+  public ConstraintSystem addConstraint(BaseConstraint pConstr) {
+    if (baseConstraints.contains(pConstr)) {
+      return this;
+    }
+    ConstraintSystem result = new ConstraintSystem(this);
+    result.baseConstraints.add(pConstr);
+    return result;
   }
 
   /**
    * Add a (new) {@link SimpleConstraint} to this element.
    *
    * @param pConstr {@link SimpleConstraint} that should be added.
+   * @return
    */
-  public void addConstraint(SimpleConstraint pConstr) {
-    setChanged(simpleConstraints.add(pConstr));
+  public ConstraintSystem addConstraint(SimpleConstraint pConstr) {
+    if (simpleConstraints.contains(pConstr)) {
+      return this;
+    }
+    ConstraintSystem result = new ConstraintSystem(this);
+    result.simpleConstraints.add(pConstr);
+    return result;
   }
 
   /**
@@ -128,8 +137,13 @@ public class ConstraintSystem {
    *
    * @param pConstr {@link ComplexConstraint} that should be added.
    */
-  public void addConstraint(ComplexConstraint pConstr) {
-    setChanged(complexConstraints.add(pConstr));
+  public ConstraintSystem addConstraint(ComplexConstraint pConstr) {
+    if (complexConstraints.contains(pConstr)) {
+      return this;
+    }
+    ConstraintSystem result = new ConstraintSystem(this);
+    result.complexConstraints.add(pConstr);
+    return result;
   }
 
   /**
@@ -457,13 +471,56 @@ public class ConstraintSystem {
   }
 
   @Override
-  public ConstraintSystem clone() {
-    ConstraintSystem clone = new ConstraintSystem();
-    clone.baseConstraints.addAll(baseConstraints);
-    clone.complexConstraints.addAll(complexConstraints);
-    clone.simpleConstraints.addAll(simpleConstraints);
-    clone.changed = changed;
-    return clone;
+  public String toString() {
+
+    StringBuilder sb = new StringBuilder();
+    sb.append('[').append('\n');
+
+    for (BaseConstraint bc : getBaseConstraints()) {
+      sb.append('{').append(bc.getSubVar()).append("} \u2286 ");
+      sb.append(bc.getSuperVar()).append('\n');
+    }
+
+    for (SimpleConstraint bc : getSimpleConstraints()) {
+      sb.append(bc.getSubVar()).append(" \u2286 ");
+      sb.append(bc.getSuperVar()).append('\n');
+    }
+
+    for (ComplexConstraint bc : getComplexConstraints()) {
+      sb.append(bc.getSubVar()).append(" \u2286 ");
+      sb.append(bc.getSuperVar()).append('\n');
+    }
+
+    int size = getBaseConstraints().size()
+        + getSimpleConstraints().size()
+        + getComplexConstraints().size();
+
+    sb.append("] size->  ").append(size);
+
+    // points-to sets
+    sb.append('\n');
+    sb.append('[').append('\n');
+
+    Map<String, String[]> ptSet = getPointsToSets();
+    for (String key : ptSet.keySet()) {
+
+      sb.append(key).append(" -> {");
+      String[] vals = ptSet.get(key);
+
+      for (String val : vals) {
+        sb.append(val).append(',');
+      }
+
+      if (vals.length > 0) {
+        sb.setLength(sb.length() - 1);
+      }
+
+      sb.append('}').append('\n');
+    }
+
+    sb.append(']').append('\n');
+
+    return sb.toString();
   }
 
 }
