@@ -31,8 +31,11 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
+
+import com.google.common.collect.Iterables;
 
 class SMGJoinFields {
   private final SMG newSMG1;
@@ -40,6 +43,13 @@ class SMGJoinFields {
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
 
   public SMGJoinFields(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
+    if (pObj1.getSizeInBytes() != pObj2.getSizeInBytes()) {
+      throw new IllegalArgumentException("SMGJoinFields object arguments need to have identical size");
+    }
+    if (! (pSMG1.getObjects().contains(pObj1) && pSMG2.getObjects().contains(pObj2))) {
+      throw new IllegalArgumentException("SMGJoinFields object arguments need to be included in parameter SMGs");
+    }
+
     Set<SMGEdgeHasValue> H1Prime = getCompatibleHVEdgeSet(pSMG1, pSMG2, pObj1, pObj2);
     Set<SMGEdgeHasValue> H2Prime = getCompatibleHVEdgeSet(pSMG2, pSMG1, pObj2, pObj1);
 
@@ -177,5 +187,43 @@ class SMGJoinFields {
     retset.removeAll(pSMG.getHVEdges(nullValueFilter));
 
     return retset;
+  }
+
+  private static void checkResultConsistencySingleSide(SMG pSMG1, SMGEdgeHasValueFilter nullEdges1,
+                                                       SMG pSMG2, SMGObject pObj2, BitSet nullBytesInSMG2) throws SMGInconsistentException {
+    for (SMGEdgeHasValue edgeInSMG1 : pSMG1.getHVEdges(nullEdges1)) {
+      int start = edgeInSMG1.getOffset();
+      int byte_after_end = start + edgeInSMG1.getSizeInBytes(pSMG1.getMachineModel());
+      SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObj2)
+                                                          .filterAtOffset(edgeInSMG1.getOffset())
+                                                          .filterByType(edgeInSMG1.getType());
+      Set<SMGEdgeHasValue> hvInSMG2Set = pSMG2.getHVEdges(filter);
+
+      SMGEdgeHasValue hvInSMG2;
+      if (hvInSMG2Set.size() > 0) {
+        hvInSMG2 = Iterables.getOnlyElement(hvInSMG2Set);
+      } else {
+        hvInSMG2 = null;
+      }
+
+      if (hvInSMG2 == null || ( nullBytesInSMG2.nextClearBit(start) < byte_after_end && ! pSMG2.isPointer(hvInSMG2.getValue()))) {
+        throw new SMGInconsistentException("SMGJoinFields output assertions do not hold");
+      }
+    }
+
+  }
+
+  public static void checkResultConsistency(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) throws SMGInconsistentException {
+    SMGEdgeHasValueFilter nullEdges1 = SMGEdgeHasValueFilter.objectFilter(pObj1).filterHavingValue(pSMG1.getNullValue());
+    SMGEdgeHasValueFilter nullEdges2 = SMGEdgeHasValueFilter.objectFilter(pObj2).filterHavingValue(pSMG2.getNullValue());
+    BitSet nullBytesInSMG1 = pSMG1.getNullBytesForObject(pObj1);
+    BitSet nullBytesInSMG2 = pSMG2.getNullBytesForObject(pObj2);
+
+    if (pSMG1.getHVEdges().size() != pSMG2.getHVEdges().size()) {
+      throw new SMGInconsistentException("SMGJoinFields output assertion does not hold: the objects do not have identical sets of fields");
+    }
+
+    checkResultConsistencySingleSide(pSMG1, nullEdges1, pSMG2, pObj2, nullBytesInSMG2);
+    checkResultConsistencySingleSide(pSMG2, nullEdges2, pSMG1, pObj1, nullBytesInSMG1);
   }
 }

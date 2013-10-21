@@ -30,14 +30,19 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cpa.cpalien.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.CLangStackFrame;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 
 final public class SMGJoin {
+  static public void performChecks(boolean pOn) {
+    SMGJoinSubSMGs.performChecks(pOn);
+  }
+
   private boolean defined = false;
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
   private final CLangSMG smg;
 
-  public SMGJoin(CLangSMG pSMG1, CLangSMG pSMG2) {
+  public SMGJoin(CLangSMG pSMG1, CLangSMG pSMG2) throws SMGInconsistentException {
     CLangSMG opSMG1 = new CLangSMG(pSMG1);
     CLangSMG opSMG2 = new CLangSMG(pSMG2);
     smg = new CLangSMG(opSMG1.getMachineModel());

@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cpa.cpalien.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
 
@@ -119,7 +120,7 @@ public class SMGJoinTest {
   }
 
   @Test
-  public void simpleGlobalVarJoinTest() {
+  public void simpleGlobalVarJoinTest() throws SMGInconsistentException {
     String varName = "variableName";
     addGlobalWithoutValueToBoth(varName);
     SMGJoin join = new SMGJoin(smg1, smg2);
@@ -132,7 +133,7 @@ public class SMGJoinTest {
   }
 
   @Test
-  public void simpleLocalVarJoinTest() {
+  public void simpleLocalVarJoinTest() throws SMGInconsistentException {
     String varName = "variableName";
     smg1.addStackFrame(functionDeclaration);
     smg2.addStackFrame(functionDeclaration);
@@ -148,7 +149,7 @@ public class SMGJoinTest {
   }
 
   @Test
-  public void globalVarWithValueJoinTest() {
+  public void globalVarWithValueJoinTest() throws SMGInconsistentException {
     String varName = "variableName";
     addGlobalWithValueToBoth(varName);
     SMGJoin join = new SMGJoin(smg1, smg2);
@@ -167,7 +168,7 @@ public class SMGJoinTest {
   }
 
   @Test
-  public void localVarWithValueJoinTest() {
+  public void localVarWithValueJoinTest() throws SMGInconsistentException {
     String varName = "variableName";
     smg1.addStackFrame(functionDeclaration);
     smg2.addStackFrame(functionDeclaration);

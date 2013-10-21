@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 
 
@@ -37,7 +38,7 @@ public class SMGJoinSubSMGsTest {
   SMGJoinSubSMGs jssUndefined;
 
   @Before
-  public void setUp() {
+  public void setUp() throws SMGInconsistentException {
     SMG smg1 = new SMG(MachineModel.LINUX64);
     SMG smg2 = new SMG(MachineModel.LINUX64);
     SMG destSmg = new SMG(MachineModel.LINUX64);

@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
 
@@ -62,7 +63,7 @@ public class SMGJoinTargetObjectsTest {
   }
 
   @Test
-  public void matchingObjectsWithoutMappingTest() {
+  public void matchingObjectsWithoutMappingTest() throws SMGInconsistentException {
     smg1.addObject(obj1);
     smg1.addValue(value1);
     smg1.addPointsToEdge(pt1);
@@ -78,7 +79,7 @@ public class SMGJoinTargetObjectsTest {
   }
 
   @Test(expected=UnsupportedOperationException.class)
-  public void matchingObjectsWithMappingTest() {
+  public void matchingObjectsWithMappingTest() throws SMGInconsistentException {
     smg1.addObject(obj1);
     smg1.addValue(value1);
     smg1.addPointsToEdge(pt1);
@@ -98,7 +99,7 @@ public class SMGJoinTargetObjectsTest {
   }
 
   @Test
-  public void nonMatchingObjectsTest() {
+  public void nonMatchingObjectsTest() throws SMGInconsistentException {
     smg1.addObject(obj1);
     smg1.addValue(value1);
     smg1.addPointsToEdge(pt1);
@@ -111,7 +112,7 @@ public class SMGJoinTargetObjectsTest {
   }
 
   @Test
-  public void joinTargetObjectsDifferentOffsets() {
+  public void joinTargetObjectsDifferentOffsets() throws SMGInconsistentException {
     SMGEdgePointsTo pt1null = new SMGEdgePointsTo(value1, smg1.getNullObject(), 2);
     SMGEdgePointsTo pt2null = new SMGEdgePointsTo(value2, smg2.getNullObject(), 1);
 
@@ -130,7 +131,7 @@ public class SMGJoinTargetObjectsTest {
   }
 
   @Test
-  public void joinTargetObjectsAlreadyJoinedNull() {
+  public void joinTargetObjectsAlreadyJoinedNull() throws SMGInconsistentException {
     SMGEdgePointsTo pt1null = new SMGEdgePointsTo(value1, smg1.getNullObject(), 0);
     SMGEdgePointsTo pt2null = new SMGEdgePointsTo(value2, smg2.getNullObject(), 0);
 
@@ -155,7 +156,7 @@ public class SMGJoinTargetObjectsTest {
   }
 
   @Test
-  public void joinTargetObjectsAlreadyJoinedNonNull() {
+  public void joinTargetObjectsAlreadyJoinedNonNull() throws SMGInconsistentException {
     smg1.addValue(value1);
     smg2.addValue(value2);
 
