@@ -254,6 +254,30 @@ public class SMGJoinFieldsTest {
   }
 
   @Test
+  public void mergeNonNullAplliedTest() {
+    SMGObject obj1 = new SMGObject(8, "Object 1");
+    SMGObject obj2 = new SMGObject(8, "Object 2");
+    smg1.addObject(obj1);
+    smg2.addObject(obj2);
+
+    Integer value1 = SMGValueFactory.getNewValue();
+    smg1.addValue(value1);
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value1));
+
+    SMGJoinFields jf = new SMGJoinFields(new SMG(smg1), new SMG(smg2), obj1, obj2);
+    SMG resultSMG = jf.getSMG2();
+
+    Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
+    Assert.assertTrue(edges.size() > 0);
+
+    jf = new SMGJoinFields(new SMG(smg2), new SMG(smg1), obj2, obj1);
+    resultSMG = jf.getSMG1();
+
+    edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
+    Assert.assertTrue(edges.size() > 0);
+  }
+
+  @Test
   public void joinFieldsRelaxStatusTest() {
     SMGObject object = new SMGObject(8, "Object");
     smg1.addObject(object);
@@ -432,7 +456,25 @@ public class SMGJoinFieldsTest {
 
     Integer value2 = SMGValueFactory.getNewValue();
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, smg1.getNullValue()));
-    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 4, obj1, value2));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj2, value2));
+    SMGJoinFields.checkResultConsistency(smg1, smg2, obj1, obj2);
+  }
+
+  @Test
+  public void consistencyCheckPositiveTest1() throws SMGInconsistentException {
+    SMG smg1 = new SMG(MachineModel.LINUX64);
+    SMG smg2 = new SMG(MachineModel.LINUX32);
+
+    SMGObject obj1 = new SMGObject(32, "Object 1");
+    SMGObject obj2 = new SMGObject(32, "Object 2");
+    SMGObject obj3 = new SMGObject(32, "Object 3");
+
+    Integer value1 = SMGValueFactory.getNewValue();
+    Integer value2 = SMGValueFactory.getNewValue();
+
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value1));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj2, value2));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj3, value2));
     SMGJoinFields.checkResultConsistency(smg1, smg2, obj1, obj2);
   }
 

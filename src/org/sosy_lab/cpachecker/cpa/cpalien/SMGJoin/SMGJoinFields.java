@@ -62,8 +62,8 @@ class SMGJoinFields {
     status = joinFieldsRelaxStatus(origSMG1, pSMG1, status, SMGJoinStatus.RIGHT_ENTAIL, pObj1);
     status = joinFieldsRelaxStatus(origSMG2, pSMG2, status, SMGJoinStatus.LEFT_ENTAIL, pObj2);
 
-    Set<SMGEdgeHasValue> smg1Extension = mergeNonNullHasValueEdges(pSMG1, pSMG2, pObj1, pObj2);
-    Set<SMGEdgeHasValue> smg2Extension = mergeNonNullHasValueEdges(pSMG2, pSMG1, pObj2, pObj1);
+    Set<SMGEdgeHasValue> smg2Extension = mergeNonNullHasValueEdges(pSMG1, pSMG2, pObj1, pObj2);
+    Set<SMGEdgeHasValue> smg1Extension = mergeNonNullHasValueEdges(pSMG2, pSMG1, pObj2, pObj1);
 
     H1Prime.addAll(smg1Extension);
     H2Prime.addAll(smg2Extension);
@@ -219,7 +219,7 @@ class SMGJoinFields {
     BitSet nullBytesInSMG1 = pSMG1.getNullBytesForObject(pObj1);
     BitSet nullBytesInSMG2 = pSMG2.getNullBytesForObject(pObj2);
 
-    if (pSMG1.getHVEdges().size() != pSMG2.getHVEdges().size()) {
+    if (pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1)).size() != pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2)).size()) {
       throw new SMGInconsistentException("SMGJoinFields output assertion does not hold: the objects do not have identical sets of fields");
     }
 
