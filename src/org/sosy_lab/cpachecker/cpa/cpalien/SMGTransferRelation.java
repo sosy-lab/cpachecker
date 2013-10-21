@@ -187,7 +187,8 @@ public class SMGTransferRelation implements TransferRelation {
             "free",
             "memset",
             "calloc",
-            "__VERIFIER_nondet_bool"
+            "__VERIFIER_nondet_bool",
+            "__VERIFIER_nondet_int"
         }));
 
     private void dumpSMGPlot(String name, SMGState currentState, String location)
@@ -1664,6 +1665,7 @@ public class SMGTransferRelation implements TransferRelation {
           SMGEdgePointsTo memsetTargetEdge = builtins.evaluateMemset(pIastFunctionCallExpression, smgState, cfaEdge);
           return createAddress(memsetTargetEdge);
         case "__VERIFIER_nondet_bool":
+        case "__VERIFIER_nondet_int":
           return SMGUnknownValue.getInstance();
         }
         throw new AssertionError();
