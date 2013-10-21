@@ -627,17 +627,27 @@ public class SMGTransferRelation implements TransferRelation {
     expression = optimizeAssumeForEvaluation(expression);
 
     // get the value of the expression (either true[-1], false[0], or unknown[null])
-    SMGSymbolicValue value = evaluateAssumptionValue(smgState, cfaEdge, expression);
+
+    AssumeVisitorNG visitor = new AssumeVisitorNG(cfaEdge, smgState);
+    SMGSymbolicValue value = expression.accept(visitor);
 
     if (value.isUnknown()) {
-      //TODO derive further information of value (in essence, implement smg.replace(symbValue, symbValue for y == x
-      // and addNeq for y != x))
 
       //TODO Refactor
       SMGExplicitValue explicitValue = evaluateExplicitValue(smgState, cfaEdge, expression);
 
       if (explicitValue.isUnknown()) {
-        return smgState;
+        SMGState newState = null;
+        if (visitor.assumeEq() && truthValue) {
+          newState = new SMGState(smgState);
+          newState.identifyEqualValues(visitor.knownVal1, visitor.knownVal2);
+        } else if (visitor.assumeNeq() && truthValue) {
+          newState = new SMGState(smgState);
+          newState.identifyNonEqualValues(visitor.knownVal1, visitor.knownVal2);
+        } else {
+          newState = smgState;
+        }
+        return newState;
       } else if ((truthValue && explicitValue.equals(SMGKnownExpValue.ONE))
           || (!truthValue && explicitValue.equals(SMGKnownExpValue.ZERO))) {
         return smgState;
@@ -1170,13 +1180,6 @@ public class SMGTransferRelation implements TransferRelation {
     SMGSymbolicValue symbolicValue = rValue.accept(visitor);
 
     return symbolicValue;
-  }
-
-  private SMGSymbolicValue evaluateAssumptionValue(SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue)
-      throws CPATransferException {
-
-    ExpressionValueVisitor visitor = new AssumeVisitor(cfaEdge, newState);
-    return rValue.accept(visitor);
   }
 
   private SMGAddressValue evaluateAddress(SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue)
@@ -1946,19 +1949,30 @@ public class SMGTransferRelation implements TransferRelation {
     }
   }
 
-  private class AssumeVisitor extends ExpressionValueVisitor {
+  private class AssumeVisitorNG extends ExpressionValueVisitor {
 
     private final SMGState smgState;
+    private SMGKnownSymValue knownVal1;
+    private SMGKnownSymValue knownVal2;
+    private boolean assumeEq = false;
+    private boolean assumeNeq = false;
 
-    public AssumeVisitor(CFAEdge pEdge, SMGState pSmgState) {
+    public AssumeVisitorNG(CFAEdge pEdge, SMGState pSmgState) {
       super(pEdge, pSmgState);
       smgState = getSmgState();
     }
 
-    @Override
-    public SMGSymbolicValue visit(CBinaryExpression exp) throws CPATransferException {
+    public boolean assumeNeq() {
+      return assumeNeq;
+    }
 
-      BinaryOperator binaryOperator = exp.getOperator();
+    public boolean assumeEq() {
+      return assumeEq;
+    }
+
+    @Override
+    public SMGSymbolicValue visit(CBinaryExpression pExp) throws CPATransferException {
+      BinaryOperator binaryOperator = pExp.getOperator();
 
       switch (binaryOperator) {
       case EQUALS:
@@ -1967,98 +1981,152 @@ public class SMGTransferRelation implements TransferRelation {
       case LESS_THAN:
       case GREATER_EQUAL:
       case GREATER_THAN:
+        CExpression leftSideExpression = pExp.getOperand1();
+        CExpression rightSideExpression = pExp.getOperand2();
 
-        CExpression lVarInBinaryExp = exp.getOperand1();
-        CExpression rVarInBinaryExp = exp.getOperand2();
+        CFAEdge cfaEdge = getCfaEdge();
 
-        SMGSymbolicValue lVal = evaluateExpressionValue(smgState, getCfaEdge(), lVarInBinaryExp);
-        if (lVal.isUnknown()) { return SMGUnknownValue.getInstance(); }
-
-        SMGSymbolicValue rVal = evaluateExpressionValue(smgState, getCfaEdge(), rVarInBinaryExp);
-        if (rVal.isUnknown()) { return SMGUnknownValue.getInstance(); }
-
-        boolean isZero;
-        boolean isOne;
-
-        switch (binaryOperator) {
-        case NOT_EQUALS:
-          isZero = lVal.equals(rVal);
-          isOne = smgState.isUnequal(lVal.getAsInt(), rVal.getAsInt());
-          break;
-        case EQUALS:
-          isOne = lVal.equals(rVal);
-          isZero = smgState.isUnequal(lVal.getAsInt(), rVal.getAsInt());
-          break;
-        case LESS_EQUAL:
-        case GREATER_EQUAL:
-          isOne = lVal.equals(rVal);
-          isZero = false;
-          if (isOne) {
-            break;
-          }
-
-          //$FALL-THROUGH$
-        case GREATER_THAN:
-        case LESS_THAN:
-
-          SMGAddressValue rAddress = getAddressFromSymbolicValue(getSmgState(), rVal);
-
-          if (rAddress.isUnknown()) {
-            return SMGUnknownValue.getInstance();
-          }
-
-          SMGAddressValue lAddress = getAddressFromSymbolicValue(getSmgState(), rVal);
-
-          if (lAddress.isUnknown()) {
-            return SMGUnknownValue.getInstance();
-          }
-
-          SMGObject lObject = lAddress.getObject();
-          SMGObject rObject = rAddress.getObject();
-
-          if (!lObject.equals(rObject)) {
-            return SMGUnknownValue.getInstance();
-          }
-
-          long rOffset = rAddress.getOffset().getAsLong();
-          long lOffset = lAddress.getOffset().getAsLong();
-
-          // We already checked equality
-          switch (binaryOperator) {
-          case LESS_THAN:
-          case LESS_EQUAL:
-            isOne = lOffset < rOffset;
-            isZero = !isOne;
-            break;
-          case GREATER_EQUAL:
-          case GREATER_THAN:
-            isOne = lOffset > rOffset;
-            isZero = !isOne;
-            break;
-          default:
-            throw new AssertionError();
-          }
-          break;
-        default:
-          throw new AssertionError();
+        SMGSymbolicValue leftSideVal = evaluateExpressionValue(smgState, cfaEdge, leftSideExpression);
+        if (leftSideVal.isUnknown()) {
+          return SMGUnknownValue.getInstance();
         }
-
-        if (isZero) {
-          // return 0 if the expression does not hold
-          return SMGKnownSymValue.FALSE;
-        } else if (isOne) {
-          // return a symbolic Value representing 1 if the expression does hold
-          return SMGKnownSymValue.TRUE;
-        } else {
-          // otherwise return UNKNOWN
+        SMGSymbolicValue rightSideVal = evaluateExpressionValue(smgState, cfaEdge, rightSideExpression);
+        if (rightSideVal.isUnknown()) {
           return SMGUnknownValue.getInstance();
         }
 
+        SMGKnownSymValue knownRightSideVal = SMGKnownSymValue.valueOf(rightSideVal.getAsInt());
+        SMGKnownSymValue knownLeftSideVal = SMGKnownSymValue.valueOf(leftSideVal.getAsInt());
+        return evaluateBinaryAssumption(binaryOperator, knownLeftSideVal, knownRightSideVal);
       default:
-        return super.visit(exp);
+        return super.visit(pExp);
       }
     }
+
+    private class BinaryRelationEvaluator {
+      private boolean isTrue = false;
+      private boolean isFalse = false;
+      private boolean canAssumeEq = false;
+      private boolean canAssumeNeq = false;
+
+      public BinaryRelationEvaluator(BinaryOperator pOp, SMGSymbolicValue pV1, SMGSymbolicValue pV2) {
+        int v1 = pV1.getAsInt();
+        int v2 = pV2.getAsInt();
+
+        switch(pOp) {
+        case NOT_EQUALS:
+          isTrue = smgState.isUnequal(v1, v2);
+          isFalse = (v1 == v2);
+          canAssumeNeq = true;
+          break;
+        case EQUALS:
+          isTrue = (v1 == v2);
+          isFalse = smgState.isUnequal(v1, v2);
+          canAssumeEq = true;
+          break;
+        case LESS_EQUAL:
+        case GREATER_EQUAL:
+          if (v1 == v2) {
+            isTrue = true;
+          } else {
+            compareAsAddresses();
+          }
+          break;
+        case GREATER_THAN:
+        case LESS_THAN:
+          compareAsAddresses();
+          canAssumeNeq = true;
+          break;
+        default:
+          throw new AssertionError("Binary Relation with non-relational operator: " + pOp.toString());
+        }
+      }
+
+      private void compareAsAddresses() {
+        // TODO Auto-generated method stub
+
+      }
+
+      public boolean isTrue() {
+        return isTrue;
+      }
+      public boolean isFalse() {
+        return isFalse;
+      }
+
+      public boolean canAssumeEq() {
+        return canAssumeEq;
+      }
+
+      public boolean canAssumeNeq() {
+        return canAssumeNeq;
+      }
+    }
+
+    private SMGSymbolicValue evaluateBinaryAssumption(BinaryOperator pOp, SMGKnownSymValue v1, SMGKnownSymValue v2) {
+      BinaryRelationEvaluator relation = new BinaryRelationEvaluator(pOp, v1, v2);
+      if (relation.isFalse()) {
+        return SMGKnownSymValue.FALSE;
+      } else if (relation.isTrue()) {
+        return SMGKnownSymValue.TRUE;
+      }
+
+      assumeEq = relation.canAssumeEq();
+      assumeNeq = relation.canAssumeNeq();
+      knownVal1 = v1;
+      knownVal2 = v2;
+
+      return SMGUnknownValue.getInstance();
+    }
   }
+
+//          //$FALL-THROUGH$
+//        case GREATER_THAN:
+//        case LESS_THAN:
+//
+//          SMGAddressValue rAddress = getAddressFromSymbolicValue(getSmgState(), rVal);
+//
+//          if (rAddress.isUnknown()) {
+//            return SMGUnknownValue.getInstance();
+//          }
+//
+//          SMGAddressValue lAddress = getAddressFromSymbolicValue(getSmgState(), rVal);
+//
+//          if (lAddress.isUnknown()) {
+//            return SMGUnknownValue.getInstance();
+//          }
+//
+//          SMGObject lObject = lAddress.getObject();
+//          SMGObject rObject = rAddress.getObject();
+//
+//          if (!lObject.equals(rObject)) {
+//            return SMGUnknownValue.getInstance();
+//          }
+//
+//          long rOffset = rAddress.getOffset().getAsLong();
+//          long lOffset = lAddress.getOffset().getAsLong();
+//
+//          // We already checked equality
+//          switch (binaryOperator) {
+//          case LESS_THAN:
+//          case LESS_EQUAL:
+//            isOne = lOffset < rOffset;
+//            isZero = !isOne;
+//            break;
+//          case GREATER_EQUAL:
+//          case GREATER_THAN:
+//            isOne = lOffset > rOffset;
+//            isZero = !isOne;
+//            break;
+//          default:
+//            throw new AssertionError();
+//          }
+//          break;
+//        default:
+//          throw new AssertionError();
+//        }
+//
+//}
 
   private class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGSymbolicValue, CPATransferException>
       implements CRightHandSideVisitor<SMGSymbolicValue, CPATransferException> {
