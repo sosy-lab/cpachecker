@@ -30,13 +30,11 @@ public class AndersenDomain implements AbstractDomain {
 
   @Override
   public boolean isLessOrEqual(AbstractState currentElement, AbstractState reachedState) {
-    return false;
-//    return ((PointerAElement)currentElement).isLessOrEqual((PointerAElement)reachedState);
+    return ((AndersenState) currentElement).isLessOrEqual((AndersenState)reachedState);
   }
 
   @Override
   public AbstractState join(AbstractState currentElement, AbstractState reachedState) {
-    return null;
-//    return ((PointerAElement)currentElement).join((PointerAElement)reachedState);
+    return ((AndersenState) currentElement).join((AndersenState)reachedState);
   }
 }
