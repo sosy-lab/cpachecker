@@ -1670,7 +1670,8 @@ public class SMGTransferRelation implements TransferRelation {
       } else {
         switch(handleUnknownFunctions) {
         case "strict":
-          throw new CPATransferException("Unknown function may be unsafe. See the cpa.cpalien.handleUnknownFunction option.");
+          String message = "Unknown function may be unsafe: [" + functionName + "] See the cpa.cpalien.handleUnknownFunction option.";
+          throw new CPATransferException(message);
         case "assume_safe":
           return SMGUnknownValue.getInstance();
         }
@@ -2374,7 +2375,8 @@ public class SMGTransferRelation implements TransferRelation {
       } else {
         switch(handleUnknownFunctions) {
         case "strict":
-          throw new CPATransferException("Unknown function may be unsafe. See the cpa.cpalien.handleUnknownFunction option.");
+          String message = "Unknown function may be unsafe: [" + functionName + "] See the cpa.cpalien.handleUnknownFunction option.";
+          throw new CPATransferException(message);
         case "assume_safe":
           return SMGUnknownValue.getInstance();
         }
