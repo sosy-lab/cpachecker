@@ -438,7 +438,7 @@ class _OomEventThread(threading.Thread):
             # If read returned, this means the kernel sent us an event.
             # It does so either on OOM or if the cgroup os removed.
             if not self._finished.is_set():
-                logging.warn('Killing process due to out-of-memory event from kernel')
+                logging.info('Killing process {0} due to out-of-memory event from kernel.'.format(self._process.pid))
                 _killSubprocess(self._process)
         finally:
             os.close(self._efd)
@@ -467,6 +467,7 @@ class _TimelimitThread(threading.Thread):
             usedTime = _readCpuTime(self.cgroupCpuacct)
             logging.debug("latestkilltime: {0}, used time: {1}, current time: {2}".format(self.latestKillTime, usedTime, time.time()))
             if usedTime >= self.timelimit or self.latestKillTime < time.time():
+                logging.info('Killing process {0} due to timeout.'.format(self.process.pid))
                 _killSubprocess(self.process)
                 self.finished.set()
                 return
@@ -484,6 +485,8 @@ def _killSubprocess(process):
     '''
     try:
         os.killpg(process.pid, signal.SIGKILL)
+        if process.poll is None:
+            logging.warn('Killing process {0} had no effect.'.format(process.pid))
     except OSError: # process itself returned and exited before killing
         pass
 
