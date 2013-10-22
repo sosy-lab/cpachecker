@@ -1325,14 +1325,18 @@ public class SMGExpressionEvaluator {
 
     private boolean isUnequal(SMGState pSmgState, SMGSymbolicValue pLVal, SMGSymbolicValue pRVal) {
 
-      if (pLVal.isUnknown() || pRVal.isUnknown()) { return false; }
+      if (pLVal.isUnknown() || pRVal.isUnknown()) {
+        return false;
+      }
 
       return pSmgState.isUnequal(pLVal.getAsInt(), pRVal.getAsInt());
     }
 
     @Override
     public SMGSymbolicValue visit(CCastExpression cast) throws CPATransferException {
-      return cast.getOperand().accept(this);
+      // For different types we need different visitors,
+      // TODO doesn't calculate type reinterpretations
+      return evaluateExpressionValue(getSmgState(), getCfaEdge(), cast.getOperand());
     }
 
     @Override
