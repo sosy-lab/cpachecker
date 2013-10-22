@@ -806,6 +806,73 @@ public class SMGState implements AbstractQueryableState {
   }
 
   /**
+   * Copys (shallow) the hv-edges of source in the given source range
+   * to the target at the given target offset. Note that the source
+   * range (pSourceRangeSize - pSourceRangeOffset) has to fit into
+   * the target range ( size of pTarget - pTargetRangeOffset).
+   * Also, pSourceRangeOffset has to be less or equal to the size
+   * of the source Object.
+   *
+   * This method is mainly used to assign struct variables.
+   *
+   * @param pSource the SMGObject providing the hv-edges
+   * @param pTarget the target of the copy process
+   * @param pTargetRangeOffset begin the copy of source at this offset
+   * @param pSourceRangeSize the size of the copy of source
+   * @param pSourceRangeOffset insert the copy of source into target at this offset
+   * @throws SMGInconsistentException thrown if the copying leads to an inconsistent SMG.
+   */
+  public void copy(SMGObject pSource, SMGObject pTarget, int pSourceRangeOffset, int pSourceRangeSize, int pTargetRangeOffset) throws SMGInconsistentException {
+
+    int copyRange = pSourceRangeSize - pSourceRangeOffset;
+
+    assert pSource.getSizeInBytes() >= pSourceRangeSize;
+    assert pSourceRangeOffset >= 0;
+    assert pTargetRangeOffset >= 0;
+    assert copyRange >= 0;
+    assert copyRange <= pTarget.getSizeInBytes();
+
+    // If copy range is 0, do nothing
+    if(copyRange == 0) {
+      return;
+    }
+
+    int targetRangeSize = pTargetRangeOffset + copyRange;
+
+    SMGEdgeHasValueFilter filterSource = new SMGEdgeHasValueFilter();
+    filterSource.filterByObject(pSource);
+    SMGEdgeHasValueFilter filterTarget = new SMGEdgeHasValueFilter();
+    filterTarget.filterByObject(pTarget);
+
+    //Remove all Target edges in range
+    Set<SMGEdgeHasValue> targetEdges = getHVEdges(filterTarget);
+
+    for (SMGEdgeHasValue edge : targetEdges) {
+      if (edge.overlapsWith(pTargetRangeOffset, targetRangeSize, heap.getMachineModel())) {
+        heap.removeHasValueEdge(edge);
+      }
+    }
+
+    // Copy all Source edges
+    Set<SMGEdgeHasValue> sourceEdges = getHVEdges(filterSource);
+
+    // Shift the source edge offset depending on the target range offset
+    int copyShift = pTargetRangeOffset - pSourceRangeOffset;
+
+    for (SMGEdgeHasValue edge : sourceEdges) {
+      if (edge.overlapsWith(pSourceRangeOffset, pSourceRangeSize, heap.getMachineModel())) {
+        int offset = edge.getOffset() + copyShift;
+        writeValue(pTarget, offset, edge.getType(), edge.getValue());
+      }
+    }
+
+    performConsistencyCheck(runtimeCheckLevel);
+    //TODO Why do I do this here?
+    heap.pruneUnreachable();
+    performConsistencyCheck(runtimeCheckLevel);
+  }
+
+  /**
    * Signals a dereference of a pointer or array
    *  which could not be resolved.
    */
