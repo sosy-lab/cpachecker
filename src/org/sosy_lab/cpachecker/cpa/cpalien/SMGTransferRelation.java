@@ -1458,6 +1458,101 @@ public class SMGTransferRelation implements TransferRelation {
 
   }
 
+  /**
+   * This visitor is used to determine the address of an expression, mainly lValues.
+   * It is used to prevent
+   * code replication in other visitors who need this kind of functionality,
+   * which is why its abstract.
+   *
+   */
+  private abstract class AddressVisitor extends DefaultCExpressionVisitor<SMGAddress, CPATransferException>
+      implements CRightHandSideVisitor<SMGAddress, CPATransferException> {
+
+    private final CFAEdge cfaEdge;
+    private final SMGState smgState;
+
+    public AddressVisitor(CFAEdge pEdge, SMGState pSmgState) {
+      cfaEdge = pEdge;
+      smgState = pSmgState;
+    }
+
+    @Override
+    protected SMGAddress visitDefault(CExpression pExp) throws CPATransferException {
+      return SMGAddress.UNKNOWN;
+    }
+
+    @Override
+    public SMGAddress visit(CIdExpression variableName) throws CPATransferException {
+
+      SMGObject object = smgState.getObjectForVisibleVariable(variableName.getName());
+
+      return SMGAddress.valueOf(object, SMGKnownExpValue.ZERO);
+    }
+
+    @Override
+    public SMGAddress visit(CArraySubscriptExpression exp) throws CPATransferException {
+      return evaluateArraySubscriptAddress(smgState, cfaEdge, exp);
+    }
+
+    @Override
+    public SMGAddress visit(CFieldReference pE) throws CPATransferException {
+      return getAddressOfField(smgState, cfaEdge, pE);
+    }
+
+    @Override
+    public SMGAddress visit(CPointerExpression pointerExpression) throws CPATransferException {
+
+      /*
+       * The address of a pointer expression (*x) is defined as the
+       * evaluation of the pointer x. This is consistent with the meaning
+       * of a pointer expression in the left hand side of an assignment *x = ...
+       */
+
+      CExpression operand = pointerExpression.getOperand();
+
+      assert operand.getExpressionType().getCanonicalType() instanceof CPointerType;
+
+      SMGAddressValue addressValue = evaluateAddress(getSmgState(), getCfaEdge(), operand);
+
+      if (addressValue.isUnknown()) {
+        return SMGAddress.UNKNOWN;
+      }
+
+      return addressValue.getAddress();
+    }
+
+    public final CFAEdge getCfaEdge() {
+      return cfaEdge;
+    }
+
+    public final SMGState getSmgState() {
+      return smgState;
+    }
+
+  }
+
+  private SMGAddress evaluateArraySubscriptAddress(SMGState smgState, CFAEdge cfaEdge,
+      CArraySubscriptExpression exp) throws CPATransferException {
+
+    SMGAddressValue arrayAddress = evaluateAddress(smgState, cfaEdge, exp.getArrayExpression());
+
+    if (arrayAddress.isUnknown()) {
+      return SMGAddress.UNKNOWN;
+    }
+
+    SMGExplicitValue subscriptValue = evaluateExplicitValue(smgState, cfaEdge, exp.getSubscriptExpression());
+
+    if (subscriptValue.isUnknown()) {
+      return SMGAddress.UNKNOWN;
+    }
+
+    SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(expressionEvaluator.getSizeof(cfaEdge, exp.getExpressionType()));
+
+    SMGExplicitValue subscriptOffset = subscriptValue.multiply(typeSize);
+
+    return arrayAddress.getAddress().add(subscriptOffset);
+  }
+
   private class PointerAddressVisitor extends ExpressionValueVisitor
       implements CRightHandSideVisitor<SMGSymbolicValue, CPATransferException> {
 
