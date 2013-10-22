@@ -861,6 +861,19 @@ public class SMGTransferRelation implements TransferRelation {
     return pState;
   }
 
+  private SMGState handleDeclaration(SMGState smgState, CDeclarationEdge edge) throws CPATransferException {
+    logger.log(Level.FINEST, ">>> Handling declaration");
+
+    SMGState newState = new SMGState(smgState);
+    CDeclaration cDecl = edge.getDeclaration();
+
+    if (cDecl instanceof CVariableDeclaration) {
+      newState = handleVariableDeclaration(newState, (CVariableDeclaration)cDecl, edge);
+    }
+    //TODO: Handle other declarations?
+    return newState;
+  }
+
   private SMGState handleInitializerForDeclaration(SMGState pState, SMGObject pObject, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
     CInitializer newInitializer = pVarDecl.getInitializer();
     CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
@@ -985,19 +998,6 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     return pNewState;
-  }
-
-  private SMGState handleDeclaration(SMGState smgState, CDeclarationEdge edge) throws CPATransferException {
-    logger.log(Level.FINEST, ">>> Handling declaration");
-
-    SMGState newState = new SMGState(smgState);
-    CDeclaration cDecl = edge.getDeclaration();
-
-    if (cDecl instanceof CVariableDeclaration) {
-      newState = handleVariableDeclaration(newState, (CVariableDeclaration)cDecl, edge);
-    }
-    //TODO: Handle other declarations?
-    return newState;
   }
 
   /**
