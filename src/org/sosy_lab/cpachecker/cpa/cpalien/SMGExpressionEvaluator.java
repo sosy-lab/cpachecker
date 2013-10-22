@@ -482,9 +482,6 @@ public class SMGExpressionEvaluator {
       if (c instanceof CArrayType) {
         // a == &a[0];
         return createAddressOfVariable(exp);
-      } else if (isStructOrUnionType(c)) {
-        // We use this temporary address to copy the values of the struct or union
-        return createAddressOfVariable(exp);
       }
 
       return getAddressFromSymbolicValue(smgState, super.visit(exp));
