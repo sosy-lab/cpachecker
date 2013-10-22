@@ -304,7 +304,7 @@ public class SMGExpressionEvaluator {
 
     if (expressionType instanceof CPointerType) {
 
-      PointerAddressVisitor visitor = getPointerVisitor(cfaEdge, newState);
+      PointerVisitor visitor = getPointerVisitor(cfaEdge, newState);
 
       SMGSymbolicValue address = rValue.accept(visitor);
 
@@ -425,14 +425,14 @@ public class SMGExpressionEvaluator {
 
   }
 
-  class PointerAddressVisitor extends ExpressionValueVisitor
+  class PointerVisitor extends ExpressionValueVisitor
       implements CRightHandSideVisitor<SMGSymbolicValue, CPATransferException> {
 
     private final CFAEdge cfaEdge;
     private final SMGState smgState;
 
 
-    public PointerAddressVisitor(CFAEdge pEdge, SMGState pSmgState) {
+    public PointerVisitor(CFAEdge pEdge, SMGState pSmgState) {
       super(pEdge, pSmgState);
       cfaEdge = super.getCfaEdge();
       smgState = super.getSmgState();
@@ -1678,8 +1678,8 @@ public class SMGExpressionEvaluator {
     return new ArrayVisitor(pCfaEdge, pSmgState);
   }
 
-  protected PointerAddressVisitor getPointerVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
-    return new PointerAddressVisitor(pCfaEdge, pNewState);
+  protected PointerVisitor getPointerVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+    return new PointerVisitor(pCfaEdge, pNewState);
   }
 
   private ExpressionValueVisitor getAssumeVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
