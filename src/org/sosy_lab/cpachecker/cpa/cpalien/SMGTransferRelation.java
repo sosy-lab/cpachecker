@@ -1086,14 +1086,25 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     if (isStructOrUnionType(rValueType)) {
-
-      if (value instanceof SMGKnownAddVal) {
-
-        SMGObject object = ((SMGKnownAddVal) value).getObject();
-        copy(newState, memoryOfField, object);
-      }
+      assignStruct(newState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
     } else {
       writeValue(newState, memoryOfField, fieldOffset, rValueType, value);
+    }
+  }
+
+  private void assignStruct(SMGState pNewState, SMGObject pMemoryOfField,
+      int pFieldOffset, CType pRValueType, SMGSymbolicValue pValue,
+      CFAEdge pCfaEdge) throws SMGInconsistentException,
+      UnrecognizedCCodeException {
+
+    if (pValue instanceof SMGKnownAddVal) {
+      SMGKnownAddVal structAddress = (SMGKnownAddVal) pValue;
+
+      SMGObject source = structAddress.getObject();
+      int structOffset = structAddress.getOffset().getAsInt();
+      int structSize = structOffset + getSizeof(pCfaEdge, pRValueType);
+      pNewState.copy(source, pMemoryOfField,
+          structOffset, structSize, pFieldOffset);
     }
   }
 
