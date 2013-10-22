@@ -372,7 +372,13 @@ public class SMGTransferRelation implements TransferRelation {
         return;
       }
 
-      SMGEdgePointsTo pointer = currentState.getPointerFromValue(address.getAsInt());
+      SMGEdgePointsTo pointer;
+
+      if (currentState.isPointer(address.getAsInt())) {
+        pointer = currentState.getPointerFromValue(address.getAsInt());
+      } else {
+        pointer = new SMGEdgePointsTo(address.getAsInt(), address.getObject(), address.getOffset().getAsInt());
+      }
 
       if (address.getAsInt() == 0) {
         logger.log(Level.WARNING, "The argument of a free invocation: "
