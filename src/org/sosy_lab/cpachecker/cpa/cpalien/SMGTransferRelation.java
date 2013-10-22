@@ -3557,6 +3557,11 @@ public class SMGTransferRelation implements TransferRelation {
 
     @Override
     public final String toString() {
+
+      if(isUnknown()) {
+        return "Unkown";
+      }
+
       return "Object: " + object.toString() + " Offset: " + offset.toString();
     }
   }
