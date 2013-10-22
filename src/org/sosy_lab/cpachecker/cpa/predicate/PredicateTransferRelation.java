@@ -164,7 +164,7 @@ public class PredicateTransferRelation implements TransferRelation {
         }
       }
 
-      logger.log(Level.INFO, "Transfer reuse @", getPostLocationId, element.getReuseStateId(), reuseCandidateStateId);
+      logger.log(Level.FINEST, "Transfer reuse @", getPostLocationId, element.getReuseStateId(), reuseCandidateStateId);
 
       // check whether to do abstraction
       boolean doAbstraction = blk.isBlockEnd(edge, pathFormula);

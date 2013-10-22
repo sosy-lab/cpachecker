@@ -326,7 +326,7 @@ public class PredicateAbstractionManager {
           stats.abstractionReuseImplicationTime.stop();
 
           if (implication) {
-            logger.log(Level.INFO, "Reusing abstraction", an.getId());
+            logger.log(Level.FINE, "Reusing abstraction", an.getId());
             stats.numAbstractionReuses++;
             Region reuseFormulaRegion = buildRegionFromFormula(reuseFormula);
             return Pair.of(new AbstractionFormula(fmgr, reuseFormulaRegion, reuseFormula,
