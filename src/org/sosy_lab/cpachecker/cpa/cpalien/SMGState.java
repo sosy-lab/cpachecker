@@ -733,16 +733,6 @@ public class SMGState implements AbstractQueryableState {
   }
 
   /**
-   * Set the two given symbolic values to be not equal.
-   *
-   * @param value1 the first symbolic value.
-   * @param value2 the second symbolic value.
-   */
-  public void setUnequal(int value1, int value2) {
-    // TODO Auto-generated method stub
-  }
-
-  /**
    * Determine, whether the two given symbolic values are not equal.
    * If this method does not return true, the relation of these
    * symbolic values is unknown.
@@ -772,9 +762,9 @@ public class SMGState implements AbstractQueryableState {
       } else {
         return false;
       }
+    } else {
+      return heap.haveNeqRelation(Integer.valueOf(value1), Integer.valueOf(value2));
     }
-
-    return false;
   }
 
   /**
@@ -896,6 +886,6 @@ public class SMGState implements AbstractQueryableState {
   }
 
   public void identifyNonEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
-    // TODO Auto-generated method stub
+    heap.addNeqRelation(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
   }
 }
