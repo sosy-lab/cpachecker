@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNon
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -132,17 +133,38 @@ public class PredicateTransferRelation implements TransferRelation {
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
       // determine the successor state in the reuse-ARG
+      Optional<Integer> getPostLocationId = Optional.of(edge.getSuccessor().getNodeNumber());
       Set<Integer> reuseCandidateStateId = Collections.emptySet();
       if (element.getReuseStateId().size() > 1) {
         throw new IllegalStateException("States with multiple abstraction reuses not yet supported!");
       } else if (element.getReuseStateId().size() == 1) {
         int lastAbstractionIdReused = element.getReuseStateId().iterator().next();
-        Optional<Integer> getPostLocationId = Optional.of(edge.getSuccessor().getNodeNumber());
         reuseCandidateStateId = abstractionStorage.getSuccessorStateIds(lastAbstractionIdReused, getPostLocationId);
         if (reuseCandidateStateId.size() > 1) {
-          throw new IllegalStateException("There should be only one successor abstraction for reuse!");
+          Iterator<Integer> it = reuseCandidateStateId.iterator();
+          Integer first = it.next();
+          Integer second = it.next();
+          if (abstractionStorage.isCoveredBy(first, second)
+              && !abstractionStorage.wasAbstractionReused(second)) {
+            reuseCandidateStateId.clear();
+            reuseCandidateStateId.add(second);
+          } else if (abstractionStorage.isCoveredBy(second, first)
+              && !abstractionStorage.wasAbstractionReused(first)) {
+            reuseCandidateStateId.clear();
+            reuseCandidateStateId.add(first);
+          } else if (!abstractionStorage.wasAbstractionReused(second)) {
+            reuseCandidateStateId.clear();
+            reuseCandidateStateId.add(second);
+          } else if (!abstractionStorage.wasAbstractionReused(first)) {
+            reuseCandidateStateId.clear();
+            reuseCandidateStateId.add(first);
+          } else {
+            throw new IllegalStateException(String.format("There should be only one successor abstraction for reuse! (%d, %s)", lastAbstractionIdReused, getPostLocationId));
+          }
         }
       }
+
+      logger.log(Level.INFO, "Transfer reuse @", getPostLocationId, element.getReuseStateId(), reuseCandidateStateId);
 
       // check whether to do abstraction
       boolean doAbstraction = blk.isBlockEnd(edge, pathFormula);

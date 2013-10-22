@@ -296,6 +296,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+
+    abstractionStorage.collectStatistics(pStatsCollection);
     precisionBootstraper.collectStatistics(pStatsCollection);
   }
 

@@ -84,6 +84,9 @@ public class PredicateAbstractionManager {
 
     public int numCallsAbstraction = 0; // total calls
     public int numAbstractionReuses = 0; // total reuses
+    public int numAbstractionReusesTrueSkipped = 0;
+    public int numComputedAbstractions = 0; // total abstraction computations
+    public int numAbstractionReuseNoImplication = 0;
 
     public int numSymbolicAbstractions = 0; // precision completely empty, no computation
     public int numSatCheckAbstractions = 0; // precision was {false}, only sat check
@@ -160,7 +163,7 @@ public class PredicateAbstractionManager {
 
   private boolean warnedOfCartesianAbstraction = false;
 
-  private boolean abstractionReuseDisabledBecauseOfAmbiguity = false;
+  private boolean abstractionReuseEnabled = true;
 
   private final Map<Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
 
@@ -255,11 +258,15 @@ public class PredicateAbstractionManager {
     BooleanFormula f = bfmgr.and(absFormula, symbFormula);
     final SSAMap ssa = pathFormula.getSsa();
 
+    if (!pPredicates.isEmpty()) {
+      //abstractionReuseEnabled = false;
+    }
+
     ImmutableSet<AbstractionPredicate> predicates = getRelevantPredicates(pPredicates, f, ssa);
 
     // Try to reuse stored abstractions
-    if (abstractionStorage.hasDataForReuse()
-        && !abstractionReuseDisabledBecauseOfAmbiguity) {
+    if (abstractionReuseEnabled
+        && abstractionStorage.hasDataForReuse()) {
       stats.abstractionReuseTime.start();
       ProverEnvironment reuseEnv = solver.newProverEnvironment();
       try {
@@ -292,6 +299,7 @@ public class PredicateAbstractionManager {
           tryReuseBasedOnPredecessors.add(Pair.of(an.getId(), tryLevel + 1));
 
           if (bfmgr.isTrue(an.getFormula())) {
+            stats.numAbstractionReusesTrueSkipped++;
             continue;
           }
 
@@ -318,11 +326,13 @@ public class PredicateAbstractionManager {
           stats.abstractionReuseImplicationTime.stop();
 
           if (implication) {
+            logger.log(Level.INFO, "Reusing abstraction", an.getId());
             stats.numAbstractionReuses++;
-
             Region reuseFormulaRegion = buildRegionFromFormula(reuseFormula);
             return Pair.of(new AbstractionFormula(fmgr, reuseFormulaRegion, reuseFormula,
                 instantiatedReuseFormula, pathFormula), reuseIds);
+          } else {
+            stats.numAbstractionReuseNoImplication++;
           }
         }
       } finally {
@@ -409,6 +419,7 @@ public class PredicateAbstractionManager {
         }
 
       } else {
+        stats.numComputedAbstractions++;
         if (abstractionType != AbstractionType.BOOLEAN) {
           // First do cartesian abstraction if desired
           stats.cartesianAbstractionTime.start();

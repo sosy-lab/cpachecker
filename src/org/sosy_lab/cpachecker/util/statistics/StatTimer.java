@@ -53,7 +53,12 @@ public class StatTimer extends AbstractStatValue {
 
   @Override
   public String toString() {
-    return timer.toString();
+    if (timer.getNumberOfIntervals() > 0) {
+      return String.format("%s (count: %d, avg: %s max: %s)", timer.toString(), timer.getNumberOfIntervals(), timer.printAvgTime(), timer.printMaxTime());
+    } else {
+      return timer.toString();
+    }
+
   }
 
 }

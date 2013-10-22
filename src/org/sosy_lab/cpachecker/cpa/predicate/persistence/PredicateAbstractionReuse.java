@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
+
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,10 +39,17 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
@@ -50,7 +60,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-public class PredicateAbstractionReuse {
+public class PredicateAbstractionReuse implements StatisticsProvider {
 
   public static class StateNode {
     private final int id;
@@ -93,8 +103,33 @@ public class PredicateAbstractionReuse {
     }
   }
 
+  static class PredicateAbstractionReuseStatistics extends AbstractStatistics {
+    int numOfAbstractionStates = 0;
+    int numOfNoAbstractionStates = 0;
+    Timer timeForParsing = new Timer();
+    Timer timeForDefParsing = new Timer();
+    Timer timeForDeclParsing = new Timer();
+    StatTimer timeForFormulaParsing = new StatTimer("Time for parsing stored abstraction formulas");
+    StatTimer timeForFormulaConcat = new StatTimer("Time for concatenating stored abstraction formulas");
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      writingStatisticsTo(pOut)
+        .put("Number of abstraction states", numOfAbstractionStates)
+        .put("Number of no-abstraction states", numOfNoAbstractionStates)
+        .put("Time for parsing stored abstractions", timeForParsing)
+        .put("Time for parsing stored abstractions defs.", timeForDefParsing)
+        .put("Time for parsing stored abstractions decl.", timeForDeclParsing)
+        .put(timeForFormulaParsing)
+        .put(timeForFormulaConcat);
+    }
+  }
+
+  private PredicateAbstractionReuseStatistics stat = new PredicateAbstractionReuseStatistics();
+
   private static final Pattern NODE_DECLARATION_PATTERN = Pattern.compile("^[0-9]+[ ]*\\(([0-9]+[,]*)*\\)[ ]*(@[0-9]+)$");
-  private enum AbstractionsParserState {EXPECT_OF_COMMON_DEFINITIONS, EXPECT_NODE_DECLARATION, EXPECT_NODE_DEFINITION}
+  private static final Pattern COVERAGE_INFO_PATTERN = Pattern.compile("^[0-9]+ [0-9]+$");
+  private enum AbstractionsParserState {EXPECT_OF_COMMON_DEFINITIONS, EXPECT_NODE_DECLARATION, EXPECT_NODE_DEFINITION, EXPECT_COVERAGE_INFO}
 
   private final Path abstractionsFile;
   private final FormulaManagerView fmgr;
@@ -103,6 +138,7 @@ public class PredicateAbstractionReuse {
   private Integer rootAbstractionId = null;
   private Map<Integer, StateNode> stateNodes = Collections.emptyMap();
   private ImmutableMultimap<Integer, Integer> stateTree = ImmutableMultimap.of();
+  private Map<Integer, Integer> stateCoverage = Collections.emptyMap();
   private Set<Integer> reusedAbstractions = Sets.newTreeSet();
 
   public PredicateAbstractionReuse(Path pFile, LogManager pLogger, FormulaManagerView pFmgr) throws PredicateParsingFailedException, InvalidConfigurationException {
@@ -121,111 +157,147 @@ public class PredicateAbstractionReuse {
   }
 
   private void parseStateTree() throws IOException, PredicateParsingFailedException {
-    Multimap<Integer, Integer> resultTree = LinkedHashMultimap.create();
-    Map<Integer, StateNode> resultStates = Maps.newTreeMap();
-    Set<Integer> statesWithParents = Sets.newTreeSet();
+    stat.timeForParsing.start();
+    try {
+      Multimap<Integer, Integer> resultTree = LinkedHashMultimap.create();
+      Map<Integer, StateNode> resultStates = Maps.newTreeMap();
+      Map<Integer, Integer> resultCoverage = Maps.newTreeMap();
+      Set<Integer> statesWithParents = Sets.newTreeSet();
 
-    String source = abstractionsFile.getFileName().toString();
-    try (BufferedReader reader = java.nio.file.Files.newBufferedReader(abstractionsFile, Charsets.US_ASCII)) {
+      String source = abstractionsFile.getFileName().toString();
+      try (BufferedReader reader = java.nio.file.Files.newBufferedReader(abstractionsFile, Charsets.US_ASCII)) {
 
-      // first, read first section with initial set of function definitions
-      Pair<Integer, String> defParsingResult = PredicatePersistenceUtils.parseCommonDefinitions(reader, abstractionsFile.toString());
-      int lineNo = defParsingResult.getFirst();
-      String commonDefinitions = defParsingResult.getSecond();
+        // first, read first section with initial set of function definitions
+        Pair<Integer, String> defParsingResult = PredicatePersistenceUtils.parseCommonDefinitions(reader, abstractionsFile.toString());
+        int lineNo = defParsingResult.getFirst();
+        String commonDefinitions = defParsingResult.getSecond();
 
-      String currentLine;
-      int currentStateId = -1;
-      Optional<Integer> currentLocationId = Optional.absent();
-      Set<Integer> currentSuccessors = Sets.newTreeSet();
+        String currentLine;
+        int currentStateId = -1;
+        Optional<Integer> currentLocationId = Optional.absent();
+        Set<Integer> currentSuccessors = Sets.newTreeSet();
 
-      AbstractionsParserState parserState = AbstractionsParserState.EXPECT_NODE_DECLARATION;
-      while ((currentLine = reader.readLine()) != null) {
-        lineNo++;
-        currentLine = currentLine.trim();
+        AbstractionsParserState parserState = AbstractionsParserState.EXPECT_NODE_DECLARATION;
+        while ((currentLine = reader.readLine()) != null) {
+          lineNo++;
+          currentLine = currentLine.trim();
 
-        if (currentLine.isEmpty()) {
-          // blank lines separates sections
-          continue;
-        }
-
-        if (currentLine.startsWith("//")) {
-          // comment
-          continue;
-        }
-
-        if (parserState == AbstractionsParserState.EXPECT_NODE_DECLARATION) {
-          // we expect a new section header
-          if (!currentLine.endsWith(":")) {
-            throw new PredicateParsingFailedException(currentLine + " is not a valid abstraction header", source, lineNo);
-          }
-
-          currentLine = currentLine.substring(0, currentLine.length()-1).trim(); // strip off ":"
           if (currentLine.isEmpty()) {
-            throw new PredicateParsingFailedException("empty header is not allowed", source, lineNo);
+            // blank lines separates sections
+            continue;
           }
 
-          if (!NODE_DECLARATION_PATTERN.matcher(currentLine).matches()) {
-            throw new PredicateParsingFailedException(currentLine + " is not a valid abstraction header", source, lineNo);
+          if (currentLine.startsWith("//")) {
+            // comment
+            continue;
           }
 
-          currentLocationId = null;
-          StringTokenizer declarationTokenizer = new StringTokenizer(currentLine, " (,):");
-          currentStateId = Integer.parseInt(declarationTokenizer.nextToken());
-          while (declarationTokenizer.hasMoreTokens()) {
-            String token = declarationTokenizer.nextToken().trim();
-            if (token.length() > 0) {
-              if (token.startsWith("@")) {
-                currentLocationId = Optional.of(Integer.parseInt(token.substring(1)));
-              } else {
-                int successorId = Integer.parseInt(token);
-                currentSuccessors.add(successorId);
+          if (currentLine.startsWith("COVERED BY:")) {
+            parserState = AbstractionsParserState.EXPECT_COVERAGE_INFO;
+            continue;
+          }
+
+          if (parserState == AbstractionsParserState.EXPECT_NODE_DECLARATION) {
+            stat.timeForDeclParsing.start();
+
+            // we expect a new section header
+            if (!currentLine.endsWith(":")) {
+              throw new PredicateParsingFailedException(currentLine + " is not a valid abstraction header", source, lineNo);
+            }
+
+            currentLine = currentLine.substring(0, currentLine.length()-1); // strip off ":"
+            if (currentLine.isEmpty()) {
+              throw new PredicateParsingFailedException("empty header is not allowed", source, lineNo);
+            }
+
+            if (!NODE_DECLARATION_PATTERN.matcher(currentLine).matches()) {
+              throw new PredicateParsingFailedException(currentLine + " is not a valid abstraction header", source, lineNo);
+            }
+
+            currentLocationId = null;
+            StringTokenizer declarationTokenizer = new StringTokenizer(currentLine, " (,):");
+            currentStateId = Integer.parseInt(declarationTokenizer.nextToken());
+            while (declarationTokenizer.hasMoreTokens()) {
+              String token = declarationTokenizer.nextToken().trim();
+              if (token.length() > 0) {
+                if (token.startsWith("@")) {
+                  currentLocationId = Optional.of(Integer.parseInt(token.substring(1)));
+                } else {
+                  int successorId = Integer.parseInt(token);
+                  currentSuccessors.add(successorId);
+                }
               }
             }
-          }
 
-          parserState = AbstractionsParserState.EXPECT_NODE_DEFINITION;
+            parserState = AbstractionsParserState.EXPECT_NODE_DEFINITION;
+            stat.timeForDeclParsing.stop();
 
-        } else if (parserState == AbstractionsParserState.EXPECT_NODE_DEFINITION) {
-          if (!currentLine.startsWith("(") && currentLine.endsWith(")")) {
-            throw new PredicateParsingFailedException("unexpected line " + currentLine, source, lineNo);
-          }
+          } else if (parserState == AbstractionsParserState.EXPECT_NODE_DEFINITION) {
+            stat.timeForDefParsing.start();
 
-          StateNode stateNode = null;
-
-          if (currentLine.startsWith("(assert ")) {
-            try {
-              BooleanFormula f = fmgr.parse(commonDefinitions + currentLine);
-              stateNode = new AbstractionNode(currentStateId, f, currentLocationId);
-            } catch (IllegalArgumentException e) {
-              throw new PredicateParsingFailedException(e, "Formula parsing", lineNo);
+            if (!currentLine.startsWith("(") && currentLine.endsWith(")")) {
+              throw new PredicateParsingFailedException("unexpected line " + currentLine, source, lineNo);
             }
-          } else {
-            stateNode = new StateNode(currentStateId, currentLocationId);
+
+            StateNode stateNode = null;
+
+            if (currentLine.startsWith("(assert ")) {
+              try {
+                stat.timeForFormulaParsing.start();
+                stat.timeForFormulaConcat.start();
+                String fullFormulaText = commonDefinitions + currentLine;
+                stat.timeForFormulaConcat.stop();
+                BooleanFormula f = fmgr.parse(fullFormulaText);
+                stat.timeForFormulaParsing.stop();
+                stateNode = new AbstractionNode(currentStateId, f, currentLocationId);
+                stat.numOfAbstractionStates++;
+              } catch (IllegalArgumentException e) {
+                throw new PredicateParsingFailedException(e, "Formula parsing", lineNo);
+              }
+            } else {
+              stateNode = new StateNode(currentStateId, currentLocationId);
+              stat.numOfNoAbstractionStates++;
+            }
+
+            resultStates.put(currentStateId, stateNode);
+            resultTree.putAll(currentStateId, currentSuccessors);
+            statesWithParents.addAll(currentSuccessors);
+            currentStateId = -1;
+            currentSuccessors.clear();
+
+            parserState = AbstractionsParserState.EXPECT_NODE_DECLARATION;
+
+            stat.timeForDefParsing.stop();
+          } else if (parserState == AbstractionsParserState.EXPECT_COVERAGE_INFO) {
+            if (!COVERAGE_INFO_PATTERN.matcher(currentLine).matches()) {
+              throw new PredicateParsingFailedException(currentLine + " is not a valid state coverage information", source, lineNo);
+            }
+
+            String[] parts = currentLine.split(" ");
+            int stateId = Integer.parseInt(parts[0]);
+            int coveredById = Integer.parseInt(parts[1]);
+
+            resultCoverage.put(stateId, coveredById);
           }
-
-          resultStates.put(currentStateId, stateNode);
-          resultTree.putAll(currentStateId, currentSuccessors);
-          statesWithParents.addAll(currentSuccessors);
-          currentStateId = -1;
-          currentSuccessors.clear();
-
-          parserState = AbstractionsParserState.EXPECT_NODE_DECLARATION;
         }
       }
-    }
 
-    // Determine root node
-    Set<Integer> nodesWithNoParents = Sets.difference(resultStates.keySet(), statesWithParents);
-    assert nodesWithNoParents.size() <= 1;
-    if (!nodesWithNoParents.isEmpty()) {
-      this.rootAbstractionId = nodesWithNoParents.iterator().next();
-    } else {
-      this.rootAbstractionId = null;
-    }
+      // Determine root node
+      Set<Integer> nodesWithNoParents = Sets.difference(resultStates.keySet(), statesWithParents);
+      assert nodesWithNoParents.size() <= 1;
+      if (!nodesWithNoParents.isEmpty()) {
+        this.rootAbstractionId = nodesWithNoParents.iterator().next();
+      } else {
+        this.rootAbstractionId = null;
+      }
 
-    // Set results
-    this.stateNodes = Collections.unmodifiableMap(resultStates);
-    this.stateTree = ImmutableMultimap.copyOf(resultTree);
+      // Set results
+      this.stateNodes = Collections.unmodifiableMap(resultStates);
+      this.stateTree = ImmutableMultimap.copyOf(resultTree);
+      this.stateCoverage = Collections.unmodifiableMap(resultCoverage);
+    } finally {
+      stat.timeForParsing.stop();
+    }
   }
 
   public StateNode getStateNode(int stateId) {
@@ -328,6 +400,20 @@ public class PredicateAbstractionReuse {
 
   public boolean hasDataForReuse() {
     return this.abstractionsFile != null;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stat);
+  }
+
+  public boolean isCoveredBy(Integer pFirst, Integer pSecond) {
+    Integer coveredBy = stateCoverage.get(pFirst);
+    if (coveredBy != null) {
+      return pSecond.equals(coveredBy);
+    }
+
+    return false;
   }
 
 

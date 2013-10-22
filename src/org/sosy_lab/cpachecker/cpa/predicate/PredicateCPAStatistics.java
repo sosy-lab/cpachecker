@@ -248,7 +248,10 @@ class PredicateCPAStatistics extends AbstractStatistics {
 
       out.println("Number of abstractions:            " + prec.numAbstractions + " (" + toPercent(prec.numAbstractions, trans.postTimer.getNumberOfIntervals()) + " of all post computations)");
       if (prec.numAbstractions > 0) {
-        out.println("  Times abstraction was reused:    " + as.numAbstractionReuses);
+        out.println("  Times abstraction was reused:          " + as.numAbstractionReuses);
+        out.println("  Times abstraction was skipped (true):  " + as.numAbstractionReusesTrueSkipped);
+        out.println("  Times abstraction was computed:        " + as.numComputedAbstractions);
+        out.println("  Times abstraction for reuse not impl.: " + as.numAbstractionReuseNoImplication);
         out.println("  Because of function entry/exit:  " + valueWithPercentage(blk.numBlkFunctions, prec.numAbstractions));
         out.println("  Because of loop head:            " + valueWithPercentage(blk.numBlkLoops, prec.numAbstractions));
         out.println("  Because of threshold:            " + valueWithPercentage(blk.numBlkThreshold, prec.numAbstractions));
