@@ -135,6 +135,8 @@ public class SMGTransferRelation implements TransferRelation {
   final private LogManager logger;
   final private MachineModel machineModel;
 
+  private final SMGRightHandSideEvaluator expressionEvaluator;
+
   /**
    * Indicates whether the executed statement could result
    * in a failure of the malloc function.
@@ -406,6 +408,7 @@ public class SMGTransferRelation implements TransferRelation {
     config.inject(this);
     logger = pLogger;
     machineModel = pMachineModel;
+    expressionEvaluator = new SMGRightHandSideEvaluator(logger, machineModel);
   }
 
   @Override
@@ -1480,6 +1483,23 @@ public class SMGTransferRelation implements TransferRelation {
     public Boolean visit(CImaginaryLiteralExpression exp) throws UnrecognizedCCodeException {
       return exp.getValue().accept(this);
     }
+  }
+
+  /**
+   * The class {@link SMGExpressionEvaluator} is meant to evaluate
+   * a expression using an arbitrary SMGState. Thats why it does not
+   * permit semantic changes of the state it uses. This class implements
+   * additionally the changes that occur while calculating the next smgState
+   * in the Transfer Relation. These mainly include changes when evaluating
+   * functions. They also contain code that should only be executed during
+   * the calculation of the next SMG State, e.g. logging.
+   */
+  private class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
+
+    public SMGRightHandSideEvaluator(LogManager pLogger, MachineModel pMachineModel) {
+      super(pLogger, pMachineModel);
+    }
+
   }
 
   private class PointerAddressVisitor extends ExpressionValueVisitor
