@@ -558,7 +558,7 @@ public class SMGTransferRelation implements TransferRelation {
     return newState;
   }
 
-  private SMGSymbolicValue getFunctionReturnValue(SMGState smgState, CType type, CFAEdge pCFAEdge) throws SMGInconsistentException {
+  private SMGSymbolicValue getFunctionReturnValue(SMGState smgState, CType type, CFAEdge pCFAEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
 
     SMGObject tmpMemory = smgState.getFunctionReturnObject();
 
