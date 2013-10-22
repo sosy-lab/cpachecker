@@ -203,6 +203,7 @@ class RunExecutor():
         outputFile.flush()
 
         timelimitThread = None
+        oomThread = None
         wallTimeBefore = time.time()
 
         p = None
@@ -221,6 +222,10 @@ class RunExecutor():
                 timelimitThread = _TimelimitThread(cgroups[CPUACCT], rlimits[TIMELIMIT], p, myCpuCount)
                 timelimitThread.start()
 
+            if MEMLIMIT in rlimits:
+                oomThread = _OomEventThread(cgroups[MEMORY], p)
+                oomThread.start()
+
             logging.debug("waiting for: pid:{0}".format(p.pid))
             pid, returnvalue, ru_child = os.wait4(p.pid, 0)
             logging.debug("waiting finished: pid:{0}, retVal:{1}".format(pid, returnvalue))
@@ -238,6 +243,9 @@ class RunExecutor():
 
             if timelimitThread:
                 timelimitThread.cancel()
+
+            if oomThread:
+                oomThread.cancel()
 
             outputFile.close() # normally subprocess closes file, we do this again
 
@@ -379,6 +387,64 @@ def getDebugOutputAfterCrash(output, outputFileName):
 
 def _readCpuTime(cgroupCpuacct):
     return float(readFile(cgroupCpuacct, 'cpuacct.usage'))/1000000000 # nano-seconds to seconds
+
+
+class _OomEventThread(threading.Thread):
+    """
+    Thread that kills the process when they run out of memory.
+    Usually the kernel would do this by itself,
+    but we experienced big problems when letting the kernel kill the process,
+    because it kills just one of the many processes and threads in the cgroup.
+    So we disable this, and instead let the kernel notify us via an event
+    when the cgroup ran out of memory.
+    
+    This works by opening an "event file descriptor" with eventfd,
+    and telling the kernel to notify us about OOMs by writing the event file
+    descriptor and an file descriptor of the memory.oom_control file
+    to cgroup.event_control.
+    The kernel-side process killing is disabled by writing 1 to memory.oom_control.
+    Sources:
+    https://www.kernel.org/doc/Documentation/cgroups/memory.txt
+    https://access.redhat.com/site/documentation//en-US/Red_Hat_Enterprise_Linux/6/html/Resource_Management_Guide/sec-memory.html#ex-OOM-control-notifications
+    """
+    def __init__(self, cgroup, process):
+        super(_OomEventThread, self).__init__()
+        daemon = True
+        self._finished = threading.Event()
+        self._process = process
+
+        ofd = os.open(os.path.join(cgroup, 'memory.oom_control'), os.O_WRONLY)
+        try:
+            from ctypes import cdll
+            libc = cdll.LoadLibrary('libc.so.6')
+
+            # Important to use CLOEXEC, otherwise the benchmarked tool inherits
+            # the file descriptor.
+            EFD_CLOEXEC = 0x80000 # from <sys/eventfd.h>
+            self._efd = libc.eventfd(0, EFD_CLOEXEC) 
+
+            writeFile('{} {}'.format(self._efd, ofd),
+                      cgroup, 'cgroup.event_control')
+
+            # If everything worked, disable Kernel-side process killing
+            os.write(ofd, '1')
+        finally:
+            os.close(ofd)
+
+    def run(self):
+        try:
+            # In an eventfd, there are always 8 bytes
+            eventNumber = os.read(self._efd, 8) # blocks
+            # If read returned, this means the kernel sent us an event.
+            # It does so either on OOM or if the cgroup os removed.
+            if not self._finished.is_set():
+                logging.warn('Killing process due to out-of-memory event from kernel')
+                _killSubprocess(self._process)
+        finally:
+            os.close(self._efd)
+
+    def cancel(self):
+        self._finished.set()
 
 
 class _TimelimitThread(threading.Thread):
