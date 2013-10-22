@@ -2136,5 +2136,9 @@ public class SMGTransferRelation implements TransferRelation {
 
       return "Object: " + object.toString() + " Offset: " + offset.toString();
     }
+
+    public static SMGAddress valueOf(SMGObject pObj, int pOffset) {
+      return new SMGAddress(pObj, SMGKnownExpValue.valueOf(pOffset));
+    }
   }
 }
