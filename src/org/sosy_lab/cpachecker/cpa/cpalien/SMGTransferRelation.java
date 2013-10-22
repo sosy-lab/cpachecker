@@ -286,7 +286,7 @@ public class SMGTransferRelation implements TransferRelation {
       //TODO effective memset
       //  memset() copies ch into the first count characters of buffer
       for (int c = 0; c < count; c++) {
-        writeValue(currentState, bufferMemory, offset + c, charType, ch);
+        writeValue(currentState, bufferMemory, offset + c, charType, ch, cfaEdge);
       }
 
       return pointer;
@@ -764,7 +764,7 @@ public class SMGTransferRelation implements TransferRelation {
     if (expressionEvaluator.isStructOrUnionType(rValueType)) {
       assignStruct(newState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
     } else {
-      writeValue(newState, memoryOfField, fieldOffset, rValueType, value);
+      writeValue(newState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
     }
   }
 
@@ -785,7 +785,19 @@ public class SMGTransferRelation implements TransferRelation {
   }
 
   private void writeValue(SMGState pNewState, SMGObject pMemoryOfField, int pFieldOffset, CType pRValueType,
-      SMGSymbolicValue pValue) throws SMGInconsistentException {
+      SMGSymbolicValue pValue, CFAEdge pEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
+
+    boolean doesNotFitIntoObject = pFieldOffset < 0
+        || pFieldOffset + expressionEvaluator.getSizeof(pEdge, pRValueType) > pMemoryOfField.getSizeInBytes();
+
+    if (doesNotFitIntoObject) {
+      // Field does not fit size of declared Memory
+      logger.log(Level.WARNING, "Field " + "(" + pFieldOffset + ", " + pRValueType.toASTString("") + ")" +
+          " does not fit object " + pMemoryOfField.toString() + ".\n Line: " + pEdge.getLineNumber());
+
+      pNewState.setInvalidWrite();
+      return;
+    }
 
     if (pValue.isUnknown() || pNewState == null) {
       return;
@@ -808,7 +820,7 @@ public class SMGTransferRelation implements TransferRelation {
       possibleMallocFail = false;
       SMGState otherState = new SMGState(state);
       CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
-      writeValue(otherState, memoryOfField, fieldOffset, rValueType, SMGKnownSymValue.ZERO);
+      writeValue(otherState, memoryOfField, fieldOffset, rValueType, SMGKnownSymValue.ZERO, cfaEdge);
       mallocFailState = otherState;
     }
 
