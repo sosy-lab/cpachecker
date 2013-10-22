@@ -1439,10 +1439,14 @@ public class SMGExpressionEvaluator {
       case BINARY_XOR: {
         SMGExplicitValue lValue = lVarInBinaryExp.accept(this);
 
-        if (lValue.isUnknown()) { return SMGUnknownValue.getInstance(); }
+        if (lValue.isUnknown()) {
+          return SMGUnknownValue.getInstance();
+        }
 
         SMGExplicitValue rValue = rVarInBinaryExp.accept(this);
-        if (rValue.isUnknown()) { return SMGUnknownValue.getInstance(); }
+        if (rValue.isUnknown()) {
+          return SMGUnknownValue.getInstance();
+        }
 
         switch (binaryOperator) {
         case PLUS:
@@ -1453,7 +1457,9 @@ public class SMGExpressionEvaluator {
 
         case DIVIDE:
           // TODO maybe we should signal a division by zero error?
-          if (rValue.equals(SMGKnownExpValue.ZERO)) { return SMGUnknownValue.getInstance(); }
+          if (rValue.equals(SMGKnownExpValue.ZERO)) {
+            return SMGUnknownValue.getInstance();
+          }
 
           return lValue.divide(rValue);
 
@@ -1535,7 +1541,9 @@ public class SMGExpressionEvaluator {
 
       CSimpleDeclaration decl = idExpression.getDeclaration();
 
-      if (decl instanceof CEnumerator) { return SMGKnownExpValue.valueOf(((CEnumerator) decl).getValue()); }
+      if (decl instanceof CEnumerator) {
+        return SMGKnownExpValue.valueOf(((CEnumerator) decl).getValue());
+      }
 
       return SMGUnknownValue.getInstance();
     }
@@ -1563,8 +1571,15 @@ public class SMGExpressionEvaluator {
         }
 
       case AMPER:
-        // valid expression, but we don't have explicit values for addresses.
-        return SMGUnknownValue.getInstance();
+        SMGAddressValue address = evaluateAddress(smgState, cfaEdge, unaryExpression);
+
+        if (address.isUnknown() || address.getObject().notNull()) {
+          // valid expression, but we don't have explicit values for addresses.
+          return SMGUnknownValue.getInstance();
+        } else {
+          // If the returned Address points to the null object, the value is its offset
+          return address.getOffset();
+        }
 
       case SIZEOF:
 
