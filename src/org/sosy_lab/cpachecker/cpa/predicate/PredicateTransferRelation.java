@@ -187,10 +187,11 @@ public class PredicateTransferRelation implements TransferRelation {
    * Does special things when we do not compute an abstraction for the
    * successor. This currently only envolves an optional sat check.
    * @param pReuseCandidateStateId
+   * @throws InterruptedException
    */
   private Collection<PredicateAbstractState> handleNonAbstractionFormulaLocation(
       PathFormula pathFormula, PredicateAbstractState oldState,
-      Set<Integer> pReuseCandidateStateId) {
+      Set<Integer> pReuseCandidateStateId) throws InterruptedException {
     boolean satCheck = (satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize);
 
     logger.log(Level.FINEST, "Handling non-abstraction location",
@@ -238,7 +239,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState pElement,
-      List<AbstractState> otherElements, CFAEdge edge, Precision pPrecision) throws CPATransferException {
+      List<AbstractState> otherElements, CFAEdge edge, Precision pPrecision) throws CPATransferException, InterruptedException {
 
     strengthenTimer.start();
     try {
@@ -326,7 +327,7 @@ public class PredicateTransferRelation implements TransferRelation {
   }
 
   private PredicateAbstractState strengthenSatCheck(
-      PredicateAbstractState pElement, CFANode loc) {
+      PredicateAbstractState pElement, CFANode loc) throws InterruptedException {
     logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
 
     strengthenCheckTimer.start();

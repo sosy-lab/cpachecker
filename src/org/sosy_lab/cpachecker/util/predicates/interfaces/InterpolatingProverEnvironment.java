@@ -57,7 +57,7 @@ public interface InterpolatingProverEnvironment<T> extends AutoCloseable {
   /**
    * Check whether the conjunction of all formulas on the stack is unsatisfiable.
    */
-  boolean isUnsat();
+  boolean isUnsat() throws InterruptedException;
 
   /**
    * Get an interpolant for two groups of formulas.

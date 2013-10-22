@@ -67,9 +67,10 @@ public class PathFormula implements Serializable {
     }
 
     PathFormula other = (PathFormula)obj;
-    return formula.equals(other.formula)
+    return (length == other.length)
+        && formula.equals(other.formula)
         && ssa.equals(other.ssa)
-        && (length == other.length);
+        ;
   }
 
   @Override

@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -219,9 +220,7 @@ public class FormulaManagerView {
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeNumber(FormulaType<T> formulaType, long value) {
     Formula t;
-    if (formulaType.isBooleanType()) {
-      t = booleanFormulaManager.makeBoolean(value != 0);
-    } else if (formulaType.isRationalType()) {
+    if (formulaType.isRationalType()) {
       t = rationalFormulaManager.makeNumber(value);
     } else if (formulaType.isBitvectorType()) {
       t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
@@ -231,6 +230,47 @@ public class FormulaManagerView {
 
     return (T) t;
   }
+
+  /**
+   * Make a variable of the given type.
+   * @param formulaType
+   * @param value
+   * @return
+   */
+  @SuppressWarnings("unchecked")
+  public <T extends Formula> T makeNumber(FormulaType<T> formulaType, BigInteger value) {
+    Formula t;
+    if (formulaType.isRationalType()) {
+      t = rationalFormulaManager.makeNumber(value);
+    } else if (formulaType.isBitvectorType()) {
+      t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
+    } else {
+      throw new IllegalArgumentException("Not supported interface");
+    }
+
+    return (T) t;
+  }
+
+  /**
+   * Make a variable of the given type.
+   * @param formulaType
+   * @param value
+   * @return
+   */
+  @SuppressWarnings("unchecked")
+  public <T extends Formula> T makeNumber(FormulaType<T> formulaType, String value) {
+    Formula t;
+    if (formulaType.isRationalType()) {
+      t = rationalFormulaManager.makeNumber(value);
+    } else if (formulaType.isBitvectorType()) {
+      t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
+    } else {
+      throw new IllegalArgumentException("Not supported interface");
+    }
+
+    return (T) t;
+  }
+
   @SuppressWarnings("unchecked")
   public  <T extends Formula> T makeNegate(T pNum) {
     Class<T> clazz = getInterface(pNum);
@@ -711,7 +751,12 @@ public class FormulaManagerView {
             assert name != null;
 
             if (ufCanBeLvalue(name)) {
-              int idx = ssa.getIndex(name, new AbstractFormulaList(newargs));
+              final int idx;
+              if (ufIndexDependsOnArgs(name)) {
+                idx = ssa.getIndex(name, new AbstractFormulaList(newargs));
+              } else {
+                idx = ssa.getIndex(name);
+              }
               if (idx > 0) {
                 // ok, the variable has an instance in the SSA, replace it
                 newt = unsafeManager.replaceArgsAndName(tt, makeName(name, idx), newargs);
@@ -736,7 +781,11 @@ public class FormulaManagerView {
   }
 
   private boolean ufCanBeLvalue(String name) {
-    return name.startsWith(".{") || name.startsWith("->{");
+    return name.startsWith("*");
+  }
+
+  private boolean ufIndexDependsOnArgs(final String name) {
+    return !name.startsWith("*");
   }
 
   public <T extends Formula> T uninstantiate(T pF) {
@@ -751,13 +800,15 @@ public class FormulaManagerView {
   // cache for uninstantiating terms (see uninstantiate() below)
   private final Map<Formula, Formula> uninstantiateCache = new HashMap<>();
 
-  public static Pair<String, Integer> parseName(String var) {
-    String[] s = var.split(INDEX_SEPARATOR);
-    if (s.length != 2) {
-      throw new IllegalArgumentException("Not an instantiated variable: " + var);
+  public static Pair<String, Integer> parseName(final String name) {
+    String[] s = name.split(INDEX_SEPARATOR);
+    if (s.length == 2) {
+      return Pair.of(s[0], Integer.parseInt(s[1]));
+    } else if (s.length == 1) {
+      return Pair.of(s[0], null);
+    } else {
+      throw new IllegalArgumentException("Not an instantiated variable nor constant: " + name);
     }
-
-    return Pair.of(s[0], Integer.parseInt(s[1]));
   }
 
   private <T extends Formula> T myUninstantiate(T f) {

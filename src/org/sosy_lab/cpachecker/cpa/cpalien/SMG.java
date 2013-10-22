@@ -475,6 +475,30 @@ public class SMG {
   public SMGEdgePointsTo getPointer(Integer value) {
     return this.pt_edges.get(value);
   }
+
+  public void mergeValues(int pV1, int pV2) {
+    if (pV1 == pV2) {
+      return;
+    }
+    if (pV2 == nullAddress) {
+      int tmp = pV1;
+      pV1 = pV2;
+      pV2 = tmp;
+    }
+
+    removeValue(pV2);
+    HashSet<SMGEdgeHasValue> new_hv_edges = new HashSet<>();
+    for (SMGEdgeHasValue hv : hv_edges) {
+      if (hv.getValue() != pV2) {
+        new_hv_edges.add(hv);
+      } else {
+        new_hv_edges.add(new SMGEdgeHasValue(hv.getType(), hv.getOffset(), hv.getObject(), pV1));
+      }
+    }
+    hv_edges.clear();
+    hv_edges.addAll(new_hv_edges);
+    // TODO: Handle PT Edges: I'm not entirely sure how they should be handled
+  }
 }
 
 class SMGConsistencyVerifier {

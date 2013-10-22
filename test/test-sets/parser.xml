@@ -7,11 +7,18 @@
     <sourcefiles>
       <includesfile>../programs/benchmarks/*.set</includesfile>
       <exclude>../programs/benchmarks/memsafety/*</exclude>
+      <option name="-spec">sv-comp</option>
+    </sourcefiles>
+    <sourcefiles>
       <include>../programs/simple/*.i</include>
       <include>../programs/simple/*/*.i</include>
     </sourcefiles>
     <sourcefiles>
       <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
+      <option name="-spec">sv-comp</option>
+      <option name="-preprocess"/>
+    </sourcefiles>
+    <sourcefiles>
       <include>../programs/simple/*.c</include>
       <include>../programs/simple/*/*.c</include>
       <option name="-preprocess"/>

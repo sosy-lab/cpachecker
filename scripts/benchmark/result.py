@@ -26,32 +26,76 @@ from __future__ import absolute_import, unicode_literals
 
 import benchmark.util as util
 
-# These strings are searched in file names to determine correct or incorrect verification result.
-# Do not change the values.
-_SAFE_SUBSTRING_LIST   = ['_safe']
-_UNSAFE_SUBSTRING_LIST = ['_unsafe']
+STR_TRUE = 'true'
+STR_FALSE = 'false'
+STR_UNKNOWN = 'unknown'
+STR_PROP_DEREF = 'false(valid-deref)'
+STR_PROP_FREE = 'false(valid-free)'
+STR_PROP_MEMTRACK = 'false(valid-memtrack)'
+
+# string searched in filenames to determine correct or incorrect status.
+# use lower case! the dict contains assignments 'filename' --> 'status'
+PROP_SUBSTRINGS ={'_false-valid-deref':   STR_PROP_DEREF,
+                  '_false-valid-free':     STR_PROP_FREE,
+                  '_false-valid-memtrack': STR_PROP_MEMTRACK
+                  }
+
+assert all('_false' in k for k in PROP_SUBSTRINGS.keys())
+
+FALSE_SUBSTRINGS={'_unsafe':               STR_FALSE, # deprecated, maybe removed soon
+                  '_false':                STR_FALSE
+                  }
+
+TRUE_SUBSTRINGS ={'_safe':                 STR_TRUE, # deprecated, maybe removed soon
+                  '_true':                 STR_TRUE
+                  }
 
 # Score values taken from http://sv-comp.sosy-lab.org/
-SCORE_CORRECT_SAFE = 2
-SCORE_CORRECT_UNSAFE = 1
+SCORE_CORRECT_TRUE = 2
+SCORE_CORRECT_FALSE = 1
 SCORE_UNKNOWN = 0
-SCORE_WRONG_UNSAFE = -4
-SCORE_WRONG_SAFE = -8
+SCORE_WRONG_FALSE = -4
+SCORE_WRONG_TRUE = -8
 
 CATEGORY_UNKNOWN = ('', )
-RESULT_CORRECT_SAFE = ('correct', 'safe')
-RESULT_CORRECT_UNSAFE = ('correct', 'unsafe')
+
+RESULT_CORRECT_TRUE = ('correct', STR_TRUE)
+RESULT_CORRECT_FALSE = ('correct', STR_FALSE)
+RESULT_CORRECT_PROP_DEREF = ('correct', STR_PROP_DEREF)
+RESULT_CORRECT_PROP_FREE = ('correct', STR_PROP_FREE)
+RESULT_CORRECT_PROP_MEMTRACK = ('correct', STR_PROP_MEMTRACK)
+
 RESULT_UNKNOWN = ('unknown', )
 RESULT_ERROR = ('error', )
-RESULT_WRONG_UNSAFE = ('wrong', 'unsafe')
-RESULT_WRONG_SAFE = ('wrong', 'safe')
+
+RESULT_WRONG_FALSE = ('wrong', STR_FALSE)
+RESULT_WRONG_TRUE = ('wrong', STR_TRUE)
+RESULT_WRONG_PROP_DEREF = ('wrong', STR_PROP_DEREF)
+RESULT_WRONG_PROP_FREE = ('wrong', STR_PROP_FREE)
+RESULT_WRONG_PROP_MEMTRACK = ('wrong', STR_PROP_MEMTRACK)
 
 
-def fileIsUnsafe(filename):
-    return util.containsAny(filename, _UNSAFE_SUBSTRING_LIST)
+def statusOfFile(filename):
+    """
+    This function returns the status of a file, 
+    this is the property in the filename.
+    """
+    # first check PROP, then check FALSE, because it is a substring of PROP
+    for key in PROP_SUBSTRINGS:
+        if key in filename.lower():
+            return PROP_SUBSTRINGS[key]
+    for key in FALSE_SUBSTRINGS:
+        if key in filename.lower():
+            return FALSE_SUBSTRINGS[key]
+    return STR_TRUE # if no hint is given, assume TRUE
 
-def fileIsSafe(filename):
-    return util.containsAny(filename, _SAFE_SUBSTRING_LIST)
+
+def fileIsFalse(filename):
+    return util.containsAny(filename, FALSE_SUBSTRINGS.keys())
+
+def fileIsTrue(filename):
+    return util.containsAny(filename, TRUE_SUBSTRINGS.keys())
+
 
 def getResultCategory(filename, status):
     '''
@@ -60,28 +104,34 @@ def getResultCategory(filename, status):
     '''
     status = status.lower()
 
-    if status not in ['safe', 'unsafe', 'unknown']:
+    # for backwards-compatibility only
+    if status == 'safe': status = STR_TRUE
+    if status == 'unsafe': status = STR_FALSE
+
+    fileStatus = statusOfFile(filename)
+
+    if status == fileStatus:
+        prefix = 'correct'
+    else:
+        prefix = 'wrong'
+
+    if status in [STR_PROP_DEREF, STR_PROP_FREE, STR_PROP_MEMTRACK, STR_TRUE, STR_FALSE]:
+        return (prefix, status)
+    elif status == STR_UNKNOWN:
+        return RESULT_UNKNOWN
+    else:
         return RESULT_ERROR
 
-    elif fileIsSafe(filename):
-        if status == 'safe':
-            return RESULT_CORRECT_SAFE
-        elif status == 'unsafe':
-            return RESULT_WRONG_UNSAFE
-        return RESULT_UNKNOWN;
-
-    elif fileIsUnsafe(filename):
-        if status == 'safe':
-            return RESULT_WRONG_SAFE
-        elif status == 'unsafe':
-            return RESULT_CORRECT_UNSAFE
-        return RESULT_UNKNOWN;
-
-    return CATEGORY_UNKNOWN
 
 def calculateScore(category):
-    return {RESULT_CORRECT_SAFE:   SCORE_CORRECT_SAFE,
-            RESULT_WRONG_SAFE:     SCORE_WRONG_SAFE,
-            RESULT_CORRECT_UNSAFE: SCORE_CORRECT_UNSAFE,
-            RESULT_WRONG_UNSAFE:   SCORE_WRONG_UNSAFE,
+    return {RESULT_CORRECT_TRUE:   SCORE_CORRECT_TRUE,
+            RESULT_WRONG_TRUE:     SCORE_WRONG_TRUE,
+            RESULT_CORRECT_FALSE: SCORE_CORRECT_FALSE,
+            RESULT_WRONG_FALSE:   SCORE_WRONG_FALSE,
+            RESULT_CORRECT_PROP_DEREF:    SCORE_CORRECT_FALSE,
+            RESULT_CORRECT_PROP_FREE:     SCORE_CORRECT_FALSE,
+            RESULT_CORRECT_PROP_MEMTRACK: SCORE_CORRECT_FALSE,
+            RESULT_WRONG_PROP_DEREF:      SCORE_WRONG_FALSE,
+            RESULT_WRONG_PROP_FREE:       SCORE_WRONG_FALSE,
+            RESULT_WRONG_PROP_MEMTRACK:   SCORE_WRONG_FALSE,
             }.get(category,  SCORE_UNKNOWN)

@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
 
 import com.google.common.base.Preconditions;
@@ -53,15 +55,19 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long> {
 
   @Override
   public Long makeBitvectorImpl(int pLength, long pI) {
-    if (pI < 0) {
-      long max = (long) Math.pow(2, pLength - 1);
-      if (pI < -max) { throw new IllegalArgumentException(pI
-          + " is to small for a bitvector with length " + pLength); }
-      long n = (long) Math.pow(2, pLength);
-      pI = pI + n;
-    }
     long sort = mk_bv_sort(z3context, pLength);
-    return mk_int64(z3context, pI, sort); // TODO check mk_numeral?
+    return mk_int64(z3context, pI, sort);
+  }
+
+  @Override
+  protected Long makeBitvectorImpl(int pLength, BigInteger pI) {
+    return makeBitvectorImpl(pLength, pI.toString());
+  }
+
+  @Override
+  public Long makeBitvectorImpl(int pLength, String pI) {
+    long sort = mk_bv_sort(z3context, pLength);
+    return mk_numeral(z3context, pI, sort);
   }
 
 

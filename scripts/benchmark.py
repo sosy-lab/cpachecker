@@ -133,7 +133,10 @@ class Worker(threading.Thread):
             run.wallTime = 0
             run.cpuTime = 0
             try:
-                os.remove(run.logFile)
+                if config.debug:
+                   os.rename(run.logFile, run.logFile + ".killed")
+                else:
+                   os.remove(run.logFile)
             except OSError:
                 pass
             return
@@ -418,7 +421,7 @@ def handleCloudResults(benchmark, outputHandler):
 
                 if returnValue is not None:
                     # Do not delete stdOut file if there was some problem
-                    # os.remove(stdoutFile)
+                    os.remove(stdoutFile)
                     pass
                 else:
                     executedAllRuns = False;

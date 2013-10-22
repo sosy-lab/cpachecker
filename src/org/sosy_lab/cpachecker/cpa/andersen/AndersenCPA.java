@@ -56,7 +56,7 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithABM {
 
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for PointerACPA")
-  private String mergeType = "SEP";
+  private String mergeType = "JOIN";
 
   @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
       description="which stop operator to use for PointerACPA")

@@ -1,5 +1,5 @@
 /*
- *  CPAchecker is a tool for configurable software verification.
+H *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2012  Dirk Beyer

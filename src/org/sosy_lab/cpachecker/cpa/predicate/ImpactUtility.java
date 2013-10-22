@@ -120,7 +120,7 @@ final class ImpactUtility {
    * @return True if the state was actually changed.
    */
   boolean strengthenStateWithInterpolant(final BooleanFormula itp,
-      final ARGState s, final AbstractionFormula lastAbstraction) {
+      final ARGState s, final AbstractionFormula lastAbstraction) throws InterruptedException {
     checkState(!requiresPreviousBlockAbstraction()
         || lastAbstraction != null);
 

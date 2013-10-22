@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -125,6 +126,18 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, long pI) {
+    RationalFormula number = rationalFormulaManager.makeNumber(pI);
+    return wrap(getFormulaType(pLength), number);
+  }
+
+  @Override
+  public BitvectorFormula makeBitvector(int pLength, BigInteger pI) {
+    RationalFormula number = rationalFormulaManager.makeNumber(pI);
+    return wrap(getFormulaType(pLength), number);
+  }
+
+  @Override
+  public BitvectorFormula makeBitvector(int pLength, String pI) {
     RationalFormula number = rationalFormulaManager.makeNumber(pI);
     return wrap(getFormulaType(pLength), number);
   }

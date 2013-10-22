@@ -132,6 +132,10 @@ class CmdLineArguments {
         putIfNotExistent(properties, "log.level", "off");
         putIfNotExistent(properties, "log.consoleLevel", "off");
 
+      } else if (arg.equals("-skipRecursion")) {
+        putIfNotExistent(properties, "analysis.summaryEdges", "true");
+        putIfNotExistent(properties, "cpa.callstack.skipRecursion", "true");
+
       } else if (arg.equals("-setprop")) {
         if (argsIt.hasNext()) {
           String s = argsIt.next();
@@ -250,6 +254,7 @@ class CmdLineArguments {
     System.out.println(" -java");
     System.out.println(" -32");
     System.out.println(" -64");
+    System.out.println(" -skipRecursion");
     System.out.println(" -setprop");
     System.out.println(" -printOptions [-v|-verbose]");
     System.out.println(" -printUsedOptions");

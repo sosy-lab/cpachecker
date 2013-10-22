@@ -41,6 +41,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
@@ -112,6 +113,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   private final Configuration config;
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
   private final PredicateAbstractDomain domain;
   private final PredicateTransferRelation transfer;
@@ -132,26 +134,28 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateAbstractionReuse abstractionStorage;
 
   protected PredicateCPA(Configuration config, LogManager logger,
-      BlockOperator blk, CFA cfa, ReachedSetFactory reachedSetFactory)
+      BlockOperator blk, CFA cfa, ReachedSetFactory reachedSetFactory,
+      ShutdownNotifier pShutdownNotifier)
           throws InvalidConfigurationException, CPAException {
     config.inject(this, PredicateCPA.class);
 
     this.config = config;
     this.logger = logger;
+    this.shutdownNotifier = pShutdownNotifier;
 
     if (enableBlockreducer) {
-      BlockComputer blockComputer = new BlockedCFAReducer(config);
+      BlockComputer blockComputer = new BlockedCFAReducer(config, logger);
       blk.setExplicitAbstractionNodes(blockComputer.computeAbstractionNodes(cfa));
     }
     blk.setCFA(cfa);
 
-    formulaManagerFactory = new FormulaManagerFactory(config, logger);
+    formulaManagerFactory = new FormulaManagerFactory(config, logger, pShutdownNotifier);
 
     realFormulaManager = formulaManagerFactory.getFormulaManager();
     formulaManager = new FormulaManagerView(realFormulaManager, config, logger);
     String libraries = formulaManager.getVersion();
 
-    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, cfa.getMachineModel());
+    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, cfa);
     if (useCache) {
       pfMgr = new CachingPathFormulaManager(pfMgr);
     }
@@ -198,7 +202,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     InvariantGenerator invariantGenerator;
     if (useInvariantsForAbstraction) {
-      invariantGenerator = new CPAInvariantGenerator(config, logger, reachedSetFactory, cfa);
+      invariantGenerator = new CPAInvariantGenerator(config, logger, reachedSetFactory, pShutdownNotifier, cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator(reachedSetFactory);
     }
@@ -268,6 +272,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return logger;
   }
 
+  public ShutdownNotifier getShutdownNotifier() {
+    return shutdownNotifier;
+  }
+
   @Nullable
   public PredicateStaticRefiner getStaticRefiner() {
     return staticRefiner;
@@ -314,7 +322,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     // isLessOrEqual for proof checking; formula based; elements can be trusted (i.e., invariants do not have to be checked)
 
     PredicateAbstractState e1 = (PredicateAbstractState) pElement;

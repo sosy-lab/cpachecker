@@ -38,6 +38,7 @@ import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
@@ -67,10 +68,11 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
     this.env = creator.getEnv();
   }
 
-  public static SmtInterpolFormulaManager create(Configuration config, LogManager logger, boolean pUseIntegers) throws InvalidConfigurationException {
+  public static SmtInterpolFormulaManager create(Configuration config, LogManager logger,
+      ShutdownNotifier pShutdownNotifier, boolean pUseIntegers) throws InvalidConfigurationException {
 
     Logics logic = pUseIntegers ? Logics.QF_UFLIA : Logics.QF_UFLIRA;
-    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logic, logger);
+    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logic, logger, pShutdownNotifier);
 
     Type type = pUseIntegers ? Type.INT : Type.REAL;
     final Sort t = env.sort(type);
@@ -86,6 +88,10 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
   public SmtInterpolInterpolatingProver createInterpolator() {
     return env.getInterpolator(this);
+  }
+
+  SmtInterpolTheoremProver createProver() {
+    return env.createProver(this);
   }
 
   BooleanFormula encapsulateBooleanFormula(Term t) {

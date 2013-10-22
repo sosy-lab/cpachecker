@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import com.google.common.collect.Lists;
 
 
-public class CTypeConversionHandlerTest {
+public class CBinaryExpressionBuilderTest {
 
 
   //type constants
@@ -80,8 +80,8 @@ public class CTypeConversionHandlerTest {
   private StringBuildingLogHandler stringLogHandler;
   private LogManager logger;
 
-  private CTypeConversionHandler c32;
-  private CTypeConversionHandler c64;
+  private CBinaryExpressionBuilder c32;
+  private CBinaryExpressionBuilder c64;
 
 
   @Before
@@ -90,8 +90,8 @@ public class CTypeConversionHandlerTest {
     stringLogHandler = new StringBuildingLogHandler();
     logger = new BasicLogManager(config, stringLogHandler);
 
-    c32 = new CTypeConversionHandler(MachineModel.LINUX32, logger, null);
-    c64 = new CTypeConversionHandler(MachineModel.LINUX64, logger, null);
+    c32 = new CBinaryExpressionBuilder(MachineModel.LINUX32, logger);
+    c64 = new CBinaryExpressionBuilder(MachineModel.LINUX64, logger);
   }
 
 
@@ -128,7 +128,7 @@ public class CTypeConversionHandlerTest {
   }
 
 
-  private void checkArithmetic(CTypeConversionHandler c, BinaryOperator op) {
+  private void checkArithmetic(CBinaryExpressionBuilder c, BinaryOperator op) {
 
     for (CSimpleType small1 : smallTypes) {
       for (CSimpleType small2 : smallTypes) {
@@ -146,7 +146,7 @@ public class CTypeConversionHandlerTest {
   }
 
 
-  private void checkRelational(CTypeConversionHandler c, BinaryOperator op) {
+  private void checkRelational(CBinaryExpressionBuilder c, BinaryOperator op) {
 
     for (CSimpleType small1 : smallTypes) {
       for (CSimpleType small2 : smallTypes) {
@@ -213,14 +213,14 @@ public class CTypeConversionHandlerTest {
   }
 
 
-  private void checkCalculation(CTypeConversionHandler c, BinaryOperator op, CType t1, CType t2, CType target) {
-    assertEquals(target, c.getCalculationTypeForBinaryOperation(t1, t2, op, null));
-    assertEquals(target, c.getCalculationTypeForBinaryOperation(t2, t1, op, null));
+  private void checkCalculation(CBinaryExpressionBuilder c, BinaryOperator op, CType t1, CType t2, CType target) {
+    assertEquals(target, c.getCalculationTypeForBinaryOperation(t1, t2, op));
+    assertEquals(target, c.getCalculationTypeForBinaryOperation(t2, t1, op));
   }
 
 
-  private void checkResult(CTypeConversionHandler c, BinaryOperator op, CType t1, CType t2, CType target) {
-    assertEquals(target, c.getResultTypeForBinaryOperation(t1, t2, op, null));
-    assertEquals(target, c.getResultTypeForBinaryOperation(t2, t1, op, null));
+  private void checkResult(CBinaryExpressionBuilder c, BinaryOperator op, CType t1, CType t2, CType target) {
+    assertEquals(target, c.getResultTypeForBinaryOperation(t1, t2, op));
+    assertEquals(target, c.getResultTypeForBinaryOperation(t2, t1, op));
   }
 }

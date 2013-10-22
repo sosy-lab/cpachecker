@@ -81,7 +81,8 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
         return conv.makeFreshVariable(func, expType, ssa);
 
       } else if (conv.options.isNondetFunction(func)
-          || conv.options.isMemoryAllocationFunction(func)) {
+          || conv.options.isMemoryAllocationFunction(func)
+          || conv.options.isMemoryAllocationFunctionWithZeroing(func)) {
         // Function call like "random()".
         // Also "malloc()" etc. just return a random value, so handle them similarly.
         // Ignore parameters and just create a fresh variable for it.
@@ -112,7 +113,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
       }
     } else {
       conv.logfOnce(Level.WARNING, edge, "Ignoring function call through function pointer %s", fn);
-      func = "<func>{" + CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(fn), function) + "}";
+      func = ("<func>{" + CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(fn), function) + "}").intern();
     }
 
     if (pexps.isEmpty()) {
@@ -170,7 +171,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
    * @param pModelFile File with the dimacs model.
    * @return BooleanFormula
    */
-  private BooleanFormula loadExternalFormula(File pModelFile) {
+  BooleanFormula loadExternalFormula(File pModelFile) {
     if (! pModelFile.getName().endsWith(".dimacs")) {
       throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
     }

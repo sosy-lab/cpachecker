@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunc
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractRationalFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
+import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.TerminationTest;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Splitter.MapSplitter;
@@ -95,6 +97,9 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> impleme
   private final Mathsat5Settings settings;
   private static final AtomicInteger logfileCounter = new AtomicInteger(0);
 
+  private final ShutdownNotifier shutdownNotifier;
+  private final TerminationTest terminationTest;
+
   private Mathsat5FormulaManager(
       LogManager pLogger,
       long pMathsatConfig,
@@ -102,7 +107,9 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> impleme
       AbstractFunctionFormulaManager<Long> pFunctionManager,
       AbstractBooleanFormulaManager<Long> pBooleanManager,
       AbstractRationalFormulaManager<Long> pNumericManager,
-      AbstractBitvectorFormulaManager<Long> pBitpreciseManager, Mathsat5Settings pSettings) {
+      AbstractBitvectorFormulaManager<Long> pBitpreciseManager,
+      Mathsat5Settings pSettings,
+      final ShutdownNotifier pShutdownNotifier) {
 
     super(unsafeManager, pFunctionManager, pBooleanManager, pNumericManager, pBitpreciseManager);
     FormulaCreator<Long> creator = getFormulaCreator();
@@ -114,15 +121,27 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> impleme
     mathsatEnv = formulaCreator.getEnv();
     settings = pSettings;
     logger = checkNotNull(pLogger);
+
+    shutdownNotifier = checkNotNull(pShutdownNotifier);
+    terminationTest = new TerminationTest() {
+        @Override
+        public boolean shouldTerminate() throws InterruptedException {
+          pShutdownNotifier.shutdownIfNecessary();
+          return false;
+        }
+      };
   }
 
+  ShutdownNotifier getShutdownNotifier() {
+    return shutdownNotifier;
+  }
 
   static long getMsatTerm(Formula pT) {
     return ((Mathsat5Formula)pT).getTerm();
   }
 
   public static Mathsat5FormulaManager create(LogManager logger,
-      Configuration config, boolean useIntegers) throws InvalidConfigurationException {
+      Configuration config, ShutdownNotifier pShutdownNotifier, boolean useIntegers) throws InvalidConfigurationException {
 
     // Init Msat
     Mathsat5Settings settings = new Mathsat5Settings(config);
@@ -152,7 +171,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> impleme
 
     return new Mathsat5FormulaManager(logger, msatConf,
         unsafeManager, functionTheory, booleanTheory,
-        rationalTheory, bitvectorTheory, settings);
+        rationalTheory, bitvectorTheory, settings, pShutdownNotifier);
   }
 
   BooleanFormula encapsulateBooleanFormula(long t) {
@@ -210,6 +229,10 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> impleme
     }
 
     return env;
+  }
+
+  long addTerminationTest(long env) {
+    return msat_set_termination_test(env, terminationTest);
   }
 
   long getMsatEnv() {

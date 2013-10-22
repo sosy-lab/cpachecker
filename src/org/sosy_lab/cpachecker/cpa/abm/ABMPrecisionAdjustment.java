@@ -56,7 +56,7 @@ public class ABMPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public Triple<AbstractState, Precision, Action> prec(AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException {
+      UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
     if (breakAnalysis) { return Triple.of(pElement, pPrecision, Action.BREAK); }
 
     Triple<AbstractState, Precision, Action> result = wrappedPrecisionAdjustment.prec(pElement, pPrecision, pElements);

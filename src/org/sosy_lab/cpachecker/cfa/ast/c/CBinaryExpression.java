@@ -23,19 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CBinaryExpression extends ABinaryExpression implements CExpression {
 
+  private final CType calculationType;
+
   public CBinaryExpression(final FileLocation pFileLocation,
-                              final CType pType,
+                              final CType pExpressionType,
+                              final CType pCalculationType,
                               final CExpression pOperand1,
                               final CExpression pOperand2,
                               final BinaryOperator pOperator) {
-    super(pFileLocation, pType, pOperand1, pOperand2, pOperator);
-
+    super(pFileLocation, pExpressionType, pOperand1, pOperand2, pOperator);
+    calculationType = pCalculationType;
   }
 
   @Override
@@ -51,6 +56,26 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
   @Override
   public CType getExpressionType() {
     return (CType) super.getExpressionType();
+  }
+
+  /**
+   * This method returns the type for the 'calculation' of this binary expression.
+   *
+   * This is not the type of the 'result' of this binary expression.
+   * The result-type is returned from getExpressionType().
+   * <p>
+   * Before the calculation, if necessary,
+   * both operand should be casted to the calculation-type.
+   * In most cases this is a widening.
+   *
+   * Then the operation is performed in this type.
+   * This may cause an overflow, if the calculation-type is not big enough.
+   *
+   * After the calculation, if necessary,
+   * the result of the binary operation should be casted to the result-type.
+   */
+  public CType getCalculationType() {
+    return calculationType;
   }
 
   @Override
@@ -110,6 +135,7 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
   public int hashCode() {
     final int prime = 31;
     int result = 7;
+    result = prime * result + Objects.hashCode(calculationType);
     return result * prime + super.hashCode();
   }
 
@@ -123,6 +149,8 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
       return false;
     }
 
-    return super.equals(obj);
+    final CBinaryExpression other = (CBinaryExpression) obj;
+
+    return Objects.equals(other.calculationType, calculationType) && super.equals(obj);
   }
 }

@@ -69,8 +69,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.coverage.CoveragePrinter;
 import org.sosy_lab.cpachecker.coverage.CoveragePrinterGcov;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.MemoryStatistics;
-import org.sosy_lab.cpachecker.util.ProgramCpuTime;
+import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
+import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 import com.google.common.base.Joiner;
@@ -140,7 +140,7 @@ class MainCPAStatistics implements Statistics {
 
     programTime.start();
     try {
-      programCpuTime = ProgramCpuTime.read();
+      programCpuTime = ProcessCpuTime.read();
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
       logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, some statistics will be missing.");
@@ -160,7 +160,7 @@ class MainCPAStatistics implements Statistics {
   void startAnalysisTimer() {
     analysisTime.start();
     try {
-      analysisCpuTime = ProgramCpuTime.read();
+      analysisCpuTime = ProcessCpuTime.read();
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
       // user was already warned
@@ -173,7 +173,7 @@ class MainCPAStatistics implements Statistics {
     programTime.stop();
 
     try {
-      long stopCpuTime = ProgramCpuTime.read();
+      long stopCpuTime = ProcessCpuTime.read();
 
       if (programCpuTime >= 0) {
         programCpuTime = stopCpuTime - programCpuTime;

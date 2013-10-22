@@ -36,7 +36,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoin;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoinStatus;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class SMGState implements AbstractQueryableState {
@@ -98,6 +101,13 @@ public class SMGState implements AbstractQueryableState {
    */
   final public void setRuntimeCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
     runtimeCheckLevel = pLevel;
+
+    if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.FULL)) {
+      SMGJoin.performChecks(true);
+    } else {
+      SMGJoin.performChecks(false);
+    }
+
     if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.HALF)) {
       CLangSMG.setPerformChecks(true, logger);
     }
@@ -466,9 +476,14 @@ public class SMGState implements AbstractQueryableState {
    *
    * @param reachedState already reached state, that may cover this state already.
    * @return True, if this state is covered by the given state, false otherwise.
+   * @throws SMGInconsistentException
    */
-  public boolean isLessOrEqual(SMGState reachedState) {
-    // TODO Auto-generated method stub
+  public boolean isLessOrEqual(SMGState reachedState) throws SMGInconsistentException {
+    SMGJoin join = new SMGJoin(reachedState.heap, this.heap);
+    if (join.isDefined() &&
+        (join.getStatus() == SMGJoinStatus.LEFT_ENTAIL || join.getStatus() == SMGJoinStatus.EQUAL)){
+      return true;
+    }
     return false;
   }
 
@@ -678,5 +693,13 @@ public class SMGState implements AbstractQueryableState {
 
   public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
     return this.heap.getHVEdges(pFilter);
+  }
+
+  public void identifyEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
+    heap.mergeValues(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
+  }
+
+  public void identifyNonEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
+    // TODO Auto-generated method stub
   }
 }

@@ -23,11 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,6 +47,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
@@ -56,6 +61,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 import de.uni_freiburg.informatik.ultimate.logic.Theory;
+import de.uni_freiburg.informatik.ultimate.smtinterpol.dpll.DPLLEngine;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.ParseEnvironment;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.SMTInterpol;
 
@@ -106,6 +112,7 @@ class SmtInterpolEnvironment {
   private static int logfileCounter = 0;
 
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
   /** the wrapped Script */
   private final Script script;
@@ -121,11 +128,13 @@ class SmtInterpolEnvironment {
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
   public SmtInterpolEnvironment(Configuration config, Logics pLogic,
-      final LogManager pLogger) throws InvalidConfigurationException {
+      final LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
+    shutdownNotifier = checkNotNull(pShutdownNotifier);
 
-    SMTInterpol smtInterpol = new SMTInterpol(createLog4jLogger(logger));
+    final SMTInterpol smtInterpol = new SMTInterpol(createLog4jLogger(logger));
+
     if (logAllQueries && smtLogfile != null) {
       script = createLoggingWrapper(smtInterpol);
     } else {
@@ -146,6 +155,17 @@ class SmtInterpolEnvironment {
     }
 
     theory = smtInterpol.getTheory();
+
+    shutdownNotifier.registerAndCheckImmediately(new ShutdownNotifier.ShutdownRequestListener() {
+        @Override
+        public void shutdownRequested(String pReason) {
+          DPLLEngine engine = smtInterpol.getEngine();
+          if (engine != null) {
+            engine.setCompleteness(DPLLEngine.INCOMPLETE_TIMEOUT);
+            engine.stop();
+          }
+        }
+      });
   }
 
   private Script createLoggingWrapper(SMTInterpol smtInterpol) {
@@ -234,6 +254,10 @@ class SmtInterpolEnvironment {
     }
 
     return new SmtInterpolInterpolatingProver(mgr);
+  }
+
+  SmtInterpolTheoremProver createProver(SmtInterpolFormulaManager mgr) {
+    return new SmtInterpolTheoremProver(mgr, shutdownNotifier);
   }
 
   /** Parse a String to Terms and Declarations.
@@ -351,9 +375,16 @@ class SmtInterpolEnvironment {
   }
 
   /** This function causes the SatSolver to check all the terms on the stack,
-   * if their conjunction is SAT or UNSAT. */
-  public boolean checkSat() {
+   * if their conjunction is SAT or UNSAT.
+   */
+  public boolean checkSat() throws InterruptedException {
     try {
+      // We actually terminate SmtInterpol during the analysis
+      // by using a shutdown listener. However, SmtInterpol resets the
+      // mStopEngine flag in DPLLEngine before starting to solve,
+      // so we check here, too.
+      shutdownNotifier.shutdownIfNecessary();
+
       LBool result = script.checkSat();
       switch (result) {
       case SAT:
@@ -361,6 +392,7 @@ class SmtInterpolEnvironment {
       case UNSAT:
         return false;
       default:
+        shutdownNotifier.shutdownIfNecessary();
         throw new SMTLIBException("checkSat returned " + result);
       }
     } catch (SMTLIBException e) {
@@ -368,8 +400,14 @@ class SmtInterpolEnvironment {
     }
   }
 
-  public Iterable<Term[]> checkAllSat(Term[] importantPredicates) {
+  public Iterable<Term[]> checkAllSat(Term[] importantPredicates) throws InterruptedException {
     try {
+      // We actually terminate SmtInterpol during the analysis
+      // by using a shutdown listener. However, SmtInterpol resets the
+      // mStopEngine flag in DPLLEngine before starting to solve,
+      // so we check here, too.
+      shutdownNotifier.shutdownIfNecessary();
+
       return script.checkAllsat(importantPredicates);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
@@ -444,6 +482,14 @@ class SmtInterpolEnvironment {
     }
   }
 
+  public Term numeral(BigInteger num) {
+    try {
+      return script.numeral(num);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
   public Term numeral(String num) {
     try {
       return script.numeral(num);
@@ -453,6 +499,14 @@ class SmtInterpolEnvironment {
   }
 
   public Term decimal(String num) {
+    try {
+      return script.decimal(num);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  public Term decimal(BigDecimal num) {
     try {
       return script.decimal(num);
     } catch (SMTLIBException e) {

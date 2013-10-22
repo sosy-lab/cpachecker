@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.templates.manager;
 
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateNumber;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -49,6 +51,16 @@ public class TemplateNumericFormulaManager implements RationalFormulaManager {
     TemplateTerm T = new TemplateTerm(type);
     T.setCoefficient(N);
     return T;
+  }
+
+  @Override
+  public RationalFormula makeNumber(BigInteger pI) {
+    return makeNumber(pI.longValue());
+  }
+
+  @Override
+  public RationalFormula makeNumber(String pI) {
+    return makeNumber(Long.parseLong(pI));
   }
 
   @Override

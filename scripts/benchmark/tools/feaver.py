@@ -3,6 +3,7 @@ import os
 import benchmark.filewriter as filewriter
 import benchmark.util as Util
 import benchmark.tools.template
+import benchmark.result as result
 
 class Tool(benchmark.tools.template.BaseTool):
 
@@ -46,13 +47,13 @@ class Tool(benchmark.tools.template.BaseTool):
             status = "ERROR"
 
         elif "Error Found:" in output:
-            status = "UNSAFE"
+            status = result.STR_FALSE
 
         elif "No Errors Found" in output:
-            status = "SAFE"
+            status = result.STR_TRUE
 
         else:
-            status = "UNKNOWN"
+            status = result.STR_UNKNOWN
 
         # delete tmp-files
         for tmpfile in [self.prepSourcefile, self.prepSourcefile[0:-1] + "M",

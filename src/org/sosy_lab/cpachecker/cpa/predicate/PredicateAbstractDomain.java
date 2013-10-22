@@ -52,7 +52,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
 
   @Override
   public boolean isLessOrEqual(AbstractState element1,
-                                       AbstractState element2) throws CPAException {
+                                       AbstractState element2) throws CPAException, InterruptedException {
     coverageCheckTimer.start();
     try {
 

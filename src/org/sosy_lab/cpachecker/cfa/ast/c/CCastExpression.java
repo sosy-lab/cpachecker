@@ -32,17 +32,21 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CCastExpression extends AExpression implements CExpression {
 
   private final CExpression operand;
-  private final CType     type;
 
+  /**
+   * @param pFileLocation where is this cast?
+   * @param pExpressionType target-type of the cast
+   * @param pOperand is casted to target-type
+   */
   public CCastExpression(final FileLocation pFileLocation,
                             final CType pExpressionType,
-                            final CExpression pOperand,
-                            final CType pType) {
+                            final CExpression pOperand) {
     super(pFileLocation, pExpressionType);
     operand = pOperand;
-    type = pType;
   }
 
+  /** returns the target-type of the cast-expression.
+   * The operand is casted to this type. */
   @Override
   public CType getExpressionType() {
     return (CType)super.getExpressionType();
@@ -50,10 +54,6 @@ public final class CCastExpression extends AExpression implements CExpression {
 
   public CExpression getOperand() {
     return operand;
-  }
-
-  public CType getType() {
-    return type;
   }
 
   @Override
@@ -68,7 +68,7 @@ public final class CCastExpression extends AExpression implements CExpression {
 
   @Override
   public String toASTString() {
-    return "(" + type.toASTString("") + ")" + operand.toParenthesizedASTString();
+    return "(" + getExpressionType().toASTString("") + ")" + operand.toParenthesizedASTString();
   }
 
   /* (non-Javadoc)
@@ -79,7 +79,6 @@ public final class CCastExpression extends AExpression implements CExpression {
     final int prime = 31;
     int result = 7;
     result = prime * result + Objects.hashCode(operand);
-    result = prime * result + Objects.hashCode(type);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -100,7 +99,7 @@ public final class CCastExpression extends AExpression implements CExpression {
 
     CCastExpression other = (CCastExpression) obj;
 
-    return Objects.equals(other.operand, operand) && Objects.equals(other.type, type);
+    return Objects.equals(other.operand, operand);
   }
 
 }

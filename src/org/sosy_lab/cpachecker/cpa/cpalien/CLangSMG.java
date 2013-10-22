@@ -393,6 +393,15 @@ public class CLangSMG extends SMG {
   public SMGObject getFunctionReturnObject() {
     return stack_objects.peek().getReturnObject();
   }
+
+  @Override
+  public void mergeValues(int v1, int v2) {
+    super.mergeValues(v1, v2);
+
+    if (CLangSMG.performChecks()) {
+      CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
+    }
+  }
 }
 
 class CLangSMGConsistencyVerifier {

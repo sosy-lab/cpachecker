@@ -40,14 +40,17 @@ abstract class Mathsat5AbstractProver {
   protected long curEnv;
   private final long curConfig;
 
+  private final long terminationTest;
+
   protected Mathsat5AbstractProver(Mathsat5FormulaManager pMgr, long pConfig,
       boolean pShared, boolean pGhostFilter) {
     mgr = pMgr;
     curConfig = pConfig;
     curEnv = mgr.createEnvironment(pConfig, pShared, pGhostFilter);
+    terminationTest = mgr.addTerminationTest(curEnv);
   }
 
-  public boolean isUnsat() {
+  public boolean isUnsat() throws InterruptedException {
     Preconditions.checkState(curEnv != 0);
     return !msat_check_sat(curEnv);
   }
@@ -66,6 +69,7 @@ abstract class Mathsat5AbstractProver {
     Preconditions.checkState(curEnv != 0);
     msat_destroy_env(curEnv);
     curEnv = 0;
+    msat_free_termination_test(terminationTest);
     msat_destroy_config(curConfig);
   }
 }

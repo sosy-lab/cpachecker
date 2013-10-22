@@ -52,7 +52,7 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public Triple<AbstractState, Precision, Action> prec(
       AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException {
+      UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
     /*Map<Precision, Triple<AbstractState, Precision, Action>> lCache = mCache.get(pElement);
 
     if (lCache == null) {

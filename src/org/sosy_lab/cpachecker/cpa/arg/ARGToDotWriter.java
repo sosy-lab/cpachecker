@@ -250,8 +250,11 @@ class ARGToDotWriter {
       return "red";
     }
 
-    PredicateAbstractState abselem = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
-    if (abselem != null && abselem.isAbstractionState()) {
+    if (!currentElement.wasExpanded()) {
+      return "orange";
+    }
+
+    if (ARGUtils.IMPORTANT_FOR_ANALYSIS.apply(currentElement)) {
       return "cornflowerblue";
     }
 

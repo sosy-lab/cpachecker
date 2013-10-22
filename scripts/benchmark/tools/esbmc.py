@@ -3,6 +3,7 @@ import subprocess
 import os
 import benchmark.util as Util
 import benchmark.tools.template
+import benchmark.result as result
 
 class Tool(benchmark.tools.template.BaseTool):
     """
@@ -43,37 +44,37 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        status = 'UNKNOWN'
+        status = result.STR_UNKNOWN
 
         if self.allInText(['Violated property:',
                       'dereference failure: dynamic object lower bound',
                       'VERIFICATION FAILED'],
                       output):
-            status = 'FALSE(valid-deref)'
+            status = result.STR_PROP_DEREF
         elif self.allInText(['Violated property:',
                       'Operand of free must have zero pointer offset',
                       'VERIFICATION FAILED'],
                       output):
-            status = 'FALSE(valid-free)'
+            status = result.STR_PROP_FREE
         elif self.allInText(['Violated property:',
                       'error label',
                       'VERIFICATION FAILED'],
                       output):
-            status = 'UNSAFE'
+            status = result.STR_FALSE
         elif self.allInText(['Violated property:',
                       'assertion',
                       'VERIFICATION FAILED'],
                       output):
-            status = 'UNSAFE'
+            status = result.STR_FALSE
         elif self.allInText(['Violated property:',
                       'dereference failure: forgotten memory',
                       'VERIFICATION FAILED'],
                       output):
-            status = 'FALSE(valid-memtrack)'
+            status = result.STR_PROP_MEMTRACK
         elif 'VERIFICATION SUCCESSFUL' in output:
-            status = 'SAFE'
+            status = result.STR_TRUE
 
-        if status == 'UNKNOWN':
+        if status == result.STR_UNKNOWN:
             if isTimeout:
                 status = 'TIMEOUT'
             elif output.endswith(('Z3 Error 9', 'Z3 Error 9\n')):

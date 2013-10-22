@@ -28,11 +28,13 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -51,12 +53,15 @@ public class CallstackTransferRelation implements TransferRelation {
   @Option(name="depth", description = "depth of recursion bound")
   private int recursionBoundDepth = 0;
 
-  @Option(name="skipRecursion", description = "Skip recursion." +
+  @Option(name="skipRecursion", description = "Skip recursion (this is unsound)." +
       " Treat function call as a statement (the same as for functions without bodies)")
   private boolean skipRecursion = false;
 
-  public CallstackTransferRelation(Configuration config) throws InvalidConfigurationException {
+  private final LogManager logger;
+
+  public CallstackTransferRelation(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
+    logger = pLogger;
   }
 
   @Override
@@ -86,6 +91,7 @@ public class CallstackTransferRelation implements TransferRelation {
           String functionName = cfaEdge.getSuccessor().getFunctionName();
           CFANode callNode = cfaEdge.getPredecessor();
           if (hasRecursion(element, cfaEdge, recursionBoundDepth)) {
+            logger.log(Level.INFO, "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the command line.");
             throw new UnsupportedCCodeException("recursion", pCfaEdge);
           } else {
             return Collections.singleton(new CallstackState(element, functionName, callNode));

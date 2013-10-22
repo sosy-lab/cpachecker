@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
@@ -65,9 +66,10 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
 
   private ABMPredicateCPA(Configuration config, LogManager logger,
-      ABMBlockOperator pBlk, CFA pCfa, ReachedSetFactory reachedSetFactory)
+      ABMBlockOperator pBlk, CFA pCfa, ReachedSetFactory reachedSetFactory,
+      ShutdownNotifier pShutdownNotifier)
           throws InvalidConfigurationException, CPAException {
-    super(config, logger, pBlk, pCfa, reachedSetFactory);
+    super(config, logger, pBlk, pCfa, reachedSetFactory, pShutdownNotifier);
 
     config.inject(this, ABMPredicateCPA.class);
 

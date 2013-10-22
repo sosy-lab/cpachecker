@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -65,6 +66,7 @@ public class ExpressionSimplifier implements CFAVisitor {
       "only simplification of C-code is supported"; // TODO support Java
 
   private final MachineModel machineModel;
+  private final LogManager logger;
 
 
   // Map of oldEdge to newEdge,
@@ -72,8 +74,10 @@ public class ExpressionSimplifier implements CFAVisitor {
   private final List<Pair<CFAEdge, CFAEdge>> e2e = new ArrayList<>();
 
 
-  public ExpressionSimplifier(final MachineModel mm) {
+
+  public ExpressionSimplifier(final MachineModel mm, final LogManager pLogger) {
     this.machineModel = mm;
+    this.logger = pLogger;
   }
 
 
@@ -340,7 +344,7 @@ public class ExpressionSimplifier implements CFAVisitor {
   /** This method evaluates an expression and returns the simplified expression.
    * If no simplification is possible, the original expression-object is returned.*/
   private CExpression simplify(final CExpression expr) {
-    final ExpressionSimplificationVisitor v = new ExpressionSimplificationVisitor(machineModel);
+    final ExpressionSimplificationVisitor v = new ExpressionSimplificationVisitor(machineModel, logger);
     final Pair<CExpression, Number> eval = expr.accept(v);
     return eval.getFirst();
   }

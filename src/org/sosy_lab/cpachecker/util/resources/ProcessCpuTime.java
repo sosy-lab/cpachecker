@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util;
+package org.sosy_lab.cpachecker.util.resources;
 
 import java.lang.management.ManagementFactory;
 
@@ -31,9 +31,9 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 
-public final class ProgramCpuTime {
+public final class ProcessCpuTime {
 
-  private ProgramCpuTime() { }
+  private ProcessCpuTime() { }
 
   //necessary stuff to query the OperatingSystemMBean for the process cpu time
   private static final MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();

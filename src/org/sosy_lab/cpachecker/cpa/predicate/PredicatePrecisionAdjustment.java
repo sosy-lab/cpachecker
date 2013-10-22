@@ -93,18 +93,20 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public Triple<AbstractState, Precision, Action> prec(
       AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException {
+      UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
 
     totalPrecTime.start();
+    try {
+      if (pElement instanceof ComputeAbstractionState) {
+        ComputeAbstractionState element = (ComputeAbstractionState)pElement;
+        PredicatePrecision precision = (PredicatePrecision)pPrecision;
 
-    if (pElement instanceof ComputeAbstractionState) {
-      ComputeAbstractionState element = (ComputeAbstractionState)pElement;
-      PredicatePrecision precision = (PredicatePrecision)pPrecision;
+        pElement = computeAbstraction(element, precision);
+      }
 
-      pElement = computeAbstraction(element, precision);
+    } finally {
+      totalPrecTime.stop();
     }
-
-    totalPrecTime.stop();
     return Triple.of(pElement, pPrecision, Action.CONTINUE);
   }
 
@@ -113,7 +115,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
    */
   private AbstractState computeAbstraction(
       ComputeAbstractionState element,
-      PredicatePrecision precision) throws CPAException {
+      PredicatePrecision precision) throws CPAException, InterruptedException {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
     PersistentMap<CFANode, Integer> abstractionLocations = element.getAbstractionLocationsOnPath();
@@ -135,13 +137,18 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       pathFormula = pathFormulaManager.makeAnd(pathFormula, invariant);
     }
 
+    Pair<AbstractionFormula,Set<Integer>> newAbstraction = null;
+    AbstractionFormula newAbstractionFormula = null;
 
     // compute new abstraction
     computingAbstractionTime.start();
-    Pair<AbstractionFormula,Set<Integer>> newAbstraction = formulaManager.buildAbstraction(
-        element.getReuseStateId(), loc, abstractionFormula, pathFormula, preds);
-    AbstractionFormula newAbstractionFormula = newAbstraction.getFirst();
-    computingAbstractionTime.stop();
+    try {
+	    newAbstraction = formulaManager.buildAbstraction(
+	        element.getReuseStateId(), loc, abstractionFormula, pathFormula, preds);
+	    newAbstractionFormula = newAbstraction.getFirst();
+    } finally {
+      computingAbstractionTime.stop();
+    }
 
     // if the abstraction is false, return bottom (represented by empty set)
     if (newAbstractionFormula.isFalse()) {
