@@ -1150,15 +1150,9 @@ public class SMGTransferRelation implements TransferRelation {
 
       @Override
       public SMGAddress visit(CFieldReference lValue) throws CPATransferException {
-        // a->b = ...
-        return handleAssignmentToFieldReference(lValue);
-      }
-
-      private SMGAddress handleAssignmentToFieldReference(CFieldReference fieldReference)
-          throws CPATransferException {
         logger.log(Level.FINEST, ">>> Handling statement: assignment to field reference");
 
-        return super.visit(fieldReference);
+        return super.visit(lValue);
       }
 
       @Override
