@@ -720,14 +720,17 @@ public class SMGExpressionEvaluator {
 
     SMGAddressValue arrayAddress = evaluateAddress(smgState, cfaEdge, exp.getArrayExpression());
 
-    if (arrayAddress.isUnknown()) { return SMGAddress.UNKNOWN; }
+    if (arrayAddress.isUnknown()) {
+      return SMGAddress.UNKNOWN;
+    }
 
     SMGExplicitValue subscriptValue = evaluateExplicitValue(smgState, cfaEdge, exp.getSubscriptExpression());
 
-    if (subscriptValue.isUnknown()) { return SMGAddress.UNKNOWN; }
+    if (subscriptValue.isUnknown()) {
+      return SMGAddress.UNKNOWN;
+    }
 
-    SMGExplicitValue typeSize =
-        SMGKnownExpValue.valueOf(getSizeof(cfaEdge, exp.getExpressionType()));
+    SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, exp.getExpressionType()));
 
     SMGExplicitValue subscriptOffset = subscriptValue.multiply(typeSize);
 
@@ -736,14 +739,18 @@ public class SMGExpressionEvaluator {
 
   SMGAddressValue createAddress(SMGEdgePointsTo pEdge) {
 
-    if (pEdge == null) { return SMGUnknownValue.getInstance(); }
+    if (pEdge == null) {
+      return SMGUnknownValue.getInstance();
+    }
 
     return SMGKnownAddVal.valueOf(pEdge.getValue(), pEdge.getObject(), pEdge.getOffset());
   }
 
   private SMGAddressValue createAddress(SMGState pNewState, SMGAddress pAddress) throws SMGInconsistentException {
 
-    if (pAddress.isUnknown()) { return SMGUnknownValue.getInstance(); }
+    if (pAddress.isUnknown()) {
+      return SMGUnknownValue.getInstance();
+    }
 
     return createAddress(pNewState, pAddress.getObject(), pAddress.getOffset());
   }
@@ -803,11 +810,15 @@ public class SMGExpressionEvaluator {
   SMGAddressValue getAddress(SMGState pSmgState, SMGObject pTarget,
       SMGExplicitValue pOffset) throws SMGInconsistentException {
 
-    if (pTarget == null || pOffset.isUnknown()) { return SMGUnknownValue.getInstance(); }
+    if (pTarget == null || pOffset.isUnknown()) {
+      return SMGUnknownValue.getInstance();
+    }
 
     Integer address = pSmgState.getAddress(pTarget, pOffset.getAsInt());
 
-    if (address == null) { return SMGUnknownValue.getInstance(); }
+    if (address == null) {
+      return SMGUnknownValue.getInstance();
+    }
 
     return createAddress(pSmgState.getPointerFromValue(address));
   }
@@ -883,6 +894,7 @@ public class SMGExpressionEvaluator {
 
     @Override
     public SMGAddress visit(CCastExpression cast) throws CPATransferException {
+      //TODO Bug, can introduce non array type in visitor
       return cast.getOperand().accept(this);
     }
 
@@ -950,16 +962,22 @@ public class SMGExpressionEvaluator {
 
           SMGAddressValue rAddress = getAddressFromSymbolicValue(getSmgState(), rVal);
 
-          if (rAddress.isUnknown()) { return SMGUnknownValue.getInstance(); }
+          if (rAddress.isUnknown()) {
+            return SMGUnknownValue.getInstance();
+          }
 
           SMGAddressValue lAddress = getAddressFromSymbolicValue(getSmgState(), rVal);
 
-          if (lAddress.isUnknown()) { return SMGUnknownValue.getInstance(); }
+          if (lAddress.isUnknown()) {
+            return SMGUnknownValue.getInstance();
+          }
 
           SMGObject lObject = lAddress.getObject();
           SMGObject rObject = rAddress.getObject();
 
-          if (!lObject.equals(rObject)) { return SMGUnknownValue.getInstance(); }
+          if (!lObject.equals(rObject)) {
+            return SMGUnknownValue.getInstance();
+          }
 
           long rOffset = rAddress.getOffset().getAsLong();
           long lOffset = lAddress.getOffset().getAsLong();
@@ -1083,7 +1101,9 @@ public class SMGExpressionEvaluator {
 
       SMGAddress addressOfField = getAddressOfField(smgState, cfaEdge, fieldReference);
 
-      if (addressOfField.isUnknown()) { return SMGUnknownValue.getInstance(); }
+      if (addressOfField.isUnknown()) {
+        return SMGUnknownValue.getInstance();
+      }
 
       CType fieldType = fieldReference.getExpressionType().getCanonicalType();
 
@@ -1178,9 +1198,7 @@ public class SMGExpressionEvaluator {
         value = pUnaryOperand.accept(this);
       }
 
-      if (value.equals(SMGKnownSymValue.ZERO)) {
-        return SMGKnownSymValue.ZERO;
-      } else if (isUnequal(smgState, value, SMGKnownSymValue.ZERO)) {
+      if (isUnequal(smgState, value, SMGKnownSymValue.ZERO)) {
         return SMGKnownSymValue.ZERO;
       } else {
         return SMGUnknownValue.getInstance();
