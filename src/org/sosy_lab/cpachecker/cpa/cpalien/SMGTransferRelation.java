@@ -147,12 +147,6 @@ public class SMGTransferRelation implements TransferRelation {
   private SMGState mallocFailState;
 
   /**
-   * name for the special variable used as container for return values of functions
-   */
-  public static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
-
-
-  /**
    * Determines, whether to search for a explicit Value for a symbolic one.
    */
   private boolean searchForExplicitValue = false;
