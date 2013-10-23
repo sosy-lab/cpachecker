@@ -39,6 +39,7 @@ import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
@@ -435,8 +437,15 @@ public class CFAUtils {
 
     // if there are no backwards directed edges, there are no loops, so we do
     // not need to search for them
-    if (!hasBackWardsEdges((CFANode)(nodes.toArray()[1]))) {
-      return new ArrayList<>();
+    {
+      CFANode functionExitNode = nodes.first(); // The function exit node is always the first
+      if (functionExitNode instanceof FunctionExitNode) {
+        CFANode functionEntryNode = ((FunctionExitNode)functionExitNode).getEntryNode();
+
+        if (!hasBackWardsEdges(functionEntryNode)) {
+          return ImmutableList.of();
+        }
+      }
     }
 
     nodes = new TreeSet<>(nodes); // copy nodes because we change it
