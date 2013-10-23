@@ -24,7 +24,7 @@ CPAchecker web page:
 
 from __future__ import absolute_import, unicode_literals
 
-import benchmark.util as util
+from . import util
 
 STR_TRUE = 'true'
 STR_FALSE = 'false'

@@ -37,8 +37,8 @@ import tempfile
 import threading
 import time
 
-import benchmark.util as Util
-import benchmark.filewriter as filewriter
+from . import util as Util
+from . import filewriter
 
 readFile = filewriter.readFile
 writeFile = filewriter.writeFile

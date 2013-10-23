@@ -26,13 +26,13 @@ import logging
 import os
 import time
 import xml.etree.ElementTree as ET
-import result
 import sys
 
 from datetime import date
 
-import runexecutor
-import util as Util
+from . import result
+from . import runexecutor
+from . import util as Util
 
 MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
