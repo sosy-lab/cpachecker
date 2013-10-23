@@ -81,8 +81,8 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
 
     final Variable base = e.getFieldOwner().accept(this);
     if (base != null) {
-      return Variable.create(base.getName()  + CToFormulaWithUFConverter.FIELD_NAME_SEPARATOR +
-               e.getFieldName(), e.getExpressionType());
+      return Variable.create(base.getName()  + CToFormulaWithUFConverter.FIELD_NAME_SEPARATOR + e.getFieldName(),
+                             PointerTargetSet.simplifyType(e.getExpressionType()));
     } else {
       return null;
     }
@@ -91,7 +91,7 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
   @Override
   public Variable visit(final CIdExpression e) throws UnrecognizedCCodeException {
     if (!pts.isActualBase(e.getDeclaration().getQualifiedName()) &&
-        !PointerTargetSet.containsArray(e.getExpressionType())) {
+        !PointerTargetSet.containsArray(PointerTargetSet.simplifyType(e.getExpressionType()))) {
       return lastBase = conv.scopedIfNecessary(e, null, null);
     } else {
       return null;
