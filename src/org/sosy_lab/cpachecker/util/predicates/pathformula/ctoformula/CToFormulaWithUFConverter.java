@@ -809,17 +809,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @Override
-  <T extends Formula> BooleanFormula toBooleanFormula(T f) {
-    // If this is not a predicate, make it a predicate by adding a "!= 0"
-    if (!(f instanceof BooleanFormula)) {
-      T zero = fmgr.makeNumber(fmgr.getFormulaType(f), 0);
-      return bfmgr.not(fmgr.makeEqual(f, zero));
-    } else {
-      return (BooleanFormula) f;
-    }
-  }
-
-  @Override
   public PathFormulaWithUF makeAnd(final PathFormula oldFormula, final CFAEdge edge) throws CPATransferException {
     if (oldFormula instanceof PathFormulaWithUF) {
       return makeAnd((PathFormulaWithUF) oldFormula, edge);
