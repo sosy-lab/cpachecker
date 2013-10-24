@@ -481,16 +481,19 @@ class _TimelimitThread(threading.Thread):
 
     def run(self):
         while not self.finished.is_set():
-            usedTime = _readCpuTime(self.cgroupCpuacct)
-            logging.debug("latestkilltime: {0}, used time: {1}, current time: {2}".format(self.latestKillTime, usedTime, time.time()))
-            if usedTime >= self.timelimit or self.latestKillTime < time.time():
+            usedCpuTime = _readCpuTime(self.cgroupCpuacct)
+            remainingCpuTime = self.timelimit - usedCpuTime
+            remainingWallTime = self.latestKillTime - time.time()
+            logging.debug("TimelimitThread for process {0}: used cpu time: {1}, remaining cpu time: {2}, remaining wall time: {3}."
+                          .format(self.process.pid, usedCpuTime, remainingCpuTime, remainingWallTime))
+            if remainingCpuTime <= 0 or remainingWallTime <= 0:
                 logging.info('Killing process {0} due to timeout.'.format(self.process.pid))
                 _killSubprocess(self.process)
                 self.finished.set()
                 return
 
-            remainingTime = self.timelimit - usedTime + 1
-            self.finished.wait(remainingTime/self.cpuCount)
+            remainingTime = max(remainingCpuTime/self.cpuCount, remainingWallTime)
+            self.finished.wait(remainingTime + 1)
 
     def cancel(self):
         self.finished.set()
