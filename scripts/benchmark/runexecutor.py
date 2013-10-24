@@ -580,19 +580,24 @@ def _addTaskToCgroup(cgroup, pid):
             tasksFile.write(str(pid))
 
 def _killAllTasksInCgroup(cgroup):
-    if cgroup:
-        tasksFile = os.path.join(cgroup, 'tasks')
-        # TODO size is always 0
-        # TODO prevent endless loop by having maximum loop iterations
-        while os.path.getsize(tasksFile) > 0:
-            with open(tasksFile, 'rt') as tasks:
-                for task in tasks:
-                    logging.warning('Run has left-over process with pid {0}'.format(task))
-                    try:
-                        os.kill(int(task), signal.SIGKILL)
-                    except OSError:
-                        # task already terminated between reading and killing
-                        pass
+    tasksFile = os.path.join(cgroup, 'tasks')
+    i = 1
+    while i <= 2: # Do two triess of killing processes
+        with open(tasksFile, 'rt') as tasks:
+            task = None
+            for task in tasks:
+                logging.warning('Run has left-over process with pid {0}, killing it (try {1}).'.format(task, i))
+                try:
+                    os.kill(int(task), signal.SIGKILL)
+                except OSError:
+                    # task already terminated between reading and killing
+                    pass
+
+            if task is None:
+                return # No process was hanging, exit
+            elif i == 2:
+                logging.warning('Run still has left over processes after second try of killing them, giving up.')
+            i += 1
 
 def _removeCgroup(cgroup):
     if cgroup:
