@@ -25,24 +25,15 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.ArithmeticMathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.BitwiseMathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.ArithmeticMathsat5FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.BitwiseMathsat5FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.ArithmeticSmtInterpolFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolTheoremProver;
@@ -50,7 +41,6 @@ import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolTheoremPro
 @Options(prefix="cpa.predicate")
 public class FormulaManagerFactory {
 
-  private static final String MATHSAT4 = "MATHSAT4";
   private static final String MATHSAT5 = "MATHSAT5";
   private static final String SMTINTERPOL = "SMTINTERPOL";
 
@@ -59,70 +49,25 @@ public class FormulaManagerFactory {
       + "using REALs. Not all solvers might support this.")
   private boolean useIntegers = false;
 
-  @Option(name="solver.useBitvectors",
-      description="Encode program variables as bitvectors of a fixed size,"
-      + "instead of using REALS. Not all solvers might support this.")
-  private boolean useBitvectors = false;
-
-  @Option(name="solver.bitWidth",
-      description="With of the bitvectors if useBitvectors is true.")
-  @IntegerOption(min=1, max=128)
-  private int bitWidth = 32;
-
-  @Option(name="solver.signed",
-      description="Whether to use signed or unsigned variables if useBitvectors is true.")
-  private boolean signed = true;
-
-  @Option(values={MATHSAT4, MATHSAT5, SMTINTERPOL}, toUppercase=true,
-      description="Whether to use MathSAT 4, MathSAT 5, or SmtInterpol as SMT solver")
-  private String solver = MATHSAT4;
+  @Option(values={MATHSAT5, SMTINTERPOL}, toUppercase=true,
+      description="Whether to use MathSAT 5 or SmtInterpol as SMT solver")
+  private String solver = MATHSAT5;
 
   private final FormulaManager fmgr;
-  private final TheoremProver prover;
 
   public FormulaManagerFactory(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
-    if (useBitvectors && useIntegers) {
-      throw new InvalidConfigurationException("Can use either integers or bitvecors, not both!");
-    }
-
     FormulaManager lFmgr;
-    TheoremProver lProver;
-
     if (solver.equals(SMTINTERPOL)) {
-      if (useBitvectors) {
-        throw new InvalidConfigurationException("Using bitvectors for program variables is not supported when SMTInterpol is used.");
-      }
-
-      lFmgr = new ArithmeticSmtInterpolFormulaManager(config, logger, useIntegers);
-      lProver = new SmtInterpolTheoremProver((SmtInterpolFormulaManager) lFmgr);
+      lFmgr = SmtInterpolFormulaManager.create(config, logger, useIntegers);
 
     } else {
       try {
+        assert solver.equals(MATHSAT5);
 
-        if (solver.equals(MATHSAT5)) {
-          if (useBitvectors) {
-            lFmgr = new BitwiseMathsat5FormulaManager(config, logger, bitWidth, signed);
+        lFmgr = Mathsat5FormulaManager.create(logger, config, useIntegers);
 
-          } else {
-            lFmgr = new ArithmeticMathsat5FormulaManager(config, logger, useIntegers);
-          }
-
-          lProver = new Mathsat5TheoremProver((Mathsat5FormulaManager) lFmgr);
-
-        } else {
-          assert solver.equals(MATHSAT4);
-
-          if (useBitvectors) {
-            lFmgr = new BitwiseMathsatFormulaManager(config, logger, bitWidth, signed);
-
-          } else {
-            lFmgr = new ArithmeticMathsatFormulaManager(config, logger, useIntegers);
-          }
-
-          lProver = new MathsatTheoremProver((MathsatFormulaManager) lFmgr);
-        }
       } catch (UnsatisfiedLinkError e) {
         throw new InvalidConfigurationException("The SMT solver " + solver
             + " is not available on this machine."
@@ -131,26 +76,26 @@ public class FormulaManagerFactory {
     }
 
     fmgr = lFmgr;
-    prover = lProver;
   }
 
   public FormulaManager getFormulaManager() {
     return fmgr;
   }
 
-  public TheoremProver createTheoremProver() {
-    return prover;
+  public ProverEnvironment newProverEnvironment(boolean generateModels) {
+    if (solver.equals(SMTINTERPOL)) {
+      return new SmtInterpolTheoremProver((SmtInterpolFormulaManager)fmgr);
+    } else {
+      return new Mathsat5TheoremProver((Mathsat5FormulaManager)fmgr, generateModels);
+    }
   }
 
-  public InterpolatingTheoremProver<?> createInterpolatingTheoremProver(boolean shared) {
-    if (solver.equals(MATHSAT5)) {
-      return new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);
-
-    } else if (solver.equals(SMTINTERPOL)) {
+  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean shared) {
+    if (solver.equals(SMTINTERPOL)) {
       return new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) fmgr);
     } else {
-      assert solver.equals(MATHSAT4);
-      return new MathsatInterpolatingProver((MathsatFormulaManager) fmgr, shared);
+      assert solver.equals(MATHSAT5);
+      return new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);
     }
   }
 }

@@ -35,26 +35,26 @@ public class Monomial {
   // Whether or to write monomials like p1(p2^3) or like p1*(p2^3):
   private final boolean writeStars = true;
 
-  private Map<Variable,Integer> vars = new HashMap<Variable,Integer>();
+  private Map<Variable, Integer> vars = new HashMap<>();
 
   public Monomial() {
-    vars = new HashMap<Variable,Integer>();
+    vars = new HashMap<>();
   }
 
-  public Monomial(Map<Variable,Integer> v) {
+  public Monomial(Map<Variable, Integer> v) {
     vars = v;
   }
 
   public Monomial(Variable v) {
-    vars = new HashMap<Variable,Integer>();
-    vars.put(v, new Integer(1));
+    vars = new HashMap<>();
+    vars.put(v, Integer.valueOf(1));
   }
 
   public Monomial copy() {
-    Map<Variable,Integer> v = new HashMap<Variable,Integer>();
+    Map<Variable, Integer> v = new HashMap<>();
     for (Variable x : vars.keySet()) {
       Variable xp = new Variable(x.getName());
-      Integer pow = new Integer( vars.get(x).intValue() );
+      Integer pow = Integer.valueOf(vars.get(x).intValue());
       v.put(xp, pow);
     }
     return new Monomial(v);
@@ -81,8 +81,7 @@ public class Monomial {
       if (!m.vars.containsKey(v)) {
         answer = false;
         break;
-      }
-      else {
+      } else {
         Integer e = vars.get(v);
         Integer f = m.vars.get(v);
         if (f.compareTo(e) < 0) {
@@ -98,9 +97,9 @@ public class Monomial {
    * Create the result of dividing m by n.
    */
   public static Monomial divide(Monomial m, Monomial n) {
-    Map<Variable,Integer> a = m.vars;
-    Map<Variable,Integer> b = n.vars;
-    Map<Variable,Integer> d = new HashMap<Variable,Integer>();
+    Map<Variable, Integer> a = m.vars;
+    Map<Variable, Integer> b = n.vars;
+    Map<Variable, Integer> d = new HashMap<>();
     // First copy a.
     for (Variable v : a.keySet()) {
       d.put(v, a.get(v));
@@ -113,13 +112,13 @@ public class Monomial {
       } else {
         ea = 0;
       }
-      d.put( v, new Integer( ea - b.get(v).intValue() ) );
+      d.put( v, Integer.valueOf(ea - b.get(v).intValue() ));
     }
     return new Monomial(d);
   }
 
   public static Monomial gcd(Monomial... ma) {
-    List<Monomial> ml = new Vector<Monomial>(ma.length);
+    List<Monomial> ml = new Vector<>(ma.length);
     for (Monomial m : ma) {
       ml.add(m);
     }
@@ -141,14 +140,14 @@ public class Monomial {
       int L = N/2;
       Monomial a = gcd(mlist.subList(0, L));
       Monomial b = gcd(mlist.subList(L, N));
-      Monomial d = gcd(a,b);
+      Monomial d = gcd(a, b);
       return d;
     }
     // If exactly 2:
     else {
-      Map<Variable,Integer> a = mlist.get(0).vars;
-      Map<Variable,Integer> b = mlist.get(1).vars;
-      Map<Variable,Integer> d = new HashMap<Variable,Integer>();
+      Map<Variable, Integer> a = mlist.get(0).vars;
+      Map<Variable, Integer> b = mlist.get(1).vars;
+      Map<Variable, Integer> d = new HashMap<>();
       for (Variable v : a.keySet()) {
         if (b.containsKey(v)) {
           Integer ea = a.get(v);
@@ -173,7 +172,7 @@ public class Monomial {
       if (m3.vars.containsKey(v)) {
         int p1 = m3.vars.get(v).intValue();
         int p2 = m2.vars.get(v).intValue();
-        m3.vars.put(v, new Integer(p1+p2));
+        m3.vars.put(v, Integer.valueOf(p1+p2));
       } else {
         m3.vars.put(v, m2.vars.get(v));
       }
@@ -211,14 +210,12 @@ public class Monomial {
     for (Integer e : exps) {
       if (e.intValue() == 0) {
         continue;
-      }
-      else if (e.intValue() == 1) {
+      } else if (e.intValue() == 1) {
         ones += 1;
         if (ones > 1) {
           return false;
         }
-      }
-      else if (e.intValue() > 1) {
+      } else if (e.intValue() > 1) {
         return false;
       }
     }
@@ -239,16 +236,16 @@ public class Monomial {
     return null;
   }
 
-  public void setMonomial(Map<Variable,Integer> m) {
+  public void setMonomial(Map<Variable, Integer> m) {
     vars = m;
   }
 
-  public Map<Variable,Integer> getMonomial() {
+  public Map<Variable, Integer> getMonomial() {
     return vars;
   }
 
   public void setPower(Variable v, int n) {
-    vars.put(v, new Integer(n));
+    vars.put(v, Integer.valueOf(n));
   }
 
   public int getPower(Variable v) {
@@ -266,7 +263,7 @@ public class Monomial {
 
   public String toString(boolean sortAlpha) {
     String s = "";
-    List<Variable> varlist = new Vector<Variable>(vars.keySet());
+    List<Variable> varlist = new Vector<>(vars.keySet());
     if (sortAlpha) {
       Collections.sort(varlist);
     }
@@ -292,8 +289,7 @@ public class Monomial {
       // In this case there were no variables of positive power,
       // so the monomial is just 1.
       s = "1";
-    }
-    else if (writeStars) {
+    } else if (writeStars) {
       // In this case we had at least one variable of positive power,
       // so if we are writing stars *, then our string now begins with
       // one superfluous *. So we delete it.

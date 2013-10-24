@@ -30,8 +30,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class LoopstackState implements AbstractState, Partitionable, AvoidanceReportingState {
 
@@ -116,11 +117,12 @@ public class LoopstackState implements AbstractState, Partitionable, AvoidanceRe
   }
 
   @Override
-  public Formula getReasonFormula(FormulaManager manager) {
+  public BooleanFormula getReasonFormula(FormulaManagerView manager) {
+    BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
     if (stop) {
       return PreventingHeuristic.LOOPITERATIONS.getFormula(manager, iteration);
     } else {
-      return manager.makeTrue();
+      return bfmgr.makeBoolean(true);
     }
   }
 }

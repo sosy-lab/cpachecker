@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 public class DominatorState implements AbstractStateWithLocation, AbstractState {
 
   private AbstractState dominatedState;
-  private Set<AbstractState> dominators = new HashSet<AbstractState>();
+  private Set<AbstractState> dominators = new HashSet<>();
 
   public DominatorState(AbstractState dominatedElement) {
     if (dominatedElement == null) {
@@ -113,24 +113,23 @@ public class DominatorState implements AbstractStateWithLocation, AbstractState 
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder ();
-    builder.append ("( " + this.dominatedState.toString() + ", {");
+    StringBuilder builder = new StringBuilder();
+    builder.append("( " + this.dominatedState.toString() + ", {");
 
     boolean first = true;
     for (AbstractState dominator : this.dominators) {
       if (first)  {
         first = false;
-      }
-      else {
+      } else {
         builder.append(", ");
       }
 
       builder.append(dominator.toString());
     }
 
-    builder.append ("})");
+    builder.append("})");
 
-    return builder.toString ();
+    return builder.toString();
   }
 
   @Override

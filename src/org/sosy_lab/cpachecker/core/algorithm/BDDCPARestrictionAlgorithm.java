@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.ImmutableList.copyOf;
+import static org.sosy_lab.cpachecker.util.StatisticsUtils.toPercent;
 
 import java.io.PrintStream;
 import java.util.ArrayDeque;
@@ -51,9 +52,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -70,6 +71,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
   private final Algorithm algorithm;
   private final CounterexampleChecker checker;
   private final LogManager logger;
+  private final ARGCPA cpa;
 
   private final Timer checkTime = new Timer();
   private int numberOfInfeasiblePaths = 0;
@@ -96,7 +98,8 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
     if (!(pCpa instanceof ARGCPA)) {
       throw new InvalidConfigurationException("ARG CPA needed for counterexample check");
     }
-    logger.log(Level.INFO, "using the FeatureVars Restriction Algorithm");
+    cpa = (ARGCPA)pCpa;
+    logger.log(Level.INFO, "using the BDDCPA Restriction Algorithm");
 
     if (checkerName.equals("CBMC")) {
       checker = new CBMCChecker(config, logger, cfa);
@@ -154,7 +157,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
           for (AbstractState x : ((CompositeState)errorState.getWrappedState()).getWrappedStates()) {
             if (x instanceof BDDState) {
               errorBDD = ((BDDState) x).getRegion();
-              //logger.log(Level.INFO,"BDD: " + ((FeatureVarsState) x).toString());
+              //logger.log(Level.INFO,"BDD: " + ((BDDState) x).toString());
               if (manager==null) {
                 manager = ((BDDState)x).getManager();
                 errorSummary=manager.makeFalse();
@@ -173,7 +176,9 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
                 fvstate = (BDDState)y;
               }
             }
-            fvstate.addConstraintToState(manager.makeNot(errorBDD));
+            if (fvstate != null) {
+              fvstate.addConstraintToState(manager.makeNot(errorBDD));
+            }
           }
 
 
@@ -182,6 +187,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
         } else {
           numberOfInfeasiblePaths++;
           logger.log(Level.INFO, "Error path found, but identified as infeasible by counterexample check with " + checkerName + ".");
+          cpa.clearCounterexample();
 
           if (continueAfterInfeasibleError) {
             // This counterexample is infeasible, so usually we would remove it
@@ -207,7 +213,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
             sound &= removeErrorState(reached, errorState);
 
           } else {
-            Path path = ARGUtils.getOnePathTo(errorState);
+            ARGPath path = ARGUtils.getOnePathTo(errorState);
             throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
           }
         }
@@ -231,7 +237,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
     // coverage relations (and re-adding the covered states)
     // and preventing new ones via ARGState#setNotCovering().
 
-    Collection<ARGState> coveredByErrorPath = new ArrayList<ARGState>();
+    Collection<ARGState> coveredByErrorPath = new ArrayList<>();
 
     for (ARGState errorPathState : statesOnErrorPath) {
       // schedule for coverage removal
@@ -274,8 +280,8 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
 
   private boolean isTransitiveChildOf(ARGState potentialChild, ARGState potentialParent) {
 
-    Set<ARGState> seen = new HashSet<ARGState>();
-    Deque<ARGState> waitlist = new ArrayDeque<ARGState>(); // use BFS
+    Set<ARGState> seen = new HashSet<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>(); // use BFS
 
     waitlist.addAll(potentialChild.getParents());
     while (!waitlist.isEmpty()) {
@@ -300,7 +306,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
 
     // remove re-added parent of errorState to prevent computing
     // the same error state over and over
-    Set<ARGState> parents = errorState.getParents();
+    Collection<ARGState> parents = errorState.getParents();
     assert parents.size() == 1 : "error state that was merged";
 
     ARGState parent = Iterables.getOnlyElement(parents);
@@ -355,10 +361,6 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
     if (checker instanceof Statistics) {
       ((Statistics)checker).printStatistics(out, pResult, pReached);
     }
-  }
-
-  private static String toPercent(double val, double full) {
-    return String.format("%1.0f", val/full*100) + "%";
   }
 
   @Override

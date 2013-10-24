@@ -42,16 +42,12 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 /** This is a Class similiar to Mathsat-NativeApi,
  *  it contains some useful functions. */
-public class SmtInterpolUtil {
-
-  static boolean log = false; // debug
+class SmtInterpolUtil {
+  private SmtInterpolUtil() { }
 
   /** A Term is an Atom, iff its function is no element of {"And", "Or", "Not"}.*/
   public static boolean isAtom(Term t) {
     boolean is = !isAnd(t) && !isOr(t) && !isNot(t) && !isImplication(t) && !isIfThenElse(t);
-    if (log) {
-      System.out.println("   isAtom (" + t +"): " + is);
-    }
     return is;
   }
 
@@ -59,9 +55,6 @@ public class SmtInterpolUtil {
     boolean is = !isTrue(t) && !isFalse(t)
         && (t instanceof ApplicationTerm)
         && ((ApplicationTerm) t).getParameters().length == 0;
-    if (log) {
-      System.out.println("   isVariable (" + t +"): " + is);
-    }
     return is;
   }
 
@@ -95,9 +88,6 @@ public class SmtInterpolUtil {
     }
 
     // TODO hex or binary data, string?
-    if (log) {
-      System.out.println("   isNumber (" + t +"): " + is);
-    }
     return is;
   }
 
@@ -134,9 +124,6 @@ public class SmtInterpolUtil {
   public static boolean isBoolean(Term t) {
     boolean is = (t instanceof ApplicationTerm)
           && t.getTheory().getBooleanSort() == ((ApplicationTerm) t).getSort();
-    if (log) {
-      System.out.println("   isBoolean (" + t +"): " + is);
-    }
     return is;
   }
 
@@ -145,9 +132,6 @@ public class SmtInterpolUtil {
   public static boolean isAnd(Term t) {
     boolean is = (t instanceof ApplicationTerm)
         && t.getTheory().m_And == ((ApplicationTerm) t).getFunction();
-    if (log) {
-      System.out.println("   isAnd (" + t +"): " + is);
-    }
     return is;
   }
 
@@ -155,9 +139,6 @@ public class SmtInterpolUtil {
   public static boolean isOr(Term t) {
     boolean is = (t instanceof ApplicationTerm)
         && t.getTheory().m_Or == ((ApplicationTerm) t).getFunction();
-    if (log) {
-      System.out.println("   isOr (" + t +"): " + is);
-    }
     return is;
   }
 
@@ -165,9 +146,6 @@ public class SmtInterpolUtil {
   public static boolean isNot(Term t) {
     boolean is = (t instanceof ApplicationTerm)
         && t.getTheory().m_Not == ((ApplicationTerm) t).getFunction();
-    if (log) {
-      System.out.println("   isNot (" + t +"): " + is);
-    }
     return is;
   }
 
@@ -187,11 +165,13 @@ public class SmtInterpolUtil {
 
   /** t1 = t2 */
   public static boolean isEqual(Term t) {
+    String name = "=";
+    return isFunction(t, name);
+  }
+
+  public static boolean isFunction(Term t, String name) {
     boolean is = (t instanceof ApplicationTerm)
-        && "=".equals(((ApplicationTerm) t).getFunction().getName());
-    if (log) {
-      System.out.println("   isEqual (" + t +"): " + is);
-    }
+        && name.equals(((ApplicationTerm) t).getFunction().getName());
     return is;
   }
 
@@ -222,17 +202,11 @@ public class SmtInterpolUtil {
 
   public static boolean isTrue(Term t) {
     boolean isTrue = t.getTheory().TRUE == t;
-    if (log) {
-      System.out.println("   isTrue (" + t +"): " + isTrue);
-    }
     return isTrue;
   }
 
   public static boolean isFalse(Term t) {
     boolean isFalse = t.getTheory().FALSE == t;
-    if (log) {
-      System.out.println("   isFalse (" + t +"): " + isFalse);
-    }
     return isFalse;
   }
 
@@ -260,7 +234,7 @@ public class SmtInterpolUtil {
   /** this function returns all variables in the terms.
    * Doubles are removed. */
   public static Term[] getVars(Iterable<Term> termList) {
-    Set<Term> vars = new HashSet<Term>();
+    Set<Term> vars = new HashSet<>();
     for (Term t : termList) {
       getVars(t, vars);
     }
@@ -312,7 +286,7 @@ public class SmtInterpolUtil {
     assert params.length >= 2 && ("and".equals(function) || "or".equals(function));
 
     String childFunction = "and".equals(function) ? "or" : "and";
-    List<Set<Term>> children = new ArrayList<Set<Term>>(params.length);
+    List<Set<Term>> children = new ArrayList<>(params.length);
 
     // collect children of params
     for (Term param : params) {
@@ -422,4 +396,5 @@ public class SmtInterpolUtil {
       str.append(t.toStringDirect()).append("\n");
     }
   }
+
 }

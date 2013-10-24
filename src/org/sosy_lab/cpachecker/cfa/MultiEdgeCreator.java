@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,8 +60,8 @@ class MultiEdgeCreator extends DefaultCFAVisitor {
   public TraversalProcess visitNode(final CFANode pNode) {
 
     if (nodeQualifiesAsStartNode(pNode)) {
-      List<CFAEdge> edges = new ArrayList<CFAEdge>();
-      Set<CFANode> nodes = new HashSet<CFANode>();
+      List<CFAEdge> edges = new ArrayList<>();
+      Set<CFANode> nodes = new HashSet<>();
 
       CFANode node = pNode;
       do {
@@ -137,14 +137,14 @@ class MultiEdgeCreator extends DefaultCFAVisitor {
    * @return whether or not this edge contains a function call or not.
    */
   private boolean containsFunctionPointerCall(CFAEdge edge) {
-    if(edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+    if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       CStatementEdge statementEdge = (CStatementEdge)edge;
 
-      if((statementEdge.getStatement() instanceof CFunctionCall)) {
+      if ((statementEdge.getStatement() instanceof CFunctionCall)) {
         CFunctionCall call = ((CFunctionCall)statementEdge.getStatement());
         CSimpleDeclaration declaration = call.getFunctionCallExpression().getDeclaration();
 
-        if(declaration == null) {
+        if (declaration == null) {
           return true;
         }
       }

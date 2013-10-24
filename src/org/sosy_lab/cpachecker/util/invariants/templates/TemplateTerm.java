@@ -36,7 +36,8 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.Monomial;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Term;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class TemplateTerm extends TemplateSum {
 
@@ -57,22 +58,25 @@ public class TemplateTerm extends TemplateSum {
   private TemplateVariable oldParam = null;
   private TemplateNumber oldCoeff = null;
 
-  public TemplateTerm() {}
+  public TemplateTerm(FormulaType<?> type) {
+    super(type);
+  }
 
   public TemplateTerm(TemplateUIF uif) {
+    super(uif.getFormulaType());
     this.uif = uif;
   }
 
-  public static TemplateTerm makeZero() {
-  	TemplateTerm T = new TemplateTerm();
-  	T.setCoefficient(new TemplateNumber(0));
-  	return T;
+  public static TemplateTerm makeZero(FormulaType<?> type) {
+    TemplateTerm T = new TemplateTerm(type);
+    T.setCoefficient(new TemplateNumber(type, 0));
+    return T;
   }
 
-  public static TemplateTerm makeUnity() {
-  	TemplateTerm T = new TemplateTerm();
-  	T.setCoefficient(new TemplateNumber(1));
-  	return T;
+  public static TemplateTerm makeUnity(FormulaType<?> type) {
+    TemplateTerm T = new TemplateTerm(type);
+    T.setCoefficient(new TemplateNumber(type, 1));
+    return T;
   }
 
 // ------------------------------------------------------------------
@@ -101,24 +105,24 @@ public class TemplateTerm extends TemplateSum {
   }
 
   @Override
-  public boolean evaluate(Map<String,Rational> map) {
+  public boolean evaluate(Map<String, Rational> map) {
     boolean ans = true;
     if (hasParameter()) {
       ans = false;
       String a = getParameter().toString(VariableWriteMode.REDLOG);
-      if ( map.containsKey(a) ) {
+      if (map.containsKey(a)) {
         Rational R = map.get(a);
         // Turn off parameter.
         oldParam = param;
         param = null;
         // Update coefficient.
         oldCoeff = coeff;
-        TemplateNumber P = new TemplateNumber(R);
+        TemplateNumber P = new TemplateNumber(getFormulaType(), R);
         if (!hasCoefficient()) {
           setCoefficient(P);
         } else {
           TemplateNumber Q = getCoefficient();
-          TemplateNumber M = TemplateNumber.multiply(Q,P);
+          TemplateNumber M = TemplateNumber.multiply(Q, P);
           setCoefficient(M);
         }
         ans = true;
@@ -142,7 +146,7 @@ public class TemplateTerm extends TemplateSum {
   }
 
   @Override
-  public void postindex(Map<String,Integer> indices) {
+  public void postindex(Map<String, Integer> indices) {
     if (hasVariable()) {
       var.postindex(indices);
     } else if (hasUIF()) {
@@ -152,7 +156,7 @@ public class TemplateTerm extends TemplateSum {
   }
 
   @Override
-  public void preindex(Map<String,Integer> indices) {
+  public void preindex(Map<String, Integer> indices) {
     if (hasVariable()) {
       var.preindex(indices);
     } else if (hasUIF()) {
@@ -192,7 +196,7 @@ public class TemplateTerm extends TemplateSum {
   @Override
   public void generalize() {
     coeff = null;
-    param = getNextFreshParameter();
+    param = getNextFreshParameter(getFormulaType());
     if (hasVariable()) {
       var.generalize();
     }
@@ -201,8 +205,8 @@ public class TemplateTerm extends TemplateSum {
     }
   }
 
-  public static TemplateVariable getNextFreshParameter() {
-    return new TemplateVariable(paramHead, nextParamIndex.incrementAndGet());
+  public static TemplateVariable getNextFreshParameter(FormulaType<?> type) {
+    return new TemplateVariable(type, paramHead, nextParamIndex.incrementAndGet());
   }
 
   public static void resetParameterIndices() {
@@ -213,19 +217,19 @@ public class TemplateTerm extends TemplateSum {
 // Other cascade methods
 
   @Override
-  public Set<String> getAllVariables(VariableWriteMode vwm) {
-    HashSet<String> vars = new HashSet<String>();
+  public Set<TemplateVariable> getAllVariables() {
+    HashSet<TemplateVariable> vars = new HashSet<>();
     if (hasVariable()) {
-      vars.add(var.toString(vwm));
+      vars.add(var);
     } else if (hasUIF()) {
-      vars.addAll(uif.getAllVariables(vwm));
+      vars.addAll(uif.getAllVariables());
     }
     return vars;
   }
 
   @Override
   public Set<TemplateVariable> getAllParameters() {
-    HashSet<TemplateVariable> params = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> params = new HashSet<>();
     if (hasParameter()) {
       params.add(param);
     }
@@ -237,15 +241,15 @@ public class TemplateTerm extends TemplateSum {
 
   @Override
   public Set<TemplateVariable> getAllPurificationVariables() {
-    Set<TemplateVariable> pvs = new HashSet<TemplateVariable>();
+    Set<TemplateVariable> pvs = new HashSet<>();
     if (uif!=null && uif.isPurified()) {
-      pvs.add( uif.getPurifiedName().getVariable() );
+      pvs.add(uif.getPurifiedName().getVariable());
     }
     return pvs;
   }
 
   @Override
-  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
+  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
     if (hasVariable()) {
       map = var.getMaxIndices(map);
     }
@@ -257,7 +261,7 @@ public class TemplateTerm extends TemplateSum {
   }
 
   public int getMaxIndex() {
-    HashMap<String,Integer> map = getMaxIndices(new HashMap<String,Integer>());
+    HashMap<String, Integer> map = getMaxIndices(new HashMap<String, Integer>());
     int n = 0;
     for (Integer I : map.values()) {
       if (I.intValue() > n) {
@@ -270,7 +274,7 @@ public class TemplateTerm extends TemplateSum {
   @Override
   public TemplateVariableManager getVariableManager() {
     TemplateVariableManager tvm;
-    HashSet<TemplateVariable> var = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> var = new HashSet<>();
     if (hasAnyVariable()) {
       var.add(getAnyVariable());
     //} else if (hasUIF() && uif.isPurified()) {
@@ -290,7 +294,7 @@ public class TemplateTerm extends TemplateSum {
     }
   }
 
-  public Term makeRationalFunctionTerm(Map<String,Variable> paramVars) {
+  public Term makeRationalFunctionTerm(Map<String, Variable> paramVars) {
     Term t = new Term();
     Rational c = Rational.makeUnity();
     if (hasCoefficient()) {
@@ -312,38 +316,38 @@ public class TemplateTerm extends TemplateSum {
   }
 
   @Override
-  public Formula translate(FormulaManager fmgr) {
-  	Formula form = null;
-  	Vector<Formula> factors = new Vector<Formula>(4);
+  public Formula translate(FormulaManagerView fmgr) {
+    Formula form = null;
+    Vector<Formula> factors = new Vector<>(4);
 
-  	if (hasCoefficient()) {
-  		factors.add( getCoefficient().translate(fmgr) );
-  	}
-  	// We ignore parameters, since other "languages" do not have them.
-  	if (hasVariable()) {
-  		factors.add( getVariable().translate(fmgr) );
-  	}
-  	if (hasUIF()) {
-  		factors.add( getUIF().translate(fmgr) );
-  	}
+    if (hasCoefficient()) {
+      factors.add(getCoefficient().translate(fmgr));
+    }
+    // We ignore parameters, since other "languages" do not have them.
+    if (hasVariable()) {
+      factors.add(getVariable().translate(fmgr));
+    }
+    if (hasUIF()) {
+      factors.add(getUIF().translate(fmgr));
+    }
 
-  	if (factors.size() == 0) {
-  		// This case probably should not occur.
-  		form = makeUnity().translate(fmgr);
-  	} else {
-  		form = factors.get(0);
-  		Formula f;
-  		for (int i = 1; i < factors.size(); i++) {
-  			f = factors.get(i);
-  			form = fmgr.makeMultiply(form, f);
-  		}
-  	}
-  	return form;
+    if (factors.size() == 0) {
+      // This case probably should not occur.
+      form = makeUnity(getFormulaType()).translate(fmgr);
+    } else {
+      form = factors.get(0);
+      Formula f;
+      for (int i = 1; i < factors.size(); i++) {
+        f = factors.get(i);
+        form = fmgr.makeMultiply(form, f);
+      }
+    }
+    return form;
   }
 
   @Override
   public TemplateTerm copy() {
-    TemplateTerm t = new TemplateTerm();
+    TemplateTerm t = new TemplateTerm(getFormulaType());
     if (hasCoefficient()) {
       t.coeff = coeff.copy();
     }
@@ -368,7 +372,7 @@ public class TemplateTerm extends TemplateSum {
   }
 
   public boolean hasAnyVariable() {
-    return (var!=null || (uif!=null && uif.isPurified()) );
+    return (var!=null || (uif!=null && uif.isPurified()));
   }
 
   public boolean hasUIF() {
@@ -389,7 +393,7 @@ public class TemplateTerm extends TemplateSum {
   public boolean isConstant() {
     // Return true iff this term has no variable and no UIF, but
     // does have a parameter and/or a constant.
-    return ( !hasVariable() && !hasUIF() && (hasCoefficient() || hasParameter()) );
+    return (!hasVariable() && !hasUIF() && (hasCoefficient() || hasParameter()));
   }
 
   @Override
@@ -502,9 +506,9 @@ public class TemplateTerm extends TemplateSum {
       s = s.substring(1);
     } else if (s.length() == 0) {
       // In this case the coefficient is 1.
-	    s = "1";
+      s = "1";
     }
-    return new Coeff(s);
+    return new Coeff(getFormulaType(), s);
   }
 
   @Override
@@ -513,14 +517,14 @@ public class TemplateTerm extends TemplateSum {
     // any.
     Integer I = null;
     if (hasCoefficient()) {
-      I = new Integer(coeff.toString());
+      I = Integer.valueOf(coeff.toString());
     }
     return I;
   }
 
   @Override
   public Vector<TemplateTerm> getTerms() {
-    Vector<TemplateTerm> V = new Vector<TemplateTerm>();
+    Vector<TemplateTerm> V = new Vector<>();
     V.add(this);
     return V;
   }
@@ -553,7 +557,7 @@ public class TemplateTerm extends TemplateSum {
   }
 
   public static TemplateTerm multiply(TemplateTerm t1, TemplateTerm t2) {
-    TemplateTerm T = new TemplateTerm();
+    TemplateTerm T = new TemplateTerm(t1.getFormulaType());
 
     boolean hv1 = t1.hasVariable();
     boolean hu1 = t1.hasUIF();
@@ -573,7 +577,7 @@ public class TemplateTerm extends TemplateSum {
     TemplateVariable p2 = t2.getParameter();
     TemplateNumber c2 = t2.getCoefficient();
 
-    if ( (hv1 && hu2) || (hu1 && hv2) ) {
+    if ((hv1 && hu2) || (hu1 && hv2)) {
       System.err.println("Multiplying term with var by term with UIF.");
     }
 
@@ -628,7 +632,7 @@ public class TemplateTerm extends TemplateSum {
     }
 
     if (hc1 && hc2) {
-      TemplateNumber N = TemplateNumber.multiply(c1,c2);
+      TemplateNumber N = TemplateNumber.multiply(c1, c2);
       T.setCoefficient(N);
     }
 
@@ -640,7 +644,7 @@ public class TemplateTerm extends TemplateSum {
     if (coeff!=null) {
       coeff.negate();
     } else {
-      coeff = new TemplateNumber(-1);
+      coeff = new TemplateNumber(getFormulaType(), -1);
     }
   }
 
@@ -675,7 +679,7 @@ public class TemplateTerm extends TemplateSum {
     if (hasUIF()) {
       s += "*"+uif.toString(vwm);
     }
-    if (s.length() > 0 && ( !hasCoefficient() || writingAsForm ) ) {
+    if (s.length() > 0 && (!hasCoefficient() || writingAsForm )) {
       // In this case there is a * hanging at the beginning.
       s = s.substring(1);
     } else if (s.startsWith("1*")) {

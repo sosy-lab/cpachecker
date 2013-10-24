@@ -31,12 +31,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.collect.ImmutableSet;
 
-public class DefUseState implements AbstractState, Iterable<DefUseDefinition>
-{
+public class DefUseState implements AbstractState, Iterable<DefUseDefinition> {
     private final Set<DefUseDefinition> definitions;
 
-    public DefUseState (Set<DefUseDefinition> definitions)
-    {
+    public DefUseState(Set<DefUseDefinition> definitions) {
       this.definitions = ImmutableSet.copyOf(definitions);
     }
 
@@ -52,9 +50,8 @@ public class DefUseState implements AbstractState, Iterable<DefUseDefinition>
     }
 
     @Override
-    public Iterator<DefUseDefinition> iterator()
-    {
-        return definitions.iterator ();
+    public Iterator<DefUseDefinition> iterator() {
+        return definitions.iterator();
     }
 
     public boolean containsAllOf(DefUseState other) {
@@ -62,8 +59,7 @@ public class DefUseState implements AbstractState, Iterable<DefUseDefinition>
     }
 
     @Override
-    public boolean equals (Object other)
-    {
+    public boolean equals(Object other) {
         if (this == other) {
           return true;
         }
@@ -82,29 +78,27 @@ public class DefUseState implements AbstractState, Iterable<DefUseDefinition>
     }
 
     @Override
-    public String toString ()
-    {
-        StringBuilder builder = new StringBuilder ();
-        builder.append ('{');
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append('{');
 
         boolean hasAny = false;
-        for (DefUseDefinition def : definitions)
-        {
-            CFAEdge assigningEdge = def.getAssigningEdge ();
-            builder.append ('(').append (def.getVariableName ()).append(", ");
+        for (DefUseDefinition def : definitions) {
+            CFAEdge assigningEdge = def.getAssigningEdge();
+            builder.append ('(').append (def.getVariableName()).append(", ");
 
             if (assigningEdge != null) {
-              builder.append(assigningEdge.getPredecessor ().getNodeNumber ());
+              builder.append(assigningEdge.getPredecessor ().getNodeNumber());
             } else {
-              builder.append (0);
+              builder.append(0);
             }
 
-            builder.append (", ");
+            builder.append(", ");
 
             if (assigningEdge != null) {
-              builder.append (assigningEdge.getSuccessor ().getNodeNumber ());
+              builder.append (assigningEdge.getSuccessor ().getNodeNumber());
             } else {
-              builder.append (0);
+              builder.append(0);
             }
 
             builder.append("), ");
@@ -112,11 +106,11 @@ public class DefUseState implements AbstractState, Iterable<DefUseDefinition>
         }
 
         if (hasAny) {
-          builder.replace (builder.length () - 2, builder.length (), "}");
+          builder.replace (builder.length () - 2, builder.length(), "}");
         } else {
-          builder.append ('}');
+          builder.append('}');
         }
 
-        return builder.toString ();
+        return builder.toString();
     }
 }

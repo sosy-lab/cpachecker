@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
@@ -41,18 +42,19 @@ import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ContinueOnCounterexampleAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.FeatureVarsRestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.PostProcessingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.PruneUnrefinedARGAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -76,9 +78,6 @@ public class CoreComponentsFactory {
 
   @Option(description="use CBMC to double-check counter-examples")
   private boolean useCBMC = false;
-
-  @Option(description="use CBMC and the FeatureVars Restriction option")
-  private boolean useFeatureVarsRestriction = false;
 
   @Option(description="use CBMC and the BDDCPA Restriction option")
   private boolean useBDDCPARestriction = false;
@@ -109,6 +108,13 @@ public class CoreComponentsFactory {
       description="if enabled post processes (cosmetic changes) the reached set as specified by the CPAs")
       boolean usePostProcessing = false;
 
+  @Option(description = "do analysis and then check "
+      + "if reached set fulfills property specified by ConfigurableProgramAnalysisWithPropertyChecker")
+  private boolean usePropertyCheckingAlgorithm = false;
+
+  @Option(description = "do analysis and then check analysis result")
+  private boolean useResultCheckAlgorithm = false;
+
   private final Configuration config;
   private final LogManager logger;
 
@@ -126,7 +132,7 @@ public class CoreComponentsFactory {
   }
 
   public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
-      final String filename, final CFA cfa, @Nullable final MainCPAStatistics stats)
+      final String programDenotation, final CFA cfa, @Nullable final MainCPAStatistics stats)
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
@@ -137,7 +143,7 @@ public class CoreComponentsFactory {
       algorithm = new ProofCheckAlgorithm(cpa, config, logger);
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
-      algorithm = new RestartAlgorithm(config, logger, filename, cfa);
+      algorithm = new RestartAlgorithm(config, logger, programDenotation, cfa);
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, cpa, cfa);
@@ -162,15 +168,11 @@ public class CoreComponentsFactory {
       }
 
       if (useCBMC) {
-        algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, cfa, filename);
-      }
-
-      if (useFeatureVarsRestriction) {
-        algorithm = new FeatureVarsRestrictionAlgorithm(algorithm, cpa, config, logger, cfa, filename);
+        algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, cfa, programDenotation);
       }
 
       if (useBDDCPARestriction) {
-        algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger, cfa, filename);
+        algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger, cfa, programDenotation);
       }
 
       if (useAssumptionCollector) {
@@ -183,6 +185,19 @@ public class CoreComponentsFactory {
 
       if (usePostProcessing) {
         algorithm = new PostProcessingAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (usePropertyCheckingAlgorithm) {
+        if (!(cpa instanceof PropertyCheckerCPA)) {
+          throw new InvalidConfigurationException(
+              "Property checking algorithm requires CPAWithPropertyChecker as Top CPA");
+        }
+        algorithm =
+            new AlgorithmWithPropertyCheck(algorithm, logger, (PropertyCheckerCPA) cpa);
+      }
+
+      if (useResultCheckAlgorithm) {
+        algorithm = new ResultCheckAlgorithm(algorithm, cpa, cfa, config, logger);
       }
     }
 

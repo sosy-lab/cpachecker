@@ -25,6 +25,12 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Model;
@@ -32,11 +38,19 @@ import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.Model.Function;
 import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.ModelIterator;
 
 import com.google.common.collect.ImmutableMap;
 
-public class Mathsat5Model {
+class Mathsat5Model {
+
+  // A model can contain arbitrary real numbers, such as 1/3.
+  // Java does not provide a representation of such numbers with arbitrary precision,
+  // thus we use BigDecimal (which can handle at least all rational numbers)
+  // and round real numbers.
+  private static final MathContext ROUNDING_PRECISION = MathContext.DECIMAL128;
 
   private static TermType toMathsatType(long e, long mType) {
 
@@ -63,7 +77,7 @@ public class Mathsat5Model {
     String lName = msat_decl_get_name(lDeclarationId);
     TermType lType = toMathsatType(env, msat_decl_get_return_type(lDeclarationId));
 
-    Pair<String, Integer> lSplitName = ArithmeticMathsat5FormulaManager.parseName(lName);
+    Pair<String, Integer> lSplitName = FormulaManagerView.parseName(lName);
     return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
   }
 
@@ -87,22 +101,14 @@ public class Mathsat5Model {
       String lTermRepresentation = msat_term_repr(lArgument);
 
       Object lValue;
-
-      try {
-        lValue = Double.valueOf(lTermRepresentation);
-      }
-      catch (NumberFormatException e) {
-        // lets try special case for mathsat
-        String[] lNumbers = lTermRepresentation.split("/");
-
-        if (lNumbers.length != 2) {
-          throw new NumberFormatException("Unknown number format: " + lTermRepresentation);
-        }
-
-        double lNumerator = Double.valueOf(lNumbers[0]);
-        double lDenominator = Double.valueOf(lNumbers[1]);
-
-        lValue = lNumerator/lDenominator;
+      long msatType = msat_term_get_type(lArgument);
+      if (msat_is_integer_type(env, msatType)
+          || msat_is_rational_type(env, msatType)) {
+        lValue = parseReal(lTermRepresentation);
+      } else if (msat_is_bv_type(env, msatType)) {
+        lValue = interpreteBitvector(lTermRepresentation);
+      } else {
+        throw new NumberFormatException("Unknown number format: " + lTermRepresentation);
       }
 
       lArguments[lArgumentIndex] = lValue;
@@ -115,15 +121,14 @@ public class Mathsat5Model {
   private static AssignableTerm toAssignable(long env, long pTermId) {
     if (!msat_term_is_constant(env, pTermId)) {
       return toFunction(env, pTermId);
-    }
-    else {
+    } else {
       return toVariable(env, pTermId);
     }
   }
 
   static Model createMathsatModel(final long sourceEnvironment,
-      final Mathsat5FormulaManager fmgr, final boolean sharedEnvironment) throws SolverException {
-    final long targetEnvironment = fmgr.msatEnv;
+       final Mathsat5FormulaManager fmgr, final boolean sharedEnvironment) throws SolverException {
+    final long targetEnvironment = fmgr.getMsatEnv();
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
     long modelFormula = msat_make_true(targetEnvironment);
 
@@ -181,23 +186,7 @@ public class Mathsat5Model {
         }
         break;
       case Real:
-        try {
-          lValue = Double.valueOf(lTermRepresentation);
-        }
-        catch (NumberFormatException e) {
-          // lets try special case for mathsat
-          String[] lNumbers = lTermRepresentation.split("/");
-
-          if (lNumbers.length != 2) {
-            throw new NumberFormatException("Unknown number format: " + lTermRepresentation);
-          }
-
-          double lNumerator = Double.valueOf(lNumbers[0]);
-          double lDenominator = Double.valueOf(lNumbers[1]);
-
-          lValue = lNumerator/lDenominator;
-        }
-
+        lValue = parseReal(lTermRepresentation);
         break;
 
       case Integer:
@@ -205,7 +194,7 @@ public class Mathsat5Model {
         break;
 
       case Bitvector:
-        lValue = fmgr.interpreteBitvector(lValueTerm);
+        lValue = interpreteBitvector(lTermRepresentation);
         break;
 
       default:
@@ -216,7 +205,58 @@ public class Mathsat5Model {
     }
 
     lModelIterator.free();
-    return new Model(model.build(), fmgr.encapsulate(modelFormula));
+    return new Model(model.build(), fmgr.encapsulateTerm(BooleanFormula.class, modelFormula));
+  }
+
+  private static Pattern BITVECTOR_PATTERN = Pattern.compile("^(\\d+)_(\\d+)$");
+
+  //TODO: change this to the latest version (if possible try to use a BitvectorFormula instance here)
+  public static Object interpreteBitvector(String lTermRepresentation) {
+    // the term is of the format "<VALUE>_<WIDTH>"
+    Matcher matcher =  BITVECTOR_PATTERN.matcher(lTermRepresentation);
+    if (!matcher.matches()) {
+      throw new NumberFormatException("Unknown bitvector format: " + lTermRepresentation);
+    }
+
+    // TODO: calculate negative value?
+    String term = matcher.group(1);
+    String lengthValue = matcher.group(2);
+    long length = Long.valueOf(lengthValue);
+    Object value;
+    if (length < 64) {
+      try {
+        value = Long.valueOf(term);
+      } catch (NumberFormatException e) {
+        System.out.println();
+        throw e;
+      }
+    } else {
+      BigInteger i = new BigInteger(term);
+      value = i;
+    }
+
+    return value;
+  }
+
+  private static Object parseReal(String lTermRepresentation) {
+    BigDecimal lValue;
+    try {
+      lValue = new BigDecimal(lTermRepresentation);
+    }
+    catch (NumberFormatException e) {
+      // lets try special case for mathsat
+      String[] lNumbers = lTermRepresentation.split("/");
+
+      if (lNumbers.length != 2) {
+        throw new NumberFormatException("Unknown number format: " + lTermRepresentation);
+      }
+
+      BigDecimal lNumerator = new BigDecimal(lNumbers[0]);
+      BigDecimal lDenominator = new BigDecimal(lNumbers[1]);
+
+      lValue = lNumerator.divide(lDenominator, ROUNDING_PRECISION);
+    }
+    return lValue;
   }
 
 }

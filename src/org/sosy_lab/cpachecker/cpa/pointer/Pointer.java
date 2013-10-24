@@ -74,7 +74,7 @@ public class Pointer implements Cloneable {
         Set<PointerTarget> targets, PointerLocation location) {
     this.sizeOfTarget = sizeOfTarget;
     this.levelOfIndirection = levelOfIndirection;
-    this.targets = new HashSet<PointerTarget>(targets);
+    this.targets = new HashSet<>(targets);
     this.location = location;
   }
 
@@ -138,7 +138,7 @@ public class Pointer implements Cloneable {
       addUnknownOffset(keepOldTargets, memory);
 
     } else {
-      Set<PointerTarget> newTargets = new HashSet<PointerTarget>();
+      Set<PointerTarget> newTargets = new HashSet<>();
       long byteShift = shift * sizeOfTarget;
 
       for (PointerTarget target : targets) {
@@ -163,7 +163,7 @@ public class Pointer implements Cloneable {
   }
 
   private void addUnknownOffset(boolean keepOldTargets, Memory memory) {
-    Set<PointerTarget> newTargets = new HashSet<PointerTarget>();
+    Set<PointerTarget> newTargets = new HashSet<>();
 
     for (PointerTarget target : targets) {
       try {

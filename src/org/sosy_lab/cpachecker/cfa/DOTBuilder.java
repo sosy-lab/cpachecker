@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -49,11 +50,11 @@ public final class DOTBuilder {
   private static final String MAIN_GRAPH = "____Main____Diagram__";
   private static final Joiner JOINER_ON_NEWLINE = Joiner.on('\n');
 
-  public static String generateDOT(Collection<FunctionEntryNode> cfasMapList, FunctionEntryNode cfa) {
+  public static void generateDOT(Appendable sb,
+      Collection<FunctionEntryNode> cfasMapList, FunctionEntryNode cfa) throws IOException {
     DotGenerator dotGenerator = new DotGenerator();
     CFATraversal.dfs().traverseOnce(cfa, dotGenerator);
 
-    StringBuilder sb = new StringBuilder();
     sb.append("digraph " + "CFA" + " {\n");
 
     JOINER_ON_NEWLINE.appendTo(sb, dotGenerator.nodes);
@@ -63,7 +64,11 @@ public final class DOTBuilder {
     sb.append("node [shape=\"circle\"]\n");
 
     for (FunctionEntryNode fnode : cfasMapList) {
-      sb.append("subgraph cluster_" + fnode.getFunctionName() + " {\n");
+      // If Array belongs to functionCall in Parameter, replace [].
+      // If Name Contains '.' replace with '_'
+      sb.append("subgraph cluster_" + fnode.getFunctionName()
+          .replace("[", "").replace("]", "_array")
+          .replace(".", "_") + " {\n");
       sb.append("label=\"" + fnode.getFunctionName() + "()\"\n");
       JOINER_ON_NEWLINE.appendTo(sb, dotGenerator.edges.get(fnode.getFunctionName()));
       sb.append("}\n");
@@ -71,12 +76,11 @@ public final class DOTBuilder {
 
     JOINER_ON_NEWLINE.appendTo(sb, dotGenerator.edges.get(MAIN_GRAPH));
     sb.append("}");
-    return sb.toString();
   }
 
   private static class DotGenerator implements CFATraversal.CFAVisitor {
 
-    private final List<String> nodes = new ArrayList<String>();
+    private final List<String> nodes = new ArrayList<>();
 
     // edges for each function
     private final ListMultimap<String, String> edges = ArrayListMultimap.create();
@@ -89,10 +93,9 @@ public final class DOTBuilder {
       }
 
       List<String> graph;
-      if ((edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge){
+      if ((edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
         graph = edges.get(MAIN_GRAPH);
-      }
-      else{
+      } else {
         graph = edges.get(predecessor.getFunctionName());
       }
       graph.add(formatEdge(edge));
@@ -103,7 +106,7 @@ public final class DOTBuilder {
     @Override
     public TraversalProcess visitNode(CFANode node) {
 
-      if (node.isLoopStart()){
+      if (node.isLoopStart()) {
         nodes.add(formatNode(node, "doublecircle"));
       }
 

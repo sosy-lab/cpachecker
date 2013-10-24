@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,13 +26,14 @@ package org.sosy_lab.cpachecker.cfa;
 import java.io.IOException;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT7Parser;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -43,7 +44,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  * It may offer timing of it's operations. If present, this is not expected to
  * be thread-safe.
  */
-public interface CParser {
+public interface CParser extends Parser {
 
   /**
    * Parse the content of a file into a CFA.
@@ -53,7 +54,8 @@ public interface CParser {
    * @throws IOException If file cannot be read.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseFile(String filename) throws ParserException, IOException;
+  @Override
+  ParseResult parseFile(String filename) throws CParserException, IOException, InvalidConfigurationException;
 
   /**
    * Parse the content of a String into a CFA.
@@ -62,7 +64,8 @@ public interface CParser {
    * @return The CFA.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseString(String code) throws ParserException;
+  @Override
+  ParseResult parseString(String code) throws CParserException, InvalidConfigurationException;
 
   /**
    * Method for parsing a string that contains exactly one function with exactly
@@ -81,20 +84,7 @@ public interface CParser {
    * @return The AST for the statement.
    * @throws ParserException If parsing fails.
    */
-  CAstNode parseSingleStatement(String code) throws ParserException;
-
-  /**
-   * Return a timer that measured the time needed for parsing.
-   * Optional method: may return null.
-   */
-  Timer getParseTime();
-
-  /**
-   * Return a timer that measured the time need for CFA construction.
-   * Optional method: may return null.
-   */
-  Timer getCFAConstructionTime();
-
+  CAstNode parseSingleStatement(String code) throws CParserException, InvalidConfigurationException;
 
   /**
    * Enum for clients of this class to choose the C dialect the parser uses.
@@ -120,6 +110,7 @@ public interface CParser {
    */
   public static class Factory {
 
+
     public static ParserOptions getOptions(Configuration config) throws InvalidConfigurationException {
       ParserOptions result = new ParserOptions();
       config.inject(result);
@@ -130,8 +121,8 @@ public interface CParser {
       return new ParserOptions();
     }
 
-    public static CParser getParser(LogManager logger, ParserOptions options) {
-      return new EclipseCDT7Parser(logger, options.dialect);
+    public static CParser getParser(Configuration config, LogManager logger, ParserOptions options, MachineModel machine) {
+      return EclipseParsers.getCParser(config, logger, options.dialect, machine);
     }
   }
 }

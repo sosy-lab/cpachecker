@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,11 +47,11 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAB
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -72,7 +72,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final ARGStopSep stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
-  private final Statistics stats;
+  private final ARGStatistics stats;
   private final ProofChecker wrappedProofChecker;
   private final PostProcessor innerPostProcessor;
   private final Collection<PostProcessor> postProcessors;
@@ -131,31 +131,27 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public AbstractDomain getAbstractDomain ()
-  {
+  public AbstractDomain getAbstractDomain() {
     return abstractDomain;
   }
 
   @Override
-  public TransferRelation getTransferRelation ()
-  {
+  public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
   @Override
-  public MergeOperator getMergeOperator ()
-  {
+  public MergeOperator getMergeOperator() {
     return mergeOperator;
   }
 
   @Override
-  public StopOperator getStopOperator ()
-  {
+  public StopOperator getStopOperator() {
     return stopOperator;
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment () {
+  public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
 
@@ -165,7 +161,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public AbstractState getInitialState (CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ARG
     return new ARGState(getWrappedCpa().getInitialState(pNode), null);
   }
@@ -191,6 +187,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   public void setCounterexample(CounterexampleInfo pCounterexample) {
     checkArgument(!pCounterexample.isSpurious());
     lastCounterexample = pCounterexample;
+  }
+
+  ARGToDotWriter getRefinementGraphWriter() {
+    return stats.getRefinementGraphWriter();
   }
 
   @Override

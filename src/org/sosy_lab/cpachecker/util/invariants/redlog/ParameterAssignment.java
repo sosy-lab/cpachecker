@@ -41,7 +41,7 @@ public class ParameterAssignment {
     parameter = p;
     patype = PAType.NONE;
     try {
-      value = new Rational(0,1);
+      value = new Rational(0, 1);
     } catch (Exception e) {}
   }
 
@@ -55,7 +55,7 @@ public class ParameterAssignment {
     // expression. Perhaps this is never so; we should ask a
     // redlog expert. For now, we use our evaluate function in
     // case it is unsimplified.
-    Rational R = TreeReader.evaluate(RHS,S);
+    Rational R = TreeReader.evaluate(RHS, S);
     value = R;
   }
 
@@ -76,7 +76,7 @@ public class ParameterAssignment {
       // expression. Perhaps this is never so; we should ask a
       // redlog expert. For now, we use our evaluate function in
       // case it is unsimplified.
-      Rational R = TreeReader.evaluate(RHS,S);
+      Rational R = TreeReader.evaluate(RHS, S);
       value = R;
     } else {
       patype = PAType.VAR;
@@ -89,7 +89,7 @@ public class ParameterAssignment {
   }
 
   public String getParameter() {
-	return parameter;
+     return parameter;
   }
 
   public Rational getValue() {

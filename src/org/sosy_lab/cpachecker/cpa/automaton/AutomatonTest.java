@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,7 +58,7 @@ public class AutomatonTest {
       Files.writeFile(tmpSpc, content);
       TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
       Assert.assertTrue(results.isSafe());
-      Assert.assertTrue(results.logContains("File \"./test/config/automata/tmpSpecification.spc\" was referenced multiple times."));
+      Assert.assertTrue(results.logContains("File \"test/config/automata/tmpSpecification.spc\" was referenced multiple times."));
       Assert.assertTrue("Could not delete temporary specification",tmpSpc.delete());
   }
   @Test

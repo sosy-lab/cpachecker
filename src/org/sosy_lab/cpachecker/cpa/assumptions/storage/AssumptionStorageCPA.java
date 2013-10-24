@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,9 +41,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 
 /**
  * CPA used to capture the assumptions that ought to be dumped.
@@ -61,21 +62,20 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
   private final AbstractDomain abstractDomain;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
-  private final ExtendedFormulaManager formulaManager;
+  private final FormulaManagerView formulaManager;
   private final AssumptionStorageState topState;
 
-  private AssumptionStorageCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException
-  {
-    formulaManager = new ExtendedFormulaManager(new FormulaManagerFactory(config, logger).getFormulaManager(), config, logger);
-    CtoFormulaConverter converter = new CtoFormulaConverter(config, formulaManager, cfa.getMachineModel(), logger);
+  private AssumptionStorageCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
+    formulaManager = new FormulaManagerView(new FormulaManagerFactory(config, logger).getFormulaManager(), config, logger);
+    CtoFormulaConverter converter = CtoFormulaConverter.create(config, formulaManager, cfa.getMachineModel(), logger);
     abstractDomain = new AssumptionStorageDomain(formulaManager);
     stopOperator = new AssumptionStorageStop();
-    topState = new AssumptionStorageState(formulaManager.makeTrue(), formulaManager.makeTrue());
+    BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
+    topState = new AssumptionStorageState(bfmgr, bfmgr.makeBoolean(true), bfmgr.makeBoolean(true));
     transferRelation = new AssumptionStorageTransferRelation(converter, formulaManager, topState);
   }
 
-  public ExtendedFormulaManager getFormulaManager()
-  {
+  public FormulaManagerView getFormulaManager() {
     return formulaManager;
   }
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,6 +34,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
+import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
@@ -69,8 +70,39 @@ public class AutomaticCPAFactory implements CPAFactory {
   private final Class<? extends ConfigurableProgramAnalysis> type;
   private final ClassToInstanceMap<Object> injects = MutableClassToInstanceMap.create();
 
+  /**
+   * Construct a CPAFactory for the given type.
+   */
   public static AutomaticCPAFactory forType(Class<? extends ConfigurableProgramAnalysis> type) {
     return new AutomaticCPAFactory(type);
+  }
+
+  /**
+   * Construct a CPAFactory for the given type.
+   * The CPA will be loaded using the given class loader.
+   * It is advisable to use something like {@link ChildFirstPatternClassLoader}
+   * to ensure that the other classes of the CPA will be loaded with the same
+   * class loader, even if they are on the class path of the parent class loader.
+   *
+   * When using this method, make sure that the class that calls this method
+   * does not reference any of the other classes of the CPA.
+   * Specifically, you cannot put this method in the same class that should
+   * be instantiated.
+   *
+   * Also, using this means that other classes from other CPAs
+   * or from CPAchecker itself cannot access classes of your CPA.
+   */
+  public static CPAFactory forType(String className, ClassLoader cl) {
+    Class<?> cls;
+    try {
+      cls = cl.loadClass(className);
+    } catch (ClassNotFoundException e) {
+      throw new IllegalArgumentException(e);
+    }
+
+    checkArgument(ConfigurableProgramAnalysis.class.isAssignableFrom(cls), "Class %s does not implement the CPA interface and cannot be used with AutomaticCPAFactory", className);
+
+    return new AutomaticCPAFactory(cls.asSubclass(ConfigurableProgramAnalysis.class));
   }
 
   public AutomaticCPAFactory(Class<? extends ConfigurableProgramAnalysis> type) {
@@ -101,8 +133,12 @@ public class AutomaticCPAFactory implements CPAFactory {
     Annotation parameterAnnotations[][] = cons.getParameterAnnotations();
 
     Object actualParameters[] = new Object[formalParameters.length];
+    boolean childCpaInjected = false;
     for (int i = 0; i < formalParameters.length; i++) {
       Class<?> formalParam = formalParameters[i];
+      if (formalParam.equals(ConfigurableProgramAnalysis.class)) {
+        childCpaInjected = true;
+      }
       Object actualParam = get(formalParam);
 
       boolean optional = false;
@@ -124,6 +160,10 @@ public class AutomaticCPAFactory implements CPAFactory {
     String exception = Classes.verifyDeclaredExceptions(cons, InvalidConfigurationException.class, CPAException.class);
     if (exception != null) {
       throw new UnsupportedOperationException("Cannot automatically create CPAs if the constructor declares the unsupported checked exception " + exception);
+    }
+
+    if (!childCpaInjected && injects.containsKey(ConfigurableProgramAnalysis.class)) {
+      throw new InvalidConfigurationException("Child CPA configured for " + type.getSimpleName() + ", but this is not a wrapper CPA.");
     }
 
     // instantiate
@@ -230,49 +270,49 @@ public class AutomaticCPAFactory implements CPAFactory {
       throw new IllegalArgumentException("Constructor of options holder class declares illegal checked exception: " + exception);
     }
 
-    return new AutomaticCPAFactoryWithOptions<T>(type, injects, optionsClass, constructor);
+    return new AutomaticCPAFactoryWithOptions<>(type, injects, optionsClass, constructor);
   }
 
   private static final class AutomaticCPAFactoryWithOptions<T> extends AutomaticCPAFactory {
-  private final Class<T>       optionsClass;
-  private final Constructor<T> constructor;
+    private final Class<T>       optionsClass;
+    private final Constructor<T> constructor;
 
-  private AutomaticCPAFactoryWithOptions(
-      Class<? extends ConfigurableProgramAnalysis> pType,
-      ClassToInstanceMap<Object> pInjects, Class<T> pOptionsClass,
-      Constructor<T> pConstructor) {
-    super(pType, pInjects);
-    optionsClass = pOptionsClass;
-    constructor = pConstructor;
-  }
-
-  @Override
-  public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException, CPAException {
-    T options;
-    try {
-      // create options holder class instance
-      options = constructor.newInstance();
-
-    } catch (InvocationTargetException e) {
-      Throwable t = e.getCause();
-      Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
-      throw new UnexpectedCheckedException("instantiation of CPA options holder class " + optionsClass.getCanonicalName(), t);
-
-    } catch (IllegalAccessException e) {
-      throw new UnsupportedOperationException("Cannot automatically create CPAs without an accessible constructor for their options class!", e);
-
-    } catch (InstantiationException e) {
-      throw new UnsupportedOperationException("Cannot automatically create CPAs with an abstract options class!", e);
+    private AutomaticCPAFactoryWithOptions(
+        Class<? extends ConfigurableProgramAnalysis> pType,
+        ClassToInstanceMap<Object> pInjects, Class<T> pOptionsClass,
+        Constructor<T> pConstructor) {
+      super(pType, pInjects);
+      optionsClass = pOptionsClass;
+      constructor = pConstructor;
     }
 
-    // inject options into holder class
-    Configuration config = get(Configuration.class);
-    checkState(config != null, "Configuration object needed to create CPA");
+    @Override
+    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException, CPAException {
+      T options;
+      try {
+        // create options holder class instance
+        options = constructor.newInstance();
 
-    config.recursiveInject(options);
-    set(options, optionsClass);
+      } catch (InvocationTargetException e) {
+        Throwable t = e.getCause();
+        Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
+        throw new UnexpectedCheckedException("instantiation of CPA options holder class " + optionsClass.getCanonicalName(), t);
 
-    return super.createInstance();
+      } catch (IllegalAccessException e) {
+        throw new UnsupportedOperationException("Cannot automatically create CPAs without an accessible constructor for their options class!", e);
+
+      } catch (InstantiationException e) {
+        throw new UnsupportedOperationException("Cannot automatically create CPAs with an abstract options class!", e);
+      }
+
+      // inject options into holder class
+      Configuration config = get(Configuration.class);
+      checkState(config != null, "Configuration object needed to create CPA");
+
+      config.recursiveInject(options);
+      set(options, optionsClass);
+
+      return super.createInstance();
+    }
   }
-}
 }

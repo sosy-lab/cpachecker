@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,19 +23,28 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.util.Objects;
+
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CTypeIdExpression extends CExpression {
+public final class CTypeIdExpression extends AExpression implements CExpression {
 
   private final TypeIdOperator operator;
   private final CType type;
 
-  public CTypeIdExpression(final CFileLocation pFileLocation,
+  public CTypeIdExpression(final FileLocation pFileLocation,
                               final CType pExpressionType, final TypeIdOperator pOperator,
                               final CType pType) {
     super(pFileLocation, pExpressionType);
     operator = pOperator;
     type = pType;
+  }
+
+  @Override
+  public CType getExpressionType() {
+    return (CType) super.getExpressionType();
   }
 
   public TypeIdOperator getOperator() {
@@ -75,4 +84,38 @@ public final class CTypeIdExpression extends CExpression {
   public String toASTString() {
     return operator.getOperator() + "(" + type.toASTString("") + ")";
   }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(operator);
+    result = prime * result + Objects.hashCode(type);
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CTypeIdExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    CTypeIdExpression other = (CTypeIdExpression) obj;
+
+    return Objects.equals(other.operator, operator)
+            && Objects.equals(other.type, type);
+  }
+
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +40,7 @@ class AutomatonExpressionArguments {
   private Map<String, AutomatonVariable> automatonVariables;
   // Variables that are only valid for one transition ($1,$2,...)
   // these will be set in a MATCH statement, and are erased when the transitions actions are executed.
-  private Map<Integer, String> transitionVariables = new HashMap<Integer, String>();
+  private Map<Integer, String> transitionVariables = new HashMap<>();
   private List<AbstractState> abstractStates;
   private CFAEdge cfaEdge;
   private LogManager logger;
@@ -126,7 +126,7 @@ class AutomatonExpressionArguments {
    * @param pSourceString
    * @return
    */
-  String replaceVariables (String pSourceString) {
+  String replaceVariables(String pSourceString) {
 
     // replace references to Transition Variables
     Matcher matcher = AutomatonExpressionArguments.TRANSITION_VARS_PATTERN.matcher(pSourceString);

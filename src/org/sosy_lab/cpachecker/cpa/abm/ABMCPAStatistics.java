@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.abm;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.util.StatisticsUtils.toPercent;
 
 import java.io.PrintStream;
 
@@ -36,67 +37,63 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
  */
 class ABMCPAStatistics implements Statistics {
 
-    private final ABMCPA cpa;
-    private AbstractABMBasedRefiner refiner = null;
+  private final ABMCPA cpa;
+  private AbstractABMBasedRefiner refiner = null;
 
-    public ABMCPAStatistics(ABMCPA cpa) {
-      this.cpa = cpa;
+  public ABMCPAStatistics(ABMCPA cpa) {
+    this.cpa = cpa;
+  }
+
+  @Override
+  public String getName() {
+    return "ABMCPA";
+  }
+
+  public void addRefiner(AbstractABMBasedRefiner pRefiner) {
+    checkState(refiner == null);
+    refiner = pRefiner;
+  }
+
+  @Override
+  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+
+    ABMTransferRelation transferRelation = cpa.getTransferRelation();
+    TimedReducer reducer = cpa.getReducer();
+
+    int sumCalls = transferRelation.cacheMisses + transferRelation.partialCacheHits + transferRelation.fullCacheHits;
+
+    int sumARTElemets = 0;
+    for (ReachedSet subreached : ABMARGUtils.gatherReachedSets(cpa, reached).values()) {
+      sumARTElemets += subreached.size();
     }
 
-    @Override
-    public String getName() {
-      return "ABMCPA";
+    out.println("Total size of all ARGs:                                         " + sumARTElemets);
+    out.println("Maximum block depth:                                            " + transferRelation.maxRecursiveDepth);
+    out.println("Total number of recursive CPA calls:                            " + sumCalls);
+    out.println("  Number of cache misses:                                       " + transferRelation.cacheMisses + " (" + toPercent(transferRelation.cacheMisses, sumCalls) + " of all calls)");
+    out.println("  Number of partial cache hits:                                 " + transferRelation.partialCacheHits + " (" + toPercent(transferRelation.partialCacheHits, sumCalls) + " of all calls)");
+    out.println("  Number of full cache hits:                                    " + transferRelation.fullCacheHits + " (" + toPercent(transferRelation.fullCacheHits, sumCalls) + " of all calls)");
+    if (transferRelation.gatherCacheMissStatistics) {
+      out.println("Cause for cache misses:                                         ");
+      out.println("  Number of abstraction caused misses:                          " + transferRelation.abstractionCausedMisses + " (" + toPercent(transferRelation.abstractionCausedMisses, transferRelation.cacheMisses) + " of all misses)");
+      out.println("  Number of precision caused misses:                            " + transferRelation.precisionCausedMisses + " (" + toPercent(transferRelation.precisionCausedMisses, transferRelation.cacheMisses) + " of all misses)");
+      out.println("  Number of misses with no similar elements:                    " + transferRelation.noSimilarCausedMisses + " (" + toPercent(transferRelation.noSimilarCausedMisses, transferRelation.cacheMisses) + " of all misses)");
     }
+    out.println("Time for reducing abstract states:                            " + reducer.reduceTime + " (Calls: " + reducer.reduceTime.getNumberOfIntervals() + ")");
+    out.println("Time for expanding abstract states:                           " + reducer.expandTime + " (Calls: " + reducer.expandTime.getNumberOfIntervals() + ")");
+    out.println("Time for checking equality of abstract states:                " + transferRelation.equalsTimer + " (Calls: " + transferRelation.equalsTimer.getNumberOfIntervals() + ")");
+    out.println("Time for computing the hashCode of abstract states:           " + transferRelation.hashingTimer + " (Calls: " + transferRelation.hashingTimer.getNumberOfIntervals() + ")");
+    out.println("Time for searching for similar cache entries:                   " + transferRelation.searchingTimer + " (Calls: " + transferRelation.searchingTimer.getNumberOfIntervals() + ")");
+    out.println("Time for reducing precisions:                                   " + reducer.reducePrecisionTime + " (Calls: " + reducer.reducePrecisionTime.getNumberOfIntervals() + ")");
+    out.println("Time for expanding precisions:                                  " + reducer.expandPrecisionTime + " (Calls: " + reducer.expandPrecisionTime.getNumberOfIntervals() + ")");
 
-    public void addRefiner(AbstractABMBasedRefiner pRefiner) {
-      checkState(refiner == null);
-      refiner = pRefiner;
+    out.println("Time for removing cached subtrees for refinement:               " + transferRelation.removeCachedSubtreeTimer);
+    out.println("Time for recomputing ARGs during counterexample analysis:       " + transferRelation.recomputeARTTimer);
+    if (refiner != null) {
+      out.println("Compute path for refinement:                                    " + refiner.computePathTimer);
+      out.println("  Constructing flat ARG:                                        " + refiner.computeSubtreeTimer);
+      out.println("  Searching path to error location:                             " + refiner.computeCounterexampleTimer);
     }
+  }
 
-    @Override
-    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-
-      ABMTransferRelation transferRelation = cpa.getTransferRelation();
-      TimedReducer reducer = cpa.getReducer();
-
-      int sumCalls = transferRelation.cacheMisses + transferRelation.partialCacheHits + transferRelation.fullCacheHits;
-
-      int sumARTElemets = 0;
-      for (ReachedSet subreached : ABMARTUtils.gatherReachedSets(cpa, reached).values()) {
-        sumARTElemets += subreached.size();
-      }
-
-      out.println("Total size of all ARGs:                                         " + sumARTElemets);
-      out.println("Maximum block depth:                                            " + transferRelation.maxRecursiveDepth);
-      out.println("Total number of recursive CPA calls:                            " + sumCalls);
-      out.println("  Number of cache misses:                                       " + transferRelation.cacheMisses + " (" + toPercent(transferRelation.cacheMisses, sumCalls) + " of all calls)");
-      out.println("  Number of partial cache hits:                                 " + transferRelation.partialCacheHits + " (" + toPercent(transferRelation.partialCacheHits, sumCalls) + " of all calls)");
-      out.println("  Number of full cache hits:                                    " + transferRelation.fullCacheHits + " (" + toPercent(transferRelation.fullCacheHits, sumCalls) + " of all calls)");
-      if (transferRelation.gatherCacheMissStatistics) {
-        out.println("Cause for cache misses:                                         ");
-        out.println("  Number of abstraction caused misses:                          " + transferRelation.abstractionCausedMisses + " (" + toPercent(transferRelation.abstractionCausedMisses, transferRelation.cacheMisses) + " of all misses)");
-        out.println("  Number of precision caused misses:                            " + transferRelation.precisionCausedMisses + " (" + toPercent(transferRelation.precisionCausedMisses, transferRelation.cacheMisses) + " of all misses)");
-        out.println("  Number of misses with no similar elements:                    " + transferRelation.noSimilarCausedMisses + " (" + toPercent(transferRelation.noSimilarCausedMisses, transferRelation.cacheMisses) + " of all misses)");
-      }
-      out.println("Time for reducing abstract states:                            " + reducer.reduceTime + " (Calls: " + reducer.reduceTime.getNumberOfIntervals() + ")");
-      out.println("Time for expanding abstract states:                           " + reducer.expandTime + " (Calls: " + reducer.expandTime.getNumberOfIntervals() + ")");
-      out.println("Time for checking equality of abstract states:                " + transferRelation.equalsTimer + " (Calls: " + transferRelation.equalsTimer.getNumberOfIntervals() + ")");
-      out.println("Time for computing the hashCode of abstract states:           " + transferRelation.hashingTimer + " (Calls: " + transferRelation.hashingTimer.getNumberOfIntervals() + ")");
-      out.println("Time for searching for similar cache entries:                   " + transferRelation.searchingTimer + " (Calls: " + transferRelation.searchingTimer.getNumberOfIntervals() + ")");
-      out.println("Time for reducing precisions:                                   " + reducer.reducePrecisionTime + " (Calls: " + reducer.reducePrecisionTime.getNumberOfIntervals() + ")");
-      out.println("Time for expanding precisions:                                  " + reducer.expandPrecisionTime + " (Calls: " + reducer.expandPrecisionTime.getNumberOfIntervals() + ")");
-
-      out.println("Time for removing cached subtrees for refinement:               " + transferRelation.removeCachedSubtreeTimer);
-      out.println("Time for recomputing ARGs during counterexample analysis:       " + transferRelation.recomputeARTTimer);
-      if (refiner != null) {
-        out.println("Compute path for refinement:                                    " + refiner.computePathTimer);
-        out.println("  Constructing flat ARG:                                        " + refiner.computeSubtreeTimer);
-        out.println("  Searching path to error location:                             " + refiner.computeCounterexampleTimer);
-      }
-    }
-
-
-    private String toPercent(double val, double full) {
-      return String.format("%1.0f", val/full*100) + "%";
-    }
 }

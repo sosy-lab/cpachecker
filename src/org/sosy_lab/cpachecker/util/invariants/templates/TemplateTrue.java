@@ -26,8 +26,9 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 import java.util.List;
 import java.util.Vector;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class TemplateTrue extends TemplateConstraint {
 
@@ -54,15 +55,16 @@ public class TemplateTrue extends TemplateConstraint {
   }
 
   @Override
-  public Formula translate(FormulaManager fmgr) {
-  	return fmgr.makeTrue();
+  public BooleanFormula translate(FormulaManagerView fmgr) {
+    BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
+    return bfmgr.makeBoolean(true);
   }
 
   @Override
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
-    List<TemplateFormula> atoms = new Vector<TemplateFormula>();
-  	atoms.add(this);
-  	return atoms;
+    List<TemplateFormula> atoms = new Vector<>();
+    atoms.add(this);
+    return atoms;
   }
 
 }

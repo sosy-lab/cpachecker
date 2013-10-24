@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
+import static com.google.common.base.Predicates.in;
+import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.concat;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
@@ -36,6 +38,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -50,14 +54,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 public class PathToCTranslator {
 
@@ -68,16 +71,16 @@ public class PathToCTranslator {
     }
   };
 
-  private final List<String> mGlobalDefinitionsList = new ArrayList<String>();
-  private final List<String> mFunctionDecls = new ArrayList<String>();
+  private final List<String> mGlobalDefinitionsList = new ArrayList<>();
+  private final List<String> mFunctionDecls = new ArrayList<>();
   private int mFunctionIndex = 0;
 
   // list of functions
-  private final List<FunctionBody> mFunctionBodies = new ArrayList<FunctionBody>();
+  private final List<FunctionBody> mFunctionBodies = new ArrayList<>();
 
   private PathToCTranslator() { }
 
-  public static String translatePaths(ARGState argRoot, Set<ARGState> elementsOnErrorPath) {
+  public static Appender translatePaths(ARGState argRoot, Set<ARGState> elementsOnErrorPath) {
     PathToCTranslator translator = new PathToCTranslator();
 
     translator.translatePaths0(argRoot, elementsOnErrorPath);
@@ -85,7 +88,7 @@ public class PathToCTranslator {
     return translator.generateCCode();
   }
 
-  public static String translateSinglePath(Path pPath) {
+  public static Appender translateSinglePath(ARGPath pPath) {
     PathToCTranslator translator = new PathToCTranslator();
 
     translator.translateSinglePath0(pPath);
@@ -93,8 +96,9 @@ public class PathToCTranslator {
     return translator.generateCCode();
   }
 
-  private String generateCCode() {
-    return Joiner.on('\n').join(concat(mGlobalDefinitionsList,
+  private Appender generateCCode() {
+    return Appenders.forIterable(Joiner.on('\n'),
+                                concat(mGlobalDefinitionsList,
                                        mFunctionDecls,
                                        mFunctionBodies));
   }
@@ -102,14 +106,14 @@ public class PathToCTranslator {
 
   private void translatePaths0(final ARGState firstElement, Set<ARGState> elementsOnPath) {
     // waitlist for the edges to be processed
-    List<Edge> waitlist = new ArrayList<Edge>();
+    List<Edge> waitlist = new ArrayList<>();
 
     // map of nodes to check end of a condition
-    Map<Integer, MergeNode> mergeNodes = new HashMap<Integer, MergeNode>();
+    Map<Integer, MergeNode> mergeNodes = new HashMap<>();
 
     // create initial element
     {
-      Stack<FunctionBody> newStack = new Stack<FunctionBody>();
+      Stack<FunctionBody> newStack = new Stack<>();
 
       // create the first function and put in into newStack
       startFunction(firstElement, newStack);
@@ -148,13 +152,13 @@ public class PathToCTranslator {
     return freshFunctionName;
   }
 
-  private void translateSinglePath0(Path pPath) {
+  private void translateSinglePath0(ARGPath pPath) {
     assert pPath.size() >= 1;
     Iterator<Pair<ARGState, CFAEdge>> pathIt = pPath.iterator();
     Pair<ARGState, CFAEdge> parentPair = pathIt.next();
     ARGState firstElement = parentPair.getFirst();
 
-    Stack<FunctionBody> functionStack = new Stack<FunctionBody>();
+    Stack<FunctionBody> functionStack = new Stack<>();
 
     // create the first function and put in into the stack
     startFunction(firstElement, functionStack);
@@ -184,7 +188,7 @@ public class PathToCTranslator {
 
     // how many parents does the child have?
     // ignore parents not on the error path
-    int noOfParents = Sets.intersection(childElement.getParents(), elementsOnPath).size();
+    int noOfParents = from(childElement.getParents()).filter(in(elementsOnPath)).size();
     assert noOfParents >= 1;
 
     // handle merging if necessary
@@ -235,7 +239,7 @@ public class PathToCTranslator {
       Set<ARGState> elementsOnPath) {
     // find the next elements to add to the waitlist
 
-    Set<ARGState> relevantChildrenOfElement = Sets.intersection(currentElement.getChildren(), elementsOnPath).immutableCopy();
+    List<ARGState> relevantChildrenOfElement = from(currentElement.getChildren()).filter(in(elementsOnPath)).toList();
 
     // if there is only one child on the path
     if (relevantChildrenOfElement.size() == 1) {
@@ -249,7 +253,7 @@ public class PathToCTranslator {
       // if there are more than one relevant child, then this is a condition
       // we need to update the stack
       assert relevantChildrenOfElement.size() == 2;
-      Collection<Edge> result = new ArrayList<Edge>(2);
+      Collection<Edge> result = new ArrayList<>(2);
       int ind = 0;
       for (ARGState elem: relevantChildrenOfElement) {
         Stack<FunctionBody> newStack = cloneStack(functionStack);
@@ -335,11 +339,11 @@ public class PathToCTranslator {
       functionStack.pop();
 
     } else {
-      currentFunction.write(processSimpleEdge(edge));
+      currentFunction.write(processSimpleEdge(edge, currentFunction.getCurrentBlock()));
     }
   }
 
-  private String processSimpleEdge(CFAEdge pCFAEdge) {
+  private String processSimpleEdge(CFAEdge pCFAEdge, BasicBlock currentBlock) {
 
     switch (pCFAEdge.getEdgeType()) {
 
@@ -362,14 +366,20 @@ public class PathToCTranslator {
         return "";
       }
 
-      return lDeclarationEdge.getCode();
+      // avoid having the same declaration edge twice in one basic block
+      if (currentBlock.hasDeclaration(lDeclarationEdge)) {
+        return "";
+      } else {
+        currentBlock.addDeclaration(lDeclarationEdge);
+        return lDeclarationEdge.getCode();
+      }
     }
 
     case MultiEdge: {
       StringBuilder sb = new StringBuilder();
 
       for (CFAEdge edge : (MultiEdge)pCFAEdge) {
-        sb.append(processSimpleEdge(edge));
+        sb.append(processSimpleEdge(edge, currentBlock));
       }
       return sb.toString();
     }
@@ -411,7 +421,7 @@ public class PathToCTranslator {
 
   private Stack<FunctionBody> cloneStack(Stack<FunctionBody> pStack) {
 
-    Stack<FunctionBody>  ret = new Stack<FunctionBody>();
+    Stack<FunctionBody>  ret = new Stack<>();
     for (FunctionBody functionBody : pStack) {
       ret.push(new FunctionBody(functionBody));
     }

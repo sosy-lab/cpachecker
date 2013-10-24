@@ -62,23 +62,23 @@ public class Rational {
   }
 
   public Rational copy() {
-    return new Rational(num,denom);
+    return new Rational(num, denom);
   }
 
   public Rational makeNegative() {
-    return new Rational(-num,denom);
+    return new Rational(-num, denom);
   }
 
   public Rational makeReciprocal() {
-    return new Rational(denom,num);
+    return new Rational(denom, num);
   }
 
   public static Rational makeUnity() {
-    return new Rational(1,1);
+    return new Rational(1, 1);
   }
 
   public static Rational makeZero() {
-    return new Rational(0,1);
+    return new Rational(0, 1);
   }
 
   public boolean equals(Rational r) {
@@ -106,7 +106,7 @@ public class Rational {
   }
 
   public boolean isPositive() {
-    return !isInfinite() && ( (denom > 0 && num > 0) || (denom < 0 && num < 0) );
+    return !isInfinite() && ((denom > 0 && num > 0) || (denom < 0 && num < 0));
   }
 
   /*
@@ -116,7 +116,7 @@ public class Rational {
   public int getHeight() {
     int a = Math.abs(num);
     int b = Math.abs(denom);
-    return Math.max(a,b);
+    return Math.max(a, b);
   }
 
   public int getNumerator() {
@@ -134,7 +134,7 @@ public class Rational {
   public Integer makeInteger() {
     Integer z = null;
     if (isIntegral()) {
-      z = new Integer(num/denom);
+      z = Integer.valueOf(num/denom);
     }
     return z;
   }
@@ -178,13 +178,13 @@ public class Rational {
     int g = Polynomial.gcd(num, denom);
     int n = num/g;
     int d = denom/g;
-    return new Rational(n,d);
+    return new Rational(n, d);
   }
 
   public Rational times(Rational other) {
     int n = this.num * other.num;
     int d = this.denom * other.denom;
-    return new Rational(n,d).leastTerms();
+    return new Rational(n, d).leastTerms();
   }
 
   /*
@@ -195,7 +195,7 @@ public class Rational {
     int b = other.denom;
     int n = this.num * b;
     int d = this.denom * a;
-    return new Rational(n,d).leastTerms();
+    return new Rational(n, d).leastTerms();
   }
 
   public Rational plus(Rational other) {
@@ -205,7 +205,7 @@ public class Rational {
     int d = other.denom;
     int p = a*d + b*c;
     int q = b*d;
-    return new Rational(p,q).leastTerms();
+    return new Rational(p, q).leastTerms();
   }
 
   public Rational minus(Rational other) {
@@ -215,7 +215,7 @@ public class Rational {
     int d = other.denom;
     int p = a*d - b*c;
     int q = b*d;
-    return new Rational(p,q).leastTerms();
+    return new Rational(p, q).leastTerms();
   }
 
 }

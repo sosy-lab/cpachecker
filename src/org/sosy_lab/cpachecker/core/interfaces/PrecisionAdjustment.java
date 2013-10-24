@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,7 +56,7 @@ public interface PrecisionAdjustment {
    * @param states The current reached set.
    * @return The new state, new precision and the action flag.
    */
-  public Triple<AbstractState,Precision, Action> prec(
+  public Triple<AbstractState, Precision, Action> prec(
       AbstractState state, Precision precision, UnmodifiableReachedSet states)
       throws CPAException;
 }

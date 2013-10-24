@@ -29,6 +29,7 @@ import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.balancer.prh3.PivotRowHandler;
@@ -37,9 +38,9 @@ import org.sosy_lab.cpachecker.util.invariants.redlog.RedlogInterface;
 
 public class AcyclicColumnRelianceBalancer extends AbstractBalancer {
 
-  public AcyclicColumnRelianceBalancer(LogManager lm) {
+  public AcyclicColumnRelianceBalancer(Configuration config, LogManager lm) {
     logger = lm;
-    RLI = new RedlogInterface(logger);
+    RLI = new RedlogInterface(config, logger);
   }
 
   @Override
@@ -51,20 +52,20 @@ public class AcyclicColumnRelianceBalancer extends AbstractBalancer {
     paramVars = makeParamVars();
 
     // Build all the matrices
-    List<Matrix> mats = new Vector<Matrix>();
+    List<Matrix> mats = new Vector<>();
     for (Transition t : tnet.getTransitions()) {
-      mats.addAll( getMatricesForTransition(t) );
+      mats.addAll(getMatricesForTransition(t));
     }
     matrices = mats;
-    logger.log(Level.ALL,"Transformed network transitions into matrices.");
+    logger.log(Level.ALL, "Transformed network transitions into matrices.");
     logMatrices();
     // Put them in RREF as far as possible without pivoting on any entries with variable numerator.
     innocuousRREF();
-    logger.log(Level.ALL,"Put matrices in partial RREF, stopping when all potential pivots had variable numerator.");
+    logger.log(Level.ALL, "Put matrices in partial RREF, stopping when all potential pivots had variable numerator.");
     logMatrices();
 
     // Try to find a solution.
-    Map<String,Rational> solution = solve();
+    Map<String, Rational> solution = solve();
 
     // Examine the results.
     if (solution == null) {
@@ -83,9 +84,9 @@ public class AcyclicColumnRelianceBalancer extends AbstractBalancer {
     return succeed;
   }
 
-  private Map<String,Rational> solve() {
+  private Map<String, Rational> solve() {
     // Declare the return value.
-    Map<String,Rational> values = null;
+    Map<String, Rational> values = null;
 
     // Initialize an AssumptionManager.
     AssumptionManager amgr = new AssumptionManager(matrices, logger);

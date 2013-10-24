@@ -41,7 +41,7 @@ public class PivotRow2 implements Comparable<PivotRow2> {
   public PivotRow2(int i, LogManager lm) {
     logger = lm;
     rowNum = i;
-    usable = new LinkedList<UsableColumn>();
+    usable = new LinkedList<>();
   }
 
   @Override

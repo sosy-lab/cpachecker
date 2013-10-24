@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,28 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CArraySubscriptExpression extends CExpression {
+public final class CArraySubscriptExpression extends AArraySubscriptExpression implements CExpression {
 
-  private final CExpression arrayExpression;
-  private final CExpression subscriptExpression;
 
-  public CArraySubscriptExpression(final CFileLocation pFileLocation,
+
+  public CArraySubscriptExpression(final FileLocation pFileLocation,
                                       final CType pType,
                                       final CExpression pArrayExpression,
                                       final CExpression pSubscriptExpression) {
-    super(pFileLocation, pType);
-    arrayExpression = pArrayExpression;
-    subscriptExpression = pSubscriptExpression;
+    super(pFileLocation, pType, pArrayExpression, pSubscriptExpression);
   }
 
+  @Override
+  public CType getExpressionType() {
+    return (CType) super.getExpressionType();
+  }
+
+  @Override
   public CExpression getArrayExpression() {
-    return arrayExpression;
+    return (CExpression) super.getArrayExpression();
   }
 
+  @Override
   public CExpression getSubscriptExpression() {
-    return subscriptExpression;
+    return (CExpression) super.getSubscriptExpression();
   }
 
   @Override
@@ -58,8 +64,22 @@ public final class CArraySubscriptExpression extends CExpression {
   }
 
   @Override
-  public String toASTString() {
-    String left = (arrayExpression instanceof CArraySubscriptExpression) ? arrayExpression.toASTString() : arrayExpression.toParenthesizedASTString();
-    return left + "[" + subscriptExpression.toASTString() + "]";
+  public int hashCode() {
+    final int prime = 31;
+    int result = 7;
+    return result * prime + super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CArraySubscriptExpression)) {
+      return false;
+    }
+
+    return super.equals(obj);
   }
 }

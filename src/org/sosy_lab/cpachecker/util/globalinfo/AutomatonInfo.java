@@ -34,7 +34,7 @@ public class AutomatonInfo {
   private final Map<Integer, AutomatonInternalState> idToState;
 
   AutomatonInfo() {
-    idToState= new HashMap<Integer, AutomatonInternalState>();
+    idToState= new HashMap<>();
 
   }
 

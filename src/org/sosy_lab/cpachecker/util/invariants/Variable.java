@@ -35,7 +35,7 @@ public class Variable implements GeneralVariable {
   }
 
   public boolean equals(Variable U) {
-    return v.equals( U.getValue() );
+    return v.equals(U.getValue());
   }
 
   public String getValue() {

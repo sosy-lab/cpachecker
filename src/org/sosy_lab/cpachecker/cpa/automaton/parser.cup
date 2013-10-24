@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,6 +42,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 parser code {:
   private LogManager logger;
@@ -82,13 +83,11 @@ parser code {:
   /**
   * Parses a Specification File and returns the Automata found in the file.
   */
-  public static List<Automaton> parseAutomatonFile(File pInputFile, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-    CParser cparser = CParser.Factory.getParser(pLogger, CParser.Factory.getOptions(config));
+  public static List<Automaton> parseAutomatonFile(File pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
+    CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
 
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
-    FileInputStream input = null;
-    try {
-      input = new FileInputStream(pInputFile);
+    try (FileInputStream input = new FileInputStream(pInputFile)) {
       Scanner scanner = new AutomatonScanner(input, pInputFile, config, pLogger, sf);
       Symbol symbol = new AutomatonParser(scanner, sf, pLogger, cparser).parse();
       return ((List<Automaton>) symbol.value);
@@ -100,20 +99,10 @@ parser code {:
         throw new InvalidConfigurationException("Could not load automaton from file " + pInputFile.getAbsolutePath()
             + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")", e);
       }
-
-    } finally {
-      if (input!= null) {
-        try {
-          input.close();
-        } catch (IOException e) {
-          throw new InvalidConfigurationException(
-              "IO Exception when closing the FileStream to \"" + pInputFile.getAbsolutePath() + "\": "+e.getMessage(), e);
-        }
-      }
     }
   }
 
-  AutomatonASTComparator.ASTMatcher generateASTPattern(String pattern) throws InvalidAutomatonException {
+  AutomatonASTComparator.ASTMatcher generateASTPattern(String pattern) throws InvalidAutomatonException, InvalidConfigurationException {
     return AutomatonASTComparator.generatePatternAST(pattern, cparser);
   }
 :};

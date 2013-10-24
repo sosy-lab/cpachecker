@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,31 +28,57 @@ import static com.google.common.collect.Iterables.transform;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 
 import java.util.List;
+import java.util.Objects;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclarations;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public final class CEnumType extends CType {
+public final class CEnumType implements CComplexType {
 
   private final ImmutableList<CEnumerator> enumerators;
   private final String                     name;
+  private boolean   isConst;
+  private boolean   isVolatile;
 
   public CEnumType(final boolean pConst, final boolean pVolatile,
       final List<CEnumerator> pEnumerators, final String pName) {
-    super(pConst, pVolatile);
+    isConst = pConst;
+    isVolatile = pVolatile;
     enumerators = ImmutableList.copyOf(pEnumerators);
     name = pName;
+  }
+
+  @Override
+  public boolean isConst() {
+    return isConst;
+  }
+
+  @Override
+  public boolean isVolatile() {
+    return isVolatile;
   }
 
   public ImmutableList<CEnumerator> getEnumerators() {
     return enumerators;
   }
 
+  @Override
+  public ComplexTypeKind getKind() {
+    return ComplexTypeKind.ENUM;
+  }
+
+  @Override
   public String getName() {
     return name;
+  }
+
+  @Override
+  public String getQualifiedName() {
+    return ("enum " + name).trim();
   }
 
   @Override
@@ -77,19 +103,77 @@ public final class CEnumType extends CType {
     return lASTString.toString();
   }
 
-  public static final class CEnumerator extends CSimpleDeclaration {
+  @Override
+  public String toString() {
+    return this.toASTString("");
+  }
 
-    private static final CType INT_TYPE = new CSimpleType(true, false, CBasicType.INT, false, false, true, false, false, false, false);
+  public static final class CEnumerator extends ASimpleDeclarations implements CSimpleDeclaration {
 
     private final Long           value;
+    private CEnumType             enumType;
+    private final String         qualifiedName;
 
-    public CEnumerator(final CFileLocation pFileLocation,
-                          final String pName,
+    public CEnumerator(final FileLocation pFileLocation,
+                          final String pName, final String pQualifiedName,
         final Long pValue) {
-      super(pFileLocation, INT_TYPE, pName);
+      super(pFileLocation, CNumericTypes.SIGNED_INT, pName);
 
       checkNotNull(pName);
       value = pValue;
+      qualifiedName = checkNotNull(pQualifiedName);
+    }
+
+    /**
+     * Get the enum that declared this enumerator.
+     */
+    public CEnumType getEnum() {
+      return enumType;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+
+      if (!(obj instanceof CEnumerator) || !super.equals(obj)) {
+        return false;
+      }
+
+      CEnumerator other = (CEnumerator) obj;
+
+      return (value == other.value) && (qualifiedName.equals(other.qualifiedName))
+             && (enumType == other.enumType);
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(value);
+      result = prime * result + Objects.hashCode(enumType);
+      result = prime * result + Objects.hashCode(qualifiedName);
+      result = prime * result + super.hashCode();
+      return result ;
+    }
+
+    /**
+     * This method should be called only during parsing.
+     */
+    public void setEnum(CEnumType pEnumType) {
+      checkState(enumType == null);
+      enumType = pEnumType;
+    }
+
+    @Override
+    public String getQualifiedName() {
+      return qualifiedName;
+    }
+
+    @Override
+    public CType getType() {
+      return (CType) super.getType();
     }
 
     public long getValue() {
@@ -106,5 +190,47 @@ public final class CEnumType extends CType {
       return getName()
           + (hasValue() ? " = " + String.valueOf(value) : "");
     }
+  }
+
+
+  @Override
+  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
+  }
+
+  @Override
+  public int hashCode() {
+    throw new UnsupportedOperationException("Do not use hashCode of CType");
+  }
+
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CEnumType)) {
+      return false;
+    }
+
+    CEnumType other = (CEnumType) obj;
+
+    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile)
+           && Objects.equals(name, other.name) && Objects.equals(enumerators, other.enumerators);
+  }
+
+  @Override
+  public CEnumType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CEnumType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return new CEnumType(isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name);
   }
 }

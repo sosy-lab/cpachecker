@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,35 +23,46 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import static com.google.common.collect.Iterables.transform;
-
 import java.util.List;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public class CInitializerList extends CInitializer {
 
-  private final List<CInitializer> initializerList;
+public class CInitializerList extends AInitializerList implements CInitializer, CAstNode {
 
-  public CInitializerList(final CFileLocation pFileLocation,
-                             final List<CInitializer> pInitializerList) {
-    super(pFileLocation);
-    initializerList = ImmutableList.copyOf(pInitializerList);
-  }
-
-  public List<CInitializer> getInitializers() {
-    return initializerList;
+  public CInitializerList(FileLocation pFileLocation, List<CInitializer> pInitializerList) {
+    super(pFileLocation, pInitializerList);
   }
 
   @Override
-  public String toASTString() {
-    StringBuilder lASTString = new StringBuilder();
+  public <R, X extends Exception> R accept(CInitializerVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
 
-    lASTString.append("{ ");
-    Joiner.on(", ").appendTo(lASTString, transform(initializerList, TO_AST_STRING));
-    lASTString.append(" }");
+  @SuppressWarnings("unchecked")
+  @Override
+  public List<CInitializer> getInitializers() {
+    return (List<CInitializer>) super.getInitializers();
+  }
 
-    return lASTString.toString();
+  @Override
+  public int hashCode() {
+    int prime = 31;
+    int result = 7;
+    return prime * result + super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CInitializerList)) {
+      return false;
+    }
+
+    return super.equals(obj);
   }
 }

@@ -29,25 +29,27 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+
 public class Purification {
 
   private final String prefix;
   private AtomicInteger nextUsableIndex = new AtomicInteger(0);
 
   // map from UIF signature to fresh variable:
-  private HashMap<String,TemplateTerm> defs = new HashMap<String,TemplateTerm>();
+  private HashMap<String, TemplateTerm> defs = new HashMap<>();
 
   // map from fresh variable subscript to a UIF that the fresh variable stands for:
-  private HashMap<Integer,TemplateUIF> UIFByIndex = new HashMap<Integer,TemplateUIF>();
+  private HashMap<Integer, TemplateUIF> UIFByIndex = new HashMap<>();
 
   // map from fresh variable string to a UIF that the fresh variable stands for:
-  private HashMap<String,TemplateUIF> UIFByVarString = new HashMap<String,TemplateUIF>();
+  private HashMap<String, TemplateUIF> UIFByVarString = new HashMap<>();
 
   // map from fresh variable string to TemplateTerm representing it:
-  private HashMap<String,TemplateTerm> TTByVarString = new HashMap<String,TemplateTerm>();
+  private HashMap<String, TemplateTerm> TTByVarString = new HashMap<>();
 
   // map from function name to the set of indices of fresh variables for UIFs with this function
-  private HashMap<String,Set<String>> varsByFunctionName = new HashMap<String,Set<String>>();
+  private HashMap<String, Set<String>> varsByFunctionName = new HashMap<>();
 
   public Purification() {
     prefix = "u";
@@ -70,7 +72,7 @@ public class Purification {
   }
 
   public Set<String> getVarsForFunction(String func_name) {
-    Set<String> vars = new HashSet<String>();
+    Set<String> vars = new HashSet<>();
     if (varsByFunctionName.containsKey(func_name)) {
       vars = varsByFunctionName.get(func_name);
     }
@@ -82,7 +84,7 @@ public class Purification {
    * the index n, or null if there is none.
    */
   public TemplateUIF getUIFByIndex(int n) {
-    Integer N = new Integer(n);
+    Integer N = Integer.valueOf(n);
     TemplateUIF F = null;
     if (UIFByIndex.containsKey(N)) {
       F = UIFByIndex.get(N);
@@ -114,12 +116,12 @@ public class Purification {
    */
   public void purify(TemplateUIF F) {
     String signature = F.toString(VariableWriteMode.PLAIN);
-    TemplateTerm A = getPurename(signature);
+    TemplateTerm A = getPurename(F.getFormulaType(), signature);
     F.setPurifiedName(A);
     Integer I = A.getVariableIndex();
     UIFByIndex.put(I, F);
     String ui = A.toString(VariableWriteMode.PLAIN);
-    partitionByName(ui,F);
+    partitionByName(ui, F);
     UIFByVarString.put(ui, F);
     TTByVarString.put(ui, A);
   }
@@ -133,7 +135,7 @@ public class Purification {
     if (varsByFunctionName.containsKey(name)) {
       varsByFunctionName.get(name).add(ui);
     } else {
-      Set<String> S = new HashSet<String>();
+      Set<String> S = new HashSet<>();
       S.add(ui);
       varsByFunctionName.put(name, S);
     }
@@ -143,12 +145,12 @@ public class Purification {
    * Checks whether signature is already present, and if so returns the fresh
    * variable it has been assigned; if not, assigns one and returns that.
    */
-  private TemplateTerm getPurename(String signature) {
+  private TemplateTerm getPurename(FormulaType<?> type, String signature) {
     TemplateTerm T = null;
     if (defs.containsKey(signature)) {
       T = defs.get(signature);
     } else {
-      T = nextAlias();
+      T = nextAlias(type);
       defs.put(signature, T);
     }
     return T;
@@ -157,10 +159,10 @@ public class Purification {
   /**
    * Creates the next fresh variable (in the form of a TemplateTerm).
    */
-  private TemplateTerm nextAlias() {
+  private TemplateTerm nextAlias(FormulaType<?> type) {
     int n = nextUsableIndex.incrementAndGet();
-    TemplateVariable V = new TemplateVariable(prefix, n);
-    TemplateTerm T = new TemplateTerm();
+    TemplateVariable V = new TemplateVariable(type, prefix, n);
+    TemplateTerm T = new TemplateTerm(type);
     T.setVariable(V);
     return T;
   }

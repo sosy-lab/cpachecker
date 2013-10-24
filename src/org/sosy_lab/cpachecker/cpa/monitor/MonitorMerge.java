@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class MonitorMerge implements MergeOperator{
+public class MonitorMerge implements MergeOperator {
 
   private ConfigurableProgramAnalysis wrappedCpa;
 
@@ -53,7 +53,7 @@ public class MonitorMerge implements MergeOperator{
     AbstractState wrappedState1 = monitorState1.getWrappedState();
     AbstractState wrappedState2 = monitorState2.getWrappedState();
     AbstractState retElement = mergeOperator.merge(wrappedState1, wrappedState2, pPrecision);
-    if (retElement.equals(wrappedState2)){
+    if (retElement.equals(wrappedState2)) {
       return pElement2;
     }
 

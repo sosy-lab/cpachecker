@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,8 +54,8 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
 
   public CacheCPA(ConfigurableProgramAnalysis pCachedCPA) {
     mCachedCPA = pCachedCPA;
-    mInitialStatesCache = new HashMap<CFANode, AbstractState>();
-    mInitialPrecisionsCache = new HashMap<CFANode, Precision>();
+    mInitialStatesCache = new HashMap<>();
+    mInitialPrecisionsCache = new HashMap<>();
     mCacheTransferRelation = new CacheTransferRelation(mCachedCPA.getTransferRelation());
     mCachePrecisionAdjustment = new CachePrecisionAdjustment(mCachedCPA.getPrecisionAdjustment());
     mCacheMergeOperator = new CacheMergeOperator(mCachedCPA.getMergeOperator());
@@ -119,8 +119,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
 
     if (pType.isAssignableFrom(mCachedCPA.getClass())) {
       return pType.cast(mCachedCPA);
-    }
-    else if (mCachedCPA instanceof WrapperCPA) {
+    } else if (mCachedCPA instanceof WrapperCPA) {
       return ((WrapperCPA)mCachedCPA).retrieveWrappedCpa(pType);
     }
 

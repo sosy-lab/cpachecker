@@ -9,7 +9,7 @@ Bundle-ClassPath: bin/,
  lib/java/runtime/javabdd.jar,
  lib/java/runtime/guava.jar,
  .
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Export-Package: com.google.common.io,
  org.sosy_lab.common,
  org.sosy_lab.common.configuration,

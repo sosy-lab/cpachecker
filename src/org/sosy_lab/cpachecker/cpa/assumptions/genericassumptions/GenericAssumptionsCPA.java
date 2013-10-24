@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
+import com.google.common.collect.ImmutableList;
+
 public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
@@ -55,7 +57,7 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 
   private GenericAssumptionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     transferRelation = new GenericAssumptionsTransferRelation();
-    topState = new GenericAssumptionsState(CNumericTypes.TRUE);
+    topState = new GenericAssumptionsState(ImmutableList.<CExpression>of());
     abstractDomain = new GenericAssumptionsDomain(topState);
   }
 

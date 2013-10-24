@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,8 +55,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   protected static class StateProjectionFunction
-    implements Function<AbstractState, AbstractState>
-  {
+    implements Function<AbstractState, AbstractState> {
     private final int dimension;
 
     public StateProjectionFunction(int d) {
@@ -70,8 +69,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   protected static class PrecisionProjectionFunction
-  implements Function<Precision, Precision>
-  {
+  implements Function<Precision, Precision> {
     private final int dimension;
 
     public PrecisionProjectionFunction(int d) {
@@ -108,7 +106,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
       AbstractState oldElement = comp.get(i);
       Precision oldPrecision = prec.get(i);
-      Triple<AbstractState,Precision, Action> out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
+      Triple<AbstractState, Precision, Action> out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
       AbstractState newElement = out.getFirst();
       Precision newPrecision = out.getSecond();
       if (out.getThird() == Action.BREAK) {

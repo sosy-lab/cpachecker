@@ -101,7 +101,7 @@ public class OptionTable {
      * Return a list of those rows that have just a single option.
      */
     public List<Integer> getSoleOptionRows() {
-      List<Integer> sole = new Vector<Integer>();
+      List<Integer> sole = new Vector<>();
       for (Integer i : remainingRows) {
         List<Integer> l = usableColumns.get(i);
         if (l.size() == 1) {
@@ -114,7 +114,7 @@ public class OptionTable {
     public AssumptionSet takeSoleOptions() {
       AssumptionSet aset = new AssumptionSet();
       List<Integer> rows = getSoleOptionRows();
-      List<Integer> discard = new Vector<Integer>();
+      List<Integer> discard = new Vector<>();
       for (Integer i0 : rows) {
         // Get the number j0 of the one column that row i0 can use.
         int j0 = usableColumns.get(i0).get(0);
@@ -123,31 +123,31 @@ public class OptionTable {
         AssumptionSet as;
         switch (code) {
         case 2:
-          as = change2to7(i0,j0);
+          as = change2to7(i0, j0);
           aset.addAll(as);
           discard.add(i0);
-          logger.log(Level.ALL,"Dicarding row",i0,"and adding assumptions",
+          logger.log(Level.ALL, "Dicarding row",i0,"and adding assumptions",
               as.toString()+". Row has only this option in option table.");
           break;
         case 3:
-          as = change3to9(i0,j0);
+          as = change3to9(i0, j0);
           aset.addAll(as);
           discard.add(i0);
-          logger.log(Level.ALL,"Dicarding row",i0,"and adding assumptions",
+          logger.log(Level.ALL, "Dicarding row",i0,"and adding assumptions",
               as.toString()+". Row has only this option in option table.");
           break;
         case 4:
           as = change4to8(i0);
           aset.addAll(as);
           discard.add(i0);
-          logger.log(Level.ALL,"Dicarding row",i0,"and adding assumptions",
+          logger.log(Level.ALL, "Dicarding row",i0,"and adding assumptions",
               as.toString()+". Row has only this option in option table.");
           break;
         case 6:
-          as = change6to7(i0,j0);
+          as = change6to7(i0, j0);
           aset.addAll(as);
           discard.add(i0);
-          logger.log(Level.ALL,"Dicarding row",i0,"and adding assumptions",
+          logger.log(Level.ALL, "Dicarding row",i0,"and adding assumptions",
               as.toString()+". Row has only this option in option table.");
           break;
         }
@@ -161,11 +161,11 @@ public class OptionTable {
     private AssumptionSet change2to7(int i, int j) {
       AssumptionSet aset = new AssumptionSet();
       table[i][j] = 7;
-      aset.add( new Assumption(mat.getEntry(i, j), AssumptionType.NEGATIVE) );
+      aset.add(new Assumption(mat.getEntry(i, j), AssumptionType.NEGATIVE));
       for (Integer k : remainingRows) {
         if (k != i && table[k][j] == 2) {
           table[k][j] = 6;
-          aset.add( new Assumption(mat.getEntry(k, j), AssumptionType.NONPOSITIVE) );
+          aset.add(new Assumption(mat.getEntry(k, j), AssumptionType.NONPOSITIVE));
         }
       }
       return aset;
@@ -177,7 +177,7 @@ public class OptionTable {
       for (Integer k : remainingRows) {
         if (k != i && table[k][j] == 2) {
           table[k][j] = 6;
-          aset.add( new Assumption(mat.getEntry(k, j), AssumptionType.NONPOSITIVE) );
+          aset.add(new Assumption(mat.getEntry(k, j), AssumptionType.NONPOSITIVE));
         }
       }
       return aset;
@@ -191,7 +191,7 @@ public class OptionTable {
     private AssumptionSet change6to7(int i, int j) {
       AssumptionSet aset = new AssumptionSet();
       table[i][j] = 7;
-      aset.add( new Assumption(mat.getEntry(i, j), AssumptionType.NEGATIVE) );
+      aset.add(new Assumption(mat.getEntry(i, j), AssumptionType.NEGATIVE));
       return aset;
     }
 
@@ -200,13 +200,13 @@ public class OptionTable {
      * that row i could use.
      */
     private List<List<Integer>> computeUsableColumns() {
-      List<List<Integer>> usable = new Vector<List<Integer>>(m);
+      List<List<Integer>> usable = new Vector<>(m);
       for (int i = 0; i < m; i++) {
         usable.add(new Vector<Integer>());
       }
       for (Integer i : remainingRows) {
         // Which columns are usable for row i?
-        List<Integer> u = new Vector<Integer>();
+        List<Integer> u = new Vector<>();
         // Consider the conditionally unblocked columns.
         for (Integer j : CU) {
           // A column is usable iff it has a 2, 3, 4, or 6.

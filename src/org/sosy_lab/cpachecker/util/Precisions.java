@@ -57,8 +57,7 @@ public class Precisions {
   public static Precision replaceByType(Precision pOldPrecision, Precision pNewPrecision, Class<? extends Precision> type) {
     if (pOldPrecision instanceof WrapperPrecision) {
       return ((WrapperPrecision)pOldPrecision).replaceWrappedPrecision(pNewPrecision, type);
-    }
-    else {
+    } else {
       assert type.isAssignableFrom(pOldPrecision.getClass());
       return pNewPrecision;
     }

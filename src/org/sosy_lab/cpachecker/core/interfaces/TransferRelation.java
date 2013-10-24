@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,7 +56,7 @@ public interface TransferRelation {
    * @param precision
    * @return list of all abstract states which should replace the old one, empty list for bottom or null for no change.
    */
-  public Collection<? extends AbstractState> strengthen (AbstractState state,
+  public Collection<? extends AbstractState> strengthen(AbstractState state,
                                      List<AbstractState> otherStates,
                                      CFAEdge cfaEdge,
                                      Precision precision)

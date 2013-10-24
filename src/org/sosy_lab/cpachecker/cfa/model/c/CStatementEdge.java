@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,39 +24,29 @@
 package org.sosy_lab.cpachecker.cfa.model.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 import com.google.common.base.Optional;
 
-public class CStatementEdge extends AbstractCFAEdge {
+public class CStatementEdge extends AStatementEdge {
 
-  private final CStatement statement;
 
   public CStatementEdge(String pRawStatement, CStatement pStatement,
       int pLineNumber, CFANode pPredecessor, CFANode pSuccessor) {
 
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
-    statement = pStatement;
+    super(pRawStatement, pStatement, pLineNumber, pPredecessor, pSuccessor);
   }
+
+
 
   @Override
-  public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.StatementEdge;
-  }
-
   public CStatement getStatement() {
-    return statement;
+    return (CStatement) statement;
   }
 
   @Override
   public Optional<CStatement> getRawAST() {
-    return Optional.of(statement);
-  }
-
-  @Override
-  public String getCode() {
-    return statement.toASTString();
+    return Optional.of((CStatement)statement);
   }
 }

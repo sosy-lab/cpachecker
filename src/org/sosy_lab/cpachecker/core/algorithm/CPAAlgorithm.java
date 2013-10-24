@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -262,9 +262,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         if (mergeOperator != MergeSepOperator.getInstance() && !reached.isEmpty()) {
           stats.mergeTimer.start();
 
-          List<AbstractState> toRemove = new ArrayList<AbstractState>();
-          List<Pair<AbstractState, Precision>> toAdd =
-              new ArrayList<Pair<AbstractState, Precision>>();
+          List<AbstractState> toRemove = new ArrayList<>();
+          List<Pair<AbstractState, Precision>> toAdd = new ArrayList<>();
 
           logger.log(Level.FINER, "Considering", reached.size(),
               "states from reached set for merge");

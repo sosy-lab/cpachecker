@@ -28,8 +28,7 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public class IntervalAnalysisState implements AbstractState
-{
+public class IntervalAnalysisState implements AbstractState {
   /**
    * the intervals of the element
    */
@@ -48,8 +47,7 @@ public class IntervalAnalysisState implements AbstractState
   /**
    *  This method acts as the default constructor, which initializes the intervals and reference counts to empty maps and the previous element to null.
    */
-  public IntervalAnalysisState()
-  {
+  public IntervalAnalysisState() {
     this(new HashMap<String, Interval>(), new HashMap<String, Integer>(), null);
   }
 
@@ -58,8 +56,7 @@ public class IntervalAnalysisState implements AbstractState
    *
    * @param previousState from the previous context
    */
-  public IntervalAnalysisState(IntervalAnalysisState previousElement)
-  {
+  public IntervalAnalysisState(IntervalAnalysisState previousElement) {
     this(new HashMap<String, Interval>(), new HashMap<String, Integer>(), previousElement);
   }
 
@@ -70,8 +67,7 @@ public class IntervalAnalysisState implements AbstractState
    * @param referencesMap the reference counts
    * @param previousState from the previous context
    */
-  public IntervalAnalysisState(Map<String, Interval> intervals, Map<String, Integer> referencesMap, IntervalAnalysisState previousElement)
-  {
+  public IntervalAnalysisState(Map<String, Interval> intervals, Map<String, Integer> referencesMap, IntervalAnalysisState previousElement) {
     this.intervals        = intervals;
 
     this.referenceCounts  = referencesMap;
@@ -86,8 +82,7 @@ public class IntervalAnalysisState implements AbstractState
    * @return the intervals of the variable
    */
   // see ExplicitState::getValueFor
-  public Interval getInterval(String variableName)
-  {
+  public Interval getInterval(String variableName) {
     return intervals.get(variableName);
   }
 
@@ -97,8 +92,7 @@ public class IntervalAnalysisState implements AbstractState
    * @param variableName of the variable to query the reference count on
    * @return the reference count of the variable, or 0 if the the variable is not yet referenced
    */
-  private Integer getReferenceCount(String variableName)
-  {
+  private Integer getReferenceCount(String variableName) {
     return (referenceCounts.containsKey(variableName)) ? referenceCounts.get(variableName) : 0;
   }
 
@@ -110,8 +104,7 @@ public class IntervalAnalysisState implements AbstractState
    * @return true, if the reference count of the variable exceeds the given threshold, else false
    */
   @Deprecated
-  public boolean exceedsThreshold(String variableName, Integer threshold)
-  {
+  public boolean exceedsThreshold(String variableName, Integer threshold) {
     Integer referenceCount = (referenceCounts.containsKey(variableName)) ? referenceCounts.get(variableName) : 0;
 
     return referenceCount > threshold;
@@ -122,8 +115,7 @@ public class IntervalAnalysisState implements AbstractState
    *
    * @return the previous element
    */
-  public IntervalAnalysisState getPreviousState()
-  {
+  public IntervalAnalysisState getPreviousState() {
     return previousState;
   }
 
@@ -133,8 +125,7 @@ public class IntervalAnalysisState implements AbstractState
    * @param variableName the name of the variable
    * @return true, if this element contains an interval for the given variable
    */
-  public boolean contains(String variableName)
-  {
+  public boolean contains(String variableName) {
     return intervals.containsKey(variableName);
   }
 
@@ -147,15 +138,12 @@ public class IntervalAnalysisState implements AbstractState
    * @return this
    */
   // see ExplicitState::assignConstant
-  public IntervalAnalysisState addInterval(String variableName, Interval interval, int pThreshold)
-  {
+  public IntervalAnalysisState addInterval(String variableName, Interval interval, int pThreshold) {
     // only add the interval if it is not already present
-    if (!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval))
-    {
+    if (!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval)) {
       int referenceCount = getReferenceCount(variableName);
 
-      if (referenceCount < pThreshold)
-      {
+      if (referenceCount < pThreshold) {
         referenceCounts.put(variableName, referenceCount + 1);
 
         intervals.put(variableName, interval);
@@ -174,8 +162,7 @@ public class IntervalAnalysisState implements AbstractState
    * @return this
    */
   // see ExplicitState::forget
-  public IntervalAnalysisState removeInterval(String variableName)
-  {
+  public IntervalAnalysisState removeInterval(String variableName) {
     if (intervals.containsKey(variableName)) {
       intervals.remove(variableName);
     }
@@ -189,17 +176,14 @@ public class IntervalAnalysisState implements AbstractState
    * @param reachedState the reached state to join this element with
    * @return a new state representing the join of this element and the reached state
    */
-  public IntervalAnalysisState join(IntervalAnalysisState reachedState)
-  {
-    Map<String, Interval> newIntervals = new HashMap<String, Interval>();
-    Map<String, Integer> newReferences = new HashMap<String, Integer>();
+  public IntervalAnalysisState join(IntervalAnalysisState reachedState) {
+    Map<String, Interval> newIntervals = new HashMap<>();
+    Map<String, Integer> newReferences = new HashMap<>();
 
     newReferences.putAll(referenceCounts);
 
-    for (String variableName : reachedState.intervals.keySet())
-    {
-      if (intervals.containsKey(variableName))
-      {
+    for (String variableName : reachedState.intervals.keySet()) {
+      if (intervals.containsKey(variableName)) {
         // update the interval
         newIntervals.put(variableName, getInterval(variableName).union(reachedState.getInterval(variableName)));
 
@@ -219,8 +203,7 @@ public class IntervalAnalysisState implements AbstractState
    * @param reachedState the reached state
    * @return true, if this element is less or equal than the reached state, based on the order imposed by the lattice
    */
-  public boolean isLessOrEqual(IntervalAnalysisState reachedState)
-  {
+  public boolean isLessOrEqual(IntervalAnalysisState reachedState) {
     // this element is not less or equal than the reached state, if it contains less intervals
     if (intervals.size() < reachedState.intervals.size()) {
       return false;
@@ -228,8 +211,7 @@ public class IntervalAnalysisState implements AbstractState
 
     // also, this element is not less or equal than the reached state, if any one interval of the reached state is not contained in this element,
     // or if the interval of the reached state is not wider than the respective interval of this element
-    for (String variableName : reachedState.intervals.keySet())
-    {
+    for (String variableName : reachedState.intervals.keySet()) {
       if (!intervals.containsKey(variableName) || !reachedState.getInterval(variableName).contains(getInterval(variableName))) {
         return false;
       }
@@ -239,22 +221,17 @@ public class IntervalAnalysisState implements AbstractState
     return true;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#clone()
-   */
-  @Override
-  public IntervalAnalysisState clone()
-  {
-    IntervalAnalysisState newElement = new IntervalAnalysisState(previousState);
+  public static IntervalAnalysisState copyOf(IntervalAnalysisState old) {
+    IntervalAnalysisState newElement = new IntervalAnalysisState(old.previousState);
 
     // clone the intervals ...
-    for (String variableName : intervals.keySet()) {
-      newElement.intervals.put(variableName, getInterval(variableName).clone());
+    for (String variableName : old.intervals.keySet()) {
+      newElement.intervals.put(variableName, old.getInterval(variableName));
     }
 
     // ... and clone the reference count
-    for (String variableName : referenceCounts.keySet()) {
-      newElement.referenceCounts.put(variableName, getReferenceCount(variableName));
+    for (String variableName : old.referenceCounts.keySet()) {
+      newElement.referenceCounts.put(variableName, old.getReferenceCount(variableName));
     }
 
     return newElement;
@@ -264,8 +241,7 @@ public class IntervalAnalysisState implements AbstractState
    * @see java.lang.Object#equals(java.lang.Object)
    */
   @Override
-  public boolean equals(Object other)
-  {
+  public boolean equals(Object other) {
     if (this == other) {
       return true;
     }
@@ -284,8 +260,7 @@ public class IntervalAnalysisState implements AbstractState
       return false;
     }
 
-    for (String variableName : intervals.keySet())
-    {
+    for (String variableName : intervals.keySet()) {
       if (!otherElement.intervals.containsKey(variableName) || !otherElement.intervals.get(variableName).equals(intervals.get(variableName))) {
         return false;
       }
@@ -298,8 +273,7 @@ public class IntervalAnalysisState implements AbstractState
    * @see java.lang.Object#hashCode()
    */
   @Override
-  public int hashCode()
-  {
+  public int hashCode() {
     return intervals.hashCode();
   }
 
@@ -307,8 +281,7 @@ public class IntervalAnalysisState implements AbstractState
    * @see java.lang.Object#toString()
    */
   @Override
-  public String toString()
-  {
+  public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("[\n");
 

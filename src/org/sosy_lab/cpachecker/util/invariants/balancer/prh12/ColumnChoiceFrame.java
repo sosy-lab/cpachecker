@@ -35,30 +35,30 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionSet;
 
 public class ColumnChoiceFrame {
 
-  private Map<PivotRow2,UsableColumn> choices;
+  private Map<PivotRow2, UsableColumn> choices;
   private List<PivotRow2> rows;
   private int ptr;
   private int limit;
   private List<ChallengeType> ctypes;
 
   public ColumnChoiceFrame(List<PivotRow2> r, ChallengeType c) {
-    List<ChallengeType> ct = new Vector<ChallengeType>(r.size());
+    List<ChallengeType> ct = new Vector<>(r.size());
     for (int i = 0; i < r.size(); i++) {
       ct.add(c);
     }
-    construct(r,ct);
+    construct(r, ct);
   }
 
   public ColumnChoiceFrame(List<PivotRow2> r, List<ChallengeType> c) {
-    construct(r,c);
+    construct(r, c);
   }
 
   private void construct(List<PivotRow2> r, List<ChallengeType> c) {
     // r and c must have the same size!
-    assert(r.size() == c.size());
+    assert (r.size() == c.size());
     rows = r;
     ctypes = c;
-    choices = new HashMap<PivotRow2,UsableColumn>();
+    choices = new HashMap<>();
     if (r.size() > 0) {
       PivotRow2 pr = r.get(0);
       ChallengeType ct = c.get(0);
@@ -90,7 +90,7 @@ public class ColumnChoiceFrame {
     return ptr < limit;
   }
 
-  private void setChoices(Map<PivotRow2,UsableColumn> cm) {
+  private void setChoices(Map<PivotRow2, UsableColumn> cm) {
     choices = cm;
   }
 
@@ -112,7 +112,7 @@ public class ColumnChoiceFrame {
       AssumptionSet a = uc.getRequestedAssumptions();
       //Can we get a logger?
       //logger.log(Level.ALL,"Column",u.getColNum(),"produced assumption set",a);
-      aset.addAll( a );
+      aset.addAll(a);
       // Clear the requests to this column.
       // This is important in case we need to backtrack to an earlier choice frame.
       uc.clearRequests();
@@ -138,15 +138,15 @@ public class ColumnChoiceFrame {
       uc = pr.getFreeOption(ptr);
     }
     // Add it to the choices map for the next frame.
-    Map<PivotRow2,UsableColumn> nextChoices = new HashMap<PivotRow2,UsableColumn>(choices);
+    Map<PivotRow2, UsableColumn> nextChoices = new HashMap<>(choices);
     nextChoices.put(pr, uc);
     // Prepare the row list for the next frame.
     // Start by simply copying the present row list into a deque...
-    LinkedList<PivotRow2> nextRows = new LinkedList<PivotRow2>(rows);
+    LinkedList<PivotRow2> nextRows = new LinkedList<>(rows);
     // ...and deleting the first row.
     nextRows.removeFirst();
     // Now do likewise with the list of challenge types.
-    LinkedList<ChallengeType> nextCtypes = new LinkedList<ChallengeType>(ctypes);
+    LinkedList<ChallengeType> nextCtypes = new LinkedList<>(ctypes);
     nextCtypes.removeFirst();
     // Have we seen this column before?
     if (!choices.values().contains(uc)) {
@@ -156,7 +156,7 @@ public class ColumnChoiceFrame {
       // But first we discard those rows in 'challenged' which are already in
       // choices.keySet(), EXCEPT that among such rows, if the choice they have already made
       // is the aug col, then they DO need to be rechallenged, since it is now a pivot challenge.
-      List<PivotRow2> discard = new Vector<PivotRow2>();
+      List<PivotRow2> discard = new Vector<>();
       for (PivotRow2 p : challenged) {
         if (choices.keySet().contains(p)) {
           UsableColumn u = choices.get(p);
@@ -178,9 +178,9 @@ public class ColumnChoiceFrame {
         }
       }
       // Now add the challenged rows at the front of the queue.
-      nextRows.addAll(0,challenged);
+      nextRows.addAll(0, challenged);
       // And add as many free column challenge types to the front of the ctypes queue.
-      nextCtypes.addAll(0, Collections.nCopies(challenged.size(), ChallengeType.FREECOLUMN) );
+      nextCtypes.addAll(0, Collections.nCopies(challenged.size(), ChallengeType.FREECOLUMN));
     }
     // Now construct a new frame using the row and ctype lists constructed.
     ColumnChoiceFrame nextCCF = new ColumnChoiceFrame(nextRows, nextCtypes);

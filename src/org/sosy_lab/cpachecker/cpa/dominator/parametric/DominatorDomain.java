@@ -126,7 +126,7 @@ public class DominatorDomain implements AbstractDomain {
       return topState;
     }
 
-    Set<AbstractState> intersectingDominators = new HashSet<AbstractState>();
+    Set<AbstractState> intersectingDominators = new HashSet<>();
 
     Iterator<AbstractState> dominatorIterator = dominatorState1.getIterator();
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,22 +56,22 @@ public class DirectedGraph {
      * {var | "*n \subseteq var" \in complex-constraints}, where n is (one of) the variable(s) this
      * {@link DirectedGraph.Node} stands for.
      */
-    public final Set<String> complexConstrMeSub = new HashSet<String>();
+    public final Set<String> complexConstrMeSub = new HashSet<>();
 
     /**
      * {var | "var \subseteq *n" \in complex-constraints}, where n is (one of) the variable(s) this
      * {@link DirectedGraph.Node} stands for.
      */
-    public final Set<String> complexConstrMeSuper = new HashSet<String>();
+    public final Set<String> complexConstrMeSuper = new HashSet<>();
 
     /** This {@link DirectedGraph.Node}s points-to set. */
-    private final Set<String> pointsToSet = new HashSet<String>();
+    private final Set<String> pointsToSet = new HashSet<>();
 
     /** This {@link DirectedGraph.Node}s predecessors. */
-    private final Set<DirectedGraph.Node> predecessors = new HashSet<DirectedGraph.Node>();
+    private final Set<DirectedGraph.Node> predecessors = new HashSet<>();
 
     /** This {@link DirectedGraph.Node}s successors. */
-    private final Set<DirectedGraph.Node> successors = new HashSet<DirectedGraph.Node>();
+    private final Set<DirectedGraph.Node> successors = new HashSet<>();
 
 
     private Node() {}
@@ -165,7 +165,7 @@ public class DirectedGraph {
      */
     public Set<DirectedGraph.Node> getPointsToNodesSet() {
 
-      HashSet<DirectedGraph.Node> ptNSet = new HashSet<DirectedGraph.Node>();
+      HashSet<DirectedGraph.Node> ptNSet = new HashSet<>();
 
       for (String n : getPointsToSet()) {
         ptNSet.add(getNode(n));
@@ -179,7 +179,7 @@ public class DirectedGraph {
    * The <code>Edge</code> represents an edge in the corresponding graph. This class only
    * encapsulates two nodes and is note directly used in the {@link DirectedGraph}.
    */
-  public class Edge {
+  public static class Edge {
 
     /** The source {@link DirectedGraph.Node} of this {@link DirectedGraph.Edge}. */
     public final DirectedGraph.Node src;
@@ -207,7 +207,9 @@ public class DirectedGraph {
       if (other == this) {
         return true;
       }
-
+      if (other == null) {
+        return false;
+      }
       if (!other.getClass().equals(this.getClass())) {
         return false;
       }
@@ -229,7 +231,7 @@ public class DirectedGraph {
   }
 
   /** This graphs name mapping. */
-  private final Map<String, DirectedGraph.Node> nameMapping = new HashMap<String, DirectedGraph.Node>();
+  private final Map<String, DirectedGraph.Node> nameMapping = new HashMap<>();
 
   /**
    * Detects a cycle in this graph that contains the edge from <code>src</code> to <code>dest</code>
@@ -242,11 +244,11 @@ public class DirectedGraph {
    */
   public DirectedGraph.Node detectAndCollapseCycleContainingEdge(DirectedGraph.Edge edge) {
 
-    HashSet<DirectedGraph.Node> reached = new HashSet<DirectedGraph.Node>();
-    LinkedList<LinkedList<DirectedGraph.Node>> stack = new LinkedList<LinkedList<DirectedGraph.Node>>();
+    HashSet<DirectedGraph.Node> reached = new HashSet<>();
+    LinkedList<LinkedList<DirectedGraph.Node>> stack = new LinkedList<>();
     LinkedList<DirectedGraph.Node> cycle = null;
 
-    LinkedList<DirectedGraph.Node> path = new LinkedList<DirectedGraph.Node>();
+    LinkedList<DirectedGraph.Node> path = new LinkedList<>();
     path.add(edge.src);
     path.add(edge.dest);
     stack.push(path);

@@ -58,20 +58,20 @@ public class WeispfenningSystem {
   WeispfenningSystem(Matrix a) {
     int m = a.getRowNum();
     int n = a.getColNum();
-    rows = new Vector<LinCombOverParamField>(m);
+    rows = new Vector<>(m);
     for (int i = 0; i < m; i++) {
-      List<RationalFunction> row = new Vector<RationalFunction>(n);
+      List<RationalFunction> row = new Vector<>(n);
       for (int j = 0; j < n; j++) {
         row.add(a.getEntry(i, j));
       }
-      rows.add( new LinCombOverParamField(row) );
+      rows.add(new LinCombOverParamField(row));
     }
     // We assume cols 0 through n-2 represent coeffs of variables, while
     // the final column, col n-1, represents constant terms.
     // So we add on n-1 rows, representing the statement that each variable
     // be nonnegative.
     for (int i = 0; i < n-1; i++) {
-      rows.add( new LinCombOverParamField(n,i) );
+      rows.add(new LinCombOverParamField(n, i));
     }
     // So first m rows represent equations, and last n-1 represent inequalities.
     numEqns = m;
@@ -92,7 +92,7 @@ public class WeispfenningSystem {
    */
   WeispfenningSystem eliminateRow(int i, int j) {
     LinCombOverParamField x = rows.get(i).setZeroAndSolveFor(j);
-    List<LinCombOverParamField> newRows = new Vector<LinCombOverParamField>(numRows-1);
+    List<LinCombOverParamField> newRows = new Vector<>(numRows-1);
     for (int k = 0; k < numRows; k++) {
       if (k == i) { continue; }
       LinCombOverParamField r = rows.get(k);
@@ -101,13 +101,13 @@ public class WeispfenningSystem {
     }
     int nE = i < numEqns ? numEqns - 1 : numEqns;
     int nI = i < numEqns ? numIneqs : numIneqs - 1;
-    WeispfenningSystem w = new WeispfenningSystem(newRows,nE,nI);
+    WeispfenningSystem w = new WeispfenningSystem(newRows, nE, nI);
     w.aset = this.aset.copy();
     return w;
   }
 
   WeispfenningSystem deleteRow(int i) {
-    List<LinCombOverParamField> newRows = new Vector<LinCombOverParamField>(numRows-1);
+    List<LinCombOverParamField> newRows = new Vector<>(numRows-1);
     for (int k = 0; k < numRows; k++) {
       if (k == i) { continue; }
       LinCombOverParamField r = rows.get(k);
@@ -116,7 +116,7 @@ public class WeispfenningSystem {
     }
     int nE = i < numEqns ? numEqns - 1 : numEqns;
     int nI = i < numEqns ? numIneqs : numIneqs - 1;
-    WeispfenningSystem w = new WeispfenningSystem(newRows,nE,nI);
+    WeispfenningSystem w = new WeispfenningSystem(newRows, nE, nI);
     w.aset = this.aset.copy();
     return w;
   }
@@ -167,13 +167,13 @@ public class WeispfenningSystem {
   }
 
   WeispfenningSystem copy() {
-    List<LinCombOverParamField> newRows = new Vector<LinCombOverParamField>(numRows-1);
+    List<LinCombOverParamField> newRows = new Vector<>(numRows-1);
     for (int k = 0; k < numRows; k++) {
       LinCombOverParamField r = rows.get(k);
       r = r.copy();
       newRows.add(r);
     }
-    WeispfenningSystem w = new WeispfenningSystem(newRows,numEqns,numIneqs);
+    WeispfenningSystem w = new WeispfenningSystem(newRows, numEqns, numIneqs);
     w.aset = this.aset.copy();
     return w;
   }
@@ -209,9 +209,9 @@ public class WeispfenningSystem {
     this.hasVars = hv;
     // If have variables, then set up the var and row queues.
     if (this.hasVars) {
-      varQueue = new ArrayDeque<Integer>(this.getOccurringVars());
+      varQueue = new ArrayDeque<>(this.getOccurringVars());
       currentVar = varQueue.poll();
-      rowQueue = new ArrayDeque<Integer>(this.getRowsWithVar(currentVar));
+      rowQueue = new ArrayDeque<>(this.getRowsWithVar(currentVar));
       currentRow = rowQueue.poll();
       this.child = this.eliminateRow(currentRow, currentVar);
     }
@@ -225,7 +225,7 @@ public class WeispfenningSystem {
    * does NOT represent the constant term.
    */
   Set<Integer> getOccurringVars() {
-    Set<Integer> vars = new HashSet<Integer>();
+    Set<Integer> vars = new HashSet<>();
     for (LinCombOverParamField r : rows) {
       Set<Integer> v = r.getOccurringVars();
       vars.addAll(v);
@@ -238,7 +238,7 @@ public class WeispfenningSystem {
    * the variable in place j.
    */
   Set<Integer> getRowsWithVar(int j) {
-    Set<Integer> r = new HashSet<Integer>();
+    Set<Integer> r = new HashSet<>();
     for (int i = 0; i < numRows; i++) {
       LinCombOverParamField lc = rows.get(i);
       if (lc.featuresVar(j)) {
@@ -286,7 +286,7 @@ public class WeispfenningSystem {
       Integer nv = varQueue.poll();
       if (nv != null) {
         currentVar = nv;
-        rowQueue = new ArrayDeque<Integer>(this.getRowsWithVar(currentVar));
+        rowQueue = new ArrayDeque<>(this.getRowsWithVar(currentVar));
         currentRow = rowQueue.poll();
         this.child = this.eliminateRow(currentRow, currentVar);
       } else {

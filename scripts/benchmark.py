@@ -25,7 +25,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
@@ -38,11 +38,9 @@ except ImportError: # Queue was renamed to queue in Python 3
   import queue as Queue
 
 import time
-import glob
 import logging
 import argparse
 import os
-import platform
 import re
 import resource
 import signal
@@ -50,14 +48,18 @@ import subprocess
 import threading
 import xml.etree.ElementTree as ET
 
+import benchmark.filewriter as filewriter
+import benchmark.result as result
+import benchmark.runexecutor as runexecutor
+import benchmark.util as Util
 
-CSV_SEPARATOR = "\t"
 
-BUG_SUBSTRING_LIST = ['bug', 'unsafe']
+MEMLIMIT = runexecutor.MEMLIMIT
+TIMELIMIT = runexecutor.TIMELIMIT
+CORELIMIT = runexecutor.CORELIMIT
 
-MEMLIMIT = "memlimit"
-TIMELIMIT = "timelimit"
-BYTE_FACTOR = 1024 # byte in kilobyte
+DEFAULT_CLOUD_TIMELIMIT = 3600
+DEFAULT_CLOUD_MEMLIMIT = None
 
 # colors for column status in terminal
 USE_COLORS = True
@@ -65,31 +67,22 @@ COLOR_GREEN = "\033[32;1m{0}\033[m"
 COLOR_RED = "\033[31;1m{0}\033[m"
 COLOR_ORANGE = "\033[33;1m{0}\033[m"
 COLOR_MAGENTA = "\033[35;1m{0}\033[m"
-COLOR_DIC = {"correctSafe": COLOR_GREEN,
-             "correctUnsafe": COLOR_GREEN,
-             "unknown": COLOR_ORANGE,
-             "error": COLOR_MAGENTA,
-             "wrongUnsafe": COLOR_RED,
-             "wrongSafe": COLOR_RED}
+COLOR_DEFAULT = "{0}"
+COLOR_DIC = {result.RESULT_CORRECT_SAFE:   COLOR_GREEN,
+             result.RESULT_CORRECT_UNSAFE: COLOR_GREEN,
+             result.RESULT_UNKNOWN:        COLOR_ORANGE,
+             result.RESULT_ERROR:          COLOR_MAGENTA,
+             result.RESULT_WRONG_UNSAFE:   COLOR_RED,
+             result.RESULT_WRONG_SAFE:     COLOR_RED,
+             result.CATEGORY_UNKNOWN:      COLOR_DEFAULT,
+             None: COLOR_DEFAULT}
 
-
-# dictionary for tools and their default and fallback executables
-TOOLS = {"cbmc"      : ["cbmc",
-                      "lib/native/x86_64-linux/cbmc" if platform.machine() == "x86_64" else \
-                      "lib/native/x86-linux/cbmc"    if platform.machine() == "i386" else None],
-         "satabs"    : ["satabs"],
-         "wolverine" : ["wolverine"],
-         "ufo"       : ["ufo.sh"],
-         "acsar"     : ["acsar"],
-         "feaver"    : ["feaver_cmd"],
-         "cpachecker": ["cpa.sh", "scripts/cpa.sh"],
-         "blast"     : ["pblast.opt"],
-         "ecav"      : ["ecaverifier"],
-         "safe"      : [],
-         "unsafe"    : [],
-         "random"    : [],
-        }
-
+TERMINAL_TITLE=''
+_term = os.environ.get('TERM', '')
+if _term.startswith('xterm') or _term.startswith('rxvt'):
+    TERMINAL_TITLE = "\033]0;Benchmark {0}\007"
+elif _term.startswith('screen'):
+    TERMINAL_TITLE = "\033kBenchmark {0}\033\\"
 
 # the number of digits after the decimal separator of the time column,
 # for the other columns it can be configured in the xml-file
@@ -98,184 +91,290 @@ TIME_PRECISION = 2
 
 # next lines are needed for stopping the script
 WORKER_THREADS = []
-SUB_PROCESSES = set()
-SUB_PROCESSES_LOCK = threading.Lock()
 STOPPED_BY_INTERRUPT = False
+
+"""
+Naming conventions:
+
+TOOL: a verifier program that should be executed
+EXECUTABLE: the executable file that should be called for running a TOOL
+SOURCEFILE: one file that contains code that should be verified
+RUN: one execution of a TOOL on one SOURCEFILE
+RUNSET: a set of RUNs of one TOOL with at most one RUN per SOURCEFILE
+RUNDEFINITION: a template for the creation of a RUNSET with RUNS from one or more SOURCEFILESETs
+BENCHMARK: a list of RUNDEFINITIONs and SOURCEFILESETs for one TOOL
+OPTION: a user-specified option to add to the command-line of the TOOL when it its run
+CONFIG: the configuration of this script consisting of the command-line arguments given by the user
+
+"run" always denotes a job to do and is never used as a verb.
+"execute" is only used as a verb (this is what is done with a run).
+A benchmark or a run set can also be executed, which means to execute all contained runs.
+
+Variables ending with "file" contain filenames.
+Variables ending with "tag" contain references to XML tag objects created by the XML parser.
+"""
 
 
 class Benchmark:
     """
-    The class Benchmark manages the import of files, options, columns and
+    The class Benchmark manages the import of source files, options, columns and
     the tool from a benchmarkFile.
+    This class represents the <benchmark> tag.
     """
 
     def __init__(self, benchmarkFile):
         """
-        The constructor of Benchmark reads the files, options, columns and the tool
-        from the xml-file.
+        The constructor of Benchmark reads the source files, options, columns and the tool
+        from the XML in the benchmarkFile..
         """
         logging.debug("I'm loading the benchmark {0}.".format(benchmarkFile))
 
         self.benchmarkFile = benchmarkFile
-        root = ET.ElementTree().parse(benchmarkFile)
 
         # get benchmark-name
         self.name = os.path.basename(benchmarkFile)[:-4] # remove ending ".xml"
+        if config.name:
+            self.name += "."+config.name
 
         # get current date as String to avoid problems, if script runs over midnight
         currentTime = time.localtime()
         self.date = time.strftime("%y-%m-%d_%H%M", currentTime)
         self.dateISO = time.strftime("%y-%m-%d %H:%M", currentTime)
 
+        # parse XML
+        rootTag = ET.ElementTree().parse(benchmarkFile)
+
         # get tool
-        self.tool = root.get("tool")
-        if self.tool not in TOOLS.keys() :
-            sys.exit("tool '{0}' is not supported".format(self.tool))
-        self.exe = findExecutable(*TOOLS[self.tool])
-        self.run_func = eval("run_" + self.tool)
+        toolName = rootTag.get('tool')
+        if not toolName:
+            sys.exit('A tool needs to be specified in the benchmark definition file.')
+        toolModule = "benchmark.tools." + toolName
+        try:
+            self.tool = __import__(toolModule, fromlist=['Tool']).Tool()
+        except ImportError:
+            sys.exit('Unsupported tool "{0}" specified.'.format(toolName))
+        except AttributeError:
+            sys.exit('The module for "{0}" does not define the necessary class.'.format(toolName))
+
+        self.toolName = self.tool.getName()
+        self.executable = self.tool.getExecutable()
+        self.toolVersion = self.tool.getVersion(self.executable)
 
         logging.debug("The tool to be benchmarked is {0}.".format(repr(self.tool)))
 
         self.rlimits = {}
-        keys = list(root.keys())
+        keys = list(rootTag.keys())
         if MEMLIMIT in keys:
-            self.rlimits[MEMLIMIT] = int(root.get(MEMLIMIT))
+            self.rlimits[MEMLIMIT] = int(rootTag.get(MEMLIMIT))
         if TIMELIMIT in keys:
-            self.rlimits[TIMELIMIT] = int(root.get(TIMELIMIT))
+            self.rlimits[TIMELIMIT] = int(rootTag.get(TIMELIMIT))
+        if CORELIMIT in keys:
+            self.rlimits[CORELIMIT] = int(rootTag.get(CORELIMIT))
 
-        # override limits from xml with option-given limits
-        if options.memorylimit != None:
-            memorylimit = int(options.memorylimit)
+        # override limits from XML with values from command line
+        if config.memorylimit != None:
+            memorylimit = int(config.memorylimit)
             if memorylimit == -1: # infinity
                 if MEMLIMIT in self.rlimits:
-                    self.rlimits.pop(MEMLIMIT)                
+                    self.rlimits.pop(MEMLIMIT)
             else:
                 self.rlimits[MEMLIMIT] = memorylimit
 
-        if options.timelimit != None:
-            timelimit = int(options.timelimit)
+        if config.timelimit != None:
+            timelimit = int(config.timelimit)
             if timelimit == -1: # infinity
                 if TIMELIMIT in self.rlimits:
-                    self.rlimits.pop(TIMELIMIT)                
+                    self.rlimits.pop(TIMELIMIT)
             else:
                 self.rlimits[TIMELIMIT] = timelimit
 
+        if config.corelimit != None:
+            corelimit = int(config.corelimit)
+            if corelimit == -1: # infinity
+                if CORELIMIT in self.rlimits:
+                    self.rlimits.pop(CORELIMIT)
+            else:
+                self.rlimits[CORELIMIT] = corelimit
+
         # get number of threads, default value is 1
-        self.numOfThreads = int(root.get("threads")) if ("threads" in keys) else 1
-        if options.numOfThreads != None:
-            self.numOfThreads = int(options.numOfThreads)
+        self.numOfThreads = int(rootTag.get("threads")) if ("threads" in keys) else 1
+        if config.numOfThreads != None:
+            self.numOfThreads = config.numOfThreads
         if self.numOfThreads < 1:
             logging.error("At least ONE thread must be given!")
             sys.exit()
 
+        # create folder for file-specific log-files.
+        # existing files (with the same name) will be OVERWRITTEN!
+        self.outputBase = OUTPUT_PATH + self.name + "." + self.date
+        self.logFolder = self.outputBase + ".logfiles/"
+        if not os.path.isdir(self.logFolder):
+            os.makedirs(self.logFolder)
+
         # get global options
-        self.options = getOptions(root)
+        self.options = getOptionsFromXML(rootTag)
 
         # get columns
-        self.columns = self.loadColumns(root.find("columns"))
+        self.columns = Benchmark.loadColumns(rootTag.find("columns"))
 
-        # get global files, they are tested in all tests
-        globalSourcefiles = root.findall("sourcefiles")
+        # get global source files, they are used in all run sets
+        globalSourcefilesTags = rootTag.findall("sourcefiles")
+
+        # get required files
+        self._requiredFiles = []
+        baseDir = os.path.dirname(self.benchmarkFile)
+        for requiredFilesTag in rootTag.findall('requiredfiles'):
+            requiredFiles = Util.expandFileNamePattern(requiredFilesTag.text, baseDir)
+            self._requiredFiles.extend(requiredFiles)
+
+        # get requirements
+        self.requirements = Requirements()
+        for requireTag in rootTag.findall("require"):
+            requirements = Requirements(requireTag.get('cpuModel', None),
+                                        requireTag.get('cpuCores', None),
+                                        requireTag.get('memory',   None)
+                                        )
+            self.requirements = Requirements.merge(self.requirements, config.cloudCpuModel)
+        
+        self.requirements = Requirements.mergeWithCpuModel(self.requirements, config.cloudCpuModel)
+        self.requirements = Requirements.mergeWithLimits(self.requirements, self.rlimits)
 
         # get benchmarks
-        self.tests = []
-        for testTag in root.findall("test"):
-            self.tests.append(Test(testTag, self, globalSourcefiles))
+        self.runSets = []
+        i = 1
+        for rundefinitionTag in rootTag.findall("rundefinition"):
+            self.runSets.append(RunSet(rundefinitionTag, self, i, globalSourcefilesTags))
+            i += 1
+
+        if not self.runSets:
+            for rundefinitionTag in rootTag.findall("test"):
+                self.runSets.append(RunSet(rundefinitionTag, self, i, globalSourcefilesTags))
+                i += 1
+            if self.runSets:
+                logging.warning("Benchmark file {0} uses deprecated <test> tags. Please rename them to <rundefinition>.".format(benchmarkFile))
+            else:
+                logging.warning("Benchmark file {0} specifies no runs to execute (no <rundefinition> tags found).".format(benchmarkFile))
 
         self.outputHandler = OutputHandler(self)
 
+    def requiredFiles(self):
+        return self._requiredFiles + self.tool.getProgrammFiles(self.executable)
 
-    def loadColumns(self, columnsTag):
+    @staticmethod
+    def loadColumns(columnsTag):
         """
-        @param columnsTag: the columnsTag from the xml-file
+        @param columnsTag: the columnsTag from the XML file
         @return: a list of Columns()
         """
 
         logging.debug("I'm loading some columns for the outputfile.")
         columns = []
-        if columnsTag != None: # columnsTag is optional in xml-file
+        if columnsTag != None: # columnsTag is optional in XML file
             for columnTag in columnsTag.findall("column"):
-                text = columnTag.text
-                title = columnTag.get("title", text)
+                pattern = columnTag.text
+                title = columnTag.get("title", pattern)
                 numberOfDigits = columnTag.get("numberOfDigits") # digits behind comma
-                column = Column(text, title, numberOfDigits)
+                column = Column(pattern, title, numberOfDigits)
                 columns.append(column)
-                logging.debug('Column "{0}" with title "{1}" loaded from xml-file.'
+                logging.debug('Column "{0}" with title "{1}" loaded from XML file.'
                           .format(column.text, column.title))
         return columns
 
 
-class Test:
+class RunSet:
     """
-    The class Test manages the import of files and options of a test.
+    The class RunSet manages the import of files and options of a run set.
     """
 
-    def __init__(self, testTag, benchmark, globalSourcefileTags=[]):
+    def __init__(self, rundefinitionTag, benchmark, index, globalSourcefilesTags=[]):
         """
-        The constructor of Test reads testname and the filenames from testTag.
-        Filenames can be included or excluded, and imported from a list of
+        The constructor of RunSet reads run-set name and the source files from rundefinitionTag.
+        Source files can be included or excluded, and imported from a list of
         names in another file. Wildcards and variables are expanded.
-        @param testTag: a testTag from the xml-file
+        @param rundefinitionTag: a rundefinitionTag from the XML file
         """
 
         self.benchmark = benchmark
 
-        # get name of test, name is optional, the result can be "None"
-        self.name = testTag.get("name")
+        # get name of run set, name is optional, the result can be "None"
+        self.realName = rundefinitionTag.get("name")
 
-        # get all test-specific options from testTag
-        self.options = getOptions(testTag)
+        # index is the number of the run set
+        self.index = index
+
+        self.logFolder = benchmark.logFolder
+        if self.realName:
+            self.logFolder += self.realName + "."
+
+        # get all run-set-specific options from rundefinitionTag
+        self.options = benchmark.options + getOptionsFromXML(rundefinitionTag)
 
         # get all runs, a run contains one sourcefile with options
-        self.getRuns(globalSourcefileTags + testTag.findall("sourcefiles"))
+        self.blocks = self.extractRunsFromXML(globalSourcefilesTags + rundefinitionTag.findall("sourcefiles"))
+        self.runs = [run for block in self.blocks for run in block.runs]
+
+        names = [self.realName]
+        if len(self.blocks) == 1:
+            # there is exactly one source-file set to run, append its name to run-set name
+            names.append(self.blocks[0].realName)
+        self.name = '.'.join(filter(None, names))
+        self.fullName = self.benchmark.name + (("." + self.name) if self.name else "")
 
 
-    def getRuns(self, sourcefilesTagList):
+    def shouldBeExecuted(self):
+        return not config.selectedRunDefinitions \
+            or self.realName in config.selectedRunDefinitions
+
+
+    def extractRunsFromXML(self, sourcefilesTagList):
         '''
-        This function builds a list of Runs (filename with options).
+        This function builds a list of SourcefileSets (containing filename with options).
         The files and their options are taken from the list of sourcefilesTags.
         '''
-        # runs are structured as blocks, one block represents one soursefile-tag
-        self.blocks = []
-        self.runs = []
+        # runs are structured as sourcefile sets, one set represents one sourcefiles tag
+        blocks = []
+        baseDir = os.path.dirname(self.benchmark.benchmarkFile)
 
-        for sourcefilesTag in sourcefilesTagList:
+        for index, sourcefilesTag in enumerate(sourcefilesTagList):
+            sourcefileSetName = sourcefilesTag.get("name")
+            matchName = sourcefileSetName or str(index)
+            if (config.selectedSourcefileSets and matchName not in config.selectedSourcefileSets):
+                continue
+
             # get list of filenames
-            sourcefiles = self.getSourcefiles(sourcefilesTag)
+            sourcefiles = self.getSourcefilesFromXML(sourcefilesTag, baseDir)
 
             # get file-specific options for filenames
-            fileOptions = getOptions(sourcefilesTag)
+            fileOptions = getOptionsFromXML(sourcefilesTag)
 
-            runs = []
+            currentRuns = []
             for sourcefile in sourcefiles:
-                runs.append(Run(sourcefile, fileOptions, self))
-            self.runs.extend(runs)
+                currentRuns.append(Run(sourcefile, fileOptions, self))
 
-            blockName = sourcefilesTag.get("name", str(sourcefilesTagList.index(sourcefilesTag)))
-            self.blocks.append(Block(blockName,runs))
+            blocks.append(SourcefileSet(sourcefileSetName, index, currentRuns))
+        return blocks
 
 
-    def getSourcefiles(self, sourcefilesTag):
+    def getSourcefilesFromXML(self, sourcefilesTag, baseDir):
         sourcefiles = []
-        baseDir = os.path.dirname(self.benchmark.benchmarkFile)
 
         # get included sourcefiles
         for includedFiles in sourcefilesTag.findall("include"):
-            sourcefiles += self.getFileList(includedFiles.text, baseDir)
+            sourcefiles += self.expandFileNamePattern(includedFiles.text, baseDir)
 
         # get sourcefiles from list in file
         for includesFilesFile in sourcefilesTag.findall("includesfile"):
 
-            for file in self.getFileList(includesFilesFile.text, baseDir):
+            for file in self.expandFileNamePattern(includesFilesFile.text, baseDir):
 
-                # check for code (if somebody changes 'include' and 'includesfile')
+                # check for code (if somebody confuses 'include' and 'includesfile')
                 if Util.isCode(file):
-                    logging.error("'" + file + "' is no includesfile (set-file).\n" + \
-                        "please check your benchmark-xml-file or remove bracket '{' from this file.")
+                    logging.error("'" + file + "' seems to contain code instead of a set of source file names.\n" + \
+                        "Please check your benchmark definition file or remove bracket '{' from this file.")
                     sys.exit()
 
                 # read files from list
-                fileWithList = open(file, "r")
+                fileWithList = open(file, 'rt')
                 for line in fileWithList:
 
                     # strip() removes 'newline' behind the line
@@ -283,75 +382,58 @@ class Test:
 
                     # ignore comments and empty lines
                     if not Util.isComment(line):
-                        sourcefiles += self.getFileList(line, os.path.dirname(file))
+                        sourcefiles += self.expandFileNamePattern(line, os.path.dirname(file))
 
                 fileWithList.close()
 
         # remove excluded sourcefiles
         for excludedFiles in sourcefilesTag.findall("exclude"):
-            excludedFilesList = self.getFileList(excludedFiles.text, baseDir)
+            excludedFilesList = self.expandFileNamePattern(excludedFiles.text, baseDir)
             for excludedFile in excludedFilesList:
                 sourcefiles = Util.removeAll(sourcefiles, excludedFile)
 
         return sourcefiles
 
 
-    def getFileList(self, shortFile, root):
+    def expandFileNamePattern(self, pattern, baseDir):
         """
-        The function getFileList expands a short filename to a sorted list
-        of filenames. The short filename can contain variables and wildcards.
-        If root is given and shortFile is not absolute, root and shortFile are joined.
+        The function expandFileNamePattern expands a filename pattern to a sorted list
+        of filenames. The pattern can contain variables and wildcards.
+        If baseDir is given and pattern is not absolute, baseDir and pattern are joined.
         """
 
-        # store shortFile for fallback
-        shortFileFallback = shortFile
+        # store pattern for fallback
+        shortFileFallback = pattern
 
         # replace vars like ${benchmark_path},
         # with converting to list and back, we can use the function 'substituteVars()'
-        shortFileList = substituteVars([shortFile], self)
-        assert len(shortFileList) == 1
-        shortFile = shortFileList[0]
+        expandedPattern = substituteVars([pattern], self)
+        assert len(expandedPattern) == 1
+        expandedPattern = expandedPattern[0]
 
-        # 'join' ignores root, if shortFile is absolute.
-        # 'normpath' replaces 'A/foo/../B' with 'A/B', for pretty printing only
-        shortFile = os.path.normpath(os.path.join(root, shortFile))
+        if expandedPattern != pattern:
+            logging.debug("Expanded variables in expression {0} to {1}."
+                .format(repr(pattern), repr(expandedPattern)))
 
-        # expand tilde and variables
-        expandedFile = os.path.expandvars(os.path.expanduser(shortFile))
-
-        # expand wildcards
-        fileList = glob.glob(expandedFile)
+        fileList = Util.expandFileNamePattern(expandedPattern, baseDir)
 
         # sort alphabetical,
-        # if list is emtpy, sorting returns None, so better do not sort
-        if len(fileList) != 0:
-            fileList.sort()
+        fileList.sort()
 
-        if expandedFile != shortFile:
-            logging.debug("Expanded tilde and/or shell variables in expression {0} to {1}."
-                .format(repr(shortFile), repr(expandedFile)))
-
-        if len(fileList) == 0 and root != "":
-
-            if root != "":
-                # try fallback for older test-sets
-                fileList = self.getFileList(shortFileFallback, "")
-                if len(fileList) != 0:
-                    logging.warning("Test definition uses old-style paths. Please change the path {0} to be relative to {1}."
-                                .format(repr(shortFileFallback), repr(root)))
-                else:
-                    logging.warning("No files found matching {0}."
-                                .format(repr(shortFile)))
+        if not fileList:
+                logging.warning("No files found matching {0}."
+                            .format(repr(pattern)))
 
         return fileList
 
 
-class Block():
+class SourcefileSet():
     """
-    A Block contains a list of runs and a name.
+    A SourcefileSet contains a list of runs and a name.
     """
-    def __init__(self, name, runs):
-        self.name = name
+    def __init__(self, name, index, runs):
+        self.realName = name # this name is optional
+        self.name = name or str(index) # this name is always non-empty
         self.runs = runs
 
 
@@ -360,76 +442,98 @@ class Run():
     A Run contains one sourcefile and options.
     """
 
-    def __init__(self, sourcefile, fileOptions, test):
+    def __init__(self, sourcefile, fileOptions, runSet):
         self.sourcefile = sourcefile
-        self.options = fileOptions
-        self.test = test
-        self.benchmark = test.benchmark
-        self.mergedOptions = []
+        self.runSet = runSet
+        self.benchmark = runSet.benchmark
+        self.specificOptions = fileOptions # options that are specific for this run
+        self.logFile = runSet.logFolder + os.path.basename(sourcefile) + ".log"
+        self.options = substituteVars(runSet.options + fileOptions, # all options to be used when executing this run
+                                      runSet,
+                                      sourcefile)
 
-        # copy columns for having own objects in run
+        # Copy columns for having own objects in run
+        # (we need this for storing the results in them).
         self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.benchmark.columns]
 
         # dummy values, for output in case of interrupt
-        self.resultline = None
         self.status = ""
         self.cpuTime = 0
-        self.cpuTimeStr = ""
         self.wallTime = 0
-        self.wallTimeStr = ""
-        self.args = ""
-
-    def getMergedOptions(self):
-        """
-        This function returns a list of Strings.
-        It contains all options for this Run (global + testwide + local) without 'None'-Values.
-        """
-
-        if not self.mergedOptions: # cache mergeOptions
-            # merge options to list
-            currentOptions = mergeOptions(self.benchmark.options,
-                                      self.test.options,
-                                      self.options)
-
-            # replace variables with special values
-            currentOptions = substituteVars(currentOptions,
-                                        self.test,
-                                        self.sourcefile,
-                                        self.benchmark.outputHandler.logFolder)
-            self.mergedOptions = currentOptions
-
-        return self.mergedOptions
+        self.memUsage = None
+        self.host = None
+        
+        self.tool = self.benchmark.tool
+        args = self.tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
+        args = [os.path.expandvars(arg) for arg in args]
+        args = [os.path.expanduser(arg) for arg in args]
+        self.args = args;
 
 
-    def run(self, numberOfThread):
-        """
-        This function runs the tool with a sourcefile with options.
-        It also calls functions for output before and after the run.
-        @param numberOfThread: runs are executed in different threads
-        """
-        logfile = self.benchmark.outputHandler.outputBeforeRun(self)
 
-        (self.status, self.cpuTime, self.wallTime, self.args) = \
-             self.benchmark.run_func(self.benchmark.exe,
-                                     self.getMergedOptions(),
-                                     self.sourcefile, 
-                                     self.columns,
-                                     self.benchmark.rlimits,
-                                     numberOfThread,
-                                     logfile)
-
+    def afterExecution(self, returnvalue, output):
+        
+        rlimits = self.benchmark.rlimits
+        
+        # calculation: returnvalue == (returncode * 256) + returnsignal
+        # highest bit of returnsignal shows only whether a core file was produced, we clear it
+        returnsignal = returnvalue & 0x7F
+        returncode = returnvalue >> 8
+        logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
+        self.status = self.tool.getStatus(returncode, returnsignal, output, self._isTimeout())
+        self.tool.addColumnValues(output, self.columns)
+       
         # Tools sometimes produce a result even after a timeout.
         # This should not be counted, so we overwrite the result with TIMEOUT
         # here. if this is the case.
         # However, we don't want to forget more specific results like SEGFAULT,
         # so we do this only if the result is a "normal" one like SAFE.
         if not self.status in ['SAFE', 'UNSAFE', 'UNKNOWN']:
-            if TIMELIMIT in self.benchmark.rlimits:
-                timeLimit = self.benchmark.rlimits[TIMELIMIT] + 20
+            if TIMELIMIT in rlimits:
+                timeLimit = rlimits[TIMELIMIT] + 20
                 if self.wallTime > timeLimit or self.cpuTime > timeLimit:
                     self.status = "TIMEOUT"
+        if returnsignal == 9 \
+                and MEMLIMIT in rlimits \
+                and self.memUsage \
+                and int(self.memUsage) >= (rlimits[MEMLIMIT] * 1024 * 1024):
+            self.status = 'OUT OF MEMORY'
 
         self.benchmark.outputHandler.outputAfterRun(self)
+
+    def execute(self, numberOfThread):
+        """
+        This function executes the tool with a sourcefile with options.
+        It also calls functions for output before and after the run.
+        @param numberOfThread: runs are executed in different threads
+        """
+        self.benchmark.outputHandler.outputBeforeRun(self)
+
+        rlimits = self.benchmark.rlimits
+
+        (self.wallTime, self.cpuTime, self.memUsage, returnvalue, output) = runexecutor.executeRun(self.args, rlimits, self.logFile, numberOfThread)
+
+        if STOPPED_BY_INTERRUPT:
+            # If the run was interrupted, we ignore the result and cleanup.
+            self.wallTime = 0
+            self.cpuTime = 0
+            try:
+                os.remove(self.logFile)
+            except OSError:
+                pass
+            return
+
+        self.afterExecution(returnvalue, output)
+
+    def _isTimeout(self):
+        ''' try to find out whether the tool terminated because of a timeout '''
+        rlimits = self.benchmark.rlimits
+        if TIMELIMIT in rlimits:
+            limit = rlimits[TIMELIMIT]
+        else:
+            limit = float('inf')
+
+        return self.cpuTime > limit*0.99
 
 
 class Column:
@@ -444,177 +548,77 @@ class Column:
         self.value = ""
 
 
-class Util:
-    """
-    This Class contains some useful functions for Strings, XML or Lists.
-    """
+class Requirements:
+    def __init__(self, cpuModel=None, cpuCores=None, memory=None):
+        self._cpuModel = cpuModel
+        self._cpuCores = int(cpuCores) if cpuCores is not None else None
+        self._memory   = int(memory) if memory is not None else None
 
-    @staticmethod
-    def printOut(value, end='\n'):
-        """
-        This function prints the given String immediately and flushes the output.
-        """
-        sys.stdout.write(value)
-        sys.stdout.write(end)
-        sys.stdout.flush()
+        if self.cpuCores() <= 0:
+            raise Exception('Invalid value {} for required CPU cores.'.format(cpuCores))
 
-    @staticmethod
-    def isCode(filename):
-        """
-        This function returns True, if  a line of the file contains bracket '{'.
-        """
-        isCodeFile = False
-        file = open(filename, "r")
-        for line in file:
-            # ignore comments and empty lines
-            if not Util.isComment(line) \
-                    and '{' in line: # <-- simple indicator for code
-                if '${' not in line: # <-- ${abc} variable to substitute
-                    isCodeFile = True
-        file.close()
-        return isCodeFile
+        if self.memory() <= 0:
+            raise Exception('Invalid value {} for required memory.'.format(memory))
 
+    def cpuModel(self):
+        return self._cpuModel or ""
 
-    @staticmethod
-    def isComment(line):
-        return not line or line.startswith("#") or line.startswith("//")
+    def cpuCores(self):
+        return self._cpuCores or 1
 
+    def memory(self):
+        return self._memory or 15000
 
-    @staticmethod
-    def containsAny(text, list):
-        '''
-        This function returns True, iff any string in list is a substring of text.
-        '''
-        for elem in list:
-            if elem in text:
-                return True
-        return False
+    @classmethod
+    def merge(cls, r1, r2):
+        if r1._cpuModel is not None and r2._cpuModel is not None:
+            raise Exception('Double specification of required CPU model.')
+        if r1._cpuCores and r2._cpuCores:
+            raise Exception('Double specification of required CPU cores.')
+        if r1._memory and r2._memory:
+            raise Exception('Double specification of required memory.')
 
+        return cls(r1._cpuModel if r1._cpuModel is not None else r2._cpuModel,
+                   r1._cpuCores or r2._cpuCores,
+                   r1._memory or r2._memory)
+        
+    @classmethod
+    def mergeWithLimits(cls, r, l):
+        _cpuModel = r._cpuModel
+        _cpuCores = r._cpuCores
+        _memory = r._memory
+        
+        if(_cpuCores is None and CORELIMIT in l):
+            _cpuCores = l[CORELIMIT]
+        if(_memory is None and MEMLIMIT in l):
+            _memory = l[MEMLIMIT]
 
-    @staticmethod
-    def removeAll(list, elemToRemove):
-        return [elem for elem in list if elem != elemToRemove]
+        return cls(_cpuModel, _cpuCores, _memory)
 
-
-    @staticmethod
-    def toSimpleList(listOfPairs):
-        """
-        This function converts a list of pairs to a list.
-        Each pair of key and value is divided into 2 listelements.
-        All "None"-values are removed.
-        """
-        simpleList = []
-        for (key, value) in listOfPairs:
-            if key is not None:    simpleList.append(key)
-            if value is not None:  simpleList.append(value)
-        return simpleList
+    @classmethod
+    def mergeWithCpuModel(cls, r, cpuModel):
+        _cpuCores = r._cpuCores
+        _memory = r._memory
+        
+        if(cpuModel is None):
+            return r
+        else:
+            return cls(cpuModel, _cpuCores, _memory)
 
 
-    @staticmethod
-    def getCopyOfXMLElem(elem):
-        """
-        This method returns a shallow copy of a XML-Element.
-        This method is for compatibility with Python 2.6 or earlier..
-        In Python 2.7 you can use  'copyElem = elem.copy()'  instead.
-        """
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__, self.__dict__)
 
-        copyElem = ET.Element(elem.tag, elem.attrib)
-        for child in elem:
-            copyElem.append(child)
-        return copyElem
+    def __str__(self):
+        s = ""
+        if self._cpuModel:
+            s += " CPU='" + self._cpuModel + "'"
+        if self._cpuCores:
+            s += " Cores=" + str(self._cpuCores)
+        if self._memory:
+            s += " Memory=" + str(self._memory) + "MB"
 
-
-    @staticmethod
-    def XMLtoString(elem):
-        """
-        Return a pretty-printed XML string for the Element.
-        """
-        from xml.dom import minidom
-        rough_string = ET.tostring(elem, 'utf-8')
-        reparsed = minidom.parseString(rough_string)
-        return reparsed.toprettyxml(indent="  ")
-
-
-    @staticmethod
-    def decodeToString(toDecode):
-        """
-        This function is needed for Python 3,
-        because a subprocess can return bytes instead of a string.
-        """
-        try: 
-            return toDecode.decode('utf-8')
-        except AttributeError: # bytesToDecode was of type string before
-            return toDecode
-
-
-    @staticmethod
-    def formatNumber(number, numberOfDigits):
-        """
-        The function formatNumber() return a string-representation of a number
-        with a number of digits after the decimal separator.
-        If the number has more digits, it is rounded.
-        If the number has less digits, zeros are added.
-
-        @param number: the number to format
-        @param digits: the number of digits
-        """
-        return "%.{0}f".format(numberOfDigits) % number
-
-
-    @staticmethod
-    def addFilesToGitRepository(files, description):
-        """
-        Add and commit all files given in a list into a git repository in the
-        OUTPUT_PATH directory. Nothing is done if the git repository has
-        local changes.
-
-        @param files: the files to commit
-        @param description: the commit message
-        """
-        if not os.path.isdir(OUTPUT_PATH):
-            Util.printOut('Output path is not a directory, cannot add files to git repository.')
-            return
-
-        # find out root directory of repository
-        gitRoot = subprocess.Popen(['git', 'rev-parse', '--show-toplevel'],
-                                   cwd=OUTPUT_PATH,
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout = gitRoot.communicate()[0]
-        if gitRoot.returncode != 0:
-            Util.printOut('Cannot commit results to repository: git rev-parse failed, perhaps output path is not a git directory?')
-            return
-        gitRootDir = Util.decodeToString(stdout).splitlines()[0]
-
-        # check whether repository is clean
-        gitStatus = subprocess.Popen(['git','status','--porcelain', '--untracked-files=no'],
-                                     cwd=gitRootDir,
-                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdout, stderr) = gitStatus.communicate()
-        if gitStatus.returncode != 0:
-            Util.printOut('Git status failed! Output was:\n' + Util.decodeToString(stderr))
-            return
-
-        if stdout:
-            Util.printOut('Git repository has local changes, not commiting results.')
-            return
-
-        # add files to staging area
-        files = [os.path.realpath(file) for file in files]
-        gitAdd = subprocess.Popen(['git', 'add', '--'] + files,
-                                   cwd=gitRootDir)
-        if gitAdd.wait() != 0:
-            Util.printOut('Git add failed, will not commit results!')
-            return
-
-        # commit files
-        Util.printOut('Committing results files to git repository in ' + gitRootDir)
-        gitCommit = subprocess.Popen(['git', 'commit', '--file=-', '--quiet'],
-                                     cwd=gitRootDir,
-                                     stdin=subprocess.PIPE)
-        gitCommit.communicate(description.encode('UTF-8'))
-        if gitCommit.returncode != 0:
-            Util.printOut('Git commit failed!')
-            return
+        return "Requirements:" + (s if s else " None")
 
 
 class OutputHandler:
@@ -626,60 +630,63 @@ class OutputHandler:
 
     def __init__(self, benchmark):
         """
-        The constructor of OutputHandler creates the folder to store logfiles
-        and collects information about the benchmark and the computer.
+        The constructor of OutputHandler collects information about the benchmark and the computer.
         """
 
         self.allCreatedFiles = []
         self.benchmark = benchmark
         self.statistics = Statistics()
 
-        # create folder for file-specific log-files.
-        # existing files (with the same name) will be OVERWRITTEN!
-        self.logFolder = OUTPUT_PATH + self.benchmark.name + "." + self.benchmark.date + ".logfiles/"
-        if not os.path.isdir(self.logFolder):
-            os.makedirs(self.logFolder)
-
         # get information about computer
         (opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname) = self.getSystemInfo()
-        version = self.getVersion(self.benchmark.tool)
+        version = self.benchmark.toolVersion
 
         memlimit = None
         timelimit = None
+        corelimit = None
         if MEMLIMIT in self.benchmark.rlimits:
             memlimit = str(self.benchmark.rlimits[MEMLIMIT]) + " MB"
         if TIMELIMIT in self.benchmark.rlimits:
             timelimit = str(self.benchmark.rlimits[TIMELIMIT]) + " s"
+        if CORELIMIT in self.benchmark.rlimits:
+            corelimit = str(self.benchmark.rlimits[CORELIMIT])
 
-        self.storeHeaderInXML(version, memlimit, timelimit, opSystem, cpuModel,
+        self.storeHeaderInXML(version, memlimit, timelimit, corelimit, opSystem, cpuModel,
                               numberOfCores, maxFrequency, memory, hostname)
-        self.writeHeaderToLog(version, memlimit, timelimit, opSystem, cpuModel,
+        self.writeHeaderToLog(version, memlimit, timelimit, corelimit, opSystem, cpuModel,
                               numberOfCores, maxFrequency, memory, hostname)
 
+        self.XMLFileNames = []
 
-    def storeHeaderInXML(self, version, memlimit, timelimit, opSystem,
-                         cpuModel, numberOfCores, maxFrequency, memory, hostname):
 
-        # store benchmarkInfo in XML
-        self.XMLHeader = ET.Element("test",
-                    {"benchmarkname": self.benchmark.name, "date": self.benchmark.dateISO,
-                     "tool": self.getToolnameForPrinting(), "version": version})
-        if memlimit is not None:
-            self.XMLHeader.set(MEMLIMIT, memlimit)
-        if timelimit is not None:
-            self.XMLHeader.set(TIMELIMIT, timelimit)
 
-        # store systemInfo in XML
-        osElem = ET.Element("os", {"name": opSystem})
-        cpuElem = ET.Element("cpu",
-            {"model": cpuModel, "cores": numberOfCores, "frequency" : maxFrequency})
-        ramElem = ET.Element("ram", {"size": memory})
-
-        systemInfo = ET.Element("systeminfo", {"hostname": hostname})
+    def storeSystemInfo(self, opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname):
+        osElem = ET.Element("os", {"name":opSystem})
+        cpuElem = ET.Element("cpu", {"model":cpuModel, "cores":numberOfCores, "frequency":maxFrequency})
+        ramElem = ET.Element("ram", {"size":memory})
+        systemInfo = ET.Element("systeminfo", {"hostname":hostname})
         systemInfo.append(osElem)
         systemInfo.append(cpuElem)
         systemInfo.append(ramElem)
         self.XMLHeader.append(systemInfo)
+
+    def storeHeaderInXML(self, version, memlimit, timelimit, corelimit, opSystem,
+                         cpuModel, numberOfCores, maxFrequency, memory, hostname):
+
+        # store benchmarkInfo in XML
+        self.XMLHeader = ET.Element("result",
+                    {"benchmarkname": self.benchmark.name, "date": self.benchmark.dateISO,
+                     "tool": self.benchmark.toolName, "version": version})
+        if memlimit:
+            self.XMLHeader.set(MEMLIMIT, memlimit)
+        if timelimit:
+            self.XMLHeader.set(TIMELIMIT, timelimit)
+        if corelimit:
+            self.XMLHeader.set(CORELIMIT, corelimit)
+
+        if(not config.cloud):
+            # store systemInfo in XML
+            self.storeSystemInfo(opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname)
 
         # store columnTitles in XML
         columntitlesElem = ET.Element("columns")
@@ -691,8 +698,17 @@ class OutputHandler:
             columntitlesElem.append(columnElem)
         self.XMLHeader.append(columntitlesElem)
 
+        # Build dummy entries for output, later replaced by the results,
+        # The dummy XML elements are shared over all runs.
+        self.XMLDummyElems = [ET.Element("column", {"title": "status", "value": ""}),
+                      ET.Element("column", {"title": "cputime", "value": ""}),
+                      ET.Element("column", {"title": "walltime", "value": ""})]
+        for column in self.benchmark.columns:
+            self.XMLDummyElems.append(ET.Element("column",
+                        {"title": column.title, "value": ""}))
 
-    def writeHeaderToLog(self, version, memlimit, timelimit, opSystem,
+
+    def writeHeaderToLog(self, version, memlimit, timelimit, corelimit, opSystem,
                          cpuModel, numberOfCores, maxFrequency, memory, hostname):
         """
         This method writes information about benchmark and system into TXTFile.
@@ -704,13 +720,15 @@ class OutputHandler:
         header = "   BENCHMARK INFORMATION\n"\
                 + "benchmark:".ljust(columnWidth) + self.benchmark.name + "\n"\
                 + "date:".ljust(columnWidth) + self.benchmark.dateISO + "\n"\
-                + "tool:".ljust(columnWidth) + self.getToolnameForPrinting()\
+                + "tool:".ljust(columnWidth) + self.benchmark.toolName\
                 + " " + version + "\n"
 
-        if memlimit is not None:
+        if memlimit:
             header += "memlimit:".ljust(columnWidth) + memlimit + "\n"
-        if timelimit is not None:
+        if timelimit:
             header += "timelimit:".ljust(columnWidth) + timelimit + "\n"
+        if corelimit:
+            header += "CPU cores used:".ljust(columnWidth) + corelimit + "\n"
         header += simpleLine
 
         systemInfo = "   SYSTEM INFORMATION\n"\
@@ -724,73 +742,16 @@ class OutputHandler:
 
         self.description = header + systemInfo
 
-        testname = None
-        if len(self.benchmark.tests) == 1:
-            # in case there is only a single test, we can use this name
-            testname = self.benchmark.tests[0].name
-        elif options.testRunOnly and len(options.testRunOnly) == 1:
-            # in case we run only a single test, we can use this name
-            testname = options.testRunOnly[0]
+        runSetName = None
+        runSets = [runSet for runSet in self.benchmark.runSets if runSet.shouldBeExecuted()]
+        if len(runSets) == 1:
+            # in case there is only a single run set to to execute, we can use its name
+            runSetName = runSets[0].name
 
         # write to file
-        self.TXTContent = self.description
-        TXTFileName = self.getFileName(testname, "txt")
-        self.TXTFile = FileWriter(TXTFileName, self.TXTContent)
+        TXTFileName = self.getFileName(runSetName, "txt")
+        self.TXTFile = filewriter.FileWriter(TXTFileName, self.description)
         self.allCreatedFiles.append(TXTFileName)
-
-    def getToolnameForPrinting(self):
-        tool = self.benchmark.tool.lower()
-        names = {'cpachecker': 'CPAchecker',
-                 'cbmc'      : 'CBMC',
-                 'satabs'    : 'SatAbs',
-                 'blast'     : 'BLAST',
-                 'ecav'      : 'ECAverifier',
-                 'wolverine' : 'WOLVERINE',
-                 'ufo'       : 'UFO',
-                 'acsar'     : 'Acsar',
-                 'feaver'    : 'Feaver'}
-        if tool in names:
-            return names[tool]
-        else:
-            return str(self.benchmark.tool)
-
-
-    def getVersion(self, tool):
-        """
-        This function return a String representing the version of the tool.
-        """
-
-        version = ''
-        exe = self.benchmark.exe
-        if (tool == "cpachecker"):
-            try:
-                versionHelpStr = subprocess.Popen([exe, '-help'],
-                    stdout=subprocess.PIPE).communicate()[0]
-                versionHelpStr = Util.decodeToString(versionHelpStr)
-                version = ' '.join(versionHelpStr.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
-            except IndexError:
-                logging.critical('IndexError! Have you built CPAchecker?\n') # TODO better message
-                sys.exit()
-
-        elif (tool == "cbmc"):
-            version = subprocess.Popen([exe, '--version'],
-                              stdout=subprocess.PIPE).communicate()[0].strip()
-
-        elif (tool == "satabs"):
-            version = subprocess.Popen([exe, '--version'],
-                              stdout=subprocess.PIPE).communicate()[0].strip()
-
-        elif (tool == "wolverine"):
-            version = subprocess.Popen([exe, '--version'],
-                              stdout=subprocess.PIPE).communicate()[0].split()[1].strip()
-
-        elif (tool == "blast"):
-            version = subprocess.Popen([exe],
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT).communicate()[0][6:9]
-
-        return Util.decodeToString(version)
-
 
     def getSystemInfo(self):
         """
@@ -806,7 +767,7 @@ class OutputHandler:
         maxFrequency = 'unknown'
         cpuInfoFilename = '/proc/cpuinfo'
         if os.path.isfile(cpuInfoFilename) and os.access(cpuInfoFilename, os.R_OK):
-            cpuInfoFile = open(cpuInfoFilename, "r")
+            cpuInfoFile = open(cpuInfoFilename, 'rt')
             cpuInfo = dict(tuple(str.split(':')) for str in
                             cpuInfoFile.read()
                             .replace('\n\n', '\n').replace('\t', '')
@@ -821,7 +782,7 @@ class OutputHandler:
         # read the number from cpufreq and overwrite maxFrequency from above
         freqInfoFilename = '/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq'
         if os.path.isfile(freqInfoFilename) and os.access(freqInfoFilename, os.R_OK):
-            frequencyInfoFile = open(freqInfoFilename, "r")
+            frequencyInfoFile = open(freqInfoFilename, 'rt')
             maxFrequency = frequencyInfoFile.read().strip('\n')
             frequencyInfoFile.close()
             maxFrequency = str(int(maxFrequency) // 1000) + ' MHz'
@@ -830,7 +791,7 @@ class OutputHandler:
         memInfo = dict()
         memInfoFilename = '/proc/meminfo'
         if os.path.isfile(memInfoFilename) and os.access(memInfoFilename, os.R_OK):
-            memInfoFile = open(memInfoFilename, "r")
+            memInfoFile = open(memInfoFilename, 'rt')
             memInfo = dict(tuple(str.split(': ')) for str in
                             memInfoFile.read()
                             .replace('\t', '')
@@ -841,157 +802,142 @@ class OutputHandler:
         return (opSystem, cpuModel, numberOfCores, maxFrequency, memTotal, name)
 
 
-    def outputBeforeTest(self, test):
+    def outputBeforeRunSet(self, runSet):
         """
-        The method outputBeforeTest() calculates the length of the
+        The method outputBeforeRunSet() calculates the length of the
         first column for the output in terminal and stores information
-        about the test in XML.
-        @param test: current test with a list of testfiles
+        about the runSet in XML.
+        @param runSet: current run set
         """
 
-        self.test = test
-        numberOfTest = self.benchmark.tests.index(self.test) + 1
+        self.runSet = runSet
+        numberOfFiles = len(runSet.runs)
 
-        if len(self.test.runs) == 1:
-            logging.debug("test {0} consists of 1 sourcefile.".format(
-                    numberOfTest))
-        else:
-            logging.debug("test {0} consists of {1} sourcefiles.".format(
-                    numberOfTest, len(self.test.runs)))
+        logging.debug("Run set {0} consists of {1} sourcefiles.".format(
+                runSet.index, numberOfFiles))
 
-        fileNames = [run.sourcefile for run in self.test.runs]
+        sourcefiles = [run.sourcefile for run in runSet.runs]
 
         # common prefix of file names
-        self.commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
+        self.commonPrefix = os.path.commonprefix(sourcefiles) # maybe with parts of filename
         self.commonPrefix = self.commonPrefix[: self.commonPrefix.rfind('/') + 1] # only foldername
 
         # length of the first column in terminal
-        self.maxLengthOfFileName = max([len(file) for file in fileNames])
+        self.maxLengthOfFileName = max([len(file) for file in sourcefiles])
         self.maxLengthOfFileName = max(20, self.maxLengthOfFileName - len(self.commonPrefix))
 
-        # write testname to terminal
-        numberOfFiles = len(self.test.runs)
-        Util.printOut("\nrunning test" + \
-            (" '" + test.name + "'" if test.name is not None else "") + \
-            ("     (1 file)" if numberOfFiles == 1
-                        else "     ({0} files)".format(numberOfFiles)))
+        # write run set name to terminal
+        numberOfFiles = ("     (1 file)" if numberOfFiles == 1
+                        else "     ({0} files)".format(numberOfFiles))
+        Util.printOut("\nexecuting run set"
+            + (" '" + runSet.name + "'" if runSet.name else "")
+            + numberOfFiles
+            + (TERMINAL_TITLE.format(runSet.fullName) if USE_COLORS and sys.stdout.isatty() else ""))
 
-        # write information about the test into TXTFile
-        self.writeTestInfoToLog()
+        # write information about the run set into TXTFile
+        self.writeRunSetInfoToLog(runSet)
 
-        # build dummy-entries for output, later replaced by the results,
-        # the dummy-xml-elems are shared over all runs of a test,
-        # xml-structure is equal to self.runToXML(run)
-        dummyElems = [ET.Element("column", {"title": "status", "value": ""}),
-                      ET.Element("column", {"title": "cputime", "value": ""}),
-                      ET.Element("column", {"title": "walltime", "value": ""})]
-        for column in self.benchmark.columns:
-            dummyElems.append(ET.Element("column", 
-                        {"title": column.title, "value": ""}))
-            
-        for run in self.test.runs:
+        # prepare information for text output
+        for run in runSet.runs:
             run.resultline = self.formatSourceFileName(run.sourcefile)
+
+        # prepare XML structure for each run and runSet
             run.xml = ET.Element("sourcefile", {"name": run.sourcefile})
-            for dummyElem in dummyElems: run.xml.append(dummyElem)
+            if run.specificOptions:
+                run.xml.set("options", " ".join(run.specificOptions))
+            run.xml.extend(self.XMLDummyElems)
+
+        runSet.xml = self.runsToXML(runSet, runSet.runs)
 
         # write (empty) results to TXTFile and XML
-        self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
-        XMLTestFileName = self.getFileName(self.test.name, "xml")
-        self.XMLTestFile = FileWriter(XMLTestFileName,
-                       Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
-        self.XMLTestFile.lastModifiedTime = time.time()
-        self.allCreatedFiles.append(XMLTestFileName)
+        self.TXTFile.append(self.runSetToTXT(runSet), False)
+        XMLFileName = self.getFileName(runSet.name, "xml")
+        self.XMLFile = filewriter.FileWriter(XMLFileName,
+                       Util.XMLtoString(runSet.xml))
+        self.XMLFile.lastModifiedTime = time.time()
+        self.allCreatedFiles.append(XMLFileName)
+        self.XMLFileNames.append(XMLFileName)
 
 
-    def outputForSkippingTest(self, test, reason=None):
+    def outputForSkippingRunSet(self, runSet, reason=None):
         '''
         This function writes a simple message to terminal and logfile,
-        when a test is skipped.
-        There is no message about skipping a test in the xml-file.
+        when a run set is skipped.
+        There is no message about skipping a run set in the xml-file.
         '''
 
         # print to terminal
-        Util.printOut("\nskipping test" +
-               (" '" + test.name + "'" if test.name else "") +
+        Util.printOut("\nSkipping run set" +
+               (" '" + runSet.name + "'" if runSet.name else "") +
                (" " + reason if reason else "")
               )
 
         # write into TXTFile
-        numberOfTest = self.benchmark.tests.index(test) + 1
-        testInfo = "\n\n"
-        if test.name is not None:
-            testInfo += test.name + "\n"
-        testInfo += "test {0} of {1}: skipped {2}\n".format(
-                numberOfTest, len(self.benchmark.tests), reason or "")
-        self.TXTContent += testInfo
-        self.TXTFile.append(testInfo)
+        runSetInfo = "\n\n"
+        if runSet.name:
+            runSetInfo += runSet.name + "\n"
+        runSetInfo += "Run set {0} of {1}: skipped {2}\n".format(
+                runSet.index, len(self.benchmark.runSets), reason or "")
+        self.TXTFile.append(runSetInfo)
 
 
-    def writeTestInfoToLog(self):
+    def writeRunSetInfoToLog(self, runSet):
         """
-        This method writes the information about a test into the TXTFile.
+        This method writes the information about a run set into the TXTFile.
         """
 
-        numberOfTest = self.benchmark.tests.index(self.test) + 1
-        testOptions = mergeOptions(self.benchmark.options, self.test.options)
-        if self.test.name is None:
-            testInfo = ""
-        else:
-            testInfo = self.test.name + "\n"
-        testInfo += "test {0} of {1} with options: {2}\n\n".format(
-                numberOfTest, len(self.benchmark.tests),
-                " ".join(testOptions))
+        runSetInfo = "\n\n"
+        if runSet.name:
+            runSetInfo += runSet.name + "\n"
+        runSetInfo += "Run set {0} of {1} with options: {2}\n\n".format(
+                runSet.index, len(self.benchmark.runSets),
+                " ".join(runSet.options))
 
-        self.test.titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
+        titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
                             "wall time", self.benchmark.columns, True)
 
-        self.test.simpleLine = "-" * (len(self.test.titleLine))
+        runSet.simpleLine = "-" * (len(titleLine))
+
+        runSetInfo += titleLine + "\n" + runSet.simpleLine + "\n"
 
         # write into TXTFile
-        self.TXTContent += "\n\n" + testInfo
-        self.TXTFile.append("\n\n" + testInfo + self.test.titleLine + "\n" + self.test.simpleLine  + "\n")
+        self.TXTFile.append(runSetInfo)
 
 
     def outputBeforeRun(self, run):
         """
         The method outputBeforeRun() prints the name of a file to terminal.
         It returns the name of the logfile.
-        @param sourcefile: the name of a sourcefile
+        @param run: a Run object
         """
-
-        logging.debug("I'm running '{0} {1} {2}'.".format(
-            self.getToolnameForPrinting(), " ".join(run.mergedOptions), run.sourcefile))
-
         # output in terminal
         try:
             OutputHandler.printLock.acquire()
 
             timeStr = time.strftime("%H:%M:%S", time.localtime()) + "   "
-            if run.benchmark.numOfThreads == 1:
-                Util.printOut(timeStr + self.formatSourceFileName(run.sourcefile), '')
+            progressIndicator = " ({0}/{1})".format(self.runSet.runs.index(run), len(self.runSet.runs))
+            terminalTitle = TERMINAL_TITLE.format(self.runSet.fullName + progressIndicator) if USE_COLORS and sys.stdout.isatty() else ""
+            if self.benchmark.numOfThreads == 1:
+                Util.printOut(terminalTitle
+                              + timeStr + self.formatSourceFileName(run.sourcefile), '')
             else:
-                Util.printOut(timeStr + "starting   " + self.formatSourceFileName(run.sourcefile))
+                Util.printOut(terminalTitle + timeStr + "starting   " + self.formatSourceFileName(run.sourcefile))
         finally:
             OutputHandler.printLock.release()
 
         # get name of file-specific log-file
-        logfileName = self.logFolder
-        if run.test.name is not None:
-            logfileName += run.test.name + "."
-        logfileName += os.path.basename(run.sourcefile) + ".log"
-        self.allCreatedFiles.append(logfileName)
-        return logfileName
+        self.allCreatedFiles.append(run.logFile)
 
 
     def outputAfterRun(self, run):
         """
         The method outputAfterRun() prints filename, result, time and status
-        of a test to terminal and stores all data in XML
+        of a run to terminal and stores all data in XML
         """
 
         # format times, type is changed from float to string!
-        run.cpuTimeStr = Util.formatNumber(run.cpuTime, TIME_PRECISION)
-        run.wallTimeStr = Util.formatNumber(run.wallTime, TIME_PRECISION)
+        cpuTimeStr = Util.formatNumber(run.cpuTime, TIME_PRECISION)
+        wallTimeStr = Util.formatNumber(run.wallTime, TIME_PRECISION)
 
         # format numbers, numberOfDigits is optional, so it can be None
         for column in run.columns:
@@ -1007,8 +953,13 @@ class OutputHandler:
                 except ValueError: # if value is no float, don't format it
                     pass
 
+        # store information in run
+        run.resultline = self.createOutputLine(run.sourcefile, run.status,
+                cpuTimeStr, wallTimeStr, run.columns)
+        self.addValuesToRunXML(run, cpuTimeStr, wallTimeStr)
+
         # output in terminal/console
-        statusRelation = self.isCorrectResult(run.sourcefile, run.status)
+        statusRelation = result.getResultCategory(run.sourcefile, run.status)
         if USE_COLORS and sys.stdout.isatty(): # is terminal, not file
             statusStr = COLOR_DIC[statusRelation].format(run.status.ljust(8))
         else:
@@ -1017,97 +968,86 @@ class OutputHandler:
         try:
             OutputHandler.printLock.acquire()
 
-            # if there was an interupt in run, we do not print the result
-            if not STOPPED_BY_INTERRUPT:
-                valueStr = statusStr + run.cpuTimeStr.rjust(8) + run.wallTimeStr.rjust(8)
-                if run.benchmark.numOfThreads == 1:
-                    Util.printOut(valueStr)
-                else:
-                    timeStr = time.strftime("%H:%M:%S", time.localtime()) + " "*14
-                    Util.printOut(timeStr + self.formatSourceFileName(run.sourcefile) + valueStr)
-
-            # store information in run
-            run.resultline = self.createOutputLine(run.sourcefile, run.status,
-                    run.cpuTimeStr, run.wallTimeStr, run.columns)
-            run.xml = self.runToXML(run)
+            valueStr = statusStr + cpuTimeStr.rjust(8) + wallTimeStr.rjust(8)
+            if self.benchmark.numOfThreads == 1:
+                Util.printOut(valueStr)
+            else:
+                timeStr = time.strftime("%H:%M:%S", time.localtime()) + " "*14
+                Util.printOut(timeStr + self.formatSourceFileName(run.sourcefile) + valueStr)
 
             # write result in TXTFile and XML
-            self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
+            self.TXTFile.append(self.runSetToTXT(run.runSet), False)
             self.statistics.addResult(statusRelation)
 
             # we don't want to write this file to often, it can slow down the whole script,
             # so we wait at least 10 seconds between two write-actions
             currentTime = time.time()
-            if currentTime - self.XMLTestFile.lastModifiedTime > 10:
-                self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
-                self.XMLTestFile.lastModifiedTime = currentTime
+            if currentTime - self.XMLFile.lastModifiedTime > 10:
+                self.XMLFile.replace(Util.XMLtoString(run.runSet.xml))
+                self.XMLFile.lastModifiedTime = currentTime
 
         finally:
             OutputHandler.printLock.release()
 
 
-    def outputAfterTest(self, cpuTimeTest, wallTimeTest):
+    def outputAfterRunSet(self, runSet, cpuTime, wallTime):
         """
-        The method outputAfterTest() stores the times of a test in XML.
-        @params cpuTimeTest, wallTimeTest: times of the test
+        The method outputAfterRunSet() stores the times of a run set in XML.
+        @params cpuTime, wallTime: accumulated times of the run set
         """
 
-        # format time, type is changed from float to string!
-        self.test.cpuTimeStr = Util.formatNumber(cpuTimeTest, TIME_PRECISION)
-        self.test.wallTimeStr = Util.formatNumber(wallTimeTest, TIME_PRECISION)
+        # write results to files
+        self.XMLFile.replace(Util.XMLtoString(runSet.xml))
 
-        # write testresults to files
-        self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
-        CSVFileName = self.getFileName(self.test.name, "csv")
-        FileWriter(CSVFileName, self.testToCSV(self.test))
-        self.allCreatedFiles.append(CSVFileName)
+        if len(runSet.blocks) > 1:
+            for block in runSet.blocks:
+                blockFileName = self.getFileName(runSet.name, block.name + ".xml")
+                filewriter.writeFile(blockFileName,
+                    Util.XMLtoString(self.runsToXML(runSet, block.runs, block.name)))
+                self.allCreatedFiles.append(blockFileName)
 
-        if len(self.test.blocks) > 1:
-            for block in self.test.blocks:
-                FileWriter(self.getFileName(self.test.name, block.name + ".xml"),
-                    Util.XMLtoString(self.runsToXML(self.test, block.runs, block.name)))
-
-        self.TXTContent += self.testToTXT(self.test, True)
-        self.TXTFile.replace(self.TXTContent)
+        self.TXTFile.append(self.runSetToTXT(runSet, True, cpuTime, wallTime))
 
 
-    def testToTXT(self, test, finished=False):
-        lines = [test.titleLine, test.simpleLine]
+    def runSetToTXT(self, runSet, finished=False, cpuTime=0, wallTime=0):
+        lines = []
 
         # store values of each run
-        for run in test.runs: lines.append(run.resultline)
+        for run in runSet.runs: lines.append(run.resultline)
 
-        lines.append(test.simpleLine)
+        lines.append(runSet.simpleLine)
 
         # write endline into TXTFile
         if finished:
-            numberOfFiles = len(test.runs)
-            numberOfTest = test.benchmark.tests.index(test) + 1
-            if numberOfFiles == 1:
-                endline = ("test {0} consisted of 1 sourcefile.".format(numberOfTest))
-            else:
-                endline = ("test {0} consisted of {1} sourcefiles.".format(
-                    numberOfTest, numberOfFiles))
+            endline = ("Run set {0}".format(runSet.index))
 
-            lines.append(self.createOutputLine(endline, "done", test.cpuTimeStr,
-                             test.wallTimeStr, []))
+            # format time, type is changed from float to string!
+            if(cpuTime == None):
+                cpuTimeStr = str(cpuTime)
+            else:
+                cpuTimeStr = Util.formatNumber(cpuTime, TIME_PRECISION)
+            if(wallTime == None):
+                wallTimeStr = str(wallTime)
+            else:
+                wallTimeStr = Util.formatNumber(wallTime, TIME_PRECISION)
+
+            lines.append(self.createOutputLine(endline, "done", cpuTimeStr,
+                             wallTimeStr, []))
 
         return "\n".join(lines) + "\n"
 
-
-    def runsToXML(self, test, runs, blockname=None):
+    def runsToXML(self, runSet, runs, blockname=None):
         """
-        This function dumps a list of runs of a test and their results to XML.
+        This function creates the XML structure for a list of runs
         """
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
         runsElem = Util.getCopyOfXMLElem(self.XMLHeader)
-        testOptions = mergeOptions(test.benchmark.options, test.options)
-        runsElem.set("options", " ".join(testOptions))
+        runsElem.set("options", " ".join(runSet.options))
         if blockname is not None:
             runsElem.set("block", blockname)
-            runsElem.set("name", ((test.name + ".") if test.name else "") + blockname)
-        elif test.name is not None:
-            runsElem.set("name", test.name)
+            runsElem.set("name", ((runSet.realName + ".") if runSet.realName else "") + blockname)
+        elif runSet.realName:
+            runsElem.set("name", runSet.realName)
 
         # collect XMLelements from all runs
         for run in runs: runsElem.append(run.xml)
@@ -1115,64 +1055,24 @@ class OutputHandler:
         return runsElem
 
 
-    def runToXML(self, run):
+    def addValuesToRunXML(self, run, cpuTimeStr, wallTimeStr):
         """
-        This function returns a xml-representation of a run.
+        This function adds the result values to the XML representation of a run.
         """
-        runElem = ET.Element("sourcefile", {"name": run.sourcefile})
-        if len(run.options) != 0:
-            runElem.set("options", " ".join(mergeOptions(run.options)))
+        runElem = run.xml
+        for elem in list(runElem):
+            runElem.remove(elem)
         runElem.append(ET.Element("column", {"title": "status", "value": run.status}))
-        runElem.append(ET.Element("column", {"title": "cputime", "value": run.cpuTimeStr}))
-        runElem.append(ET.Element("column", {"title": "walltime", "value": run.wallTimeStr}))
+        runElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeStr}))
+        runElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeStr}))
+        if run.memUsage is not None:
+            runElem.append(ET.Element("column", {"title": "memUsage", "value": str(run.memUsage)}))
+        if run.host:
+            runElem.append(ET.Element("column", {"title": "host", "value": run.host}))
 
         for column in run.columns:
             runElem.append(ET.Element("column",
                         {"title": column.title, "value": column.value}))
-        return runElem
-
-
-    def testToCSV(self, test):
-        """
-        This function dumps a test with results into a CSV-file.
-        """
-
-        # store columntitles of tests
-        CSVLines = [CSV_SEPARATOR.join(
-                      ["sourcefile", "status", "cputime", "walltime"] \
-                    + [column.title for column in test.benchmark.columns])]
-
-        # store columnvalues of each run
-        for run in test.runs:
-            CSVLines.append(CSV_SEPARATOR.join(
-                  [run.sourcefile, run.status, run.cpuTimeStr, run.wallTimeStr] \
-                + [column.value for column in run.columns]))
-
-        return "\n".join(CSVLines) + "\n"
-
-
-    def isCorrectResult(self, filename, status):
-        '''
-        this function return a string,
-        that shows the relation between status and file.
-        '''
-        status = status.lower()
-        isSafeFile = not Util.containsAny(filename.lower(), BUG_SUBSTRING_LIST)
-
-        if status == 'safe':
-            if isSafeFile:
-                return "correctSafe"
-            else:
-                return "wrongSafe"
-        elif status == 'unsafe':
-            if isSafeFile:
-                return "wrongUnsafe"
-            else:
-                return "correctUnsafe"
-        elif status == 'unknown':
-            return 'unknown'
-        else:
-            return 'error'
 
 
     def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columns, isFirstLine=False):
@@ -1211,21 +1111,25 @@ class OutputHandler:
     def outputAfterBenchmark(self):
         self.statistics.printToTerminal()
 
+        if self.XMLFileNames:
+            Util.printOut("In order to get HTML and CSV tables, run\n{0} '{1}'"
+                          .format(os.path.join(os.path.dirname(__file__), 'table-generator.py'),
+                                  "' '".join(self.XMLFileNames)))
+
         if STOPPED_BY_INTERRUPT:
-            Util.printOut("\nscript was interrupted by user, some tests may not be done\n")
+            Util.printOut("\nScript was interrupted by user, some runs may not be done.\n")
 
 
-    def getFileName(self, testname, fileExtension):
+    def getFileName(self, runSetName, fileExtension):
         '''
-        This function returns the name of the file of a test
-        with an extension ("txt", "xml", "csv").
+        This function returns the name of the file for a run set
+        with an extension ("txt", "xml").
         '''
 
-        fileName = OUTPUT_PATH + self.benchmark.name + "." \
-                    + self.benchmark.date + ".results."
+        fileName = self.benchmark.outputBase + ".results."
 
-        if testname is not None:
-            fileName += testname + "."
+        if runSetName:
+            fileName += runSetName + "."
 
         return fileName + fileExtension
 
@@ -1237,109 +1141,48 @@ class OutputHandler:
         fileName = fileName.replace(self.commonPrefix, '', 1)
         return fileName.ljust(self.maxLengthOfFileName + 4)
 
+
 class Statistics:
 
     def __init__(self):
-        self.dic = {"counter": 0,
-                    "correctSafe": 0,
-                    "correctUnsafe": 0,
-                    "unknown": 0,
-                    "wrongUnsafe": 0,
-                    "wrongSafe": 0}
-
+        self.dic = dict((status,0) for status in COLOR_DIC)
+        self.counter = 0
 
     def addResult(self, statusRelation):
-        self.dic["counter"] += 1
-        if statusRelation == 'error':
-            statusRelation = 'unknown'
+        self.counter += 1
         assert statusRelation in self.dic
         self.dic[statusRelation] += 1
 
 
     def printToTerminal(self):
-        Util.printOut('\n'.join(['\nStatistics:' + str(self.dic["counter"]).rjust(13) + ' Files',
-                 '    correct:        ' + str(self.dic["correctSafe"] + \
-                                              self.dic["correctUnsafe"]).rjust(4),
-                 '    unknown:        ' + str(self.dic["unknown"]).rjust(4),
-                 '    false positives:' + str(self.dic["wrongUnsafe"]).rjust(4) + \
+        Util.printOut('\n'.join(['\nStatistics:' + str(self.counter).rjust(13) + ' Files',
+                 '    correct:        ' + str(self.dic[result.RESULT_CORRECT_SAFE] + \
+                                              self.dic[result.RESULT_CORRECT_UNSAFE]).rjust(4),
+                 '    unknown:        ' + str(self.dic[result.RESULT_UNKNOWN] + \
+                                              self.dic[result.RESULT_ERROR]).rjust(4),
+                 '    false positives:' + str(self.dic[result.RESULT_WRONG_UNSAFE]).rjust(4) + \
                  '        (file is safe, result is unsafe)',
-                 '    false negatives:' + str(self.dic["wrongSafe"]).rjust(4) + \
+                 '    false negatives:' + str(self.dic[result.RESULT_WRONG_SAFE]).rjust(4) + \
                  '        (file is unsafe, result is safe)',
                  '']))
 
 
-def getOptions(optionsTag):
+def getOptionsFromXML(optionsTag):
     '''
     This function searches for options in a tag
-    and returns a list with tuples of (name, value).
+    and returns a list with command-line arguments.
     '''
-    return [(option.get("name"), option.text)
-               for option in optionsTag.findall("option")]
+    return Util.toSimpleList([(option.get("name"), option.text)
+               for option in optionsTag.findall("option")])
 
 
-def mergeOptions(benchmarkOptions, testOptions=[], fileOptions=[]):
-    '''
-    This function merges lists of optionpairs into one list.
-    If a option is part of several lists,
-    the option appears in the list several times.
-    '''
-
-    currentOptions = []
-
-    # copy global options
-    currentOptions.extend(benchmarkOptions)
-
-    # insert testOptions
-    currentOptions.extend(testOptions)
-
-    # insert fileOptions
-    currentOptions.extend(fileOptions)
-
-    return Util.toSimpleList(currentOptions)
-
-
-class FileWriter:
-     """
-     The class FileWrtiter is a wrapper for writing content into a file.
-     """
-
-     def __init__(self, filename, content):
-         """
-         The constructor of FileWriter creates the file.
-         If the file exist, it will be OVERWRITTEN without a message!
-         """
-
-         self.__filename = filename
-         file = open(self.__filename, "w")
-         file.write(content)
-         file.close()
-
-     def append(self, content):
-         file = open(self.__filename, "a")
-         file.write(content)
-         file.close()
-
-     def replace(self, content):
-         """
-         replaces the content of a file.
-         a tmp-file is used to avoid loss of data through an interrupt
-         """
-         tmpFilename = self.__filename + ".tmp"
-         
-         file = open(tmpFilename, "w")
-         file.write(content)
-         file.close()
-         
-         os.rename(tmpFilename, self.__filename)
-
-
-def substituteVars(oldList, test, sourcefile=None, logFolder=None):
+def substituteVars(oldList, runSet, sourcefile=None):
     """
-    This method replaces special substrings from a list of string 
+    This method replaces special substrings from a list of string
     and return a new list.
     """
 
-    benchmark = test.benchmark
+    benchmark = runSet.benchmark
 
     # list with tuples (key, value): 'key' is replaced by 'value'
     keyValueList = [('${benchmark_name}', benchmark.name),
@@ -1348,16 +1191,15 @@ def substituteVars(oldList, test, sourcefile=None, logFolder=None):
                     ('${benchmark_path_abs}', os.path.abspath(os.path.dirname(benchmark.benchmarkFile))),
                     ('${benchmark_file}', os.path.basename(benchmark.benchmarkFile)),
                     ('${benchmark_file_abs}', os.path.abspath(os.path.basename(benchmark.benchmarkFile))),
-                    ('${test_name}',      test.name if test.name is not None else 'noName')]
+                    ('${logfile_path}',   os.path.dirname(runSet.logFolder)),
+                    ('${logfile_path_abs}', os.path.abspath(runSet.logFolder)),
+                    ('${rundefinition_name}', runSet.realName if runSet.realName else ''),
+                    ('${test_name}',      runSet.realName if runSet.realName else '')]
 
     if sourcefile:
         keyValueList.append(('${sourcefile_name}', os.path.basename(sourcefile)))
         keyValueList.append(('${sourcefile_path}', os.path.dirname(sourcefile)))
         keyValueList.append(('${sourcefile_path_abs}', os.path.dirname(os.path.abspath(sourcefile))))
-
-    if logFolder:
-        keyValueList.append(('${logfile_path}', os.path.dirname(logFolder)))
-        keyValueList.append(('${logfile_path_abs}', os.path.abspath(logFolder)))
 
     # do not use keys twice
     assert len(set((key for (key, value) in keyValueList))) == len(keyValueList)
@@ -1375,580 +1217,6 @@ def substituteVars(oldList, test, sourcefile=None, logFolder=None):
     return newList
 
 
-def findExecutable(program=None, fallback=None):
-    def isExecutable(programPath):
-        return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
-
-    if program is None:
-        return None
-
-    else:
-        dirs = os.environ['PATH'].split(os.pathsep)
-        dirs.append(".")
-
-        for dir in dirs:
-            name = os.path.join(dir, program)
-            if isExecutable(name):
-                return name
-
-        if fallback is not None and isExecutable(fallback):
-            return fallback
-
-        sys.exit("ERROR: Could not find '{0}' executable".format(program))
-
-
-def killSubprocess(process):
-    '''
-    this function kills the process and the children in its group.
-    '''
-    try:
-        os.killpg(process.pid, signal.SIGTERM)
-    except OSError: # process itself returned and exited before killing
-        pass
-
-
-def run(args, rlimits, numberOfThread, outputfilename):
-    args = [os.path.expandvars(arg) for arg in args]
-    args = [os.path.expanduser(arg) for arg in args]
-
-    if options.limitCores:
-        # use only one cpu for one subprocess
-        # if there are more threads than cores, some threads share the same core
-        import multiprocessing
-        args = ['taskset', '-c', str(numberOfThread % multiprocessing.cpu_count())] + args
-
-    outputfile = open(outputfilename, 'w') # override existing file
-    outputfile.write(' '.join(args) + '\n\n\n' + '-'*80 + '\n\n\n')
-    outputfile.flush()
-
-    def preSubprocess():
-        os.setpgrp() # make subprocess to group-leader
-        if TIMELIMIT in rlimits:
-            resource.setrlimit(resource.RLIMIT_CPU, (rlimits[TIMELIMIT], rlimits[TIMELIMIT]))
-        if MEMLIMIT in rlimits:
-            memresource = resource.RLIMIT_DATA if options.memdata else resource.RLIMIT_AS
-            memlimit = rlimits[MEMLIMIT] * BYTE_FACTOR * BYTE_FACTOR # MB to Byte
-            resource.setrlimit(memresource, (memlimit, memlimit))
-
-    wallTimeBefore = time.time()
-
-    try:
-        p = subprocess.Popen(args,
-                             stdout=outputfile, stderr=outputfile,
-                             preexec_fn=preSubprocess)
-
-        try:
-            SUB_PROCESSES_LOCK.acquire()
-            SUB_PROCESSES.add(p)
-        finally:
-            SUB_PROCESSES_LOCK.release()
-
-        # if rlimit does not work, a seperate Timer is started to kill the subprocess,
-        # Timer has 10 seconds 'overhead'
-        if TIMELIMIT in rlimits:
-          timelimit = rlimits[TIMELIMIT]
-          timer = threading.Timer(timelimit + 10, killSubprocess, [p])
-          timer.start()
-
-        (pid, returnvalue, ru_child) = os.wait4(p.pid, 0)
-
-        # calculation: returnvalue == (returncode * 256) + returnsignal
-        returnsignal = returnvalue % 256
-        returncode = returnvalue // 256
-        assert pid == p.pid
-
-    except OSError:
-        logging.critical("I caught an OSError. Assure that the directory "
-                         + "containing the tool to be benchmarked is included "
-                         + "in the PATH environment variable or an alias is set.")
-        sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
-
-    finally:
-        try:
-            SUB_PROCESSES_LOCK.acquire()
-            assert p in SUB_PROCESSES
-            SUB_PROCESSES.remove(p)
-        finally:
-            SUB_PROCESSES_LOCK.release()
-        
-        if (TIMELIMIT in rlimits) and timer.isAlive():
-            timer.cancel()
-
-        outputfile.close() # normally subprocess closes file, we do this again
-
-    wallTimeAfter = time.time()
-    wallTimeDelta = wallTimeAfter - wallTimeBefore
-    cpuTimeDelta = (ru_child.ru_utime + ru_child.ru_stime)
-
-    logging.debug("My subprocess returned returncode {0}.".format(returncode))
-
-    outputfile = open(outputfilename, 'r') # re-open file for reading output
-    output = ''.join(outputfile.readlines()[6:]) # first 6 lines are for logging, rest is output of subprocess
-    outputfile.close()
-    output = Util.decodeToString(output)
-
-    return (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta)
-
-
-def isTimeout(cpuTimeDelta, rlimits):
-    ''' try to find out whether the tool terminated because of a timeout '''
-    if TIMELIMIT in rlimits:
-        limit = rlimits[TIMELIMIT]
-    else:
-        limit = float('inf')
-
-    return cpuTimeDelta > limit*0.99
-
-
-def run_cbmc(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    if ("--xml-ui" not in options):
-        options = options + ["--xml-ui"]
-
-    args = [exe] + options + [sourcefile]
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-
-    #an empty tag cannot be parsed into a tree
-    output = output.replace("<>", "<emptyTag>")
-    output = output.replace("</>", "</emptyTag>")
-
-    if ((returncode == 0) or (returncode == 10)):
-        try:
-            tree = ET.fromstring(output)
-            status = tree.findtext('cprover-status')
-        
-            if status is None:
-                def isErrorMessage(msg):
-                    return msg.get('type', None) == 'ERROR'
-
-                messages = list(filter(isErrorMessage, tree.getiterator('message')))
-                if messages:
-                    # for now, use only the first error message if there are several
-                    msg = messages[0].findtext('text')
-                    if msg == 'Out of memory':
-                        status = 'OUT OF MEMORY'
-                    elif msg:
-                        status = 'ERROR (%s)'.format(msg)
-                    else:
-                        status = 'ERROR'
-                else:
-                    status = 'INVALID OUTPUT'
-                    
-            elif status == "FAILURE":
-                assert returncode == 10
-                reason = tree.find('goto_trace').find('failure').findtext('reason')
-                if 'unwinding assertion' in reason:
-                    status = "UNKNOWN"
-                else:
-                    status = "UNSAFE"
-                    
-            elif status == "SUCCESS":
-                assert returncode == 0
-                if "--no-unwinding-assertions" in options:
-                    status = "UNKNOWN"
-                else:
-                    status = "SAFE"
-                
-        except Exception as e: # catch all exceptions
-            if isTimeout(cpuTimeDelta, rlimits):
-                # in this case an exception is expected as the XML is invaliddd
-                status = 'TIMEOUT'
-            elif 'Minisat::OutOfMemoryException' in output:
-                status = 'OUT OF MEMORY'
-            else:
-                status = 'INVALID OUTPUT'
-                logging.warning("Error parsing CBMC output for returncode %d: %s" % (returncode, e))
-    
-    elif returncode == 6:
-        # parser error or something similar
-        status = 'ERROR'
-
-    elif returnsignal == 9 or returncode == (128+9):
-        if isTimeout(cpuTimeDelta, rlimits):
-            status = 'TIMEOUT'
-        else:
-            status = "KILLED BY SIGNAL 9"
-
-    elif returnsignal == 6:
-        status = "ABORTED"
-    elif returnsignal == 15 or returncode == (128+15):
-        status = "KILLED"
-    else:
-        status = "ERROR ({0})".format(returncode)
-
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def run_satabs(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = [exe] + options + [sourcefile]
-
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-
-    if "VERIFICATION SUCCESSFUL" in output:
-        assert returncode == 0
-        status = "SAFE"
-    elif "VERIFICATION FAILED" in output:
-        assert returncode == 10
-        status = "UNSAFE"
-    elif returnsignal == 9:
-        status = "TIMEOUT"
-    elif returnsignal == 6:
-        if "Assertion `!counterexample.steps.empty()' failed" in output:
-            status = 'COUNTEREXAMPLE FAILED' # TODO: other status?
-        else:
-            status = "OUT OF MEMORY"
-    elif returncode == 1 and "PARSING ERROR" in output:
-        status = "PARSING ERROR"
-    else:
-        status = "FAILURE"
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def run_wolverine(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = [exe] + options + [sourcefile]
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-    if "VERIFICATION SUCCESSFUL" in output:
-        assert returncode == 0
-        status = "SAFE"
-    elif "VERIFICATION FAILED" in output:
-        assert returncode == 10
-        status = "UNSAFE"
-    elif returnsignal == 9:
-        status = "TIMEOUT"
-    elif returnsignal == 6 or (returncode == 6 and "Out of memory" in output):
-        status = "OUT OF MEMORY"
-    elif returncode == 6 and "PARSING ERROR" in output:
-        status = "PARSING ERROR"
-    else:
-        status = "FAILURE"
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def run_ufo(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = [exe, sourcefile] + options
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-    if returnsignal == 9 or returnsignal == (128+9):
-        if isTimeout(cpuTimeDelta, rlimits):
-            status = "TIMEOUT"
-        else:
-            status = "KILLED BY SIGNAL 9"
-    elif returncode == 1 and "program correct: ERROR unreachable" in output:
-        status = "SAFE"
-    elif returncode != 0:
-        status = "ERROR ({0})".format(returncode)
-    elif "ERROR reachable" in output:
-        status = "UNSAFE"
-    elif "program correct: ERROR unreachable" in output:
-        status = "SAFE"
-    else:
-        status = "FAILURE"
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def run_acsar(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-
-    # create tmp-files for acsar, acsar needs special error-labels
-    prepSourcefile = prepareSourceFileForAcsar(sourcefile)
-
-    if ("--mainproc" not in options):
-        options = options + ["--mainproc", "main"]
-
-    args = [exe] + ["--file"] + [prepSourcefile] + options
-
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-    if "syntax error" in output:
-        status = "SYNTAX ERROR"
-
-    elif "runtime error" in output:
-        status = "RUNTIME ERROR"
-
-    elif "error while loading shared libraries:" in output:
-        status = "LIBRARY ERROR"
-
-    elif "can not be used as a root procedure because it is not defined" in output:
-        status = "NO MAIN"
-
-    elif "For Error Location <<ERROR_LOCATION>>: I don't Know " in output:
-        status = "TIMEOUT"
-
-    elif "received signal 6" in output:
-        status = "ABORT"
-
-    elif "received signal 11" in output:
-        status = "SEGFAULT"
-
-    elif "received signal 15" in output:
-        status = "KILLED"
-
-    elif "Error Location <<ERROR_LOCATION>> is not reachable" in output:
-        status = "SAFE"
-
-    elif "Error Location <<ERROR_LOCATION>> is reachable via the following path" in output:
-        status = "UNSAFE"
-
-    else:
-        status = "UNKNOWN"
-
-    # delete tmp-files
-    os.remove(prepSourcefile)
-
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def prepareSourceFileForAcsar(sourcefile):
-    content = open(sourcefile, "r").read()
-    content = content.replace(
-        "ERROR;", "ERROR_LOCATION;").replace(
-        "ERROR:", "ERROR_LOCATION:").replace(
-        "errorFn();", "goto ERROR_LOCATION; ERROR_LOCATION:;")
-    newFilename = sourcefile + "_acsar.c"
-    preparedFile = FileWriter(newFilename, content)
-    return newFilename
-
-
-def run_feaver(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-
-    # create tmp-files for acsar, acsar needs special error-labels
-    prepSourcefile = prepareSourceFileForFeaver(sourcefile)
-
-    args = [exe] + options + [prepSourcefile]
-
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-    if "collect2: ld returned 1 exit status" in output:
-        status = "COMPILE ERROR"
-
-    elif "Error (parse error" in output:
-        status = "PARSE ERROR"
-
-    elif "error: (\"model\":" in output:
-        status = "MODEL ERROR"
-
-    elif "Error: syntax error" in output:
-        status = "SYNTAX ERROR"
-
-    elif "error: " in output or "Error: " in output:
-        status = "ERROR"
-
-    elif "Error Found:" in output:
-        status = "UNSAFE"
-
-    elif "No Errors Found" in output:
-        status = "SAFE"
-
-    else:
-        status = "UNKNOWN"
-
-    # delete tmp-files
-    for tmpfile in [prepSourcefile, prepSourcefile[0:-1] + "M",
-                 "_modex_main.spn", "_modex_.h", "_modex_.cln", "_modex_.drv",
-                 "model", "pan.b", "pan.c", "pan.h", "pan.m", "pan.t"]:
-        try:
-            os.remove(tmpfile)
-        except OSError:
-            pass
-
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def prepareSourceFileForFeaver(sourcefile):
-    content = open(sourcefile, "r").read()
-    content = content.replace("goto ERROR;", "assert(0);")
-    newFilename = "tmp_benchmark_feaver.c"
-    preparedFile = FileWriter(newFilename, content)
-    return newFilename
-
-
-# the next 3 functions are for imaginary tools, that return special results,
-# perhaps someone can use these function again someday,
-# to use them you need a normal benchmark-xml-file 
-# with the tool and sourcefiles, however options are ignored
-def run_safe(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = ['safe'] + options + [sourcefile]
-    cpuTimeDelta = wallTimeDelta = 0
-    return ('safe', cpuTimeDelta, wallTimeDelta, args)
-
-def run_unsafe(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = ['unsafe'] + options + [sourcefile]
-    cpuTimeDelta = wallTimeDelta = 0
-    return ('unsafe', cpuTimeDelta, wallTimeDelta, args)
-
-def run_random(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = ['random'] + options + [sourcefile]
-    cpuTimeDelta = wallTimeDelta = 0
-    from random import random
-    status = 'safe' if random() < 0.5 else 'unsafe'
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def appendFileToFile(sourcename, targetname):
-    source = open(sourcename, 'r')
-    try:
-        target = open(targetname, 'a')
-        try:
-            target.writelines(source.readlines())
-        finally:
-            target.close()
-    finally:
-        source.close()
-
-def run_cpachecker(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    if ("-stats" not in options):
-        options = options + ["-stats"]
-
-    args = [exe] + options + [sourcefile]
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-
-    status = getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
-    getCPAcheckerColumns(output, columns)
-
-    # Segmentation faults and some memory failures reference a file with more information.
-    # We append this file to the log.
-    if status == 'SEGMENTATION FAULT' or status.startswith('ERROR') or status == 'OUT OF MEMORY':
-        next = False
-        for line in output.splitlines():
-            if next:
-                try:
-                    dumpFile = line.strip(' #')
-                    appendFileToFile(dumpFile, file)
-                    os.remove(dumpFile)
-                except IOError as e:
-                    logging.warn('Could not append additional segmentation fault information (%s)' % e.strerror)
-                break
-            if line == '# An error report file with more information is saved as:':
-                next = True
-
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta):
-    """
-    @param returncode: code returned by CPAchecker
-    @param returnsignal: signal, which terminated CPAchecker
-    @param output: the output of CPAchecker
-    @return: status of CPAchecker after running a testfile
-    """
-
-    def isOutOfNativeMemory(line):
-        return ('std::bad_alloc'             in line # C++ out of memory exception (MathSAT)
-             or 'Cannot allocate memory'     in line
-             or line.startswith('out of memory')     # CuDD
-             )
-
-    if returnsignal == 0:
-        status = None
-
-    elif returnsignal == 6:
-        status = "ABORTED (probably by Mathsat)"
-
-    elif returnsignal == 9:
-        if isTimeout(cpuTimeDelta, rlimits):
-            status = 'TIMEOUT'
-        else:
-            status = "KILLED BY SIGNAL 9"
-
-    elif returnsignal == (128+15):
-        status = "KILLED"
-
-    else:
-        status = "ERROR ({0})".format(returnsignal)
-
-    for line in output.splitlines():
-        if 'java.lang.OutOfMemoryError' in line:
-            status = 'OUT OF JAVA MEMORY'
-        elif isOutOfNativeMemory(line):
-            status = 'OUT OF NATIVE MEMORY'
-        elif 'There is insufficient memory for the Java Runtime Environment to continue.' in line \
-                or 'cannot allocate memory for thread-local data: ABORT' in line:
-            status = 'OUT OF MEMORY'
-        elif 'SIGSEGV' in line:
-            status = 'SEGMENTATION FAULT'
-        elif ((returncode == 0 or returncode == 1)
-                and ('Exception' in line or 'java.lang.AssertionError' in line)
-                and not line.startswith('cbmc')): # ignore "cbmc error output: ... Minisat::OutOfMemoryException"
-            status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
-        elif 'Could not reserve enough space for object heap' in line:
-            status = 'JAVA HEAP ERROR'
-        elif line.startswith('Error: '):
-            status = 'ERROR'
-        
-        elif line.startswith('Verification result: '):
-            line = line[21:].strip()
-            if line.startswith('SAFE'):
-                newStatus = 'SAFE'
-            elif line.startswith('UNSAFE'):
-                newStatus = 'UNSAFE'
-            else:
-                newStatus = 'UNKNOWN'
-            status = newStatus if status is None else "{0} ({1})".format(status, newStatus)
-            
-        elif (status is None) and line.startswith('#Test cases computed:'):
-            status = 'OK'
-    if status is None:
-        status = "UNKNOWN"
-    return status
-
-
-def getCPAcheckerColumns(output, columns):
-    """
-    The method getCPAcheckerColumns() searches the columnvalues in the output
-    and adds the values to the column-objects.
-    If a value is not found, the value is set to "-".
-    @param output: the output of CPAchecker
-    @param columns: a list with columns
-    """
-
-    for column in columns:
-
-        # search for the text in output and get its value,
-        # stop after the first line, that contains the searched text
-        column.value = "-" # default value
-        for line in output.splitlines():
-            if column.text in line:
-                startPosition = line.find(':') + 1
-                endPosition = line.find('(') # bracket maybe not found -> (-1)
-                if (endPosition == -1):
-                    column.value = line[startPosition:].strip()
-                else:
-                    column.value = line[startPosition: endPosition].strip()
-                break
-
-
-def run_blast(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = [exe] + options + [sourcefile]
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-
-    status = "UNKNOWN"
-    for line in output.splitlines():
-        if line.startswith('Error found! The system is unsafe :-('):
-            status = 'UNSAFE'
-        elif line.startswith('No error found.  The system is safe :-)'):
-            status = 'SAFE'
-        elif (returncode == 2) and line.startswith('Fatal error: out of memory.'):
-            status = 'OUT OF MEMORY'
-        elif (returncode == 2) and line.startswith('Fatal error: exception Sys_error("Broken pipe")'):
-            status = 'EXCEPTION'
-        elif (returncode == 2) and line.startswith('Ack! The gremlins again!: Sys_error("Broken pipe")'):
-            status = 'TIMEOUT'
-
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-def run_ecav(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = [exe] + options + [sourcefile]
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-
-    status = "UNKNOWN"
-    for line in output.splitlines():
-        if line.startswith('0 safe, 1 unsafe'):
-            status = 'UNSAFE'
-        elif line.startswith('1 safe, 0 unsafe'):
-            status = 'SAFE'
-        elif returnsignal == 9:
-            if isTimeout(cpuTimeDelta, rlimits):
-                status = 'TIMEOUT'
-            else:
-                status = "KILLED BY SIGNAL 9"
-
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
 
 class Worker(threading.Thread):
     """
@@ -1965,51 +1233,44 @@ class Worker(threading.Thread):
     def run(self):
         while not Worker.workingQueue.empty() and not STOPPED_BY_INTERRUPT:
             currentRun = Worker.workingQueue.get_nowait()
-            currentRun.run(self.number)
+            try:
+                currentRun.execute(self.number)
+            except BaseException as e:
+                print(e)
             Worker.workingQueue.task_done()
-
-
-def runBenchmark(benchmarkFile):
-    benchmark = Benchmark(benchmarkFile)
-
-    if len(benchmark.tests) == 1:
-        logging.debug("I'm benchmarking {0} consisting of 1 test.".format(repr(benchmarkFile)))
-    else:
-        logging.debug("I'm benchmarking {0} consisting of {1} tests.".format(
-                repr(benchmarkFile), len(benchmark.tests)))
-
+            
+def executeBenchmarkLocaly(benchmark):
     outputHandler = benchmark.outputHandler
-    testsRun = 0
+    runSetsExecuted = 0
 
     logging.debug("I will use {0} threads.".format(benchmark.numOfThreads))
 
-    # iterate over tests and runs
-    for test in benchmark.tests:
+    # iterate over run sets
+    for runSet in benchmark.runSets:
 
         if STOPPED_BY_INTERRUPT: break
 
-        testnumber = benchmark.tests.index(test) + 1 # the first test has number 1
-        (mod, rest) = options.moduloAndRest
+        (mod, rest) = config.moduloAndRest
 
-        if (options.testRunOnly and test.name not in options.testRunOnly) \
-                or (testnumber % mod != rest):
-            outputHandler.outputForSkippingTest(test)
+        if not runSet.shouldBeExecuted() \
+                or (runSet.index % mod != rest):
+            outputHandler.outputForSkippingRunSet(runSet)
 
-        elif not test.runs:
-            outputHandler.outputForSkippingTest(test, "because it has no files")
+        elif not runSet.runs:
+            outputHandler.outputForSkippingRunSet(runSet, "because it has no files")
 
         else:
-            testsRun += 1
-            # get times before test
+            runSetsExecuted += 1
+            # get times before runSet
             ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
             wallTimeBefore = time.time()
 
-            outputHandler.outputBeforeTest(test)
+            outputHandler.outputBeforeRunSet(runSet)
 
             # put all runs into a queue
-            for run in test.runs:
+            for run in runSet.runs:
                 Worker.workingQueue.put(run)
-    
+
             # create some workers
             for i in range(benchmark.numOfThreads):
                 WORKER_THREADS.append(Worker(i))
@@ -2028,22 +1289,266 @@ def runBenchmark(benchmarkFile):
                     time.sleep(0.1) # sleep some time
                 except KeyboardInterrupt:
                     killScript()
-                
-            assert (len(SUB_PROCESSES) == 0) or STOPPED_BY_INTERRUPT
 
-            # get times after test
+            # get times after runSet
             wallTimeAfter = time.time()
-            wallTimeTest = wallTimeAfter - wallTimeBefore
+            usedWallTime = wallTimeAfter - wallTimeBefore
             ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
-            cpuTimeTest = (ruAfter.ru_utime + ruAfter.ru_stime)\
-            - (ruBefore.ru_utime + ruBefore.ru_stime)
+            usedCpuTime = (ruAfter.ru_utime + ruAfter.ru_stime) \
+                        - (ruBefore.ru_utime + ruBefore.ru_stime)
 
-            outputHandler.outputAfterTest(cpuTimeTest, wallTimeTest)
+            outputHandler.outputAfterRunSet(runSet, usedCpuTime, usedWallTime)
 
     outputHandler.outputAfterBenchmark()
-    if options.commit and not STOPPED_BY_INTERRUPT and testsRun > 0:
-        Util.addFilesToGitRepository(outputHandler.allCreatedFiles,
-                                     options.commitMessage+'\n\n'+outputHandler.description)
+
+    if config.commit and not STOPPED_BY_INTERRUPT and runSetsExecuted > 0:
+        Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
+                                     config.commitMessage+'\n\n'+outputHandler.description)
+
+
+def parseCloudResultFile(filePath):
+    
+    wallTime = None
+    cpuTime = None
+    memUsage = None
+    returnValue = None
+    
+    with open(filePath, 'rt') as file:
+
+        try:
+            wallTime = float(file.readline().split(":")[-1])
+        except ValueError:
+            pass
+        try:
+            cpuTime = float(file.readline().split(":")[-1])
+        except ValueError:
+            pass
+        try:
+            memUsage = int(file.readline().split(":")[-1]);
+        except ValueError:
+            pass
+        try:
+            returnValue = int(file.readline().split(":")[-1])
+        except ValueError:
+            pass
+    
+    return (wallTime, cpuTime, memUsage, returnValue)
+
+def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
+
+    runToHostMap = {}
+    try:
+        with open(filePath, 'rt') as file:
+            outputHandler.allCreatedFiles.append(filePath)
+            
+            name = file.readline().split("=")[-1].strip()
+            osName = file.readline().split("=")[-1].strip()
+            memory = file.readline().split("=")[-1].strip()
+            cpuName = file.readline().split("=")[-1].strip()
+            frequency = file.readline().split("=")[-1].strip()
+            cores = file.readline().split("=")[-1].strip()
+            outputHandler.storeSystemInfo(osName, cpuName, cores, frequency, memory, name)
+
+            # skip all further hostdescriptions for now and wait for separator line
+            while file.readline() != '\n':
+                pass
+
+            for line in file:
+                line = line.strip()
+                if not line:
+                    continue # skip empty lines
+
+                runInfo = line.split('\t')
+                runToHostMap[runInfo[1].strip()] = runInfo[0].strip()
+
+    except IOError:
+        logging.warning("Host information file not found: " + filePath)
+    return runToHostMap
+ 
+def executeBenchmarkInCloud(benchmark):
+    
+    outputHandler = benchmark.outputHandler
+
+    absWorkingDir = os.path.abspath(os.curdir)
+    logging.debug("Working dir: " + absWorkingDir)
+    toolpaths = benchmark.requiredFiles()
+    for file in toolpaths:
+        if not os.path.exists(file):
+            logging.error("Missing file {0}, cannot run benchmark within cloud.".format(os.path.normpath(file)))
+            return
+
+    requirements = str(benchmark.requirements.memory()) + "\t" + \
+                str(benchmark.requirements.cpuCores())
+                    
+    if(benchmark.requirements.cpuModel() is not ""):
+        requirements += "\t" + benchmark.requirements.cpuModel()                         
+                            
+    cloudRunExecutorDir = os.path.abspath(os.path.dirname(__file__))
+    outputDir = benchmark.logFolder
+    absOutputDir = os.path.abspath(outputDir)
+
+    runDefinitions = []
+    absSourceFiles = []
+    numOfRunDefLines = 0
+    
+    # iterate over run sets
+    for runSet in benchmark.runSets:
+        if not runSet.shouldBeExecuted():
+            continue
+
+        if STOPPED_BY_INTERRUPT: break
+        
+        numOfRunDefLines += (len(runSet.runs) + 1)
+        
+        timeLimit = str(DEFAULT_CLOUD_TIMELIMIT)
+        memLimit = str(DEFAULT_CLOUD_MEMLIMIT)
+        if(TIMELIMIT in benchmark.rlimits):
+            timeLimit = str(benchmark.rlimits[TIMELIMIT])
+        if(MEMLIMIT in benchmark.rlimits):
+            memLimit = str(benchmark.rlimits[MEMLIMIT])
+            
+        runSetHeadLine = str(len(runSet.runs)) + "\t" + \
+                        timeLimit + "\t" + \
+                       memLimit
+                       
+        if(CORELIMIT in benchmark.rlimits):
+           coreLimit = str(benchmark.rlimits[CORELIMIT])
+           runSetHeadLine += ("\t" + coreLimit)
+         
+        runDefinitions.append(runSetHeadLine)
+        
+        # iterate over runs
+        for run in runSet.runs:
+            #escape delimiter char
+            args = []
+            for arg in run.args:
+                args.append(arg.replace(" ", "  "))
+            argString = " ".join(args)
+            
+            logFile = os.path.relpath(run.logFile, outputDir)
+            runDefinitions.append(argString + "\t" + run.sourcefile + "\t" + \
+                                    logFile)
+            absSourceFiles.append(os.path.abspath(run.sourcefile))
+
+    if not absSourceFiles:
+        logging.warning("Skipping benchmark without source files.")
+        return
+
+    #preparing cloud input
+    absToolpaths = list(map(os.path.abspath, toolpaths))
+    sourceFilesBaseDir = os.path.commonprefix(absSourceFiles)
+    toolPathsBaseDir = os.path.commonprefix(absToolpaths)
+    baseDir = os.path.commonprefix([sourceFilesBaseDir, toolPathsBaseDir, cloudRunExecutorDir])
+    
+    if(baseDir == ""):
+        sys.exit("No common base dir found.")
+        
+    #os.path.commonprefix works on charakters not on the file system
+    if(baseDir[-1]!='/'):
+        baseDir = os.path.split(baseDir)[0];
+     
+    numOfRunDefLinesAndPriorityStr = str(numOfRunDefLines)
+    if(config.cloudPriority):
+        numOfRunDefLinesAndPriorityStr += "\t" + config.cloudPriority
+
+    cloudInput = "\t".join(absToolpaths) + "\n" + \
+                cloudRunExecutorDir + "\n" + \
+                baseDir + "\t" + absOutputDir + "\t" + absWorkingDir +"\n" + \
+                requirements + "\n" + \
+                numOfRunDefLinesAndPriorityStr + "\n" + \
+                "\n".join(runDefinitions)
+
+    # install cloud and dependencies
+    ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"])
+    ant.communicate()
+    ant.wait()
+
+    # start cloud and wait for exit
+    logging.debug("Starting cloud.")
+    if(config.debug):
+        logLevel =  "FINER"
+    else:
+        logLevel = "INFO"
+    libDir = os.path.abspath("./lib/java-benchmark")
+    cloud = subprocess.Popen(["java", "-jar", libDir + "/vcloud.jar", "benchmark", "--master", config.cloud, "--loglevel", logLevel], stdin=subprocess.PIPE)
+    try:
+        (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
+    except KeyboardInterrupt:
+        killScript()
+    returnCode = cloud.wait()
+
+    if returnCode and not STOPPED_BY_INTERRUPT:
+        logging.warn("Cloud return code: {0}".format(returnCode))
+
+    if not os.path.isdir(outputDir) or not os.listdir(outputDir):
+        #outputDir does not exist or is empty
+        logging.warning("Cloud produced no results.")
+        return
+
+    #Write worker host informations in xml
+    filePath = os.path.join(outputDir, "hostInformation.txt")
+    runToHostMap = parseAndSetCloudWorkerHostInformation(filePath, outputHandler)
+    
+    executedAllRuns = True;
+    
+    #write results in runs and
+    #handle output after all runs are done
+    for runSet in benchmark.runSets:
+        if not runSet.shouldBeExecuted():
+            outputHandler.outputForSkippingRunSet(runSet)
+            continue
+
+        outputHandler.outputBeforeRunSet(runSet)     
+        for run in runSet.runs:
+            try:
+                stdoutFile = run.logFile + ".stdOut"
+                (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
+                
+                if(run.sourcefile in runToHostMap):
+                    run.host = runToHostMap[run.sourcefile]
+
+                if returnValue is not None:
+                    # Do not delete stdOut file if there was some problem
+                    os.remove(stdoutFile)
+                else:
+                    executedAllRuns = False;
+                    
+            except EnvironmentError as e:
+                logging.warning("Cannot extract measured values from output for file {0}: {1}".format(run.sourcefile, e))
+                executedAllRuns = False;
+                continue
+
+            outputHandler.outputBeforeRun(run)
+            output = ''
+            try:
+                with open(run.logFile, 'rt') as f:
+                    output = f.read()
+            except IOError as e:
+                logging.warning("Cannot read log file: " + e.strerror)
+
+            run.afterExecution(returnValue, output)
+        outputHandler.outputAfterRunSet(runSet, None, None)
+        
+    outputHandler.outputAfterBenchmark()
+    
+    if not executedAllRuns:
+         logging.warning("Not all runs were executed in the cloud!")
+
+    if config.commit and not STOPPED_BY_INTERRUPT:
+        Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
+                                     config.commitMessage+'\n\n'+outputHandler.description)
+
+
+def executeBenchmark(benchmarkFile):
+    benchmark = Benchmark(benchmarkFile)
+
+    logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
+            repr(benchmarkFile), len(benchmark.runSets)))
+    
+    if(config.cloud):
+        executeBenchmarkInCloud(benchmark)
+    else:
+        executeBenchmarkLocaly(benchmark)
 
 
 def main(argv=None):
@@ -2063,11 +1568,27 @@ def main(argv=None):
                       action="store_true",
                       help="Enable debug output")
 
-    parser.add_argument("-t", "--test", dest="testRunOnly",
+    parser.add_argument("-r", "--rundefinition", dest="selectedRunDefinitions",
                       action="append",
-                      help="Run only the specified TEST from the benchmark definition. "
+                      help="Run only the specified RUN_DEFINITION from the benchmark definition file. "
                             + "This option can be specified several times.",
+                      metavar="RUN_DEFINITION")
+
+    parser.add_argument("-t", "--test", dest="selectedRunDefinitions",
+                      action="append",
+                      help="Same as -r/--rundefinition (deprecated)",
                       metavar="TEST")
+
+    parser.add_argument("-s", "--sourcefiles", dest="selectedSourcefileSets",
+                      action="append",
+                      help="Run only the files from the sourcefiles tag with SOURCE as name. "
+                            + "This option can be specified several times.",
+                      metavar="SOURCES")
+
+    parser.add_argument("-n", "--name",
+                      dest="name", default=None,
+                      help="Set name of benchmark execution to NAME",
+                      metavar="NAME")
 
     parser.add_argument("-o", "--outputpath",
                       dest="output_path", type=str,
@@ -2087,24 +1608,21 @@ def main(argv=None):
                       metavar="MB")
 
     parser.add_argument("-N", "--numOfThreads",
-                      dest="numOfThreads", default=None,
+                      dest="numOfThreads", default=None, type=int,
                       help="Run n benchmarks in parallel",
                       metavar="n")
 
     parser.add_argument("-x", "--moduloAndRest",
                       dest="moduloAndRest", default=(1,0), nargs=2, type=int,
-                      help="Run only a subset of tests for which (i %% a == b) holds" +
-                            "with i being the index of the test in the benhcmark definition file " +
+                      help="Run only a subset of run definitions for which (i %% a == b) holds" +
+                            "with i being the index of the run definition in the benchmark definition file " +
                             "(starting with 1).",
                       metavar=("a","b"))
 
-    parser.add_argument("-D", "--memdata", dest="memdata",
-                      action="store_true",
-                      help="When limiting memory usage, restrict only the data segments instead of the virtual address space.")
-
-    parser.add_argument("-c", "--limitCores", dest="limitCores",
-                      action="store_true",
-                      help="Limit each run of the tool to a single CPU core.")
+    parser.add_argument("-c", "--limitCores", dest="corelimit",
+                      type=int, default=None,
+                      metavar="N",
+                      help="Limit each run of the tool to N CPU cores (-1 to disable).")
 
     parser.add_argument("--commit", dest="commit",
                       action="store_true",
@@ -2115,37 +1633,56 @@ def main(argv=None):
                       dest="commitMessage", type=str,
                       default="Results for benchmark run",
                       help="Commit message if --commit is used.")
+    
+    parser.add_argument("--cloud",
+                      dest="cloud",
+                      metavar="HOST",
+                      help="Use cloud with given host as master.")
+    
+    parser.add_argument("--cloudPriority",
+                      dest="cloudPriority",
+                      metavar="PRIORITY",
+                      help="Sets the priority for this benchmark used in the cloud. Possible values are IDLE, LOW, HIGH, URGENT.")
+    
+    parser.add_argument("--cloudCpuModel",
+                      dest="cloudCpuModel",
+                      metavar="CPU_MODEL",
+                      help="Only execute runs on CPU models that contain the given string.")
 
-    global options, OUTPUT_PATH
-    options = parser.parse_args(argv[1:])
-    if os.path.isdir(options.output_path):
-        OUTPUT_PATH = os.path.normpath(options.output_path) + os.sep
+    global config, OUTPUT_PATH
+    config = parser.parse_args(argv[1:])
+    if os.path.isdir(config.output_path):
+        OUTPUT_PATH = os.path.normpath(config.output_path) + os.sep
     else:
-        OUTPUT_PATH = options.output_path
+        OUTPUT_PATH = config.output_path
 
 
-    if (options.debug):
+    if config.debug:
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s",
                             level=logging.DEBUG)
     else:
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s")
 
-    for arg in options.files:
+    for arg in config.files:
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
 
-    try:
-        processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
-        if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
-            logging.warn("Already running instance of this script detected. " + \
-                         "Please make sure to not interfere with somebody else's benchmarks.")
-    except OSError:
-        pass # this does not work on Windows
+    if not config.cloud:
+        try:
+            processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
+            if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
+                logging.warn("Already running instance of this script detected. " + \
+                             "Please make sure to not interfere with somebody else's benchmarks.")
+        except OSError:
+            pass # this does not work on Windows
 
-    for arg in options.files:
+        # do this after logger has been configured
+        runexecutor.init()
+
+    for arg in config.files:
         if STOPPED_BY_INTERRUPT: break
         logging.debug("Benchmark {0} is started.".format(repr(arg)))
-        runBenchmark(arg)
+        executeBenchmark(arg)
         logging.debug("Benchmark {0} is done.".format(repr(arg)))
 
     logging.debug("I think my job is done. Have a nice day!")
@@ -2158,12 +1695,7 @@ def killScript():
 
         # kill running jobs
         Util.printOut("killing subprocesses...")
-        try:
-            SUB_PROCESSES_LOCK.acquire()
-            for process in SUB_PROCESSES:
-                killSubprocess(process)
-        finally:
-            SUB_PROCESSES_LOCK.release()
+        runexecutor.killAllProcesses()
 
         # wait until all threads are stopped
         for worker in WORKER_THREADS:
@@ -2178,6 +1710,6 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, signal_handler_ignore)
     try:
         sys.exit(main())
-    except KeyboardInterrupt: # this block is reached, when interrupt is thrown before or after a test
+    except KeyboardInterrupt: # this block is reached, when interrupt is thrown before or after a run set execution
         killScript()
-        Util.printOut("\n\nscript was interrupted by user, some tests may not be done")
+        Util.printOut("\n\nScript was interrupted by user, some runs may not be done.")

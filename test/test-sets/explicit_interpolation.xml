@@ -10,47 +10,47 @@
 
   <sourcefiles>
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
-    <option name="-setprop">analysis.machineModel=Linux64</option>
+    <option name="-64"/>
   </sourcefiles>
 
   <option name="-heap">12500M</option>
   <option name="-noout"></option>
 
-  <test name="explicit-interpolation_scoped">
+  <rundefinition name="explicit-interpolation_scoped">
     <option name="-explicitAnalysis-ItpRefiner"/>
     <option name="-setprop">cpa.explicit.precision.refinement.useScopedInterpolation=true</option>
-  </test>
+  </rundefinition>
 
-  <test name="explicit-interpolation_unscoped">
+  <rundefinition name="explicit-interpolation_unscoped">
     <option name="-explicitAnalysis-ItpRefiner"/>
     <option name="-setprop">cpa.explicit.precision.refinement.useScopedInterpolation=false</option>
-  </test>
+  </rundefinition>
 
 
-  <test name="explicit-interpolation_scoped_thres13">
+  <rundefinition name="explicit-interpolation_scoped_thres13">
     <option name="-explicitAnalysis-ItpRefiner"/>
     <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.explicit.ExplicitCPA,cpa.conditions.global.GlobalConditionsCPA,cpa.conditions.path.PathConditionsCPA</option>
     <option name="-setprop">cpa.conditions.path.condition=AssignmentsInPathCondition</option>
     <option name="-setprop">cpa.explicit.precision.path.defaultThreshold=13</option>
     <option name="-setprop">cpa.explicit.precision.refinement.useScopedInterpolation=true</option>
-  </test>
+  </rundefinition>
 
-  <test name="explicit-interpolation_unscoped_thres13">
+  <rundefinition name="explicit-interpolation_unscoped_thres13">
     <option name="-explicitAnalysis-ItpRefiner"/>
     <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.explicit.ExplicitCPA,cpa.conditions.global.GlobalConditionsCPA,cpa.conditions.path.PathConditionsCPA</option>
     <option name="-setprop">cpa.conditions.path.condition=AssignmentsInPathCondition</option>
     <option name="-setprop">cpa.explicit.precision.path.defaultThreshold=13</option>
     <option name="-setprop">cpa.explicit.precision.refinement.useScopedInterpolation=false</option>
-  </test>
+  </rundefinition>
 
 
-  <test name="explicit-interpolation_scoped_thres13_abelf">
+  <rundefinition name="explicit-interpolation_scoped_thres13_abelf">
     <option name="-explicitAnalysis-ItpRefiner-ABElf"/>
     <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.explicit.ExplicitCPA,cpa.predicate.PredicateCPA,cpa.conditions.global.GlobalConditionsCPA,cpa.conditions.path.PathConditionsCPA</option>    
     <option name="-setprop">cpa.conditions.path.condition=AssignmentsInPathCondition</option>
     <option name="-setprop">cpa.explicit.precision.path.defaultThreshold=13</option>
     <option name="-setprop">cpa.explicit.precision.refinement.useScopedInterpolation=true</option>
-  </test>
+  </rundefinition>
 
   <columns>
     <column title="#refs">Number of refinements:</column>

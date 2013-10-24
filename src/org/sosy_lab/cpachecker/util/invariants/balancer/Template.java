@@ -87,9 +87,9 @@ public class Template {
   }
 
   public Set<String> writeAllParameters(VariableWriteMode vwm) {
-    Set<String> params = new HashSet<String>();
+    Set<String> params = new HashSet<>();
     for (TemplateVariable p : allParameters) {
-      params.add( p.toString(vwm) );
+      params.add(p.toString(vwm));
     }
     return params;
   }
@@ -102,7 +102,7 @@ public class Template {
     return templateFormula.purify(pur);
   }
 
-  public boolean evaluate(Map<String,Rational> vals) {
+  public boolean evaluate(Map<String, Rational> vals) {
     return templateFormula.evaluate(vals);
   }
 

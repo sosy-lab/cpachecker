@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,7 +60,7 @@ public class ARGMergeJoin implements MergeOperator {
     AbstractState wrappedState1 = argElement1.getWrappedState();
     AbstractState wrappedState2 = argElement2.getWrappedState();
     AbstractState retElement = wrappedMerge.merge(wrappedState1, wrappedState2, pPrecision);
-    if (retElement.equals(wrappedState2)){
+    if (retElement.equals(wrappedState2)) {
       return pElement2;
     }
 

@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="safe" timelimit="10" memlimit="10">
+
+<!--This file demonstrates the use of a tool named "safe",
+    that returns SAFE for every input.
+
+    After running this file, you will get many resultfiles in XML-format,
+    one for each run definition and one for each sourcefiles-block per run definition.
+    This allows to create several different tables.
+    2 tests and 6 blocks result in 14 resultfiles. -->
+
+    <sourcefiles name="concurrency">
+        <includesfile>../../test/programs/benchmarks/Concurrency.set</includesfile>
+    </sourcefiles>
+    
+    <sourcefiles name="control">
+        <includesfile>../../test/programs/benchmarks/ControlFlowInteger*.set</includesfile>
+    </sourcefiles>
+    
+    <sourcefiles name="heap">
+        <includesfile>../../test/programs/benchmarks/HeapManipulation.set</includesfile>
+    </sourcefiles>
+    
+    <sourcefiles name="systemc">
+        <includesfile>../../test/programs/benchmarks/SystemC.set</includesfile>
+    </sourcefiles>
+    
+    <sourcefiles name="drivers64">
+        <includesfile>../../test/programs/benchmarks/DeviceDrivers64.set</includesfile>
+    </sourcefiles>
+
+    <rundefinition name="firstTest">
+        <option name="-optionX">unused</option>
+    </rundefinition>
+    
+    <rundefinition name="anotherTest">
+        <option name="-optionY">unused</option>
+    </rundefinition>
+</benchmark>

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.collect.ImmutableList;
@@ -41,8 +41,7 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
 
   protected final ImmutableList<StopOperator> stopOperators;
 
-  public CompositeStopOperator(ImmutableList<StopOperator> stopOperators)
-  {
+  public CompositeStopOperator(ImmutableList<StopOperator> stopOperators) {
     this.stopOperators = stopOperators;
   }
 
@@ -72,7 +71,7 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
       AbstractState absElem2 = compositeReachedStates.get(idx);
       Precision prec = compositePrecisions.get(idx);
 
-      if (!stopOp.stop(absElem1, Collections.singleton(absElem2), prec)){
+      if (!stopOp.stop(absElem1, Collections.singleton(absElem2), prec)) {
         return false;
       }
     }
@@ -96,7 +95,7 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
       AbstractState absElem1 = componentElements.get(idx);
       AbstractState absElem2 = componentOtherElements.get(idx);
 
-      if (!componentProofChecker.isCoveredBy(absElem1, absElem2)){
+      if (!componentProofChecker.isCoveredBy(absElem1, absElem2)) {
         return false;
       }
     }

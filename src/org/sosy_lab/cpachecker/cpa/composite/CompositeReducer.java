@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,7 +47,7 @@ public class CompositeReducer implements Reducer {
       AbstractState pExpandedState, Block pContext,
       CFANode pLocation) {
 
-    List<AbstractState> result = new ArrayList<AbstractState>();
+    List<AbstractState> result = new ArrayList<>();
     int i = 0;
     for (AbstractState expandedState : ((CompositeState)pExpandedState).getWrappedStates()) {
       result.add(wrappedReducers.get(i++).getVariableReducedState(expandedState, pContext, pLocation));
@@ -63,7 +63,7 @@ public class CompositeReducer implements Reducer {
     List<AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
     List<AbstractState> reducedStates = ((CompositeState)pReducedState).getWrappedStates();
 
-    List<AbstractState> result = new ArrayList<AbstractState>();
+    List<AbstractState> result = new ArrayList<>();
     int i = 0;
     for (Pair<AbstractState, AbstractState> p : Pair.zipList(rootStates, reducedStates)) {
       result.add(wrappedReducers.get(i++).getVariableExpandedState(p.getFirst(), pReducedContext, p.getSecond()));
@@ -77,7 +77,7 @@ public class CompositeReducer implements Reducer {
     List<AbstractState> elements = ((CompositeState)pElementKey).getWrappedStates();
     List<Precision> precisions = ((CompositePrecision)pPrecisionKey).getPrecisions();
 
-    List<Object> result = new ArrayList<Object>(elements.size());
+    List<Object> result = new ArrayList<>(elements.size());
     int i = 0;
     for (Pair<AbstractState, Precision> p : Pair.zipList(elements, precisions)) {
       result.add(wrappedReducers.get(i++).getHashCodeForState(p.getFirst(), p.getSecond()));
@@ -89,7 +89,7 @@ public class CompositeReducer implements Reducer {
   public Precision getVariableReducedPrecision(Precision pPrecision,
       Block pContext) {
     List<Precision> precisions = ((CompositePrecision)pPrecision).getPrecisions();
-    List<Precision> result = new ArrayList<Precision>(precisions.size());
+    List<Precision> result = new ArrayList<>(precisions.size());
 
     int i = 0;
     for (Precision precision : precisions) {
@@ -103,7 +103,7 @@ public class CompositeReducer implements Reducer {
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext, Precision pReducedPrecision) {
     List<Precision> rootPrecisions = ((CompositePrecision)pRootPrecision).getPrecisions();
     List<Precision> reducedPrecisions = ((CompositePrecision)pReducedPrecision).getPrecisions();
-    List<Precision> result = new ArrayList<Precision>(rootPrecisions.size());
+    List<Precision> result = new ArrayList<>(rootPrecisions.size());
 
     int i = 0;
     for (Precision rootPrecision : rootPrecisions) {
@@ -127,5 +127,30 @@ public class CompositeReducer implements Reducer {
     }
 
     return sum;
+  }
+
+  @Override
+  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
+      CFANode pCallNode) {
+    List<AbstractState> result = new ArrayList<>();
+    int i = 0;
+    for (AbstractState expandedState : ((CompositeState)pExpandedState).getWrappedStates()) {
+      result.add(wrappedReducers.get(i++).getVariableReducedStateForProofChecking(expandedState, pContext, pCallNode));
+    }
+    return new CompositeState(result);
+  }
+
+  @Override
+  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
+      AbstractState pReducedState) {
+    List<AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
+    List<AbstractState> reducedStates = ((CompositeState)pReducedState).getWrappedStates();
+
+    List<AbstractState> result = new ArrayList<>();
+    int i = 0;
+    for (Pair<AbstractState, AbstractState> p : Pair.zipList(rootStates, reducedStates)) {
+      result.add(wrappedReducers.get(i++).getVariableExpandedStateForProofChecking(p.getFirst(), pReducedContext, p.getSecond()));
+    }
+    return new CompositeState(result);
   }
 }

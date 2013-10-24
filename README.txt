@@ -17,15 +17,6 @@ Prepare Programs for Verification by CPAchecker
    CPAchecker is able to parse and analyze a large subset of (GNU)C.
    If parsing fails for your program, please send a report to
    cpachecker-users@sosy-lab.org.
-   In this case, you can pre-process and simplify the sources with CIL
-   (http://hal.cs.berkeley.edu/cil/, mirror at http://www.cs.berkeley.edu/~necula/cil/).
-   The suggested command-line arguments for CIL are:
-   --dosimplify --printCilAsIs --save-temps --domakeCFG
-   Additionally usable argument:
-   --dosimpleMem
-   Comments:
-   --save-temps saves files to the current directory, a different directory can
-   be specified by using --save-temps=<DIRECTORY>
 
 
 Verifying a Program with CPAchecker
@@ -35,7 +26,7 @@ Verifying a Program with CPAchecker
    If you use your own program, remember to pre-process it as mentioned above.
    Example: doc/examples/example.c
    A good source for more example programs is the benchmark set of the
-   TACAS 2012 Competition on Software Verification (http://sv-comp.sosy-lab.org/),
+   TACAS 2013 Competition on Software Verification (http://sv-comp.sosy-lab.org/),
    which can be checked out from https://svn.sosy-lab.org/software/sv-benchmarks/trunk.
 
 2. If you want to enable certain analyses like predicate analysis,
@@ -57,6 +48,11 @@ Verifying a Program with CPAchecker
    Example: scripts/cpa.sh -config config/predicateAnalysis.properties doc/examples/example.c
    This example can also be abbreviated to:
    scripts/cpa.sh -predicateAnalysis doc/examples/example.c
+
+   A Java 1.7 compatible JVM is necessary. If it is not in your PATH,
+   you need to specify it in the environment variable JAVA.
+   Example: export JAVA=/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
+   for 64bit OpenJDK 7 on Ubuntu.
 
    On Windows, you need to use cpa.bat instead of cpa.sh.
    Also, predicateAnalysis is currently not supported on Windows,

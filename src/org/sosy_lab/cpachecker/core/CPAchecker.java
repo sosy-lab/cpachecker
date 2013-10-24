@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Set;
@@ -39,6 +41,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -146,7 +149,7 @@ public class CPAchecker {
     factory = new CoreComponentsFactory(pConfiguration, pLogManager);
   }
 
-  public CPAcheckerResult run(String filename) {
+  public CPAcheckerResult run(String programDenotation) {
 
     logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
 
@@ -164,16 +167,18 @@ public class CPAchecker {
       Algorithm algorithm;
 
       if (runCBMCasExternalTool) {
-        algorithm = new ExternalCBMCAlgorithm(filename, config, logger);
+
+        checkIfValidFile(programDenotation);
+        algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
 
       } else {
-        CFA cfa = parse(filename, stats);
+        CFA cfa = parse(programDenotation, stats);
         GlobalInfo.getInstance().storeCFA(cfa);
         stopIfNecessary();
 
         ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, stats);
 
-        algorithm = factory.createAlgorithm(cpa, filename, cfa, stats);
+        algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);
 
         if (algorithm instanceof ImpactAlgorithm) {
           ImpactAlgorithm mcmillan = (ImpactAlgorithm)algorithm;
@@ -190,7 +195,7 @@ public class CPAchecker {
       // now everything necessary has been instantiated
 
       if (disableAnalysis) {
-        return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
+        return new CPAcheckerResult(Result.NOT_YET_STARTED, null, stats);
       }
 
       // run analysis
@@ -204,11 +209,14 @@ public class CPAchecker {
       logger.logUserException(Level.SEVERE, e, "Could not read file");
 
     } catch (ParserException e) {
-      // only log message, not whole exception because this is a C problem,
-      // not a CPAchecker problem
       logger.logUserException(Level.SEVERE, e, "Parsing failed");
-      logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
-          + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
+      StringBuilder msg = new StringBuilder();
+      msg.append("Please make sure that the code can be compiled by a compiler.\n");
+      if (e.getLanguage() == Language.C) {
+        msg.append("If the code was not preprocessed, please use a C preprocessor\nor specify the -preprocess command-line argument.\n");
+      }
+      msg.append("If the error still occurs, please send this error message\ntogether with the input file to cpachecker-users@sosy-lab.org.\n");
+      logger.log(Level.INFO, msg);
 
     } catch (InvalidConfigurationException e) {
       logger.logUserException(Level.SEVERE, e, "Invalid configuration");
@@ -224,13 +232,34 @@ public class CPAchecker {
     return new CPAcheckerResult(result, reached, stats);
   }
 
+  private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
+    if (!denotesOneFile(fileDenotation)) {
+      throw new InvalidConfigurationException(
+        "Exactly one code file has to be given.");
+    }
+
+    File file = new File(fileDenotation);
+
+    try {
+      org.sosy_lab.common.Files.checkReadableFile(file);
+    } catch (FileNotFoundException e) {
+      throw new InvalidConfigurationException(e.getMessage());
+    }
+  }
+
+  private boolean denotesOneFile(String programDenotation) {
+    return !programDenotation.contains(",");
+  }
+
   private CFA parse(String filename, MainCPAStatistics stats) throws InvalidConfigurationException, IOException,
       ParserException, InterruptedException {
     // parse file and create CFA
     CFACreator cfaCreator = new CFACreator(config, logger);
     stats.setCFACreator(cfaCreator);
 
-    return cfaCreator.parseFileAndCreateCFA(filename);
+    CFA cfa = cfaCreator.parseFileAndCreateCFA(filename);
+    stats.setCFA(cfa);
+    return cfa;
   }
 
   private void printConfigurationWarnings() {
@@ -257,7 +286,7 @@ public class CPAchecker {
     // register management interface for CPAchecker
     CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
 
-    stats.analysisTime.start();
+    stats.startAnalysisTimer();
     try {
 
       do {
@@ -271,8 +300,7 @@ public class CPAchecker {
       return isComplete;
 
     } finally {
-      stats.analysisTime.stop();
-      stats.programTime.stop();
+      stats.stopAnalysisTimer();
 
       // unregister management interface for CPAchecker
       mxbean.unregister();

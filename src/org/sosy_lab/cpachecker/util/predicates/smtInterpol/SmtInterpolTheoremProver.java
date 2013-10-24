@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager.*;
 import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.*;
 
 import java.util.ArrayDeque;
@@ -31,30 +30,33 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.base.Preconditions;
 
 import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
-import de.uni_freiburg.informatik.ultimate.logic.Valuation;
 
-public class SmtInterpolTheoremProver implements TheoremProver {
+public class SmtInterpolTheoremProver implements ProverEnvironment {
 
   private final SmtInterpolFormulaManager mgr;
   private SmtInterpolEnvironment env;
-  private List<Term> assertedTerms;
+  private final List<Term> assertedTerms;
 
   public SmtInterpolTheoremProver(SmtInterpolFormulaManager pMgr) {
-    mgr = pMgr;
-    env = null;
+    this.mgr = pMgr;
+
+    assertedTerms = new ArrayList<>();
+    env = mgr.createEnvironment();
+    checkNotNull(env);
   }
 
   @Override
@@ -65,7 +67,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   @Override
   public Model getModel() {
     Preconditions.checkNotNull(env);
-    return SmtInterpolModel.createSmtInterpolModel(env, assertedTerms);
+    return SmtInterpolModel.createSmtInterpolModel(mgr, assertedTerms);
   }
 
   @Override
@@ -76,24 +78,16 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   }
 
   @Override
-  public void push(Formula f) {
+  public void push(BooleanFormula f) {
     Preconditions.checkNotNull(env);
-    final Term t = getTerm(f);
+    final Term t = mgr.getTerm(f);
     assertedTerms.add(t);
     env.push(1);
     env.assertTerm(t);
   }
 
   @Override
-  public void init() {
-    Preconditions.checkNotNull(mgr);
-    assert (env == null);
-    assertedTerms = new ArrayList<Term>();
-    env = mgr.createEnvironment();
-  }
-
-  @Override
-  public void reset() {
+  public void close() {
     Preconditions.checkNotNull(env);
     while (assertedTerms.size() > 0) { // cleanup stack
       pop();
@@ -102,44 +96,39 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   }
 
   @Override
-  public AllSatResult allSat(Formula f, Collection<Formula> formulas,
+  public AllSatResult allSat(Collection<BooleanFormula> formulas,
                              RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) {
     checkNotNull(rmgr);
     checkNotNull(solveTime);
     checkNotNull(enumTime);
 
-    SmtInterpolEnvironment allsatEnv = mgr.createEnvironment();
+    SmtInterpolEnvironment allsatEnv = env;
     checkNotNull(allsatEnv);
 
     // create new allSatResult
     SmtInterpolAllSatCallback result = new SmtInterpolAllSatCallback(rmgr, solveTime, enumTime);
 
-    allsatEnv.push(1);
-
     // unpack formulas to terms
     Term[] importantTerms = new Term[formulas.size()];
     int i = 0;
-    for (Formula impF : formulas) {
-      importantTerms[i++] = getTerm(impF);
+    for (BooleanFormula impF : formulas) {
+      importantTerms[i++] = mgr.getTerm(impF);
     }
 
     solveTime.start();
     int numModels = 0;
-    allsatEnv.assertTerm(getTerm(f));
     while (allsatEnv.checkSat() == LBool.SAT) {
       Term[] model = new Term[importantTerms.length];
 
       if (importantTerms.length == 0) {
         // assert current model to get next model
         result.callback(model);
-        System.out.println(
-            "satCheck is SAT, but there is no model for important terms!");
-        break;
+        throw new IllegalStateException("SMTInterpol could not compute model for satisfiable formula");
       }
 
       assert importantTerms.length != 0 : "there is no valuation for zero important terms!";
 
-      Valuation val = allsatEnv.getValue(importantTerms);
+      Map<Term, Term> val = allsatEnv.getValue(importantTerms);
       for (int j = 0; j < importantTerms.length; j++) {
         Term valueOfT = val.get(importantTerms[j]);
         if (SmtInterpolUtil.isFalse(valueOfT)) {
@@ -169,14 +158,14 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       enumTime.stopOuter();
     }
 
-    allsatEnv.pop(numModels + 1); // we pushed some levels on assertionStack, remove them
+    allsatEnv.pop(numModels); // we pushed some levels on assertionStack, remove them
     return result;
   }
 
   /**
    * callback used to build the predicate abstraction of a formula
    */
-  class SmtInterpolAllSatCallback implements TheoremProver.AllSatResult {
+  class SmtInterpolAllSatCallback implements AllSatResult {
     private final RegionCreator rmgr;
 
     private final Timer solveTime;
@@ -186,7 +175,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     private int count = 0;
 
     private Region formula;
-    private final Deque<Region> cubes = new ArrayDeque<Region>();
+    private final Deque<Region> cubes = new ArrayDeque<>();
 
     public SmtInterpolAllSatCallback(RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime) {
       this.rmgr = rmgr;
@@ -217,16 +206,14 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     }
 
     private void buildBalancedOr() {
-      enumTime.startBoth();
       cubes.add(formula);
       while (cubes.size() > 1) {
         Region b1 = cubes.remove();
         Region b2 = cubes.remove();
         cubes.add(rmgr.makeOr(b1, b2));
       }
-      assert(cubes.size() == 1);
+      assert (cubes.size() == 1);
       formula = cubes.remove();
-      enumTime.stopBoth();
     }
 
     public void callback(Term[] model) { // TODO function needed for smtInterpol???
@@ -241,7 +228,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       // the abstraction is created simply by taking the disjunction
       // of all the models found by msat_all_sat, and storing them in a BDD
       // first, let's create the BDD corresponding to the model
-      Deque<Region> curCube = new ArrayDeque<Region>(model.length + 1);
+      Deque<Region> curCube = new ArrayDeque<>(model.length + 1);
       Region m = rmgr.makeTrue();
       for (Term t : model) {
         Region region;
@@ -261,13 +248,17 @@ public class SmtInterpolTheoremProver implements TheoremProver {
         Region v2 = curCube.remove();
         curCube.add(rmgr.makeAnd(v1, v2));
       }
-      assert(curCube.size() == 1);
+      assert (curCube.size() == 1);
       m = curCube.remove();
       cubes.add(m);
 
       count++;
 
       regionTime.stop();
+    }
+
+    private BooleanFormula encapsulate(Term pT) {
+      return mgr.encapsulate(BooleanFormula.class, pT);
     }
   }
 }

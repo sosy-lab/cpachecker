@@ -40,13 +40,13 @@ class MergeNode {
 
   public MergeNode(int pElementId) {
     stateId = pElementId;
-    branchesMap = new HashMap<Integer,  Pair<Boolean, Boolean>>();
-    incomingState = new ArrayList<FunctionBody>();
+    branchesMap = new HashMap<>();
+    incomingState = new ArrayList<>();
   }
 
   public int addBranch(FunctionBody currentFunction) {
     incomingState.add(currentFunction);
-    Set<Integer> processedConditions = new HashSet<Integer>();
+    Set<Integer> processedConditions = new HashSet<>();
 
     for (BasicBlock elementInStack: currentFunction) {
       int idOfElementInStack = elementInStack.getStateId();

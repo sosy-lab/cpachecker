@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +36,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 
 /**
  * This class represents the vertices/abstract states used by the
@@ -55,30 +56,33 @@ class Vertex extends AbstractSingleWrapperState {
   private final int id = nextId++;
 
   private final Vertex parent;
+  private final BooleanFormulaManager bfmgr;
 
-  private final List<Vertex> children = new ArrayList<Vertex>(2);
+  private final List<Vertex> children = new ArrayList<>(2);
 
-  private Formula stateFormula;
+  private BooleanFormula stateFormula;
 
   private Vertex coveredBy = null;
-  private List<Vertex> coveredNodes = new ArrayList<Vertex>(0);
+  private List<Vertex> coveredNodes = new ArrayList<>(0);
 
-  public Vertex(Formula pStateFormula, AbstractState pElement) {
+  public Vertex(BooleanFormulaManager bfmgr, BooleanFormula pStateFormula, AbstractState pElement) {
     super(pElement);
+    this.bfmgr = bfmgr;
     parent = null;
-    assert pStateFormula.isTrue();
+    assert bfmgr.isTrue(pStateFormula);
     stateFormula = pStateFormula;
   }
 
-  public Vertex(Vertex pParent, Formula pStateFormula, AbstractState pElement) {
+  public Vertex(BooleanFormulaManager bfmgr, Vertex pParent, BooleanFormula pStateFormula, AbstractState pElement) {
     super(pElement);
+    this.bfmgr = bfmgr;
     parent = checkNotNull(pParent);
     parent.children.add(this);
     stateFormula = checkNotNull(pStateFormula);
   }
 
 
-  public Formula getStateFormula() {
+  public BooleanFormula getStateFormula() {
     return stateFormula;
   }
 
@@ -106,7 +110,7 @@ class Vertex extends AbstractSingleWrapperState {
     }
 
     List<Vertex> result = coveredNodes;
-    coveredNodes = new ArrayList<Vertex>(0);
+    coveredNodes = new ArrayList<>(0);
 
     for (Vertex v : result) {
       assert v.coveredBy == this;
@@ -116,7 +120,7 @@ class Vertex extends AbstractSingleWrapperState {
     return result;
   }
 
-  public void setStateFormula(Formula pStateFormula) {
+  public void setStateFormula(BooleanFormula pStateFormula) {
     stateFormula = checkNotNull(pStateFormula);
   }
 
@@ -130,7 +134,7 @@ class Vertex extends AbstractSingleWrapperState {
   }
 
   public List<Vertex> getSubtree() {
-    List<Vertex> subtreeNodes = new ArrayList<Vertex>();
+    List<Vertex> subtreeNodes = new ArrayList<>();
     subtreeNodes.add(this);
     getSubtree(subtreeNodes);
     return subtreeNodes;
@@ -171,7 +175,7 @@ class Vertex extends AbstractSingleWrapperState {
 
   @Override
   public boolean isTarget() {
-    return !stateFormula.isFalse() && super.isTarget();
+    return !bfmgr.isFalse(stateFormula) && super.isTarget();
   }
 
   public boolean isAncestorOf(Vertex v) {

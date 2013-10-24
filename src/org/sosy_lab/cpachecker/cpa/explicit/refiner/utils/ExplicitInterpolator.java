@@ -1,3 +1,4 @@
+
 /*
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
@@ -26,23 +27,29 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 import static com.google.common.collect.Iterables.skip;
 
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class ExplicitInterpolator {
@@ -58,9 +65,16 @@ public class ExplicitInterpolator {
   private ExplicitTransferRelation transfer = null;
 
   /**
-   * the path element where no successor could be found anymore
+   * the precision in use
    */
-  public Pair<ARGState, CFAEdge> blockingElement = null;
+  private ExplicitPrecision precision = null;
+
+  /**
+   * the first path element without any successors
+   */
+  public Integer conflictingOffset = null;
+
+  public Integer currentOffset = null;
 
   /**
    * boolean flag telling whether the current path is feasible
@@ -68,20 +82,20 @@ public class ExplicitInterpolator {
   private boolean isFeasible = false;
 
   /**
-   * boolean flag telling whether the any previous path was feasible
+   * the number of interpolations
    */
-  private boolean wasFeasible = false;
+  private int numberOfInterpolations = 0;
 
   /**
    * This method acts as the constructor of the class.
    */
   public ExplicitInterpolator() throws CPAException {
     try {
-      config    = Configuration.builder().build();
-      transfer  = new ExplicitTransferRelation(config);
+      config      = Configuration.builder().build();
+      transfer    = new ExplicitTransferRelation(config);
+      precision   = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
     }
-
-    catch(InvalidConfigurationException e) {
+    catch (InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
     }
   }
@@ -91,66 +105,59 @@ public class ExplicitInterpolator {
    *
    * @param errorPath the path to check
    * @param offset offset of the state at where to start the current interpolation
-   * @param currentVariable the variable on which the interpolation is performed on
    * @param inputInterpolant the input interpolant
    * @throws CPAException
    * @throws InterruptedException
    */
-  public Pair<String, Long> deriveInterpolant(
-      Path errorPath,
+  public Set<Pair<String, Long>> deriveInterpolant(
+      List<CFAEdge> errorPath,
       int offset,
-      String currentVariable,
       Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {
-    try {
-      ExplicitState successor     = new ExplicitState(new HashMap<String, Long>(inputInterpolant));
-      ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
+    numberOfInterpolations = 0;
 
-      Long currentVariableValue       = null;
-      Pair<String, Long> interpolant  = null;
+    currentOffset = offset;
 
-      Pair<ARGState, CFAEdge> interpolationState = errorPath.get(offset);
+    // cancel the interpolation if we are interpolating at the conflicting element
+    if (conflictingOffset != null && currentOffset >= conflictingOffset) {
+      return null;
+    }
 
-      for(Pair<ARGState, CFAEdge> pathElement : skip(errorPath, offset)) {
+    // create initial state, based on input interpolant, and create initial successor by consuming the next edge
+    ExplicitState initialState      = new ExplicitState(PathCopyingPersistentTreeMap.copyOf(inputInterpolant));
+    ExplicitState initialSuccessor  = getInitialSuccessor(initialState, errorPath.get(offset));
+    if (initialSuccessor == null) {
+      return null;
+    }
 
-        if(wasFeasible && interpolationState == blockingElement) {
-          return interpolant;
-        }
+    // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
+    if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(skip(errorPath, offset + 1), new ExplicitState())) {
+      return Collections.emptySet();
+    }
 
-        Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
-            successor,
-            precision,
-            pathElement.getSecond());
+    Set<Pair<String, Long>> interpolant = new HashSet<>();
+    List<String> list = Lists.newArrayList(initialSuccessor.getTrackedVariableNames());
+    for (String currentVariable : list) {
+      ExplicitState successor = initialSuccessor.clone();
 
-        successor = extractSuccessorState(successors);
-
-        // there is no successor, and current path element is not an error state => error path is spurious
-        if(successor == null && !pathElement.getFirst().isTarget()) {
-          blockingElement = pathElement;
-          isFeasible      = false;
-
-          return Pair.of(currentVariable, null);
-        }
-
-        // remove the value of the current variable from the successor
-        if(interpolant == null) {
-          if(successor.contains(currentVariable)) {
-            currentVariableValue = successor.getValueFor(currentVariable);
-          }
-
-          interpolant = Pair.of(currentVariable, currentVariableValue);
-
-          successor.forget(currentVariable);
+      // remove the value of the current and all already-found-to-be-irrelevant variables from the successor
+      successor.forget(currentVariable);
+      for (Pair<String, Long> interpolantVariable : interpolant) {
+        if (interpolantVariable.getSecond() == null) {
+          successor.forget(interpolantVariable.getFirst());
         }
       }
 
-      isFeasible  = true;
-      wasFeasible = true;
+      // check if the remaining path now becomes feasible
+      isFeasible = isRemainingPathFeasible(skip(errorPath, offset + 1), successor);
 
-      // path is feasible
-      return interpolant;
-    } catch(InvalidConfigurationException e) {
-      throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
+      if (isFeasible) {
+        interpolant.add(Pair.of(currentVariable, initialSuccessor.getValueFor(currentVariable)));
+      } else {
+        interpolant.add(Pair.<String, Long>of(currentVariable, null));
+      }
     }
+
+    return interpolant;
   }
 
   /**
@@ -163,17 +170,88 @@ public class ExplicitInterpolator {
   }
 
   /**
+   * This method returns the number of performed interpolations.
+   *
+   * @return the number of performed interpolations
+   */
+  public int getNumberOfInterpolations() {
+    return numberOfInterpolations;
+  }
+
+  /**
+   * This method gets the initial successor, i.e. the state following the initial state.
+   *
+   * @param initialState the initial state, i.e. the state represented by the input interpolant.
+   * @param initialEdge the initial edge of the error path
+   * @return the initial successor
+   * @throws CPATransferException
+   */
+  private ExplicitState getInitialSuccessor(ExplicitState initialState, CFAEdge initialEdge)
+      throws CPATransferException {
+    Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
+        initialState,
+        precision,
+        initialEdge);
+    ExplicitState initialSuccessor = extractSuccessorState(successors);
+
+    return initialSuccessor;
+  }
+
+  /**
+   * This method checks, whether or not the (remaining) error path is feasible when starting with the given (pseudo) initial state.
+   *
+   * @param errorPath the error path to check feasibility on
+   * @param initialState the (pseudo) initial state
+   * @return true, it the path is feasible, else false
+   * @throws CPATransferException
+   */
+  private boolean isRemainingPathFeasible(Iterable<CFAEdge> errorPath, ExplicitState initialState)
+      throws CPATransferException {
+    numberOfInterpolations++;
+
+    List<CFAEdge> path = Lists.newArrayList(errorPath);
+    for (int i = 0; i < path.size(); i++) {
+      CFAEdge currentEdge = path.get(i);
+      Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
+        initialState,
+        precision,
+        currentEdge);
+
+      initialState = extractSuccessorState(successors);
+
+      // there is no successor and the end of the path is not reached => error path is spurious
+      if (initialState == null && currentEdge != Iterables.getLast(path)) {
+        /* needed for sequences like ...
+          ...
+          status = 259;
+          [status == 0] <- first conflictingElement
+          ...
+          [!(status >= 0)]
+          ... as this would otherwise stop interpolation after first conflicting element,
+          as the path to first conflicting element always is infeasible here
+        */
+        //if ((conflictingOffset == null) || (conflictingOffset <= i + currentOffset))
+
+        if ((conflictingOffset == null) || (conflictingOffset <= i + currentOffset)) {
+          conflictingOffset = i + currentOffset + 1;
+        }
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
    * This method extracts the single successor out of the (hopefully singleton) successor collection.
    *
    * @param successors the collection of successors
    * @return the successor, or null if none exists
    */
   private ExplicitState extractSuccessorState(Collection<ExplicitState> successors) {
-    if(successors.isEmpty()) {
+    if (successors.isEmpty()) {
       return null;
-    }
-    else {
-      assert(successors.size() == 1);
+    } else {
+      assert (successors.size() == 1);
       return Lists.newArrayList(successors).get(0);
     }
   }

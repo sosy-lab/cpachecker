@@ -29,36 +29,30 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
-public class DefUseDefinition implements AbstractState
-{
+public class DefUseDefinition implements AbstractState {
     private final String variableName;
     private final CFAEdge assigningEdge;
 
-    public DefUseDefinition (String variableName, CFAEdge assigningEdge)
-    {
+    public DefUseDefinition(String variableName, CFAEdge assigningEdge) {
         this.variableName = Preconditions.checkNotNull(variableName);
         this.assigningEdge = assigningEdge;
     }
 
-    public String getVariableName ()
-    {
+    public String getVariableName() {
         return variableName;
     }
 
-    public CFAEdge getAssigningEdge ()
-    {
+    public CFAEdge getAssigningEdge() {
         return assigningEdge;
     }
 
     @Override
-    public int hashCode ()
-    {
-        return variableName.hashCode ();
+    public int hashCode() {
+        return variableName.hashCode();
     }
 
     @Override
-    public boolean equals (Object other)
-    {
+    public boolean equals(Object other) {
         if (!(other instanceof DefUseDefinition)) {
           return false;
         }

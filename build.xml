@@ -1,13 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab : -->
 <project basedir="." default="build" name="CPAchecker" xmlns:ivy="antlib:org.apache.ivy.ant">
-    <property name="version" value="1.1-svn"/> <!-- change here for a release -->
+    <!-- Include a file in which all properties can be overridden.
+         This file won't get checked in and can be used to change properties
+         locally for one machine if necessary. -->
+    <property file="build.properties"/>
+
+    <property name="version" value="1.2-svn"/> <!-- change here for a release -->
+
+    <!-- The following properties may be set via file build.properties or command line to change the build behavior. -->
+    <!-- <property name="ivy.disable" value=""/> --> <!-- Disable ivy completely. -->
+    <property name="ivy.repo.url" value="http://www.sosy-lab.org/ivy"/> <!-- URL to ivy repository. -->
+    <property name="verifiercloud.version" value="0.+"/> <!-- Version of VerifierCloud to use ("+" is wildcard). -->
+    <property name="verifiercloud.refresh" value="true"/> <!-- Lookup newest version of VerifierCloud on server each time. -->
 
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
-    <property name="source.format" value="1.6"/>
+    <property name="source.format" value="1.7"/>
     <property name="source.dir" value="src"/>
-    <property name="class.format" value="1.6"/>
+    <property name="class.format" value="1.7"/>
     <property name="class.dir" value="bin"/>
 
     <antversion property="ant.version.exact"/> <!-- Define property that contains the Ant version. -->
@@ -16,6 +27,7 @@
     <path id="CPAchecker.classpath">
         <pathelement location="${class.dir}"/>
         <fileset dir="lib" includes="*.jar"/>
+        <fileset dir="lib/JavaParser" includes="*.jar"/>
         <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar"/>
     </path>
     <condition property="architecture" value="x86_64" else="x86">
@@ -43,8 +55,7 @@
     </target>
     <target depends="clean" name="cleanall"/>
 
-    <property name="ivy.version" value="2.2.0"/> <!-- Change version number here to use a newer version of Ivy. -->
-    <property name="ivy.repo.url" value="http://www.sosy-lab.org/ivy"/>
+    <property name="ivy.useVersion" value="2.2.0"/> <!-- Change version number here to use a newer version of Ivy. -->
     <property name="ivy.jar.dir" value="${ivy.lib.dir}/build"/>
     <property name="ivy.jar.file" value="ivy.jar"/>
     <available file="${ivy.jar.dir}/${ivy.jar.file}" property="ivy.jar.present"/>
@@ -54,7 +65,7 @@
     <target name="bootstrap-ivy" unless="ivy.jar.present">
         <mkdir dir="${ivy.jar.dir}"/>
         <echo message="Downloading ivy..."/>
-    <get src="${ivy.repo.url}/org.apache.ivy/ivy/ivy-${ivy.version}.jar" dest="${ivy.jar.dir}/${ivy.jar.file}" usetimestamp="true"/>
+    <get src="${ivy.repo.url}/org.apache.ivy/ivy/ivy-${ivy.useVersion}.jar" dest="${ivy.jar.dir}/${ivy.jar.file}" usetimestamp="true"/>
     </target>
 
     <!-- Load the Ivy plugin for Ant so the Ivy tasks are available. -->
@@ -67,7 +78,7 @@
     </target>
 
     <!-- Ask Ivy to get all the dependencies for us -->
-    <target name="resolve-dependencies" depends="load-ivy, update-contrib">
+    <target name="resolve-dependencies" depends="load-ivy, update-contrib" unless="ivy.disable">
         <echo message="Downloading and installing dependencies with Ivy..."/>
         <ivy:resolve conf="build, runtime, test" log="download-only"/>
         <ivy:retrieve sync="true" overwriteMode="different" pattern="${ivy.lib.dir}/[conf]/[artifact](-[classifier]).[ext]"/>
@@ -82,9 +93,15 @@
         <antcall target="install-contrib"/>
     </target>
 
-    <target name="install-contrib" depends="load-ivy" description="retrieve sources and docs for external libraries">
+    <target name="install-contrib" depends="load-ivy" description="retrieve sources and docs for external libraries" unless="ivy.disable">
         <ivy:resolve conf="contrib" log="download-only"/>
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-contrib/[artifact](-[classifier]).[ext]"/>
+    </target>
+
+    <target name="resolve-benchmark-dependencies" depends="load-ivy" description="retrieve dependencies for benchmark configuration" unless="ivy.disable">
+        <condition property="ivy.useCacheOnly" value="true" else="false"><not><istrue value="${verifiercloud.refresh}"/></not></condition>
+        <ivy:resolve conf="benchmark" log="download-only" resolveMode="dynamic" useCacheOnly="${ivy.useCacheOnly}" refresh="${verifiercloud.refresh}"/>
+        <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
     </target>
 
     <target name="build-subprojects">
@@ -101,6 +118,7 @@
 
     <target depends="build-dependencies" name="build-project">
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
+        <echo message="Compiling CPAchecker"/>
         <javac debug="true"
                debuglevel="${debuglevel}"
                includeAntRuntime="false"
@@ -168,7 +186,7 @@
                 excludes="lib/ivy*"
                 prefix="${namet}/"/>
             <tarfileset dir="scripts"
-                includes="*.* tempita"
+                includes="*.* tempita/** benchmark/* benchmark/tools/cpachecker.py benchmark/tools/template.py benchmark/tools/__init__.py"
                 excludes="*.bat *.sh *.py"
                 prefix="${namet}/scripts/"/>
             <tarfileset dir="." filemode="755"

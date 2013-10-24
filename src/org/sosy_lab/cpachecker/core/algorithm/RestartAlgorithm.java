@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -75,14 +75,14 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     public RestartAlgorithmStatistics(int pNoOfAlgorithms) {
       noOfAlgorithms = pNoOfAlgorithms;
-      subStats = new ArrayList<Statistics>();
+      subStats = new ArrayList<>();
     }
 
     public Collection<Statistics> getSubStatistics() {
       return subStats;
     }
 
-    public void resetSubStatistics(){
+    public void resetSubStatistics() {
       subStats.clear();
       totalTime = new Timer();
     }
@@ -283,11 +283,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     Configuration singleConfig = singleConfigBuilder.build();
     singleConfig.inject(singleOptions);
 
-    if (singleOptions.runCBMCasExternalTool){
+    if (singleOptions.runCBMCasExternalTool) {
       algorithm = new ExternalCBMCAlgorithm(filename, singleConfig, logger);
       reached = new ReachedSetFactory(singleConfig, logger).create();
-    }
-    else{
+    } else {
       ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig, logger);
       ConfigurableProgramAnalysis cpa = createCPA(singleReachedSetFactory, singleConfig, stats);
       algorithm = createAlgorithm(cpa, singleConfig, stats, singleReachedSetFactory, singleOptions);

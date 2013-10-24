@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,20 +23,66 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
+import java.util.List;
 
-public abstract class FunctionEntryNode extends CFANode {
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+
+import com.google.common.collect.ImmutableList;
+
+
+public  class FunctionEntryNode extends CFANode {
+
+
+  protected final AFunctionDeclaration functionDefinition;
+  private final List<String> parameterNames;
 
   // Check if call edges are added in the second pass
   private final FunctionExitNode exitNode;
 
+
+  protected FunctionEntryNode(final int pLineNumber,
+      final AFunctionDeclaration pFunctionDefinition,
+      final FunctionExitNode pExitNode,
+      final List<String> pParameterNames) {
+
+    super(pLineNumber, pFunctionDefinition.getName());
+
+    functionDefinition = pFunctionDefinition;
+    parameterNames = ImmutableList.copyOf(pParameterNames);
+    exitNode = pExitNode;
+
+
+  }
+
+
+
   public FunctionEntryNode(int pLineNumber, String pFunctionName,
-      FunctionExitNode pExitNode) {
+      FunctionExitNode pExitNode, final AFunctionDeclaration pFunctionDefinition,
+      final List<String> pParameterNames) {
 
     super(pLineNumber, pFunctionName);
+
+    functionDefinition = pFunctionDefinition;
+    parameterNames = ImmutableList.copyOf(pParameterNames);
     exitNode = pExitNode;
   }
 
   public FunctionExitNode getExitNode() {
     return exitNode;
   }
+
+  public AFunctionDeclaration getFunctionDefinition() {
+    return functionDefinition;
+  }
+
+  public List<String> getFunctionParameterNames() {
+    return parameterNames;
+  }
+
+  public List<? extends AParameterDeclaration> getFunctionParameters() {
+    //return functionDefinition.getType().getParameters();
+    return null;
+  }
+
 }

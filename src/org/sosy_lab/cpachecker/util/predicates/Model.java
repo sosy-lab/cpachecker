@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
@@ -36,7 +39,7 @@ import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-public class Model extends ForwardingMap<AssignableTerm, Object> {
+public class Model extends ForwardingMap<AssignableTerm, Object> implements Appender {
 
   public static enum TermType {
     Boolean,
@@ -182,31 +185,36 @@ public class Model extends ForwardingMap<AssignableTerm, Object> {
   }
 
   private final Map<AssignableTerm, Object> mModel;
-  private final Formula formulaRepresentation;
+  private final BooleanFormula formulaRepresentation;
 
   @Override
   protected Map<AssignableTerm, Object> delegate() {
     return mModel;
   }
 
-  public Model(FormulaManager fmgr) {
+  public Model(FormulaManagerView fmgr) {
     mModel = ImmutableMap.of();
-    formulaRepresentation = fmgr.makeTrue();
+    formulaRepresentation = fmgr.getBooleanFormulaManager().makeBoolean(true);
   }
 
-  public Model(Map<AssignableTerm, Object> content, Formula f) {
+  public Model(Map<AssignableTerm, Object> content, BooleanFormula f) {
     mModel = ImmutableMap.copyOf(content);
     formulaRepresentation = f;
   }
 
-  public Formula getFormulaRepresentation() {
+  public BooleanFormula getFormulaRepresentation() {
     return formulaRepresentation;
   }
 
   private static final MapJoiner joiner = Joiner.on('\n').withKeyValueSeparator(": ");
 
   @Override
+  public void appendTo(Appendable output) throws IOException {
+    joiner.appendTo(output, mModel);
+  }
+
+  @Override
   public String toString() {
-    return joiner.join(mModel);
+    return Appenders.toString(this);
   }
 }

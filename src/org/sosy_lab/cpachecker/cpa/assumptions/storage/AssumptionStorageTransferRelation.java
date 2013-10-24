@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,12 +34,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 
 import com.google.common.base.Preconditions;
 
@@ -49,12 +50,12 @@ import com.google.common.base.Preconditions;
 public class AssumptionStorageTransferRelation implements TransferRelation {
 
   private final CtoFormulaConverter converter;
-  private final FormulaManager formulaManager;
+  private final FormulaManagerView formulaManager;
 
   private final Collection<AbstractState> topStateSet;
 
   public AssumptionStorageTransferRelation(CtoFormulaConverter pConverter,
-      FormulaManager pFormulaManager, AbstractState pTopState) {
+      FormulaManagerView pFormulaManager, AbstractState pTopState) {
     converter = pConverter;
     formulaManager = pFormulaManager;
     topStateSet = Collections.singleton(pTopState);
@@ -74,45 +75,48 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState el, List<AbstractState> others, CFAEdge edge, Precision p) throws UnrecognizedCCodeException {
+  public Collection<? extends AbstractState> strengthen(AbstractState el, List<AbstractState> others, CFAEdge edge, Precision p) throws CPATransferException {
     AssumptionStorageState asmptStorageElem = (AssumptionStorageState)el;
-    assert asmptStorageElem.getAssumption().isTrue();
-    assert asmptStorageElem.getStopFormula().isTrue();
+    BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
+    assert bfmgr.isTrue(asmptStorageElem.getAssumption());
+    assert bfmgr.isTrue(asmptStorageElem.getStopFormula());
     String function = (edge.getSuccessor() != null) ? edge.getSuccessor().getFunctionName() : null;
 
-    Formula assumption = formulaManager.makeTrue();
-    Formula stopFormula = formulaManager.makeFalse(); // initialize with false because we create a disjunction
+    BooleanFormula assumption =  bfmgr.makeBoolean(true);
+    BooleanFormula stopFormula = bfmgr.makeBoolean(false); // initialize with false because we create a disjunction
 
     // process stop flag
     boolean stop = false;
 
     for (AbstractState element : AbstractStates.asIterable(others)) {
       if (element instanceof AssumptionReportingState) {
-        CExpression inv = ((AssumptionReportingState)element).getAssumption();
-        Formula invFormula = converter.makePredicate(inv, edge, function, SSAMap.emptySSAMap().builder());
-        assumption = formulaManager.makeAnd(assumption, formulaManager.uninstantiate(invFormula));
+        List<CExpression> assumptions = ((AssumptionReportingState)element).getAssumptions();
+        for (CExpression inv : assumptions) {
+          BooleanFormula invFormula = converter.makePredicate(inv, edge, function, SSAMap.emptySSAMap().builder());
+          assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
+        }
       }
 
       if (element instanceof AvoidanceReportingState) {
         AvoidanceReportingState e = (AvoidanceReportingState)element;
 
         if (e.mustDumpAssumptionForAvoidance()) {
-          stopFormula = formulaManager.makeOr(stopFormula, e.getReasonFormula(formulaManager));
+          stopFormula = bfmgr.or(stopFormula, e.getReasonFormula(formulaManager));
           stop = true;
         }
       }
     }
-    Preconditions.checkState(!stopFormula.isTrue());
+    Preconditions.checkState(!bfmgr.isTrue(stopFormula));
 
     if (!stop) {
-      stopFormula = formulaManager.makeTrue();
+      stopFormula = bfmgr.makeBoolean(true);
     }
 
-    if (assumption.isTrue() && stopFormula.isTrue()) {
+    if (bfmgr.isTrue(assumption) && bfmgr.isTrue(stopFormula)) {
       return null; // nothing has changed
 
     } else {
-      return Collections.singleton(new AssumptionStorageState(assumption, stopFormula));
+      return Collections.singleton(new AssumptionStorageState(bfmgr, assumption, stopFormula));
     }
   }
 }

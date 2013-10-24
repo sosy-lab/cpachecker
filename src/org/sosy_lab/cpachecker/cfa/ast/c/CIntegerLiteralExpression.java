@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,31 +25,26 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CIntegerLiteralExpression extends CLiteralExpression {
+public class CIntegerLiteralExpression extends AIntegerLiteralExpression implements CLiteralExpression {
 
-  // use BigInteger here because a C unsigned long long constant doesn't fit in
-  // a Java long
-  private final BigInteger value;
 
-  public CIntegerLiteralExpression(CFileLocation pFileLocation,
+  public CIntegerLiteralExpression(FileLocation pFileLocation,
                                       CType pType,
                                       BigInteger pValue) {
-    super(pFileLocation, pType);
-    value = pValue;
+    super(pFileLocation, pType, pValue);
   }
+
 
   @Override
-  public BigInteger getValue() {
-    return value;
+  public CType getExpressionType() {
+    return (CType) super.getExpressionType();
   }
 
-  public long asLong() {
-    // TODO handle values that are bigger than MAX_LONG
-    return value.longValue();
-  }
 
   @Override
   public <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X {
@@ -78,6 +73,26 @@ public class CIntegerLiteralExpression extends CLiteralExpression {
       }
     }
 
-    return value.toString() + suffix;
+    return getValue().toString() + suffix;
+  }
+
+  @Override
+  public int hashCode() {
+    int prime = 31;
+    int result = 7;
+    return prime * result + super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CIntegerLiteralExpression)) {
+      return false;
+    }
+
+    return super.equals(obj);
   }
 }

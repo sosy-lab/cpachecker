@@ -31,13 +31,15 @@ import java.util.NoSuchElementException;
 
 import javax.annotation.CheckReturnValue;
 
+import org.sosy_lab.cpachecker.util.NativeLibraries;
+
 import com.google.common.collect.UnmodifiableIterator;
 
 
 class Mathsat5NativeApi {
 
   static {
-    System.loadLibrary("mathsat5j");
+    NativeLibraries.loadLibrary("mathsat5j");
   }
 
   // msat_result
@@ -122,7 +124,7 @@ class Mathsat5NativeApi {
   @CheckReturnValue
   private static native int msat_set_option(long cfg, String option, String value);
   public static void msat_set_option_checked(long cfg, String option, String value)
-                                                 throws IllegalArgumentException {
+                                                throws IllegalArgumentException {
     int retval = msat_set_option(cfg, option, value);
     if (retval != 0) {
       throw new IllegalArgumentException("Could not set Mathsat option \""+option+"="+value+"\", error code " + retval);
@@ -175,6 +177,15 @@ class Mathsat5NativeApi {
   public static native long msat_make_array_write(long e, long arr, long idx, long elem);
   public static native long msat_make_bv_number(long e, String numRep, int width, int base);
   public static native long msat_make_bv_concat(long e, long t1, long t2);
+
+  /**
+   * Returns a term representing the selection of t[msb:lsb].
+   * @param e   The environment of the definition
+   * @param msb   The most significant bit of the selection.
+   * @param lsb   The least significant bit of the selection.
+   * @param t   The argument.
+   * @return a term representing the selection of t[msb:lsb].
+   */
   public static native long msat_make_bv_extract(long e, int msb, int lsb, long t);
   public static native long msat_make_bv_or(long e, long t1, long t2);
   public static native long msat_make_bv_xor(long e, long t1, long t2);
@@ -218,7 +229,7 @@ class Mathsat5NativeApi {
   public static native boolean msat_term_is_and(long e, long t);
   public static native boolean msat_term_is_or(long e, long t);
   public static native boolean msat_term_is_not(long e, long t);
-  public static native boolean msat_term_is_iff(long e,long t);
+  public static native boolean msat_term_is_iff(long e, long t);
   public static native boolean msat_term_is_term_ite(long e, long t);
   public static native boolean msat_term_is_constant(long e, long t);
   public static native boolean msat_term_is_uf(long e, long t);

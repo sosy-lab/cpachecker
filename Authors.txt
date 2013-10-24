@@ -7,18 +7,25 @@ Former Maintainers:
   Erkan Keremoglu (2008 - 2011), Simon Fraser University, Canada
 
 Contributors:
+  Przemislaw Daca (2011 - 2012), Technical University of Denmark, Denmark
+  Matthias Dangl (2012), University of Passau, Germany
+  Alexander Driemeyer (2012), University of Passau, Germany
   Gregor Endler (2009 - 2010), University of Passau, Germany
-  Karlheinz Friedberger (2011), University of Passau, Germany
+  Karlheinz Friedberger (since 2011), University of Passau, Germany
   Alberto Griggio (2008 - 2009), Simon Fraser University, Canada / University of Trento, Italy
-  Peter Häring (2011), University of Passau, Germany
+  Peter Häring (since 2011), University of Passau, Germany
   Andreas Holzer (2008 - 2011), University of Darmstadt, Germany / TU Vienna, Austria
+  Marie-Christine Jakobs (since 2012), University of Paderborn, Germany
   Michael Käufl (2011), University of Passau, Germany
-  Steven Kieffer (2011), Simon Fraser University, Canada
+  Steven Kieffer (2011 - 2012), Simon Fraser University, Canada
+  Stefan Peters (2011 - 2012), University of Passau, Germany
   Alexander von Rhein (2010), University of Passau, Germany
-  Andreas Stahlbauer (2011), University of Passau, Germany
+  Alexander Schremmer (since 2012), University of Paderborn, Germany
+  Andreas Stahlbauer (since 2011), University of Passau, Germany
+  Thomas Stieglmaier (since 2011), University of Passau, Germany
   Michael Tautschnig (2008 - 2009), University of Darmstadt, Germany
   Gregory Theoduloz (2009 - 2010), EPFL, Switzerland
-  Daniel Wonisch (2011), University of Paderborn, Germany
+  Daniel Wonisch (2011 - 2012), University of Paderborn, Germany
   Geoff Zenger (2007), Simon Fraser University, Canada
 
 Questions and bug reports:

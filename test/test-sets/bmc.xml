@@ -5,30 +5,24 @@
   <option name="-bmc"/>
   <option name="-heap">1200M</option>
 
-  <test name="k1">
-    <sourcefiles>
-      <includesfile>locks.set</includesfile>
-      <includesfile>ntdrivers-simplified.set</includesfile>
-      <includesfile>ntdrivers.set</includesfile>
-      <includesfile>ssh-simplified.set</includesfile>
-      <includesfile>ssh.set</includesfile>
-      <includesfile>systemc.set</includesfile>
-    </sourcefiles>
+  <sourcefiles name="ControlFlowInteger-MemPrecise">
+    <includesfile>../programs/benchmarks/ControlFlowInteger-MemPrecise.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="ControlFlowInteger-MemSimple">
+    <includesfile>../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="SystemC">
+    <includesfile>../programs/benchmarks/SystemC.set</includesfile>
+  </sourcefiles>
+
+  <rundefinition name="k1">
     <option name="-setprop">cpa.loopstack.maxLoopIterations=1</option>
-  </test>
-  
-  <test name="k10">
-    <sourcefiles>
-      <includesfile>locks.set</includesfile>
-      <includesfile>ntdrivers-simplified.set</includesfile>
-      <includesfile>ntdrivers.set</includesfile>
-      <includesfile>ssh-simplified.set</includesfile>
-      <includesfile>ssh.set</includesfile>
-      <includesfile>systemc.set</includesfile>
-    </sourcefiles>
+  </rundefinition>
+
+  <rundefinition name="k10">
     <option name="-setprop">cpa.loopstack.maxLoopIterations=10</option>
-  </test>
- 
+  </rundefinition>
+
   <columns>
     <column title="total">time for CPAchecker</column>
     <column title="reached">reached set</column>

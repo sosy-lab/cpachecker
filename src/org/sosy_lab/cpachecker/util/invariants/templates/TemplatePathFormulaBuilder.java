@@ -29,11 +29,12 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaManager.TemplateParseMode;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormulaManager;
+import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormulaManager.TemplateParseMode;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 public class TemplatePathFormulaBuilder {
 
@@ -48,10 +49,10 @@ public class TemplatePathFormulaBuilder {
     try {
       logger = new LogManager(config);
       FormulaManager fmgr = new TemplateFormulaManager(TemplateParseMode.PATHFORMULA);
-      ExtendedFormulaManager efmgr = new ExtendedFormulaManager(fmgr, config, logger);
+      FormulaManagerView efmgr = new FormulaManagerView(fmgr, config, logger);
       pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, MachineModel.LINUX32);
     } catch (Exception e) {
-      System.err.println( e.getMessage() );
+      System.err.println(e.getMessage());
     }
 
   }
@@ -62,10 +63,10 @@ public class TemplatePathFormulaBuilder {
 
     try {
       FormulaManager fmgr = new TemplateFormulaManager(TemplateParseMode.PATHFORMULA);
-      ExtendedFormulaManager efmgr = new ExtendedFormulaManager(fmgr, config, logger);
+      FormulaManagerView efmgr = new FormulaManagerView(fmgr, config, logger);
       pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, machineModel);
     } catch (Exception e) {
-      System.err.println( e.getMessage() );
+      System.err.println(e.getMessage());
     }
 
   }
@@ -79,7 +80,7 @@ public class TemplatePathFormulaBuilder {
     try {
       pf = pfmgr.makeEmptyPathFormula();
       for (int i = 0; i < E.length; i++) {
-        pf = pfmgr.makeAnd(pf,E[i]);
+        pf = pfmgr.makeAnd(pf, E[i]);
       }
     } catch (Exception e) {
       System.err.println(e.getMessage());

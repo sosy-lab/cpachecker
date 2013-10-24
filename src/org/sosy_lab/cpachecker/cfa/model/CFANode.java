@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,8 +37,8 @@ public class CFANode implements Comparable<CFANode> {
   private final int nodeNumber;
   private final int lineNumber;
 
-  private final List<CFAEdge> leavingEdges = new ArrayList<CFAEdge>(1);
-  private final List<CFAEdge> enteringEdges = new ArrayList<CFAEdge>(1);
+  private final List<CFAEdge> leavingEdges = new ArrayList<>(1);
+  private final List<CFAEdge> enteringEdges = new ArrayList<>(1);
 
   // is start node of a loop?
   private boolean isLoopStart = false;

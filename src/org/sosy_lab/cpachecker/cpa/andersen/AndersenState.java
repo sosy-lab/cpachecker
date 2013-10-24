@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,20 +40,20 @@ import org.sosy_lab.cpachecker.cpa.andersen.util.SimpleConstraint;
 public class AndersenState implements AbstractState, Cloneable {
 
   // ------- global constraint system -------
-  private static final Set<BaseConstraint> gBaseConstraints = new HashSet<BaseConstraint>();
-  private static final Set<SimpleConstraint> gSimpleConstraints = new HashSet<SimpleConstraint>();
-  private static final Set<ComplexConstraint> gComplexConstraints = new HashSet<ComplexConstraint>();
+  private static final Set<BaseConstraint> gBaseConstraints = new HashSet<>();
+  private static final Set<SimpleConstraint> gSimpleConstraints = new HashSet<>();
+  private static final Set<ComplexConstraint> gComplexConstraints = new HashSet<>();
 
-  private static final Map<String, String[]> gPointsToSets = new HashMap<String, String[]>();
+  private static final Map<String, String[]> gPointsToSets = new HashMap<>();
 
   private static boolean gChanged = false;
 
   // ------- local constraint system -------
-  private final Set<BaseConstraint> lBaseConstraints = new HashSet<BaseConstraint>();
-  private final Set<SimpleConstraint> lSimpleConstraints = new HashSet<SimpleConstraint>();
-  private final Set<ComplexConstraint> lComplexConstraints = new HashSet<ComplexConstraint>();
+  private final Set<BaseConstraint> lBaseConstraints = new HashSet<>();
+  private final Set<SimpleConstraint> lSimpleConstraints = new HashSet<>();
+  private final Set<ComplexConstraint> lComplexConstraints = new HashSet<>();
 
-  private final Map<String, String[]> lPointsToSets = new HashMap<String, String[]>();
+  private final Map<String, String[]> lPointsToSets = new HashMap<>();
 
   private boolean lChanged = false;
 
@@ -144,14 +144,14 @@ public class AndersenState implements AbstractState, Cloneable {
 
     buildGraph(bConstr, sConstr, cConstr, g);
 
-    HashSet<DirectedGraph.Node> workset = new HashSet<DirectedGraph.Node>();
+    HashSet<DirectedGraph.Node> workset = new HashSet<>();
 
     // add all nodes in graph to the initial workset
     for (Map.Entry<String, DirectedGraph.Node> entry : g.getNameMappings()) {
       workset.add(entry.getValue());
     }
 
-    HashSet<DirectedGraph.Edge> tested = new HashSet<DirectedGraph.Edge>();
+    HashSet<DirectedGraph.Edge> tested = new HashSet<>();
 
     // dynamic transitive closure
     while (!workset.isEmpty()) {
@@ -193,7 +193,7 @@ public class AndersenState implements AbstractState, Cloneable {
       for (DirectedGraph.Node z : n.getSuccessors()) {
 
         // LCD code
-        DirectedGraph.Edge edge = g.new Edge(n, z);
+        DirectedGraph.Edge edge = new DirectedGraph.Edge(n, z);
         if (z.getPointsToSet().equals(n.getPointsToSet()) && !tested.contains(edge)) {
           tested.add(edge);
           DirectedGraph.Node merged = g.detectAndCollapseCycleContainingEdge(edge);
@@ -293,10 +293,10 @@ public class AndersenState implements AbstractState, Cloneable {
   private static List<List<String>> buildOfflineGraphAndFindSCCs(Collection<SimpleConstraint> sConstr,
       Collection<ComplexConstraint> cConstr) {
 
-    HashSet<DirectedGraph.Node> workset = new HashSet<DirectedGraph.Node>();
+    HashSet<DirectedGraph.Node> workset = new HashSet<>();
     DirectedGraph g = new DirectedGraph();
 
-    HashMap<DirectedGraph.Node, String> nodeStrMap = new HashMap<DirectedGraph.Node, String>();
+    HashMap<DirectedGraph.Node, String> nodeStrMap = new HashMap<>();
 
     for (SimpleConstraint sc : sConstr) {
 
@@ -343,8 +343,8 @@ public class AndersenState implements AbstractState, Cloneable {
 
     // find strongly-connected components (using tarjans linear algorithm)
     int maxdfs = 1;
-    LinkedList<DirectedGraph.Node> stack = new LinkedList<DirectedGraph.Node>();
-    List<List<String>> sccs = new LinkedList<List<String>>();
+    LinkedList<DirectedGraph.Node> stack = new LinkedList<>();
+    List<List<String>> sccs = new LinkedList<>();
     while (!workset.isEmpty()) {
 
       DirectedGraph.Node n = workset.iterator().next();
@@ -396,7 +396,7 @@ public class AndersenState implements AbstractState, Cloneable {
     if (v.lowlink == v.dfs) {
 
       DirectedGraph.Node succ;
-      LinkedList<String> scc = new LinkedList<String>();
+      LinkedList<String> scc = new LinkedList<>();
 
       do {
         succ = stack.pop();
@@ -425,8 +425,8 @@ public class AndersenState implements AbstractState, Cloneable {
 
     for (List<String> scc : sccs) {
 
-      LinkedList<DirectedGraph.Node> refNodes = new LinkedList<DirectedGraph.Node>();
-      LinkedList<DirectedGraph.Node> normNodes = new LinkedList<DirectedGraph.Node>();
+      LinkedList<DirectedGraph.Node> refNodes = new LinkedList<>();
+      LinkedList<DirectedGraph.Node> normNodes = new LinkedList<>();
 
       for (String n : scc) {
 

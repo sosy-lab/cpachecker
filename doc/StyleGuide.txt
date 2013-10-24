@@ -1,49 +1,123 @@
-Style Guide
+Style & Coding Guide
+====================
+
+If not explicitly stated here otherwise, the standard Java Coding Conventions apply:
+http://www.oracle.com/technetwork/java/javase/documentation/codeconvtoc-136057.html
+
+Further guidelines that are very worth reading:
+- Bloch: Effective Java, 2nd Edition: http://www.amazon.com/Effective-Java-Edition-Joshua-Bloch/dp/0321356683/
+- Guava User Guide: https://code.google.com/p/guava-libraries/wiki/GuavaExplained
+
+We suggest to use Eclipse for development,
+as several parts of this guide are incorporated into the Eclipse project configuration
+(indentation, spaces instead of tabs, no trailing whitespaces).
+If you do not use Eclipse, please ensure manually that you follow this guide,
+or configure your editor/IDE to behave similarly.
+Also Eclipse shows more warnings than javac, and these warnings should be taken care of.
+
+
+Code Formatting:
+- No tabs in source code!
+- 2 spaces for indentation per level.
+- No trailing white spaces.
+- Do not use automatic code formatting of Eclipse for the complete code,
+  it destroys a lot of meaningful manual formatting.
+- A block is always surrounded by braces, e.g., if (...) { ...block... }.
+- Before { and after } there is one space.
+- The { is not on a new line.
+- There is no white space between method/constructor name and parenthesis,
+  but there is one space between between keywords and parenthesis. Example:
+  func();
+  if (...) { ... }
+  for (...) { ... }
+- There is no white space directly inside parentheses,
+  except for aligning lines in multi-line conditions.
+- There is one space after "," in parameter lists, and none before.
+- The ":" in enhanced for loops has one space before and after it.
+- When breaking long statements over multiple lines,
+  think about indenting them in the following way:
+  Object o = x.foo()
+              .bar()
+              .m();
+  (especially for the builder pattern and FluentIterable).
+- Aim for a line length of at maximum 80-100 characters.
+- There is at least one blank line between methods and constructors,
+  more to group related methods.
+- There is no blank line required between fields,
+  but there is between fields and other members,
+  and between unrelated groups of fields.
 
 Spelling:
+- Try to avoid typos.
 - Names are spelled camel-like, whereEachNewWordStartsWithCapital.
-- Type names start with a capital,
-  and each sub-type name starts with an abbreviation of the type
-  (allows for look-up of type hierarchy via auto completion/listing).
+- Type names start with a capital.
 - Method names start lower case and begin with a verb.
 - Variable names start lower case.
   Parameters should start with 'p' to avoid confusion with
   local variables or fields.
-
-Formatting:
-- A block is surrounded by braces, e.g., if (...) { ...block... }.
-- A function call has no whitespace between function name and parenthesis,
-  e.g. func()...
-- No trailing whitespaces.
-
-Compilation:
-- Warnings are taken serious, and problems should be fixed if possible.
-  (When it becomes to many, we can't see the important ones anymore.)
-- Errors are to be eliminated as soon as possible.
-  (Annoying.)
-
-Version Control:
-- Commit early, commit often, and
-  split the commits into reasonable changesets.
-- In order to avoid EOL problems caused by Unix/Windows/Mac, let's run
-  find ./ -name "*" -exec svn propset svn:eol-style native {} \;
-  from time to time.
-- If possible (this will definitely not always be the case)
-  commit in a way that the project compiles after each commit.
-  This will ease automatic regression testing a lot...
-- For large chunks of whitespace/indentation changes,
-  commit the whitespace changes and the code changes via separate commits.
-
-Directory Structure:
-- lib/           libraries and executables
-- lib/native/    architecture-specific
-
-File and Class Names:
 - For a set of names of concepts (e.g., of files, classes),
   the prefix order induced by the names should
   represent the semantic relation and structure of the concepts.
 
+Compilation:
+- Never check in with compile errors.
+- Avoid warnings:
+  - If there is a way to fix the code, fix it (before committing).
+  - Otherwise use @SuppressWarnings.
+- Use Eclipse to check for warnings, it shows a lot more than javac.
+- After adding/changing an @Option configuration,
+  run "ant" to update documentation (before committing).
+
+Version Control:
+- Commit early, commit often, and
+  split the commits into reasonable changesets.
+- When re-formatting old code, do not mix this with other changes in a single commit.
+- Try to have separate commits for bugfixes, refactorings, and new code.
+- When renaming files, ensure that SVN recognizes this as a renaming
+  in order to not disconnect the history (use SVN plugin for Eclipse,
+  or "svn mv" on comand line). This is especially important for git-svn users.
+- In order to avoid EOL problems caused by Unix/Windows/Mac, let's run
+  find ./ -name "*" -exec svn propset svn:eol-style native {} \;
+  from time to time.
+
+Design:
+- Prefer immutable objects, for own classes and for collections
+  (https://code.google.com/p/guava-libraries/wiki/ImmutableCollectionsExplained).
+- Avoid null, replace it with real objects, or (at last resort) Optional:
+  https://code.google.com/p/guava-libraries/wiki/UsingAndAvoidingNullExplained
+
 Coding:
-- Prefer iterators over List.get(int).
-- Before implementing equals() for an AbstractState,
-  think if you can cache and reuse such objects.
+- Never have public fields,
+  never have non-private non-final fields,
+  and try to keep all other non-private fields to a minimum.
+- If you use null in method parameters or return values, annotate them with @Nullable.
+- Mark fields as final, if they are never modified,
+  and try to make them final, if they are modified (-> immutability).
+- Prefer enhanced for-loop over List.get(int).
+- Do not use the following classes from the JDK, they all have better replacements:
+  Vector (replaced by ArrayList)
+  Stack (replaced by Deque interface with implementations ArrayDeque and LinkedList)
+  Hashtable (replaced by HashMap)
+- The default list implementation is ArrayList (fast and memory-efficient),
+  use LinkedList only if you need (i.e., when adding/removing elements in the middle of the list).
+  When adding/removing elements at the start of the list, use ArrayDeque.
+- When declaring variables of collection types,
+  use the interface as type instead of the implementation (e.g., List instead of ArrayList).
+  This is especially true for fields, parameters, and return types.
+  Do use the Immutable* types from Guava, though, to show that your collection is immutable.
+- Use Integer, Double, Long, Boolean etc. only when necessary (this is, inside generics like in List<Integer>).
+  In fields, method parameters and return values, and local parameters,
+  it is better to use the corresponding primitive types like int.
+- Never call the constructor of Integer, Double, Long, Boolean, etc.!
+  Use the valueOf() method, it may do caching.
+- Never call the String constructor.
+  Strings do not need copying, and for other uses there is the valueOf() method.
+- Avoid Cloneable and clone(), use copy constructors instead if you need them
+  (you don't if you use immutable classes).
+- When using our LogManager, don't concatenate log messages with +,
+  pass each part as a separate argument (concatenation will be done only if necessary).
+- Never swallow an exception.
+  If throwing another exception, add the original one as the cause.
+  If logging, either use logUserException()
+  (if the exception text should be shown to the user)
+  or logDebugException() (in all other cases).

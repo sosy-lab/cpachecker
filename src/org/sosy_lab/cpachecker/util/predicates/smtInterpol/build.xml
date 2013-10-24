@@ -10,5 +10,5 @@
     <property name="parser.target" value="Parser"/>
     <property name="symbols.target" value="LexerSymbols"/>
 
-    <import file="${basedir}/build-parser.xml"/>
+    <import file="${basedir}/build/build-parser.xml"/>
 </project>

@@ -26,17 +26,16 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import java.util.Arrays;
 import java.util.Collections;
 
-public class Interval
-{
+public class Interval {
   /**
    * the lower bound of the interval
    */
-  protected Long low;
+  private final Long low;
 
   /**
    * the upper bound of the interval
    */
-  protected Long high;
+  private final Long high;
 
   /**
    * an interval representing a false value
@@ -51,15 +50,17 @@ public class Interval
   /**
    * This method acts as constructor for an empty interval.
    */
-  private Interval() { }
+  private Interval() {
+    this.low = null;
+    this.high = null;
+  }
 
   /**
    * This method acts as constructor for a single-value interval.
    *
    * @param value for the lower and upper bound
    */
-  public Interval(Long value)
-  {
+  public Interval(Long value) {
     this.low  = value;
 
     this.high = value;
@@ -73,8 +74,7 @@ public class Interval
    * @param low the lower bound
    * @param high the upper bound
    */
-  public Interval(Long low, Long high)
-  {
+  public Interval(Long low, Long high) {
     this.low  = low;
 
     this.high = high;
@@ -82,8 +82,7 @@ public class Interval
     isSane();
   }
 
-  private boolean isSane()
-  {
+  private boolean isSane() {
     if (low > high) {
       throw new IllegalStateException("low cannot be larger than high");
     }
@@ -96,8 +95,7 @@ public class Interval
    *
    * @return the lower bound
    */
-  public Long getLow()
-  {
+  public Long getLow() {
     return low;
   }
 
@@ -106,8 +104,7 @@ public class Interval
    *
    * @return the upper bound
    */
-  public Long getHigh()
-  {
+  public Long getHigh() {
     return high;
   }
 
@@ -115,10 +112,8 @@ public class Interval
    * @see java.lang.Object#equals(java.lang.Object)
    */
   @Override
-  public boolean equals(Object other)
-  {
-    if (other != null && getClass().equals(other.getClass()))
-    {
+  public boolean equals(Object other) {
+    if (other != null && getClass().equals(other.getClass())) {
       Interval another = (Interval)other;
 
       if (isEmpty() && another.isEmpty()) {
@@ -133,8 +128,7 @@ public class Interval
     }
   }
 
-  public boolean isSingular()
-  {
+  public boolean isSingular() {
     return low.equals(high);
   }
 
@@ -142,8 +136,7 @@ public class Interval
    * @see java.lang.Object#hashCode()
    */
   @Override
-  public int hashCode()
-  {
+  public int hashCode() {
     if (isEmpty()) {
       return 0;
     }
@@ -156,15 +149,6 @@ public class Interval
     return result;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#clone()
-   */
-  @Override
-  public Interval clone()
-  {
-    return new Interval(low, high);
-  }
-
   /**
    * This method creates a new interval instance representing the union of this interval with another interval.
    *
@@ -173,8 +157,7 @@ public class Interval
    * @param other the other interval
    * @return the new interval with the respective bounds
    */
-  public Interval union(Interval other)
-  {
+  public Interval union(Interval other) {
       if (isEmpty() || other.isEmpty()) {
         return createEmptyInterval();
       } else {
@@ -190,8 +173,7 @@ public class Interval
    * @param other the other interval
    * @return the new interval with the respective bounds
    */
-  public Interval intersect(Interval other)
-  {
+  public Interval intersect(Interval other) {
     Interval interval = null;
 
     if (this.intersects(other)) {
@@ -209,8 +191,7 @@ public class Interval
    * @param other interval to compare with
    * @return true if the upper bound of this interval is always strictly lower than the lower bound of the other interval, else false
    */
-  public boolean isLessThan(Interval other)
-  {
+  public boolean isLessThan(Interval other) {
     return !isEmpty() && !other.isEmpty() && high < other.low;
   }
 
@@ -220,8 +201,7 @@ public class Interval
    * @param other interval to compare with
    * @return true if the lower bound of this interval is always strictly greater than the upper bound of the other interval, else false
    */
-  public boolean isGreaterThan(Interval other)
-  {
+  public boolean isGreaterThan(Interval other) {
     return !isEmpty() && !other.isEmpty() && low > other.high;
   }
 
@@ -231,8 +211,7 @@ public class Interval
    * @param other interval to compare with
    * @return true if the lower bound of this interval is strictly lower than the upper bound of the other interval, else false
    */
-  public boolean mayBeLessThan(Interval other)
-  {
+  public boolean mayBeLessThan(Interval other) {
     return isEmpty() || (!isEmpty() && !other.isEmpty() && low < other.high);
   }
 
@@ -242,8 +221,7 @@ public class Interval
    * @param other interval to compare with
    * @return true if the lower bound of this interval is strictly lower than the upper bound of the other interval, else false
    */
-  public boolean mayBeLessOrEqualThan(Interval other)
-  {
+  public boolean mayBeLessOrEqualThan(Interval other) {
     return isEmpty() || (!isEmpty() && !other.isEmpty() && low <= other.high);
   }
 
@@ -253,8 +231,7 @@ public class Interval
    * @param other interval to compare with
    * @return true if the upper bound of this interval is strictly greater than the lower bound of the other interval, else false
    */
-  public boolean mayBeGreaterThan(Interval other)
-  {
+  public boolean mayBeGreaterThan(Interval other) {
     return other.isEmpty() || (!isEmpty() && !other.isEmpty() && high > other.low);
   }
 
@@ -264,8 +241,7 @@ public class Interval
    * @param other interval to compare with
    * @return true if the upper bound of this interval is strictly greater than the lower bound of the other interval, else false
    */
-  public boolean mayBeGreaterOrEqualThan(Interval other)
-  {
+  public boolean mayBeGreaterOrEqualThan(Interval other) {
     return other.isEmpty() || (!isEmpty() && !other.isEmpty() && high >= other.low);
   }
 
@@ -274,8 +250,7 @@ public class Interval
    *
    * @return true if this interval represents only values in the interval [0, 0].
    */
-  public boolean isFalse()
-  {
+  public boolean isFalse() {
     return equals(FALSE);
   }
 
@@ -284,8 +259,7 @@ public class Interval
    *
    * @return true if this interval represents values that are strictly less than 0 or greater than 0.
    */
-  public boolean isTrue()
-  {
+  public boolean isTrue() {
     return !isEmpty() && (high < 0 || low > 0);
   }
 
@@ -295,8 +269,7 @@ public class Interval
    * @param other the other interval
    * @return the new interval with the respective bounds
    */
-  public Interval minimum(Interval other)
-  {
+  public Interval minimum(Interval other) {
     Interval interval = new Interval(Math.min(low, other.low), Math.min(high, other.high));
 
     return interval;
@@ -308,8 +281,7 @@ public class Interval
    * @param other the other interval
    * @return the new interval with the respective bounds
    */
-  public Interval maximum(Interval other)
-  {
+  public Interval maximum(Interval other) {
     Interval interval = new Interval(Math.max(low, other.low), Math.max(high, other.high));
 
     return interval;
@@ -321,8 +293,7 @@ public class Interval
    * @param other the interval to limit this interval
    * @return the new interval with the upper bound of this interval and the lower bound set to the maximum of this interval's and the other interval's lower bound or an empty interval if this interval is less than the other interval.
    */
-  public Interval limitLowerBoundBy(Interval other)
-  {
+  public Interval limitLowerBoundBy(Interval other) {
     Interval interval = null;
 
     if (isEmpty() || other.isEmpty() || high < other.low) {
@@ -340,8 +311,7 @@ public class Interval
    * @param other the interval to limit this interval
    * @return the new interval with the lower bound of this interval and the upper bound set to the minimum of this interval's and the other interval's upper bound or an empty interval if this interval is greater than the other interval.
    */
-  public Interval limitUpperBoundBy(Interval other)
-  {
+  public Interval limitUpperBoundBy(Interval other) {
     Interval interval = null;
 
     if (isEmpty() || other.isEmpty() || low > other.high) {
@@ -359,8 +329,7 @@ public class Interval
    * @param other the other interval
    * @return true if the intervals intersect, else false
    */
-  public boolean intersects(Interval other)
-  {
+  public boolean intersects(Interval other) {
       if (isEmpty() || other.isEmpty()) {
         return false;
       }
@@ -378,8 +347,7 @@ public class Interval
    * @param other the other interval
    * @return true if this interval contains the other interval, else false
    */
-  public boolean contains(Interval other)
-  {
+  public boolean contains(Interval other) {
      return (!isEmpty() && !other.isEmpty()
                && low <= other.low && other.high <= high);
   }
@@ -390,8 +358,7 @@ public class Interval
    * @param interval the interval to add
    * @return a new interval with the respective bounds
    */
-  public Interval plus(Interval interval)
-  {
+  public Interval plus(Interval interval) {
     if (isEmpty() || interval.isEmpty()) {
       return createEmptyInterval();
     }
@@ -405,8 +372,7 @@ public class Interval
    * @param offset the constant offset to add
    * @return a new interval with the respective bounds
    */
-  public Interval plus(Long offset)
-  {
+  public Interval plus(Long offset) {
     return plus(new Interval(offset, offset));
   }
 
@@ -416,8 +382,7 @@ public class Interval
    * @param other interval to subtract
    * @return a new interval with the respective bounds
    */
-  public Interval minus(Interval other)
-  {
+  public Interval minus(Interval other) {
     return plus(other.negate());
   }
 
@@ -427,8 +392,7 @@ public class Interval
    * @param offset the constant offset to subtract
    * @return a new interval with the respective bounds
    */
-  public Interval minus(Long offset)
-  {
+  public Interval minus(Long offset) {
     return plus(-offset);
   }
 
@@ -438,8 +402,7 @@ public class Interval
    * @param other interval to multiply this interval with
    * @return new interval that represents the result of the multiplication of the two intervals
    */
-  public Interval times(Interval other)
-  {
+  public Interval times(Interval other) {
     Long[] values = {
                       scalarTimes(low, other.low),
                       scalarTimes(low, other.high),
@@ -456,13 +419,11 @@ public class Interval
    * @param other interval to divide this interval by
    * @return new interval that represents the result of the division of the two intervals
    */
-  public Interval divide(Interval other)
-  {
+  public Interval divide(Interval other) {
     // other interval contains "0", return unbound interval
     if (other.contains(FALSE)) {
       return createUnboundInterval();
-    } else
-    {
+    } else {
       Long[] values = {
                         low / other.low,
                         low / other.high,
@@ -480,13 +441,11 @@ public class Interval
   * @param Interval offset to perform an arithmetical left shift on the interval bounds. If the offset maybe less than zero an unbound interval is returned.
   * @return new interval that represents the result of the arithmetical left shift
   */
-  public Interval shiftLeft(Interval offset)
-  {
+  public Interval shiftLeft(Interval offset) {
     // create an unbound interval upon trying to shift by a possibly negative offset
     if (offset.mayBeLessThan(FALSE)) {
       return createUnboundInterval();
-    } else
-    {
+    } else {
       // if lower bound is negative, shift it by upper bound of offset, else by lower bound of offset
       Long newLow   = low << ((low < 0L) ? offset.high : offset.low);
 
@@ -507,13 +466,11 @@ public class Interval
   * @param Interval offset to perform an arithmetical right shift on the interval bounds
   * @return new interval that represents the result of the arithmetical right shift
   */
-  public Interval shiftRight(Interval offset)
-  {
+  public Interval shiftRight(Interval offset) {
     // create an unbound interval upon trying to shift by a possibly negative offset
     if (offset.mayBeLessThan(FALSE)) {
       return createUnboundInterval();
-    } else
-    {
+    } else {
       // if lower bound is negative, shift it by lower bound of offset, else by upper bound of offset
       Long newLow   = low >> ((low < 0L) ? offset.low : offset.high);
 
@@ -529,8 +486,7 @@ public class Interval
    *
    * @return new negated interval
    */
-  public Interval negate()
-  {
+  public Interval negate() {
     return new Interval(scalarTimes(high, -1L), scalarTimes(low, -1L));
   }
 
@@ -539,8 +495,7 @@ public class Interval
    *
    * @return true, if the interval is empty, i.e. the lower and upper bounds are null
    */
-  public boolean isEmpty()
-  {
+  public boolean isEmpty() {
     return low == null && high == null;
   }
 
@@ -548,8 +503,7 @@ public class Interval
    * @see java.lang.Object#toString()
    */
   @Override
-  public String toString()
-  {
+  public String toString() {
     return "[" + low + "; " + high + "]";
   }
 
@@ -558,8 +512,7 @@ public class Interval
    *
    * @return an empty interval
    */
-  private static Interval createEmptyInterval()
-  {
+  private static Interval createEmptyInterval() {
     return new Interval();
   }
 
@@ -568,8 +521,7 @@ public class Interval
    *
    * @return an unbounded interval, i.e. the lower and upper bound are set to Long.MIN_VALUE and Long.MAX_VALUE respectively
    */
-  public static Interval createUnboundInterval()
-  {
+  public static Interval createUnboundInterval() {
     return new Interval(Long.MIN_VALUE, Long.MAX_VALUE);
   }
 
@@ -579,8 +531,7 @@ public class Interval
    * @param lowerBound the lower bound to set
    * @return a lower bounded interval, i.e. the lower bound is set to the given lower bound, the upper bound is set to Long.MAX_VALUE
    */
-  public static Interval createLowerBoundedInterval(Long lowerBound)
-  {
+  public static Interval createLowerBoundedInterval(Long lowerBound) {
     return new Interval(lowerBound, Long.MAX_VALUE);
   }
 
@@ -590,8 +541,7 @@ public class Interval
    * @param upperBound the upper bound to set
    * @return an upper bounded interval, i.e. the lower bound is set to Long.MIN_VALUE, the upper bound is set to the given upper bound
    */
-  public static Interval createUpperBoundedInterval(Long upperBound)
-  {
+  public static Interval createUpperBoundedInterval(Long upperBound) {
     return new Interval(Long.MIN_VALUE, upperBound);
   }
 
@@ -600,8 +550,7 @@ public class Interval
    *
    * @return an interval representing the FALSE value, i.e. the lower and upper bound are set to 0
    */
-  public static Interval createFalseInterval()
-  {
+  public static Interval createFalseInterval() {
     return new Interval(0L);
   }
 
@@ -610,8 +559,7 @@ public class Interval
    *
    * @return an interval representing the TRUE value, i.e. the lower and upper bound are set to 1
    */
-  public static Interval createTrueInterval()
-  {
+  public static Interval createTrueInterval() {
     return new Interval(1L);
   }
 
@@ -622,8 +570,7 @@ public class Interval
    * @param y the second scalar operand
    * @return the sum of the first and second scalar operand or on overflow Long.MAX_VALUE and Long.MIN_VALUE, respectively.
    */
-  private static Long scalarPlus(Long x, Long y)
-  {
+  private static Long scalarPlus(Long x, Long y) {
     Long result = x + y;
 
     // both operands are positive but the result is negative
@@ -643,8 +590,7 @@ public class Interval
    * @param y the second scalar operand
    * @return the product of the first and second scalar operand or on overflow Long.MAX_VALUE and Long.MIN_VALUE, respectively.
    */
-  private static Long scalarTimes(Long x, Long y)
-  {
+  private static Long scalarTimes(Long x, Long y) {
     Long bound = (Long.signum(x) == Long.signum(y)) ? Long.MAX_VALUE : Long.MIN_VALUE;
 
     // if overflow occurs, return the respective bound

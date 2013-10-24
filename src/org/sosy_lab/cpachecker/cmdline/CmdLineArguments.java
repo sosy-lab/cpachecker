@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,13 +25,14 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
@@ -41,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 /**
@@ -67,7 +67,7 @@ class CmdLineArguments {
 
   private CmdLineArguments() { } // prevent instantiation, this is a static helper class
 
-  private static final Pattern DEFAULT_CONFIG_FILES_PATTERN = Pattern.compile("^[a-zA-Z0-9-]+$");
+  private static final Pattern DEFAULT_CONFIG_FILES_PATTERN = Pattern.compile("^[a-zA-Z0-9-+]+$");
 
   /**
    * The directory where to look for configuration files for options like
@@ -79,9 +79,8 @@ class CmdLineArguments {
 
   private static final String CMC_CONFIGURATION_FILES_OPTION = "restartAlgorithm.configFiles";
 
-  private static final Set<String> UNSUPPORTED_SPECIFICATIONS = ImmutableSet.of(
-      "valid-free", "valid-deref", "valid-memtrack"
-      );
+  private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
+  private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
 
   /**
    * Reads the arguments and process them.
@@ -93,12 +92,8 @@ class CmdLineArguments {
    * @throws InvalidCmdlineArgumentException if there is an error in the command line
    */
   static Map<String, String> processArguments(String[] args) throws InvalidCmdlineArgumentException {
-    if (args == null || args.length < 1) {
-      throw new InvalidCmdlineArgumentException("Configuration file or list of CPAs needed. Use -help for more information.");
-    }
-
-    Map<String, String> properties = new HashMap<String, String>();
-    List<String> programs = new ArrayList<String>();
+    Map<String, String> properties = new HashMap<>();
+    List<String> programs = new ArrayList<>();
 
     Iterator<String> argsIt = Arrays.asList(args).iterator();
 
@@ -107,15 +102,21 @@ class CmdLineArguments {
       if (   handleArgument0("-cbmc",    "analysis.useCBMC", "true",            arg, properties)
           || handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
           || handleArgument0("-noout",   "output.disable",   "true",            arg, properties)
+          || handleArgument0("-java",    "language",         "JAVA",            arg, properties)
+          || handleArgument0("-32",      "analysis.machineModel", "Linux32",    arg, properties)
+          || handleArgument0("-64",      "analysis.machineModel", "Linux64",    arg, properties)
+          || handleArgument0("-preprocess",    "parser.usePreprocessor", "true", arg, properties)
           || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
           || handleArgument1("-config",        CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
           || handleArgument1("-timelimit",     "cpa.conditions.global.time.wall", arg, argsIt, properties)
+          || handleArgument1("-sourcepath",    "java.sourcepath",         arg, argsIt, properties)
+          || handleArgument1("-cp",            "java.classpath",          arg, argsIt, properties)
+          || handleArgument1("-classpath",     "java.classpath",          arg, argsIt, properties)
           || handleMultipleArgument1("-spec",  "specification",           arg, argsIt, properties)
       ) {
         // nothing left to do
-
       } else if (arg.equals("-cmc")) {
         handleCmc(argsIt, properties);
 
@@ -164,17 +165,25 @@ class CmdLineArguments {
 
       } else if (arg.startsWith("-") && !(new File(arg).exists())) {
         String argName = arg.substring(1); // remove "-"
-        File f = new File(String.format(DEFAULT_CONFIG_FILES_DIR, argName));
 
-        if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches() && f.exists()) {
-          try {
-            Files.checkReadableFile(f);
-            putIfNotExistent(properties, CONFIGURATION_FILE_OPTION, f.getPath());
-          } catch (FileNotFoundException e) {
-            System.out.println("Invalid configuration " + argName + " (" + e.getMessage() + ")");
-            System.exit(0);
+        if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
+          Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, argName);
+
+          if (configFile != null) {
+            try {
+              Files.checkReadableFile(configFile);
+              putIfNotExistent(properties, CONFIGURATION_FILE_OPTION, configFile.toString());
+            } catch (FileNotFoundException e) {
+              System.out.println("Invalid configuration " + argName + " (" + e.getMessage() + ")");
+              System.exit(0);
+            }
+          } else {
+            System.out.println("Invalid option " + arg);
+            System.out.println("If you meant to specify a configuration file, the file "
+                + String.format(DEFAULT_CONFIG_FILES_DIR, argName) + " does not exist.");
+            System.out.println("");
+            printHelp();
           }
-
         } else {
           System.out.println("Invalid option " + arg);
           System.out.println("");
@@ -190,6 +199,7 @@ class CmdLineArguments {
     if (!programs.isEmpty()) {
       putIfNotExistent(properties, "analysis.programNames", Joiner.on(", ").join(programs));
     }
+
     return properties;
   }
 
@@ -202,10 +212,10 @@ class CmdLineArguments {
 
       // replace "predicateAnalysis" with config/predicateAnalysis.properties etc.
       if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches() && !(new File(newValue).exists())) {
-        File f = new File(String.format(DEFAULT_CONFIG_FILES_DIR, newValue));
+        Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, newValue);
 
-        if (f.exists()) {
-          newValue = f.getPath();
+        if (configFile != null) {
+          newValue = configFile.toString();
         }
       }
 
@@ -237,10 +247,16 @@ class CmdLineArguments {
     System.out.println(" -stats");
     System.out.println(" -nolog");
     System.out.println(" -noout");
+    System.out.println(" -java");
+    System.out.println(" -32");
+    System.out.println(" -64");
     System.out.println(" -setprop");
     System.out.println(" -printOptions [-v|-verbose]");
     System.out.println(" -printUsedOptions");
     System.out.println(" -help");
+    System.out.println();
+    System.out.println("You can also specify any of the configuration files in the directory config/");
+    System.out.println("with -CONFIG_FILE, e.g., -predicateAnalysis for config/predicateAnalysis.properties.");
     System.out.println();
     System.out.println("More information on how to configure CPAchecker can be found in 'doc/Configuration.txt'.");
     System.exit(0);
@@ -298,9 +314,15 @@ class CmdLineArguments {
 
         String newValue = args.next();
         if (arg.equals("-spec")
-            && UNSUPPORTED_SPECIFICATIONS.contains(newValue)) {
-          System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
-          System.exit(0);
+            && SPECIFICATION_FILES_PATTERN.matcher(newValue).matches()) {
+
+          Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, newValue);
+          if (specFile != null) {
+            newValue = specFile.toString();
+          } else {
+            System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
+            System.exit(0);
+          }
         }
 
         String value = properties.get(option);
@@ -318,5 +340,40 @@ class CmdLineArguments {
     } else {
       return false;
     }
+  }
+
+  /**
+   * Try to locate a file whose (partial) name is given by the user,
+   * using a file name template which is filled with the user given name.
+   *
+   * If the path is relative, it is first looked up in the current directory,
+   * and (if the file does not exist there), it is looked up in the parent directory
+   * of the code base.
+   *
+   * If the file cannot be found, null is returned.
+   *
+   * @param template The string template for the path.
+   * @param name The value for filling in the template.
+   * @return An absolute Path object pointing to an existing file or null.
+   */
+  private static Path findFile(String template, String name) {
+    final String fileName = String.format(template, name);
+    Path file = Paths.get(fileName);
+
+    // look in current directory first
+    if (java.nio.file.Files.exists(file)) {
+      return file.toAbsolutePath();
+    }
+
+    // look relative to code location second
+    Path codeLocation = Paths.get(CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+    Path baseDir = codeLocation.getParent();
+
+    file = baseDir.resolve(fileName);
+    if (java.nio.file.Files.exists(file)) {
+      return file.toAbsolutePath();
+    }
+
+    return null;
   }
 }

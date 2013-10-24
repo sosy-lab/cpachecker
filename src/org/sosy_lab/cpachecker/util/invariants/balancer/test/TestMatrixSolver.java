@@ -103,14 +103,14 @@ public class TestMatrixSolver {
     Matrix C = new Matrix(c);
     A = Matrix.augment(A, C);
 
-    test2(a22,b,a32);
+    test2(a22, b, a32);
     // Next line to turn off warning!
     test1();
   }
 
   private static void test1() {
     System.out.println(A);
-    PivotRowHandler ms = new PivotRowHandler(A,logger);
+    PivotRowHandler ms = new PivotRowHandler(A, logger);
     System.out.println(ms);
   }
 
@@ -121,7 +121,7 @@ public class TestMatrixSolver {
     boolean same = a.isRationalConstantMultipleOf(b);
     same = a.isRationalConstantMultipleOf(c);
 
-    Rational r = new Rational(-3,27);
+    Rational r = new Rational(-3, 27);
     Variable p1 = new Variable("p1");
     Variable p2 = new Variable("p2");
     Polynomial f1 = new Polynomial(p1);
@@ -129,12 +129,12 @@ public class TestMatrixSolver {
     Polynomial pr = new Polynomial(r);
     f1  = Polynomial.multiply(pr, f1);
     f2  = Polynomial.multiply(pr, f2);
-    Polynomial f = Polynomial.add(f1,f2);
+    Polynomial f = Polynomial.add(f1, f2);
     Polynomial g = f.cancelRationalContent();
-    RationalFunction h = new RationalFunction(f,g);
+    RationalFunction h = new RationalFunction(f, g);
     h.simplify();
     Rational q = f.rationalConstantQuotientOver(g);
-    Assumption asn = new Assumption(a,AssumptionType.NONNEGATIVE);
+    Assumption asn = new Assumption(a, AssumptionType.NONNEGATIVE);
     // garbage to turn off warnings!
     if (cn == null || nn == null || same || q == null) {
       System.out.println(asn);

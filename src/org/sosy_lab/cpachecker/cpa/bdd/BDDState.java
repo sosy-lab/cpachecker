@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +27,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+
+import com.google.common.base.Joiner;
 
 public class BDDState implements AbstractQueryableState {
 
@@ -69,7 +71,7 @@ public class BDDState implements AbstractQueryableState {
   }
 
   public String toCompactString() {
-    return manager.dumpRegion(currentState);
+    return "";//manager.dumpRegion(currentState);
   }
 
   @Override
@@ -100,6 +102,10 @@ public class BDDState implements AbstractQueryableState {
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.equals("VALUES")) {
       return manager.dumpRegion(this.currentState);
+    } else if (pProperty.equals("VARSET")) {
+      return "(" + Joiner.on(", ").join(manager.getPredicates()) + ")";
+    } else if (pProperty.equals("VARSETSIZE")) {
+      return manager.getPredicates().size();
     } else {
       throw new InvalidQueryException("BDDCPA Element can only return the current values (\"VALUES\")");
     }

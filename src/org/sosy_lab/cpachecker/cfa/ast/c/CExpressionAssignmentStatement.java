@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,30 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+
+
 /**
  * AST node for the expression "a = b".
  */
-public class CExpressionAssignmentStatement extends CStatement implements CAssignment {
+public class CExpressionAssignmentStatement extends AExpressionAssignmentStatement implements CAssignment, CStatement {
 
-  private final CExpression leftHandSide;
-  private final CExpression rightHandSide;
-
-  public CExpressionAssignmentStatement(CFileLocation pFileLocation,
+  public CExpressionAssignmentStatement(FileLocation pFileLocation,
                                            CExpression pLeftHandSide,
                                            CExpression pRightHandSide) {
-    super(pFileLocation);
-    leftHandSide = pLeftHandSide;
-    rightHandSide = pRightHandSide;
+    super(pFileLocation, pLeftHandSide, pRightHandSide);
+
   }
 
   @Override
   public CExpression getLeftHandSide() {
-    return leftHandSide;
+    return (CExpression)super.getLeftHandSide();
   }
 
   @Override
   public CExpression getRightHandSide() {
-    return rightHandSide;
+    return (CExpression)super.getRightHandSide();
   }
 
   @Override
@@ -60,8 +60,22 @@ public class CExpressionAssignmentStatement extends CStatement implements CAssig
   }
 
   @Override
-  public String toASTString() {
-    return leftHandSide.toASTString()
-        + " = " + rightHandSide.toASTString() + ";";
+  public int hashCode() {
+    int prime = 31;
+    int result = 7;
+    return prime * result + super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CExpressionAssignmentStatement)) {
+      return false;
+    }
+
+    return super.equals(obj);
   }
 }

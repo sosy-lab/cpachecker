@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -89,7 +89,7 @@ class TimedReducer implements Reducer {
   @Override
   public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
     expandPrecisionTime.start();
-    try{
+    try {
       return wrappedReducer.getVariableExpandedPrecision(rootPrecision, rootContext, reducedPrecision);
     } finally {
       expandPrecisionTime.stop();
@@ -100,6 +100,19 @@ class TimedReducer implements Reducer {
   @Override
   public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
     return wrappedReducer.measurePrecisionDifference(pPrecision, pOtherPrecision);
+  }
+
+  @Override
+  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
+      CFANode pCallNode) {
+    return wrappedReducer.getVariableReducedStateForProofChecking(pExpandedState, pContext, pCallNode);
+
+  }
+
+  @Override
+  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
+      AbstractState pReducedState) {
+    return wrappedReducer.getVariableExpandedStateForProofChecking(pRootState, pReducedContext, pReducedState);
   }
 
 }

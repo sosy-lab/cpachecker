@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.PrintStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -83,9 +83,10 @@ public class Automaton {
   /**
    * Prints the contents of a DOT file representing this automaton to the PrintStream.
    * @param pOut
+   * @throws IOException
    */
-  void writeDotFile(PrintStream pOut) {
-    pOut.println("digraph " + name + "{");
+  void writeDotFile(Appendable pOut) throws IOException {
+    pOut.append("digraph " + name + "{\n");
 
     boolean errorState = false;
     boolean bottomState = false;
@@ -93,10 +94,10 @@ public class Automaton {
     for (AutomatonInternalState s : states) {
       String color = initState.equals(s) ? "green" : "black";
 
-      pOut.println(formatState(s, color));
+      pOut.append(formatState(s, color));
 
       for (AutomatonTransition t : s.getTransitions()) {
-        pOut.println(formatTransition(s, t));
+        pOut.append(formatTransition(s, t));
 
         errorState = errorState || t.getFollowState().equals(AutomatonInternalState.ERROR);
         bottomState = bottomState || t.getFollowState().equals(AutomatonInternalState.BOTTOM);
@@ -104,22 +105,22 @@ public class Automaton {
     }
 
     if (errorState) {
-      pOut.println(formatState(AutomatonInternalState.ERROR, "red"));
+      pOut.append(formatState(AutomatonInternalState.ERROR, "red"));
     }
 
     if (bottomState) {
-      pOut.println(formatState(AutomatonInternalState.BOTTOM, "red"));
+      pOut.append(formatState(AutomatonInternalState.BOTTOM, "red"));
     }
-    pOut.println("}");
+    pOut.append("}\n");
   }
 
   private static String formatState(AutomatonInternalState s, String color) {
     String name = s.getName().replace("_predefinedState_", "");
-    return String.format("%d [shape=\"circle\" color=\"%s\" label=\"%s\"]", s.getStateId(), color, name);
+    return String.format("%d [shape=\"circle\" color=\"%s\" label=\"%s\"]\n", s.getStateId(), color, name);
   }
 
   private static String formatTransition(AutomatonInternalState sourceState, AutomatonTransition t) {
-    return String.format("%d -> %d [label=\"" /*+ pattern */ + "\"]", sourceState.getStateId(), t.getFollowState().getStateId());
+    return String.format("%d -> %d [label=\"" /*+ pattern */ + "\"]\n", sourceState.getStateId(), t.getFollowState().getStateId());
   }
 
 

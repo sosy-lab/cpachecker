@@ -24,8 +24,9 @@ void z(int i) {}
 int main(void) {
  void (*h)(int) = &z;
 
- // in the next line, h references the local variable
+ // in the next lines, h references the local variable
  f(h);
+ h(1);
 
  return 0;
 }

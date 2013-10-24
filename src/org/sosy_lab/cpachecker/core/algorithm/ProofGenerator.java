@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,38 +23,31 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.util.logging.Level;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
 
 @Options
 public class ProofGenerator {
 
   @Option(name = "pcc.proofgen.doPCC", description = "")
   private boolean doPCC = false;
-  @Option(name = "pcc.proofFile", description = "file in which ARG representation needed for proof checking is stored")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File file = new File("arg.obj");
+  @Option(
+      name = "pcc.strategy",
+      description = "Qualified name for class which implements certification strategy, hence proof writing, to be used.")
+  private String pccStrategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy";
+
+  private PCCStrategy checkingStrategy;
 
   private final LogManager logger;
 
@@ -62,61 +55,28 @@ public class ProofGenerator {
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
+
+    checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, pLogger, null);
   }
 
   public void generateProof(CPAcheckerResult pResult) {
     if (!doPCC) { return; }
     UnmodifiableReachedSet reached = pResult.getReached();
+
     // check result
-    if (pResult.getResult() != Result.SAFE
-        || reached.getFirstState() == null
-        || !(reached.getFirstState() instanceof ARGState)
-        || (extractLocation(reached.getFirstState()) == null)) {
+    if (pResult.getResult() != Result.SAFE) {
       logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return;
     }
-    // saves the proof in specified file
+    // saves the proof
     logger.log(Level.INFO, "Proof Generation started.");
     Timer writingTimer = new Timer();
     writingTimer.start();
 
-    OutputStream fos = null;
-    try {
-      fos = new FileOutputStream(file);
-      ZipOutputStream zos = new ZipOutputStream(fos);
-      zos.setLevel(9);
-
-      ZipEntry ze = new ZipEntry("Proof");
-      zos.putNextEntry(ze);
-      ObjectOutputStream o = new ObjectOutputStream(zos);
-      //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
-      //write ARG
-      o.writeObject(reached.getFirstState());
-      zos.closeEntry();
-
-      ze = new ZipEntry("Helper");
-      zos.putNextEntry(ze);
-      //write helper storages
-      o = new ObjectOutputStream(zos);
-      int numberOfStorages = GlobalInfo.getInstance().getNumberOfHelperStorages();
-      o.writeInt(numberOfStorages);
-      for (int i = 0; i < numberOfStorages; ++i) {
-        o.writeObject(GlobalInfo.getInstance().getHelperStorage(i));
-      }
-
-      o.flush();
-      zos.closeEntry();
-      zos.close();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    } finally {
-      try {
-        fos.close();
-      } catch (Exception e) {
-      }
-    }
+    checkingStrategy.writeProof(reached);
 
     writingTimer.stop();
     logger.log(Level.INFO, "Writing proof took " + writingTimer.printMaxTime());
   }
+
 }

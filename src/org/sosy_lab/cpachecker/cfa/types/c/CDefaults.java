@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,38 +26,44 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+
+import com.google.common.collect.ImmutableList;
 
 public class CDefaults {
 
   private CDefaults() { }
 
-  private static CType INT_TYPE = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
-
-  public static CLiteralExpression forType(CType type, CFileLocation fileLoc) {
+  public static CInitializer forType(CType type, FileLocation fileLoc) {
+    // Get default value of a type for initializations
+    // according to C standard §6.7.9 (10)
+    type = type.getCanonicalType();
     if (type instanceof CPointerType) {
-      return new CIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
+      return initializerFor(signedIntZero(fileLoc), fileLoc);
 
     } else if (type instanceof CSimpleType) {
       CBasicType basicType = ((CSimpleType)type).getType();
       switch (basicType) {
       case CHAR:
-        return new CCharLiteralExpression(fileLoc, type, '\0');
+        return initializerFor(new CCharLiteralExpression(fileLoc, type, '\0'), fileLoc);
 
       case DOUBLE:
       case FLOAT:
-        return new CFloatLiteralExpression(fileLoc, type, BigDecimal.ZERO);
+        return initializerFor(new CFloatLiteralExpression(fileLoc, type, BigDecimal.ZERO), fileLoc);
 
       case UNSPECIFIED:
       case BOOL:
       case INT:
       case VOID: // is this legitimate for "void"?
-        return new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO);
+        return initializerFor(new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);
 
       default:
         throw new AssertionError("Unknown basic type '" + basicType + "'");
@@ -65,16 +71,42 @@ public class CDefaults {
 
     } else if (type instanceof CEnumType) {
       // enum declaration: enum e { ... } var;
-      return new CIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
+      return initializerFor(signedIntZero(fileLoc), fileLoc);
 
-    } else if (type instanceof CElaboratedType && ((CElaboratedType)type).getKind() == ElaboratedType.ENUM) {
-      // enum declaration: enum e var;
-      return new CIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
+    } else if (type instanceof CElaboratedType) {
+       if (((CElaboratedType)type).getKind() == ComplexTypeKind.ENUM) {
+        // enum declaration: enum e var;
+        return initializerFor(signedIntZero(fileLoc), fileLoc);
+
+       } else {
+         // struct or union
+         return emptyAggregate(fileLoc);
+       }
+
+    } else if (type instanceof CCompositeType) {
+      // struct or union
+      return emptyAggregate(fileLoc);
+
+    } else if (type instanceof CArrayType) {
+      return emptyAggregate(fileLoc);
 
     } else {
-      // TODO create initializer for arrays, structs, enums
-      return null;
+      throw new IllegalArgumentException("Type " + type + " has no default value");
     }
   }
 
+  private static CInitializerList emptyAggregate(FileLocation fileLoc) {
+    // The initializer { } (without any explizit values)
+    // is equal to initializing all fields/elements with 0
+    // (C standard §6.7.9 (21))
+    return new CInitializerList(fileLoc, ImmutableList.<CInitializer>of());
+  }
+
+  private static CIntegerLiteralExpression signedIntZero(FileLocation fileLoc) {
+    return new CIntegerLiteralExpression(fileLoc, CNumericTypes.SIGNED_INT, BigInteger.ZERO);
+  }
+
+  private static CInitializerExpression initializerFor(CExpression exp, FileLocation fileLoc) {
+    return new CInitializerExpression(fileLoc, exp);
+  }
 }

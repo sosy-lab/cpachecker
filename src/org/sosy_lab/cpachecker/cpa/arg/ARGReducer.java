@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,7 +43,8 @@ public class ARGReducer implements Reducer {
       AbstractState pExpandedState, Block pContext,
       CFANode pLocation) {
 
-    return new ARGState(wrappedReducer.getVariableReducedState(((ARGState)pExpandedState).getWrappedState(), pContext, pLocation), null);
+    return new ARGState(wrappedReducer.getVariableReducedState(((ARGState) pExpandedState).getWrappedState(), pContext,
+        pLocation), null);
   }
 
   @Override
@@ -51,13 +52,14 @@ public class ARGReducer implements Reducer {
       AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) {
 
-    return new ARGState(wrappedReducer.getVariableExpandedState(((ARGState)pRootState).getWrappedState(), pReducedContext, ((ARGState)pReducedState).getWrappedState()), null);
+    return new ARGState(wrappedReducer.getVariableExpandedState(((ARGState) pRootState).getWrappedState(),
+        pReducedContext, ((ARGState) pReducedState).getWrappedState()), null);
   }
 
   @Override
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
 
-    return wrappedReducer.getHashCodeForState(((ARGState)pElementKey).getWrappedState(), pPrecisionKey);
+    return wrappedReducer.getHashCodeForState(((ARGState) pElementKey).getWrappedState(), pPrecisionKey);
   }
 
   @Override
@@ -76,4 +78,17 @@ public class ARGReducer implements Reducer {
     return wrappedReducer.measurePrecisionDifference(pPrecision, pOtherPrecision);
   }
 
+  @Override
+  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
+      CFANode pCallNode) {
+    return new ARGState(wrappedReducer.getVariableReducedStateForProofChecking(
+        ((ARGState) pExpandedState).getWrappedState(), pContext, pCallNode), null);
+  }
+
+  @Override
+  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
+      AbstractState pReducedState) {
+    return new ARGState(wrappedReducer.getVariableExpandedStateForProofChecking(
+        ((ARGState) pRootState).getWrappedState(), pReducedContext, ((ARGState) pReducedState).getWrappedState()), null);
+  }
 }

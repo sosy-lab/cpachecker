@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cpa.abm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-public class ABMARGBlockStartState extends ARGState{
+public class ABMARGBlockStartState extends ARGState {
+
+  private static ABMARGBlockStartState dummyElem = null;
 
   private static final long serialVersionUID = -5143941913753150639L;
 
@@ -34,20 +36,30 @@ public class ABMARGBlockStartState extends ARGState{
 
   public ABMARGBlockStartState(AbstractState pWrappedState, ARGState pParentElement) {
     super(pWrappedState, pParentElement);
-    // TODO Auto-generated constructor stub
   }
 
-  public void setAnalyzedBlock(ARGState pRootOfBlock){
+  public void setAnalyzedBlock(ARGState pRootOfBlock) {
     analyzedBlock = pRootOfBlock;
   }
 
-  public ARGState getAnalyzedBlock(){
+
+  public ARGState getAnalyzedBlock() {
     return analyzedBlock;
- }
+  }
 
   @Override
   public String toString() {
-    return "ABMARGBlockStartState "+super.toString();
+    return "ABMARGBlockStartState " + super.toString();
+  }
+
+  public static ABMARGBlockStartState getDummy() {
+    return dummyElem;
+  }
+
+  public static ABMARGBlockStartState createDummy(AbstractState wrappedState) {
+    if (dummyElem == null) {
+      dummyElem = new ABMARGBlockStartState(wrappedState, null);
+    }
+    return dummyElem;
   }
 }
-

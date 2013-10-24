@@ -1,11 +1,20 @@
 #!/bin/sh
 
 # For building libmathsat5j.so, there are two dependencies:
-# - The static Mathsat4 library as can be downloaded from http://mathsat4.disi.unitn.it/download.html
+# - The static Mathsat5 library as can be downloaded from http://mathsat.fbk.eu/download.html
 # - The static GMP library compiled with the "-fPIC" option.
 #   To create this, download GMP from http://gmplib.org/ and run
 #   ./configure --enable-cxx --with-pic --disable-shared
 #   make
+
+# This script searches for all included libraries in the current directory first.
+# You can use this to override specific libraries installed on your system.
+# You can also use this to force static linking of a specific library,
+# if you put only the corresponding .a file in this directory, not the .so file.
+
+# For example, to statically link against libstdc++,
+# compile this library with --with-pic,
+# and put the resulting libstdc++.a file in this directory.
 
 # This script uses a crude hack to produce downwards-compatible binaries.
 # On systems with libc6 >= 2.14, there is a new memcpy function.
@@ -17,7 +26,6 @@
 # This will need to be extended if there appear other functions in newer a libc
 # which are also not downwards compatible.
 # Always check with ldd -v what the newest required version of libc and libstdc++ are.
-
 
 JNI_HEADERS="$(../get_jni_headers.sh)"
 
@@ -44,7 +52,7 @@ gcc -g $JNI_HEADERS -I$MSAT_SRC_DIR -I$GMP_HEADER_DIR versions.c org_sosy_1lab_c
 # Everything except the standard libraries is included statically.
 # The result is a shared library.
 if [ `uname -m` = "x86_64" ]; then
-	gcc -Wall -g -o libmathsat5j.so -shared -Wl,-soname,libmathsat5j.so -L$MSAT_LIB_DIR -L$GMP_LIB_DIR -I$GMP_HEADER_DIR versions.o org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.o -Wl,-Bstatic -lmathsat -lgmpxx -lgmp -Wl,-Bdynamic -lc -lm -lstdc++ -Wl,--wrap=memcpy
+	gcc -Wall -g -o libmathsat5j.so -shared -Wl,-soname,libmathsat5j.so -L. -L$MSAT_LIB_DIR -L$GMP_LIB_DIR -I$GMP_HEADER_DIR versions.o org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.o -Wl,-Bstatic -lmathsat -lgmpxx -lgmp -Wl,-Bdynamic -lc -lm -lstdc++ -Wl,--wrap=memcpy
 else
 	gcc -Wall -g -o libmathsat5j.so -shared -Wl,-soname,libmathsat5j.so -L$MSAT_LIB_DIR -L$GMP_LIB_DIR -I$GMP_HEADER_DIR org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.o -Wl,-Bstatic -lmathsat -lgmpxx -lgmp -Wl,-Bdynamic -lc -lm -lstdc++
 fi
