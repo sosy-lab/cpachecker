@@ -192,9 +192,14 @@ $(document).ready(function() {
 <!-- ################## Possibility to select displayed columns by clicking on left-most cell in title row ################## -->
 
 <style type="text/css">
-  #toggleButtons ul { font-family:arial, sans serif; }
-  #toggleButtons ul li { display: inline; }
-  #toggleButtons ul li:hover { background-color:yellow; }
+  #toggleTable { margin: auto; }
+  #toggleTable td { padding-bottom: 5px; padding-top: 5px; }
+  #toggleTable tr:hover { background-color: transparent; }
+  #toggleTable tbody td:first-child { font-family: arial, sans serif; }
+  #toggleTableWrapper { height: 100%; overflow: auto; width: 100%; }
+  .hiddenCell { background: red; }
+  .visibleCell { background: green; }
+  .clickableCell:hover { opacity: 0.5; cursor: pointer; }
 </style>
 
 <script type="text/javascript">
@@ -237,77 +242,134 @@ function decColspan(col) {
 
 // this function shows or hides a column and enlarges or shrinks the header-columns
 // @param index: index of a column in row "columnTitle"
-function toggleColumn (button, index) {
-  for (var i=0; i<headerArray.length; i++) {
-    var cell = headerArray[i][index];
-    button.checked ? incColspan(cell) : decColspan(cell);
-  }
-  var childIndex = index+1; // first child is number 1
-  var children = $("tbody > tr > td:nth-child(" + childIndex + "), " +
-                   "tfoot > tr > td:nth-child(" + childIndex + ")");
-  button.checked ? children.show() : children.hide();
+function toggleColumn (shouldBeVisible, index) {
+    if (headerArray == null) { createHeaderArray(); }
+    var columnTitles = $('#columnTitles > td');
+    // if column is hidden (or visible), we do not hide (or show) it again
+    if ($(columnTitles[index]).is(":visible") != shouldBeVisible) {
+        for (var i=0; i<headerArray.length; i++) {
+            var cell = headerArray[i][index];
+            shouldBeVisible ? incColspan(cell) : decColspan(cell);
+        }
+        var childIndex = index+1; // first child is number 1
+        var children = $("#dataTable > tbody > tr > td:nth-child(" + childIndex + "), " +
+                         "#dataTable > tfoot > tr > td:nth-child(" + childIndex + ")");
+        shouldBeVisible ? children.show() : children.hide();
+    }
+}
+
+// "id->cell", "id" is the columnIndex in the dataTable,
+// "cell" is the jQuery-object of the cell of the column-toggle-table
+var indexToCell = {};
+
+// this function toggles a list of cells and 
+// makes the cells equally toggled to the first cell
+function toggleCells(indices) {
+    var checked = indexToCell[indices[0]].isChecked; 
+    for (var i=0; i<indices.length; i++) {
+        var cell = indexToCell[indices[i]];
+        toggleColumn (!checked, indices[i]);
+        cell.removeClass(!checked ? 'hiddenCell' : 'visibleCell')
+            .addClass(checked ? 'hiddenCell' : 'visibleCell');
+        cell.isChecked = !checked;
+    }
 }
 
 
-// we use a cache, because it is difficult to calculate the
-// colspan of headerrows with some hidden columns
-var buttonListCache = null;
+function createColumnToggleView() {
 
-function createColumnToggleButtons() {
-  if (headerArray == null) {
-    createHeaderArray();
-  }
-  if (buttonListCache == null) { // if not cached, for details see 5 lines above
-
-    var buttonList = '';
-    var columnIndex = 1; // columns start with 1
+    // collect all columns
+    var tableColumns = [];
+    var titlesToColumns = {};
+    var columnIndex = 1; // column 1 is the first data-column
     for (var i = 0; i < tests.length; i++) {
-      var test = tests[i];
-      buttonList += '<ul onclick="toggleCompleteColumn(event, this)">' + getNameOfTest(columnIndex);
+        var test = tests[i];
+        test.indexToColumn = {} // from test-column-index to table-index
+        test.indices = [] // equal to values from test.indexToColumn
 
-      for (var j = 0; j < test.columns.length; j++, columnIndex++) {
-        var toggleFunction = 'onclick="toggleColumn(this,' + columnIndex + ')"';
-
-        var button = '<input type="checkbox" id="check' + columnIndex + '" ' + toggleFunction + ' checked>';
-        var label = '<label for="check' + columnIndex + '">' + test.columns[j] + '</label>';
-        buttonList += '<li>' + button + label + '</li>';
-      }
-      buttonList += '</ul>';
+        var cols = columns[i];
+        for (var j = 0; j < cols.length; j++, columnIndex++) {
+            var title = cols[j];
+            var index = tableColumns.indexOf(title);
+            if (title in titlesToColumns) {
+                titlesToColumns[title].push(columnIndex);
+            } else { // new title
+                // assert(index == -1);
+                titlesToColumns[title] = [columnIndex];
+                tableColumns.push(title);
+                index = tableColumns.length - 1; // index of last position
+            }
+            test.indexToColumn[index] = columnIndex;
+            test.indices.push(columnIndex);
+        }
     }
 
-    buttonListCache = $(buttonList);
-  }
-
-  $('<form id="toggleButtons" onsubmit="return false"></form>')
-    .append(buttonListCache)
-    .appendTo($("#contentPane"));
-  showContentPane();
-}
-
-// function to (un)hide a complete test run, with all of its columns at once
-function toggleCompleteColumn(event, listOfCheckboxes) {
-  if (event.originalTarget == listOfCheckboxes) {
-
-    checkboxes = ($(listOfCheckboxes).find('input'));
-    checkedState = !checkboxes[0].checked;
-
-    for (var i = 0; i < checkboxes.length; i++) {
-      if (checkboxes[i].checked != checkedState) {
-        id = checkboxes[i].id.replace("check", "");
-        // first uncheck ...
-        checkboxes[i].checked = checkedState;
-        // ... then call the toggle function (the order matters!)
-        toggleColumn(checkboxes[i], parseInt(id));
-      }
+    // create header for table
+    var list = []; for (var i=1; i<columnIndex; i++) { list.push(i); }
+    var rowHeader = $('<tr>');
+    $('<td>') // create top-left cell
+        .click( {indices: list},
+                function(event) { toggleCells(event.data.indices); } )
+        .addClass('clickable')
+        .attr('title', 'Click here to toggle all columns')
+        .appendTo(rowHeader);
+    for (var j = 0; j < tableColumns.length; j++) {
+        $('<td>').append(tableColumns[j]) // create column-title-cell
+            .click( {indices: titlesToColumns[tableColumns[j]]}, 
+                    function(event) { toggleCells(event.data.indices); } )
+            .addClass('clickable')
+            .attr('title', 'Click here to toggle all columns with this title')
+            .appendTo(rowHeader);
     }
-  }
+
+    var tableHTML = $('<table>').attr('id', 'toggleTable')
+                    .append($('<thead>').append(rowHeader));
+
+    // create body for table
+    var tableBody = $('<tbody>').appendTo(tableHTML);
+    for (var i = 0; i < tests.length; i++) {
+        rowHTML = $('<tr>').appendTo(tableBody);
+        var test = tests[i];
+        
+        // get indices of row and create rowTitle-cell
+        var rowTitle = test.tool + ' ' + (test.date ? test.date + ' ' : '') + test.name;
+        $('<td>').append(rowTitle)
+            .click( {indices: test.indices}, 
+                    function(event) { toggleCells(event.data.indices); } )
+            .addClass('clickable')
+            .attr('title', 'Click here to toggle all columns of this test')
+            .appendTo(rowHTML);
+    
+        // get cells of row
+        var cols = columns[i];
+        for (var j = 0; j < tableColumns.length; j++) {
+            var cell = $('<td>').appendTo(rowHTML);
+            var index = test.indexToColumn[j];
+            if (index) {
+                indexToCell[index] = cell;
+                var childIndex = index + 1;
+                var checked = $('#columnTitles > td:nth-child(' + childIndex + ')').is(':visible');
+                cell.isChecked = checked;
+                cell.addClass(checked ? 'visibleCell' : 'hiddenCell')
+                    .click( {index: [index]}, 
+                            function(event) { toggleCells(event.data.index); } )
+                    .addClass('clickableCell');
+                    
+            }
+        }
+    }
+    $('<div>').attr('id', 'toggleTableWrapper')
+              .append(tableHTML)
+              .appendTo($("#contentPane"));
+    showContentPane();
 }
 
 $(document).ready(function() {
   $('#columnTitles > td:first-child')
     .addClass("clickable")
+    .attr("title", "Click here to toggle visibility of columns")
     .click(function (event) {
-        return createColumnToggleButtons(); });
+        return createColumnToggleView(); });
 });
 </script>
 
@@ -779,7 +841,9 @@ $(document).ready(function() {
   for (i = 1; i< columnTitles.length; i++) { // do not use first column (i!=0)
     var column = columnTitles[i];
     debug(column);
-    column.style.cursor = "pointer";
+    $(column)
+      .addClass("clickable")
+      .attr("title", "Click here to show a graph of this column")
     column.onclick = function (event) {
       graphData.header = event.target.textContent;
       return showPlot();
@@ -799,7 +863,7 @@ $(document).ready(function() {
 <body>
 
 <div id="contentPaneBackground"></div>
-<div id="contentPane" tabindex="0"></div>
+<div id="contentPane"></div>
 
 <table id="dataTable">
 <thead>
@@ -826,11 +890,11 @@ def formatOptions(str):
 
 <tbody>
 {{for line in body}}
-<tr><td><a href="{{line.filePath|url}}">{{line.shortFileName}}</a></td>
+<tr><td title="Click here to show source code"><a href="{{line.filePath|url}}">{{line.shortFileName}}</a></td>
   {{for test in line.results}}
   {{for column, value in zip(test.columns, test.values)}}
   {{if column.title == 'status'}}
-  <td class="{{test.category}}"><a href="{{test.logFile|url}}">{{value.lower()}}</a></td>
+  <td class="{{test.category}}" title="Click here to show output of tool"><a href="{{test.logFile|url}}">{{value.lower()}}</a></td>
   {{else}}
   <td class="{{test.category}}Value">{{value or '-'}}</td>
   {{endif}}

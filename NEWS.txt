@@ -1,5 +1,13 @@
 Changes since CPAchecker 1.1
 ----------------------------
+* r6765: The file format of the file with the initial set of predicates
+  (option cpa.predicate.abstraction.initialPredicates) and
+  the final set of predicates (option cpa.predicate.predmap.file) was changed.
+  It is now the same format for both files, and based on the Smtlib2 format.
+  See doc/examples/predmap.txt for an example.
+  This is not supported when Mathsat4 is used as the SMT solver
+  (use Mathsat5 instead).
+* r6745: The option cpa.predicate.machineModel was renamed to analysis.machineModel.
 * r6470: The Cudd BDD library was removed, now JavaBDD's implementation is used by default
   (it has similar performance, but more features).
 * r6165: The ARTCPA was renamed to ARGCPA.

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
+import java.util.Collection;
+
 import net.sf.javabdd.BDDFactory;
 
 import org.sosy_lab.common.LogManager;
@@ -41,6 +43,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
@@ -51,7 +55,7 @@ import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
  */
 
 @Options(prefix="cpa.fsmbdd")
-public class FsmBddCPA implements ConfigurableProgramAnalysis {
+public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(FsmBddCPA.class);
@@ -60,9 +64,10 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis {
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
-  private FsmTransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
-  private FsmPrecision precision;
+  private FsmBddTransferRelation transferRelation;
+  private FsmBddPrecision precision;
+  private FsmBddStatistics stats;
 
   private final Configuration config;
   private final LogManager logger;
@@ -86,13 +91,14 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis {
     //
     // Initialization of the (remaining) components of the CPA.
     //
+    this.stats = new FsmBddStatistics(bddFactory);
     this.domainIntervalProvider = new FsmSyntaxAnalizer(pCfa);
-    this.abstractDomain = new FsmDomain();
-    this.transferRelation = new FsmTransferRelation(pConfig);
+    this.abstractDomain = new FsmBddDomain();
+    this.transferRelation = new FsmBddTransferRelation(pConfig, stats, bddFactory);
     this.transferRelation.setDomainIntervalProvider(domainIntervalProvider);
     this.precision = initializePrecision(pConfig, pCfa);
     this.stopOperator = initializeStopOperator();
-    this.mergeOperator = new FsmMergeOperator(abstractDomain);
+    this.mergeOperator = new FsmBddMergeOperator(pConfig, stats);
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
@@ -100,8 +106,8 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis {
     return new StopSepOperator(abstractDomain);
   }
 
-  private FsmPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
-    return new FsmPrecision();
+  private FsmBddPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
+    return new FsmBddPrecision();
   }
 
   @Override
@@ -126,7 +132,7 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    FsmState result = new FsmState(bddFactory);
+    FsmBddState result = new FsmBddState(bddFactory, node);
     return result;
   }
 
@@ -146,6 +152,11 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis {
 
   public LogManager getLogger() {
     return logger;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 
 }

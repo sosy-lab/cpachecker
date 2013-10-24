@@ -32,11 +32,9 @@ public class BDDState implements AbstractQueryableState {
 
   private Region currentState;
   private final NamedRegionManager manager;
-  private final String functionName;
 
-  public BDDState(NamedRegionManager mgr, Region state, String functionName) {
+  public BDDState(NamedRegionManager mgr, Region state) {
     this.currentState = state;
-    this.functionName = functionName;
     this.manager = mgr;
   }
 
@@ -44,22 +42,12 @@ public class BDDState implements AbstractQueryableState {
     return currentState;
   }
 
-  public String getFunctionName() {
-    return functionName;
-  }
-
   public boolean isLessOrEqual(BDDState other) {
-    assert this.functionName.equals(other.functionName) : "same function needed: "
-        + this.functionName + " vs " + other.functionName;
-
     return manager.entails(this.currentState, other.currentState);
   }
 
   public BDDState join(BDDState other) {
-    assert this.functionName.equals(other.functionName) : "same function needed: "
-        + this.functionName + " vs " + other.functionName;
-
-    Region result = manager.makeOr(this.currentState, other.currentState);
+     Region result = manager.makeOr(this.currentState, other.currentState);
 
     // FIRST check the other element
     if (result.equals(other.currentState)) {
@@ -70,14 +58,14 @@ public class BDDState implements AbstractQueryableState {
       return this;
 
     } else {
-      return new BDDState(this.manager, result, this.functionName);
+      return new BDDState(this.manager, result);
     }
   }
 
   @Override
   public String toString() {
-    return manager.dumpRegion(currentState) + "\n"
-        + manager.regionToDot(currentState);
+    return //manager.dumpRegion(currentState) + "\n" +
+        manager.regionToDot(currentState);
   }
 
   public String toCompactString() {
@@ -88,8 +76,7 @@ public class BDDState implements AbstractQueryableState {
   public boolean equals(Object o) {
     if (o instanceof BDDState) {
       BDDState other = (BDDState) o;
-      return this.functionName.equals(other.functionName) &&
-          this.currentState.equals(other.currentState);
+      return this.currentState.equals(other.currentState);
     }
     return false;
   }

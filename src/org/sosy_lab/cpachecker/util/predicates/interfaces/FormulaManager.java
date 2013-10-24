@@ -184,13 +184,6 @@ public interface FormulaManager {
   // ----------------- Complex formula manipulation -----------------
 
     /**
-     * Parse a formula given as a String in the common infix notation.
-     * @return The same formula in the internal representation.
-     * @throws IllegalArgumentException If the string cannot be parsed.
-     */
-    public Formula parseInfix(String s) throws IllegalArgumentException;
-
-    /**
      * Parse a formula given as a String in a solver-specific file format.
      * @return The same formula in the internal representation.
      * @throws IllegalArgumentException If the string cannot be parsed.

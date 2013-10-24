@@ -27,11 +27,9 @@ import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUti
 
 import java.io.StringReader;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +45,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
+import de.uni_freiburg.informatik.ultimate.logic.FormulaUnLet;
+import de.uni_freiburg.informatik.ultimate.logic.FormulaUnLet.UnletType;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
@@ -66,10 +70,10 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   // various caches for speeding up expensive tasks
   //
   // cache for splitting arithmetic equalities in extractAtoms
-  private final Map<Formula, Boolean> arithCache = new HashMap<Formula, Boolean>();
+  private final Map<Term, Boolean> arithCache = Maps.newHashMap();
 
   // cache for uninstantiating terms (see uninstantiate() below)
-  private final Map<Formula, Formula> uninstantiateCache = new HashMap<Formula, Formula>();
+  private final Map<Term, Term> uninstantiateCache = Maps.newHashMap();
 
   Term falseTerm;
   Term trueTerm;
@@ -315,11 +319,6 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   }
 
   @Override
-  public Formula parseInfix(String s) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public Formula parse(String s) {
     return encapsulate(parseStringToTerms(s)[0]);
   }
@@ -342,8 +341,10 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   @Override
   public boolean isPurelyConjunctive(Formula f) {
-    Term t = getTerm(f);
+    return isPurelyConjunctive(getTerm(f));
+  }
 
+  boolean isPurelyConjunctive(Term t) {
     if (isAtom(t) || uifs.contains(t)) {
       // term is atom
       return true;
@@ -353,8 +354,8 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
       return (uifs.contains(t) || isAtom(t));
 
     } else if (isAnd(t)) {
-      for (int i = 0; i < getArity(t); ++i) {
-        if (!isPurelyConjunctive(encapsulate(getArg(t, i)))) {
+      for (Term c : getArgs(t)) {
+        if (!isPurelyConjunctive(c)) {
           return false;
         }
       }
@@ -367,17 +368,20 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   @Override
   public Formula instantiate(Formula f, SSAMap ssa) {
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
-    Map<Formula, Formula> cache = new HashMap<Formula, Formula>();
+    return encapsulate(instantiate(getTerm(f), ssa));
+  }
+
+  Term instantiate(Term f, SSAMap ssa) {
+    Deque<Term> toProcess = new ArrayDeque<Term>();
+    Map<Term, Term> cache = Maps.newHashMap();
 
     toProcess.push(f);
     while (!toProcess.isEmpty()) {
-      final Formula tt = toProcess.peek();
-      if (cache.containsKey(tt)) {
+      final Term t = toProcess.peek();
+      if (cache.containsKey(t)) {
         toProcess.pop();
         continue;
       }
-      final Term t = getTerm(tt);
 
       if (isVariable(t)) {
         toProcess.pop();
@@ -386,20 +390,20 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
         if (idx > 0) {
           // ok, the variable has an instance in the SSA, replace it
           Term newt = buildVariable(makeName(name, idx), t.getSort());
-          cache.put(tt, encapsulate(newt));
+          cache.put(t, newt);
         } else {
           // the variable is not used in the SSA, keep it as is
-          cache.put(tt, tt);
+          cache.put(t, t);
         }
 
       } else {
         boolean childrenDone = true;
         Term[] newargs = new Term[getArity(t)];
         for (int i = 0; i < newargs.length; ++i) {
-          Formula c = encapsulate(getArg(t, i));
-          Formula newC = cache.get(c);
+          Term c = getArg(t, i);
+          Term newC = cache.get(c);
           if (newC != null) {
-            newargs[i] = getTerm(newC);
+            newargs[i] = newC;
           } else {
             toProcess.push(c);
             childrenDone = false;
@@ -428,12 +432,12 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
             newt = replaceArgs(env, t, newargs);
           }
 
-          cache.put(tt, encapsulate(newt));
+          cache.put(t, newt);
         }
       }
     }
 
-    Formula result = cache.get(f);
+    Term result = cache.get(f);
     assert result != null;
     return result;
   }
@@ -444,30 +448,33 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   @Override
   public Formula uninstantiate(Formula f) {
-    Map<Formula, Formula> cache = uninstantiateCache;
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+    return encapsulate(uninstantiate(getTerm(f)));
+  }
+
+  Term uninstantiate(Term f) {
+    Map<Term, Term> cache = uninstantiateCache;
+    Deque<Term> toProcess = new ArrayDeque<Term>();
 
     toProcess.push(f);
     while (!toProcess.isEmpty()) {
-      final Formula tt = toProcess.peek();
-      if (cache.containsKey(tt)) {
+      final Term t = toProcess.peek();
+      if (cache.containsKey(t)) {
         toProcess.pop();
         continue;
       }
-      final Term t = getTerm(tt);
       if (isVariable(t)) {
         String name = parseName(t.toString()).getFirst();
         Term newt = buildVariable(name, t.getSort());
-        cache.put(tt, encapsulate(newt));
+        cache.put(t, newt);
 
       } else {
         boolean childrenDone = true;
         Term[] newargs = new Term[getArity(t)];
         for (int i = 0; i < newargs.length; ++i) {
-          Formula c = encapsulate(getArg(t, i));
-          Formula newC = cache.get(c);
+          Term c = getArg(t, i);
+          Term newC = cache.get(c);
           if (newC != null) {
-            newargs[i] = getTerm(newC);
+            newargs[i] = newC;
           } else {
             toProcess.push(c);
             childrenDone = false;
@@ -491,12 +498,12 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
             newt = replaceArgs(env, t, newargs);
           }
 
-          cache.put(tt, encapsulate(newt));
+          cache.put(t, newt);
         }
       }
     }
 
-    Formula result = cache.get(f);
+    Term result = cache.get(f);
     assert result != null;
     return result;
   }
@@ -504,46 +511,46 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   @Override
   public Collection<Formula> extractAtoms(Formula f,
       boolean splitArithEqualities, boolean conjunctionsOnly) {
-    Set<Formula> cache = new HashSet<Formula>();
-    List<Formula> atoms = new ArrayList<Formula>();
+    Set<Term> cache = Sets.newHashSet();
+    List<Formula> atoms = Lists.newArrayList();
 
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
-    toProcess.push(f);
+    // remove all "let" terms from the formula
+    Term initialTerm = new FormulaUnLet(UnletType.EXPAND_DEFINITIONS).unlet(getTerm(f));
+
+    Deque<Term> toProcess = new ArrayDeque<Term>();
+    toProcess.push(initialTerm);
 
     while (!toProcess.isEmpty()) {
-      Formula tt = toProcess.pop();
-      Term t = getTerm(tt);
+      Term t = toProcess.pop();
 
-      if (cache.contains(tt)) {
+      if (cache.contains(t)) {
         continue;
       }
-      cache.add(tt);
+      cache.add(t);
 
-      if (tt.isTrue() || tt.isFalse()) {
+      if (isTrue(t) || isFalse(t)) {
         continue;
       }
 
       if (isAtom(t)) {
-        tt = uninstantiate(tt);
-        t = getTerm(tt);
+        t = uninstantiate(t);
 
-        if (splitArithEqualities && isEqual(t) && isPurelyArithmetic(tt)) {
+        if (splitArithEqualities && isEqual(t) && isPurelyArithmetic(t)) {
           Term a1 = getArg(t, 0);
           Term a2 = getArg(t, 1);
-          Formula tt1 = encapsulate(env.term("<=", a1, a2)); // TODO why "<="??
-          cache.add(tt1);
-          atoms.add(tt1);
+          Term t1 = env.term("<=", a1, a2); // TODO why "<="??
+          cache.add(t1);
+          atoms.add(encapsulate(t1));
         }
-        atoms.add(tt);
+        atoms.add(encapsulate(t));
       } else if (conjunctionsOnly && !isNot(t) && !isAnd(t)) {
         // conjunctions only, but formula is neither "not" nor "and"
         // treat this as atomic
-        atoms.add(uninstantiate(tt));
+        atoms.add(encapsulate(uninstantiate(t)));
 
       } else {
         // ok, go into this formula
-        for (int i = 0; i < getArity(t); ++i) {
-          Formula c = encapsulate(getArg(t, i));
+        for (Term c : getArgs(t)) {
           if (!cache.contains(c)) {
             toProcess.push(c);
           }
@@ -556,14 +563,14 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
   @Override
   public Set<String> extractVariables(Formula f) {
-    Set<Formula> seen = new HashSet<Formula>();
-    Set<String> vars = new HashSet<String>();
+    Set<Term> seen = Sets.newHashSet();
+    Set<String> vars = Sets.newHashSet();
 
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
-    toProcess.push(f);
+    Deque<Term> toProcess = new ArrayDeque<Term>();
+    toProcess.push(getTerm(f));
 
     while (!toProcess.isEmpty()) {
-      Term t = getTerm(toProcess.pop());
+      Term t = toProcess.pop();
 
       if (isTrue(t) || isFalse(t)) {
         continue;
@@ -574,9 +581,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
       } else {
         // ok, go into this formula
-        for (int i = 0; i < getArity(t); ++i){
-          Formula c = encapsulate(getArg(t, i));
-
+        for (Term c : getArgs(t)){
           if (seen.add(c)) {
             toProcess.push(c);
           }
@@ -588,26 +593,25 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   }
 
   // returns true if the given term is a pure arithmetic term
-  private boolean isPurelyArithmetic(Formula f) {
-    Boolean result = arithCache.get(f);
+  private boolean isPurelyArithmetic(Term t) {
+    Boolean result = arithCache.get(t);
     if (result != null) {
       return result;
     } else {
 
-      Term t = getTerm(f);
       boolean res = true;
       if (uifs.contains(t)) {
         res = false;
 
       } else {
-        for (int i = 0; i < getArity(t); ++i) {
-          res |= isPurelyArithmetic(encapsulate(getArg(t, i)));
+        for (Term c : getArgs(t)) {
+          res |= isPurelyArithmetic(c);
           if (!res) {
             break;
           }
         }
       }
-      arithCache.put(f, res);
+      arithCache.put(t, res);
       return res;
     }
   }
@@ -628,9 +632,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
       }
 
       if (!isVariable(rightSubTerm)) {
-        int args = getArity(rightSubTerm);
-        for (int i = 0; i < args; ++i) {
-          Term arg = getArg(rightSubTerm, i);
+        for (Term arg : getArgs(rightSubTerm)) {
           if (!seen.contains(arg)) {
             toProcess.add(arg);
             seen.add(arg);

@@ -26,9 +26,11 @@ package org.sosy_lab.cpachecker.cpa.abm;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
+import java.util.Stack;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -104,5 +106,67 @@ class ABMARTUtils {
       }
     }
     return null;
+  }
+
+  public static ARGState copyARG(ARGState pRoot) {
+    HashMap<ARGState, ARGState> stateToCopyElem = new HashMap<ARGState, ARGState>();
+    HashSet<ARGState> visited = new HashSet<ARGState>();
+    Stack<ARGState> toVisit = new Stack<ARGState>();
+    ARGState current, copyState, copyStateInner;
+
+    visited.add(pRoot);
+    toVisit.add(pRoot);
+
+    while (!toVisit.isEmpty()) {
+      current = toVisit.pop();
+
+      if (stateToCopyElem.get(current) == null) {
+        copyState = copyNode(current);
+        stateToCopyElem.put(current, copyState);
+      } else {
+        copyState = stateToCopyElem.get(current);
+      }
+
+      for (ARGState c : current.getChildren()) {
+        if (stateToCopyElem.get(c) == null) {
+          copyStateInner = copyNode(c);
+          stateToCopyElem.put(c, copyStateInner);
+        } else {
+          copyStateInner = stateToCopyElem.get(c);
+        }
+        copyStateInner.addParent(copyState);
+        if (!visited.contains(copyStateInner)) {
+          visited.add(copyStateInner);
+          toVisit.add(copyStateInner);
+        }
+      }
+
+      if (current.isCovered()) {
+        if (stateToCopyElem.get(current.getCoveringState()) == null) {
+          copyStateInner = copyNode(current.getCoveringState());
+          stateToCopyElem.put(current.getCoveringState(), copyStateInner);
+        } else {
+          copyStateInner = stateToCopyElem.get(current.getCoveringState());
+        }
+        copyState.addParent(copyStateInner);
+        if (!visited.contains(copyStateInner)) {
+          visited.add(copyStateInner);
+          toVisit.add(copyStateInner);
+        }
+        copyState.setCovered(copyStateInner);
+      }
+    }
+    return stateToCopyElem.get(pRoot);
+  }
+
+  private static ARGState copyNode(ARGState toCopy) {
+    ARGState copyState;
+    if (toCopy instanceof ABMARGBlockStartState) {
+      copyState = new ABMARGBlockStartState(toCopy.getWrappedState(), null);
+      ((ABMARGBlockStartState) copyState).setAnalyzedBlock(((ABMARGBlockStartState) toCopy).getAnalyzedBlock());
+    } else {
+      copyState = new ARGState(toCopy.getWrappedState(), null);
+    }
+    return copyState;
   }
 }

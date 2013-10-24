@@ -37,9 +37,16 @@ public class ABMPrecisionAdjustment implements PrecisionAdjustment {
   private Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
   private boolean breakAnalysis = false;
   private final PrecisionAdjustment wrappedPrecisionAdjustment;
+  private ABMTransferRelation trans = null;
 
   public ABMPrecisionAdjustment(PrecisionAdjustment pWrappedPrecisionAdjustment) {
     this.wrappedPrecisionAdjustment = pWrappedPrecisionAdjustment;
+  }
+
+  public void setABMTransferRelation(ABMTransferRelation pTransfer) {
+    if (trans == null) {
+      trans = pTransfer;
+    }
   }
 
   void setForwardPrecisionToExpandedPrecision(
@@ -48,12 +55,13 @@ public class ABMPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement, Precision pPrecision, UnmodifiableReachedSet pElements) throws CPAException {
-    if (breakAnalysis) {
-      return Triple.of(pElement, pPrecision, Action.BREAK);
-    }
+  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement, Precision pPrecision,
+      UnmodifiableReachedSet pElements) throws CPAException {
+    if (breakAnalysis) { return Triple.of(pElement, pPrecision, Action.BREAK); }
 
     Triple<AbstractState, Precision, Action> result = wrappedPrecisionAdjustment.prec(pElement, pPrecision, pElements);
+
+    result = Triple.of(trans.attachAdditionalInfoToCallNode(result.getFirst()), result.getSecond(), result.getThird());
 
     Precision newPrecision = forwardPrecisionToExpandedPrecision.get(pElement);
     if (newPrecision != null) {
