@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
@@ -96,7 +95,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
 
   @Option(description = "Dump CFA assume edges as SMTLIB2 formulas to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumePredicatesFile = Paths.get("CfaAssumePredicates.txt");
+  private Path assumePredicatesFile = null;
 
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView formulaManagerView;
