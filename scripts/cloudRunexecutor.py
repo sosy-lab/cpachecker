@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+# prepare for Python 3
+from __future__ import absolute_import, print_function, unicode_literals
+
 import os
 import signal
 import sys
