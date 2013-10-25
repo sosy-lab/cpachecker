@@ -273,16 +273,15 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
            variableClassification.get().getUsedFields().containsEntry(compositeType, fieldName);
   }
 
-  boolean isUsedVariable(final CType type, final String function, final String name) {
+  boolean isUsedVariable(final String function, final String name) {
     return !variableClassification.isPresent() ||
            RETURN_VARIABLE_NAME.equals(name) ||
            variableClassification.get().getUsedVariables().containsEntry(function, name);
   }
 
-  boolean isUsedVariable(final CType type, final String qualifiedName) {
+  boolean isUsedVariable(final String qualifiedName) {
     final int position = qualifiedName.indexOf(SCOPE_SEPARATOR);
-    return isUsedVariable(type,
-                          position >= 0 ? qualifiedName.substring(0, position) : null,
+    return isUsedVariable(position >= 0 ? qualifiedName.substring(0, position) : null,
                           position >= 0 ? qualifiedName.substring(position + SCOPE_SEPARATOR.length()) : qualifiedName);
   }
 
@@ -810,17 +809,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @Override
-  <T extends Formula> BooleanFormula toBooleanFormula(T f) {
-    // If this is not a predicate, make it a predicate by adding a "!= 0"
-    if (!(f instanceof BooleanFormula)) {
-      T zero = fmgr.makeNumber(fmgr.getFormulaType(f), 0);
-      return bfmgr.not(fmgr.makeEqual(f, zero));
-    } else {
-      return (BooleanFormula) f;
-    }
-  }
-
-  @Override
   public PathFormulaWithUF makeAnd(final PathFormula oldFormula, final CFAEdge edge) throws CPATransferException {
     if (oldFormula instanceof PathFormulaWithUF) {
       return makeAnd((PathFormulaWithUF) oldFormula, edge);
@@ -933,10 +921,12 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                          final StatementToFormulaWithUFVisitor statementVisitor)
   throws CPATransferException {
 
-    if (declarationEdge.getDeclaration() instanceof CTypeDeclaration &&
-        ((CTypeDeclaration) declarationEdge.getDeclaration()).getType() instanceof CCompositeType) {
-      statementVisitor.declareCompositeType(
-        (CCompositeType) ((CTypeDeclaration) declarationEdge.getDeclaration()).getType());
+    if (declarationEdge.getDeclaration() instanceof CTypeDeclaration) {
+      final CType declarationType = PointerTargetSet.simplifyType(
+                                      ((CTypeDeclaration) declarationEdge.getDeclaration()).getType());
+      if (declarationType instanceof CCompositeType) {
+        statementVisitor.declareCompositeType((CCompositeType) declarationType);
+      }
     }
 
     if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
@@ -952,7 +942,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     CType declarationType = PointerTargetSet.simplifyType(declaration.getType());
 
-    if (!isUsedVariable(declarationType, declaration.getQualifiedName())) {
+    if (!isUsedVariable(declaration.getQualifiedName())) {
       // The variable is unused
       logDebug("Ignoring declaration of unused variable", declarationEdge);
       return bfmgr.makeBoolean(true);
@@ -994,11 +984,18 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       }
     }
     if (initializer instanceof CInitializerExpression || initializer == null) {
-      final CExpressionAssignmentStatement assignment = new CExpressionAssignmentStatement(
-        declaration.getFileLocation(),
-        new CIdExpression(declaration.getFileLocation(), declarationType, declaration.getName(), declaration),
-        initializer != null ? ((CInitializerExpression) initializer).getExpression() : null);
-      final BooleanFormula result = assignment.accept(statementVisitor);
+      final CIdExpression lhs =
+        new CIdExpression(declaration.getFileLocation(), declarationType, declaration.getName(), declaration);
+      final BooleanFormula result;
+      if (initializer != null) {
+        final CExpressionAssignmentStatement assignment =
+          new CExpressionAssignmentStatement(declaration.getFileLocation(),
+                                             lhs,
+                                             ((CInitializerExpression) initializer).getExpression());
+        result = assignment.accept(statementVisitor);
+      } else {
+        result = statementVisitor.handleAssignment(lhs, null);
+      }
       statementVisitor.declareSharedBase(declaration, PointerTargetSet.containsArray(declarationType));
       return result;
     } else if (initializer instanceof CInitializerList) {
@@ -1035,10 +1032,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                              edge);
       }
       if (!SAFE_VAR_ARG_FUNCTIONS.contains(entryNode.getFunctionName())) {
-        logger.logf(Level.WARNING,
-                    "Ignoring parameters passed as varargs to function %s in line %d",
-                    entryNode.getFunctionName(),
-                    edge.getLineNumber());
+        logger.logfOnce(Level.WARNING,
+                        "Ignoring parameters passed as varargs to function %s in line %d",
+                        entryNode.getFunctionName(),
+                        edge.getLineNumber());
       }
     } else {
       if (parameters.size() != arguments.size()) {
@@ -1068,11 +1065,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   protected BooleanFormula makeExitFunction(final CFunctionSummaryEdge summaryEdge,
                                             final StatementToFormulaWithUFVisitor statementVisitor)
   throws CPATransferException {
-
     final CFunctionCall returnExpression = summaryEdge.getExpression();
+    final BooleanFormula result;
     if (returnExpression instanceof CFunctionCallStatement) {
       // this should be a void return, just do nothing...
-      return bfmgr.makeBoolean(true);
+      result = bfmgr.makeBoolean(true);
     } else if (returnExpression instanceof CFunctionCallAssignmentStatement) {
       final CFunctionCallAssignmentStatement expression = (CFunctionCallAssignmentStatement) returnExpression;
       final String returnVariableName = getReturnVarName();
@@ -1089,18 +1086,19 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                            returnVariableName,
                                                                            returnVariableName,
                                                                            scoped(returnVariableName,
-                                                                                  statementVisitor
-                                                                                    .getFuncitonName()),
+                                                                                  statementVisitor.getFuncitonName()),
                                                                            null));
       CLeftHandSide lhs = expression.getLeftHandSide();
 
-      BooleanFormula assignment = statementVisitor.visit(
+      result = statementVisitor.visit(
         new CExpressionAssignmentStatement(functionCallExpression.getFileLocation(), lhs, rhs));
-
-      return assignment;
     } else {
       throw new UnrecognizedCCodeException("Unknown function exit expression", summaryEdge, returnExpression);
     }
+
+    statementVisitor.handleDeferredAllocationInFunctionExit();
+
+    return result;
   }
 
   private BooleanFormula createFormulaForEdge(final CFAEdge edge,

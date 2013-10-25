@@ -293,6 +293,11 @@ public class CLangSMG extends SMG {
     Set<Integer> stray_values = new HashSet<>(Sets.difference(this.getValues(), seen_values));
     for (Integer stray_value : stray_values) {
       if (stray_value != this.getNullValue()) {
+        // Here, we can't just remove stray value, we also have to remove the points-to edge
+        if(this.isPointer(stray_value)) {
+          removePointsToEdge(stray_value);
+        }
+
         this.removeValue(stray_value);
       }
     }
@@ -361,6 +366,19 @@ public class CLangSMG extends SMG {
    */
   public Set<SMGObject> getHeapObjects() {
     return Collections.unmodifiableSet(heap_objects);
+  }
+
+  /**
+   * Constant.
+   *
+   * Checks whether given object is on the heap.
+   *
+   * @param object SMGObject to be checked.
+   * @return True, if the given object is referenced in the set of heap objects, false otherwise.
+   *
+   */
+  public boolean isHeapObject(SMGObject object) {
+    return heap_objects.contains(object);
   }
 
   /**

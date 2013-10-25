@@ -46,6 +46,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -76,7 +78,7 @@ public final class DOTBuilder2 {
    */
   public static void writeReport(CFA cfa, Path outdir) throws IOException {
     CFAJSONBuilder jsoner = new CFAJSONBuilder();
-    DOTViewBuilder dotter = new DOTViewBuilder();
+    DOTViewBuilder dotter = new DOTViewBuilder(cfa);
     CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverse(entryNode, vis);
@@ -112,6 +114,12 @@ public final class DOTBuilder2 {
     private final List<List<CFAEdge>> comboedges = Lists.newArrayList();
 
     private List<CFAEdge> currentComboEdge = null;
+
+    private final Optional<ImmutableSet<CFANode>> loopHeads;
+
+    private DOTViewBuilder(CFA cfa) {
+      loopHeads = cfa.getAllLoopHeads();
+    }
 
     @Override
     public TraversalProcess visitEdge(CFAEdge edge) {
@@ -172,7 +180,7 @@ public final class DOTBuilder2 {
 
           //write nodes
           for (CFANode node: nodes) {
-            out.write(nodeToDot(node));
+            out.write(DOTBuilder.formatNode(node, loopHeads));
           }
 
           out.write(outb.toString());
@@ -192,19 +200,6 @@ public final class DOTBuilder2 {
     void writeGlobalFiles(Path outdir) throws IOException {
       JSON.writeJSONString(node2combo, outdir.resolve("combinednodes.json"), Charset.defaultCharset());
       JSON.writeJSONString(virtFuncCallEdges, outdir.resolve("fcalledges.json"), Charset.defaultCharset());
-    }
-
-    private static String nodeToDot(CFANode node) {
-      String shape = "circle";
-
-      if (node.isLoopStart()) {
-        shape = "doublecircle";
-      } else if (node.getNumLeavingEdges() > 0 &&
-          node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge) {
-        shape = "diamond";
-      }
-
-      return node.getNodeNumber() + " [shape=\"" + shape + "\"]\n";
     }
 
     private String edgeToDot(CFAEdge edge) {

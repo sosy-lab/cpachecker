@@ -93,12 +93,14 @@ public class CFACreator {
 
   private static final String JAVA_MAIN_METHOD_CFA_SUFFIX = "_main_String[]";
 
+  public static final String VALID_C_FUNCTION_NAME_PATTERN = "[_a-zA-Z][_a-zA-Z0-9]*";
+
   @Option(name="parser.usePreprocessor",
       description="For C files, run the preprocessor on them before parsing. " +
                   "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
   private boolean usePreprocessor = false;
 
-  @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
+  @Option(name="analysis.entryFunction", regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
       description="entry function")
   private String mainFunctionName = "main";
 
@@ -234,6 +236,7 @@ public class CFACreator {
     stats.totalTime.start();
     try {
 
+      // FIRST, parse file(s) and create CFAs for each function
       logger.log(Level.FINE, "Starting parsing of file");
       ParseResult c;
 
@@ -321,7 +324,6 @@ public class CFACreator {
       }
 
 
-
       MutableCFA cfa = new MutableCFA(machineModel, c.getFunctions(), c.getCFANodes(), mainFunction, language);
 
       stats.checkTime.start();
@@ -332,25 +334,31 @@ public class CFACreator {
       }
       stats.checkTime.stop();
 
+      // SECOND, do those post-processings that change the CFA by adding/removing nodes/edges
       stats.processingTime.start();
 
-      // get loop information
-      Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
+      // remove all edges which don't have any effect on the program
+      CFASimplifier.simplifyCFA(cfa);
 
+      // add function pointer edges
       if (language == Language.C && fptrCallEdges) {
         CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, config, logger);
         fptrResolver.resolveFunctionPointers();
       }
 
+      // THIRD, do read-only post-processings on each single function CFA
+
       // Annotate CFA nodes with reverse postorder information for later use.
-      // This needs to come after function pointer resolving because the latter
-      // adds nodes to the CFA.
       for (FunctionEntryNode function : cfa.getAllFunctionHeads()) {
         CFAReversePostorder sorter = new CFAReversePostorder();
         sorter.assignSorting(function);
       }
 
-      // Insert call and return edges and build the supergraph
+      // get loop information
+      // (needs post-order information)
+      Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
+
+      // FOURTH, insert call and return edges and build the supergraph
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
         CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language, logger, config);
@@ -362,6 +370,10 @@ public class CFACreator {
         insertGlobalDeclarations(cfa, c.getGlobalDeclarations());
       }
 
+      // FIFTH, do post-processings on the supergraph
+      // Mutating post-processings should be checked carefully for their effect
+      // on the information collected above (such as loops and post-order ids).
+
       if (simplifyExpressions) {
         // this replaces some edges in the CFA with new edges.
         // all expressions, that can be evaluated, will be replaced with their result.
@@ -372,12 +384,9 @@ public class CFACreator {
         es.replaceEdges();
       }
 
-      // get information about variables, needed for some analysis (BDDCPA),
-      // after this step the edges should not be modified,
-      // otherwise the analysis could get wrong data
-      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()));
-
-      stats.processingTime.stop();
+      if (useMultiEdges) {
+        MultiEdgeCreator.createMultiEdges(cfa);
+      }
 
       // remove irrelevant locations
       if (cfaReduction != null) {
@@ -394,9 +403,13 @@ public class CFACreator {
         }
       }
 
-      if (useMultiEdges) {
-        MultiEdgeCreator.createMultiEdges(cfa);
-      }
+      // Get information about variables, needed for some analysis.
+      final Optional<VariableClassification> varClassification
+          = loopStructure.isPresent()
+          ? Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()))
+          : Optional.<VariableClassification>absent();
+
+      stats.processingTime.stop();
 
       final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
 
@@ -666,7 +679,7 @@ public class CFACreator {
     // write CFA to file
     if (exportCfa) {
       try (Writer w = Files.newBufferedWriter(exportCfaFile, Charset.defaultCharset())) {
-        DOTBuilder.generateDOT(w, cfa.getAllFunctionHeads(), cfa.getMainFunction());
+        DOTBuilder.generateDOT(w, cfa);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
           "Could not write CFA to dot file");

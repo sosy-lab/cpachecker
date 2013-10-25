@@ -22,16 +22,19 @@ CPAchecker web page:
   http://cpachecker.sosy-lab.org
 """
 
+# prepare for Python 3
+from __future__ import absolute_import, print_function, unicode_literals
+
 import threading
 import time
 import sys
 import os
 import xml.etree.ElementTree as ET
 
-import filewriter
-import result
-import runexecutor
-import util as Util
+from . import filewriter
+from . import result
+from . import runexecutor
+from . import util as Util
 
 # colors for column status in terminal
 USE_COLORS = True

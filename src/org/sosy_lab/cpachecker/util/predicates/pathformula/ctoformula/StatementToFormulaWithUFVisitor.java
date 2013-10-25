@@ -39,10 +39,13 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
@@ -58,13 +61,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -98,6 +104,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     this.lvalueVisitor = lvalueVisitor;
     this.conv = delegate.conv;
     this.pts = delegate.pts;
+    this.isEssentialLhsVisitor = new IsEssentialLhsVisitor();
   }
 
   @Override
@@ -143,7 +150,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         if (typeSize != size) {
           conv.logger.logf(Level.WARNING,
                            "Array size of the revealed type differs form the allocation size: %s : %d != %d",
-                           type.toString(),
+                           type,
                            typeSize,
                            size);
         }
@@ -154,7 +161,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         if (n == 0 || remainder != 0) {
           conv.logger.logf(Level.WARNING,
                            "Can't refine allocation type, but the sizes differ: %s : %d != %d",
-                           type.toString(),
+                           type,
                            typeSize +
                            size);
           return type;
@@ -194,30 +201,31 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     }
   }
 
-  private void handleDeferredAllocationPointerRemoval(final CAssignment e, final String pointerVariable) {
+  private void handleDeferredAllocationPointerRemoval(final String pointerVariable, final boolean isReturn) {
     if (pts.removeDeferredAllocatinPointer(pointerVariable)) {
-      conv.logger.logf(Level.WARNING,
-                       "Assignment to the void * pointer %s produces garbage! (in assignment: %s)",
-                       pointerVariable,
-                       e.toString());
+      conv.logger.logfOnce(Level.WARNING,
+                           (!isReturn ? "Assignment to the" : "Destroying the") +
+                             " void * pointer  %s produces garbage! (in the following line(s):\n %s)",
+                           pointerVariable,
+                           edge);
     }
   }
 
-  private void handleDeferredAllocationPointerEscape(final CAssignment e, final String pointerVariable)
+  private void handleDeferredAllocationPointerEscape(final String pointerVariable)
   throws UnrecognizedCCodeException {
     final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
     final CIntegerLiteralExpression size = deferredAllocationPool.getSize() != null ?
                                              deferredAllocationPool.getSize() :
-                                             new CIntegerLiteralExpression(e.getFileLocation(),
+                                             new CIntegerLiteralExpression(null,
                                                                            PointerTargetSet.CHAR,
                                                                            BigInteger.valueOf(PointerTargetSet
                                                                                             .DEFAULT_ALLOCATION_SIZE));
-    conv.logger.logf(Level.WARNING,
-                     "The void * pointer %s to a deferred allocation escaped form tracking! " +
-                       "Allocating array void[%d]. (in assignment: %s)",
-                     pointerVariable,
-                     deferredAllocationPool.getSize(),
-                     e.toString());
+    conv.logger.logfOnce(Level.WARNING,
+                         "The void * pointer %s to a deferred allocation escaped form tracking! " +
+                           "Allocating array void[%d]. (in the following line(s):\n %s)",
+                         pointerVariable,
+                         size.getValue(),
+                         edge);
     for (final String baseVariable : deferredAllocationPool.getBaseVariables()) {
       conv.makeAllocation(deferredAllocationPool.wasAllocationZeroing(),
                           new CArrayType(false,
@@ -232,7 +240,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     }
   }
 
-  private void handleDeferredAllocationsInAssignment(final CAssignment e,
+  private void handleDeferredAllocationsInAssignment(final CLeftHandSide lhs,
+                                                     final CRightHandSide rhs,
                                                      final Object lhsTarget,
                                                      final Object rhsTarget,
                                                      final Map<String, CType> lhsUsedDeferredAllocationPointers,
@@ -244,15 +253,14 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       if (!usedPointer.getValue().equals(PointerTargetSet.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
         handled = true;
-      } else if (e.getRightHandSide() instanceof CExpression &&
-                 ExpressionToFormulaWithUFVisitor.isSimpleTarget((CExpression) e.getRightHandSide())) {
+      } else if (rhs instanceof CExpression && ExpressionToFormulaWithUFVisitor.isSimpleTarget((CExpression) rhs)) {
         assert rhsTarget instanceof String &&
                ((String) rhsTarget).equals(usedPointer.getKey()) &&
-               rhsUsedDeferredAllocationPointers.size() == 1:
+               rhsUsedDeferredAllocationPointers.size() == 1 :
                "Wrong assumptions on deferred allocations tracking: rhs is not a single pointer";
-        final CType lhsType = PointerTargetSet.simplifyType(e.getLeftHandSide().getExpressionType());
+        final CType lhsType = PointerTargetSet.simplifyType(lhs.getExpressionType());
         if (lhsType.equals(PointerTargetSet.POINTER_TO_VOID) &&
-            ExpressionToFormulaWithUFVisitor.isSimpleTarget(e.getLeftHandSide()) &&
+            ExpressionToFormulaWithUFVisitor.isSimpleTarget(lhs) &&
             lhsTarget instanceof String) {
           final Map.Entry<String, CType> lhsUsedPointer = !lhsUsedDeferredAllocationPointers.isEmpty() ?
                                                        lhsUsedDeferredAllocationPointers.entrySet().iterator().next() :
@@ -262,7 +270,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                  (lhsUsedPointer == null || ((String) lhsTarget).equals(lhsUsedPointer.getKey())) :
                  "Wrong assumptions on deferred allocations tracking: unrecognized lhs";
           if (lhsUsedPointer != null) {
-            handleDeferredAllocationPointerRemoval(e, lhsUsedPointer.getKey());
+            handleDeferredAllocationPointerRemoval(lhsUsedPointer.getKey(), false);
           }
           pts.addDeferredAllocationPointer((String) lhsTarget, usedPointer.getKey());
           passed = true;
@@ -273,22 +281,22 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         }
       }
       if (!handled) {
-        handleDeferredAllocationPointerEscape(e, usedPointer.getKey());
+        handleDeferredAllocationPointerEscape(usedPointer.getKey());
       }
     }
     for (final Map.Entry<String, CType> usedPointer : lhsUsedDeferredAllocationPointers.entrySet()) {
       if (!usedPointer.getValue().equals(PointerTargetSet.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
-      } else if (ExpressionToFormulaWithUFVisitor.isSimpleTarget(e.getLeftHandSide())) {
+      } else if (ExpressionToFormulaWithUFVisitor.isSimpleTarget(lhs)) {
         assert lhsTarget instanceof String &&
                ((String) lhsTarget).equals(usedPointer.getKey()) &&
-               lhsUsedDeferredAllocationPointers.size() == 1:
+               lhsUsedDeferredAllocationPointers.size() == 1 :
                "Wrong assumptions on deferred allocations tracking: lhs is not a single pointer";
         if (!passed) {
-          handleDeferredAllocationPointerRemoval(e, usedPointer.getKey());
+          handleDeferredAllocationPointerRemoval(usedPointer.getKey(), false);
         }
       } else {
-        handleDeferredAllocationPointerEscape(e, usedPointer.getKey());
+        handleDeferredAllocationPointerEscape(usedPointer.getKey());
       }
     }
   }
@@ -324,28 +332,18 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     }
   }
 
-  @Override
-  public BooleanFormula visit(final CAssignment e) throws UnrecognizedCCodeException {
-    final CRightHandSide rhs = e.getRightHandSide();
-    final CExpression lhs = e.getLeftHandSide();
-
-    // Optimization for unused variables and fields
-    if (lhs instanceof CIdExpression &&
-        !conv.isUsedVariable(lhs.getExpressionType(), ((CIdExpression) lhs).getDeclaration().getQualifiedName())) {
-      return conv.bfmgr.makeBoolean(true);
-    }
-    if (lhs instanceof CFieldReference) {
-      CType fieldOwnerType = PointerTargetSet.simplifyType(((CFieldReference) lhs).getFieldOwner().getExpressionType());
-      if (fieldOwnerType instanceof CPointerType) {
-        fieldOwnerType = ((CPointerType) fieldOwnerType).getType();
-      }
-      assert fieldOwnerType instanceof CCompositeType : "Field owner should have composite type";
-      if (!conv.isUsedField((CCompositeType) fieldOwnerType, ((CFieldReference) lhs).getFieldName(), pts)) {
-        return conv.bfmgr.makeBoolean(true);
+  void handleDeferredAllocationInFunctionExit() {
+    for (final String variable : pts.getDeferredAllocationVariables()) {
+      final int position = variable.indexOf(CToFormulaWithUFConverter.SCOPE_SEPARATOR);
+      final String variableFunction = variable.substring(0, position);
+      if (function.equals(variableFunction)) {
+        handleDeferredAllocationPointerRemoval(variable, true);
       }
     }
+  }
 
-
+  BooleanFormula handleAssignment(final CLeftHandSide lhs, final CRightHandSide rhs)
+  throws UnrecognizedCCodeException {
     final CType lhsType = PointerTargetSet.simplifyType(lhs.getExpressionType());
     final CType rhsType = rhs != null ? PointerTargetSet.simplifyType(rhs.getExpressionType()) :
                             PointerTargetSet.CHAR;
@@ -395,26 +393,27 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
             if (ExpressionToFormulaWithUFVisitor.isRevealingType(lhsType)) {
               handleDeferredAllocationTypeRevelation(variable, lhsType);
             } else if (lhsType.equals(PointerTargetSet.POINTER_TO_VOID) &&
-                       ExpressionToFormulaWithUFVisitor.isSimpleTarget(e.getLeftHandSide()) &&
+                       ExpressionToFormulaWithUFVisitor.isSimpleTarget(lhs) &&
                        lastTarget instanceof String) {
               if (pts.isDeferredAllocationPointer((String) lastTarget)) {
-                handleDeferredAllocationPointerRemoval(e, (String) lastTarget);
+                handleDeferredAllocationPointerRemoval((String) lastTarget, false);
               }
               pts.addDeferredAllocationPointer((String) lastTarget, variable);
-              handleDeferredAllocationPointerRemoval(e, variable);
+              handleDeferredAllocationPointerRemoval(variable, false);
             } else {
-              handleDeferredAllocationPointerEscape(e, variable);
+              handleDeferredAllocationPointerEscape(variable);
             }
             isAllocation = true;
           } else {
-            throw new UnrecognizedCCodeException("Can't handle ambiguous allocation", edge, e);
+            throw new UnrecognizedCCodeException("Can't handle ambiguous allocation", edge, rhs);
           }
         }
       }
     }
 
     if (conv.options.deferUntypedAllocations() && !isAllocation) {
-      handleDeferredAllocationsInAssignment(e,
+      handleDeferredAllocationsInAssignment(lhs,
+                                            rhs,
                                             lastTarget,
                                             rhsName,
                                             delegate.getUsedDeferredAllocationPointers(),
@@ -438,6 +437,61 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     addEssentialFields(lhsUsedFields, pts);
     addEssentialFields(rhsUsedFields, pts);
     return result;
+  }
+
+  class IsEssentialLhsVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
+
+    @Override
+    public Boolean visit(final CArraySubscriptExpression e) {
+      return e.getArrayExpression().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CCastExpression e) {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CComplexCastExpression e) {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CFieldReference e) {
+      CType fieldOwnerType = PointerTargetSet.simplifyType(e.getFieldOwner().getExpressionType());
+      if (fieldOwnerType instanceof CPointerType) {
+        fieldOwnerType = ((CPointerType) fieldOwnerType).getType();
+      }
+      assert fieldOwnerType instanceof CCompositeType : "Field owner should have composite type";
+      return conv.isUsedField((CCompositeType) fieldOwnerType, e.getFieldName(), pts);
+    }
+
+    @Override
+    public Boolean visit(final CIdExpression e) {
+      return conv.isUsedVariable(e.getDeclaration().getQualifiedName());
+    }
+
+    @Override
+    public Boolean visit(CPointerExpression e) {
+      return true;
+    }
+
+    @Override
+    protected Boolean visitDefault(CExpression e) {
+      throw new IllegalArgumentException("Undexpected left hand side: " + e.toString());
+    }
+  }
+
+  @Override
+  public BooleanFormula visit(final CAssignment e) throws UnrecognizedCCodeException {
+    final CLeftHandSide lhs = e.getLeftHandSide();
+
+    // Optimization for unused variables and fields
+    if (lhs.accept(isEssentialLhsVisitor)) {
+      return handleAssignment(lhs, e.getRightHandSide());
+    } else {
+      return conv.bfmgr.makeBoolean(true);
+    }
   }
 
   public BooleanFormula visitComplexInitialization(final CDeclaration declaration, final List<?> initializerList)
@@ -573,10 +627,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           final List<CDesignator> designators = designatedInitializer.getDesignators();
           final CDesignator designator;
           if (designators.size() > 1) {
-            conv.logger.logf(Level.WARNING,
-                             "Nested designators are unsupported: %s in line %d",
-                             designatedInitializer,
-                             designatedInitializer.getFileLocation().getStartingLineNumber());
+            conv.logger.logfOnce(Level.WARNING,
+                                 "Nested designators are unsupported: %s in line %d",
+                                 designatedInitializer,
+                                 designatedInitializer.getFileLocation().getStartingLineNumber());
             continue;
           } else {
             designator = Iterables.getOnlyElement(designators);
@@ -640,10 +694,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           final List<CDesignator> designators = designatedInitializer.getDesignators();
           final CDesignator designator;
           if (designators.size() > 1) {
-            conv.logger.logf(Level.WARNING,
-                            "Nested designators are unsupported: %s in line %d",
-                            designatedInitializer,
-                            designatedInitializer.getFileLocation().getStartingLineNumber());
+            conv.logger.logfOnce(Level.WARNING,
+                                 "Nested designators are unsupported: %s in line %d",
+                                 designatedInitializer,
+                                 designatedInitializer.getFileLocation().getStartingLineNumber());
             continue;
           } else {
             designator = Iterables.getOnlyElement(designators);
@@ -864,7 +918,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           // function of arity 0
           conv.logger.logfOnce(Level.INFO,
                                "Assuming external function %s to be a constant function.",
-                                functionName);
+                               functionName);
         } else {
           conv.logger.logfOnce(Level.INFO,
                                "Assuming external function %s to be a pure function.",
@@ -885,8 +939,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final CType resultType = PointerTargetSet.simplifyType(conv.getReturnType(e, edge));
     if (resultType instanceof CCompositeType ||
         PointerTargetSet.containsArray(resultType)) {
-      conv.logger.logf(Level.WARNING,
-                      "Pure function %s returning a composite is treated as nondet.", e);
+      conv.logger.logfOnce(Level.WARNING,
+                           "Pure function %s returning a composite is treated as nondet.", e);
       return null;
     }
 
@@ -972,4 +1026,5 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   @SuppressWarnings("hiding")
   protected final ExpressionToFormulaWithUFVisitor delegate;
   protected final LvalueToPointerTargetPatternVisitor lvalueVisitor;
+  protected final IsEssentialLhsVisitor isEssentialLhsVisitor;
 }

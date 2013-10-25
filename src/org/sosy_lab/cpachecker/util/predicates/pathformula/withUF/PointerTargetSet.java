@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -67,6 +68,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 
 public class PointerTargetSet implements Serializable {
@@ -400,7 +402,9 @@ public class PointerTargetSet implements Serializable {
   public int getOffset(CCompositeType compositeType, final String memberName) {
     compositeType = (CCompositeType) simplifyType(compositeType);
     assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-    return offsets.get(compositeType).count(memberName);
+    final Multiset<String> multiset = offsets.get(compositeType);
+    assert multiset != null : "For handling undeclared composites used PointerTargetSetBuilder instead!";
+    return multiset.count(memberName);
   }
 
   /**
@@ -519,8 +523,8 @@ public class PointerTargetSet implements Serializable {
       compositeType = (CCompositeType) simplifyType(compositeType);
       if (offsets.containsKey(compositeType)) {
         // Support for empty structs though it's a GCC extension
-        assert sizes.contains(compositeType) || compositeType.getMembers().size() == 0 :
-          "Illegal state of PointerTargetSet: no offsets for type:" + compositeType;
+        assert sizes.contains(compositeType) || Integer.valueOf(0).equals(compositeType.accept(sizeofVisitor)) :
+          "Illegal state of PointerTargetSet: no size for type:" + compositeType;
         return; // The type has already been added
       }
 
@@ -543,7 +547,7 @@ public class PointerTargetSet implements Serializable {
               memberCompositeType.getKind() == ComplexTypeKind.UNION) {
             if (!offsets.containsKey(memberCompositeType)) {
               assert !sizes.contains(memberCompositeType) :
-                "Illegal state of PointerTargetSet: offsets for type:" + memberCompositeType;
+                "Illegal state of PointerTargetSet: size for type:" + memberCompositeType;
               addCompositeType(memberCompositeType);
             }
           }
@@ -824,8 +828,25 @@ public class PointerTargetSet implements Serializable {
       return deferredAllocationPool;
     }
 
+    public Collection<String> getDeferredAllocationVariables() {
+      return ImmutableSet.copyOf(deferredAllocations.keySet());
+    }
+
     public static int getNextDynamicAllocationIndex() {
       return dynamicAllocationCounter++;
+    }
+
+    @Override
+    public int getOffset(CCompositeType compositeType, final String memberName) {
+      compositeType = (CCompositeType) simplifyType(compositeType);
+      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+      Multiset<String> multiset = offsets.get(compositeType);
+      if (multiset == null) {
+        addCompositeType(compositeType);
+        multiset = offsets.get(compositeType);
+        assert multiset != null : "Failed adding composite type to cache: " + compositeType;
+      }
+      return multiset.count(memberName);
     }
 
     /**

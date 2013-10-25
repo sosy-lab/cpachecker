@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -37,7 +36,9 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 
 /**
@@ -50,10 +51,9 @@ public final class DOTBuilder {
   private static final String MAIN_GRAPH = "____Main____Diagram__";
   private static final Joiner JOINER_ON_NEWLINE = Joiner.on('\n');
 
-  public static void generateDOT(Appendable sb,
-      Collection<FunctionEntryNode> cfasMapList, FunctionEntryNode cfa) throws IOException {
-    DotGenerator dotGenerator = new DotGenerator();
-    CFATraversal.dfs().traverseOnce(cfa, dotGenerator);
+  public static void generateDOT(Appendable sb, CFA cfa) throws IOException {
+    DotGenerator dotGenerator = new DotGenerator(cfa);
+    CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), dotGenerator);
 
     sb.append("digraph " + "CFA" + " {\n");
 
@@ -63,7 +63,7 @@ public final class DOTBuilder {
     // define the graphic representation for all subsequent nodes
     sb.append("node [shape=\"circle\"]\n");
 
-    for (FunctionEntryNode fnode : cfasMapList) {
+    for (FunctionEntryNode fnode : cfa.getAllFunctionHeads()) {
       // If Array belongs to functionCall in Parameter, replace [].
       // If Name Contains '.' replace with '_'
       sb.append("subgraph cluster_" + fnode.getFunctionName()
@@ -85,13 +85,15 @@ public final class DOTBuilder {
     // edges for each function
     private final ListMultimap<String, String> edges = ArrayListMultimap.create();
 
+    private final Optional<ImmutableSet<CFANode>> loopHeads;
+
+    public DotGenerator(CFA cfa) {
+      loopHeads = cfa.getAllLoopHeads();
+    }
+
     @Override
     public TraversalProcess visitEdge(CFAEdge edge) {
       CFANode predecessor = edge.getPredecessor();
-      if (!predecessor.isLoopStart() && edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-        nodes.add(formatNode(predecessor, "diamond"));
-      }
-
       List<String> graph;
       if ((edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
         graph = edges.get(MAIN_GRAPH);
@@ -105,16 +107,9 @@ public final class DOTBuilder {
 
     @Override
     public TraversalProcess visitNode(CFANode node) {
-
-      if (node.isLoopStart()) {
-        nodes.add(formatNode(node, "doublecircle"));
-      }
+      nodes.add(formatNode(node, loopHeads));
 
       return CFATraversal.TraversalProcess.CONTINUE;
-    }
-
-    private static String formatNode(CFANode node, String shape) {
-      return node.getNodeNumber() + " [shape=\"" + shape + "\"]";
     }
 
     private static String formatEdge(CFAEdge edge) {
@@ -137,5 +132,22 @@ public final class DOTBuilder {
       sb.append("]");
       return sb.toString();
     }
+  }
+
+  static String formatNode(CFANode node, Optional<ImmutableSet<CFANode>> loopHeads) {
+    String shape;
+    if (loopHeads.isPresent() && loopHeads.get().contains(node)) {
+      shape = "doublecircle";
+    } else if (node.isLoopStart()) {
+      shape = "doubleoctagon";
+
+    } else if (node.getNumLeavingEdges() > 0
+        && node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge) {
+      shape = "diamond";
+    } else {
+      shape = "circle";
+    }
+
+    return node.getNodeNumber() + " [shape=\"" + shape + "\" label=\"" + node.getNodeNumber() + "\\n" + node.getReversePostorderId() + "\"]";
   }
 }

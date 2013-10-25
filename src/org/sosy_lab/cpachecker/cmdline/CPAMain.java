@@ -65,7 +65,7 @@ public class CPAMain {
       try {
         cpaConfig = createConfiguration(args);
       } catch (InvalidCmdlineArgumentException e) {
-        System.err.println("Could not parse command line arguments: " + e.getMessage());
+        System.err.println("Could not process command line arguments: " + e.getMessage());
         System.exit(1);
       } catch (IOException e) {
         System.err.println("Could not read config file " + e.getMessage());

@@ -1148,7 +1148,7 @@ staticRefiner.addAssumesByBoundedBackscan = true
 staticRefiner.applyScoped = true
 
 # Dump CFA assume edges as SMTLIB2 formulas to a file.
-staticRefiner.assumePredicatesFile = "CfaAssumePredicates.txt"
+staticRefiner.assumePredicatesFile = no default value
 
 # collect at most this number of assumes along a path, backwards from each
 # target (= error) location

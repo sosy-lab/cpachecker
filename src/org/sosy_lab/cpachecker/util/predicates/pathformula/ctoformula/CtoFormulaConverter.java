@@ -799,10 +799,10 @@ public class CtoFormulaConverter {
     pT2 = pT2.getCanonicalType();
 
     if (pT1 instanceof CEnumType) {
-      pT1 = CNumericTypes.INT;
+      pT1 = CNumericTypes.INT.getCanonicalType();
     }
     if (pT2 instanceof CEnumType) {
-      pT2 = CNumericTypes.INT;
+      pT2 = CNumericTypes.INT.getCanonicalType();
     }
 
     // UNDEFINED: What should happen when we have two pointer?
@@ -814,7 +814,7 @@ public class CtoFormulaConverter {
         CSimpleType s2 = (CSimpleType)pT2;
         CSimpleType resolved = getImplicitSimpleCType(s1, s2);
 
-        if (!s1.getCanonicalType().equals(s2.getCanonicalType())) {
+        if (!s1.equals(s2)) {
           logger.logOnce(Level.FINEST, "Implicit Cast of", s1, "and", s2, "to", resolved);
         }
 
@@ -838,8 +838,13 @@ public class CtoFormulaConverter {
       }
     }
 
-    if (pT1.getCanonicalType().equals(pT2.getCanonicalType())) {
+    if (pT1.equals(pT2)) {
       return pT1;
+    }
+    if (pT1 instanceof CPointerType && pT2 instanceof CPointerType) {
+      // Two pointer types, probably a comparison,
+      // type does actually not matter.
+      return CPointerType.POINTER_TO_VOID;
     }
 
     int s1 = getSizeof(pT1);
