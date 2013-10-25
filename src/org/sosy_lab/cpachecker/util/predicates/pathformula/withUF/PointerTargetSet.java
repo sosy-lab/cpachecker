@@ -973,6 +973,11 @@ public class PointerTargetSet implements Serializable {
     final ConflictHandler<CType> baseUnitingConflictHandler = new ConflictHandler<CType>() {
       @Override
       public CType resolveConflict(final CType type1, final CType type2) {
+        if (isFakeBaseType(type1)) {
+          return type2;
+        } else if (isFakeBaseType(type2)) {
+          return type1;
+        }
         int currentFieldIndex = 0;
         final ImmutableList.Builder<CCompositeTypeMemberDeclaration> membersBuilder =
           ImmutableList.<CCompositeTypeMemberDeclaration>builder();
@@ -1087,11 +1092,20 @@ public class PointerTargetSet implements Serializable {
 
     final String lastBase;
     final BooleanFormula basesMergeFormula;
-    if (this.lastBase == null && other.lastBase == null || this.lastBase.equals(other.lastBase)) {
-      assert this.lastBase == null || bases.get(this.lastBase).equals(other.bases.get(other.lastBase));
+    if (this.lastBase == null && other.lastBase == null ||
+        this.lastBase != null && (other.lastBase == null || this.lastBase.equals(other.lastBase))) {
+      // The next check doesn't really hold anymore due to possible base unions, but these cases are suspicious
+      assert this.lastBase == null ||
+             other.lastBase == null ||
+             isFakeBaseType(bases.get(this.lastBase)) ||
+             isFakeBaseType(other.bases.get(other.lastBase)) ||
+             bases.get(this.lastBase).equals(other.bases.get(other.lastBase));
       lastBase = this.lastBase;
       basesMergeFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
       // Nothing to do, as there were no divergence with regard to base allocations
+    } else if (this.lastBase == null && other.lastBase != null) {
+      lastBase = other.lastBase;
+      basesMergeFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
     } else {
       final CType fakeBaseType = getFakeBaseType(0);
       final String fakeBaseName = FAKE_ALLOC_FUNCTION_NAME +
