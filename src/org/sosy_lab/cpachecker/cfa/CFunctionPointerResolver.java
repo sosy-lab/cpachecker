@@ -55,14 +55,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -92,6 +90,7 @@ import com.google.common.collect.Sets;
  * The set of candidate functions used is configurable.
  * No actual call edges to the other functions are introduced.
  * The inserted function call statements look just like regular functions call statements.
+ * The edge in the "else" branch is optional and configurable.
  */
 @Options
 public class CFunctionPointerResolver {
@@ -274,7 +273,7 @@ public class CFunctionPointerResolver {
   /**
    * This method replaces a single function pointer call with a function call series.
    */
-  private void replaceFunctionPointerCall(CFunctionCall functionCall, AStatementEdge statement) {
+  private void replaceFunctionPointerCall(CFunctionCall functionCall, CStatementEdge statement) {
     CFunctionCallExpression fExp = functionCall.getFunctionCallExpression();
     logger.log(Level.FINEST, "Function pointer call", fExp);
 
@@ -351,7 +350,12 @@ public class CFunctionPointerResolver {
 
     //rootNode --> end
     if (createUndefinedFunctionCall) {
-      createUndefinedSummaryStatementEdge(rootNode, end, statement, functionCall);
+      CStatementEdge summaryStatementEdge = new CStatementEdge(
+          statement.getRawStatement(), statement.getStatement(),
+          statement.getLineNumber(), rootNode, end);
+
+      rootNode.addLeavingEdge(summaryStatementEdge);
+      end.addEnteringEdge(summaryStatementEdge);
     } else {
       //no way to skip the function call
       //remove last edge to rootNode
@@ -371,34 +375,20 @@ public class CFunctionPointerResolver {
   }
 
   private CFunctionCall createRegularCall(CFunctionCall functionCall, FunctionEntryNode fNode) {
+    CFunctionCallExpression oldCallExpr = functionCall.getFunctionCallExpression();
+    CFunctionCallExpression newCallExpr = new CFunctionCallExpression(oldCallExpr.getFileLocation(), oldCallExpr.getExpressionType(),
+        createIdExpression(oldCallExpr.getFunctionNameExpression(), fNode),
+        oldCallExpr.getParameterExpressions(), (CFunctionDeclaration)fNode.getFunctionDefinition());
+
     if (functionCall instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement asgn = (CFunctionCallAssignmentStatement)functionCall;
-      CFunctionCallExpression e = asgn.getRightHandSide();
-      CFunctionCallExpression newExpr = new CFunctionCallExpression(e.getFileLocation(), e.getExpressionType(),
-          createIdExpression(e.getFunctionNameExpression(), fNode),
-          e.getParameterExpressions(), (CFunctionDeclaration)fNode.getFunctionDefinition());
-      return new CFunctionCallAssignmentStatement(asgn.getFileLocation(), asgn.getLeftHandSide(), newExpr);
+      return new CFunctionCallAssignmentStatement(functionCall.getFileLocation(),
+          asgn.getLeftHandSide(), newCallExpr);
     } else if (functionCall instanceof CFunctionCallStatement) {
-      CFunctionCallStatement asgn = (CFunctionCallStatement)functionCall;
-      CFunctionCallExpression e = asgn.getFunctionCallExpression();
-      CFunctionCallExpression newExpr = new CFunctionCallExpression(e.getFileLocation(), e.getExpressionType(),
-          createIdExpression(e.getFunctionNameExpression(), fNode),
-          e.getParameterExpressions(), (CFunctionDeclaration)fNode.getFunctionDefinition());
-      return new CFunctionCallStatement(asgn.getFileLocation(), newExpr);
+      return new CFunctionCallStatement(functionCall.getFileLocation(), newCallExpr);
     } else {
-      return functionCall;
+      throw new AssertionError("Unknown CFunctionCall subclass.");
     }
-  }
-
-  private void createUndefinedSummaryStatementEdge(CFANode predecessorNode, CFANode successorNode, AStatementEdge statement,
-      CFunctionCall functionCall) {
-    CFunctionSummaryStatementEdge summaryStatementEdge =
-        new CFunctionSummaryStatementEdge(statement.getRawStatement(),
-        (CStatement)statement.getStatement(), statement.getLineNumber(), predecessorNode, successorNode,
-        functionCall, null);
-
-    predecessorNode.addLeavingEdge(summaryStatementEdge);
-    successorNode.addEnteringEdge(summaryStatementEdge);
   }
 
   /**

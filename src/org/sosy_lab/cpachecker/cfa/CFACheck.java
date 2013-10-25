@@ -105,7 +105,11 @@ public class CFACheck {
 //        assert false : "Dead end at node " + pNode;
         break;
 
-      case 1: break;
+      case 1:
+        CFAEdge edge = pNode.getLeavingEdge(0);
+        assert !(edge instanceof AssumeEdge) : "AssumeEdge does not appear in pair at node " + DEBUG_FORMAT.apply(pNode);
+        assert !(edge instanceof CFunctionSummaryStatementEdge) : "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node " + DEBUG_FORMAT.apply(pNode);
+        break;
 
       case 2:
         CFAEdge edge1 = pNode.getLeavingEdge(0);
