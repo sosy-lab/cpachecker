@@ -424,6 +424,11 @@ cpa.bdd.trackIntEqual = true
 # depth of recursion bound
 cpa.callstack.depth = 0
 
+# Skip recursion if it happens only by going via a function pointer (this is
+# unsound). Imprecise function pointer tracking often lead to false
+# recursions.
+cpa.callstack.skipFunctionPointerRecursion = false
+
 # Skip recursion. Treat function call as a statement (the same as for
 # functions without bodies)
 # Skip recursion (this is unsound). Treat function call as a statement (the
