@@ -92,27 +92,27 @@ public class CFATransformations {
   }
 
   private static void handleEdge(CFAEdge edge, MutableCFA cfa, CBinaryExpressionBuilder builder) {
-    List<CExpression> expList = new ArrayList<>();
+    ContainsPointerVisitor visitor = new ContainsPointerVisitor();
     if (edge instanceof CReturnStatementEdge) {
       CExpression returnExp = ((CReturnStatementEdge)edge).getExpression();
       if (returnExp != null) {
-        expList = returnExp.accept(new ContainsPointerVisitor());
+        returnExp.accept(visitor);
       }
     } else if (edge instanceof CStatementEdge) {
       CStatement stmt = ((CStatementEdge)edge).getStatement();
       if (stmt instanceof CFunctionCallStatement) {
-        expList = ((CFunctionCallStatement)stmt).getFunctionCallExpression().accept(new ContainsPointerVisitor());
+        ((CFunctionCallStatement)stmt).getFunctionCallExpression().accept(visitor);
       } else if (stmt instanceof CFunctionCallAssignmentStatement) {
-        expList = ((CFunctionCallAssignmentStatement)stmt).getFunctionCallExpression().accept(new ContainsPointerVisitor());
+        ((CFunctionCallAssignmentStatement)stmt).getFunctionCallExpression().accept(visitor);
       } else if (stmt instanceof CExpressionStatement) {
-        expList = ((CExpressionStatement)stmt).getExpression().accept(new ContainsPointerVisitor());
+        ((CExpressionStatement)stmt).getExpression().accept(visitor);
       } else if (stmt instanceof CExpressionAssignmentStatement) {
-        expList = ((CExpressionAssignmentStatement)stmt).getRightHandSide().accept(new ContainsPointerVisitor());
-        expList.addAll(((CExpressionAssignmentStatement)stmt).getLeftHandSide().accept(new ContainsPointerVisitor()));
+        ((CExpressionAssignmentStatement)stmt).getRightHandSide().accept(visitor);
+        ((CExpressionAssignmentStatement)stmt).getLeftHandSide().accept(visitor);
       }
     }
 
-    for (CExpression exp : expList) {
+    for (CExpression exp : visitor.dereferencedExpressions) {
       edge = insertNullPointerCheck(edge, exp, cfa, builder);
     }
   }
@@ -182,62 +182,62 @@ public class CFATransformations {
   /**
    * This visitor returns all Expressions where a Pointer is included
    */
-  static class ContainsPointerVisitor extends DefaultCExpressionVisitor<List<CExpression>, CFAGenerationRuntimeException>
-                                      implements CRightHandSideVisitor<List<CExpression>, CFAGenerationRuntimeException> {
+  static class ContainsPointerVisitor extends DefaultCExpressionVisitor<Void, CFAGenerationRuntimeException>
+                                      implements CRightHandSideVisitor<Void, CFAGenerationRuntimeException> {
+
+    private final List<CExpression> dereferencedExpressions = new ArrayList<>();
 
     @Override
-    public List<CExpression> visit(CFunctionCallExpression pIastFunctionCallExpression) {
-      return new ArrayList<>();
+    public Void visit(CFunctionCallExpression pIastFunctionCallExpression) {
+      return null;
     }
 
     @Override
-    public List<CExpression> visit(CArraySubscriptExpression e) {
-      List<CExpression> exps = e.getArrayExpression().accept(this);
-      exps.addAll(e.getSubscriptExpression().accept(this));
-      return exps;
+    public Void visit(CArraySubscriptExpression e) {
+      e.getArrayExpression().accept(this);
+      e.getSubscriptExpression().accept(this);
+      return null;
     }
     @Override
-    public List<CExpression> visit(CCastExpression e) {
+    public Void visit(CCastExpression e) {
       return e.getOperand().accept(this);
     }
 
     @Override
-    public List<CExpression> visit(CComplexCastExpression e) {
+    public Void visit(CComplexCastExpression e) {
       return e.getOperand().accept(this);
     }
 
     @Override
-    public List<CExpression> visit(CFieldReference e) {
-      List<CExpression> exps = new ArrayList<>();
+    public Void visit(CFieldReference e) {
       if (e.isPointerDereference()) {
-        exps.add(e.getFieldOwner());
+        dereferencedExpressions.add(e.getFieldOwner());
       }
-      return exps;
+      return null;
     }
 
     @Override
-    public List<CExpression> visit(CUnaryExpression e) {
+    public Void visit(CUnaryExpression e) {
       return e.getOperand().accept(this);
     }
 
     @Override
-    public List<CExpression> visit(CPointerExpression e) {
-      List<CExpression> exps = new ArrayList<>();
-      exps.add(e.getOperand());
-      exps.addAll(e.getOperand().accept(this));
-      return exps;
+    public Void visit(CPointerExpression e) {
+      dereferencedExpressions.add(e.getOperand());
+      e.getOperand().accept(this);
+      return null;
     }
 
     @Override
-    public List<CExpression> visit(CBinaryExpression pIastbBinaryExpression) {
-      List<CExpression> exps = pIastbBinaryExpression.getOperand1().accept(this);
-      exps.addAll(pIastbBinaryExpression.getOperand2().accept(this));
-      return exps;
+    public Void visit(CBinaryExpression pIastbBinaryExpression) {
+      pIastbBinaryExpression.getOperand1().accept(this);
+      pIastbBinaryExpression.getOperand2().accept(this);
+      return null;
     }
 
     @Override
-    protected List<CExpression> visitDefault(CExpression pExp) throws CFAGenerationRuntimeException {
-      return new ArrayList<>();
+    protected Void visitDefault(CExpression pExp) throws CFAGenerationRuntimeException {
+      return null;
     }
 
   }
