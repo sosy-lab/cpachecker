@@ -362,15 +362,16 @@ public class CFATransformations {
 
     CFANode trueNode = new CFANode(edge.getLineNumber(), predecessor.getFunctionName());
     CFANode falseNode = new CFANode(edge.getLineNumber(), predecessor.getFunctionName());
+    CBinaryExpression assumeExpression = binBuilder.buildBinaryExpression(exp, new CIntegerLiteralExpression(exp.getFileLocation(), CNumericTypes.INT,BigInteger.valueOf(0)), BinaryOperator.EQUALS);
     AssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(),
                                          edge.getLineNumber(),
                                          predecessor, trueNode,
-                                         binBuilder.buildBinaryExpression(exp, new CIntegerLiteralExpression(exp.getFileLocation(), CNumericTypes.INT,BigInteger.valueOf(0)), BinaryOperator.EQUALS),
+                                         assumeExpression,
                                          true);
     AssumeEdge falseEdge = new CAssumeEdge(edge.getRawStatement(),
                                            edge.getLineNumber(),
                                            predecessor, falseNode,
-                                           binBuilder.buildBinaryExpression(exp, new CIntegerLiteralExpression(exp.getFileLocation(), CNumericTypes.INT,BigInteger.valueOf(0)), BinaryOperator.NOT_EQUALS),
+                                           assumeExpression,
                                            false);
     predecessor.addLeavingEdge(trueEdge);
     predecessor.addLeavingEdge(falseEdge);
