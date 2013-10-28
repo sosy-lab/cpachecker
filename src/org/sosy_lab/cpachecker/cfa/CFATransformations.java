@@ -65,6 +65,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
+import com.google.common.collect.Lists;
+
 
 /******************************************************************+
  * NullPointerDetection
@@ -128,7 +130,7 @@ public class CFATransformations {
       }
     }
 
-    for (CExpression exp : visitor.dereferencedExpressions) {
+    for (CExpression exp : Lists.reverse(visitor.dereferencedExpressions)) {
       edge = insertNullPointerCheck(edge, exp, cfa, builder);
     }
   }
