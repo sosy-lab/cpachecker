@@ -48,7 +48,4 @@
   <rundefinition name="sv-comp14">
     <option name="-sv-comp14"/>
   </rundefinition>
-  <rundefinition name="sv-comp14WithUF">
-    <option name="-sv-comp14WithUF"/>
-  </rundefinition>
 </benchmark>
