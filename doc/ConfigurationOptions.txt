@@ -257,6 +257,9 @@ cegar.globalRefinement = false
 # omitted.
 cegar.refiner = no default value
 
+# Which functions should be interpreted as encoding assumptions
+cfa.assumeFunctions = {"__VERIFIER_assume"}
+
 # dump a simple call graph
 cfa.callgraph.export = true
 
