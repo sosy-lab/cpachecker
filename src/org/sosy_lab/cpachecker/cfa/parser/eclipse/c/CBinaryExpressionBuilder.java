@@ -290,7 +290,23 @@ public class CBinaryExpressionBuilder {
 
       assert relationalOperators.contains(pBinOperator) : ""
           + "unusual calculation " + pBinOperator + " with two pointer-operands.";
-      return CNumericTypes.SIGNED_INT;
+
+      // we compare function-pointer and function, so return function-pointer
+      if (pType1 instanceof CPointerType && pType2 instanceof CFunctionType) {
+        if (((CPointerType) pType1).getType() instanceof CFunctionType) { return pType1; }
+      } else if (pType2 instanceof CPointerType && pType1 instanceof CFunctionType) {
+        if (((CPointerType) pType2).getType() instanceof CFunctionType) { return pType2; }
+      }
+
+      // there are 2 pointers and this is a comparison, so type does actually not matter.
+
+      if (pType1.equals(pType2)) { return pType1; }
+
+      logger.logf(Level.FINEST,
+          "using calculationtype POINTER_TO_VOID for %s (%s, %s) of (%s, %s)",
+          pBinOperator, pType1, pType2, pType1.getClass(), pType2.getClass());
+
+      return CPointerType.POINTER_TO_VOID;
     }
 
 
