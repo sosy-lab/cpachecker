@@ -332,12 +332,18 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     }
   }
 
+  /**
+   * The function removes local void * pointers (deferred allocations)
+   * declared in current function scope from tracking after returning from the function.
+   */
   void handleDeferredAllocationInFunctionExit() {
     for (final String variable : pts.getDeferredAllocationVariables()) {
       final int position = variable.indexOf(CToFormulaWithUFConverter.SCOPE_SEPARATOR);
-      final String variableFunction = variable.substring(0, position);
-      if (function.equals(variableFunction)) {
-        handleDeferredAllocationPointerRemoval(variable, true);
+      if (position >= 0) { // Consider only local variables (in current function scope)
+        final String variableFunction = variable.substring(0, position);
+        if (function.equals(variableFunction)) {
+          handleDeferredAllocationPointerRemoval(variable, true);
+        }
       }
     }
   }
