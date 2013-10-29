@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -498,7 +499,11 @@ class FunctionPointerTransferRelation implements TransferRelation {
       // TODO: Support this statement.
 
     } else if (lhsExpression instanceof CArraySubscriptExpression) {
-      // TODO assignment to array cell
+      CArraySubscriptExpression arrayExp = (CArraySubscriptExpression)lhsExpression;
+      if (arrayExp.getArrayExpression() instanceof CIdExpression
+          && arrayExp.getSubscriptExpression() instanceof CIntegerLiteralExpression) {
+        return arrayElementVariable(arrayExp, functionName);
+      }
 
     } else {
       throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", edge, lhsExpression);
@@ -522,6 +527,16 @@ class FunctionPointerTransferRelation implements TransferRelation {
       state = pElement;
       function = pFunction;
       targetForInvalidPointers = pTargetForInvalidPointers;
+    }
+
+    @Override
+    public FunctionPointerTarget visit(CArraySubscriptExpression pE) throws UnrecognizedCCodeException {
+      if (pE.getSubscriptExpression() instanceof CIntegerLiteralExpression
+          && pE.getArrayExpression() instanceof CIdExpression) {
+
+        return state.getTarget(arrayElementVariable(pE, function));
+      }
+      return super.visit(pE);
     }
 
     @Override
@@ -556,7 +571,8 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
     @Override
     public FunctionPointerTarget visit(CIdExpression pE) {
-      if (pE.getExpressionType() instanceof CFunctionType) {
+      if (pE.getDeclaration() instanceof CFunctionDeclaration
+          || pE.getExpressionType() instanceof CFunctionType) {
         return new NamedFunctionTarget(pE.getName());
       }
 
@@ -615,6 +631,12 @@ class FunctionPointerTransferRelation implements TransferRelation {
     return var.getDeclaration().getQualifiedName();
   }
 
+  private static String arrayElementVariable(CArraySubscriptExpression exp, String function) {
+    assert exp.getSubscriptExpression() instanceof CIntegerLiteralExpression;
+    String name = scopedIfNecessary((CIdExpression)exp.getArrayExpression(), function);
+    name += "[" + exp.getSubscriptExpression().toASTString() + "]";
+    return name;
+  }
 
   @Override
   public Collection<? extends AbstractState> strengthen(
