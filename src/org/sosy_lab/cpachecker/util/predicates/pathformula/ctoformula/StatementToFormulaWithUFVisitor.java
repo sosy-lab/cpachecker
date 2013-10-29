@@ -723,47 +723,53 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       return result;
     } else if (type instanceof CCompositeType && ((CCompositeType) type).getKind() == ComplexTypeKind.UNION) {
       if (topInitializer instanceof CInitializerList  &&
-          ((CInitializerList) topInitializer).getInitializers().size() == 1) {
-        topInitializer = ((CInitializerList) topInitializer).getInitializers().get(0);
+          ((CInitializerList) topInitializer).getInitializers().size() <= 1) {
         final CCompositeType compositeType = (CCompositeType) type;
         final int membersCount = compositeType.getMembers().size();
         final List<Object> result = new ArrayList<>(membersCount);
         for (int i = 0; i < membersCount; ++i) {
           result.add(null);
         }
-        if (!(topInitializer instanceof CDesignatedInitializer)) {
+        if (((CInitializerList) topInitializer).getInitializers().size() == 0) {
           result.set(0, visitInitializer(compositeType.getMembers().get(0).getType(),
                                          topInitializer,
                                          isAutomatic));
         } else {
-          final CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) topInitializer;
-          final CDesignator designator = designatedInitializer.getDesignators().get(0);
-          if (designator instanceof CFieldDesignator) {
-            final String fieldName = ((CFieldDesignator) designator).getFieldName();
-            int index = 0;
-            for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-              if (memberDeclaration.getName().equals(fieldName)) {
-                final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
-                final CInitializer newInitializer;
-                if (designatedInitializer.getDesignators().size() == 1) {
-                  newInitializer = designatedInitializer.getRightHandSide();
-                } else {
-                  newInitializer = new CDesignatedInitializer(designatedInitializer.getFileLocation(),
-                                                              designatedInitializer.getDesignators().subList(
-                                                                1,
-                                                                designatedInitializer.getDesignators().size()),
-                                                              designatedInitializer.getRightHandSide());
-                }
-                result.set(index, visitInitializer(memberType, newInitializer, isAutomatic));
-                break;
-              }
-              index++;
-            }
-            if (index >= compositeType.getMembers().size()) {
-              throw new UnrecognizedCCodeException("Unrecognized field designator", edge, designator);
-            }
+          topInitializer = ((CInitializerList) topInitializer).getInitializers().get(0);
+          if (!(topInitializer instanceof CDesignatedInitializer)) {
+            result.set(0, visitInitializer(compositeType.getMembers().get(0).getType(),
+                                           topInitializer,
+                                           isAutomatic));
           } else {
-            throw new UnrecognizedCCodeException("Wrong designator: field designator expected", edge, designator);
+            final CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) topInitializer;
+            final CDesignator designator = designatedInitializer.getDesignators().get(0);
+            if (designator instanceof CFieldDesignator) {
+              final String fieldName = ((CFieldDesignator) designator).getFieldName();
+              int index = 0;
+              for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+                if (memberDeclaration.getName().equals(fieldName)) {
+                  final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
+                  final CInitializer newInitializer;
+                  if (designatedInitializer.getDesignators().size() == 1) {
+                    newInitializer = designatedInitializer.getRightHandSide();
+                  } else {
+                    newInitializer = new CDesignatedInitializer(designatedInitializer.getFileLocation(),
+                                                                designatedInitializer.getDesignators().subList(
+                                                                  1,
+                                                                  designatedInitializer.getDesignators().size()),
+                                                                designatedInitializer.getRightHandSide());
+                  }
+                  result.set(index, visitInitializer(memberType, newInitializer, isAutomatic));
+                  break;
+                }
+                index++;
+              }
+              if (index >= compositeType.getMembers().size()) {
+                throw new UnrecognizedCCodeException("Unrecognized field designator", edge, designator);
+              }
+            } else {
+              throw new UnrecognizedCCodeException("Wrong designator: field designator expected", edge, designator);
+            }
           }
         }
         return result;
