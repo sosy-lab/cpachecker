@@ -28,12 +28,17 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.Location;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.Struct;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.Union;
+import org.sosy_lab.cpachecker.cpa.pointer2.util.Variable;
 
 
 public class PointerState implements AbstractState {
@@ -79,6 +84,16 @@ public class PointerState implements AbstractState {
     return result;
   }
 
+  /**
+   * Checks whether or not the first identifier points to the second identifier.
+   *
+   * @param pSource the first identifier.
+   * @param pTarget the second identifier.
+   * @return <code>true</code> if the first identifier definitely points to the
+   * second identifier, <code>false</code> if it definitely does not point to
+   * the second identifier and <code>null</code> if it might point to it.
+   */
+  @Nullable
   public Boolean pointsTo(Location pSource, Location pTarget) {
     LocationSet pointsToSet = getPointsToSet(pSource);
     if (pointsToSet.equals(LocationSet.BOT)) {
@@ -95,16 +110,113 @@ public class PointerState implements AbstractState {
     return null;
   }
 
+  /**
+   * Checks whether or not the first identifier is known to point to the second
+   * identifier.
+   *
+   * @param pSource
+   * @param pTarget
+   * @return <code>true</code> if the first identifier definitely points to the
+   * second identifier, <code>false</code> if it might point to it or is known
+   * not to point to it.
+   */
   public boolean definitelyPointsTo(Location pSource, Location pTarget) {
     return pointsTo(pSource, pTarget) == true;
   }
 
+  /**
+   * Checks whether or not the first identifier is known to not point to the
+   * second identifier.
+   *
+   * @param pSource
+   * @param pTarget
+   * @return <code>true</code> if the first identifier definitely does not
+   * points to the second identifier, <code>false</code> if it might point to
+   * it or is known to point to it.
+   */
   public boolean definitelyNotPointsTo(Location pSource, Location pTarget) {
     return pointsTo(pSource, pTarget) == false;
   }
 
+  /**
+   * Checks whether or not the first identifier is may point to the second
+   * identifier.
+   *
+   * @param pSource
+   * @param pTarget
+   * @return <code>true</code> if the first identifier definitely points to the
+   * second identifier or might point to it, <code>false</code> if it is known
+   * not to point to it.
+   */
   public boolean mayPointTo(Location pSource, Location pTarget) {
     return pointsTo(pSource, pTarget) != false;
+  }
+
+  /**
+   * Gets the identifier for the given global variable.
+   *
+   * @param pVariableName the name of the global variable.
+   * @return the identifier for the given global variable.
+   */
+  public Location getVariableAsLocation(String pVariableName) {
+    return new Variable(pVariableName);
+  }
+
+  /**
+   * Gets the identifier for the given local variable.
+   *
+   * @param pVariableName the name of the function of the variable.
+   * @param pVariableName the name of the local variable.
+   * @return the identifier for the given local variable.
+   */
+  public Location getVariableAsLocation(String pFuntionName, String pVariableName) {
+    return new Variable(pFuntionName + "::" + pVariableName);
+  }
+
+  /**
+   * Gets the identifier for the given global struct instance.
+   *
+   * @param pTypeName the name of the struct type.
+   * @param pInstanceName the name of the instance.
+   * @return the identifier for the given global struct instance.
+   */
+  public Location getStructAsLocation(String pTypeName, String pInstanceName) {
+    return new Struct(pTypeName);
+  }
+
+  /**
+   * Gets the identifier for the given local struct instance.
+   *
+   * @param pTypeName the name of the struct type.
+   * @param pInstanceFunctionName the name of the function.
+   * @param pInstanceName the name of the instance.
+   * @return the identifier for the given local struct instance.
+   */
+  public Location getStructAsLocation(String pTypeName, String pInstanceFunctionName, String pInstanceName) {
+    return new Struct(pTypeName);
+  }
+
+  /**
+   * Gets the identifier for the given global union instance.
+   *
+   * @param pTypeName the name of the union type.
+   * @param pInstanceName the name of the instance.
+   * @return the identifier for the given global union instance.
+   */
+  public Location getUnionAsLocation(String pTypeName, String pInstanceName) {
+    return new Union(pTypeName);
+  }
+
+  /**
+   * Gets the identifier for the given local union instance.
+   *
+   * @param pTypeName the name of the union type.
+   * @param pInstanceFunctionName the name of the function.
+   * @param pInstanceName the name of the instance.
+   * @return the identifier for the given local union instance.
+   */
+  public Location getUnionAsLocation(String pTypeName, String pInstanceFunctionName, String pInstanceName) {
+    return new Union(pTypeName);
   }
 
   public Iterable<Location> getKnownLocations() {
