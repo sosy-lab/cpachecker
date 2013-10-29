@@ -97,13 +97,9 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       return Pair.of((CExpression) newExpr, null);
     }
 
-    final CType calculationType = expr.getCalculationType();
-    long value1 = ExplicitExpressionValueVisitor.castCValue(
-        pair1.getSecond().longValue(), calculationType, machineModel, logger, null);
-    long value2 = ExplicitExpressionValueVisitor.castCValue(
-        pair2.getSecond().longValue(), calculationType, machineModel, logger, null);
     long result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
-        value1, value2, binaryOperator, expr.getExpressionType(), machineModel, logger, null);
+        pair1.getSecond().longValue(), pair2.getSecond().longValue(),
+        expr, machineModel, logger, null);
 
     return Pair.<CExpression, Number> of(
         new CIntegerLiteralExpression(expr.getFileLocation(),
