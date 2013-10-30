@@ -176,11 +176,25 @@ public class ExplicitExpressionValueVisitor
       final CBinaryExpression binaryExpr,
       final MachineModel machineModel, final LogManager logger, @Nullable CFAEdge edge) {
 
-    final CType calculationType = binaryExpr.getCalculationType();
-    lVal = castCValue(lVal, calculationType, machineModel, logger, edge);
-    rVal = castCValue(rVal, calculationType, machineModel, logger, edge);
-
     final BinaryOperator binaryOperator = binaryExpr.getOperator();
+    final CType calculationType = binaryExpr.getCalculationType();
+
+    lVal = castCValue(lVal, calculationType, machineModel, logger, edge);
+    if (binaryOperator != BinaryOperator.SHIFT_LEFT && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
+      /* For SHIFT-operations we do not cast the second operator.
+       * We even do not need integer-promotion,
+       * because the maximum SHIFT of 64 is lower than MAX_CHAR.
+       *
+       * ISO-C99 (6.5.7 #3): Bitwise shift operators
+       * The integer promotions are performed on each of the operands.
+       * The type of the result is that of the promoted left operand.
+       * If the value of the right operand is negative or is greater than
+       * or equal to the width of the promoted left operand,
+       * the behavior is undefined.
+       */
+      rVal = castCValue(rVal, calculationType, machineModel, logger, edge);
+    }
+
     Long result;
     switch (binaryOperator) {
     case PLUS:
