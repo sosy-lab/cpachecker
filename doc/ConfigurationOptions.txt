@@ -294,6 +294,9 @@ cfa.initializeAllVariables = false
 # remove paths from CFA that cannot lead to a specification violation
 cfa.removeIrrelevantForSpecification = false
 
+# simplify simple const expressions like 1+2
+cfa.simplifyConstExpressions = false
+
 # simplify pointer expressions like s->f to (*s).f with this option the cfa
 # is simplified until at maximum one pointer is allowed for left- and
 # rightHandSide

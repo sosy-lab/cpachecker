@@ -137,6 +137,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
+import org.sosy_lab.cpachecker.cfa.simplification.NonRecursiveExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -162,16 +163,25 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
-@Options
+@Options(prefix="cfa")
 class ASTConverter {
 
-  @Option(name="cfa.simplifyPointerExpressions",
+  @Option(
       description="simplify pointer expressions like s->f to (*s).f with this option " +
         "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide")
   private boolean simplifyPointerExpressions = false;
 
-  private final boolean simplifyConstExpressions;
+  @Option(name="simplifyConstExpressions",
+      description="simplify simple const expressions like 1+2")
+  private boolean alwaysSimplifyConstExpressions = false;
+
+  // This is neccessary because in certain situations we always need to simplify
+  // expressions, regardless of the configuration above.
+  // Probably the configuration option can go away and we always simplify expressions.
+  private boolean simplifyConstExpressions = false;
+
   private final ExpressionSimplificationVisitor expressionSimplificator;
+  private final NonRecursiveExpressionSimplificationVisitor nonRecursiveExpressionSimplificator;
   private final CBinaryExpressionBuilder binExprBuilder;
 
   private final LogManager logger;
@@ -206,6 +216,7 @@ class ASTConverter {
     simplifyConstExpressions = pSimplifyConstExpressions;
 
     expressionSimplificator = new ExpressionSimplificationVisitor(pMachineModel, pLogger);
+    nonRecursiveExpressionSimplificator = new NonRecursiveExpressionSimplificationVisitor(pMachineModel, pLogger);
     binExprBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
   }
 
@@ -309,6 +320,15 @@ class ASTConverter {
   }
 
   protected CAstNode convertExpressionWithSideEffects(IASTExpression e) {
+    CAstNode converted = convertExpressionWithSideEffectsNotSimplified(e);
+    if (!alwaysSimplifyConstExpressions || !(converted instanceof CExpression)) {
+      return converted;
+    }
+
+    return ((CExpression)converted).accept(nonRecursiveExpressionSimplificator);
+  }
+
+  private CAstNode convertExpressionWithSideEffectsNotSimplified(IASTExpression e) {
     assert !(e instanceof CExpression);
 
     if (e == null) {
