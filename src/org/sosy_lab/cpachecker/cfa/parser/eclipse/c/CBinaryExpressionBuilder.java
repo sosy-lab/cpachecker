@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 
 
@@ -99,6 +100,7 @@ public class CBinaryExpressionBuilder {
       BinaryOperator.PLUS,
       BinaryOperator.MINUS);
 
+  @SuppressWarnings("unused")
   private final static Set<BinaryOperator> multiplicativeOperators = Sets.immutableEnumSet(
       BinaryOperator.MULTIPLY,
       BinaryOperator.MODULO,
@@ -196,6 +198,7 @@ public class CBinaryExpressionBuilder {
    * @param pType2 type of the second operand
    * @param pBinOperator used to get the result-type
    */
+  @VisibleForTesting
   CType getResultTypeForBinaryOperation(final CType pType1, final CType pType2,
       final BinaryOperator pBinOperator) {
     /*
@@ -262,6 +265,7 @@ public class CBinaryExpressionBuilder {
    * @param pType2 type of the second operand
    * @param pBinOperator for logging and some checks. Not needed, if both types are 'simple'.
    */
+  @VisibleForTesting
   CType getCalculationTypeForBinaryOperation(CType pType1, CType pType2,
       final BinaryOperator pBinOperator) {
 
