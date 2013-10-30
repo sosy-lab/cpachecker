@@ -269,6 +269,18 @@ public class CBinaryExpressionBuilder {
   CType getCalculationTypeForBinaryOperation(CType pType1, CType pType2,
       final BinaryOperator pBinOperator) {
 
+    /* CalculationType of SHIFT is the type of the first operand.
+     *
+     * ISO-C99 (6.5.7 #3): Bitwise shift operators
+     * The integer promotions are performed on each of the operands.
+     * The type of the result is that of the promoted left operand.
+     */
+    if (shiftOperators.contains(pBinOperator)) {
+      assert integerTypes.contains(((CSimpleType) pType1).getType());
+      assert integerTypes.contains(((CSimpleType) pType2).getType());
+      return getPromotedCType((CSimpleType) pType1);
+    }
+
     // both are simple types, we need a common simple type --> USUAL ARITHMETIC CONVERSIONS
     if (pType1 instanceof CSimpleType && pType2 instanceof CSimpleType) {
       // TODO we need an recursive analysis for wrapped binaryExp, like "((1+2)+3)+4".
