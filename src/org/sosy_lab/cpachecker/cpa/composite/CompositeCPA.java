@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,6 @@ import java.util.List;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
@@ -45,15 +44,15 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.explicit.ComponentAwareExplicitPrecisionAdjustment;
+import org.sosy_lab.cpachecker.cpa.explicit.OmniscientCompositePrecisionAdjustment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -71,23 +70,21 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
           + "merging if all cpas agree on this. This is probably what you want.")
     private String merge = "AGREE";
 
-    @Option(toUppercase=true, values={"COMPOSITE", "COMPONENT"},
-    description="which precision adjustment strategy to use (COMPOSITE or COMPONENT)\n"
-      + "While the COMPOSITE strategy keeps the domain knowledge seperated, "
-      + "and only delegates to each component's precision adjustment operator individually, "
-      + "the COMPONENT strategy operates with knowledge about all components.")
-    private String precAdjust = "COMPOSITE";
+    @Option(toUppercase=true, values={"IGNORANT", "OMNISCIENT"},
+    description="which precision adjustment strategy to use (ignorant or omniscient)\n"
+      + "While an ignorant strategy keeps the domain knowledge seperated, "
+      + "and delegates to the component precision adjustment operators, "
+      + "the omniscient strategy may operate on global knowledge.")
+    private String precAdjust = "IGNORANT";
   }
 
   private static class CompositeCPAFactory extends AbstractCPAFactory {
 
-    private CFA cfa = null;
     private ImmutableList<ConfigurableProgramAnalysis> cpas = null;
 
     @Override
     public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       Preconditions.checkState(cpas != null, "CompositeCPA needs wrapped CPAs!");
-      Preconditions.checkState(cfa != null, "CompositeCPA needs CFA information!");
 
       CompositeOptions options = new CompositeOptions();
       getConfiguration().inject(options);
@@ -143,12 +140,10 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
 
       PrecisionAdjustment compositePrecisionAdjustment;
-      if (options.precAdjust.equals("COMPONENT")) {
-        compositePrecisionAdjustment = new ComponentAwareExplicitPrecisionAdjustment(
+      if (options.precAdjust.equals("OMNISCIENT")) {
+        compositePrecisionAdjustment = new OmniscientCompositePrecisionAdjustment(
             precisionAdjustments.build(),
-            getConfiguration(),
-            cfa
-            );
+            getConfiguration());
       }
 
       else {
@@ -178,14 +173,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       cpas = ImmutableList.copyOf(pChildren);
       return this;
     }
-
-    @Override
-    public <T> CPAFactory set(T pObject, Class<T> pClass) throws UnsupportedOperationException {
-      if (pClass.equals(CFA.class)) {
-        cfa = (CFA)pObject;
-      }
-      return super.set(pObject, pClass);
-    }
   }
 
   public static CPAFactory factory() {
@@ -201,12 +188,13 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
 
-  protected CompositeCPA(AbstractDomain abstractDomain,
+  protected CompositeCPA (AbstractDomain abstractDomain,
       CompositeTransferRelation transferRelation,
       MergeOperator mergeOperator,
       CompositeStopOperator stopOperator,
       PrecisionAdjustment precisionAdjustment,
-      ImmutableList<ConfigurableProgramAnalysis> cpas) {
+      ImmutableList<ConfigurableProgramAnalysis> cpas)
+  {
     this.abstractDomain = abstractDomain;
     this.transferRelation = transferRelation;
     this.mergeOperator = mergeOperator;
@@ -214,7 +202,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.precisionAdjustment = precisionAdjustment;
     this.cpas = cpas;
 
-    List<Reducer> wrappedReducers = new ArrayList<>();
+    List<Reducer> wrappedReducers = new ArrayList<Reducer>();
     for (ConfigurableProgramAnalysis cpa : cpas) {
       if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
         wrappedReducers.add(((ConfigurableProgramAnalysisWithABM) cpa).getReducer());
@@ -251,7 +239,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
+  public PrecisionAdjustment getPrecisionAdjustment () {
     return precisionAdjustment;
   }
 
@@ -261,7 +249,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
+  public AbstractState getInitialState (CFANode node) {
     Preconditions.checkNotNull(node);
 
     ImmutableList.Builder<AbstractState> initialStates = ImmutableList.builder();
@@ -273,7 +261,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode node) {
+  public Precision getInitialPrecision (CFANode node) {
     Preconditions.checkNotNull(node);
 
     ImmutableList.Builder<Precision> initialPrecisions = ImmutableList.builder();

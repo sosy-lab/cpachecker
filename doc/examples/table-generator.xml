@@ -2,29 +2,16 @@
 
 <table>
 
-<!-- a list of result files, where each file was created automatically by benchmark.py for a run set -->
+<!-- a list of testfiles, where each file was created automatically by benchmark.py for a test -->
 
-  <result filename="test/results/benchmark-cpachecker.11-??-??.????.results.xml">
-    <!-- columns "status" and "cputime" of the result file will be part of the table -->
+  <test filename="test/results/benchmark-cpachecker.11-??-??.????.results.xml">
+    <!-- columns "status" and "cputime" of the testfile will be part of the table -->
     <column title="status"/>
     <column title="cputime"/>
-  </result>
+  </test>
 
-  <result filename="test/results/benchmark-cpachecker.11-??-??.????.results.xml">
-    <!-- all columns of the reesult file will be part of the table,
-         if there is not default set of columns given directly inside the <table> tag -->
-  </result>
-
-  <union>
-    <!-- Merge the result of several runs into one column in the table. -->
-    <result filename="test/results/benchmark-cpachecker-part1.11-??-??.????.results.xml"/>
-    <result filename="test/results/benchmark-cpachecker-part2.11-??-??.????.results.xml"/>
-    <column title="status"/>
-  </union>
-
-  <!-- Default set of columns for results which don't have any columns mentioned. -->
-  <column title="status"/>
-  <column title="cputime"/>
-  <column title="walltime"/>
+  <test filename="test/results/benchmark-cpachecker.11-??-??.????.results.xml">
+    <!-- all columns of the testfile will be part of the table -->
+  </test>
 
 </table>

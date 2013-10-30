@@ -37,14 +37,14 @@ public class OptionManager {
 
   @SuppressWarnings("unused")
   private LogManager logger;
-  private Map<Integer, UsableColumn> cols;
+  private Map<Integer,UsableColumn> cols;
   private List<PivotRow> rows;
   private boolean initialized;
 
   public OptionManager(LogManager lm) {
     logger = lm;
-    cols = new HashMap<>();
-    rows = new Vector<>();
+    cols = new HashMap<Integer,UsableColumn>();
+    rows = new Vector<PivotRow>();
     initialized = false;
   }
 
@@ -101,8 +101,8 @@ public class OptionManager {
     AssumptionSet aset = new AssumptionSet();
     for (UsableColumn u : cols.values()) {
       AssumptionSet a = u.getRequestedAssumptions();
-      logger.log(Level.ALL, "Column",u.getColNum(),"produced assumption set",a);
-      aset.addAll(a);
+      logger.log(Level.ALL,"Column",u.getColNum(),"produced assumption set",a);
+      aset.addAll( a );
     }
     return aset;
   }
@@ -118,7 +118,7 @@ public class OptionManager {
    * We also remove any such rows from further consideration.
    */
   public AssumptionSet getSoleOptionRowsAssumptions() {
-    List<PivotRow> discard = new Vector<>();
+    List<PivotRow> discard = new Vector<PivotRow>();
     for (PivotRow pr : rows) {
       boolean madeRequest = pr.makeSoleRequest();
       if (madeRequest) {

@@ -78,7 +78,7 @@ public class BasicReversedFormulaMatriciser extends FormulaMatriciser {
     List<RationalFunction> rfs;
     Coeff rhs;
     InfixReln reln;
-    List<Matrix> cols = new Vector<>();
+    List<Matrix> cols = new Vector<Matrix>();
 
     // Prepend a "true" column, if requested.
     if (prependTrue) {
@@ -90,7 +90,7 @@ public class BasicReversedFormulaMatriciser extends FormulaMatriciser {
       // Get the constraint, its infix reln, and the coeffs of all its variable terms.
       cons = constraints.get(i);
       reln = cons.getInfixReln();
-      coeffs = new ArrayDeque<>(cons.getNormalFormCoeffs(vmgr, VariableWriteMode.REDLOG));
+      coeffs = new ArrayDeque<Coeff>(cons.getNormalFormCoeffs(vmgr, VariableWriteMode.REDLOG));
 
       // If the relation is strict <, then since we are assuming that our
       // program variables are integers, we transform this into weak <= by
@@ -104,20 +104,20 @@ public class BasicReversedFormulaMatriciser extends FormulaMatriciser {
       // Now bring the constant over to the LHS, by negating it.
       coeffs.addFirst(rhs.negative());
       // And form a list, for later use.
-      coeffList = new Vector<>(coeffs);
+      coeffList = new Vector<Coeff>(coeffs);
 
       // Make all the coeffs into rational functions.
       rfs = makeRationalFunctions(coeffList, paramVars);
 
       // Add a column.
-      cols.add(new Matrix(rfs));
+      cols.add( new Matrix(rfs) );
 
       // We consider EQUAL to be two LEQs, which means that
       // in addition to the column itself, we adjoin its negation.
       if (reln == InfixReln.EQUAL) {
         coeffList = negative(coeffList);
-        rfs = makeRationalFunctions(coeffList, paramVars);
-        cols.add(new Matrix(rfs));
+        rfs = makeRationalFunctions(coeffList,paramVars);
+        cols.add( new Matrix(rfs) );
       }
     }
 
@@ -132,7 +132,7 @@ public class BasicReversedFormulaMatriciser extends FormulaMatriciser {
 
   private static Matrix booleanMatrix(VariableManager vmgr, boolean trueStatement) {
 
-    List<RationalFunction> rfs = new Vector<>();
+    List<RationalFunction> rfs = new Vector<RationalFunction>();
 
     RationalFunction constant;
     if (trueStatement) {

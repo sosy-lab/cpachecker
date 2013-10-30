@@ -23,19 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.templates;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+public class NonTemplate extends TemplateFormula {
 
-public class NonTemplate extends TemplateFormula implements BooleanFormula, BitvectorFormula, RationalFormula {
+  public NonTemplate() {}
 
-  private FormulaType<?> type;
-
-  public NonTemplate(FormulaType<?> type) {this.type = type; }
-
-  public NonTemplate(FormulaType<?> type, String m) {
-    this(type);
+  public NonTemplate(String m) {
     if (m==null) {
       message = "Used a Formula which was not a TemplateFormula.";
     } else {
@@ -47,8 +39,4 @@ public class NonTemplate extends TemplateFormula implements BooleanFormula, Bitv
     message = m+"\n"+f.getMessage();
   }
 
-  @Override
-  public FormulaType<?> getFormulaType() {
-    return type;
-  }
 }

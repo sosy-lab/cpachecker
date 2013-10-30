@@ -23,20 +23,32 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentSortedMap;
+import java.io.IOException;
+import java.io.NotSerializableException;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 
 /**
  * Represents one abstract state of the FunctionPointer CPA.
  */
-class FunctionPointerState implements AbstractState {
+class FunctionPointerState extends AbstractSingleWrapperState  {
+  /* Boilerplate code to avoid serializing this class */
+  private static final long serialVersionUID = 0xDEADBEEF;
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    throw new NotSerializableException();
+  }
 
   // java reference counting + immutable objects should help us
   // to reduce memory consumption.
@@ -125,72 +137,87 @@ class FunctionPointerState implements AbstractState {
 
   static class Builder {
 
-    private final FunctionPointerState oldState;
-    private PersistentSortedMap<String, FunctionPointerTarget> values;
+    private final AbstractState wrappedState;
+    private Map<String,FunctionPointerTarget> values = null;
+    private final ImmutableMap<String,FunctionPointerTarget> oldValues;
 
-    private Builder(FunctionPointerState pOldState) {
-      oldState = checkNotNull(pOldState);
-      values = oldState.pointerVariableValues;
+    private Builder(ImmutableMap<String, FunctionPointerTarget> pOldValues, AbstractState pWrappedState) {
+      oldValues = pOldValues;
+      wrappedState = pWrappedState;
+    }
+
+    private void setupMaps() {
+      if (values == null) {
+        values = Maps.newHashMap(oldValues);
+      }
     }
 
     public FunctionPointerTarget getTarget(String variableName) {
       // default to UNKNOWN
-      return Objects.firstNonNull(values.get(variableName), UnknownTarget.getInstance());
+      Map<String, FunctionPointerTarget> map = Objects.firstNonNull(values, oldValues);
+      return Objects.firstNonNull(map.get(variableName), UnknownTarget.getInstance());
     }
 
     void setTarget(String variableName, FunctionPointerTarget target) {
+      setupMaps();
+
       if (target == UnknownTarget.getInstance()) {
-        values = values.removeAndCopy(variableName);
+        values.remove(target);
       } else {
-        values = values.putAndCopy(variableName, target);
+        values.put(variableName, target);
       }
     }
 
     void clearVariablesWithPrefix(String prefix) {
-      for (String var : values.keySet()) {
-        if (var.startsWith(prefix)) {
-          values = values.removeAndCopy(var);
+      setupMaps();
+
+      Iterator<String> it = values.keySet().iterator();
+
+      while (it.hasNext()) {
+        if (it.next().startsWith(prefix)) {
+          it.remove();
         }
       }
     }
 
     FunctionPointerState build() {
-      if (values == oldState.pointerVariableValues) {
-        return oldState;
-      } else if (values.isEmpty()) {
-        return EMPTY_STATE;
-      }
-      return new FunctionPointerState(values);
+      Map<String, FunctionPointerTarget> map = Objects.firstNonNull(values, oldValues);
+      return new FunctionPointerState(wrappedState, map);
     }
   }
 
   // This map should never contain UnknownTargets.
-  private final PersistentSortedMap<String, FunctionPointerTarget> pointerVariableValues;
+  private final ImmutableMap<String,FunctionPointerTarget> pointerVariableValues;
 
-  private FunctionPointerState() {
-    pointerVariableValues = PathCopyingPersistentTreeMap.of();
+  private FunctionPointerState(AbstractState pWrappedState) {
+    super(pWrappedState);
+    pointerVariableValues = ImmutableMap.of();
   }
 
-  private FunctionPointerState(PersistentSortedMap<String, FunctionPointerTarget> pValues) {
-    pointerVariableValues = pValues;
+  private FunctionPointerState(AbstractState pWrappedState, Map<String, FunctionPointerTarget> pValues) {
+    super(pWrappedState);
+    pointerVariableValues = ImmutableMap.copyOf(pValues);
   }
 
-  private static final FunctionPointerState EMPTY_STATE = new FunctionPointerState(PathCopyingPersistentTreeMap.<String, FunctionPointerState.FunctionPointerTarget>of());
-
-  public static FunctionPointerState createEmptyState() {
-    return EMPTY_STATE;
+  public static FunctionPointerState createEmptyState(AbstractState pWrappedState) {
+    return new FunctionPointerState(pWrappedState);
   }
 
-  public FunctionPointerState.Builder createBuilder() {
-    return new Builder(this);
+  public FunctionPointerState.Builder createBuilderWithNewWrappedState(AbstractState pElement) {
+    return new Builder(this.pointerVariableValues, pElement);
+  }
+
+  public FunctionPointerState createDuplicateWithNewWrappedState(AbstractState pElement) {
+    return new FunctionPointerState(pElement, this.pointerVariableValues);
   }
 
   @Override
   public String toString() {
     StringBuilder str = new StringBuilder();
-    str.append("[");
+    str.append("\n FunctionPointerState: [");
     Joiner.on(", ").withKeyValueSeparator("=").appendTo(str, pointerVariableValues);
-    str.append("]");
+    str.append("]\n ");
+    str.append(getWrappedState());
     return str.toString();
   }
 
@@ -206,23 +233,18 @@ class FunctionPointerState implements AbstractState {
       return false;
     }
 
-    return this.pointerVariableValues.entrySet().containsAll(pElement.pointerVariableValues.entrySet());
-  }
+    for (Entry<String, FunctionPointerTarget> entry : pElement.pointerVariableValues.entrySet()) {
+      FunctionPointerTarget thisTarget = this.pointerVariableValues.get(entry.getKey());
 
-
-  // Needed for NoOpReducer
-  @Override
-  public boolean equals(Object pObj) {
-    if (pObj == this) {
-      return true;
-    } else if (!(pObj instanceof FunctionPointerState)) {
-      return false;
+      if (!entry.getValue().equals(thisTarget)) {
+        return false;
+      }
     }
-    return this.pointerVariableValues.equals(((FunctionPointerState)pObj).pointerVariableValues);
+
+    return true;
   }
 
-  @Override
-  public int hashCode() {
-    return pointerVariableValues.hashCode();
+  Map<String, FunctionPointerTarget> getTargetMap() {
+    return pointerVariableValues;
   }
 }

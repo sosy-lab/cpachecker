@@ -35,9 +35,9 @@ public class LinearInequality {
   // Represents a matrix inequality Ax v b, where the relation v is a
   // mixture of strict and lax inequalities, LT and LEQ.
 
-  private Vector<List<Coeff>> rows = new Vector<>();
-  private Vector<InfixReln> relns = new Vector<>();
-  private Vector<Coeff> rhs = new Vector<>();
+  private Vector< List<Coeff> > rows = new Vector<List<Coeff>>();
+  private Vector<InfixReln> relns = new Vector<InfixReln>();
+  private Vector<Coeff> rhs = new Vector<Coeff>();
   private final VariableManager vmgr;
 
   public LinearInequality(VariableManager vmgr) {
@@ -147,7 +147,7 @@ public class LinearInequality {
    * @return the indices of those inequalities that are strict.
    */
   public Vector<Integer> findStrict() {
-    Vector<Integer> strict = new Vector<>();
+    Vector<Integer> strict = new Vector<Integer>();
     InfixReln R;
     for (int i = 0; i < relns.size(); i++) {
       R = relns.get(i);
@@ -170,35 +170,35 @@ public class LinearInequality {
    * @return
    */
   public LinearInequality combine(LinearInequality B) {
-    Vector<List<Coeff>> rows = new Vector<>();
-    Vector<InfixReln> relns = new Vector<>();
-    Vector<Coeff> rhs = new Vector<>();
+    Vector<List<Coeff>> rows = new Vector<List<Coeff>>();
+    Vector<InfixReln> relns = new Vector<InfixReln>();
+    Vector<Coeff> rhs = new Vector<Coeff>();
 
     // Make the rows.
     for (int i = 0; i < this.rows.size(); i++) {
-      rows.add(this.rows.get(i));
+      rows.add( this.rows.get(i) );
     }
     Vector<List<Coeff>> rowsB = B.getRows();
     for (int i = 0; i < rowsB.size(); i++) {
-      rows.add(rowsB.get(i));
+      rows.add( rowsB.get(i) );
     }
 
     // Make the relns.
     for (int i = 0; i < this.relns.size(); i++) {
-      relns.add(this.relns.get(i));
+      relns.add( this.relns.get(i) );
     }
     Vector<InfixReln> relnsB = B.getRelns();
     for (int i = 0; i < relnsB.size(); i++) {
-      relns.add(relnsB.get(i));
+      relns.add( relnsB.get(i) );
     }
 
     // Make the rhs.
     for (int i = 0; i < this.rhs.size(); i++) {
-      rhs.add(this.rhs.get(i));
+      rhs.add( this.rhs.get(i) );
     }
     Vector<Coeff> rhsB = B.getRHS();
     for (int i = 0; i < rhsB.size(); i++) {
-      rhs.add(rhsB.get(i));
+      rhs.add( rhsB.get(i) );
     }
 
     // Build the new LI.

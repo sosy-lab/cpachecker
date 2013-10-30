@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,14 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -38,7 +40,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -57,8 +58,6 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.reflect.ClassPath;
-import com.google.common.reflect.ClassPath.ClassInfo;
 
 public class CPASelfCheck {
 
@@ -121,17 +120,17 @@ public class CPASelfCheck {
     }
   }
 
-  private static CFA createCFA() throws IOException, ParserException, InvalidConfigurationException {
+  private static CFA createCFA() throws IOException, ParserException {
     String code = "int main() {\n"
                 + "  int a;\n"
                 + "  a = 1;\n"
                 + "  return (a);\n"
                 + "}\n";
 
-    CParser parser = CParser.Factory.getParser(config, logManager, CParser.Factory.getDefaultOptions(), MachineModel.LINUX32);
+    CParser parser = CParser.Factory.getParser(logManager, CParser.Factory.getDefaultOptions());
     ParseResult cfas = parser.parseString(code);
-    MutableCFA cfa = new MutableCFA(MachineModel.LINUX32, cfas.getFunctions(), cfas.getCFANodes(), cfas.getFunctions().get("main"), Language.C);
-    return cfa.makeImmutableCFA(Optional.<ImmutableMultimap<String, Loop>>absent(),
+    MutableCFA cfa = new MutableCFA(MachineModel.LINUX32, cfas.getFunctions(), cfas.getCFANodes(), cfas.getFunctions().get("main"));
+    return cfa.makeImmutableCFA(Optional.<ImmutableMultimap<String,Loop>>absent(),
         Optional.<VariableClassification>absent());
   }
 
@@ -159,7 +158,7 @@ public class CPASelfCheck {
     AbstractDomain d = pCpaInst.getAbstractDomain();
     AbstractState initial = pCpaInst.getInitialState(pMain);
 
-    return ensure(d.isLessOrEqual(initial, d.join(initial, initial)),
+    return ensure(d.isLessOrEqual(initial, d.join(initial,initial)),
         "Join of same elements is unsound!");
   }
 
@@ -170,7 +169,7 @@ public class CPASelfCheck {
     AbstractState initial = pCpaInst.getInitialState(pMain);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
 
-    return ensure(d.isLessOrEqual(initial, merge.merge(initial, initial, initialPrec)),
+    return ensure(d.isLessOrEqual(initial, merge.merge(initial,initial,initialPrec)),
         "Merging same elements was unsound!");
   }
 
@@ -179,7 +178,7 @@ public class CPASelfCheck {
                                             Class<ConfigurableProgramAnalysis> pCpa,
                                             ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException {
     StopOperator stop = pCpaInst.getStopOperator();
-    HashSet<AbstractState> reached = new HashSet<>();
+    HashSet<AbstractState> reached = new HashSet<AbstractState>();
     AbstractState initial = pCpaInst.getInitialState(pMain);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
 
@@ -189,7 +188,7 @@ public class CPASelfCheck {
   private static boolean checkStopReached(Class<ConfigurableProgramAnalysis> pCpa,
                                        ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException {
     StopOperator stop = pCpaInst.getStopOperator();
-    HashSet<AbstractState> reached = new HashSet<>();
+    HashSet<AbstractState> reached = new HashSet<AbstractState>();
     AbstractState initial = pCpaInst.getInitialState(pMain);
     reached.add(initial);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
@@ -198,15 +197,12 @@ public class CPASelfCheck {
   }
 
   private static List<Class<ConfigurableProgramAnalysis>> getCPAs() throws ClassNotFoundException, IOException {
-    Set<ClassInfo> cpaCandidates = ClassPath.from(Thread.currentThread().getContextClassLoader())
-                                            .getTopLevelClasses("org.sosy_lab.cpachecker.cpa");
-
-    List<Class<ConfigurableProgramAnalysis>> cpas = new ArrayList<>();
+    List<Class<?>> cpaCandidates = getClasses("org.sosy_lab.cpachecker.cpa");
+    List<Class<ConfigurableProgramAnalysis>> cpas = new ArrayList<Class<ConfigurableProgramAnalysis>>();
 
     Class<ConfigurableProgramAnalysis> targetType = null;
 
-    for (ClassInfo candidateInfo : cpaCandidates) {
-      Class<?> candidate = candidateInfo.load();
+    for (Class<?> candidate : cpaCandidates) {
       if (   !Modifier.isAbstract(candidate.getModifiers())
           && !Modifier.isInterface(candidate.getModifiers())
           && ConfigurableProgramAnalysis.class.isAssignableFrom(candidate)) {
@@ -223,4 +219,57 @@ public class CPASelfCheck {
   private static <T> Class<T> uncheckedGenericCast(Class<?> classObj, Class<T> targetType) {
     return (Class<T>)classObj;
   }
+
+  /**
+   * Scans all classes accessible from the context class loader which belong to the given package and subpackages.
+   *
+   * @param packageName The base package
+   * @return The classes
+   * @throws IOException
+   *
+   * taken from http://www.sourcesnippets.com/java-get-all-classes-within-a-package.html
+   */
+  private static List<Class<?>> getClasses(String packageName) throws IOException {
+    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+    assert classLoader != null;
+    String path = packageName.replace('.', '/');
+    Enumeration<URL> resources = classLoader.getResources(path);
+
+    ArrayList<Class<?>> classes = new ArrayList<Class<?>>();
+    while (resources.hasMoreElements()) {
+      URL resource = resources.nextElement();
+      collectClasses(new File(resource.getFile()), packageName, classes);
+    }
+    return classes;
+  }
+
+  /**
+   * Recursive method used to find all classes in a given directory and subdirs.
+   *
+   * @param directory   The base directory
+   * @param packageName The package name for classes found inside the base directory
+   * @param classes     List where the classes are added.
+   *
+   * taken from http://www.sourcesnippets.com/java-get-all-classes-within-a-package.html
+   */
+  private static void collectClasses(File directory, String packageName, List<Class<?>> classes) {
+    if (!directory.exists()) {
+      return;
+    }
+    File[] files = directory.listFiles();
+    for (File file : files) {
+      if (file.isDirectory()) {
+        assert !file.getName().contains(".");
+        collectClasses(file, packageName + "." + file.getName(), classes);
+      } else if (file.getName().endsWith(".class")) {
+        try {
+          Class<?> foundClass = Class.forName(packageName + '.' + file.getName().substring(0, file.getName().length() - 6));
+          classes.add(foundClass);
+        } catch (ClassNotFoundException e) {
+          /* ignore, there is no class available for this file */
+        }
+      }
+    }
+  }
+
 }

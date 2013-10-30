@@ -59,65 +59,65 @@ public class PivotRowHandler {
   }
 
   public void solve() throws BadAssumptionsException {
-    logger.log(Level.ALL, "Solving pivot rows for matrix:","\n"+matx.toString());
+    logger.log(Level.ALL,"Solving pivot rows for matrix:","\n"+matx.toString());
     // Build the initial frame.
     StackFrame F = buildInitialFrame();
-    logger.log(Level.ALL, "Building initial frame.");
+    logger.log(Level.ALL,"Building initial frame.");
     // If it has an impossible row, then it is an immediate fail.
     if (F.hasAnImpossibleRow()) {
-      logger.log(Level.ALL, "Frame has an impossible row. Aborting.");
+      logger.log(Level.ALL,"Frame has an impossible row. Aborting.");
       throw new BadAssumptionsException();
     }
     // Else, initialize the stack.
-    Stack<StackFrame> stack = new Stack<>();
-    logger.log(Level.ALL, "Pushing initial frame onto stack.");
+    Stack<StackFrame> stack = new Stack<StackFrame>();
+    logger.log(Level.ALL,"Pushing initial frame onto stack.");
     stack.push(F);
     // Enter main loop.
     while (true) {
       // If the stack is empty, then we are out of options, and it's a fail.
       if (stack.empty()) {
-        logger.log(Level.ALL, "Stack empty. Aborting.");
+        logger.log(Level.ALL,"Stack empty. Aborting.");
         throw new BadAssumptionsException();
       }
       // Else, investigate the top frame.
       F = stack.peek();
-      logger.log(Level.ALL, "Considering top stack frame:\n",F);
+      logger.log(Level.ALL,"Considering top stack frame:\n",F);
       // Does it have any challenges?
       if (!F.hasChallenges()) {
         // If not, then it is time finish up.
-        logger.log(Level.ALL, "Frame has no challenges left.");
+        logger.log(Level.ALL,"Frame has no challenges left.");
         // Has the assumption set changed?
         if (!F.aset.equals(amgr.getCurrentAssumptionSet())) {
           // If so, then we check for consistency if its size is at least two.
           if (F.aset.size() >= 2 && !mBalancer.isSatisfiable(F.aset)) {
             // The set was unsatisfiable. Give up on this frame, and return to the top of the loop.
-            logger.log(Level.ALL, "The assumption set was unsatisfiable.",
+            logger.log(Level.ALL,"The assumption set was unsatisfiable.",
                 "We pop the current frame off the stack.");
             stack.pop();
           } else {
             // Set is consistent.
             // Adopt this frame's assumption set, apply any substitutions it yields, and break.
-            logger.log(Level.ALL, "Matrix solvable.");
+            logger.log(Level.ALL,"Matrix solvable.");
             amgr.setCurrentAssumptionSet(F.aset);
             amgr.zeroSubsCurrent(F.aset);
             break;
           }
         } else {
-          logger.log(Level.ALL, "Matrix solvable.");
-          logger.log(Level.ALL, "Assumption set is unchanged.");
+          logger.log(Level.ALL,"Matrix solvable.");
+          logger.log(Level.ALL,"Assumption set is unchanged.");
           break;
         }
 
       } else {
         // Else there is at least one challenge in F.
-        logger.log(Level.ALL, "Frame has one or more challenges to meet.");
+        logger.log(Level.ALL,"Frame has one or more challenges to meet.");
 
         // Loop on possible next moves.
         while (true) {
           // Are we out of moves?
           if (F.nextmv.empty()) {
             // If so, then give up on frame F, and return to the top of the main loop.
-            logger.log(Level.ALL, "Frame has no moves left. Popping it off stack.");
+            logger.log(Level.ALL,"Frame has no moves left. Popping it off stack.");
             stack.pop();
             break;
           } else {
@@ -125,12 +125,12 @@ public class PivotRowHandler {
             StackFrame E = F.buildNextFrame();
             if (E != null) {
               // If we got a new frame, push it onto the stack, and return to the top of the main loop.
-              logger.log(Level.ALL, "Frame construction succeeded. Pushing frame onto stack.");
+              logger.log(Level.ALL,"Frame construction succeeded. Pushing frame onto stack.");
               stack.push(E);
               break;
             } else {
               // Construction of new frame didn't work.
-              logger.log(Level.ALL, "Frame construction failed.");
+              logger.log(Level.ALL,"Frame construction failed.");
             }
           }
         }
@@ -253,8 +253,8 @@ public class PivotRowHandler {
 
     void computeChallenges() {
       // Initialize empty lists of challenges.
-      pchal = new Vector<>();
-      qchal = new Vector<>();
+      pchal = new Vector<Integer>();
+      qchal = new Vector<Integer>();
       // Now go through the rows one by one.
       for (int r = 0; r < codes.length; r++) {
         // If r has an out edge, then it is immune.
@@ -269,7 +269,8 @@ public class PivotRowHandler {
             // An active 1 yields a P-challenge.
             pchal.add(r);
             break;
-          } else if (code == 10 || code == 2 || code == 31) {
+          }
+          else if (code == 10 || code == 2 || code == 31) {
             // An active 10, 2, 31 yields a Q-challenge.
             qchal.add(r);
             break;
@@ -280,9 +281,9 @@ public class PivotRowHandler {
 
     void computeNextMoves() {
       // Start with an empty stack of next moves.
-      nextmv = new Stack<>();
+      nextmv = new Stack<Move>();
       // For both P- and Q-challenges, we find moves that work by relying on an active 3.
-      List<Integer> PUQ = new Vector<>(pchal);
+      List<Integer> PUQ = new Vector<Integer>(pchal);
       PUQ.addAll(qchal);
       for (Integer r : PUQ) {
         // Consider all and only the non-augmentation columns.
@@ -301,7 +302,7 @@ public class PivotRowHandler {
             else {
               RationalFunction f = entries[r][j];
               AssumptionType atype = AssumptionType.NEGATIVE;
-              Assumption a = new Assumption(f, atype);
+              Assumption a = new Assumption(f,atype);
               move.newaset = new AssumptionSet();
               move.newaset.add(a);
             }
@@ -312,7 +313,7 @@ public class PivotRowHandler {
               move.newcol = null;
             }
             // Finally, we state that this row should rely on this column.
-            move.newedge = new ForwardEdge(r, j);
+            move.newedge = new ForwardEdge(r,j);
             // Add the move to the stack.
             nextmv.push(move);
           }
@@ -346,7 +347,7 @@ public class PivotRowHandler {
               atype = AssumptionType.NEGATIVE;
               break;
             }
-            Assumption a = new Assumption(f, atype);
+            Assumption a = new Assumption(f,atype);
             move.newaset.add(a);
           }
         }
@@ -368,7 +369,7 @@ public class PivotRowHandler {
 
       // Otherwise, we do have a next move. Pop it off the stack.
       Move M = nextmv.pop();
-      logger.log(Level.ALL, "Attempting to build the next frame, using move:\n",M);
+      logger.log(Level.ALL,"Attempting to build the next frame, using move:\n",M);
 
       // We try to build the next stack frame.
       StackFrame E = new StackFrame();
@@ -376,45 +377,45 @@ public class PivotRowHandler {
       // Build the assumption set.
       // Copy the existing one.
       E.aset = new AssumptionSet(this.aset);
-      logger.log(Level.ALL, "Copied last frame's assumption set",this.aset);
+      logger.log(Level.ALL,"Copied last frame's assumption set",this.aset);
       // Add any new assumptions from the Move.
       if (M.newaset != null) {
         boolean consistent = E.aset.addAll(M.newaset);
-        logger.log(Level.ALL, "Added new assumptions",M.newaset);
+        logger.log(Level.ALL,"Added new assumptions",M.newaset);
         // Is the new assumption set immediately contradictory?
         if (!consistent) {
           // If so, then give up.
-          logger.log(Level.ALL, "New assumption set is immediately contadictory. Abort.");
+          logger.log(Level.ALL,"New assumption set is immediately contadictory. Abort.");
           return null;
         }
-        logger.log(Level.ALL, "New assumption set:",E.aset);
+        logger.log(Level.ALL,"New assumption set:",E.aset);
       }
 
       // entries
       // Make a copy of the current entries, and apply any substitutions
       // yielded by the new assumption set.
       SubstitutionManager subman = new SubstitutionManager(E.aset, logger);
-      logger.log(Level.ALL, "Copying rational function entries, and applying any substitutions.");
+      logger.log(Level.ALL,"Copying rational function entries, and applying any substitutions.");
       E.entries = subman.applyAll(this.entries);
-      logger.log(Level.ALL, "New entries:","\n"+printRationalFunctions(E.entries));
+      logger.log(Level.ALL,"New entries:","\n"+printRationalFunctions(E.entries));
 
       // active
       // Copy the old list.
-      E.active = new Vector<>(this.active);
+      E.active = new Vector<Integer>(this.active);
       // Add any new column named in the move.
       if (M.newcol != null) {
         E.active.add(M.newcol);
-        logger.log(Level.ALL, "Activating column",M.newcol);
+        logger.log(Level.ALL,"Activating column",M.newcol);
       }
 
       // codes
       E.codes = computeCodes(E.entries, E.aset);
-      logger.log(Level.ALL, "New codes and active columns:",
+      logger.log(Level.ALL,"New codes and active columns:",
           "\n"+printCodes(E.codes)+"\n"+writeActiveStars(E.active));
 
       // Check for impossible rows.
       if (E.hasAnImpossibleRow()) {
-        logger.log(Level.ALL, "The new frame has an impossible row. Aborting.");
+        logger.log(Level.ALL,"The new frame has an impossible row. Aborting.");
         return null;
       }
 
@@ -466,22 +467,22 @@ public class PivotRowHandler {
       if (M.newedge != null) {
         int r = M.newedge.row;
         int c = M.newedge.col;
-        E.depgr.addForwardEdge(r, c);
+        E.depgr.addForwardEdge(r,c);
       }
-      logger.log(Level.ALL, "Computed new dependency graph:\n",E.depgr);
+      logger.log(Level.ALL,"Computed new dependency graph:\n",E.depgr);
 
       // Check for cycles in the new dependency graph.
-      logger.log(Level.ALL, "Checking for cycles in new dependency graph.");
+      logger.log(Level.ALL,"Checking for cycles in new dependency graph.");
       List<Assumption> breakers;
       for (int i = 0; i < rowNum; i++) {
         breakers = E.depgr.findRowtoRowLoop(i);
         if (breakers != null) {
-          logger.log(Level.ALL, "Found cycle based at row",i);
+          logger.log(Level.ALL,"Found cycle based at row",i);
           // We found a loop.
           // Are there any ways to break it?
           if (breakers.size() == 0) {
             // If not, then abort. We cannot build this frame.
-            logger.log(Level.ALL, "Cycle is unbreakable. Aborting frame construction.");
+            logger.log(Level.ALL,"Cycle is unbreakable. Aborting frame construction.");
             return null;
           } else {
             // If there is a way to break the loop, then create a new move
@@ -491,11 +492,11 @@ public class PivotRowHandler {
             // But if none of the possible assumptions is consistent with the
             // assumption set already in the current move, then we must simply
             // give up on this move altogether (so we do not push it back on the stack).
-            logger.log(Level.ALL, "Loop can be broken by assumptions:",breakers);
+            logger.log(Level.ALL,"Loop can be broken by assumptions:",breakers);
             for (Assumption a : breakers) {
               AssumptionRelation rel = E.aset.matchAgainst(a);
               if (rel != AssumptionRelation.CONTRADICTS) {
-                logger.log(Level.ALL, "Assumption",a,"appears consistent with new frame's assumption set.",
+                logger.log(Level.ALL,"Assumption",a,"appears consistent with new frame's assumption set.",
                     "We add the assumption to the move, push the move back on the stack, and abort.",
                     "Next construction attempt will use the augmented move.");
                 M.newaset.add(a);
@@ -503,20 +504,20 @@ public class PivotRowHandler {
                 return null;
               }
             }
-            logger.log(Level.ALL, "None of these assumptions is consistent with the new frame's assumption set.",
+            logger.log(Level.ALL,"None of these assumptions is consistent with the new frame's assumption set.",
                 "Aborting frame construction.");
             return null;
           }
         }
       }
-      logger.log(Level.ALL, "No cycles found.");
+      logger.log(Level.ALL,"No cycles found.");
 
       // Compute challenges, and next moves.
-      logger.log(Level.ALL, "Computing challenges and next moves for new frame.");
+      logger.log(Level.ALL,"Computing challenges and next moves for new frame.");
       E.computeChallenges();
       E.computeNextMoves();
 
-      logger.log(Level.ALL, "New frame computation successful.");
+      logger.log(Level.ALL,"New frame computation successful.");
       return E;
     }
 
@@ -584,7 +585,7 @@ public class PivotRowHandler {
     // Initial dependency graph is always empty.
     F.depgr = new DependencyGraph();
     // Get free columns, and the rows that they serve.
-    Map<Integer, List<Integer>> freeCols = findFreeCols(F.codes);
+    Map<Integer,List<Integer>> freeCols = findFreeCols(F.codes);
     // Activate these columns, and set the rows they serve to rely on them.
     if (freeCols.keySet().size() > 0) {
       F.active.addAll(freeCols.keySet());
@@ -603,12 +604,12 @@ public class PivotRowHandler {
     return F;
   }
 
-  Map<Integer, List<Integer>> findFreeCols(int[][] codes) {
-    Map<Integer, List<Integer>> fc = new HashMap<>();
+  Map<Integer,List<Integer>> findFreeCols(int[][] codes) {
+    Map<Integer, List<Integer>> fc = new HashMap<Integer, List<Integer>>();
     for (int j = 0; j < augStart; j++) {
       // Is column j filled with only codes 0, 3, 30?
       // If so, note the rows in which it has 3's.
-      List<Integer> threes = new Vector<>();
+      List<Integer> threes = new Vector<Integer>();
       boolean all0330 = true;
       for (int i = 0; i < rowNum; i++) {
         int c = codes[i][j];
@@ -621,7 +622,7 @@ public class PivotRowHandler {
         }
       }
       if (all0330) {
-        fc.put(j, threes);
+        fc.put(j,threes);
       }
     }
     return fc;
@@ -692,10 +693,12 @@ public class PivotRowHandler {
           if (f.isZero()) {
             // f is identically zero
             codes[i][j] = 0;
-          } else if (f.isPositive()) {
+          }
+          else if (f.isPositive()) {
             // f is a positive constant
             codes[i][j] = 1;
-          } else {
+          }
+          else {
             // f is a negative constant
             codes[i][j] = 3;
           }
@@ -718,7 +721,7 @@ public class PivotRowHandler {
    * Such a row is "immune", i.e. cannot be challenged by any column.
    */
   private List<Integer> findImmuneRows(int[][] codes) {
-    List<Integer> immune = new Vector<>();
+    List<Integer> immune = new Vector<Integer>();
     for (int i = 0; i < codes.length; i++) {
       // Is row i immune?
       boolean imm = true;
@@ -739,7 +742,7 @@ public class PivotRowHandler {
   }
 
   private List<Integer> initialActivation(int[][] codes) {
-    List<Integer> active = new Vector<>();
+    List<Integer> active = new Vector<Integer>();
     // All augmentation columns are automatically active.
     for (int j = augStart; j < colNum; j++) {
       active.add(j);
@@ -759,11 +762,11 @@ public class PivotRowHandler {
     // back.get(j) returns will have {i1, i2, i3} as its domain, and
     // for each i, f(i) will be the assumption you could make to break
     // that backward edge, if any, or null if there is no such assumption.
-    private Map<Integer, Map<Integer, Assumption>> back;
+    private Map<Integer, Map<Integer,Assumption>> back;
 
     DependencyGraph() {
-      forward = new HashMap<>();
-      back = new HashMap<>();
+      forward = new HashMap<Integer, Integer>();
+      back = new HashMap<Integer, Map<Integer, Assumption>>();
     }
 
     @Override
@@ -783,7 +786,7 @@ public class PivotRowHandler {
       s += "-----------------------\n";
       for (Integer c : back.keySet()) {
         //s += "from c"+c.toString()+":\n";
-        Map<Integer, Assumption> edges = back.get(c);
+        Map<Integer,Assumption> edges = back.get(c);
         for (Integer r : edges.keySet()) {
           s += "c"+c.toString()+" --> r"+r.toString()+", ";
           Assumption a = edges.get(r);
@@ -816,7 +819,7 @@ public class PivotRowHandler {
      * Use this method when row row points to column col.
      */
     void addForwardEdge(Integer row, Integer col) {
-      forward.put(row, col);
+      forward.put(row,col);
     }
 
     /* Use this method when:
@@ -828,9 +831,9 @@ public class PivotRowHandler {
       Map<Integer, Assumption> edges;
       if (!back.containsKey(col)) {
         // If none yet, then create it.
-        edges = new HashMap<>();
+        edges = new HashMap<Integer, Assumption>();
         // And tell col to point to it.
-        back.put(col, edges);
+        back.put(col,edges);
       } else {
         // Otherwise retrieve it.
         edges = back.get(col);
@@ -843,7 +846,7 @@ public class PivotRowHandler {
      * Convenience method.
      */
     List<Assumption> findRowtoRowLoop(Integer i) {
-      return findRowtoRowPath(i, i);
+      return findRowtoRowPath(i,i);
     }
 
     /*
@@ -875,7 +878,7 @@ public class PivotRowHandler {
       // If rk is among the rows that col points back to, then we are done.
       if (backedges.containsKey(k)) {
         // So we have found a path of length 2: ri --> col --> rk.
-        ri2rk = new Vector<>();
+        ri2rk = new Vector<Assumption>();
         Assumption a = backedges.get(k);
         // If there is an assumption that could break the edge col --> rk, then we add it
         // to the return value, making it a list of length 1.

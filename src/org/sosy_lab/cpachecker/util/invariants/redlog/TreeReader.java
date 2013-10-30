@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.util.invariants.redlog;
 
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 
@@ -42,7 +42,7 @@ public class TreeReader {
   }
 
   public static String read(CAstNode N) {
-    return padread(N, "");
+    return padread(N,"");
   }
 
   private static String padread(CAstNode N, String pad) {
@@ -77,7 +77,7 @@ public class TreeReader {
     // is zero, and in this way we will never get caught trying to
     // evaluate a term in which division by zero is taking place.
 
-    Vector<CAstNode> denoms = new Vector<>();
+    Vector<CAstNode> denoms = new Vector<CAstNode>();
 
     // Recursion first, for depth-first search.
     CAstNode[] children = N.getChildren();
@@ -110,7 +110,7 @@ public class TreeReader {
     // in the expression N, which we assume involves only binary
     // and unary expressions, and integers and variables.
 
-    HashSet<String> vars = new HashSet<>();
+    HashSet<String> vars = new HashSet<String>();
 
     // Recursion first.
     CAstNode[] children = N.getChildren();
@@ -143,21 +143,21 @@ public class TreeReader {
       Rational a = TreeReader.evaluate(BE.getOperand1(), S);
       Rational b = TreeReader.evaluate(BE.getOperand2(), S);
       try {
-        r = a.operate(op, b);
+        r = a.operate(op,b);
       } catch (Exception e) {}
     } else if (cn.endsWith("UnaryExpression")) {
       // We assume the operator is "MINUS".
       CUnaryExpression U = (CUnaryExpression) N;
       Rational a = TreeReader.evaluate(U.getOperand(), S);
       try {
-        r = a.times(new Rational(-1, 1));
+        r = a.times(new Rational(-1,1));
       } catch (Exception e) {}
     } else if (cn.endsWith("IntegerLiteralExpression")) {
-      AIntegerLiteralExpression I = (AIntegerLiteralExpression) N;
+      CIntegerLiteralExpression I = (CIntegerLiteralExpression) N;
       BigInteger n = I.getValue();
       int m = n.intValue();
       try {
-        r = new Rational(m, 1);
+        r = new Rational(m,1);
       } catch (Exception e) {}
     } else if (cn.endsWith("IdExpression")) {
       CIdExpression ID = (CIdExpression) N;

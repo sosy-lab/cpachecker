@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,19 +23,35 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CBinaryExpression extends ABinaryExpression implements CExpression {
+public class CBinaryExpression extends CExpression {
 
-  public CBinaryExpression(final FileLocation pFileLocation,
+  private final CExpression operand1;
+  private final CExpression operand2;
+  private final BinaryOperator operator;
+
+  public CBinaryExpression(final CFileLocation pFileLocation,
                               final CType pType,
                               final CExpression pOperand1,
                               final CExpression pOperand2,
                               final BinaryOperator pOperator) {
-    super(pFileLocation, pType, pOperand1, pOperand2, pOperator);
+    super(pFileLocation, pType);
+    operand1 = pOperand1;
+    operand2 = pOperand2;
+    operator = pOperator;
+  }
 
+  public CExpression getOperand1() {
+    return operand1;
+  }
+
+  public CExpression getOperand2() {
+    return operand2;
+  }
+
+  public BinaryOperator getOperator() {
+    return operator;
   }
 
   @Override
@@ -49,26 +65,12 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
   }
 
   @Override
-  public CType getExpressionType() {
-    return (CType) super.getExpressionType();
+  public String toASTString() {
+    return operand1.toParenthesizedASTString() + " "
+        + operator.getOperator() + " " + operand2.toParenthesizedASTString();
   }
 
-  @Override
-  public CExpression getOperand1() {
-    return (CExpression) super.getOperand1();
-  }
-
-  @Override
-  public CExpression getOperand2() {
-    return (CExpression)super.getOperand2();
-  }
-
-  @Override
-  public BinaryOperator getOperator() {
-    return (BinaryOperator) super.getOperator();
-  }
-
-  public static enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
+  public static enum BinaryOperator {
     MULTIPLY      ("*"),
     DIVIDE        ("/"),
     MODULO        ("%"),
@@ -83,9 +85,7 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
     BINARY_AND    ("&"),
     BINARY_XOR    ("^"),
     BINARY_OR     ("|"),
-    @Deprecated // unused, does not occur in the AST
     LOGICAL_AND   ("&&"),
-    @Deprecated // unused, does not occur in the AST
     LOGICAL_OR    ("||"),
     EQUALS        ("=="),
     NOT_EQUALS    ("!="),
@@ -100,29 +100,8 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
     /**
      * Returns the string representation of this operator (e.g. "*", "+").
      */
-    @Override
     public String getOperator() {
       return op;
     }
-  }
-
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    return result * prime + super.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    if (!(obj instanceof CBinaryExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
   }
 }

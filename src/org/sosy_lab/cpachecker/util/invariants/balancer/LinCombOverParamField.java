@@ -42,7 +42,7 @@ public class LinCombOverParamField {
   }
 
   LinCombOverParamField(RationalFunction[] a) {
-    List<RationalFunction> c = new Vector<>(a.length);
+    List<RationalFunction> c = new Vector<RationalFunction>(a.length);
     for (RationalFunction f : a) {
       c.add(f);
     }
@@ -54,7 +54,7 @@ public class LinCombOverParamField {
    * k: place to set equal to 1, while all others are set to 0. Places run from 0 to m-1.
    */
   LinCombOverParamField(int m, int k) {
-    List<RationalFunction> c = new Vector<>(m);
+    List<RationalFunction> c = new Vector<RationalFunction>(m);
     for (int i = 0; i < m; i++) {
       int n = (i == k ? 1 : 0);
       RationalFunction f = new RationalFunction(n);
@@ -113,7 +113,7 @@ public class LinCombOverParamField {
       RationalFunction g = lc.getCoeff(i);
       g = RationalFunction.multiply(fk, g);
       if (i != k) {
-        g = RationalFunction.add(g, this.getCoeff(i));
+        g = RationalFunction.add(g,this.getCoeff(i));
       }
       result.setCoeff(i, g);
     }
@@ -160,11 +160,11 @@ public class LinCombOverParamField {
    * does NOT represent the constant term.
    */
   Set<Integer> getOccurringVars() {
-    Set<Integer> vars = new HashSet<>();
+    Set<Integer> vars = new HashSet<Integer>();
     for (int j = 0; j < numVars - 1; j++) {
       RationalFunction f = coeffs.get(j);
       if (!f.isZero()) {
-        vars.add(Integer.valueOf(j));
+        vars.add(new Integer(j));
       }
     }
     return vars;
@@ -184,7 +184,7 @@ public class LinCombOverParamField {
   }
 
   LinCombOverParamField copy() {
-    List<RationalFunction> c = new Vector<>(this.numVars);
+    List<RationalFunction> c = new Vector<RationalFunction>(this.numVars);
     for (RationalFunction f : this.coeffs) {
       c.add(f.copy());
     }

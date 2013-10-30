@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,35 +29,31 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -73,14 +69,14 @@ public final class ErrorPathShrinker {
   }
 
   /** Set<String> for storing the global variables. */
-  private static final Set<String> GLOBAL_VARS = new LinkedHashSet<>();
+  private static final Set<String> GLOBAL_VARS = new LinkedHashSet<String>();
 
   /** The function shrinkErrorPath gets an targetPath and creates a new Path,
    * with only the important edges of the Path.
    *
    * @param targetPath the "long" targetPath
    * @return errorPath the "short" errorPath */
-  public ARGPath shrinkErrorPath(ARGPath targetPath) {
+  public Path shrinkErrorPath(Path targetPath) {
 
     // first remove all elements after the target-element from path
     targetPath = removeAllElemsAfterTarget(targetPath);
@@ -93,17 +89,17 @@ public final class ErrorPathShrinker {
         targetPath.descendingIterator();
 
     // Set for storing the important variables
-    Set<String> importantVars = new LinkedHashSet<>();
+    Set<String> importantVars = new LinkedHashSet<String>();
 
     // Set for storing the global variables, that are important and used
     // during proving the edges.
-    Set<String> importantVarsForGlobalVars = new LinkedHashSet<>();
+    Set<String> importantVarsForGlobalVars = new LinkedHashSet<String>();
 
     // Path for storing changings of globalVars
-    final ARGPath globalVarsPath = new ARGPath();
+    final Path globalVarsPath = new Path();
 
     // the short Path, the result
-    final ARGPath shortErrorPath = new ARGPath();
+    final Path shortErrorPath = new Path();
 
     // the errorNode is important, add both the edge before and after it
     final Pair<ARGState, CFAEdge> lastElem = revIterator.next();
@@ -136,11 +132,12 @@ public final class ErrorPathShrinker {
         // only global vars and the 'x' from 'f(x)' can influence the Error.
 
         // put only global vars to the new Set
-        final Set<String> newImportantVars = new LinkedHashSet<>();
+        final Set<String> newImportantVars = new LinkedHashSet<String>();
         addGlobalVarsFromSetToSet(importantVars, newImportantVars);
         importantVars = newImportantVars;
 
-        final Set<String> newImportantVarsForGlobalVars = new LinkedHashSet<>();
+        final Set<String> newImportantVarsForGlobalVars =
+            new LinkedHashSet<String>();
         addGlobalVarsFromSetToSet(importantVarsForGlobalVars,
             newImportantVarsForGlobalVars);
         importantVarsForGlobalVars = newImportantVarsForGlobalVars;
@@ -158,8 +155,8 @@ public final class ErrorPathShrinker {
    * example: [1, 2, 3, TARGET, 4, 5] --> [1, 2, 3, TARGET]
    *
    * @param path the Path to iterate */
-  private ARGPath removeAllElemsAfterTarget(final ARGPath path) {
-    final ARGPath targetPath = new ARGPath();
+  private Path removeAllElemsAfterTarget(final Path path) {
+    final Path targetPath = new Path();
     final Iterator<Pair<ARGState, CFAEdge>> iterator = path.iterator();
     Pair<ARGState, CFAEdge> it;
 
@@ -178,7 +175,7 @@ public final class ErrorPathShrinker {
    * of global variables.
    *
    * @param path the Path to iterate */
-  private void findGlobalVarsInPath(final ARGPath path) {
+  private void findGlobalVarsInPath(final Path path) {
 
     // iterate through the Path and collect all important variables
     final Iterator<Pair<ARGState, CFAEdge>> iterator = path.iterator();
@@ -212,21 +209,21 @@ public final class ErrorPathShrinker {
    * @param exp the expression to be divided and added
    * @param importantVars all currently important variables
    * @param importantVarsForGlobalVars variables, that influence global vars */
-  private void addAllVarsInExpToSet(final IARightHandSide exp,
+  private void addAllVarsInExpToSet(final CRightHandSide exp,
       final Set<String> importantVars,
       final Set<String> importantVarsForGlobalVars) {
 
     // exp = 8.2 or "return;" (when exp == null),
     // this does not change the Set importantVars,
-    if (exp instanceof ALiteralExpression ||
-        exp instanceof AFunctionCallExpression ||
+    if (exp instanceof CLiteralExpression ||
+        exp instanceof CFunctionCallExpression ||
         exp == null) {
       // do nothing
     }
 
     // exp is an Identifier, i.e. the "b" from "a = b"
-    else if (exp instanceof AIdExpression) {
-      final String varName = ((AIdExpression)exp).getName();
+    else if (exp instanceof CIdExpression) {
+      final String varName = ((CIdExpression)exp).getName();
       importantVars.add(varName);
       if (GLOBAL_VARS.contains(varName)) {
         importantVarsForGlobalVars.add(varName);
@@ -240,14 +237,14 @@ public final class ErrorPathShrinker {
     }
 
     // -b
-    else if (exp instanceof AUnaryExpression) {
-      addAllVarsInExpToSet(((AUnaryExpression) exp).getOperand(),
+    else if (exp instanceof CUnaryExpression) {
+      addAllVarsInExpToSet(((CUnaryExpression) exp).getOperand(),
           importantVars, importantVarsForGlobalVars);
     }
 
     // b op c; --> b is operand1, c is operand2
-    else if (exp instanceof ABinaryExpression) {
-      final ABinaryExpression binExp = (ABinaryExpression) exp;
+    else if (exp instanceof CBinaryExpression) {
+      final CBinaryExpression binExp = (CBinaryExpression) exp;
       addAllVarsInExpToSet(binExp.getOperand1(), importantVars,
           importantVarsForGlobalVars);
       addAllVarsInExpToSet(binExp.getOperand2(), importantVars,
@@ -284,12 +281,12 @@ public final class ErrorPathShrinker {
    * @param importantVars all important variables
    * @param importantVarsForGlobalVars variables, that influence global vars */
   private void getImportantVarsFromFunctionCall(
-      final FunctionCallEdge funcEdge, final Set<String> importantVars,
+      final CFunctionCallEdge funcEdge, final Set<String> importantVars,
       final Set<String> importantVarsForGlobalVars) {
 
     // get a list with the expressions "x" and "y" from "f(x,y)"
     // all variables in the expressions are important
-    for (IAExpression exp : funcEdge.getArguments()) {
+    for (CExpression exp : funcEdge.getArguments()) {
       addAllVarsInExpToSet(exp, importantVars, importantVarsForGlobalVars);
     }
   }
@@ -298,7 +295,7 @@ public final class ErrorPathShrinker {
   private final class PathHandler {
 
     /** The short Path stores the result of PathHandler.handlePath(). */
-    private final ARGPath                                shortPath;
+    private final Path                                shortPath;
 
     /** The reverse iterator runs from lastNode to firstNode. */
     private final Iterator<Pair<ARGState, CFAEdge>> reverseIterator;
@@ -312,7 +309,7 @@ public final class ErrorPathShrinker {
 
     /** This Path stores CFAEdges, where globalVars or
      * importantVarsForGlobalVars are assigned.*/
-    private final ARGPath                                globalVarsPath;
+    private final Path                                globalVarsPath;
 
     /** This is the currently handled CFAEdgePair. */
     private Pair<ARGState, CFAEdge>                 currentCFAEdgePair;
@@ -329,11 +326,11 @@ public final class ErrorPathShrinker {
      *  @param globalVarsPathOut the Path of the callerFunction, storing the
      *         CFAEdgePairs, where globalVars or importantVarsForGlobalVars
      *         are assigned */
-    private PathHandler(final ARGPath shortPathOut,
+    private PathHandler(final Path shortPathOut,
         final Iterator<Pair<ARGState, CFAEdge>> revIteratorOut,
         final Set<String> importantVarsOut,
         final Set<String> importantVarsForGlobalVarsOut,
-        final ARGPath globalVarsPathOut) {
+        final Path globalVarsPathOut) {
       shortPath = shortPathOut;
       reverseIterator = revIteratorOut;
       importantVars = importantVarsOut;
@@ -412,27 +409,28 @@ public final class ErrorPathShrinker {
 
       // Set for storing the important variables, normally empty when leaving
       // handlePath(), because declarators are removed, except globalVars.
-      final Set<String> possibleVars = new LinkedHashSet<>();
+      final Set<String> possibleVars = new LinkedHashSet<String>();
       addGlobalVarsFromSetToSet(importantVarsForGlobalVars, possibleVars);
 
       // in the expression "return r" the value "r" is possibly important.
-      final IAExpression returnExp =
-          ((AReturnStatementEdge) currentCFAEdgePair.getSecond()).getExpression();
+      final CExpression returnExp =
+          ((CReturnStatementEdge) currentCFAEdgePair.getSecond()).getExpression();
       addAllVarsInExpToSet(returnExp, possibleVars,
           importantVarsForGlobalVars);
 
       final Pair<ARGState, CFAEdge> returnEdgePair = currentCFAEdgePair;
 
       // Path for storing changings of variables of importantVarsForGlobalVars
-      final ARGPath functionGlobalVarsPath = new ARGPath();
+      final Path functionGlobalVarsPath = new Path();
 
       // the short Path is the result, the last element is the "return"-Node
-      final ARGPath shortFunctionPath = new ARGPath();
+      final Path shortFunctionPath = new Path();
 
       // Set for storing the global variables, that are possibly important
       // in the function. copy all global variables in another Set,
       // they could be assigned in the function.
-      final Set<String> possibleImportantVarsForGlobalVars = new LinkedHashSet<>();
+      final Set<String> possibleImportantVarsForGlobalVars =
+          new LinkedHashSet<String>();
 
       // only global variables can be used inside AND outside of a function
       addGlobalVarsFromSetToSet(importantVarsForGlobalVars,
@@ -465,20 +463,20 @@ public final class ErrorPathShrinker {
      *          variables, that are important for global vars in the function
      * @param functionGlobalVarsPath
      *          Path with Edges that influence global vars */
-    private void mergeResultsOfFunctionCall(final ARGPath shortFunctionPath,
+    private void mergeResultsOfFunctionCall(final Path shortFunctionPath,
         final Pair<ARGState, CFAEdge> returnEdgePair,
         final Set<String> possibleVars,
         final Set<String> possibleImportantVarsForGlobalVars,
-        final ARGPath functionGlobalVarsPath) {
+        final Path functionGlobalVarsPath) {
 
       // the recursive call stops at the functionStart,
       // so the lastEdge is the functionCall and there exist a
       // CFunctionSummaryEdge, that jumps over the hole function
       final CFAEdge lastEdge = shortFunctionPath.getFirst().getSecond();
-      assert (lastEdge instanceof FunctionCallEdge);
-      final FunctionCallEdge funcEdge = (FunctionCallEdge) lastEdge;
-      final FunctionSummaryEdge funcSummaryEdge = funcEdge.getSummaryEdge();
-      final AFunctionCall funcExp = funcSummaryEdge.getExpression();
+      assert (lastEdge instanceof CFunctionCallEdge);
+      final CFunctionCallEdge funcEdge = (CFunctionCallEdge) lastEdge;
+      final CFunctionSummaryEdge funcSummaryEdge = funcEdge.getSummaryEdge();
+      final CFunctionCall funcExp = funcSummaryEdge.getExpression();
 
       // "f(x)", without a variable "a" as "a = f(x)".
       // if the function changes the global variables,
@@ -559,16 +557,16 @@ public final class ErrorPathShrinker {
     /** This method handles statements. */
     private void handleStatement() {
 
-      IAStatement statementExp =
-          ((AStatementEdge) currentCFAEdgePair.getSecond()).getStatement();
+      CStatement statementExp =
+          ((CStatementEdge) currentCFAEdgePair.getSecond()).getStatement();
 
       // expression is an assignment operation, e.g. a = b;
-      if (statementExp instanceof IAssignment) {
-        handleAssignment((IAssignment) statementExp);
+      if (statementExp instanceof CAssignment) {
+        handleAssignment((CAssignment) statementExp);
       }
 
       // ext();
-      else if (statementExp instanceof AFunctionCall) {
+      else if (statementExp instanceof CFunctionCall) {
         addCurrentCFAEdgePairToShortPath();
       }
     }
@@ -576,21 +574,19 @@ public final class ErrorPathShrinker {
     /** This method handles assignments (?a = ??).
      *
      * @param binaryExpression the expression to prove */
-    private void handleAssignment(final IAssignment statementExp) {
+    private void handleAssignment(final CAssignment statementExp) {
 
-
-
-      IAExpression lParam = statementExp.getLeftHandSide();
-      IARightHandSide rightExp = statementExp.getRightHandSide();
+      CExpression lParam = statementExp.getLeftHandSide();
+      CRightHandSide rightExp = statementExp.getRightHandSide();
 
       // a = ?
-      if (lParam instanceof AIdExpression) {
-        handleAssignmentToVariable(((AIdExpression)lParam).getName(), rightExp);
+      if (lParam instanceof CIdExpression) {
+        handleAssignmentToVariable(((CIdExpression)lParam).getName(), rightExp);
       }
 
       // TODO: assignment to pointer, *a = ?
-      else if (lParam instanceof AUnaryExpression
-          && ((AUnaryExpression) lParam).getOperator() == UnaryOperator.STAR) {
+      else if (lParam instanceof CUnaryExpression
+          && ((CUnaryExpression) lParam).getOperator() == UnaryOperator.STAR) {
         addCurrentCFAEdgePairToShortPath();
       }
 
@@ -615,8 +611,7 @@ public final class ErrorPathShrinker {
      * @param lParam the local name of the variable to assign to
      * @param rightExp the assigning expression */
     private void handleAssignmentToVariable(final String lParam,
-        final IARightHandSide rightExp) {
-
+        final CRightHandSide rightExp) {
 
       // FIRST add edge to the Path, THEN remove lParam from Set
       if (importantVars.contains(lParam)
@@ -658,8 +653,8 @@ public final class ErrorPathShrinker {
      * handled as CStatementEdge. Global declarations are not divided by CIL. */
     private void handleDeclaration() {
 
-      IADeclaration declaration =
-          ((ADeclarationEdge) currentCFAEdgePair.getSecond()).getDeclaration();
+      CDeclaration declaration =
+          ((CDeclarationEdge) currentCFAEdgePair.getSecond()).getDeclaration();
 
       /* If the declared variable is important, the edge is important. */
       if (declaration.getName() != null) {
@@ -682,8 +677,8 @@ public final class ErrorPathShrinker {
      * switchStatement. Otherwise this method only adds all variables in an
      * assumption (expression) to the important variables. */
     private void handleAssumption() {
-      final IAExpression assumeExp =
-          ((AssumeEdge) currentCFAEdgePair.getSecond()).getExpression();
+      final CExpression assumeExp =
+          ((CAssumeEdge) currentCFAEdgePair.getSecond()).getExpression();
 
       if (!isSwitchStatement(assumeExp)) {
         addAllVarsInExpToSet(assumeExp, importantVars,
@@ -705,46 +700,33 @@ public final class ErrorPathShrinker {
      *
      * @param assumeExp the current assumption
      * @return is the assumption part of a switchStatement? */
-    private boolean isSwitchStatement(final IAExpression assumeExp) {
+    private boolean isSwitchStatement(final CExpression assumeExp) {
 
       // Path can be empty at the end of a functionCall ("if (a) return b;")
       if (!shortPath.isEmpty()) {
         final CFAEdge lastEdge = shortPath.getFirst().getSecond();
 
         //check, if the last edge was an assumption
-        if (assumeExp instanceof ABinaryExpression
-            && lastEdge instanceof AssumeEdge) {
-          final AssumeEdge lastAss = (AssumeEdge) lastEdge;
-          final IAExpression lastExp = lastAss.getExpression();
+        if (assumeExp instanceof CBinaryExpression
+            && lastEdge instanceof CAssumeEdge) {
+          final CAssumeEdge lastAss = (CAssumeEdge) lastEdge;
+          final CExpression lastExp = lastAss.getExpression();
 
           // check, if the last egde was like "a==b"
-          if (lastExp instanceof ABinaryExpression) {
-            final IAExpression currentBinExpOp1 =
-                ((ABinaryExpression) assumeExp).getOperand1();
-            final IAExpression lastBinExpOp1 =
-                ((ABinaryExpression) lastExp).getOperand1();
+          if (lastExp instanceof CBinaryExpression) {
+            final CExpression currentBinExpOp1 =
+                ((CBinaryExpression) assumeExp).getOperand1();
+            final CExpression lastBinExpOp1 =
+                ((CBinaryExpression) lastExp).getOperand1();
 
             // only the first variable of the assignment is checked
             final boolean isEqualVarName = currentBinExpOp1.toASTString().
             equals(lastBinExpOp1.toASTString());
 
             // check, if lastEdge is the true-branch of "==" or the false-branch of "!="
-            ABinaryExpression aLastExp = ((ABinaryExpression) lastExp);
-            final boolean isEqualOp;
-
-
-            if (aLastExp instanceof CBinaryExpression) {
-              final CBinaryExpression.BinaryOperator op = (CBinaryExpression.BinaryOperator) aLastExp.getOperator();
-              isEqualOp = (op == CBinaryExpression.BinaryOperator.EQUALS && lastAss.getTruthAssumption())
-                  || (op == CBinaryExpression.BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption());
-
-            } else {
-              final JBinaryExpression.BinaryOperator op = (JBinaryExpression.BinaryOperator) aLastExp.getOperator();
-              isEqualOp = (op == JBinaryExpression.BinaryOperator.EQUALS && lastAss.getTruthAssumption())
-                  || (op == JBinaryExpression.BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption());
-
-            }
-
+            final BinaryOperator op = ((CBinaryExpression) lastExp).getOperator();
+            final boolean isEqualOp = (op == BinaryOperator.EQUALS && lastAss.getTruthAssumption())
+                || (op == BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption());
 
             return (isEqualVarName && isEqualOp);
           }

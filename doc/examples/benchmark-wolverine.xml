@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!-- Example file that demonstrates the use of Wolverine. -->
+
+<benchmark tool="wolverine" timelimit="10" memlimit="100">
+  <test>
+    <sourcefiles>
+      <include>test/programs/simple/*.cil.c</include>
+    </sourcefiles>
+      
+    <option name="--error-label">ERROR</option>
+
+  </test>
+  
+  <!--  <columns> tag is currently not supported for Wolverine -->
+</benchmark>

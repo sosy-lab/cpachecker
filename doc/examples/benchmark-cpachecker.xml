@@ -1,50 +1,65 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<!-- Example file that demonstrates the use of CPAchecker. -->
-<benchmark tool="cpachecker" timelimit="10" memlimit="3000">
+<!-- Example file that demonstrates the use of CPAchecker
+     and also the use of the benchmark-script. -->
 
-  <!-- Global sourcefiles are used in every run definition. -->
+<benchmark tool="cpachecker" timelimit="10" memlimit="2000">
+
+  <!-- global sourcefiles are tested in every test -->
   <sourcefiles>
-    <include>../../test/programs/benchmarks/locks/*_5_*.c</include>
-
-    <!-- Next line shows the use of a variable,
-    in this case it has no effect, because of the path '../' after it. -->
-    <include>../../test/programs/${test_name}/../benchmarks/locks/*_6_*.c</include>
-
-    <!-- Files can be "included" and "excluded". -->
-    <include>../../test/programs/benchmarks/locks/*_1*_*.c</include>
-    <exclude>../../test/programs/benchmarks/locks/*_13_*.c</exclude>
+    <include>test/programs/benchmarks/locks/*_5_*.c</include>
+    <!-- next line shows the use of a variable,
+    in this case it has no effect, because of the path '../' after it -->
+    <include>test/programs/${test_name}/../benchmarks/locks/*_6_*.c</include>
+    
+    <!-- file-specific option for global files -->
+    <option name="-heap">999M</option>
   </sourcefiles>
 
-  <!-- Global options for all run definitions. -->
+  <!-- global options for all tests -->
   <!-- Set the java heap size. -->
   <option name="-heap">1000M</option>
-  <option name="-predicateAnalysis"/>
 
 
-  <rundefinition name="with-output-files">
-    <!-- Variables can appear in option values, too. -->
-    <option name="-setprop">output.path=test/results/${benchmark_name}.${benchmark_date}.output/${sourcefile_name}/</option>
-  </rundefinition>
+  <test name="locks-lbe">
+    <!-- test-specific option -->
+    <option name="-setprop">output.path=test/results/${benchmark_name}.${benchmark_date}.output.${test_name}/${sourcefile_name}/</option>
+    <option name="-predicateAnalysis-lbe"/>
+
+    <sourcefiles>
+    <!-- next line shows the use of a variable,
+    in this case it has no effect, because of the path '../' after it -->
+      <include>${benchmark_path}/../../test/programs/benchmarks/locks/*7_*.c</include>
+      <include>test/programs/benchmarks/locks/*_8_*.c</include>
+    </sourcefiles>
+
+    <sourcefiles>
+      <!-- files can be "included" and "excluded" -->
+      <include>test/programs/benchmarks/locks/*_1*_*.c</include>
+      <exclude>test/programs/benchmarks/locks/*_1?_*.c</exclude>
+      
+      <!-- file-specific option -->
+      <option name="-debug"></option>
+    </sourcefiles>
+
+  </test>
 
 
-  <rundefinition name="noout">
-    <!-- Recommended option "-noout", as the CPAchecker output files
-         are normally not interesting for benchmarks. -->
-    <option name="-noout"/>
-  </rundefinition>
+  <test>
+    <sourcefiles>
+      <include>test/programs/benchmarks/locks/*1?_*.c</include>
+    </sourcefiles>
 
+    <!-- recommended option "output.disable", as the CPAchecker output files 
+    are normally not interesting for benchmarks. -->
+    <option name="-setprop">output.disable=true</option>
+    <option name="-predicateAnalysis"/>
+  </test>
 
-  <!--
-    Search the CPAchecker output for some values.
-    The <column> tag has the pattern as content,
-    and the script will try to extract a numerical value from matching lines.
-    "numberOfDigits" gives the number of digits after the decimal separator,
-    "title" the name of the column in the table.
-    Both attributes are optional.
-  -->
+  <!-- Example columns from CPAchecker output -->
   <columns>
-    <column title="total" numberOfDigits="1">time for CPAchecker</column>
+    <column title="total">time for CPAchecker</column>
     <column title="reached">reached set</column>
   </columns>
+
 </benchmark>

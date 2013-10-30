@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,21 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CCharLiteralExpression extends ACharLiteralExpression implements CLiteralExpression {
+public class CCharLiteralExpression extends CLiteralExpression {
 
-  public CCharLiteralExpression(FileLocation pFileLocation,
+  private final char character;
+
+  public CCharLiteralExpression(CFileLocation pFileLocation,
                                    CType pType,
                                    char pCharacter) {
-    super(pFileLocation, pType, pCharacter);
+    super(pFileLocation, pType);
+    character = pCharacter;
+  }
+
+  public char getCharacter() {
+    return character;
   }
 
   @Override
-  public CType getExpressionType() {
-    return (CType) super.getExpressionType();
+  public Character getValue() {
+    return getCharacter();
   }
 
   @Override
@@ -51,22 +56,11 @@ public class CCharLiteralExpression extends ACharLiteralExpression implements CL
   }
 
   @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    return result * prime + super.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
+  public String toASTString() {
+    if (character >= ' ' && character < 128) {
+      return "'" + character + "'";
+    } else {
+      return "'\\x" + Integer.toHexString(character) + "'";
     }
-
-    if (!(obj instanceof CCharLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
   }
 }

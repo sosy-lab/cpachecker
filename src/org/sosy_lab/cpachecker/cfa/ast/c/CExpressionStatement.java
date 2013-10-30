@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,21 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+public class CExpressionStatement extends CStatement {
 
+  private final CExpression expression;
 
-public class CExpressionStatement extends AExpressionStatement implements CStatement {
-
-  public CExpressionStatement(final FileLocation pFileLocation,
+  public CExpressionStatement(final CFileLocation pFileLocation,
                                  final CExpression pExpression) {
-    super(pFileLocation,  pExpression);
-
+    super(pFileLocation);
+    expression = pExpression;
   }
 
-  @Override
   public CExpression getExpression() {
-    return ((CExpression) super.getExpression());
+    return expression;
   }
 
   @Override
@@ -46,22 +43,7 @@ public class CExpressionStatement extends AExpressionStatement implements CState
   }
 
   @Override
-  public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    if (!(obj instanceof CExpressionStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+  public String toASTString() {
+    return expression.toASTString() + ";";
   }
 }

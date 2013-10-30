@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,16 +29,17 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 public class CFunctionSummaryEdge extends FunctionSummaryEdge {
 
+  private final CFunctionCall expression;
 
   public CFunctionSummaryEdge(String pRawStatement, int pLineNumber,
       CFANode pPredecessor, CFANode pSuccessor, CFunctionCall pExpression) {
 
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor, pExpression);
+    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    expression = pExpression;
   }
 
-  @Override
   public CFunctionCall getExpression() {
-    return (CFunctionCall) expression;
+    return expression;
   }
 
   @Override

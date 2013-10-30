@@ -24,51 +24,36 @@
 package org.sosy_lab.cpachecker.util.cwriter;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 
 class BasicBlock {
 
   private static final String SINGLE_INDENT = "  ";
 
-  /**
-   * element id of the ARG element that has the conditional statement
-   */
+  // element id of the arg element that has the conditional statement
   private final int stateId;
-
-  /**
-   * true for if, false for else
-   */
+  // true for if, false for else
   private boolean condition;
-
-  /**
-   * flag to determine whether this condition was closed by another merge node before
-   */
+  // was this condition closed by another merge node before?
   private boolean isClosedBefore = false;
-
-  /**
-   * the set of declarations already contained in this block
-   */
-  private Set<ADeclarationEdge> declarations = new HashSet<>();
 
   // this is the code of this element
   private final String firstCodeLine;
   private final List<Object> codeList;
 
   public BasicBlock(int pElementId, String pFunctionName) {
-    stateId       = pElementId;
-    codeList      = new ArrayList<>();
+    stateId = pElementId;
+    codeList = new ArrayList<Object>();
     firstCodeLine = pFunctionName;
   }
 
   public BasicBlock(int pElementId, CAssumeEdge pEdge, String pConditionString) {
-    stateId       = pElementId;
-    codeList      = new ArrayList<>();
-    condition     = pEdge.getTruthAssumption();
+    stateId = pElementId;
+    codeList = new ArrayList<Object>();
+    boolean truthAssumption = pEdge.getTruthAssumption();
+    condition = truthAssumption;
     firstCodeLine = pConditionString;
   }
 
@@ -93,22 +78,6 @@ class BasicBlock {
         || !((String)pStatement).isEmpty()) {
       codeList.add(pStatement);
     }
-  }
-
-  void addDeclaration(ADeclarationEdge declarationEdge) {
-    declarations.add(declarationEdge);
-  }
-
-  /**
-   * This method checks whether or nor the given declaration is already part of this block.
-   *
-   * This is needed, as some tools (e.g. llbmc, i.e. clang) do not allow re-declaration of a previously declared variable.
-   *
-   * @param declarationEdge the edge to check
-   * @return true, if the given declaration is already part of this block, else false
-   */
-  boolean hasDeclaration(ADeclarationEdge declarationEdge) {
-    return declarations.contains(declarationEdge);
   }
 
   public String getCode() {

@@ -48,7 +48,7 @@ public class SubsetGenerator {
 
     // If part > whole, or start > whole - part, throw exception.
     if (part > whole || start > whole - part) {
-      throw new IllegalArgumentException("Must have part <= whole and start <= whole - part.");
+      throw new IllegalArgumentException ("Must have part <= whole and start <= whole - part.");
     }
 
     this.whole = whole;
@@ -71,18 +71,18 @@ public class SubsetGenerator {
     // If hasMore returned false, you get null.
     HashSet<Integer> R = null;
     if (part == 0) {
-      R = new HashSet<>();
+      R = new HashSet<Integer>();
       hasmore = false;
     } else if (rest.hasMore()) {
       R = rest.getNext();
-      R.add(Integer.valueOf(choice));
+      R.add(new Integer(choice));
     } else if (choice < whole - part) {
       choice += 1;
       rest = new SubsetGenerator(whole, part-1, choice+1);
       R = rest.getNext();
-      R.add(Integer.valueOf(choice));
+      R.add(new Integer(choice));
     }
-    if (choice == whole - part && (rest == null || !rest.hasMore() )) {
+    if (choice == whole - part && ( rest == null || !rest.hasMore() ) ) {
       hasmore = false;
     }
     return R;
@@ -90,7 +90,7 @@ public class SubsetGenerator {
 
   public static void main(String[] args) {
     // Test:
-    SubsetGenerator SG = new SubsetGenerator(5, 3);
+    SubsetGenerator SG = new SubsetGenerator(5,3);
     HashSet<Integer> S;
     while (SG.hasMore()) {
       S = SG.getNext();

@@ -60,7 +60,7 @@ public class UninitializedVariablesStatistics implements Statistics {
 
     if (printWarnings) {
 
-      Set<Pair<Integer, String>> warningsDisplayed = new HashSet<>();
+      Set<Pair<Integer, String>> warningsDisplayed = new HashSet<Pair<Integer, String>>();
       Iterable<UninitializedVariablesState> projectedReached = AbstractStates.projectToType(pReached, UninitializedVariablesState.class);
 
       //find all UninitializedVariablesElements and get their warnings
@@ -82,7 +82,8 @@ public class UninitializedVariablesStatistics implements Statistics {
       }
       if (warningsDisplayed.isEmpty()) {
         pOut.println("No uninitialized variables found");
-      } else {
+      }
+      else{
         pOut.println("No of uninitialized vars : " + noOfWarnings);
       }
     } else {

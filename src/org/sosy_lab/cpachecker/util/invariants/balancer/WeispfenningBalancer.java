@@ -29,7 +29,6 @@ import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.redlog.RedlogInterface;
@@ -39,9 +38,9 @@ public class WeispfenningBalancer extends AbstractBalancer {
 
   private List<WeispfenningSystem> wsystems;
 
-  public WeispfenningBalancer(Configuration config, LogManager lm) {
+  public WeispfenningBalancer(LogManager lm) {
     logger = lm;
-    RLI = new RedlogInterface(config, logger);
+    RLI = new RedlogInterface(logger);
   }
 
   @Override
@@ -54,19 +53,19 @@ public class WeispfenningBalancer extends AbstractBalancer {
     paramVars = makeParamVars();
 
     // Build all the matrices
-    List<Matrix> mats = new Vector<>();
+    List<Matrix> mats = new Vector<Matrix>();
     for (Transition t : tnet.getTransitions()) {
-      mats.addAll(getMatricesForTransition(t));
+      mats.addAll( getMatricesForTransition(t) );
     }
     matrices = mats;
-    logger.log(Level.ALL, "Transformed network transitions into matrices.");
+    logger.log(Level.ALL,"Transformed network transitions into matrices.");
     logMatrices();
 
     // Build Weispfenning Systems
     buildWeispfenningSystems();
 
     // Try to find a solution.
-    Map<String, Rational> solution = solve();
+    Map<String,Rational> solution = solve();
 
     // Examine the results.
     if (solution == null) {
@@ -86,11 +85,11 @@ public class WeispfenningBalancer extends AbstractBalancer {
     return succeed;
   }
 
-  private Map<String, Rational> solve() {
+  private Map<String,Rational> solve() {
     int n = wsystems.size();
     AssumptionSet[] asets = new AssumptionSet[n];
     AssumptionSet aset;
-    Map<String, Rational> values = null;
+    Map<String,Rational> values = null;
     int j = 0;
     while (true) {
       //diag:
@@ -163,7 +162,7 @@ public class WeispfenningBalancer extends AbstractBalancer {
   }
 
   private void buildWeispfenningSystems() {
-    wsystems = new Vector<>();
+    wsystems = new Vector<WeispfenningSystem>();
     for (Matrix a : matrices) {
       int m = a.getRowNum();
       int n = a.getColNum();
@@ -172,7 +171,7 @@ public class WeispfenningBalancer extends AbstractBalancer {
       RationalFunction f;
       WeispfenningSystem w;
       for (int k = 0; k < ac; k++) {
-        Matrix b = new Matrix(m, lc+1);
+        Matrix b = new Matrix(m,lc+1);
         for (int i = 0; i < m; i++) {
           for (int j = 0; j < lc; j++) {
             f = a.getEntry(i, j);

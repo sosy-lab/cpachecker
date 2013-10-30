@@ -31,7 +31,7 @@ public class Solution {
   private Vector<Equation> eqns;
 
   public Solution() {
-    eqns = new Vector<>();
+    eqns = new Vector<Equation>();
   }
 
   public void addEquation(Equation e) {

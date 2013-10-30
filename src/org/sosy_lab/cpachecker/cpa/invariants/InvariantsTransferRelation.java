@@ -23,37 +23,38 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor.VariableNameExtractor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -61,12 +62,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 enum InvariantsTransferRelation implements TransferRelation {
 
   INSTANCE;
-
-  /**
-   * Base name of the variable that is introduced to pass results from
-   * returning function calls.
-   */
-  private static final String RETURN_VARIABLE_BASE_NAME = "___cpa_temp_result_var_";
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
@@ -77,13 +72,10 @@ enum InvariantsTransferRelation implements TransferRelation {
 
     switch (edge.getEdgeType()) {
     case BlankEdge:
-      break;
     case FunctionReturnEdge:
-      element = handleFunctionReturn(element, (CFunctionReturnEdge) edge);
-      break;
     case ReturnStatementEdge:
-      element = handleReturnStatement(element, (CReturnStatementEdge) edge);
       break;
+
     case AssumeEdge:
       element = handleAssume(element, (CAssumeEdge)edge);
       break;
@@ -111,140 +103,155 @@ enum InvariantsTransferRelation implements TransferRelation {
     }
   }
 
-  private InvariantsState handleAssume(InvariantsState pElement, CAssumeEdge pEdge) throws UnrecognizedCCodeException {
-    FormulaEvaluationVisitor<CompoundState> resolver = pElement.getFormulaResolver(pEdge.toString());
-    CExpression expression = pEdge.getExpression();
-    // Create a formula representing the edge expression
-    InvariantsFormula<CompoundState> expressionFormula = expression.accept(getExpressionToFormulaVisitor(pEdge));
+  private InvariantsState handleAssume(InvariantsState element, CAssumeEdge edge) throws UnrecognizedCCodeException {
 
-    // Evaluate the state of the assume edge expression
-    CompoundState expressionState = expressionFormula.accept(resolver, pElement.getEnvironment());
-    /*
-     * If the expression definitely evaluates to false when truth is assumed or
-     * the expression definitely evaluates to true when falsehood is assumed,
-     * the state is unreachable.
-     */
-    if (pEdge.getTruthAssumption() && expressionState.isDefinitelyFalse()
-        || !pEdge.getTruthAssumption() && expressionState.isDefinitelyTrue()) {
-      return null;
+    // handle special case "a == i" where i is an integer literal
+    CExpression exp = edge.getExpression();
+    if (exp instanceof CBinaryExpression) {
+      CBinaryExpression binExp = (CBinaryExpression)exp;
+
+      if (binExp.getOperator() == BinaryOperator.EQUALS) {
+        CExpression operand1 = binExp.getOperand1();
+        if (operand1 instanceof CIdExpression) {
+          String var = getVarName((CIdExpression)operand1, edge);
+          SimpleInterval varValue = element.get(var);
+
+          SimpleInterval value = binExp.getOperand2().accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
+          // value may be either a single value or (-INF, +INF)
+
+          if (value.isSingleton()) {
+
+            if (edge.getTruthAssumption()) {
+              if (!varValue.intersectsWith(value)) {
+                // not a possible edge
+                return null;
+              } else {
+                element = element.copyAndSet(var, value);
+              }
+
+            } else {
+              // negated edge
+              if (varValue.equals(value)) {
+                // not a possible edge
+                return null;
+              } else {
+                // don't change interval
+              }
+            }
+
+          } else {
+            assert !value.hasLowerBound() && !value.hasUpperBound();
+          }
+        }
+      }
     }
-    /*
-     * Assume the state of the expression:
-     * If truth is assumed, any non-zero value, otherwise zero.
-     */
-    if (!pEdge.getTruthAssumption()) {
-      expressionFormula = InvariantsFormulaManager.INSTANCE.logicalNot(expressionFormula);
-    }
-    return pElement.assume(expressionFormula, pEdge.toString());
+
+    return element;
   }
 
-  private InvariantsState handleDeclaration(InvariantsState pElement, CDeclarationEdge pEdge) throws UnrecognizedCCodeException {
-    if (!(pEdge.getDeclaration() instanceof CVariableDeclaration)) {
-      return pElement;
-    }
+  private InvariantsState handleDeclaration(InvariantsState element, CDeclarationEdge edge) throws UnrecognizedCCodeException {
+    if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
 
-    CVariableDeclaration decl = (CVariableDeclaration) pEdge.getDeclaration();
+      return element;
+    }
+    CVariableDeclaration decl = (CVariableDeclaration)edge.getDeclaration();
 
     String varName = decl.getName();
     if (!decl.isGlobal()) {
-      varName = scope(varName, pEdge.getSuccessor().getFunctionName());
+      varName = edge.getSuccessor().getFunctionName() + "::" + varName;
     }
 
-    /*
-    CompoundState value = CompoundState.top();
+    SimpleInterval value = SimpleInterval.infinite();
     if (decl.getInitializer() != null && decl.getInitializer() instanceof CInitializerExpression) {
       CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
-      value = init.accept(createExpressionToStateVisitor(pElement, pEdge));
-    }
-    */
-
-    final InvariantsFormula<CompoundState> value;
-    if (decl.getInitializer() != null && decl.getInitializer() instanceof CInitializerExpression) {
-      CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
-      value = init.accept(getExpressionToFormulaVisitor(pEdge));
-    } else {
-      value = InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.top());
+      value = init.accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
     }
 
-    return pElement.assign(varName, value, pEdge.toString());
+    return element.copyAndSet(varName, value);
   }
 
-  private InvariantsState handleFunctionCall(InvariantsState pElement, CFunctionCallEdge pEdge) throws UnrecognizedCCodeException {
+  private InvariantsState handleFunctionCall(InvariantsState element, CFunctionCallEdge edge) throws UnrecognizedCCodeException {
 
-    InvariantsState newElement = pElement;
-    List<String> formalParams = pEdge.getSuccessor().getFunctionParameterNames();
-    List<CExpression> actualParams = pEdge.getArguments();
+    InvariantsState newElement = element;
+    List<String> formalParams = edge.getSuccessor().getFunctionParameterNames();
+    List<CExpression> actualParams = edge.getArguments();
 
     for (Pair<String, CExpression> param : Pair.zipList(formalParams, actualParams)) {
       CExpression actualParam = param.getSecond();
 
-      InvariantsFormula<CompoundState> value = actualParam.accept(getExpressionToFormulaVisitor(pEdge));
+      SimpleInterval value = actualParam.accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
 
-      String formalParam = scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
-      newElement = newElement.assign(formalParam, value, pEdge.toString());
+      if (actualParam instanceof CIdExpression) {
+        String var = getVarName((CIdExpression)actualParam, edge);
+        value = element.get(var);
+      }
+
+      String formalParam = scope(param.getFirst(), edge.getSuccessor().getFunctionName());
+      newElement = newElement.copyAndSet(formalParam, value);
     }
 
     return newElement;
   }
 
-  private InvariantsState handleStatement(InvariantsState pElement, CStatementEdge pEdge) throws UnrecognizedCCodeException {
+  private InvariantsState handleStatement(InvariantsState element, CStatementEdge edge) throws UnrecognizedCCodeException {
 
-    if (pEdge.getStatement() instanceof CAssignment) {
-      CAssignment assignment = (CAssignment)pEdge.getStatement();
+    if (edge.getStatement() instanceof CAssignment) {
+      CAssignment assignment = (CAssignment)edge.getStatement();
 
       CExpression leftHandSide = assignment.getLeftHandSide();
       if (leftHandSide instanceof CIdExpression) {
         // a = ...
 
-        String varName = getVarName((CIdExpression)leftHandSide, pEdge);
-        InvariantsFormula<CompoundState> value = assignment.getRightHandSide().accept(getExpressionToFormulaVisitor(pEdge));
-        return pElement.assign(varName, value, pEdge.toString());
+        String varName = getVarName((CIdExpression)leftHandSide, edge);
+
+        CRightHandSide rightHandSide = assignment.getRightHandSide();
+        SimpleInterval rightHandValue = rightHandSide.accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
+
+        // the line above handles all "easy" assignments like a = 5
+        // now handle the special case "a = a + i" where is a literal
+
+        if (rightHandSide instanceof CBinaryExpression) {
+          CBinaryExpression binExp = (CBinaryExpression)rightHandSide;
+
+          if (binExp.getOperator() == BinaryOperator.PLUS) {
+            CExpression operand1 = binExp.getOperand1();
+            if (operand1 instanceof CIdExpression) {
+              String rightHandVar = getVarName((CIdExpression)operand1, edge);
+
+              if (varName.equals(rightHandVar)) {
+                // now we are sure it's really "a = a + ..."
+
+                rightHandValue = element.get(varName);
+                SimpleInterval incrementValue = binExp.getOperand2().accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
+
+                if (incrementValue.containsPositive()) {
+                  rightHandValue = rightHandValue.extendToPositiveInfinity();
+                }
+                if (incrementValue.containsNegative()) {
+                  rightHandValue = rightHandValue.extendToNegativeInfinity();
+                }
+              }
+            }
+          }
+
+        } else if (rightHandSide instanceof CIdExpression) {
+          // special case "a = b"
+          String var = getVarName((CIdExpression)rightHandSide, edge);
+          rightHandValue = element.get(var);
+        }
+
+        element = element.copyAndSet(varName, rightHandValue);
+
       } else {
-        throw new UnrecognizedCCodeException("unknown left-hand side of assignment", pEdge, leftHandSide);
+        throw new UnrecognizedCCodeException("unknown left-hand side of assignment", edge, leftHandSide);
       }
 
     }
 
-    return pElement;
+    return element;
   }
 
-  private InvariantsState handleReturnStatement(InvariantsState pElement, CReturnStatementEdge pEdge) throws UnrecognizedCCodeException {
-    String calledFunctionName = pEdge.getPredecessor().getFunctionName();
-    CExpression returnedExpression = pEdge.getExpression();
-    InvariantsFormula<CompoundState> returnedState = returnedExpression.accept(getExpressionToFormulaVisitor(pEdge));
-    String returnValueName = scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
-    return pElement.assign(returnValueName, returnedState, pEdge.toString());
-  }
-
-  private InvariantsState handleFunctionReturn(InvariantsState pElement, CFunctionReturnEdge pFunctionReturnEdge)
-      throws UnrecognizedCCodeException {
-      CFunctionSummaryEdge summaryEdge = pFunctionReturnEdge.getSummaryEdge();
-
-      CFunctionCall expression = summaryEdge.getExpression();
-
-      String callerFunctionName = pFunctionReturnEdge.getSuccessor().getFunctionName();
-      String calledFunctionName = pFunctionReturnEdge.getPredecessor().getFunctionName();
-
-      String returnValueName = scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
-
-      InvariantsFormula<CompoundState> value = InvariantsFormulaManager.INSTANCE.asVariable(returnValueName);
-
-      // expression is an assignment operation, e.g. a = g(b);
-      if (expression instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement)expression;
-
-        CExpression operand1 = funcExp.getLeftHandSide();
-
-        // left hand side of the expression has to be a variable
-        if (operand1 instanceof CIdExpression) {
-          final String varName = scope(((CIdExpression) operand1).getName(), callerFunctionName);
-          pElement = pElement.assign(varName, value, pFunctionReturnEdge.toString());
-        }
-      }
-      return pElement;
-  }
-
-  static String getVarName(CIdExpression var, CFAEdge edge) throws UnrecognizedCCodeException {
+  private static String getVarName(CIdExpression var, CFAEdge edge) throws UnrecognizedCCodeException {
     String varName = var.getName();
     if (var.getDeclaration() != null) {
       CSimpleDeclaration decl = var.getDeclaration();
@@ -266,21 +273,56 @@ enum InvariantsTransferRelation implements TransferRelation {
     return function + "::" + var;
   }
 
+  private static class SimpleRightHandSideValueVisitor extends DefaultCExpressionVisitor<SimpleInterval, UnrecognizedCCodeException>
+                                                       implements CRightHandSideVisitor<SimpleInterval, UnrecognizedCCodeException> {
+
+    private static SimpleRightHandSideValueVisitor VISITOR_INSTANCE = new SimpleRightHandSideValueVisitor();
+
+    @Override
+    protected SimpleInterval visitDefault(CExpression pExp) {
+      return SimpleInterval.infinite();
+    }
+
+    @Override
+    public SimpleInterval visit(CFunctionCallExpression pIastFunctionCallExpression) {
+      return visitDefault(null);
+    }
+
+    @Override
+    public SimpleInterval visit(CIntegerLiteralExpression pE) {
+      return SimpleInterval.singleton(pE.getValue());
+    }
+
+    @Override
+    public SimpleInterval visit(CCharLiteralExpression pE) {
+      return SimpleInterval.singleton(BigInteger.valueOf(pE.getCharacter()));
+    }
+
+    @Override
+    public SimpleInterval visit(CCastExpression pE) throws UnrecognizedCCodeException {
+      SimpleInterval operand = pE.getOperand().accept(this);
+      return operand;
+    }
+
+    @Override
+    public SimpleInterval visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
+
+      switch (pE.getOperator()) {
+      case MINUS:
+        SimpleInterval operand = pE.getOperand().accept(this);
+        return operand.negate();
+
+      default:
+        return super.visit(pE);
+      }
+    }
+  }
+
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState pElement, List<AbstractState> pOtherElements,
       CFAEdge pCfaEdge, Precision pPrecision) {
 
     return null;
-  }
-
-  private ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge) {
-    return new ExpressionToFormulaVisitor(new VariableNameExtractor() {
-
-      @Override
-      public String extract(CIdExpression pCIdExpression) throws UnrecognizedCCodeException {
-        return getVarName(pCIdExpression, pEdge);
-      }
-    });
   }
 }

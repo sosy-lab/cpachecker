@@ -41,7 +41,7 @@ public class TemplateFormulaList implements FormulaList {
     formulas = fs;
   }
 
-  public TemplateFormulaList(List<? extends Formula> fs) {
+  public TemplateFormulaList(List<Formula> fs) {
     formulas = fs.toArray(new Formula[0]);
   }
 

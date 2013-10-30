@@ -29,12 +29,12 @@ import org.sosy_lab.cpachecker.util.invariants.Rational;
 
 public class Substitution {
 
-  private HashMap<String, Rational> map;
+  private HashMap<String,Rational> map;
 
   public Substitution() {}
 
   public Substitution(String[] vars, int[] values) {
-    map = new HashMap<>();
+    map = new HashMap<String, Rational>();
 
     int n = (vars.length < values.length ? vars.length : values.length);
     String v;
@@ -44,9 +44,9 @@ public class Substitution {
       v = vars[i];
       a = values[i];
       try {
-        r = new Rational(a, 1);
+        r = new Rational(a,1);
       } catch (Exception e) {}
-      map.put(v, r);
+      map.put(v,r);
     }
   }
 
@@ -68,7 +68,7 @@ public class Substitution {
     // If there is no value for v, we should throw an exception.
     Rational r = null;
     try {
-      r = new Rational(1, 1);
+      r = new Rational(1,1);
     } catch (Exception e) {
     }
     return r;

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 
 import com.google.common.collect.Lists;
 
@@ -38,7 +38,7 @@ public class CounterexampleInfo {
 
   private final boolean spurious;
 
-  private final ARGPath targetPath;
+  private final Path targetPath;
   private final Object assignment;
 
   // list with additional information about the counterexample
@@ -46,7 +46,7 @@ public class CounterexampleInfo {
 
   private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null);
 
-  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath, Object pAssignment) {
+  private CounterexampleInfo(boolean pSpurious, Path pTargetPath, Object pAssignment) {
     spurious = pSpurious;
     targetPath = pTargetPath;
     assignment = pAssignment;
@@ -62,7 +62,7 @@ public class CounterexampleInfo {
     return SPURIOUS;
   }
 
-  public static CounterexampleInfo feasible(ARGPath pTargetPath, Object pAssignment) {
+  public static CounterexampleInfo feasible(Path pTargetPath, Object pAssignment) {
     return new CounterexampleInfo(false, pTargetPath, pAssignment);
   }
 
@@ -70,7 +70,7 @@ public class CounterexampleInfo {
     return spurious;
   }
 
-  public ARGPath getTargetPath() {
+  public Path getTargetPath() {
     checkState(!spurious);
 
     return targetPath;

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,26 +23,57 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
+import com.google.common.base.Strings;
 
 /**
  * This class represents the core components that occur in each declaration:
- * a type and an (optional) name.
+ * a type an an (optional) name.
  *
  * It is part of the declaration of types and variables (see {@link CDeclaration})
  * and functions (see {@link CFunctionDeclaration}).
  * It is also used stand-alone for the declaration of members of composite types
  * (e.g. structs) and for the declaration of function parameters.
  */
-public interface  CSimpleDeclaration extends IASimpleDeclaration, CAstNode {
+public abstract class CSimpleDeclaration extends CAstNode {
+
+  private final CType    type;
+  private final String   name;
+  private final String   origName;
+
+  public CSimpleDeclaration(final CFileLocation pFileLocation,
+      final CType pType, final String pName) {
+    this(pFileLocation, pType, pName, pName);
+  }
+
+  public CSimpleDeclaration(final CFileLocation pFileLocation,
+      final CType pType, final String pName, final String pOrigName) {
+
+    super(pFileLocation);
+
+    type = checkNotNull(pType);
+    name = pName;
+    origName = pOrigName;
+  }
+
+  public CType getType() {
+    return type;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public String getOrigName() {
+    return origName;
+  }
 
   @Override
-  public CType getType();
-
-  /**
-   * Get globally unique name of this declaration, qualified with the function name.
-   */
-  public String getQualifiedName();
+  public String toASTString() {
+    String name = Strings.nullToEmpty(getName());
+    return getType().toASTString(name) + ";";
+  }
 }

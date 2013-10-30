@@ -23,15 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Objects.firstNonNull;
-
 import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -40,9 +37,8 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
@@ -53,19 +49,16 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   int numAbstractions = 0;
   int numAbstractionsFalse = 0;
   int maxBlockSize = 0;
-  int totalPredsPerAbstraction = 0;
   int maxPredsPerAbstraction = 0;
 
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
-  private final BooleanFormulaManagerView bfmgr;
 
   public PredicatePrecisionAdjustment(PredicateCPA pCpa) {
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
-    bfmgr = pCpa.getFormulaManager().getBooleanFormulaManager();
   }
 
   @Override
@@ -94,19 +87,16 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       PredicatePrecision precision) {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
-    PersistentMap<CFANode, Integer> abstractionLocations = element.getAbstractionLocationsOnPath();
     PathFormula pathFormula = element.getPathFormula();
     CFANode loc = element.getLocation();
-    Integer newLocInstance = firstNonNull(abstractionLocations.get(loc), 0) + 1;
 
     numAbstractions++;
-    logger.log(Level.FINEST, "Computing abstraction at instance", newLocInstance, "of node", loc, "in path.");
+    logger.log(Level.FINEST, "Computing abstraction on node", loc);
 
-    Collection<AbstractionPredicate> preds = precision.getPredicates(loc, newLocInstance);
+    Collection<AbstractionPredicate> preds = precision.getPredicates(loc);
 
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
     maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());
-    totalPredsPerAbstraction += preds.size();
 
     computingAbstractionTime.start();
 
@@ -125,11 +115,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // create new empty path formula
     PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
-    // update abstraction locations map
-    abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
-
-    return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-        newAbstractionFormula, abstractionLocations);
+    return PredicateAbstractState.mkAbstractionState(newPathFormula, newAbstractionFormula);
   }
 
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {

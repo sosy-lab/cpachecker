@@ -25,17 +25,20 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Files;
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -54,21 +57,18 @@ class PredicateMapWriter {
 
   private static final Joiner LINE_JOINER = Joiner.on('\n');
 
-  private final FormulaManagerView fmgr;
+  private final FormulaManager fmgr;
+  private final LogManager logger;
 
   public PredicateMapWriter(PredicateCPA pCpa) {
     fmgr = pCpa.getFormulaManager();
+    logger = pCpa.getLogger();
   }
 
-  PredicateMapWriter(FormulaManagerView pFmgr) {
-    fmgr = pFmgr;
-  }
-
-  public void writePredicateMap(
-      SetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstancePredicates,
-      SetMultimap<CFANode, AbstractionPredicate> localPredicates,
+  public void writePredicateMap(SetMultimap<CFANode, AbstractionPredicate> localPredicates,
       SetMultimap<String, AbstractionPredicate> functionPredicates, Set<AbstractionPredicate> globalPredicates,
-      Collection<AbstractionPredicate> allPredicates, Appendable sb) throws IOException {
+      Set<AbstractionPredicate> allPredicates, File file) {
+    checkNotNull(file);
 
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
@@ -81,13 +81,13 @@ class PredicateMapWriter {
 
     // fill the above set and map
     for (AbstractionPredicate pred : allPredicates) {
-      String s = fmgr.dumpFormula(pred.getSymbolicAtom()).toString();
+      String s = fmgr.dumpFormula(pred.getSymbolicAtom());
       List<String> lines = Lists.newArrayList(LINE_SPLITTER.split(s));
       assert !lines.isEmpty();
       String predString = lines.get(lines.size()-1);
       lines.remove(lines.size()-1);
       if (!(predString.startsWith("(assert ") && predString.endsWith(")"))) {
-        sb.append("Writing predicate map is only supported for solvers which support the Smtlib2 format, please try using Mathsat5.\n");
+        writePredicateMapToFile("Writing predicate map is only supported for solvers which support the Smtlib2 format, please try using Mathsat5.\n", file);
         return;
       }
 
@@ -95,6 +95,7 @@ class PredicateMapWriter {
       definitions.addAll(lines);
     }
 
+    StringBuilder sb = new StringBuilder();
     LINE_JOINER.appendTo(sb, definitions);
     sb.append("\n\n");
 
@@ -105,21 +106,23 @@ class PredicateMapWriter {
     }
 
     for (Entry<CFANode, Collection<AbstractionPredicate>> e : localPredicates.asMap().entrySet()) {
-      String key = e.getKey().getFunctionName() + " " + e.getKey().toString();
-      writeSetOfPredicates(sb, key, e.getValue(), predToString);
+      writeSetOfPredicates(sb, e.getKey().toString(), e.getValue(), predToString);
     }
 
-    for (Entry<Pair<CFANode, Integer>, Collection<AbstractionPredicate>> e : locationInstancePredicates.asMap().entrySet()) {
-      CFANode loc = e.getKey().getFirst();
-      String key = loc.getFunctionName()
-           + " " + loc.toString() + "@" + e.getKey().getSecond();
-      writeSetOfPredicates(sb, key, e.getValue(), predToString);
+    writePredicateMapToFile(sb.toString(), file);
+  }
+
+  private void writePredicateMapToFile(String s, File file) {
+    try {
+      Files.writeFile(file, s);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write predicate map to file");
     }
   }
 
-  private void writeSetOfPredicates(Appendable sb, String key,
+  private void writeSetOfPredicates(StringBuilder sb, String key,
       Collection<AbstractionPredicate> predicates,
-      Map<AbstractionPredicate, String> predToString) throws IOException {
+      Map<AbstractionPredicate, String> predToString) {
     if (!predicates.isEmpty()) {
       sb.append(key);
       sb.append(":\n");

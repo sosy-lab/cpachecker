@@ -37,7 +37,7 @@ public class MatrixTester {
 
   static void test1() {
 
-    IRMatrix A = new IRMatrix(3, 3);
+    IRMatrix A = new IRMatrix(3,3);
     for (int n = 0; n < 9; n++) {
       int i = n/3;
       int j = n%3;
@@ -70,7 +70,7 @@ public class MatrixTester {
 
   static void test4() {
 
-    IRMatrix A = new IRMatrix(3, 3);
+    IRMatrix A = new IRMatrix(3,3);
     A.zeroFill();
     System.out.println("zeros:");
     System.out.println(A);
@@ -94,7 +94,7 @@ public class MatrixTester {
   }
 
   static void test5() {
-    IRMatrix A = new IRMatrix(5, 8);
+    IRMatrix A = new IRMatrix(5,8);
     A.zeroFill();
     Variable pv = new Variable("p");
     Variable qv = new Variable("q");
@@ -116,24 +116,24 @@ public class MatrixTester {
     A.set(1, 1, nq);
     A.set(4, 1, nr);
 
-    A.set(0, 2, new RationalFunction(-1));
-    A.set(2, 2, new RationalFunction(1));
-    A.set(4, 2, new RationalFunction(1));
+    A.set(0,2,new RationalFunction(-1));
+    A.set(2,2,new RationalFunction(1));
+    A.set(4,2,new RationalFunction(1));
 
-    A.set(0, 3, new RationalFunction(1));
-    A.set(2, 3, new RationalFunction(-1));
-    A.set(4, 3, new RationalFunction(-1));
+    A.set(0,3,new RationalFunction(1));
+    A.set(2,3,new RationalFunction(-1));
+    A.set(4,3,new RationalFunction(-1));
 
-    A.set(1, 4, new RationalFunction(-1));
-    A.set(3, 4, new RationalFunction(1));
-    A.set(4, 4, new RationalFunction(1));
+    A.set(1,4,new RationalFunction(-1));
+    A.set(3,4,new RationalFunction(1));
+    A.set(4,4,new RationalFunction(1));
 
-    A.set(1, 5, new RationalFunction(1));
-    A.set(3, 5, new RationalFunction(-1));
-    A.set(4, 5, new RationalFunction(-1));
+    A.set(1,5,new RationalFunction(1));
+    A.set(3,5,new RationalFunction(-1));
+    A.set(4,5,new RationalFunction(-1));
 
-    A.set(0, 6, new RationalFunction(1));
-    A.set(4, 6, new RationalFunction(20));
+    A.set(0,6,new RationalFunction(1));
+    A.set(4,6,new RationalFunction(20));
 
     A.set(2, 7, p);
     A.set(3, 7, q);

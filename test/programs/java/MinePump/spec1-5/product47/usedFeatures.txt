@@ -1,5 +1,0 @@
-base
-highWaterSensor
-methaneQuery
-methaneAlarm
-stopCommand

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,41 +23,38 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import static com.google.common.collect.Iterables.transform;
+
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CFunctionCallExpression extends AFunctionCallExpression implements CRightHandSide {
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 
+public class CFunctionCallExpression extends CRightHandSide {
 
+  private final CExpression functionName;
+  private final List<CExpression> parameters;
+  private final CSimpleDeclaration declaration;
 
-
-  public CFunctionCallExpression(final FileLocation pFileLocation,
+  public CFunctionCallExpression(final CFileLocation pFileLocation,
                                     final CType pType,
                                     final CExpression pFunctionName,
                                     final List<CExpression> pParameters,
-                                    final CFunctionDeclaration pDeclaration) {
-
-    super(pFileLocation, pType, pFunctionName,  pParameters, pDeclaration);
-
+                                    final CSimpleDeclaration pDeclaration) {
+    super(pFileLocation, pType);
+    functionName = pFunctionName;
+    parameters = ImmutableList.copyOf(pParameters);
+    declaration = pDeclaration;
   }
 
-  @Override
-  public CType getExpressionType() {
-    return (CType) super.getExpressionType();
-  }
-
-  @Override
   public CExpression getFunctionNameExpression() {
-    return (CExpression)super.getFunctionNameExpression();
+    return functionName;
   }
 
-  @SuppressWarnings("unchecked")
-  @Override
   public List<CExpression> getParameterExpressions() {
-    return (List<CExpression>) super.getParameterExpressions();
+    return parameters;
   }
 
   /**
@@ -69,11 +66,8 @@ public class CFunctionCallExpression extends AFunctionCallExpression implements 
    * The result may be null if the function was not declared, or if a complex
    * function name expression is used (i.e., a function pointer).
    */
-
-  @Override
-  public CFunctionDeclaration getDeclaration() {
-
-    return  (CFunctionDeclaration) super.getDeclaration();
+  public CSimpleDeclaration getDeclaration() {
+    return declaration;
   }
 
   @Override
@@ -82,22 +76,14 @@ public class CFunctionCallExpression extends AFunctionCallExpression implements 
   }
 
   @Override
-  public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
-  }
+  public String toASTString() {
+    StringBuilder lASTString = new StringBuilder();
 
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
+    lASTString.append(functionName.toParenthesizedASTString());
+    lASTString.append("(");
+    Joiner.on(", ").appendTo(lASTString, transform(parameters, TO_AST_STRING));
+    lASTString.append(")");
 
-    if (!(obj instanceof CFunctionCallExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return lASTString.toString();
   }
 }

@@ -28,7 +28,7 @@ import java.util.ArrayList;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 
 import com.google.common.base.Preconditions;
 
@@ -37,8 +37,8 @@ public class GlobalInfo {
   private static GlobalInfo instance;
   private CFAInfo cfaInfo;
   private AutomatonInfo automatonInfo = new AutomatonInfo();
-  private FormulaManagerView formulaManager;
-  private ArrayList<Serializable> helperStorages = new ArrayList<>();
+  private ExtendedFormulaManager formulaManager;
+  private ArrayList<Serializable> helperStorages = new ArrayList<Serializable>();
 
   private GlobalInfo() {
 
@@ -69,11 +69,11 @@ public class GlobalInfo {
     return automatonInfo;
   }
 
-  public void storeFormulaManager(FormulaManagerView formulaManager) {
+  public void storeFormulaManager(ExtendedFormulaManager formulaManager) {
     this.formulaManager = formulaManager;
   }
 
-  public FormulaManagerView getFormulaManager() {
+  public ExtendedFormulaManager getFormulaManager() {
     Preconditions.checkState(formulaManager != null);
     return formulaManager;
   }

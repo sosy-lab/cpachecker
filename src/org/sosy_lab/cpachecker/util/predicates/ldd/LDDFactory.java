@@ -239,7 +239,7 @@ class LDDFactory {
    */
   public LDD makeConstantAssignment(Collection<Pair<Integer, Integer>> varCoeffs, int varCount, int constValue) {
     LDD positive = makeNode(varCoeffs, varCount, true, constValue);
-    Collection<Pair<Integer, Integer>> negVarCoeffs = new LinkedList<>();
+    Collection<Pair<Integer, Integer>> negVarCoeffs = new LinkedList<Pair<Integer,Integer>>();
     for (Pair<Integer, Integer> varCoefficient : varCoeffs) {
       negVarCoeffs.add(Pair.of(varCoefficient.getFirst(), -varCoefficient.getSecond()));
     }

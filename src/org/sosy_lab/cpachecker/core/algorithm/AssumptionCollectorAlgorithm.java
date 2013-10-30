@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,11 +26,9 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getUncoveredChildrenView;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -50,24 +48,22 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.defaults.AbstractStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -79,51 +75,90 @@ import com.google.common.collect.Sets;
 @Options(prefix="assumptions")
 public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvider {
 
+  private class AssumptionCollectionStatistics implements Statistics {
+    @Override
+    public String getName() {
+      return "Assumption Collection algorithm";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult,
+        ReachedSet pReached) {
+
+      AssumptionWithLocation resultAssumption = collectLocationAssumptions(pReached, exceptionAssumptions);
+
+      out.println("Number of locations with assumptions: " + resultAssumption.getNumberOfLocations());
+
+      if (exportAssumptions) {
+        if (assumptionsFile != null) {
+          try {
+            Files.writeFile(assumptionsFile, resultAssumption);
+          } catch (IOException e) {
+            logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+          }
+        }
+
+        if (assumptionAutomatonFile != null) {
+          try {
+            Files.writeFile(assumptionAutomatonFile, produceAssumptionAutomaton(pReached));
+          } catch (IOException e) {
+            logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+          }
+          out.println("Number of states in automaton:        " + automatonStates);
+        }
+      }
+    }
+  }
+
+  // statistics
+  private int automatonStates = 0;
+
+
   @Option(name="export", description="write collected assumptions to file")
   private boolean exportAssumptions = true;
 
-  @Option(name="file", description="write collected assumptions to file")
+  @Option(name="file",
+      description="write collected assumptions to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumptionsFile = Paths.get("assumptions.txt");
+      private File assumptionsFile = new File("assumptions.txt");
 
-  @Option(name="automatonFile", description="write collected assumptions as automaton to file")
+  @Option(name="automatonFile",
+      description="write collected assumptions as automaton to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumptionAutomatonFile = Paths.get("AssumptionAutomaton.txt");
+      private File assumptionAutomatonFile = new File("AssumptionAutomaton.txt");
 
-  @Option(description="Add a threshold to the automaton, after so many branches on a path the automaton will be ignored (0 to disable)")
+  @Option(description="Add a threshold to the automaton, "
+      + "after so many branches on a path the automaton will be ignored (0 to disable)")
   @IntegerOption(min=0)
   private int automatonBranchingThreshold = 0;
 
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
-  private final FormulaManagerView formulaManager;
+  private final FormulaManager formulaManager;
   private final AssumptionWithLocation exceptionAssumptions;
   private final AssumptionStorageCPA cpa;
-  private final BooleanFormulaManager bfmgr;
 
   // store only the ids, not the states in order to prevent memory leaks
-  private final Set<Integer> exceptionStates = new HashSet<>();
+  private final Set<Integer> exceptionStates = new HashSet<Integer>();
 
-  // statistics
-  private int automatonStates = 0;
-
-  public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException
+  {
     config.inject(this);
 
     this.logger = logger;
-    this.innerAlgorithm = algo;
-    this.cpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(AssumptionStorageCPA.class);
-    if (this.cpa == null) {
+    innerAlgorithm = algo;
+    cpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(AssumptionStorageCPA.class);
+    if (cpa == null) {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for AssumptionCollectionAlgorithm");
     }
-    this.formulaManager = cpa.getFormulaManager();
-    this.bfmgr = formulaManager.getBooleanFormulaManager();
-    this.exceptionAssumptions = new AssumptionWithLocation(formulaManager);
+    formulaManager = cpa.getFormulaManager();
+    exceptionAssumptions = new AssumptionWithLocation(formulaManager);
   }
 
   @Override
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean isComplete = true;
+
     boolean restartCPA = false;
 
     // loop if restartCPA is set to false
@@ -132,11 +167,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       try {
         // run the inner algorithm to fill the reached set
         isComplete &= innerAlgorithm.run(reached);
-
       } catch (RefinementFailedException failedRefinement) {
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
 
-        ARGPath path = failedRefinement.getErrorPath();
+        Path path = failedRefinement.getErrorPath();
         ARGState errorState = path.getLast().getFirst();
         assert errorState == reached.getLastState();
 
@@ -167,6 +201,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         errorState.removeFromARG();
 
         restartCPA = true;
+
         isComplete = false;
 
         // TODO: handle CounterexampleAnalysisFailed similar to RefinementFailedException
@@ -196,9 +231,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         // get stored assumption
 
         AssumptionStorageState e = AbstractStates.extractStateByType(state, AssumptionStorageState.class);
-        BooleanFormula assumption = bfmgr.and(e.getAssumption(), e.getStopFormula());
 
-        if (!bfmgr.isTrue(assumption)) {
+        Formula assumption = formulaManager.makeAnd(e.getAssumption(), e.getStopFormula());
+
+        if (!assumption.isTrue()) {
           addAssumption(result, assumption, state);
         }
       }
@@ -216,25 +252,25 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   /**
    * Add a given assumption for the location and state of a state.
    */
-  private void addAssumption(AssumptionWithLocation invariant, BooleanFormula assumption, AbstractState state) {
-    BooleanFormula dataRegion = AbstractStates.extractReportedFormulas(formulaManager, state);
+  private void addAssumption(AssumptionWithLocation invariant, Formula assumption, AbstractState state) {
+    Formula dataRegion = AbstractStates.extractReportedFormulas(formulaManager, state);
 
     CFANode loc = extractLocation(state);
     assert loc != null;
-    invariant.add(loc, bfmgr.or(assumption, bfmgr.not(dataRegion)));
+    invariant.add(loc, formulaManager.makeOr(assumption, formulaManager.makeNot(dataRegion)));
   }
 
   /**
    * Create an assumption that is sufficient to exclude an abstract state
    */
   private void addAvoidingAssumptions(AssumptionWithLocation invariant, AbstractState state) {
-    addAssumption(invariant, bfmgr.makeBoolean(false), state);
+    addAssumption(invariant, formulaManager.makeFalse(), state);
   }
 
-  private void produceAssumptionAutomaton(Appendable output, ReachedSet reached) throws IOException {
+  private String produceAssumptionAutomaton(ReachedSet reached) {
     final AbstractState firstState = reached.getFirstState();
     if (!(firstState instanceof ARGState)) {
-      output.append("Cannot dump assumption as automaton if ARGCPA is not used.");
+      return "Cannot dump assumption as automaton if ARGCPA is not used.";
     }
 
     Set<AbstractState> falseAssumptionStates = Sets.newHashSet(reached.getWaitlist());
@@ -242,7 +278,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     // scan reached set for all relevant states with an assumption
     // Invariant: relevantStates does not contain any covered state.
     // A covered state is always replaced by its covering state.
-    Set<ARGState> relevantStates = new TreeSet<>();
+    Set<ARGState> relevantStates = new TreeSet<ARGState>();
     for (AbstractState state : reached) {
       ARGState e = (ARGState)state;
       AssumptionStorageState asmptState = AbstractStates.extractStateByType(e, AssumptionStorageState.class);
@@ -252,7 +288,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           || asmptState.isStop()
           || exceptionStates.contains(e.getStateId());
 
-      boolean isRelevant = !asmptState.isAssumptionTrue();
+      boolean isRelevant = !asmptState.getAssumption().isTrue();
 
       if (e.isCovered()) {
         e = e.getCoveringState(); // replace with covering state
@@ -269,24 +305,24 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
 
       if (isRelevant || falseAssumptionStates.contains(e)) {
+
         // now add e and all its transitive parents to the relevantStates set
         findAllParents(e, relevantStates);
       }
     }
 
-    writeAutomaton(output, (ARGState)firstState, relevantStates, falseAssumptionStates);
+    return writeAutomaton((ARGState)firstState, relevantStates, falseAssumptionStates);
   }
 
   /**
    * Create a String containing the assumption automaton.
-   * @param sb Where to write the String into.
    * @param initialState The initial state of the automaton.
    * @param relevantStates A set with all states with non-trivial assumptions (all others will have assumption TRUE).
    * @param falseAssumptionStates A set with all states with the assumption FALSE
-   * @throws IOException
    */
-  private void writeAutomaton(Appendable sb, ARGState initialState,
-      Set<ARGState> relevantStates, Set<AbstractState> falseAssumptionStates) throws IOException {
+  private String writeAutomaton(ARGState initialState,
+      Set<ARGState> relevantStates, Set<AbstractState> falseAssumptionStates) {
+    StringBuilder sb = new StringBuilder();
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
 
     String actionOnFinalEdges = "";
@@ -334,7 +370,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         sb.append("\" -> ");
 
         AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
-        BooleanFormula assumption = bfmgr.and(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
+        Formula assumption = formulaManager.makeAnd(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
         sb.append("ASSUME \"");
         escape(assumption.toString(), sb);
         sb.append("\" ");
@@ -358,6 +394,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     }
     sb.append("END AUTOMATON\n");
+    return sb.toString();
   }
 
   /**
@@ -368,7 +405,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * @param parentSet
    */
   private void findAllParents(ARGState s, Set<ARGState> parentSet) {
-    Deque<ARGState> toAdd = new ArrayDeque<>();
+    Deque<ARGState> toAdd = new ArrayDeque<ARGState>();
     toAdd.add(s);
     while (!toAdd.isEmpty()) {
       ARGState current = toAdd.pop();
@@ -387,7 +424,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private static void escape(String s, Appendable appendTo) throws IOException {
+  private static void escape(String s, StringBuilder appendTo) {
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
       switch (c) {
@@ -408,11 +445,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public boolean reset() {
-    return false;
-  }
-
-  @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (innerAlgorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)innerAlgorithm).collectStatistics(pStatsCollection);
@@ -420,36 +452,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     pStatsCollection.add(new AssumptionCollectionStatistics());
   }
 
-  private class AssumptionCollectionStatistics extends AbstractStatistics {
-    @Override
-    public String getName() {
-      return "Assumption Collection algorithm";
-    }
-
-    @Override
-    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      AssumptionWithLocation resultAssumption = collectLocationAssumptions(pReached, exceptionAssumptions);
-
-      put(out, "Number of locations with assumptions", resultAssumption.getNumberOfLocations());
-
-      if (exportAssumptions) {
-        if (assumptionsFile != null) {
-          try {
-            Files.writeFile(assumptionsFile, resultAssumption);
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
-          }
-        }
-
-        if (assumptionAutomatonFile != null) {
-          try (Writer w = Files.openOutputFile(assumptionAutomatonFile)) {
-            produceAssumptionAutomaton(w, pReached);
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
-          }
-          put(out, "Number of states in automaton", automatonStates);
-        }
-      }
-    }
+  @Override
+  public boolean reset() {
+    return false;
   }
 }

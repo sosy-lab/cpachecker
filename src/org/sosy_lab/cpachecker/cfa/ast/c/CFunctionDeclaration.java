@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,10 +25,6 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.List;
-
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 /**
@@ -37,45 +33,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
  *
  * int foo(int x);
  */
-public final class CFunctionDeclaration extends AFunctionDeclaration implements CDeclaration {
+public final class CFunctionDeclaration extends CDeclaration {
 
-  public CFunctionDeclaration(FileLocation pFileLocation,
-      CFunctionType pType, String pName,
-      List<CParameterDeclaration> parameters) {
-    super(pFileLocation, pType, checkNotNull(pName), parameters);
+  public CFunctionDeclaration(CFileLocation pFileLocation,
+      CFunctionType pType, String pName) {
+    super(pFileLocation, true, pType, checkNotNull(pName), pName);
   }
 
   @Override
   public CFunctionType getType() {
     return (CFunctionType) super.getType();
-  }
-
-  @SuppressWarnings("unchecked")
-  @Override
-  public List<CParameterDeclaration> getParameters() {
-    return (List<CParameterDeclaration>)super.getParameters();
-  }
-
-  @Override
-  public String getQualifiedName() {
-    return getName();
-  }
-
-  @Override
-  public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-
-    if (!(obj instanceof CFunctionDeclaration)) {
-      return false;
-    }
-
-    return super.equals(obj);
   }
 }

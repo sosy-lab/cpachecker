@@ -25,26 +25,23 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
-public class TemplateNumber extends TemplateNumericValue {
+public class TemplateNumber extends TemplateFormula {
 
   private Rational rat;
 
-  public TemplateNumber(FormulaType<?> type, int n) {
-    super(type);
-    rat = new Rational(n, 1);
+  public TemplateNumber(int n) {
+    rat = new Rational(n,1);
   }
 
   /*
    * Here we enforce the rule that our numbers are rationals, not floats.
    */
-  public TemplateNumber(FormulaType<?> type, String s) {
-    super(type);
+  public TemplateNumber(String s) {
     try {
-      Integer i = Integer.valueOf(s);
-      rat = new Rational(i, 1);
+      Integer i = new Integer(s);
+      rat = new Rational(i,1);
     } catch (Exception e) {
       System.err.println("Attempted to use float "+s+".\nOnly rational coefficients are allowed.");
       System.exit(1);
@@ -55,19 +52,13 @@ public class TemplateNumber extends TemplateNumericValue {
     return rat;
   }
 
-  public TemplateNumber(FormulaType<?> type, Rational r) {
-    super(type);
+  public TemplateNumber(Rational r) {
     rat = r;
   }
 
   @Override
   public TemplateNumber copy() {
-    return withFormulaType(getFormulaType());
-  }
-
-  @Override
-  public TemplateNumber withFormulaType(FormulaType<?> pNewType) {
-    TemplateNumber n = new TemplateNumber(pNewType, rat.copy());
+    TemplateNumber n = new TemplateNumber(rat.copy());
     return n;
   }
 
@@ -82,28 +73,28 @@ public class TemplateNumber extends TemplateNumericValue {
 
   public static TemplateNumber multiply(TemplateNumber n1, TemplateNumber n2) {
     Rational r = n1.rat.times(n2.rat);
-    return new TemplateNumber(n1.getFormulaType(), r);
+    return new TemplateNumber(r);
   }
 
   public static TemplateNumber add(TemplateNumber n1, TemplateNumber n2) {
     Rational r = n1.rat.plus(n2.rat);
-    return new TemplateNumber(n1.getFormulaType(), r);
+    return new TemplateNumber(r);
   }
 
   public TemplateNumber divideBy(TemplateNumber n) {
-    return new TemplateNumber(getFormulaType(), rat.div(n.rat));
+    return new TemplateNumber( rat.div(n.rat) );
   }
 
   public TemplateNumber makeReciprocal() {
-    return new TemplateNumber(getFormulaType(), rat.makeReciprocal());
+    return new TemplateNumber( rat.makeReciprocal() );
   }
 
-  public static TemplateNumber makeUnity(FormulaType<?> type) {
-    return new TemplateNumber(type, Rational.makeUnity());
+  public static TemplateNumber makeUnity() {
+    return new TemplateNumber( Rational.makeUnity() );
   }
 
-  public static TemplateNumber makeZero(FormulaType<?> type) {
-    return new TemplateNumber(type, Rational.makeZero());
+  public static TemplateNumber makeZero() {
+    return new TemplateNumber( Rational.makeZero() );
   }
 
   public boolean equals(TemplateNumber n) {
@@ -111,15 +102,13 @@ public class TemplateNumber extends TemplateNumericValue {
   }
 
   @Override
-  public Formula translate(FormulaManagerView fmgr) {
-    return fmgr.makeNumber(getFormulaType(), rat.makeInteger());
-    //return fmgr.makeNumber(rat.toString());
+  public Formula translate(FormulaManager fmgr) {
+  	return fmgr.makeNumber(rat.toString());
   }
 
   @Override
   public String toString() {
     return rat.toString();
   }
-
 
 }

@@ -35,20 +35,20 @@ import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 import com.google.common.collect.BiMap;
 
-class OctDomain implements AbstractDomain {
+class OctDomain implements AbstractDomain{
 
   static long totaltime = 0;
 
   @Override
   public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
 
-    Map<OctState, Set<OctState>> covers = new HashMap<>();
+    Map<OctState, Set<OctState>> covers = new HashMap<OctState, Set<OctState>>();
 
     long start = System.currentTimeMillis();
     OctState octState1 = (OctState) element1;
     OctState octState2 = (OctState) element2;
 
-    if (covers.containsKey(octState2) && ((HashSet<OctState>)(covers.get(octState2))).contains(octState1)) {
+    if (covers.containsKey(octState2) && ((HashSet<OctState>)(covers.get(octState2))).contains(octState1)){
       return true;
     }
 
@@ -56,18 +56,20 @@ class OctDomain implements AbstractDomain {
     if (result == 1) {
       totaltime = totaltime + (System.currentTimeMillis() - start);
       return true;
-    } else if (result == 2) {
+    }
+    else if (result == 2) {
       totaltime = totaltime + (System.currentTimeMillis() - start);
       return false;
-    } else {
-      assert (result == 3);
+    }
+    else{
+      assert(result == 3);
       boolean included = OctagonManager.isIncludedIn(octState1.getOctagon(), octState2.getOctagon());
-      if (included) {
+      if (included){
         Set<OctState> s;
         if (covers.containsKey(octState2)) {
           s = covers.get(octState2);
         } else {
-          s = new HashSet<>();
+          s = new HashSet<OctState>();
         }
         s.add(octState1);
         covers.put(octState2, s);

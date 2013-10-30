@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 
 public class ReducedEdge {
-  private HashSet<CFAEdge> summarizes = new HashSet<>();
+  private HashSet<CFAEdge> summarizes = new HashSet<CFAEdge>();
   private ReducedNode pointsTo;
 
   public void addEdge(CFAEdge pEdge) {

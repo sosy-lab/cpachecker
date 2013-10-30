@@ -4,30 +4,34 @@
   <option name="-noout"/>
   <option name="-heap">1200M</option>
 
-  <sourcefiles name="ControlFlowInteger-MemPrecise">
-    <includesfile>../programs/benchmarks/ControlFlowInteger-MemPrecise.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="ControlFlowInteger-MemSimple">
-    <includesfile>../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="SystemC">
-    <includesfile>../programs/benchmarks/SystemC.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Nested">
-    <includesfile>nested.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Linux-Kernel">
-    <include>../programs/linux-kernel/*.cil.c</include>
-  </sourcefiles>
-
-  <rundefinition name="abm">
+  <test name="abm">
+    <sourcefiles>
+      <includesfile>locks.set</includesfile>
+      <includesfile>ntdrivers-simplified.set</includesfile>
+      <includesfile>ntdrivers.set</includesfile>
+      <includesfile>ssh-simplified.set</includesfile>
+      <includesfile>ssh.set</includesfile>
+      <includesfile>systemc.set</includesfile>
+      <includesfile>nested.set</includesfile>
+      <includesfile>VeriSec.set</includesfile>
+      <include>../programs/linux-kernel/*.cil.c</include>
+    </sourcefiles>
     <option name="-predicateAnalysis-abm"/>
-  </rundefinition>
-
-  <rundefinition name="abm-auxiliaryPredicates">
+  </test>
+  <test name="abm-auxiliaryPredicates">
+    <sourcefiles>
+      <includesfile>locks.set</includesfile>
+      <includesfile>ntdrivers-simplified.set</includesfile>
+      <includesfile>ntdrivers.set</includesfile>
+      <includesfile>ssh-simplified.set</includesfile>
+      <includesfile>ssh.set</includesfile>
+      <includesfile>systemc.set</includesfile>
+      <includesfile>nested.set</includesfile>
+      <includesfile>VeriSec.set</includesfile>
+      <include>../programs/linux-kernel/*.cil.c</include>
+    </sourcefiles>
     <option name="-predicateAnalysis-abm-auxiliaryPredicates"/>
-  </rundefinition>
-
+  </test>
   <columns>
     <column title="total">time for CPAchecker</column>
     <column title="reached">Total size of all ARGs</column>

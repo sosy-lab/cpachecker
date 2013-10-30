@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,35 +23,31 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-import com.google.common.base.Objects;
+public final class CIdExpression extends CExpression {
 
-public final class CIdExpression extends AIdExpression implements CExpression {
+  private final String name;
+  private final CSimpleDeclaration declaration;
 
-
-  public CIdExpression(final FileLocation pFileLocation,
+  public CIdExpression(final CFileLocation pFileLocation,
                           final CType pType, final String pName,
                           final CSimpleDeclaration pDeclaration) {
-    super(pFileLocation, pType, pName, pDeclaration);
+    super(pFileLocation, pType);
+    name = pName.intern();
+    declaration = pDeclaration;
   }
 
-
-
-  @Override
-  public CType getExpressionType() {
-    return (CType)super.getExpressionType();
+  public String getName() {
+    return name;
   }
 
   /**
    * Get the declaration of the variable.
    * The result may be null if the variable was not declared.
    */
-  @Override
   public CSimpleDeclaration getDeclaration() {
-    return  (CSimpleDeclaration) super.getDeclaration();
+    return declaration;
   }
 
   @Override
@@ -65,29 +61,13 @@ public final class CIdExpression extends AIdExpression implements CExpression {
   }
 
   @Override
-  public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
+  public String toASTString() {
+    return name;
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    if (!(obj instanceof CIdExpression)) {
-      return false;
-    }
-
-    // Don't call super.equals() here,
-    // it compares the declaration field.
-    // In C, there might be several declarations declaring the same variable,
-    // so we sometimes need to return true even with different declarations.
-
-    CIdExpression other = (CIdExpression)obj;
-
-    return Objects.equal(getDeclaration().getQualifiedName(), other.getDeclaration().getQualifiedName());
+  protected String toParenthesizedASTString() {
+    // id expression never need parentheses
+    return toASTString();
   }
 }

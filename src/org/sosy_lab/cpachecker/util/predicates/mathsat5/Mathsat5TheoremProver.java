@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager.getMsatTerm;
+import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager.getTerm;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import java.util.ArrayDeque;
@@ -36,29 +36,22 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.base.Preconditions;
 
-public class Mathsat5TheoremProver implements ProverEnvironment {
+public class Mathsat5TheoremProver implements TheoremProver {
 
   private static final boolean USE_SHARED_ENV = true;
 
   private final Mathsat5FormulaManager mgr;
   private long curEnv;
 
-  public Mathsat5TheoremProver(Mathsat5FormulaManager pMgr,
-      boolean generateModels) {
+  public Mathsat5TheoremProver(Mathsat5FormulaManager pMgr) {
     mgr = pMgr;
-
-    long cfg = msat_create_config();
-    if (generateModels) {
-      msat_set_option_checked(cfg, "model_generation", "true");
-    }
-    curEnv = mgr.createEnvironment(cfg, USE_SHARED_ENV, true);
-    checkNotNull(curEnv);
+    curEnv = 0;
   }
 
   @Override
@@ -82,43 +75,55 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
   }
 
   @Override
-  public void push(BooleanFormula f) {
+  public void push(Formula f) {
     Preconditions.checkState(curEnv != 0);
     msat_push_backtrack_point(curEnv);
-    msat_assert_formula(curEnv, getMsatTerm(f));
+    msat_assert_formula(curEnv, getTerm(f));
   }
 
   @Override
-  public void close() {
+  public void init() {
+    Preconditions.checkState(curEnv == 0);
+
+    long cfg = msat_create_config();
+    msat_set_option_checked(cfg, "model_generation", "true");
+    curEnv = mgr.createEnvironment(cfg, USE_SHARED_ENV, true);
+  }
+
+  @Override
+  public void reset() {
     Preconditions.checkState(curEnv != 0);
     msat_destroy_env(curEnv);
     curEnv = 0;
   }
 
   @Override
-  public AllSatResult allSat(Collection<BooleanFormula> important,
+  public AllSatResult allSat(Formula f, Collection<Formula> important,
       RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) {
     checkNotNull(rmgr);
     checkNotNull(solveTime);
     checkNotNull(enumTime);
-    Preconditions.checkState(curEnv != 0);
 
     if (important.isEmpty()) {
       throw new RuntimeException("Error occurred during Mathsat allsat: all-sat should not be called with empty 'important'-Collection");
     }
 
+    long allsatEnv = mgr.createEnvironment(msat_create_config(), USE_SHARED_ENV, true);
+    long formula = getTerm(f);
+
     long[] imp = new long[important.size()];
     int i = 0;
-    for (BooleanFormula impF : important) {
+    for (Formula impF : important) {
 
-      imp[i++] = getMsatTerm(impF);
+      imp[i++] = getTerm(impF);
 
     }
 
-    MathsatAllSatCallback callback = new MathsatAllSatCallback(this, rmgr, solveTime, enumTime, curEnv);
+    MathsatAllSatCallback callback = new MathsatAllSatCallback(rmgr, solveTime, enumTime, allsatEnv);
     solveTime.start();
+    msat_assert_formula(allsatEnv, formula);
 
-    int numModels = msat_all_sat(curEnv, imp, callback);
+    int numModels = msat_all_sat(allsatEnv, imp, callback);
 
     if (solveTime.isRunning()) {
       solveTime.stop();
@@ -127,7 +132,7 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
     }
 
     if (numModels == -1) {
-      throw new RuntimeException("Error occurred during Mathsat allsat: " + msat_last_error_message(curEnv));
+      throw new RuntimeException("Error occurred during Mathsat allsat: " + msat_last_error_message(allsatEnv));
 
     } else if (numModels == -2) {
       // infinite models
@@ -135,6 +140,7 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
     } else {
       assert numModels == callback.count;
     }
+    msat_destroy_env(allsatEnv);
 
     return callback;
   }
@@ -142,7 +148,7 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
   /**
    * callback used to build the predicate abstraction of a formula
    */
-  static class MathsatAllSatCallback implements Mathsat5NativeApi.AllSatModelCallback, AllSatResult {
+  static class MathsatAllSatCallback implements Mathsat5NativeApi.AllSatModelCallback, TheoremProver.AllSatResult {
 
     private final RegionCreator rmgr;
 
@@ -153,14 +159,11 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
     private int count = 0;
 
     private Region formula;
-    private final Deque<Region> cubes = new ArrayDeque<>();
+    private final Deque<Region> cubes = new ArrayDeque<Region>();
     private long env;
 
-    private Mathsat5TheoremProver prover;
-
-    public MathsatAllSatCallback(Mathsat5TheoremProver prover, RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime, long env) {
+    public MathsatAllSatCallback(RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime, long env) {
       this.rmgr = rmgr;
-      this.prover = prover;
       this.formula = rmgr.makeFalse();
       this.solveTime = pSolveTime;
       this.enumTime = pEnumTime;
@@ -213,17 +216,16 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
       // of all the models found by msat_all_sat, and storing them
       // in a BDD
       // first, let's create the BDD corresponding to the model
-      Deque<Region> curCube = new ArrayDeque<>(model.length + 1);
+      Deque<Region> curCube = new ArrayDeque<Region>(model.length + 1);
       Region m = rmgr.makeTrue();
       for (long t : model) {
         Region v;
         if (msat_term_is_not(env, t)) {
           t = msat_term_get_arg(t, 0);
-
-          v = rmgr.getPredicate(prover.mgr.encapsulateTerm(BooleanFormula.class, t));
+          v = rmgr.getPredicate(new Mathsat5Formula(t));
           v = rmgr.makeNot(v);
         } else {
-          v = rmgr.getPredicate(prover.mgr.encapsulateTerm(BooleanFormula.class, t));
+          v = rmgr.getPredicate(new Mathsat5Formula(t));
         }
         curCube.add(v);
       }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,11 +40,12 @@ public class CompositeState implements AbstractWrapperState, Targetable, Partiti
   private final ImmutableList<AbstractState> states;
   private transient Object partitionKey; // lazily initialized
 
-  public CompositeState(List<AbstractState> elements) {
+  public CompositeState(List<AbstractState> elements)
+  {
     this.states = ImmutableList.copyOf(elements);
   }
 
-  public int getNumberOfStates() {
+  public int getNumberOfStates(){
     return states.size();
   }
 
@@ -59,7 +60,8 @@ public class CompositeState implements AbstractWrapperState, Targetable, Partiti
   }
 
   @Override
-  public String toString() {
+  public String toString()
+  {
     StringBuilder builder = new StringBuilder();
     builder.append('(');
     for (AbstractState element : states) {
@@ -117,7 +119,7 @@ public class CompositeState implements AbstractWrapperState, Targetable, Partiti
         return true;
       }
 
-      if (!(pObj instanceof CompositePartitionKey)) {
+      if (CompositePartitionKey.class != pObj.getClass()) {
         return false;
       }
 

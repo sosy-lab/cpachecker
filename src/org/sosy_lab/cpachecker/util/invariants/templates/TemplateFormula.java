@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,8 +34,7 @@ import java.util.Vector;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.Template;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 public class TemplateFormula implements Formula, Template {
 
@@ -60,7 +60,7 @@ public class TemplateFormula implements Formula, Template {
    * @return true if every parameter in this formula was assigned a
    * value by the passed map; false otherwise.
    */
-  public boolean evaluate(Map<String, Rational> map) { return true; }
+  public boolean evaluate(Map<String,Rational> map) { return true; }
 
   public void unevaluate() {}
 
@@ -72,10 +72,10 @@ public class TemplateFormula implements Formula, Template {
    * occurring in a given formula.
    * @param indices
    */
-  public void postindex(Map<String, Integer> indices) {}
+  public void postindex(Map<String,Integer> indices) {}
 
   public void postindex(TemplateFormula f) {
-    Map<String, Integer> indices = f.getMaxIndices();
+    Map<String,Integer> indices = f.getMaxIndices();
     postindex(indices);
   }
 
@@ -83,10 +83,10 @@ public class TemplateFormula implements Formula, Template {
    * Give each variable the index 1 if its name is in the
    * domain of the given map; give it no index otherwise.
    */
-  public void preindex(Map<String, Integer> indices) {}
+  public void preindex(Map<String,Integer> indices) {}
 
   public void preindex(TemplateFormula f) {
-    Map<String, Integer> indices = f.getMaxIndices();
+    Map<String,Integer> indices = f.getMaxIndices();
     preindex(indices);
   }
 
@@ -111,75 +111,75 @@ public class TemplateFormula implements Formula, Template {
   public Set<TermForm> getTopLevelTermForms() { return null; }
 
   // FIXME: Should use TemplateVariable objects instead. See comments on next method.
-  public Set<TemplateVariable> getAllVariables() {
-    return new HashSet<>();
+  public Set<String> getAllVariables(VariableWriteMode vwm) {
+    return new HashSet<String>();
   }
 
-//  /**
-//   * This method probably shouldn't exist. It's here to return a set of
-//   * variables, instead of a mere set of Strings. Probably we should either
-//   * redo the getAllVariables method to return a Set of TemplateVariables,
-//   * or else we should do this properly, providing a cascade of getAllVariables
-//   * methods that take no arguments, and which simply return the Set of
-//   * TemplateVariables in the natural way. Here, we use the existing method,
-//   * and parse the returned Strings, to create new TemplateVariables.
-//   * @return
-//   */
-//  final public Set<TemplateVariable> getAllVariables() {
-//    Iterator<String> I = getAllVariables(VariableWriteMode.PLAIN).iterator();
-//    Set<TemplateVariable> V = new HashSet<>();
-//    String S;
-//    TemplateVariable T;
-//    while (I.hasNext()) {
-//      S = I.next();
-//      T = TemplateVariable.parse(S);
-//      V.add(T);
-//    }
-//    return V;
-//  }
+  /**
+   * This method probably shouldn't exist. It's here to return a set of
+   * variables, instead of a mere set of Strings. Probably we should either
+   * redo the getAllVariables method to return a Set of TemplateVariables,
+   * or else we should do this properly, providing a cascade of getAllVariables
+   * methods that take no arguments, and which simply return the Set of
+   * TemplateVariables in the natural way. Here, we use the existing method,
+   * and parse the returned Strings, to create new TemplateVariables.
+   * @return
+   */
+  final public Set<TemplateVariable> getAllVariables() {
+    Iterator<String> I = getAllVariables(VariableWriteMode.PLAIN).iterator();
+    Set<TemplateVariable> V = new HashSet<TemplateVariable>();
+    String S;
+    TemplateVariable T;
+    while (I.hasNext()) {
+      S = I.next();
+      T = TemplateVariable.parse(S);
+      V.add(T);
+    }
+    return V;
+  }
 
   public Set<TemplateVariable> getTopLevelLHSParameters() {
     List<TemplateConstraint> cons = getConstraints();
-    Set<TemplateVariable> params = new HashSet<>();
+    Set<TemplateVariable> params = new HashSet<TemplateVariable>();
     for (TemplateConstraint c : cons) {
-      params.addAll(c.getTopLevelLHSParameters());
+      params.addAll( c.getTopLevelLHSParameters() );
     }
     return params;
   }
 
   public Set<TemplateUIF> getAllTopLevelUIFs() {
     List<TemplateConstraint> cons = getConstraints();
-    Set<TemplateUIF> uifs = new HashSet<>();
+    Set<TemplateUIF> uifs = new HashSet<TemplateUIF>();
     for (TemplateConstraint c : cons) {
-      uifs.addAll(c.getAllTopLevelUIFs());
+      uifs.addAll( c.getAllTopLevelUIFs() );
     }
     return uifs;
   }
 
   public Set<TemplateTerm> getTopLevelTerms() {
     List<TemplateConstraint> cons = getConstraints();
-    Set<TemplateTerm> terms = new HashSet<>();
+    Set<TemplateTerm> terms = new HashSet<TemplateTerm>();
     for (TemplateConstraint c : cons) {
-      terms.addAll(c.getTopLevelTerms());
+      terms.addAll( c.getTopLevelTerms() );
     }
     return terms;
   }
 
   public Set<TemplateVariable> getAllPurificationVariables() {
     List<TemplateConstraint> cons = getConstraints();
-    Set<TemplateVariable> pvs = new HashSet<>();
+    Set<TemplateVariable> pvs = new HashSet<TemplateVariable>();
     for (TemplateConstraint c : cons) {
-      pvs.addAll(c.getAllPurificationVariables());
+      pvs.addAll( c.getAllPurificationVariables() );
     }
     return pvs;
   }
 
   public Set<TemplateVariable> getAllParameters() {
-    return new HashSet<>();
+    return new HashSet<TemplateVariable>();
   }
 
   final public Set<String> getAllParameters(VariableWriteMode vwm) {
-    HashSet<String> S = new HashSet<>();
+    HashSet<String> S = new HashSet<String>();
     Set<TemplateVariable> V = getAllParameters();
     for (TemplateVariable T : V) {
       S.add(T.toString(vwm));
@@ -193,13 +193,13 @@ public class TemplateFormula implements Formula, Template {
    * values that would be returned by the getName and getIndex methods
    * of the TemplateVariable class, i.e. precisely its S and I fields.
    */
-  public HashMap<String, Integer> getMaxIndices() {
-    HashMap<String, Integer> map = new HashMap<>();
+  public HashMap<String,Integer> getMaxIndices() {
+    HashMap<String,Integer> map = new HashMap<String,Integer>();
     map = getMaxIndices(map);
     return map;
   }
 
-  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
+  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
     return map;
   }
 
@@ -224,12 +224,8 @@ public class TemplateFormula implements Formula, Template {
    * "language", you just call this method, passing a FormulaManager for the language
    * that you want.
    */
-  public Formula translate(FormulaManagerView fmgr) {
-    return null;
-  }
-
-  public FormulaType<?> getFormulaType() {
-    return null;
+  public Formula translate(FormulaManager fmgr) {
+  	return null;
   }
 
   public TemplateFormula copy() {
@@ -248,13 +244,15 @@ public class TemplateFormula implements Formula, Template {
    * We implement it recursively.
    */
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
-    return null;
+  	return null;
   }
 
   public void negate() {}
 
+  @Override
   public boolean isTrue() { return false; }
 
+  @Override
   public boolean isFalse() { return false; }
 
   @Override

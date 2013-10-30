@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,10 +36,10 @@ public class CallstackReducer implements Reducer {
   public AbstractState getVariableReducedState(
       AbstractState pExpandedState, Block pContext, CFANode callNode) {
 
-    CallstackState element = (CallstackState) pExpandedState;
+    CallstackState element = (CallstackState)pExpandedState;
 
     return copyCallstackUpToCallNode(element, callNode);
-    //    return new CallstackState(null, state.getCurrentFunction(), location);
+//    return new CallstackState(null, state.getCurrentFunction(), location);
   }
 
   private CallstackState copyCallstackUpToCallNode(CallstackState element, CFANode callNode) {
@@ -57,8 +57,8 @@ public class CallstackReducer implements Reducer {
       AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) {
 
-    CallstackState rootState = (CallstackState) pRootState;
-    CallstackState reducedState = (CallstackState) pReducedState;
+    CallstackState rootState = (CallstackState)pRootState;
+    CallstackState reducedState = (CallstackState)pReducedState;
 
     // the stackframe on top of rootState and the stackframe on bottom of reducedState are the same function
     // now glue both stacks together at this state
@@ -77,13 +77,17 @@ public class CallstackReducer implements Reducer {
     }
   }
 
-  private static boolean isEqual(CallstackState reducedTargetElement,
+ private static boolean isEqual(CallstackState reducedTargetElement,
       CallstackState candidateElement) {
-    if (reducedTargetElement.getDepth() != candidateElement.getDepth()) { return false; }
+    if (reducedTargetElement.getDepth() != candidateElement.getDepth()) {
+      return false;
+    }
 
     while (reducedTargetElement != null) {
-      if (!reducedTargetElement.getCallNode().equals(candidateElement.getCallNode())
-          || !reducedTargetElement.getCurrentFunction().equals(candidateElement.getCurrentFunction())) { return false; }
+      if ( !reducedTargetElement.getCallNode().equals(candidateElement.getCallNode())
+        || !reducedTargetElement.getCurrentFunction().equals(candidateElement.getCurrentFunction())) {
+          return false;
+      }
       reducedTargetElement = reducedTargetElement.getPreviousState();
       candidateElement = candidateElement.getPreviousState();
     }
@@ -93,11 +97,10 @@ public class CallstackReducer implements Reducer {
 
   @Override
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
-    return new CallstackStateWithEquals((CallstackState) pElementKey);
+    return new CallstackStateWithEquals((CallstackState)pElementKey);
   }
 
   private static class CallstackStateWithEquals {
-
     private final CallstackState state;
 
     public CallstackStateWithEquals(CallstackState pElement) {
@@ -106,9 +109,11 @@ public class CallstackReducer implements Reducer {
 
     @Override
     public boolean equals(Object other) {
-      if (!(other instanceof CallstackStateWithEquals)) { return false; }
+      if (!(other instanceof CallstackStateWithEquals)) {
+        return false;
+      }
 
-      return isEqual(state, ((CallstackStateWithEquals) other).state);
+      return isEqual(state, ((CallstackStateWithEquals)other).state);
     }
 
     @Override
@@ -131,17 +136,5 @@ public class CallstackReducer implements Reducer {
   @Override
   public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
     return 0;
-  }
-
-  @Override
-  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
-      CFANode pCallNode) {
-    return getVariableReducedState(pExpandedState, pContext, pCallNode);
-  }
-
-  @Override
-  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
-    return getVariableExpandedState(pRootState, pReducedContext, pReducedState);
   }
 }

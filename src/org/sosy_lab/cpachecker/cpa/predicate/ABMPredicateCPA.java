@@ -76,9 +76,9 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     relevantPredicatesComputer = new CachingRelevantPredicatesComputer(relevantPredicatesComputer);
     this.relevantPredicatesComputer = relevantPredicatesComputer;
 
-    reducer = new ABMPredicateReducer(getFormulaManager().getBooleanFormulaManager(), this, relevantPredicatesComputer);
+    reducer = new ABMPredicateReducer(this, relevantPredicatesComputer);
     blk = pBlk;
-    stats = new ABMPredicateCPAStatistics(reducer);
+    stats = new ABMPredicateCPAStatistics();
   }
 
   RelevantPredicatesComputer getRelevantPredicatesComputer() {

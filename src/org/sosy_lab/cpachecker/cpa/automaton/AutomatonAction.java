@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  */
 abstract class AutomatonAction {
   private AutomatonAction() {}
-  private static ResultValue<String> defaultResultValue = new ResultValue<>("");
+  private static ResultValue<String> defaultResultValue = new ResultValue<String>("");
 
   // in this method the Value inside the resultValueObject is not important (most ActionClasses will return "" as inner value)
   // more important is if the action was evaluated (ResultValue.canNotEvaluate())
@@ -156,7 +156,7 @@ abstract class AutomatonAction {
       String processedModificationString = pArgs.replaceVariables(modificationString);
       if (processedModificationString == null) {
         pArgs.getLogger().log(Level.WARNING, "Modification String \"" + modificationString + "\" could not be processed (Variable not found).");
-        return new ResultValue<>("Modification String \"" + modificationString + "\" could not be processed (Variable not found).", "AutomatonActionExpr.CPAModification");
+        return new ResultValue<Boolean>("Modification String \"" + modificationString + "\" could not be processed (Variable not found).", "AutomatonActionExpr.CPAModification");
       }
       for (AbstractState ae : pArgs.getAbstractStates()) {
         if (ae instanceof AbstractQueryableState) {
@@ -173,7 +173,7 @@ abstract class AutomatonAction {
           }
         }
       }
-      return new ResultValue<>("Did not find an element of the CPA \"" + cpaName + "\" to be modified.", "AutomatonActionExpr.CPAModification");
+      return new ResultValue<Boolean>("Did not find an element of the CPA \"" + cpaName + "\" to be modified.", "AutomatonActionExpr.CPAModification");
     }
 
     @Override

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,24 +23,45 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.c;
 
+import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 
-public class CFunctionReturnEdge extends FunctionReturnEdge {
+public class CFunctionReturnEdge extends AbstractCFAEdge {
 
+  private final CFunctionSummaryEdge summaryEdge;
 
   public CFunctionReturnEdge(int pLineNumber,
       FunctionExitNode pPredecessor, CFANode pSuccessor,
       CFunctionSummaryEdge pSummaryEdge) {
 
-    super(pLineNumber, pPredecessor, pSuccessor, pSummaryEdge);
+    super("", pLineNumber, pPredecessor, pSuccessor);
+    summaryEdge = pSummaryEdge;
+  }
 
+  public CFunctionSummaryEdge getSummaryEdge() {
+    return summaryEdge;
   }
 
   @Override
-  public CFunctionSummaryEdge getSummaryEdge() {
-    return (CFunctionSummaryEdge) summaryEdge;
+  public String getCode() {
+    return "";
   }
 
+  @Override
+  public String getDescription() {
+    return "Return edge from " + getPredecessor().getFunctionName() + " to " + getSuccessor().getFunctionName();
+  }
+
+  @Override
+  public CFAEdgeType getEdgeType() {
+    return CFAEdgeType.FunctionReturnEdge;
+  }
+
+  @Override
+  public FunctionExitNode getPredecessor() {
+    // the constructor enforces that the predecessor is always a FunctionExitNode
+    return (FunctionExitNode)super.getPredecessor();
+  }
 }

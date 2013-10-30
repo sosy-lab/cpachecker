@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,23 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-
-
-import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-
-
 /**
- * Interface for all possible right-hand sides of an assignment.
+ * Super class for all possible right-hand sides of an assignment.
  */
-public interface CRightHandSide extends CAstNode, IARightHandSide {
+public abstract class CRightHandSide extends CAstNode {
 
+  private final CType type;
 
-  public <R, X extends Exception> R accept(CRightHandSideVisitor<R, X> pV) throws X;
+  public CRightHandSide(final CFileLocation pFileLocation,
+                           final CType pType) {
+    super(pFileLocation);
+    type = pType;
+  }
 
-  @Override
-  public CType getExpressionType();
+  public CType getExpressionType() {
+    return type;
+  }
 
-
+  public abstract <R, X extends Exception> R accept(CRightHandSideVisitor<R, X> pV) throws X;
 }

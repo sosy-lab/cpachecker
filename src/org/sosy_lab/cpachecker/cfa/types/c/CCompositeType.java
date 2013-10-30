@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,36 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
-import java.util.Objects;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
-public final class CCompositeType implements CComplexType {
+public final class CCompositeType extends CType {
 
-  private final CComplexType.ComplexTypeKind    kind;
+  private final int                   key;
   private List<CCompositeTypeMemberDeclaration> members;
   private final String                name;
-  private boolean   isConst;
-  private boolean   isVolatile;
 
   public CCompositeType(final boolean pConst, final boolean pVolatile,
-      final CComplexType.ComplexTypeKind pKind, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName) {
-
-    checkArgument(pKind == ComplexTypeKind.STRUCT || pKind == ComplexTypeKind.UNION);
-    isConst= pConst;
-    isVolatile=pVolatile;
-    kind = pKind;
+      final int pKey, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName) {
+    super(pConst, pVolatile);
+    key = pKey;
     members = ImmutableList.copyOf(pMembers);
     name = pName.intern();
   }
 
-  @Override
-  public CComplexType.ComplexTypeKind getKind() {
-    return kind;
+  public int getKey() {
+    return key;
   }
 
   public List<CCompositeTypeMemberDeclaration> getMembers() {
@@ -63,20 +56,12 @@ public final class CCompositeType implements CComplexType {
     members = ImmutableList.copyOf(list);
   }
 
-  @Override
   public String getName() {
     return name;
   }
 
-  @Override
-  public String getQualifiedName() {
-    return (kind.toASTString() + " " + name).trim();
-  }
-
-  @Override
-  public String toString() {
-    return getQualifiedName();
-  }
+  public static final int k_struct = 1;
+  public static final int k_union  = 2;
 
   @Override
   public String toASTString(String pDeclarator) {
@@ -89,8 +74,14 @@ public final class CCompositeType implements CComplexType {
       lASTString.append("volatile ");
     }
 
-    lASTString.append(kind.toASTString());
-    lASTString.append(' ');
+    if (key == k_struct) {
+      lASTString.append("struct ");
+    } else if (key == k_union) {
+      lASTString.append("union ");
+    } else {
+      lASTString.append("unknown ");
+    }
+
     lASTString.append(name);
 
     lASTString.append(" {\n");
@@ -105,6 +96,7 @@ public final class CCompositeType implements CComplexType {
     return lASTString.toString();
   }
 
+
   /**
    * This is the declaration of a member of a composite type.
    * It contains a type and an optional name.
@@ -112,42 +104,14 @@ public final class CCompositeType implements CComplexType {
   public static final class CCompositeTypeMemberDeclaration {
 
 
-
     private final CType    type;
     private final String   name;
 
     public CCompositeTypeMemberDeclaration(CType pType,
                                            String pName) {
-
       type = checkNotNull(pType);
       name = pName;
 
-    }
-
-    @Override
-    public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + ((name == null) ? 0 : name.hashCode());
-      result = prime * result + ((type == null) ? 0 : type.hashCode());
-      return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
-        return false;
-      }
-      CCompositeTypeMemberDeclaration other = (CCompositeTypeMemberDeclaration) obj;
-      return
-          Objects.equals(name, other.name) &&
-          type.getCanonicalType().equals(other.type.getCanonicalType());
     }
 
     public CType getType() {
@@ -162,60 +126,5 @@ public final class CCompositeType implements CComplexType {
       String name = Strings.nullToEmpty(getName());
       return getType().toASTString(name) + ";";
     }
-
   }
-
-  @Override
-  public boolean isConst() {
-    return isConst;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return isVolatile;
-  }
-
-
-  @Override
-  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
-  }
-
-  @Override
-  public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
-  }
-
-  /**
-   * Be careful, this method compares the CType as it is to the given object,
-   * typedefs won't be resolved. If you want to compare the type without having
-   * typedefs in it use #getCanonicalType().equals()
-   */
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    if (!(obj instanceof CCompositeType)) {
-      return false;
-    }
-
-    CCompositeType other = (CCompositeType) obj;
-
-    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile)
-           && Objects.equals(kind, other.kind) && Objects.equals(name, other.name)
-           && Objects.equals(members, other.members);
-  }
-
-  @Override
-  public CCompositeType getCanonicalType() {
-    return getCanonicalType(false, false);
-  }
-
-  @Override
-  public CCompositeType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    return new CCompositeType(isConst || pForceConst, isVolatile || pForceVolatile, kind, members, name);
-  }
-
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,20 +24,23 @@
 package org.sosy_lab.cpachecker.cfa.model.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 import com.google.common.base.Optional;
 
-public class CAssumeEdge extends AssumeEdge {
+public class CAssumeEdge extends AbstractCFAEdge {
 
-
+  private final boolean truthAssumption;
+  private final CExpression expression;
 
   public CAssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
       CFANode pSuccessor, CExpression pExpression, boolean pTruthAssumption) {
 
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor, pExpression, pTruthAssumption);
+    super("[" + pRawStatement + "]", pLineNumber, pPredecessor, pSuccessor);
+    truthAssumption = pTruthAssumption;
+    expression = pExpression;
   }
 
   @Override
@@ -45,11 +48,26 @@ public class CAssumeEdge extends AssumeEdge {
     return CFAEdgeType.AssumeEdge;
   }
 
-  @Override
-  public CExpression getExpression() {
-    return (CExpression) expression;
+  public boolean getTruthAssumption() {
+    return truthAssumption;
   }
 
+  public CExpression getExpression() {
+    return expression;
+  }
+
+  @Override
+  public String getCode() {
+    if (truthAssumption) {
+      return expression.toASTString();
+    }
+    return "!(" + expression.toASTString() + ")";
+  }
+
+  @Override
+  public String getDescription() {
+    return "[" + getCode() + "]";
+  }
 
   /**
    * TODO
@@ -59,6 +77,6 @@ public class CAssumeEdge extends AssumeEdge {
    */
   @Override
   public Optional<CExpression> getRawAST() {
-    return Optional.of((CExpression)expression);
+    return Optional.of(expression);
   }
 }

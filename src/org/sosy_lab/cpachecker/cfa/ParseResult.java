@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
@@ -50,19 +50,14 @@ public class ParseResult {
 
   private final SortedSetMultimap<String, CFANode> cfaNodes;
 
-  private final List<Pair<IADeclaration, String>> globalDeclarations;
-
-  private final Language language;
+  private final List<Pair<CDeclaration, String>> globalDeclarations;
 
   public ParseResult(Map<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pCfaNodes,
-      List<Pair<IADeclaration, String>> pGlobalDeclarations,
-      Language pLanguage) {
+      List<Pair<CDeclaration, String>> pGlobalDeclarations) {
     functions = pFunctions;
     cfaNodes = pCfaNodes;
     globalDeclarations = pGlobalDeclarations;
-    language = pLanguage;
-
   }
 
   public boolean isEmpty() {
@@ -77,11 +72,7 @@ public class ParseResult {
     return cfaNodes;
   }
 
-  public List<Pair<IADeclaration, String>> getGlobalDeclarations() {
+  public List<Pair<CDeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
-  }
-
-  public Language getLanguage() {
-    return language;
   }
 }

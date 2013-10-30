@@ -61,10 +61,6 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
 		mtype *m_arg##num = NULL;
 
 #define STRUCT_ARG(mtype, num) \
-  if (arg##num == 0) { \
-    throwException(jenv, "java/lang/IllegalArgumentException", "Null passed to MathSAT"); \
-    return; \
-  } \
   mtype m_arg##num; \
   m_arg##num.repr = (void *)((size_t)arg##num);
 
@@ -91,11 +87,7 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
     \
     size_t i; \
     for (i = 0; i < sz; ++i) { \
-      m_arg##num[i].repr = (void *)((size_t)tmp[i]); \
-      if (m_arg##num[i].repr == NULL) { \
-        throwException(jenv, "java/lang/IllegalArgumentException", "Null passed to MathSAT"); \
-        goto out##num##b; \
-      } \
+       m_arg##num[i].repr = (void *)((size_t)tmp[i]); \
     } \
     (*jenv)->ReleaseLongArrayElements(jenv, arg##num, tmp, 0); \
   }

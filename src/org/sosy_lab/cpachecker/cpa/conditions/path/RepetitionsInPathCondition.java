@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,8 +42,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
@@ -153,7 +153,7 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
     }
 
     @Override
-    public BooleanFormula getReasonFormula(FormulaManagerView pMgr) {
+    public Formula getReasonFormula(FormulaManager pMgr) {
       return PreventingHeuristic.REPETITIONSINPATH.getFormula(pMgr, threshold);
     }
 

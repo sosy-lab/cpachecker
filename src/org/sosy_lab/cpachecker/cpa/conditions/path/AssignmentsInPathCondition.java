@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,13 +40,15 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -56,8 +57,8 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingStat
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -79,7 +80,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   @Option(name = "extendedStatsFile",
       description = "file name where to put the extended stats file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path extendedStatsFile;
+  private File extendedStatsFile;
 
   /**
    * the reference to the current element
@@ -94,7 +95,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   /**
    * the maximal number of assignments for each variables over all elements seen to far
    */
-  private Map<String, Integer> maxNumberOfAssignmentsPerIdentifier = new HashMap<>();
+  private Map<String, Integer> maxNumberOfAssignmentsPerIdentifier = new HashMap<String, Integer>();
 
   /**
    * a reference to the logger
@@ -110,9 +111,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   @Override
   public AvoidanceReportingState getInitialState(CFANode node) {
 
-    AvoidanceReportingState element = demandUniqueness ?
-                                        new UniqueAssignmentsInPathConditionState() :
-                                        new AllAssignmentsInPathConditionState();
+    AvoidanceReportingState element = demandUniqueness ? new UniqueAssignmentsInPathConditionState() : new AllAssignmentsInPathConditionState();
 
     return element;
   }
@@ -121,12 +120,18 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   public AvoidanceReportingState getAbstractSuccessor(AbstractState element, CFAEdge edge) {
     currentState = (AssignmentsInPathConditionState)element;
 
-    if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-      for (CFAEdge singleEdge : (MultiEdge)edge) {
-        handleEdge(singleEdge);
+    if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      CStatementEdge statementEdge = (CStatementEdge)edge;
+
+      CStatement statement = statementEdge.getStatement();
+      if (statement instanceof CAssignment) {
+        CExpression leftHandSide = ((CAssignment)statement).getLeftHandSide();
+
+        String assignedVariable = getScopedVariableName(leftHandSide, edge);
+        if (assignedVariable != null) {
+          currentState = currentState.getSuccessor(assignedVariable);
+        }
       }
-    } else {
-      handleEdge(edge);
     }
 
     maxNumberOfAssignments = Math.max(maxNumberOfAssignments, currentState.maximum);
@@ -143,33 +148,45 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     return currentState;
   }
 
-  private void handleEdge(CFAEdge edge) {
-    if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-      CStatement statement = ((CStatementEdge)edge).getStatement();
+  /**
+   * This method returns the scoped name of the expression (either an identifier or a field reference) which is being assigned.
+   *
+   * @param expression the left hand side expression of an assignment
+   * @param edge the cfa edge
+   * @return the scoped name of the assigned variable, or null, if neither an identifier nor a field reference where assigned
+   */
+  private String getScopedVariableName(CExpression expression, CFAEdge edge) {
+    String scope = "";
 
-      if (statement instanceof CAssignment) {
-        currentState = currentState.getSuccessor(getAssignedVariable((CAssignment)statement, edge));
-      }
+    if (!isGlobalIdentifier(expression)) {
+      scope = edge.getPredecessor().getFunctionName() + "::";
     }
+
+    if (expression instanceof CIdExpression
+        || expression instanceof CFieldReference) {
+      return scope + expression.toASTString();
+    }
+
+    return null;
   }
 
   /**
-   * This method returns the name of the variable being assigned.
+   * This method determines if the given expression references a global identifier.
    *
-   * @param assignment the assignment statement
-   * @param edge the assignment edge
-   * @return the name of the variable being assigned
+   * @param expression the expression in question
+   * @return true, if the given expression references a global identifier, else false
    */
-  private String getAssignedVariable(CAssignment assignment, CFAEdge edge) {
-    CExpression leftHandSide = assignment.getLeftHandSide();
+  private boolean isGlobalIdentifier(CExpression expression) {
+    if (expression instanceof CIdExpression) {
+      CIdExpression identifier       = (CIdExpression)expression;
+      CSimpleDeclaration declaration = identifier.getDeclaration();
 
-    // if expression is an identifier expression, get qualified name from there
-    if (leftHandSide instanceof CIdExpression) {
-      return ((CIdExpression)leftHandSide).getDeclaration().getQualifiedName();
+      if (declaration instanceof CDeclaration) {
+        return ((CDeclaration)declaration).isGlobal();
+      }
     }
 
-    // otherwise, construct qualified name manually
-    return edge.getPredecessor().getFunctionName() + "::" + leftHandSide.toASTString();
+    return false;
   }
 
   @Override
@@ -194,12 +211,13 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   }
 
   private void writeLogFile() {
-    try (Writer builder = Files.openOutputFile(extendedStatsFile)) {
+    try {
+      StringBuilder builder = new StringBuilder();
 
       // log the last element found
       builder.append("total number of variable assignments of last element:");
       builder.append("\n");
-      builder.append(""+currentState);
+      builder.append(currentState);
 
       // log the max-aggregation
       builder.append("\n");
@@ -208,6 +226,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
       builder.append("\n");
       builder.append(assignmentsAsString(maxNumberOfAssignmentsPerIdentifier));
 
+      Files.writeFile(extendedStatsFile, builder.toString());
     } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write extended statistics to file");
     }
@@ -256,7 +275,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
 
     @Override
-    public BooleanFormula getReasonFormula(FormulaManagerView formulaManager) {
+    public Formula getReasonFormula(FormulaManager formulaManager) {
       return PreventingHeuristic.ASSIGNMENTSINPATH.getFormula(formulaManager, maximum);
     }
 
@@ -266,19 +285,30 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
 
     /**
-    * This method decides if the number of assignments for the given variable exceeds the threshold.
+    * This method decides if the number of assignments for the given variable exceeds the given limit.
+    *
+    * Note, this method maybe used to check against an arbitrary limit, and must not be associated to the threshold in any form.
     *
     * @param variableName the variable to check
-    * @return true, if the number of assignments for the given variable exceeds the threshold, else false
+    * @param limit the limit to check
+    * @return true, if the number of assignments for the given variable exceeds the given threshold, else false
     */
-    abstract public boolean variableExceedsThreshold(String variableName);
+    abstract public boolean variableExceedsGivenLimit(String variableName, Integer limit);
+
+    /**
+    * This method returns the current number of assignments for the given variable.
+    *
+    * @param varaibleName the variable for which to get the assignment count
+    * @return the current number of assignments per variable
+    */
+    abstract public Integer getAssignmentCount(String varaibleName);
 
     /**
      * This method returns the current number of assignments per variable.
      *
      * @return the current number of assignments per variable
      */
-    abstract protected Map<String, Integer> getAssignmentCounts();
+    abstract public Map<String, Integer> getAssignmentCounts();
 
     @Override
     public String toString() {
@@ -293,7 +323,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     /**
      * the mapping from variable name to the number of assignments to this variable
      */
-    private HashMap<String, Integer> mapping = new HashMap<>();
+    private HashMap<String, Integer> mapping = new HashMap<String, Integer>();
 
     /**
      * default constructor for creating the initial element
@@ -306,7 +336,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      * @param original the original element to be copied
      */
     private AllAssignmentsInPathConditionState(AllAssignmentsInPathConditionState original) {
-      mapping = new HashMap<>(original.mapping);
+      mapping = new HashMap<String, Integer>(original.mapping);
       maximum = original.maximum;
     }
 
@@ -325,12 +355,17 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
 
     @Override
-    public boolean variableExceedsThreshold(String variableName) {
-      return threshold > -1 && mapping.containsKey(variableName) && mapping.get(variableName) > threshold;
+    public boolean variableExceedsGivenLimit(String variableName, Integer limit) {
+      return mapping.containsKey(variableName) && mapping.get(variableName) >= limit;
     }
 
     @Override
-    protected Map<String, Integer> getAssignmentCounts() {
+    public Integer getAssignmentCount(String variableName) {
+      return mapping.get(variableName);
+    }
+
+    @Override
+    public Map<String, Integer> getAssignmentCounts() {
       return Collections.unmodifiableMap(mapping);
     }
   }
@@ -341,6 +376,11 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      * the mapping from variable name to the set of assigned values to this variable
      */
     private Multimap<String, Long> mapping = HashMultimap.create();
+
+    /**
+     * the name of the variable that is being assigned
+     */
+    private String assignedVariable = null;
 
     /**
      * default constructor for creating the initial element
@@ -359,7 +399,13 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
     @Override
     public UniqueAssignmentsInPathConditionState getSuccessor(String assignedVariable) {
-      return new UniqueAssignmentsInPathConditionState(this);
+      // create a copy ...
+      UniqueAssignmentsInPathConditionState successor = new UniqueAssignmentsInPathConditionState(this);
+
+      // ... and set the later to be assigned variable
+      successor.assignedVariable  = assignedVariable;
+
+      return successor;
     }
 
     /**
@@ -368,24 +414,45 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      * @param element the ExplicitState from which to query assignment information
      */
     public void addAssignment(ExplicitState element) {
-      element.addToValueMapping(mapping);
+      if (assignedVariable == null) {
+        return;
+      }
 
-      for (String variableName : mapping.keys()) {
-        maximum = Math.max(maximum, mapping.get(variableName).size());
+      if (element.contains(assignedVariable)) {
+        Long value = element.getValueFor(assignedVariable);
+        if (value != null) {
+          mapping.put(assignedVariable, value);
+
+          maximum = Math.max(maximum, getAssignmentCount(assignedVariable));
+        }
       }
     }
 
+    /**
+     * This method decides if the number of assignments for the given variable exceeds the given limit.
+     *
+     * Note, this method maybe used to check against an arbitrary limit, and must not be associated to the threshold in any form.
+     *
+     * @param variableName the variable to check
+     * @param limit the limit to check
+     * @return true, if the number of assignments for the given variable exceeds the given threshold, else false
+     */
     @Override
-    public boolean variableExceedsThreshold(String variableName) {
-      return threshold > -1 && mapping.containsKey(variableName) && mapping.get(variableName).size() > threshold;
+    public boolean variableExceedsGivenLimit(String variableName, Integer limit) {
+      return mapping.containsKey(variableName) && getAssignmentCount(variableName) >= limit;
     }
 
     @Override
-    protected Map<String, Integer> getAssignmentCounts() {
-      Map<String, Integer> map = new HashMap<>();
+    public Integer getAssignmentCount(String variableName) {
+      return mapping.get(variableName).size();
+    }
+
+    @Override
+    public Map<String, Integer> getAssignmentCounts() {
+      Map<String, Integer> map = new HashMap<String, Integer>();
 
       for (String variableName : mapping.keys()) {
-        map.put(variableName, mapping.get(variableName).size());
+        map.put(variableName, getAssignmentCount(variableName));
       }
 
       return Collections.unmodifiableMap(map);

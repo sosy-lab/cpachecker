@@ -61,7 +61,7 @@ public class BasicFormulaMatriciser extends FormulaMatriciser {
     List<RationalFunction> rfs;
     Coeff rhs;
     InfixReln reln;
-    List<Matrix> cols = new Vector<>();
+    List<Matrix> cols = new Vector<Matrix>();
 
     // Prepend a "true" column, if requested.
     if (prependTrue) {
@@ -91,14 +91,14 @@ public class BasicFormulaMatriciser extends FormulaMatriciser {
       rfs = makeRationalFunctions(coeffs, paramVars);
 
       // Add a column.
-      cols.add(new Matrix(rfs));
+      cols.add( new Matrix(rfs) );
 
       // We consider EQUAL to be two LEQs, which means that
       // in addition to the column itself, we adjoin its negation.
       if (reln == InfixReln.EQUAL) {
         coeffs = negative(coeffs);
-        rfs = makeRationalFunctions(coeffs, paramVars);
-        cols.add(new Matrix(rfs));
+        rfs = makeRationalFunctions(coeffs,paramVars);
+        cols.add( new Matrix(rfs) );
       }
     }
 
@@ -113,7 +113,7 @@ public class BasicFormulaMatriciser extends FormulaMatriciser {
 
   private static Matrix booleanMatrix(VariableManager vmgr, boolean trueStatement) {
     int n = vmgr.getNumVars();
-    List<RationalFunction> rfs = new Vector<>(Collections.nCopies(n, new RationalFunction(0)));
+    List<RationalFunction> rfs = new Vector<RationalFunction>(Collections.nCopies(n, new RationalFunction(0)));
     RationalFunction constant;
     if (trueStatement) {
       constant = new RationalFunction(-1);

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,7 +46,7 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
   public CachePrecisionAdjustment(PrecisionAdjustment pCachedPrecisionAdjustment) {
     mCachedPrecisionAdjustment = pCachedPrecisionAdjustment;
     //mCache = new HashMap<AbstractState, Map<Precision, Triple<AbstractState, Precision, Action>>>();
-    mCache = new HashMap<>();
+    mCache = new HashMap<Precision, Map<AbstractState, Triple<AbstractState, Precision, Action>>>();
   }
 
   @Override
@@ -56,7 +56,7 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
     /*Map<Precision, Triple<AbstractState, Precision, Action>> lCache = mCache.get(pElement);
 
     if (lCache == null) {
-      lCache = new HashMap<>();
+      lCache = new HashMap<Precision, Triple<AbstractState, Precision, Action>>();
       mCache.put(pElement, lCache);
     }
 
@@ -72,7 +72,7 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
     Map<AbstractState, Triple<AbstractState, Precision, Action>> lCache = mCache.get(pPrecision);
 
     if (lCache == null) {
-      lCache = new HashMap<>();
+      lCache = new HashMap<AbstractState, Triple<AbstractState, Precision, Action>>();
       mCache.put(pPrecision, lCache);
     }
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,17 +23,32 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
 
 /**
- * This interface represents all sorts of top-level declarations (i.e., declarations
+ * This class represents all sorts of top-level declarations (i.e., declarations
  * not nested inside another type declaration).
  * This excludes for examples function parameter declarations and struct members.
  * It includes local and global variables and types, as well as functions.
  */
-public interface CDeclaration extends  CSimpleDeclaration, IADeclaration {
+public abstract class CDeclaration extends CSimpleDeclaration {
 
+  private final boolean               isGlobal;
+
+  public CDeclaration(CFileLocation pFileLocation,
+                         boolean pIsGlobal,
+                         CType pType, String pName,
+                         String pOrigName) {
+    super(pFileLocation, pType, pName, pOrigName);
+    isGlobal = pIsGlobal;
+  }
+
+  /**
+   * Whether this declaration is a global one (i.e., not inside a function).
+   */
+  public boolean isGlobal() {
+    return isGlobal;
+  }
 }

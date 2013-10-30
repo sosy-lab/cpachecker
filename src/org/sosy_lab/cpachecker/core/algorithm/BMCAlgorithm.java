@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -68,9 +68,9 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -81,14 +81,12 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -169,22 +167,20 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(description="dump counterexample formula to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File dumpCounterexampleFormula = new File("counterexample.smt2");
+  private File dumpCounterexampleFormula = new File("counterexample.msat");
 
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
   private final InvariantGenerator invariantGenerator;
 
-  private final FormulaManagerView fmgr;
+  private final FormulaManager fmgr;
   private final PathFormulaManager pmgr;
-  private final Solver solver;
+  private final TheoremProver prover;
 
   private final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
   private final CFA cfa;
-
-  private BooleanFormulaManager bfmgr;
 
   public BMCAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa,
                       Configuration config, LogManager logger,
@@ -204,9 +200,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       throw new InvalidConfigurationException("PredicateCPA needed for BMCAlgorithm");
     }
     fmgr = predCpa.getFormulaManager();
-    bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
-    solver = predCpa.getSolver();
+    prover = predCpa.getSolver().getTheoremProver();
   }
 
   @Override
@@ -229,14 +224,15 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         return soundInner;
       }
 
-      try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration()) {
+      prover.init();
+      try {
 
         // first check safety
-        boolean safe = checkTargetStates(pReachedSet, prover);
+        boolean safe = checkTargetStates(pReachedSet);
         logger.log(Level.FINER, "Program is safe?:", safe);
 
         if (!safe) {
-          createErrorPath(pReachedSet, prover);
+          createErrorPath(pReachedSet);
         }
 
         prover.pop(); // remove program formula from solver stack
@@ -248,15 +244,18 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         if (soundInner && safe) {
 
           // check bounding assertions
-          sound = checkBoundingAssertions(pReachedSet, prover);
+          sound = checkBoundingAssertions(pReachedSet);
 
           // try to prove program safety via induction
           if (induction) {
-            sound = sound || checkWithInduction(prover);
+            sound = sound || checkWithInduction();
           }
         }
 
         return sound && soundInner;
+
+      } finally {
+        prover.reset();
       }
 
     } finally {
@@ -268,7 +267,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    * This method tries to find a feasible path to (one of) the target state(s).
    * It does so by asking the solver for a satisfying assignment.
    */
-  private void createErrorPath(final ReachedSet pReachedSet, final ProverEnvironment prover) throws CPATransferException {
+  private void createErrorPath(final ReachedSet pReachedSet) throws CPATransferException {
     if (!(cpa instanceof ARGCPA)) {
       logger.log(Level.INFO, "Error found, but error path cannot be created without ARGCPA");
       return;
@@ -283,9 +282,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // get the branchingFormula
       // this formula contains predicates for all branches we took
       // this way we can figure out which branches make a feasible path
-      BooleanFormula branchingFormula = pmgr.buildBranchingFormula(arg);
+      Formula branchingFormula = pmgr.buildBranchingFormula(arg);
 
-      if (bfmgr.isTrue(branchingFormula)) {
+      if (branchingFormula.isTrue()) {
         logger.log(Level.WARNING, "Could not create error path because of missing branching informating");
         return;
       }
@@ -322,7 +321,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       Map<Integer, Boolean> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
       ARGState root = (ARGState)pReachedSet.getFirstState();
 
-      ARGPath targetPath;
+      Path targetPath;
       try {
         targetPath = ARGUtils.getPathFromBranchingInformation(root, pReachedSet.asCollection(), branchingInformation);
       } catch (IllegalArgumentException e) {
@@ -332,7 +331,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
 
       // replay error path for a more precise satisfying assignment
-      final BooleanFormula pathFormula = pmgr.makeFormulaForPath(targetPath.asEdgesList()).getFormula();
+      Formula pathFormula = pmgr.makeFormulaForPath(targetPath.asEdgesList()).getFormula();
       prover.pop(); // remove program formula
 
       prover.push(pathFormula);
@@ -352,8 +351,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // create and store CounterexampleInfo object
       CounterexampleInfo counterexample = CounterexampleInfo.feasible(targetPath, model);
       if (pathFormula != null) {
-        counterexample.addFurtherInformation(fmgr.dumpFormula(pathFormula),
-            dumpCounterexampleFormula);
+        counterexample.addFurtherInformation(pathFormula, dumpCounterexampleFormula);
       }
 
       ((ARGCPA)cpa).setCounterexample(counterexample);
@@ -363,16 +361,16 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private boolean checkTargetStates(final ReachedSet pReachedSet, final ProverEnvironment prover) {
+  private boolean checkTargetStates(final ReachedSet pReachedSet) {
     List<AbstractState> targetStates = from(pReachedSet)
                                             .filter(IS_TARGET_STATE)
-                                            .toList();
+                                            .toImmutableList();
 
     if (checkTargetStates) {
       logger.log(Level.FINER, "Found", targetStates.size(), "potential target states");
 
       // create formula
-      BooleanFormula program = createFormulaFor(targetStates);
+      Formula program = createFormulaFor(targetStates);
 
       logger.log(Level.INFO, "Starting satisfiability check...");
       stats.satCheck.start();
@@ -392,13 +390,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private boolean checkBoundingAssertions(final ReachedSet pReachedSet, final ProverEnvironment prover) {
+  private boolean checkBoundingAssertions(final ReachedSet pReachedSet) {
     FluentIterable<AbstractState> stopStates = from(pReachedSet)
                                                     .filter(IS_STOP_STATE);
 
     if (boundingAssertions) {
       // create formula for unwinding assertions
-      BooleanFormula assertions = createFormulaFor(stopStates);
+      Formula assertions = createFormulaFor(stopStates);
 
       logger.log(Level.INFO, "Starting assertions check...");
 
@@ -420,17 +418,17 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   /**
    * Create a disjunctive formula of all the path formulas in the supplied iterable.
    */
-  private BooleanFormula createFormulaFor(Iterable<AbstractState> states) {
-    BooleanFormula f = bfmgr.makeBoolean(false);
+  private Formula createFormulaFor(Iterable<AbstractState> states) {
+    Formula f = fmgr.makeFalse();
 
     for (PredicateAbstractState e : AbstractStates.projectToType(states, PredicateAbstractState.class)) {
-      f = bfmgr.or(f, e.getPathFormula().getFormula());
+      f = fmgr.makeOr(f, e.getPathFormula().getFormula());
     }
 
     return f;
   }
 
-  private boolean checkWithInduction(final ProverEnvironment prover) throws CPAException, InterruptedException {
+  private boolean checkWithInduction() throws CPAException, InterruptedException {
     if (!cfa.getLoopStructure().isPresent()) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
       return false;
@@ -538,11 +536,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     // get global invariants
-    BooleanFormula invariants = extractInvariantsAt(loopHead, invariantGenerator.get());
+    Formula invariants = extractInvariantsAt(loopHead, invariantGenerator.get());
     invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
 
     // Create formulas
-    BooleanFormula inductions = bfmgr.makeBoolean(true);
+    Formula inductions = fmgr.makeTrue();
 
     for (CFAEdge outgoingEdge : outgoingEdges) {
       // filter out exit edges that do not lead to a target state, we don't care about them
@@ -567,23 +565,23 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       // Create (A & B)
       PathFormula pathFormulaAB = extractStateByType(lastcutPointState, PredicateAbstractState.class).getPathFormula();
-      BooleanFormula formulaAB = bfmgr.and(invariants, pathFormulaAB.getFormula());
+      Formula formulaAB = fmgr.makeAnd(invariants, pathFormulaAB.getFormula());
 
       // Create C
       PathFormula empty = pmgr.makeEmptyPathFormula(pathFormulaAB); // empty has correct SSAMap
       PathFormula pathFormulaC = pmgr.makeAnd(empty, outgoingEdge);
       // we need to negate it, because we used the outgoing edge, not the continuation edge
-      BooleanFormula formulaC = bfmgr.not(pathFormulaC.getFormula());
+      Formula formulaC = fmgr.makeNot(pathFormulaC.getFormula());
 
       // Crate (A & B) => C
-      BooleanFormula f = bfmgr.or(bfmgr.not(formulaAB), formulaC);
+      Formula f = fmgr.makeOr(fmgr.makeNot(formulaAB), formulaC);
 
-      inductions = bfmgr.and(inductions, f);
+      inductions = fmgr.makeAnd(inductions, f);
     }
 
     // now prove that (A & B) => C is a tautology by checking if the negation is unsatisfiable
 
-    inductions = bfmgr.not(inductions);
+    inductions = fmgr.makeNot(inductions);
 
     stats.inductionPreparation.stop();
 
@@ -603,18 +601,18 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return sound;
   }
 
-  private BooleanFormula extractInvariantsAt(CFANode loc, ReachedSet reached) {
+  private Formula extractInvariantsAt(CFANode loc, ReachedSet reached) {
     if (reached.isEmpty()) {
-      return bfmgr.makeBoolean(true); // invariant generation was disabled
+      return fmgr.makeTrue(); // invariant generation was disabled
     }
 
-    BooleanFormula invariant =bfmgr.makeBoolean(false);
+    Formula invariant = fmgr.makeFalse();
 
     for (AbstractState locState : AbstractStates.filterLocation(reached, loc)) {
-      BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState);
+      Formula f = AbstractStates.extractReportedFormulas(fmgr, locState);
       logger.log(Level.ALL, "Invariant:", f);
 
-      invariant = bfmgr.or(invariant, f);
+      invariant = fmgr.makeOr(invariant, f);
     }
     return invariant;
   }
@@ -639,7 +637,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private final LogManager logger;
     private final Algorithm invariantAlgorithm;
-    private final ConfigurableProgramAnalysis invariantCPAs;
     private final ReachedSet reached;
 
     private CFANode initialLocation = null;
@@ -661,14 +658,15 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
         }
 
-        invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory).buildCPAs(cfa);
+        ConfigurableProgramAnalysis invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory).buildCPAs(cfa);
         invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger, invariantConfig);
+
         reached = new ReachedSetFactory(invariantConfig, logger).create();
+        reached.add(invariantCPAs.getInitialState(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));
 
       } else {
         // invariant generation is disabled
         invariantAlgorithm = null;
-        invariantCPAs = null;
         reached = new ReachedSetFactory(config, logger).create(); // create reached set that will stay empty
       }
     }
@@ -677,12 +675,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       checkState(initialLocation == null);
       initialLocation = pInitialLocation;
 
-      if (invariantCPAs == null) {
+      if (!reached.hasWaitingState()) {
         // invariant generation disabled
         return;
       }
-
-      reached.add(invariantCPAs.getInitialState(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));
 
       if (parallelInvariantGeneration) {
 

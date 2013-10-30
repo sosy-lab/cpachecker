@@ -78,7 +78,7 @@ public class BlockedCFAReducer implements BlockComputer {
       pConfig.inject(this);
     }
 
-    this.inliningStack = new ArrayDeque<>();
+    this.inliningStack = new ArrayDeque<FunctionEntryNode>();
   }
 
   private boolean isAbstractionNode(ReducedNode pNode) {
@@ -92,7 +92,7 @@ public class BlockedCFAReducer implements BlockComputer {
    * with pNode as the rood-node.
    */
   private void incSummarizationsOnNode(ReducedNode pNode, int pIncBy) {
-    assert (reductionThreshold > 0);
+    assert(reductionThreshold > 0);
     pNode.incSummarizations(pIncBy);
   }
 
@@ -104,8 +104,8 @@ public class BlockedCFAReducer implements BlockComputer {
     boolean result = false;
     // TODO: ensure that this function is not applied across the scope of a loop.
 
-    Queue<ReducedNode> toTraverse = new ArrayDeque<>();
-    Set<ReducedEdge> traverseDone = new HashSet<>();
+    Queue<ReducedNode> toTraverse = new ArrayDeque<ReducedNode>();
+    Set<ReducedEdge> traverseDone = new HashSet<ReducedEdge>();
 
     toTraverse.add(pApplyTo.getEntryNode());
     while (toTraverse.size() > 0) {
@@ -146,8 +146,8 @@ public class BlockedCFAReducer implements BlockComputer {
         for (ReducedEdge f: vLeavingEdges) {
           ReducedNode w = f.getPointsTo();
 
-          assert (u != v);
-          assert (v != w);
+          assert(u != v);
+          assert(v != w);
 
           ReducedEdge sumEdge = new ReducedEdge(w);
           sumEdge.addEdge(e);
@@ -177,8 +177,8 @@ public class BlockedCFAReducer implements BlockComputer {
   protected boolean applyChoiceRule(ReducedFunction pApplyTo) {
     boolean result = false;
 
-    Deque<ReducedNode> toTraverse = new ArrayDeque<>();
-    Set<ReducedNode> traverseDone = new HashSet<>();
+    Deque<ReducedNode> toTraverse = new ArrayDeque<ReducedNode>();
+    Set<ReducedNode> traverseDone = new HashSet<ReducedNode>();
 
     toTraverse.add(pApplyTo.getEntryNode());
     while (toTraverse.size() > 0) {
@@ -239,24 +239,21 @@ public class BlockedCFAReducer implements BlockComputer {
   }
 
   private static class FunctionNodeManager {
-    private final CFA cfa;
-    private Map<CFANode, ReducedNode> nodeMapping = new HashMap<>();
+    private Map<CFANode, ReducedNode> nodeMapping = new HashMap<CFANode, ReducedNode>();
     private int functionCallId;
 
     public ReducedNode getWrapper(CFANode pNode) {
       ReducedNode result = nodeMapping.get(pNode);
       if (result == null) {
-        boolean isLoopHead = cfa.getAllLoopHeads().get().contains(pNode);
-        result = new ReducedNode(pNode, isLoopHead);
+        result = new ReducedNode(pNode);
         result.setFunctionCallId(this.functionCallId);
         this.nodeMapping.put(pNode, result);
       }
       return result;
     }
 
-    public FunctionNodeManager(int pFunctionCallId, CFA pCfa) {
+    public FunctionNodeManager(int pFunctionCallId) {
       this.functionCallId = pFunctionCallId;
-      this.cfa = pCfa;
     }
   }
 
@@ -266,13 +263,13 @@ public class BlockedCFAReducer implements BlockComputer {
    * and the outgoing function calls that get inlined.
    *
    */
-  private ReducedFunction inlineAndSummarize(FunctionEntryNode pFunctionNode, CFA cfa) {
+  private ReducedFunction inlineAndSummarize(FunctionEntryNode pFunctionNode) {
     this.functionCallSeq++;
     this.inliningStack.push(pFunctionNode);
 
-    Set<CFAEdge> traversed = new HashSet<>();
-    Deque<ReducedNode> openEndpoints = new ArrayDeque<>();
-    FunctionNodeManager functionNodes = new FunctionNodeManager(this.functionCallSeq, cfa);
+    Set<CFAEdge> traversed = new HashSet<CFAEdge>();
+    Deque<ReducedNode> openEndpoints = new ArrayDeque<ReducedNode>();
+    FunctionNodeManager functionNodes = new FunctionNodeManager(this.functionCallSeq);
 
     ReducedNode entryNode = functionNodes.getWrapper(pFunctionNode);
     ReducedNode exitNode = functionNodes.getWrapper(pFunctionNode.getExitNode());
@@ -304,7 +301,7 @@ public class BlockedCFAReducer implements BlockComputer {
             result.addEdge(uSn, callReturnTarget);
           } else {
             //System.out.println(String.format("Inlining %s to %s", calledFunction.getFunctionName(), pFunctionNode.getFunctionName()));
-            ReducedFunction functionSum = inlineAndSummarize(calledFunction, cfa);
+            ReducedFunction functionSum = inlineAndSummarize(calledFunction);
 
             result.insertFunctionSum(functionSum);
             result.addEdge(uSn, functionSum.getEntryNode());
@@ -361,7 +358,7 @@ public class BlockedCFAReducer implements BlockComputer {
    * @param pInlinedCfa
    * @param pOut
    */
-  public void printInlinedCfa(Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> pInlinedCfa, PrintStream pOut) {
+  public void printInlinedCfa (Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> pInlinedCfa, PrintStream pOut) {
     for (ReducedNode u: pInlinedCfa.keySet()) {
       Map<ReducedNode, Set<ReducedEdge>> uTarget = pInlinedCfa.get(u);
       for (ReducedNode v: uTarget.keySet()) {
@@ -377,18 +374,18 @@ public class BlockedCFAReducer implements BlockComputer {
    */
   @Override
   public synchronized ImmutableSet<CFANode> computeAbstractionNodes(final CFA pCfa) {
-    assert (pCfa != null);
-    assert (this.inliningStack.size() == 0);
-    assert (this.functionCallSeq == 0);
+    assert(pCfa != null);
+    assert(this.inliningStack.size() == 0);
+    assert(this.functionCallSeq == 0);
 
     this.functionCallSeq = 0;
-    ReducedFunction reducedProgram = inlineAndSummarize(pCfa.getMainFunction(), pCfa);
+    ReducedFunction reducedProgram = inlineAndSummarize(pCfa.getMainFunction());
 
     if (reducedCfaFile != null) {
       try {
         Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = reducedProgram.getInlinedCfa();
 
-        PrintStream out = new PrintStream(reducedCfaFile);
+        PrintStream out = new PrintStream (reducedCfaFile);
         printInlinedCfa(inlinedCfa, out);
         out.flush();
         out.close();
@@ -398,7 +395,7 @@ public class BlockedCFAReducer implements BlockComputer {
     }
 
     Set<ReducedNode> abstractionNodes = reducedProgram.getAllActiveNodes();
-    Set<CFANode> result = new HashSet<>(abstractionNodes.size());
+    Set<CFANode> result = new HashSet<CFANode>(abstractionNodes.size());
     for (ReducedNode n : abstractionNodes) {
       result.add(n.getWrapped());
     }

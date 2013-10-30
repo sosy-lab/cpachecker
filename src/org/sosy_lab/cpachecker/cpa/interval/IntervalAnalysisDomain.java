@@ -26,12 +26,14 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public class IntervalAnalysisDomain implements AbstractDomain {
+public class IntervalAnalysisDomain implements AbstractDomain
+{
     /* (non-Javadoc)
      * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#isLessOrEqual(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.AbstractState)
      */
     @Override
-    public boolean isLessOrEqual(AbstractState currentAbstractState, AbstractState reachedAbstractState) {
+    public boolean isLessOrEqual(AbstractState currentAbstractState, AbstractState reachedAbstractState)
+    {
       return ((IntervalAnalysisState)currentAbstractState).isLessOrEqual((IntervalAnalysisState)reachedAbstractState);
     }
 
@@ -39,7 +41,8 @@ public class IntervalAnalysisDomain implements AbstractDomain {
      * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#join(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.AbstractState)
      */
     @Override
-    public AbstractState join(AbstractState currentAbstractState, AbstractState reachedAbstractState) {
+    public AbstractState join(AbstractState currentAbstractState, AbstractState reachedAbstractState)
+    {
       return ((IntervalAnalysisState)currentAbstractState).join((IntervalAnalysisState)reachedAbstractState);
     }
 }

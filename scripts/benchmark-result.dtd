@@ -1,5 +1,5 @@
-<!ELEMENT result (systeminfo, columns, sourcefile+, time?)>
-<!ATTLIST result name CDATA #IMPLIED
+<!ELEMENT test (systeminfo, columns, sourcefile+, time?)>
+<!ATTLIST test name CDATA #IMPLIED
                benchmarkname CDATA #REQUIRED
                date CDATA #REQUIRED
                tool CDATA #REQUIRED
@@ -26,8 +26,7 @@
 
 <!-- element time is deprecated -->
 <!ATTLIST time cputime CDATA #REQUIRED
-               walltime CDATA #REQUIRED
-               memUsage CDATA #IMPLIED>
+               walltime CDATA #REQUIRED>
 
 
 <!-- not used: -->

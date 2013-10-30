@@ -30,33 +30,32 @@ import java.util.Vector;
 
 import org.sosy_lab.cpachecker.util.invariants.interfaces.GeneralVariable;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 public class TemplateVariableManager implements VariableManager {
 
   private List<TemplateVariable> vars;
 
   public TemplateVariableManager() {
-    vars = new Vector<>();
+    vars = new Vector<TemplateVariable>();
   }
 
   public TemplateVariableManager(Collection<TemplateVariable> vars) {
-    this.vars = new Vector<>(vars);
+    this.vars = new Vector<TemplateVariable>(vars);
   }
 
-  public TemplateVariableManager(FormulaType<?> type,  int n, int m) {
+  public TemplateVariableManager(int n, int m) {
     // Create vars v1, v2, ..., vn, u1, u2, ..., um
-    vars = new Vector<>();
+    vars = new Vector<TemplateVariable>();
     for (int i = 1; i <= n; i++) {
-      vars.add(new TemplateVariable(type, "v", i));
+      vars.add(new TemplateVariable("v", i));
     }
     for (int j = 1; j <= m; j++) {
-      vars.add(new TemplateVariable(type, "u", j));
+      vars.add(new TemplateVariable("u", j));
     }
   }
 
   public void merge(TemplateVariableManager tvm) {
-    vars.addAll(tvm.getVars());
+    vars.addAll( tvm.getVars() );
   }
 
   public List<TemplateVariable> getVars() {
@@ -68,7 +67,7 @@ public class TemplateVariableManager implements VariableManager {
    */
   @Override
   public Iterator<GeneralVariable> iterator() {
-    Vector<GeneralVariable> gvars = new Vector<>();
+    Vector<GeneralVariable> gvars = new Vector<GeneralVariable>();
     GeneralVariable GV;
     for (int i = 0; i < vars.size(); i++) {
       GV = vars.get(i);
@@ -96,14 +95,14 @@ public class TemplateVariableManager implements VariableManager {
 
   @Override
   public String toString() {
-  String s = "Variables:";
-  Iterator<TemplateVariable> I = vars.iterator();
-  TemplateVariable V;
-  while (I.hasNext()) {
-    V = I.next();
-    s += " "+V.toString();
-  }
-  return s;
+	String s = "Variables:";
+	Iterator<TemplateVariable> I = vars.iterator();
+	TemplateVariable V;
+	while (I.hasNext()) {
+		V = I.next();
+		s += " "+V.toString();
+	}
+	return s;
   }
 
 }

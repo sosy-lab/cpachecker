@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,7 +38,7 @@ public class CacheMergeOperator implements MergeOperator {
 
   public CacheMergeOperator(MergeOperator pCachedMergeOperator) {
     mCachedMergeOperator = pCachedMergeOperator;
-    mCache = new HashMap<>();
+    mCache = new HashMap<Precision, Map<AbstractState, Map<AbstractState, AbstractState>>>();
   }
 
   @Override
@@ -48,14 +48,14 @@ public class CacheMergeOperator implements MergeOperator {
     Map<AbstractState, Map<AbstractState, AbstractState>> lCache1 = mCache.get(pPrecision);
 
     if (lCache1 == null) {
-      lCache1 = new HashMap<>();
+      lCache1 = new HashMap<AbstractState, Map<AbstractState, AbstractState>>();
       mCache.put(pPrecision, lCache1);
     }
 
     Map<AbstractState, AbstractState> lCache2 = lCache1.get(pElement2);
 
     if (lCache2 == null) {
-      lCache2 = new HashMap<>();
+      lCache2 = new HashMap<AbstractState, AbstractState>();
       lCache1.put(pElement2, lCache2);
     }
 

@@ -40,7 +40,7 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
 
   @Override
   public Set<AbstractionPredicate> getRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
-    Set<AbstractionPredicate> result = new HashSet<>(predicates.size());
+    Set<AbstractionPredicate> result = new HashSet<AbstractionPredicate>(predicates.size());
 
     T precomputeResult = precompute(context, predicates);
 
@@ -80,7 +80,7 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
   @Override
   public Set<AbstractionPredicate> getIrrelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
 
-    Set<AbstractionPredicate> result = new HashSet<>(predicates);
+    Set<AbstractionPredicate> result = new HashSet<AbstractionPredicate>(predicates);
     result.removeAll(getRelevantPredicates(context, predicates));
 
     return result;

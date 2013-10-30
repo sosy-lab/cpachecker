@@ -2,6 +2,17 @@ Libraries Used by CPAchecker
 ============================
 
 
+Source-Code Libraries
+---------------------
+
+Libraries in source code should be stored under lib/source/.
+
+- ccvisu: CCVisu
+  http://ccvisu.sosy-lab.org/
+  Open-source license: licence_lgpl.txt
+  Clustering algorithm for graphs
+
+
 Binary Libraries
 ----------------
 
@@ -27,8 +38,8 @@ call "ant report-dependencies".
   Used for octagon abstract domain
   Source for wrapper in native/source/octagon-libJOct.so/
 
-- libmathsat5j.so: MathSAT5
-  http://mathsat.fbk.eu/
+- libmathsatj.so: Mathsat4
+  http://mathsat4.disi.unitn.it/
   CPAchecker-specific license: license-libmathsatj.txt
   SMT-solver (used for predicate analysis)
   Source for Java wrapper library in native/source/libmathsatj/

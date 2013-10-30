@@ -41,7 +41,7 @@ public class PivotRow {
   public PivotRow(int i, LogManager lm) {
     logger = lm;
     rowNum = i;
-    usable = new Vector<>();
+    usable = new Vector<UsableColumn>();
   }
 
   private void reset() {

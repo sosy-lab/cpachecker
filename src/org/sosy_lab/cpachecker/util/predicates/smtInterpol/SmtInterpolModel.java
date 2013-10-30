@@ -23,16 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import java.util.Map;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.Model.Function;
 import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
 import com.google.common.collect.ImmutableMap;
@@ -41,8 +37,9 @@ import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
+import de.uni_freiburg.informatik.ultimate.logic.Valuation;
 
-class SmtInterpolModel {
+public class SmtInterpolModel {
 
   private static TermType toSmtInterpolType(Sort sort) {
 
@@ -69,7 +66,7 @@ class SmtInterpolModel {
     String lName = appTerm.getFunction().getName();
     TermType lType = toSmtInterpolType(appTerm.getSort());
 
-    Pair<String, Integer> lSplitName = FormulaManagerView.parseName(lName);
+    Pair<String, Integer> lSplitName = ArithmeticSmtInterpolFormulaManager.parseName(lName);
     return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
   }
 
@@ -130,8 +127,7 @@ class SmtInterpolModel {
     }
   }
 
-  static Model createSmtInterpolModel(SmtInterpolFormulaManager mgr, Iterable<Term> terms) {
-    SmtInterpolEnvironment env = mgr.getEnv();
+  static Model createSmtInterpolModel(SmtInterpolEnvironment env, Iterable<Term> terms) {
     // model can only return values for keys, not for terms
     Term[] keys = SmtInterpolUtil.getVars(terms);
 
@@ -139,7 +135,7 @@ class SmtInterpolModel {
 
     assert env.checkSat() != LBool.UNSAT:
             "model is not available for UNSAT"; // TODO expensive check?
-    Map<Term, Term> val = env.getValue(keys);
+    Valuation val = env.getValue(keys);
 
     Term modelFormula = env.term("true");
 
@@ -159,7 +155,7 @@ class SmtInterpolModel {
         // TODO is there a bug in SmtInterpol??
         // with new version from 2012.04.09 there can be ApplicationTerms in the model
         // we put the Term into the model
-        model.put(lAssignable, SmtInterpolUnsafeFormulaManager.dequote(lValueTerm.toStringDirect()));
+        model.put(lAssignable, SmtInterpolFormulaManager.dequote(lValueTerm.toStringDirect()));
       } else {
 
       String lTermRepresentation = lValueTerm.toString();
@@ -191,7 +187,7 @@ class SmtInterpolModel {
     }
     }
 
-    return new Model(model.build(), mgr.encapsulate(BooleanFormula.class, modelFormula));
+    return new Model(model.build(), new SmtInterpolFormula(modelFormula));
   }
 
 }

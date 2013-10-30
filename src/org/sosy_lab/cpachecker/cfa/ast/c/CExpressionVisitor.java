@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,6 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
-
 
 public interface CExpressionVisitor<R, X extends Exception> {
 
@@ -45,8 +44,6 @@ public interface CExpressionVisitor<R, X extends Exception> {
   R visit(CStringLiteralExpression pIastStringLiteralExpression) throws X;
 
   R visit(CTypeIdExpression pIastTypeIdExpression) throws X;
-
-  R visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws X;
 
   R visit(CUnaryExpression pIastUnaryExpression) throws X;
 

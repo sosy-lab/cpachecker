@@ -35,12 +35,12 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 
 public abstract class FormulaMatriciser {
 
-  public abstract MatrixI buildMatrix(TemplateFormula t, VariableManager vmgr, Map<String, Variable> paramVars, boolean prependTrue);
+  public abstract MatrixI buildMatrix(TemplateFormula t, VariableManager vmgr, Map<String,Variable> paramVars, boolean prependTrue);
 
-  protected static List<RationalFunction> makeRationalFunctions(List<Coeff> clist, Map<String, Variable> paramVars) {
-    List<RationalFunction> rfs = new Vector<>(clist.size());
+  protected static List<RationalFunction> makeRationalFunctions(List<Coeff> clist, Map<String,Variable> paramVars) {
+    List<RationalFunction> rfs = new Vector<RationalFunction>(clist.size());
     for (Coeff c : clist) {
-      rfs.add(c.makeRationalFunction(paramVars));
+      rfs.add( c.makeRationalFunction(paramVars) );
     }
     return rfs;
   }
@@ -50,11 +50,11 @@ public abstract class FormulaMatriciser {
    * @return The list of all passed coefficients negated
    */
   protected static List<Coeff> negative(List<Coeff> P) {
-    Vector<Coeff> N = new Vector<>();
+    Vector<Coeff> N = new Vector<Coeff>();
     Coeff C;
     for (int i = 0; i < P.size(); i++) {
       C = P.get(i);
-      N.add(C.negative());
+      N.add( C.negative() );
     }
     return N;
   }

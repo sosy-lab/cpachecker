@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,10 +25,6 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.util.Objects;
-
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -39,28 +35,22 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * int x = 0;
  * struct s { ... } st;
  */
-public final class CVariableDeclaration extends AVariableDeclaration implements CDeclaration {
+public final class CVariableDeclaration extends CDeclaration {
 
-  private final String qualifiedName;
   private final CStorageClass    cStorageClass;
+  private final CInitializer initializer;
 
-  public CVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
+  public CVariableDeclaration(CFileLocation pFileLocation, boolean pIsGlobal,
       CStorageClass pCStorageClass, CType pType, String pName, String pOrigName,
-      String pQualifiedName,
       CInitializer pInitializer) {
 
-    super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), pOrigName, pInitializer);
+    super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), pOrigName);
     cStorageClass = pCStorageClass;
-    qualifiedName = checkNotNull(pQualifiedName);
+    initializer = pInitializer;
 
-    checkArgument(!(cStorageClass == CStorageClass.EXTERN && getInitializer() != null), "Extern declarations cannot have an initializer");
+    checkArgument(!(cStorageClass == CStorageClass.EXTERN && initializer != null), "Extern declarations cannot have an initializer");
     checkArgument(cStorageClass == CStorageClass.EXTERN || cStorageClass == CStorageClass.AUTO, "CStorageClass is " + cStorageClass);
     checkArgument(pIsGlobal || cStorageClass == CStorageClass.AUTO);
-  }
-
-  @Override
-  public CType getType() {
-    return (CType)super.getType();
   }
 
   /**
@@ -70,24 +60,12 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     return cStorageClass;
   }
 
-  @Override
-  public String getQualifiedName() {
-    return qualifiedName;
-  }
-
-  @Override
-  public CInitializer getInitializer() {
-    return (CInitializer) super.getInitializer();
-  }
-
   /**
-   * Add an initializer.
-   * This is only possible if there is no initializer already.
-   * DO NOT CALL this method after CFA construction!
-   * @param pCInitializer the new initializer
+   * The initial value of the variable
+   * (only if present, null otherwise).
    */
-  public void addInitializer(CInitializer pCInitializer) {
-    super.addInitializer(pCInitializer);
+  public CInitializer getInitializer() {
+    return initializer;
   }
 
   @Override
@@ -97,44 +75,13 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     lASTString.append(cStorageClass.toASTString());
     lASTString.append(getType().toASTString(getName()));
 
-    if (getInitializer() != null) {
+    if (initializer != null) {
       lASTString.append(" = ");
-      lASTString.append(getInitializer().toASTString());
+      lASTString.append(initializer.toASTString());
     }
 
     lASTString.append(";");
 
     return lASTString.toString();
   }
-
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(cStorageClass);
-    result = prime * result + super.hashCode();
-    return result;
-  }
-
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-
-    if (!(obj instanceof CVariableDeclaration)
-        || !super.equals(obj)) {
-      return false;
-    }
-
-    CVariableDeclaration other = (CVariableDeclaration) obj;
-
-    return Objects.equals(other.cStorageClass, cStorageClass);
-  }
-
-
 }

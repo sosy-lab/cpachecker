@@ -27,12 +27,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.invariants.interfaces.GeneralVariable;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
-public class TemplateVariable extends TemplateNumericValue implements BooleanFormula, GeneralVariable {
+public class TemplateVariable extends TemplateFormula implements GeneralVariable {
 
   private String name = null;
   private Integer index = null;
@@ -41,19 +39,16 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
 
   private boolean writingAsForm = false;
 
-  public TemplateVariable(FormulaType<?> type, String name, int i) {
-    super(type);
-    index = Integer.valueOf(i);
+  public TemplateVariable(String name, int i) {
+    index = new Integer(i);
     build(name, index);
   }
 
-  public TemplateVariable(FormulaType<?> type, String name) {
-    super(type);
+  public TemplateVariable(String name) {
     build(name, null);
   }
 
-  public TemplateVariable(FormulaType<?> type, String name, Integer index) {
-    super(type);
+  public TemplateVariable(String name, Integer index) {
     build(name, index);
   }
 
@@ -68,17 +63,17 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
    * @param vn
    * @return
    */
-  public static TemplateVariable parse(FormulaType<?> type, String vn) {
+  public static TemplateVariable parse(String vn) {
     TemplateVariable V;
     int i = vn.lastIndexOf("@");
     if (i < 0) {
-      V = new TemplateVariable(type, vn);
+      V = new TemplateVariable(vn);
     } else {
-      String s = vn.substring(0, i);
+      String s = vn.substring(0,i);
       String ind = vn.substring(i+1);
-      Integer I = Integer.valueOf(ind);
+      Integer I = new Integer(ind);
       int j = I.intValue();
-      V = new TemplateVariable(type, s, j);
+      V = new TemplateVariable(s,j);
     }
     return V;
   }
@@ -102,7 +97,7 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
   }
 
   @Override
-  public void postindex(Map<String, Integer> indices) {
+  public void postindex(Map<String,Integer> indices) {
     if (name!=null && indices.containsKey(name)) {
       index = indices.get(name);
     } else {
@@ -111,9 +106,9 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
   }
 
   @Override
-  public void preindex(Map<String, Integer> indices) {
+  public void preindex(Map<String,Integer> indices) {
     if (name!=null && indices.containsKey(name)) {
-      index = Integer.valueOf(1);
+      index = new Integer(1);
     } else {
       index = null;
     }
@@ -129,15 +124,15 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
   }
 
   @Override
-  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
+  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
     if (name!=null && index!=null) {
       if (map.containsKey(name)) {
         Integer J = map.get(name);
         if (index.compareTo(J) > 0) {
-          map.put(name, index);
+          map.put(name,index);
         }
       } else {
-        map.put(name, index);
+        map.put(name,index);
       }
     }
     return map;
@@ -146,7 +141,7 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
   public boolean equals(TemplateVariable v) {
     // Call these variables equal if they produce the same
     // string.
-    return ( toString().equals(v.toString() ));
+    return ( toString().equals( v.toString() ) );
   }
 
   public String getName() {
@@ -162,29 +157,23 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
   }
 
   @Override
-  public Formula translate(FormulaManagerView fmgr) {
-    Formula form = null;
-    if (hasIndex()) {
-      form = fmgr.makeVariable(getFormulaType(), name, index);
-    } else {
-      form = fmgr.makeVariable(getFormulaType(), name);
-    }
-    return form;
+  public Formula translate(FormulaManager fmgr) {
+  	Formula form = null;
+  	if (hasIndex()) {
+  		form = fmgr.makeVariable(name, index);
+  	} else {
+  		form = fmgr.makeVariable(name);
+  	}
+  	return form;
   }
 
   @Override
   public TemplateVariable copy() {
-    return withFormulaType(getFormulaType());
-  }
-
-  @Override
-  public TemplateVariable withFormulaType(FormulaType<?> pNewType) {
-
     TemplateVariable v = null;
     if (index == null) {
-      v = new TemplateVariable(pNewType, name);
+      v = new TemplateVariable(new String(name));
     } else {
-      v = new TemplateVariable(pNewType, name, Integer.valueOf(index));
+      v = new TemplateVariable(new String(name), new Integer(index));
     }
     return v;
   }
@@ -230,6 +219,5 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
     }
     return s;
   }
-
 
 }

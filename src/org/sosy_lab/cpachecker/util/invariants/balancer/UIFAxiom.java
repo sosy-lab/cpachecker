@@ -58,7 +58,7 @@ public class UIFAxiom {
   public UIFAxiom(Purification pur, int i, int j) {
     TemplateUIF F1 = pur.getUIFByIndex(i);
     TemplateUIF F2 = pur.getUIFByIndex(j);
-    construct(F1, F2);
+    construct(F1,F2);
   }
 
   private void construct(TemplateUIF F1, TemplateUIF F2) {

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.core.interfaces.conditions;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 /**
  * Interface to implement in order for an abstract state to be able to
@@ -47,6 +47,6 @@ public interface AvoidanceReportingState extends AbstractState {
    * If {@link #mustDumpAssumptionForAvoidance()} returned false, this method
    * SHOULD return TRUE.
    */
-  public BooleanFormula getReasonFormula(FormulaManagerView mgr);
+  public Formula getReasonFormula(FormulaManager mgr);
 
 }

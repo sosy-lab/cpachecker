@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -52,12 +52,12 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAB
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateCPA;
@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import com.google.common.base.Preconditions;
 
 
-@Options(prefix = "cpa.abm")
+@Options(prefix="cpa.abm")
 public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvider, ProofChecker, PostProcessor {
 
   public static CPAFactory factory() {
@@ -81,48 +81,48 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final ABMTransferRelation transfer;
   private final ABMPrecisionAdjustment prec;
   private final ABMMergeOperator merge;
-  private final ABMStopOperator stop;
   private final ABMCPAStatistics stats;
   private final PartitioningHeuristic heuristic;
   private final CFA cfa;
   private final ProofChecker wrappedProofChecker;
 
-  @Option(description = "Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
-      + "or any class that implements a PartitioningHeuristic")
-  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cfa.blocks.builder")
+  @Option(description="Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
+                    + "or any class that implements a PartitioningHeuristic")
+  @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cfa.blocks.builder")
   private Class<? extends PartitioningHeuristic> blockHeuristic = FunctionAndLoopPartitioning.class;
 
-  public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger,
-      ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException, CPAException {
+  public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException, CPAException {
     super(pCpa);
     config.inject(this);
 
     logger = pLogger;
     cfa = pCfa;
 
-    if (!(pCpa instanceof ConfigurableProgramAnalysisWithABM)) { throw new InvalidConfigurationException(
-        "ABM needs CPAs that are capable for ABM"); }
-    Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM) pCpa).getReducer();
-    if (wrappedReducer == null) { throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM"); }
+    if (!(pCpa instanceof ConfigurableProgramAnalysisWithABM)) {
+      throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM");
+    }
+    Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)pCpa).getReducer();
+    if (wrappedReducer == null) {
+      throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM");
+    }
     reducer = new TimedReducer(wrappedReducer);
     prec = new ABMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
     transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
     prec.setABMTransferRelation(transfer);
     merge = new ABMMergeOperator(pCpa.getMergeOperator(), transfer);
-    stop = new ABMStopOperator(getWrappedCpa().getStopOperator());
 
     stats = new ABMCPAStatistics(this);
     heuristic = getPartitioningHeuristic();
 
     if (pCpa instanceof ProofChecker) {
-      this.wrappedProofChecker = (ProofChecker) pCpa;
+      this.wrappedProofChecker = (ProofChecker)pCpa;
     } else {
       this.wrappedProofChecker = null;
     }
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
+  public AbstractState getInitialState(CFANode node)  {
     if (blockPartitioning == null) {
       blockPartitioning = heuristic.buildPartitioning(node);
       transfer.setBlockPartitioning(blockPartitioning);
@@ -132,7 +132,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
         predicateCpa.setPartitioning(blockPartitioning);
       }
 
-      Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision = new HashMap<>();
+      Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision = new HashMap<AbstractState, Precision>();
       transfer.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
       prec.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
     }
@@ -145,8 +145,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   private PartitioningHeuristic getPartitioningHeuristic() throws CPAException, InvalidConfigurationException {
-    return Classes.createInstance(PartitioningHeuristic.class, blockHeuristic, new Class[] { LogManager.class,
-        CFA.class }, new Object[] { logger, cfa }, CPAException.class);
+    return Classes.createInstance(PartitioningHeuristic.class, blockHeuristic, new Class[]{LogManager.class, CFA.class}, new Object[]{logger, cfa}, CPAException.class);
   }
 
   @Override
@@ -161,7 +160,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   @Override
   public StopOperator getStopOperator() {
-    return stop;
+    return getWrappedCpa().getStopOperator();
   }
 
   @Override
@@ -201,16 +200,15 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   @Override
   public void postProcess(ReachedSet pReached) {
-    if (getWrappedCpa() instanceof PostProcessor) {
+    if (getWrappedCpa() instanceof PostProcessor)
       ((PostProcessor) getWrappedCpa()).postProcess(pReached);
-    }
   }
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
-    return transfer.areAbstractSuccessors(pState, pCfaEdge, pSuccessors, wrappedProofChecker);
+    return false;//transfer.areAbstractSuccessors(pState, pCfaEdge, pSuccessors, wrappedProofChecker);
   }
 
   @Override

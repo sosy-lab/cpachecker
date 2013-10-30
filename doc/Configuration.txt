@@ -34,10 +34,6 @@ The following command-line arguments are allowed:
 -entryfunction <FUNC>	sets "analysis.entryFunction = <FUNC>"
 -cbmc			sets "analysis.useCBMC = true"
 -timelimit <TIME>	sets "cpa.conditions.global.time.wall = <TIME>"
--32			sets "analysis.machineModel = Linux32" (this is the default)
--64			sets "analysis.machineModel = Linux64"
--preprocess		sets "parser.usePreprocessor = true"
--java			sets "language = JAVA"
 -setprop <KEY>=<VALUE>	sets any option: "KEY = VALUE"
 
 The file doc/ConfigurationOptions.txt contains an explanation

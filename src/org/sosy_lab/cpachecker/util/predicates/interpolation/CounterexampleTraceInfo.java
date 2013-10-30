@@ -25,63 +25,45 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 
 /**
  * A class that stores information about a counterexample trace.
- * For spurious counterexamples, this stores the interpolants.
+ * For spurious counterexamples, this stores a predicate map
+ * with new predicates that are sufficient to rule out the trace in the
+ * refined abstract model.
  */
-public class CounterexampleTraceInfo {
+public class CounterexampleTraceInfo<I> {
     private final boolean spurious;
-    private final ImmutableList<BooleanFormula> interpolants;
+    private final List<I> pmap;
     private final Model mCounterexampleModel;
-    private final ImmutableList<BooleanFormula> mCounterexampleFormula;
-    private final ImmutableMap<Integer, Boolean> branchingPreds;
+    private final List<Formula> mCounterexampleFormula;
+    private final Map<Integer, Boolean> branchingPreds;
 
-    private CounterexampleTraceInfo(boolean pSpurious, ImmutableList<BooleanFormula> pInterpolants,
-        Model pCounterexampleModel, ImmutableList<BooleanFormula> pCounterexampleFormula,
-        ImmutableMap<Integer, Boolean> pBranchingPreds) {
-      spurious = pSpurious;
-      interpolants = pInterpolants;
-      mCounterexampleModel = pCounterexampleModel;
-      mCounterexampleFormula = pCounterexampleFormula;
-      branchingPreds = pBranchingPreds;
+    public CounterexampleTraceInfo() {
+      mCounterexampleFormula = Collections.emptyList();
+      mCounterexampleModel = null;
+      spurious = true;
+      pmap = Lists.newArrayList();
+      branchingPreds = ImmutableMap.of();
     }
 
-    static CounterexampleTraceInfo infeasible(List<BooleanFormula> pInterpolants) {
-      return new CounterexampleTraceInfo(true,
-          ImmutableList.copyOf(pInterpolants),
-          null,
-          ImmutableList.<BooleanFormula>of(),
-          ImmutableMap.<Integer, Boolean>of()
-          );
-    }
-
-    static CounterexampleTraceInfo infeasibleNoItp() {
-      return new CounterexampleTraceInfo(true,
-          null,
-          null,
-          ImmutableList.<BooleanFormula>of(),
-          ImmutableMap.<Integer, Boolean>of()
-          );
-    }
-
-    static CounterexampleTraceInfo feasible(List<BooleanFormula> pCounterexampleFormula,
-        Model pModel, Map<Integer, Boolean> preds) {
-      return new CounterexampleTraceInfo(false,
-          ImmutableList.<BooleanFormula>of(),
-          checkNotNull(pModel),
-          ImmutableList.copyOf(pCounterexampleFormula),
-          ImmutableMap.copyOf(preds)
-          );
+    public CounterexampleTraceInfo(List<Formula> pCounterexampleFormula, Model pModel, Map<Integer, Boolean> preds) {
+      mCounterexampleFormula = checkNotNull(pCounterexampleFormula);
+      mCounterexampleModel = checkNotNull(pModel);
+      spurious = false;
+      pmap = ImmutableList.of();
+      branchingPreds = preds;
     }
 
     /**
@@ -91,23 +73,35 @@ public class CounterexampleTraceInfo {
     public boolean isSpurious() { return spurious; }
 
     /**
-     * Returns the list of interpolants that were discovered during
-     * counterexample analysis.
+     * returns the list of Predicates that were discovered during
+     * counterexample analysis for the given AbstractState. The invariant is
+     * that the union of all the predicates for all the AbstractStates in
+     * the spurious counterexample is sufficient for refining the abstract
+     * model such that this trace is no longer feasible in it
      *
-     * @return a list of interpolants
+     * @return a list of predicates
      */
-    public List<BooleanFormula> getInterpolants() {
+    public List<I> getPredicatesForRefinement() {
       checkState(spurious);
-      return interpolants;
+      return pmap;
+    }
+
+    /**
+     * Adds some predicates to the list of those corresponding to the given
+     * AbstractState
+     */
+    public void addPredicatesForRefinement(I preds) {
+      checkState(spurious);
+      pmap.add(preds);
     }
 
     @Override
     public String toString() {
       return "Spurious: " + isSpurious() +
-        (isSpurious() ? ", interpolants: " + interpolants : "");
+        (isSpurious() ? ", new predicates: " + pmap : "");
     }
 
-    public List<BooleanFormula> getCounterExampleFormulas() {
+    public List<Formula> getCounterExampleFormulas() {
       checkState(!spurious);
       return mCounterexampleFormula;
     }

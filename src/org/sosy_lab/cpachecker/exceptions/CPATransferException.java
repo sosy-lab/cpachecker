@@ -34,7 +34,7 @@ public class CPATransferException extends CPAException {
     super(msg);
   }
 
-  public CPATransferException(String msg, Throwable cause) {
+  protected CPATransferException(String msg, Throwable cause) {
     super(msg, cause);
   }
 }

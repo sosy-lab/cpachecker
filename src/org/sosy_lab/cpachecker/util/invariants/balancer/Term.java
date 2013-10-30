@@ -41,7 +41,7 @@ public class Term {
   }
 
   public Term(int n) {
-    makeConstant(new Rational(n, 1));
+    makeConstant(new Rational(n,1));
   }
 
   public Term(Rational r) {
@@ -61,7 +61,7 @@ public class Term {
     Term u = new Term();
     u.setMonomial(m);
     u.setCoeff(Rational.makeUnity());
-    return divide(t, u);
+    return divide(t,u);
   }
 
   /*
@@ -95,7 +95,7 @@ public class Term {
     Monomial m2 = t2.monom;
     Term t = new Term();
     Rational c3 = c1.times(c2);
-    Monomial m3 = Monomial.multiply(m1, m2);
+    Monomial m3 = Monomial.multiply(m1,m2);
     t.setCoeff(c3);
     t.setMonomial(m3);
     return t;
@@ -103,7 +103,7 @@ public class Term {
 
   public static Term makeNegative(Term t) {
     Term u = new Term();
-    u.setCoeff(t.getCoeff().makeNegative());
+    u.setCoeff( t.getCoeff().makeNegative() );
     u.setMonomial(t.getMonomial());
     return u;
   }

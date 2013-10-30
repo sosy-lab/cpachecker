@@ -32,7 +32,7 @@ public class EliminationAnswer {
   private boolean truthValue = true; // for use when Redlog says 'false'.
 
   public EliminationAnswer() {
-    pairs = new Vector<>();
+    pairs = new Vector<EAPair>();
   }
 
   public EliminationAnswer(boolean value) {

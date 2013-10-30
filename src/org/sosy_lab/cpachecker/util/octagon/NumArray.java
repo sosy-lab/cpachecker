@@ -27,7 +27,7 @@ public class NumArray {
 
   private final long array;
 
-  NumArray(long l) {
+  NumArray(long l){
     array = l;
   }
 

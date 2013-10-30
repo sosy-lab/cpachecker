@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,8 +22,6 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
-
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -143,9 +141,9 @@ public class BDDPartitionOrderer {
   /** This Visitor collects all edges reachable from the a node
    * until a split-point (assumption) is reached.
    * The leaving edges of the splitpoint are cllected, too. */
-  private static class CFAUntilSplitCollector implements CFAVisitor {
+  private class CFAUntilSplitCollector implements CFAVisitor {
 
-    private Set<CFAEdge> edges = new LinkedHashSet<>();
+    private Set<CFAEdge> edges = new LinkedHashSet<CFAEdge>();
 
     public Set<CFAEdge> getEdges() {
       return edges;
@@ -161,7 +159,9 @@ public class BDDPartitionOrderer {
     public TraversalProcess visitNode(CFANode pNode) {
       int numChildren = pNode.getNumLeavingEdges();
       if (numChildren > 1) { // split-point
-        leavingEdges(pNode).copyInto(edges);
+        for (int i = 0; i < numChildren; i++) {
+          edges.add(pNode.getLeavingEdge(i));
+        }
         return TraversalProcess.SKIP;
 
       } else {
@@ -175,7 +175,7 @@ public class BDDPartitionOrderer {
    * For each assumption only the true-edge is collected. */
   private class CFAAssumptionCollector extends DefaultCFAVisitor {
 
-    private Collection<CAssumeEdge> assumptions = new ArrayList<>();
+    private Collection<CAssumeEdge> assumptions = new ArrayList<CAssumeEdge>();
 
     public Collection<CAssumeEdge> getAssumptions() {
       return assumptions;

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -42,7 +43,7 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
 
-import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
 
 public class CPAMain {
 
@@ -85,30 +86,26 @@ public class CPAMain {
     } catch (InvalidConfigurationException e) {
       System.err.println("Invalid configuration: " + e.getMessage());
       System.exit(1);
-      return;
     }
 
     // create everything
     CPAchecker cpachecker = null;
     ShutdownHook shutdownHook = null;
-    String programDenotation = null;
+    File cFile = null;
     ProofGenerator proofGenerator = null;
     try {
       MainOptions options = new MainOptions();
       cpaConfig.inject(options);
-      if (Strings.isNullOrEmpty(options.programs)) {
-        throw new InvalidConfigurationException("Please specify a program to analyze on the command line.");
-      }
       dumpConfiguration(options, cpaConfig, logManager);
-      programDenotation = getProgramDenotation(options);
+      cFile = getCodeFile(options);
 
       shutdownHook = new ShutdownHook(cpaConfig, logManager, outputDirectory);
       cpachecker = new CPAchecker(cpaConfig, logManager);
+
       proofGenerator = new ProofGenerator(cpaConfig, logManager);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
-      return;
     }
 
     // this is for catching Ctrl+C and printing statistics even in that
@@ -117,7 +114,7 @@ public class CPAMain {
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(programDenotation);
+    CPAcheckerResult result = cpachecker.run(cFile.getPath());
 
     shutdownHook.setResult(result);
 
@@ -130,9 +127,10 @@ public class CPAMain {
   @Options
   private static class MainOptions {
     @Option(name="analysis.programNames",
-        //required=true, NOT required because we want to give a nicer user message ourselves
-        description="A String, denoting the programs to be analyzed")
-    private String programs;
+        required=true,
+        description="C programs to analyze (currently only one file is supported)")
+    @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+    private List<File> programs;
 
     @Option(name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
@@ -140,8 +138,12 @@ public class CPAMain {
     private File configurationOutputFile = new File("UsedConfiguration.properties");
   }
 
-  static String getProgramDenotation(final MainOptions options) throws InvalidConfigurationException {
-    return options.programs;
+  static File getCodeFile(final MainOptions options) throws InvalidConfigurationException {
+    if (options.programs.size() != 1) {
+      throw new InvalidConfigurationException("Exactly one code file has to be given.");
+    }
+
+    return Iterables.getOnlyElement(options.programs);
   }
 
   static void dumpConfiguration(MainOptions options, Configuration config,
@@ -160,7 +162,6 @@ public class CPAMain {
     // if there are some command line arguments, process them
     Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args);
 
-
     // get name of config file (may be null)
     // and remove this from the list of options (it's not a real option)
     String configFile = cmdLineOptions.remove(CmdLineArguments.CONFIGURATION_FILE_OPTION);
@@ -171,6 +172,7 @@ public class CPAMain {
     }
     config.setOptions(cmdLineOptions);
 
+    //normalizeValues();
     return config.build();
   }
 

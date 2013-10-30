@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,7 +58,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   private void initLoopMap() {
-    loopHeaderToLoopBody = new HashMap<>();
+    loopHeaderToLoopBody = new HashMap<CFANode, Set<CFANode>>();
     if (cfa.getLoopStructure().isPresent()) {
       for (String functionName : cfa.getLoopStructure().get().keySet()) {
         for (Loop loop : cfa.getLoopStructure().get().get(functionName)) {
@@ -77,7 +77,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
       //main function
       return true;
     }
-    if (isLoopHead(pNode)) {
+    if (pNode.isLoopStart()) {
       if (hasBlankEdgeFromLoop(pNode) || selfLoop(pNode)) {
         return false;
       }
@@ -86,14 +86,10 @@ public class LoopPartitioning extends PartitioningHeuristic {
     return false;
   }
 
-  private boolean isLoopHead(CFANode pNode) {
-    return cfa.getAllLoopHeads().get().contains(pNode);
-  }
-
-  private boolean hasBlankEdgeFromLoop(CFANode pNode) {
+  private static boolean hasBlankEdgeFromLoop(CFANode pNode) {
     for (int i = 0; i < pNode.getNumEnteringEdges(); i++) {
       CFAEdge edge = pNode.getEnteringEdge(i);
-      if (edge instanceof BlankEdge && isLoopHead(edge.getPredecessor())) {
+      if (edge instanceof BlankEdge && edge.getPredecessor().isLoopStart()) {
         return true;
       }
     }
@@ -109,8 +105,8 @@ public class LoopPartitioning extends PartitioningHeuristic {
     if (pNode instanceof FunctionEntryNode) {
       return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
     }
-    if (isLoopHead(pNode)) {
-      Set<CFANode> loopBody = new HashSet<>();
+    if (pNode.isLoopStart()) {
+      Set<CFANode> loopBody = new HashSet<CFANode>();
       if (loopHeaderToLoopBody == null) {
         initLoopMap();
       }
@@ -136,7 +132,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   private void insertLoopReturnStates(Set<CFANode> pLoopBody) {
-    List<CFANode> addNodes = new ArrayList<>();
+    List<CFANode> addNodes = new ArrayList<CFANode>();
     for (CFANode node : pLoopBody) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge edge = node.getLeavingEdge(i);

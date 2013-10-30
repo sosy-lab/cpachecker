@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,12 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.*;
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
@@ -42,18 +39,14 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 
 public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState> {
 
   private static final long serialVersionUID = 2608287648397165040L;
-
-  // We use a List here although we would like to have a Set
-  // because ArrayList is much more memory efficient than e.g. LinkedHashSet.
-  // Also these collections are small and so a slow contains() method won't hurt.
-  // To enforce set semantics, do not add elements except through addparent()!
-  private final Collection<ARGState> children = new ArrayList<>(1);
-  private final Collection<ARGState> parents = new ArrayList<>(1);
+  private final Set<ARGState> children;
+  private final Set<ARGState> parents; // more than one parent if joining elements
 
   private ARGState mCoveredBy = null;
   private Set<ARGState> mCoveredByThis = null; // lazy initialization because rarely needed
@@ -62,7 +55,6 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   private boolean wasExpanded = false;
   private boolean mayCover = true;
   private boolean destroyed = false;
-  private boolean hasCoveredParent = false;
 
   private ARGState mergedWith = null;
 
@@ -73,71 +65,29 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   public ARGState(AbstractState pWrappedState, ARGState pParentElement) {
     super(pWrappedState);
     stateId = ++nextArgStateId;
-    if (pParentElement != null) {
+    parents = new LinkedHashSet<ARGState>(1); // TODO Is HashSet enough? It would be more memory-efficient.
+    if (pParentElement != null){
       addParent(pParentElement);
     }
+    children = new LinkedHashSet<ARGState>(1);
   }
 
-  // parent & child relations
-
-  /**
-   * Get the parent elements of this state.
-   * @return A unmodifiable collection of ARGStates without duplicates.
-   */
-  public Collection<ARGState> getParents() {
-    return Collections.unmodifiableCollection(parents);
+  public Set<ARGState> getParents(){
+    // TODO return unmodifiable view?
+    return parents;
   }
 
-  public void addParent(ARGState pOtherParent) {
-    checkNotNull(pOtherParent);
+  public void addParent(ARGState pOtherParent){
     assert !destroyed : "Don't use destroyed ARGState " + this;
-
-    // Manually enforce set semantics.
-    if (!parents.contains(pOtherParent)) {
-      assert !pOtherParent.children.contains(this);
-      parents.add(pOtherParent);
+    if (parents.add(pOtherParent)){
       pOtherParent.children.add(this);
-    } else {
-      assert pOtherParent.children.contains(this);
     }
   }
 
-  /**
-   * Get the child elements of this state.
-   * @return An unmodifiable collection of ARGStates without duplicates.
-   */
-  public Collection<ARGState> getChildren() {
+  public Set<ARGState> getChildren() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    return Collections.unmodifiableCollection(children);
+    return children;
   }
-
-  public CFAEdge getEdgeToChild(ARGState pChild) {
-    checkArgument(children.contains(pChild));
-
-    CFANode currentLoc = extractLocation(this);
-    CFANode childNode = extractLocation(pChild);
-
-    return currentLoc.getEdgeTo(childNode);
-  }
-
-  public Set<ARGState> getSubgraph() {
-    assert !destroyed : "Don't use destroyed ARGState " + this;
-    Set<ARGState> result = new HashSet<>();
-    Deque<ARGState> workList = new ArrayDeque<>();
-
-    workList.add(this);
-
-    while (!workList.isEmpty()) {
-      ARGState currentElement = workList.removeFirst();
-      if (result.add(currentElement)) {
-        // currentElement was not in result
-        workList.addAll(currentElement.children);
-      }
-    }
-    return result;
-  }
-
-  // coverage
 
   public void setCovered(ARGState pCoveredBy) {
     checkState(!isCovered(), "Cannot cover already covered element %s", this);
@@ -147,12 +97,12 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     mCoveredBy = pCoveredBy;
     if (pCoveredBy.mCoveredByThis == null) {
       // lazy initialization because rarely needed
-      pCoveredBy.mCoveredByThis = new LinkedHashSet<>(2);
+      pCoveredBy.mCoveredByThis = new HashSet<ARGState>(2);
     }
     pCoveredBy.mCoveredByThis.add(this);
   }
 
-  void uncover() {
+  public void uncover() {
     assert isCovered();
     assert mCoveredBy.mCoveredByThis.contains(this);
 
@@ -179,8 +129,19 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     }
   }
 
+  protected void setMergedWith(ARGState pMergedWith) {
+    assert !destroyed : "Don't use destroyed ARGState " + this;
+    assert mergedWith == null : "Second merging of element " + this;
+
+    mergedWith = pMergedWith;
+  }
+
+  protected ARGState getMergedWith() {
+    return mergedWith;
+  }
+
   public boolean mayCover() {
-    return mayCover && !hasCoveredParent && !isCovered();
+    return mayCover && !isCovered();
   }
 
   public void setNotCovering() {
@@ -188,62 +149,17 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     mayCover = false;
   }
 
-  void setHasCoveredParent(boolean pHasCoveredParent) {
+  public void setCovering() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    hasCoveredParent = pHasCoveredParent;
+    mayCover = true;
   }
 
-  // merged-with marker so that stop can return true for merged elements
-
-  void setMergedWith(ARGState pMergedWith) {
-    assert !destroyed : "Don't use destroyed ARGState " + this;
-    assert mergedWith == null : "Second merging of element " + this;
-
-    mergedWith = pMergedWith;
-  }
-
-  ARGState getMergedWith() {
-    return mergedWith;
-  }
-
-  // was-expanded marker so we can identify open leafs
-
-  boolean wasExpanded() {
+  public boolean wasExpanded() {
     return wasExpanded;
   }
 
   void markExpanded() {
     wasExpanded = true;
-  }
-
-  // small and less important stuff
-
-  public int getStateId() {
-    return stateId;
-  }
-
-  public boolean isDestroyed() {
-    return destroyed;
-  }
-
-  /**
-   * The ordering of this class is the chronological creation order.
-   *
-   * Note: Although equals() is not overwritten, this ordering is consistent
-   * with equals() as the stateId field is unique.
-   */
-  @Override
-  public int compareTo(ARGState pO) {
-    return Ints.compare(this.stateId, pO.stateId);
-  }
-
-  public boolean isOlderThan(ARGState other) {
-    return (stateId < other.stateId);
-  }
-
-  @Override
-  public boolean isTarget() {
-    return !hasCoveredParent && !isCovered() && super.isTarget();
   }
 
   @Override
@@ -277,17 +193,31 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   private final Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
-    return from(elements).transform(TO_STATE_ID);
+    return Iterables.transform(elements, new Function<ARGState, Integer>() {
+      @Override
+      public Integer apply(ARGState pInput) {
+        return pInput.stateId;
+      }
+    });
   }
 
-  private static final Function<ARGState, Integer> TO_STATE_ID = new Function<ARGState, Integer>() {
-    @Override
-    public Integer apply(ARGState pInput) {
-      return pInput.stateId;
-    }
-  };
+  // TODO check
+  public Set<ARGState> getSubgraph() {
+    assert !destroyed : "Don't use destroyed ARGState " + this;
+    Set<ARGState> result = new HashSet<ARGState>();
+    Deque<ARGState> workList = new ArrayDeque<ARGState>();
 
-  // removal from ARG
+    workList.add(this);
+
+    while (!workList.isEmpty()) {
+      ARGState currentElement = workList.removeFirst();
+      if (result.add(currentElement)) {
+        // currentElement was not in result
+        workList.addAll(currentElement.children);
+      }
+    }
+    return result;
+  }
 
   /**
    * This method removes this element from the ARG by removing it from its
@@ -345,7 +275,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    *
    * @param replacement
    */
-  void replaceInARGWith(ARGState replacement) {
+  protected void replaceInARGWith(ARGState replacement) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     assert !replacement.destroyed : "Don't use destroyed ARGState " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;
@@ -369,7 +299,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     if (mCoveredByThis != null) {
       if (replacement.mCoveredByThis == null) {
         // lazy initialization because rarely needed
-        replacement.mCoveredByThis = new HashSet<>(mCoveredByThis.size());
+        replacement.mCoveredByThis = new HashSet<ARGState>(mCoveredByThis.size());
       }
 
       for (ARGState covered : mCoveredByThis) {
@@ -383,5 +313,37 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     }
 
     destroyed = true;
+  }
+
+  public int getStateId() {
+    return stateId;
+  }
+
+  public CFAEdge getEdgeToChild(ARGState pChild) {
+    checkArgument(children.contains(pChild));
+
+    CFANode currentLoc = extractLocation(this);
+    CFANode childNode = extractLocation(pChild);
+
+    return currentLoc.getEdgeTo(childNode);
+  }
+
+  public boolean isDestroyed() {
+    return destroyed;
+  }
+
+  /**
+   * The ordering of this class is the chronological creation order.
+   *
+   * Note: Although equals() is not overwritten, this ordering is consistent
+   * with equals() as the stateId field is unique.
+   */
+  @Override
+  public int compareTo(ARGState pO) {
+    return Ints.compare(this.stateId, pO.stateId);
+  }
+
+  public boolean isOlderThan(ARGState other) {
+    return (stateId < other.stateId);
   }
 }

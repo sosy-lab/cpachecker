@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,33 +23,36 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-
 /**
- * Interface for types representing enums, structs, and unions.
+ * Fake class, should not be used by CPAs.
  */
-public interface CComplexType extends CType {
+public class CComplexType extends CType {
 
-  ComplexTypeKind getKind();
+  private final String name;
 
-  /**
-   * Returns the unqualified name, e.g. for the type "struct s", this returns "s".
-   * @return A name string or the empty string if the type has no name.
-   */
-  String getName();
+  public CComplexType(final String pName) {
+    super(false, false);
+    name = pName.intern();
+  }
 
-  /**
-   * Returns the unqualified name, e.g. for the type "struct s", this returns "struct s".
-   * If the name is empty, this contains only the qualifier.
-   */
-  String getQualifiedName();
+  public String getName() {
+    return name;
+  }
 
-  public static enum ComplexTypeKind {
-    ENUM,
-    STRUCT,
-    UNION;
+  @Override
+  public boolean isConst() {
+    // TODO is this correct?
+    return false;
+  }
 
-    public String toASTString() {
-      return name().toLowerCase();
-    }
+  @Override
+  public boolean isVolatile() {
+    // TODO is this correct?
+    return false;
+  }
+
+  @Override
+  public String toASTString(String pDeclator) {
+    return name + " " + pDeclator;
   }
 }

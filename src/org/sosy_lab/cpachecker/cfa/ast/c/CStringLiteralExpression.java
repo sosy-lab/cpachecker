@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,21 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CStringLiteralExpression extends AStringLiteralExpression implements CLiteralExpression {
+public final class CStringLiteralExpression extends CLiteralExpression {
 
-  public CStringLiteralExpression(FileLocation pFileLocation,
+  private final String value;
+
+  public CStringLiteralExpression(CFileLocation pFileLocation,
                                      CType pType,
                                      String pValue) {
-    super(pFileLocation, pType,  pValue);
+    super(pFileLocation, pType);
+
+    value = pValue;
   }
 
   @Override
-  public CType getExpressionType() {
-    return (CType) super.getExpressionType();
+  public String getValue() {
+    return value;
   }
 
   @Override
@@ -52,31 +54,7 @@ public final class CStringLiteralExpression extends AStringLiteralExpression imp
 
   @Override
   public String toASTString() {
-    return getValue();
+    return value;
   }
 
-  public String getContentString() {
-    String literal = getValue();
-    return literal.substring(1, literal.length()-1);
-  }
-
-  @Override
-  public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    if (!(obj instanceof CStringLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
-  }
 }

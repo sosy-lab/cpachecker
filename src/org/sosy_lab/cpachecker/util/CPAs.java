@@ -63,7 +63,7 @@ public class CPAs {
    */
   public static FluentIterable<ConfigurableProgramAnalysis> asIterable(final ConfigurableProgramAnalysis pCpa) {
 
-    return new TreeIterable<>(pCpa, CPA_CHILDREN_FUNCTION);
+    return new TreeIterable<ConfigurableProgramAnalysis>(pCpa, CPA_CHILDREN_FUNCTION);
   }
 
   private static final Function<ConfigurableProgramAnalysis, Iterator<? extends ConfigurableProgramAnalysis>> CPA_CHILDREN_FUNCTION =

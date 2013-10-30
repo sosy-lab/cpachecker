@@ -68,7 +68,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
 
   private final Map<String, Integer> variables;
 
-  private final Set<String> usedVars = new HashSet<>();
+  private final Set<String> usedVars = new HashSet<String>();
 
   public LDDAbstractionTransferRelation(LDDRegionManager regionManager, Map<String, Integer> variables) {
     this.regionManager = regionManager;
@@ -187,8 +187,10 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
         operator = operator == BinaryOperator.GREATER_EQUAL ? BinaryOperator.LESS_EQUAL : BinaryOperator.LESS_THAN;
         break;
       case BINARY_AND:
+      case LOGICAL_AND:
         return this.regionManager.makeAnd(assumeToRegion(left), assumeToRegion(right));
       case BINARY_OR:
+      case LOGICAL_OR:
         return this.regionManager.makeOr(assumeToRegion(left), assumeToRegion(right));
       case BINARY_XOR:
         return this.regionManager.makeXor(assumeToRegion(left), assumeToRegion(right));
@@ -227,7 +229,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
     Integer leftConst = removeConstant(leftTerm);
     Integer rightConst = removeConstant(rightTerm);
     int constant = rightConst - leftConst;
-    Map<String, Integer> term = new HashMap<>();
+    Map<String, Integer> term = new HashMap<String, Integer>();
     // Subtract right side variables (from left side, if given)
     for (Map.Entry<String, Integer> rightCoeff : rightTerm.entrySet()) {
       Integer leftCoeff = removeCoefficient(leftTerm, rightCoeff.getKey());
@@ -344,7 +346,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
    * @return the negated term.
    */
   private Map<String, Integer> negate(Map<String, Integer> toNegate) {
-    Map<String, Integer> result = new HashMap<>();
+    Map<String, Integer> result = new HashMap<String, Integer>();
     for (Map.Entry<String, Integer> coeff : toNegate.entrySet()) {
       result.put(coeff.getKey(), -coeff.getValue());
     }
@@ -360,7 +362,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
    * if the conversion failed.
    */
   private Map<String, Integer> reduceToTerm(CExpression expression) {
-    Map<String, Integer> variableCoeffs = new HashMap<>();
+    Map<String, Integer> variableCoeffs = new HashMap<String, Integer>();
     Map<String, Pair<Integer, Integer>> rationalTerm = reduceToRationalTerm(expression);
     if (rationalTerm == null) { return null; }
     for (Map.Entry<String, Pair<Integer, Integer>> coeff : rationalTerm.entrySet()) {
@@ -397,7 +399,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
    */
   private Map<String, Pair<Integer, Integer>> reduceToRationalTerm(CExpression expression) {
     expression.toASTString();
-    Map<String, Pair<Integer, Integer>> variableCoeffs = new HashMap<>();
+    Map<String, Pair<Integer, Integer>> variableCoeffs = new HashMap<String, Pair<Integer, Integer>>();
     if (expression instanceof CIntegerLiteralExpression) {
       CIntegerLiteralExpression literal = (CIntegerLiteralExpression) expression;
       return Collections.singletonMap("const", Pair.of(literal.getValue().intValue(), 1));
@@ -547,7 +549,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
    * @return the negated rational linear term.
    */
   private Map<String, Pair<Integer, Integer>> negateRational(Map<String, Pair<Integer, Integer>> toNegate) {
-    Map<String, Pair<Integer, Integer>> result = new HashMap<>();
+    Map<String, Pair<Integer, Integer>> result = new HashMap<String, Pair<Integer, Integer>>();
     for (Map.Entry<String, Pair<Integer, Integer>> coeff : toNegate.entrySet()) {
       int num = -coeff.getValue().getFirst();
       int denom = coeff.getValue().getSecond();
@@ -665,7 +667,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
    * @return a collection of variable indices and their corresponding integer coefficients.
    */
   private Collection<Pair<Integer, Integer>> toIndexCoefficients(Map<String, Integer> pCoeffs) {
-    Collection<Pair<Integer, Integer>> indexCoeffs = new LinkedList<>();
+    Collection<Pair<Integer, Integer>> indexCoeffs = new LinkedList<Pair<Integer, Integer>>();
     for (Map.Entry<String, Integer> coeff : pCoeffs.entrySet()) {
       indexCoeffs.add(Pair.of(this.variables.get(coeff.getKey()), coeff.getValue()));
     }
@@ -681,7 +683,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
    * all of which are treated as 1.
    */
   private Collection<Pair<Integer, Integer>> toIndexCoefficients(Collection<String> variables) {
-    Collection<Pair<Integer, Integer>> indexCoeffs = new LinkedList<>();
+    Collection<Pair<Integer, Integer>> indexCoeffs = new LinkedList<Pair<Integer, Integer>>();
     for (String variable : variables) {
       indexCoeffs.add(Pair.of(this.variables.get(variable), 1));
     }

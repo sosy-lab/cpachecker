@@ -91,12 +91,12 @@ public class PointerState implements AbstractQueryableState, Memory,
    */
 
   public PointerState() {
-    stack = new HashMap<>();
-    heap = new HashMap<>();
-    mallocs = new HashSet<>();
-    reverseRelation = new HashMap<>();
-    aliases = new HashMap<>();
-    tempTracked = new HashSet<>();
+    stack = new HashMap<String, Map<String, Pointer>>();
+    heap = new HashMap<MemoryAddress, Pointer>();
+    mallocs = new HashSet<MemoryRegion>();
+    reverseRelation = new HashMap<PointerTarget, Set<PointerLocation>>();
+    aliases = new HashMap<PointerLocation, Set<PointerLocation>>();
+    tempTracked = new HashSet<PointerLocation>();
 
     stack.put("", new HashMap<String, Pointer>());
   }
@@ -107,18 +107,18 @@ public class PointerState implements AbstractQueryableState, Memory,
       final Map<PointerLocation, Set<PointerLocation>> aliases,
       final Set<PointerLocation> tempTracked, final String currentFunctionName,
       final Set<ElementProperty> pProperties) {
-    this.stack = new HashMap<>();
-    this.heap = new HashMap<>();
-    this.mallocs = new HashSet<>(mallocs);
-    this.reverseRelation = new HashMap<>();
-    this.aliases = new HashMap<>();
+    this.stack = new HashMap<String, Map<String, Pointer>>();
+    this.heap = new HashMap<MemoryAddress, Pointer>();
+    this.mallocs = new HashSet<MemoryRegion>(mallocs);
+    this.reverseRelation = new HashMap<PointerTarget, Set<PointerLocation>>();
+    this.aliases = new HashMap<PointerLocation, Set<PointerLocation>>();
     this.currentFunctionName = currentFunctionName;
-    this.tempTracked = new HashSet<>(tempTracked);
+    this.tempTracked = new HashSet<PointerLocation>(tempTracked);
     this.properties.addAll(pProperties);
 
     for (Entry<String, Map<String, Pointer>> function : stack.entrySet()) {
       Map<String, Pointer> oldPointers = function.getValue();
-      Map<String, Pointer> newPointers = new HashMap<>();
+      Map<String, Pointer> newPointers = new HashMap<String, Pointer>();
 
       for (Entry<String, Pointer> var : oldPointers.entrySet()) {
         Pointer oldPointer = var.getValue();
@@ -135,11 +135,12 @@ public class PointerState implements AbstractQueryableState, Memory,
 
     for (Entry<PointerTarget, Set<PointerLocation>> target : reverseRelation
         .entrySet()) {
-      this.reverseRelation.put(target.getKey(), new HashSet<>(target.getValue()));
+      this.reverseRelation.put(target.getKey(), new HashSet<PointerLocation>(
+          target.getValue()));
     }
 
     for (Set<PointerLocation> aliasSet : aliases.values()) {
-      Set<PointerLocation> newAliasSet = new HashSet<>(aliasSet);
+      Set<PointerLocation> newAliasSet = new HashSet<PointerLocation>(aliasSet);
       for (PointerLocation location : newAliasSet) {
         this.aliases.put(location, newAliasSet);
       }
@@ -390,7 +391,7 @@ public class PointerState implements AbstractQueryableState, Memory,
 
         Set<PointerLocation> locs = reverseRelation.get(target);
         if (locs == null) {
-          locs = new HashSet<>();
+          locs = new HashSet<PointerLocation>();
           reverseRelation.put(target, locs);
         }
 
@@ -422,7 +423,7 @@ public class PointerState implements AbstractQueryableState, Memory,
       PointerLocation secondPointer) {
     Set<PointerLocation> newAliases = aliases.get(firstPointer);
     if (newAliases == null) {
-      newAliases = new HashSet<>();
+      newAliases = new HashSet<PointerLocation>();
       newAliases.add(firstPointer);
       aliases.put(firstPointer, newAliases);
     }
@@ -480,7 +481,7 @@ public class PointerState implements AbstractQueryableState, Memory,
     Set<PointerLocation> pointerAliases = aliases.get(pointer);
 
     if (pointerAliases == null) {
-      pointerAliases = new HashSet<>();
+      pointerAliases = new HashSet<PointerLocation>();
       pointerAliases.add(pointer);
       aliases.put(pointer, pointerAliases);
 
@@ -613,7 +614,7 @@ public class PointerState implements AbstractQueryableState, Memory,
 
     Pointer result;
 
-    if (target instanceof PointerLocation) {
+    if (target instanceof PointerLocation ) {
       result = ((PointerLocation) target).getPointer(this);
 
       if (result == null) {
@@ -711,7 +712,7 @@ public class PointerState implements AbstractQueryableState, Memory,
         AssumeInequality assumeIneqOp = (AssumeInequality) op;
 
         for (PointerTarget target : reverseRelation.keySet()) {
-          if (reverseRelation.get(target).contains(assumeIneqOp.getRemoveTarget()) && reverseRelation.get(target).size() == 1) {
+          if (reverseRelation.get(target).contains(assumeIneqOp.getRemoveTarget() ) && reverseRelation.get(target).size() == 1) {
              reverseRelation.remove(target);
           }
         }
@@ -727,7 +728,7 @@ public class PointerState implements AbstractQueryableState, Memory,
       Pointer secondPointer) {
     if (areAliases(firstPointer, secondPointer)) { return; }
 
-    ArrayList<PointerTarget> intersection = new ArrayList<>();
+    ArrayList<PointerTarget> intersection = new ArrayList<PointerTarget>();
     Set<PointerTarget> firstTargets = firstPointer.getTargets();
     Set<PointerTarget> secondTargets = secondPointer.getTargets();
 
@@ -800,8 +801,8 @@ public class PointerState implements AbstractQueryableState, Memory,
     //TODO: this method does not detect memory leaks of circular data structures
     //perhaps revert to revision 1020 where both cases were working
 
-    Set<MemoryRegion> unmarkedRegions = new HashSet<>(mallocs);
-    Set<MemoryRegion> unreferencedRegions = new HashSet<>();
+    Set<MemoryRegion> unmarkedRegions = new HashSet<MemoryRegion>(mallocs);
+    Set<MemoryRegion> unreferencedRegions = new HashSet<MemoryRegion>();
 
     if (unmarkedRegions.isEmpty()) { return unreferencedRegions; }
 
@@ -860,7 +861,7 @@ public class PointerState implements AbstractQueryableState, Memory,
   }
 
   public void returnFromFunction() {
-    assert !currentFunctionName.isEmpty() && currentFunctionName.contains(":") : "Cannot return from global context or main function!";
+    assert currentFunctionName != "" && currentFunctionName.contains(":") : "Cannot return from global context or main function!";
     //localPointers.pollLast();
     String oldFunctionName = currentFunctionName;
     currentFunctionName =
@@ -1035,7 +1036,7 @@ public class PointerState implements AbstractQueryableState, Memory,
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    if (pProperty.toLowerCase().equals("memoryleak")) {
+    if (pProperty.toLowerCase().equals("memoryleak")){
       if (this.properties.contains(ElementProperty.MEMORY_LEAK)) {
         return true;
       } else if (this.properties.contains(ElementProperty.NO_MEMORY_LEAK)) {

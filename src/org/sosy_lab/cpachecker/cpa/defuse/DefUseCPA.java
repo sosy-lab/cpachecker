@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 @Options(prefix="cpa.defuse")
-public class DefUseCPA implements ConfigurableProgramAnalysis {
+public class DefUseCPA implements ConfigurableProgramAnalysis{
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(DefUseCPA.class);
@@ -65,16 +65,16 @@ public class DefUseCPA implements ConfigurableProgramAnalysis {
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
 
-  private DefUseCPA(Configuration config) throws InvalidConfigurationException {
+  private DefUseCPA (Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     this.abstractDomain = new DefUseDomain();
 
-    this.transferRelation = new DefUseTransferRelation();
+    this.transferRelation = new DefUseTransferRelation ();
 
     this.mergeOperator = null;
-    if (mergeType.equals("sep")) {
+    if (mergeType.equals("sep")){
       this.mergeOperator = MergeSepOperator.getInstance();
-    } else if (mergeType.equals("join")) {
+    } else if (mergeType.equals("join")){
       this.mergeOperator = new MergeJoinOperator(abstractDomain);
     }
 
@@ -82,22 +82,26 @@ public class DefUseCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain getAbstractDomain ()
+  {
     return abstractDomain;
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
+  public TransferRelation getTransferRelation ()
+  {
     return transferRelation;
   }
 
   @Override
-  public MergeOperator getMergeOperator() {
+  public MergeOperator getMergeOperator ()
+  {
     return mergeOperator;
   }
 
   @Override
-  public StopOperator getStopOperator() {
+  public StopOperator getStopOperator ()
+  {
     return stopOperator;
   }
 
@@ -108,18 +112,21 @@ public class DefUseCPA implements ConfigurableProgramAnalysis {
 
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
-    Set<DefUseDefinition> defUseDefinitions = new HashSet<>();
-    if (node instanceof CFunctionEntryNode) {
-      List<String> parameterNames = ((CFunctionEntryNode)node).getFunctionParameterNames();
+  public AbstractState getInitialState (CFANode node)
+  {
+    Set<DefUseDefinition> defUseDefinitions = new HashSet<DefUseDefinition>();
+    if (node instanceof CFunctionEntryNode)
+    {
+      List<String> parameterNames = ((CFunctionEntryNode)node).getFunctionParameterNames ();
 
-      for (String parameterName : parameterNames) {
-        DefUseDefinition newDef = new DefUseDefinition(parameterName, null);
-        defUseDefinitions.add(newDef);
+      for (String parameterName : parameterNames)
+      {
+        DefUseDefinition newDef = new DefUseDefinition (parameterName, null);
+        defUseDefinitions.add (newDef);
       }
     }
 
-    return new DefUseState(defUseDefinitions);
+    return new DefUseState (defUseDefinitions);
   }
 
   @Override

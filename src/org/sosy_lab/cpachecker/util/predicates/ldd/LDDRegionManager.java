@@ -26,13 +26,12 @@ package org.sosy_lab.cpachecker.util.predicates.ldd;
 import java.util.Collection;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 public class LDDRegionManager {
 
   static {
-    NativeLibraries.loadLibrary("JLDD");
+    System.loadLibrary("JLDD");
   }
 
   private final LDDFactory factory;

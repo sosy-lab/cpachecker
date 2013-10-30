@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -99,7 +99,8 @@ public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
 
     if (lIndex + 1 == mLength) {
       return mCFAEdge;
-    } else {
+    }
+    else {
       return mPredecessor.get(lIndex);
     }
   }
@@ -129,10 +130,12 @@ public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
   public String toString() {
     if (getLength() == 0) {
       return "<>";
-    } else {
+    }
+    else {
       if (getLength() == 1) {
         return "< " + mCFAEdge.toString() + " >";
-      } else {
+      }
+      else {
         return "< ... " + mCFAEdge.toString() + " >";
       }
     }

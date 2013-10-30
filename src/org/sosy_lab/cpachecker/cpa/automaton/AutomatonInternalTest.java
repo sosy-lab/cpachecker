@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,10 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
-import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -35,8 +34,8 @@ import java.util.logging.Level;
 
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
+import junit.framework.Assert;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,12 +45,11 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.io.ByteStreams;
+import com.google.common.io.NullOutputStream;
 
 /**
  * This class contains Tests for the AutomatonAnalysis
@@ -71,32 +69,28 @@ public class AutomatonInternalTest {
     logger = new LogManager(config);
 
     ParserOptions options = CParser.Factory.getDefaultOptions();
-    parser = CParser.Factory.getParser(config, logger, options, MachineModel.LINUX32);
+    parser = CParser.Factory.getParser(logger, options);
   }
 
   @Test
   public void testScanner() throws InvalidConfigurationException, IOException {
     ComplexSymbolFactory sf1 = new ComplexSymbolFactory();
-    try (InputStream input = Files.newInputStream(defaultSpec.toPath())) {
-      AutomatonScanner s = new AutomatonScanner(input, defaultSpec, config, logger, sf1);
-      Symbol symb = s.next_token();
-      while (symb.sym != AutomatonSym.EOF) {
-        symb = s.next_token();
-      }
+    AutomatonScanner s = new AutomatonScanner(new FileInputStream(defaultSpec), defaultSpec, config, logger, sf1);
+    Symbol symb = s.next_token();
+    while (symb.sym != AutomatonSym.EOF) {
+      symb = s.next_token();
     }
   }
 
   @Test
   public void testParser() throws Exception {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
-    try (InputStream input = Files.newInputStream(defaultSpec.toPath())) {
-      AutomatonScanner scanner = new AutomatonScanner(input, defaultSpec, config, logger, sf);
-      Symbol symbol = new AutomatonParser(scanner, sf, logger, parser).parse();
-      @SuppressWarnings("unchecked")
-      List<Automaton> as = (List<Automaton>) symbol.value;
-      for (Automaton a : as) {
-        a.writeDotFile(new PrintStream(ByteStreams.nullOutputStream()));
-      }
+    AutomatonScanner scanner = new AutomatonScanner(new java.io.FileInputStream(defaultSpec), defaultSpec, config, logger, sf);
+    Symbol symbol = new AutomatonParser(scanner, sf, logger, parser).parse();
+    @SuppressWarnings("unchecked")
+    List<Automaton> as = (List<Automaton>) symbol.value;
+    for (Automaton a : as) {
+      a.writeDotFile(new PrintStream(new NullOutputStream()));
     }
   }
 
@@ -111,79 +105,25 @@ public class AutomatonInternalTest {
     AutomatonBoolExpr myTrue= AutomatonBoolExpr.TRUE;
     AutomatonBoolExpr myFalse= AutomatonBoolExpr.FALSE;
 
-    ex = new AutomatonBoolExpr.And(myTrue, myTrue);
-    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.And(myTrue, myFalse);
-    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.And(myTrue, cannot);
-    if (!ex.eval(args).canNotEvaluate()) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.And(myFalse, myTrue);
-    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.And(myFalse, myFalse);
-    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.And(myFalse, cannot);
-    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.And(cannot, myTrue);
-    if (!ex.eval(args).canNotEvaluate()) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.And(cannot, myFalse);
-    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.And(cannot, cannot);
-    if (!ex.eval(args).canNotEvaluate()) {
-      Assert.fail();
-    }
+    ex = new AutomatonBoolExpr.And(myTrue, myTrue); if (!ex.eval(args).getValue().equals(Boolean.TRUE)) Assert.fail();
+    ex = new AutomatonBoolExpr.And(myTrue, myFalse); if (!ex.eval(args).getValue().equals(Boolean.FALSE)) Assert.fail();
+    ex = new AutomatonBoolExpr.And(myTrue, cannot); if (!ex.eval(args).canNotEvaluate()) Assert.fail();
+    ex = new AutomatonBoolExpr.And(myFalse, myTrue); if (!ex.eval(args).getValue().equals(Boolean.FALSE)) Assert.fail();
+    ex = new AutomatonBoolExpr.And(myFalse, myFalse); if (!ex.eval(args).getValue().equals(Boolean.FALSE)) Assert.fail();
+    ex = new AutomatonBoolExpr.And(myFalse, cannot); if (!ex.eval(args).getValue().equals(Boolean.FALSE)) Assert.fail();
+    ex = new AutomatonBoolExpr.And(cannot, myTrue); if (!ex.eval(args).canNotEvaluate()) Assert.fail();
+    ex = new AutomatonBoolExpr.And(cannot, myFalse); if (!ex.eval(args).getValue().equals(Boolean.FALSE)) Assert.fail();
+    ex = new AutomatonBoolExpr.And(cannot, cannot); if (!ex.eval(args).canNotEvaluate()) Assert.fail();
 
-    ex = new AutomatonBoolExpr.Or(myTrue, myTrue);
-    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(myTrue, myFalse);
-    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(myTrue, cannot);
-    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(myFalse, myTrue);
-    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(myFalse, myFalse);
-    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(myFalse, cannot);
-    if (!ex.eval(args).canNotEvaluate()) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(cannot, myTrue);
-    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(cannot, myFalse);
-    if (!ex.eval(args).canNotEvaluate()) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(cannot, cannot);
-    if (!ex.eval(args).canNotEvaluate()) {
-      Assert.fail();
-    }
+    ex = new AutomatonBoolExpr.Or(myTrue, myTrue); if (!ex.eval(args).getValue().equals(Boolean.TRUE)) Assert.fail();
+    ex = new AutomatonBoolExpr.Or(myTrue, myFalse); if (!ex.eval(args).getValue().equals(Boolean.TRUE)) Assert.fail();
+    ex = new AutomatonBoolExpr.Or(myTrue, cannot); if (!ex.eval(args).getValue().equals(Boolean.TRUE)) Assert.fail();
+    ex = new AutomatonBoolExpr.Or(myFalse, myTrue); if (!ex.eval(args).getValue().equals(Boolean.TRUE)) Assert.fail();
+    ex = new AutomatonBoolExpr.Or(myFalse, myFalse); if (!ex.eval(args).getValue().equals(Boolean.FALSE)) Assert.fail();
+    ex = new AutomatonBoolExpr.Or(myFalse, cannot); if (!ex.eval(args).canNotEvaluate()) Assert.fail();
+    ex = new AutomatonBoolExpr.Or(cannot, myTrue); if (!ex.eval(args).getValue().equals(Boolean.TRUE)) Assert.fail();
+    ex = new AutomatonBoolExpr.Or(cannot, myFalse); if (!ex.eval(args).canNotEvaluate()) Assert.fail();
+    ex = new AutomatonBoolExpr.Or(cannot, cannot); if (!ex.eval(args).canNotEvaluate()) Assert.fail();
 
   }
 
@@ -201,7 +141,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testJokerReplacementInAST() throws InvalidAutomatonException, InvalidConfigurationException {
+  public void testJokerReplacementInAST() throws InvalidAutomatonException {
     // tests the replacement of Joker expressions in the AST comparison
     ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST("$20 = $5($1, $?);", parser);
     CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST("var1 = function(var2, egal);", parser);
@@ -232,7 +172,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testASTcomparison() throws InvalidAutomatonException, InvalidConfigurationException {
+  public void testASTcomparison() throws InvalidAutomatonException {
 
    testAST("x=5;", "x= $?;", true);
    testAST("x=5;", "x= 10;", false);
@@ -265,9 +205,8 @@ public class AutomatonInternalTest {
    * Tests the equality of two strings as used the ASTComparison transition.
    * @param src sourcecode string
    * @param pattern string in the automaton definition (may contain $?)
-   * @throws InvalidConfigurationException
    */
-  public void testAST(String src, String pattern, boolean result) throws InvalidAutomatonException, InvalidConfigurationException {
+  public void testAST(String src, String pattern, boolean result) throws InvalidAutomatonException {
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
     CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST(src, parser);
     ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST(pattern, parser);

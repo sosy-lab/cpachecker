@@ -23,15 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -76,7 +73,7 @@ public class BlockOperator {
 
 
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
-  private ImmutableSet<CFANode> loopHeads = null;
+
   int numBlkFunctions = 0;
   int numBlkLoops = 0;
   int numBlkThreshold = 0;
@@ -95,7 +92,7 @@ public class BlockOperator {
     CFANode predLoc = cfaEdge.getPredecessor();
 
     if (alwaysAndOnlyAtExplicitNodes) {
-      assert (explicitAbstractionNodes != null);
+      assert(explicitAbstractionNodes != null);
       return explicitAbstractionNodes.contains(predLoc);
     }
 
@@ -161,8 +158,7 @@ public class BlockOperator {
   }
 
   protected boolean isLoopHead(CFANode succLoc) {
-    checkState(loopHeads != null, "Missing loop information");
-    return loopHeads.contains(succLoc);
+    return succLoc.isLoopStart();
   }
 
   protected boolean isFunctionCall(CFANode succLoc) {
@@ -170,15 +166,8 @@ public class BlockOperator {
         || (succLoc.getEnteringSummaryEdge() != null); // function return edge
   }
 
-  void setExplicitAbstractionNodes(ImmutableSet<CFANode> pNodes) {
+  public void setExplicitAbstractionNodes(ImmutableSet<CFANode> pNodes) {
     this.explicitAbstractionNodes = pNodes;
   }
 
-  void setCFA(CFA cfa) {
-    if (absOnLoop || alwaysAtLoops) {
-      if (cfa.getAllLoopHeads().isPresent()) {
-        loopHeads = cfa.getAllLoopHeads().get();
-      }
-    }
-  }
 }

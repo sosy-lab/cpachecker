@@ -31,9 +31,8 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
 
@@ -110,12 +109,12 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
 
 
   @Override
-  public BooleanFormula getReasonFormula(FormulaManagerView manager) {
+  public Formula getReasonFormula(FormulaManager manager) {
+
     if (mustDumpAssumptionForAvoidance()) {
       return preventingCondition.getFirst().getFormula(manager, preventingCondition.getSecond());
     } else {
-      BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
-      return bfmgr.makeBoolean(true);
+      return manager.makeTrue();
     }
   }
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +46,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -74,7 +74,7 @@ public final class DOTBuilder2 {
    * @param outdir
    * @throws IOException
    */
-  public static void writeReport(CFA cfa, Path outdir) throws IOException {
+  public static void writeReport(CFA cfa, File outdir) throws IOException {
     CFAJSONBuilder jsoner = new CFAJSONBuilder();
     DOTViewBuilder dotter = new DOTViewBuilder();
     CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
@@ -83,7 +83,7 @@ public final class DOTBuilder2 {
       dotter.writeFunctionFile(entryNode.getFunctionName(), outdir);
     }
     dotter.writeGlobalFiles(outdir);
-    JSON.writeJSONString(jsoner.getJSON(), outdir.resolve("cfainfo.json"), Charset.defaultCharset());
+    JSON.writeJSONString(jsoner.getJSON(), new File(outdir, "cfainfo.json"), Charset.defaultCharset());
   }
 
   private static String getEdgeText(CFAEdge edge) {
@@ -91,7 +91,7 @@ public final class DOTBuilder2 {
     //future updates of dotty may make this obsolete.
     return edge.getDescription()
       .replaceAll("\\Q\\\"\\E", "\\ \"")
-      .replaceAll("\\\"", "\\\\\\\"")
+      .replaceAll ("\\\"", "\\\\\\\"")
       .replaceAll("\n", " ")
       .replaceAll("\\s+", " ")
       .replaceAll(" ;", ";");
@@ -102,8 +102,8 @@ public final class DOTBuilder2 {
    */
   private static class DOTViewBuilder extends DefaultCFAVisitor {
     // global state for all functions
-    private final Map<Object, Object> node2combo = new HashMap<>();
-    private final Map<Object, Object> virtFuncCallEdges = new HashMap<>();
+    private final Map<Object, Object> node2combo = new HashMap<Object, Object>();
+    private final Map<Object, Object> virtFuncCallEdges = new HashMap<Object, Object>();
     private int virtFuncCallNodeIdCounter = 100000;
 
     // local state per function
@@ -145,9 +145,10 @@ public final class DOTBuilder2 {
       return TraversalProcess.CONTINUE;
     }
 
-    void writeFunctionFile(String funcname, Path outdir) throws IOException {
+    void writeFunctionFile(String funcname, File outdir) throws IOException {
 
-        try (Writer out = Files.newBufferedWriter(outdir.resolve("cfa__" + funcname + ".dot"), Charsets.UTF_8)) {
+        Writer out = new OutputStreamWriter(new FileOutputStream(new File(outdir, "cfa__" + funcname + ".dot")), "UTF-8");
+        try {
           out.write("digraph " + funcname + " {\n");
           StringBuilder outb = new StringBuilder();
           //write comboedges
@@ -186,18 +187,21 @@ public final class DOTBuilder2 {
           nodes.clear();
           edges.clear();
           comboedges.clear();
+
+        } finally {
+          out.close();
         }
     }
 
-    void writeGlobalFiles(Path outdir) throws IOException {
-      JSON.writeJSONString(node2combo, outdir.resolve("combinednodes.json"), Charset.defaultCharset());
-      JSON.writeJSONString(virtFuncCallEdges, outdir.resolve("fcalledges.json"), Charset.defaultCharset());
+    void writeGlobalFiles(File outdir) throws IOException {
+      JSON.writeJSONString(node2combo, new File(outdir, "combinednodes.json"), Charset.defaultCharset());
+      JSON.writeJSONString(virtFuncCallEdges, new File(outdir, "fcalledges.json"), Charset.defaultCharset());
     }
 
     private static String nodeToDot(CFANode node) {
       String shape = "circle";
 
-      if (node.isLoopStart()) {
+      if (node.isLoopStart()){
         shape = "doublecircle";
       } else if (node.getNumLeavingEdges() > 0 &&
           node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge) {
@@ -284,12 +288,12 @@ public final class DOTBuilder2 {
    * output information about CFA nodes and edges as JSON
    */
   private static class CFAJSONBuilder extends DefaultCFAVisitor {
-    private final Map<Object, Object> nodes = new HashMap<>();
-    private final Map<Object, Object> edges = new HashMap<>();
+    private final Map<Object, Object> nodes = new HashMap<Object, Object>();
+    private final Map<Object, Object> edges = new HashMap<Object, Object>();
 
     @Override
     public TraversalProcess visitNode(CFANode node) {
-      Map<String, Object> jnode = new HashMap<>();
+      Map<String, Object> jnode = new HashMap<String, Object>();
       jnode.put("no", node.getNodeNumber());
       jnode.put("line", node.getLineNumber());
       jnode.put("func", node.getFunctionName());
@@ -300,7 +304,7 @@ public final class DOTBuilder2 {
 
     @Override
     public TraversalProcess visitEdge(CFAEdge edge) {
-      Map<String, Object> jedge = new HashMap<>();
+      Map<String, Object> jedge = new HashMap<String, Object>();
       int src = edge.getPredecessor().getNodeNumber();
       int target = edge.getSuccessor().getNodeNumber();
       jedge.put("line", edge.getLineNumber());
@@ -315,7 +319,7 @@ public final class DOTBuilder2 {
     }
 
     Map<String, Object> getJSON() {
-      Map<String, Object> obj = new HashMap<>();
+      Map<String, Object> obj = new HashMap<String, Object>();
       obj.put("nodes", nodes);
       obj.put("edges", edges);
       return obj;

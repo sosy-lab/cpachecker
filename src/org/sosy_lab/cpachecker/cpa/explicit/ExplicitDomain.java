@@ -26,7 +26,8 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public class ExplicitDomain implements AbstractDomain {
+public class ExplicitDomain implements AbstractDomain
+{
   @Override
   public boolean isLessOrEqual(AbstractState currentElement, AbstractState reachedState) {
     return ((ExplicitState)currentElement).isLessOrEqual((ExplicitState)reachedState);

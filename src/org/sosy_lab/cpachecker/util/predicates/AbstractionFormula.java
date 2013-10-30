@@ -23,17 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.Serializable;
 
-import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 /**
  * Instances of this class should hold a state formula (the result of an
@@ -52,70 +45,59 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 public class AbstractionFormula implements Serializable {
 
   private static final long serialVersionUID = -7756517128231447936L;
-  private @Nullable transient final Region region; // Null after de-serializing from proof
-  private final BooleanFormula formula;
-  private final BooleanFormula instantiatedFormula;
+  private transient final Region region;
+  private final Formula formula;
+  private final Formula instantiatedFormula;
 
   /**
    * The formula of the block directly before this abstraction.
    * (This formula was used to create this abstraction).
    */
-  private final PathFormula blockFormula;
+  private final Formula blockFormula;
 
   private static int nextId = 0;
   private final int id = nextId++;
-  private final BooleanFormulaManager mgr;
 
-  public AbstractionFormula(
-      FormulaManagerView mgr,
-      Region pRegion, BooleanFormula pFormula,
-      BooleanFormula pInstantiatedFormula, PathFormula pBlockFormula) {
-    this.mgr = checkNotNull(mgr.getBooleanFormulaManager());
-    this.region = checkNotNull(pRegion);
-    this.formula = checkNotNull(pFormula);
-    this.instantiatedFormula = checkNotNull(pInstantiatedFormula);
-    this.blockFormula = checkNotNull(pBlockFormula);
+  public AbstractionFormula(Region pRegion, Formula pFormula,
+      Formula pInstantiatedFormula, Formula pBlockFormula) {
+    this.region = pRegion;
+    this.formula = pFormula;
+    this.instantiatedFormula = pInstantiatedFormula;
+    this.blockFormula = pBlockFormula;
   }
 
   public boolean isTrue() {
-    return mgr.isTrue(formula);
+    return formula.isTrue();
   }
 
   public boolean isFalse() {
-    return mgr.isFalse(formula);
+    return formula.isFalse();
   }
 
-  public @Nullable Region asRegion() {
+  public Region asRegion() {
     return region;
   }
 
   /**
    * Returns the formula representation where all variables do not have SSA indices.
    */
-  public BooleanFormula asFormula() {
+  public Formula asFormula() {
     return formula;
   }
 
   /**
    * Returns the formula representation where all variables DO have SSA indices.
    */
-  public BooleanFormula asInstantiatedFormula() {
+  public Formula asInstantiatedFormula() {
     return instantiatedFormula;
   }
 
-  public PathFormula getBlockFormula() {
+  public Formula getBlockFormula() {
     return blockFormula;
   }
 
   @Override
   public String toString() {
-    // we print the formula only when it is small
-    String abs = "";
-    if (isTrue()) {
-      abs = ": true";
-    } else if (isFalse()) {
-      abs = ": false";
-    }
-    return "ABS" + id + abs;
+    return "ABS" + id + ": " + formula;
   }
 }

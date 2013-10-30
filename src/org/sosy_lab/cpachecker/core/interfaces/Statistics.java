@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,42 +29,20 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 /**
- * A class to output statistics and results of an analysis.
- *
- * You usually want to implement {@link StatisticsProvider} and register your
- * Statistics instances so that they are actually called after CPAchecker finishes.
+ * A class to hold statistics of the analysis
  */
 public interface Statistics {
 
     /**
-     * Prints this group of statistics using the given PrintStream.
-     *
-     * This is also the correct place to write any output files the user may wish
-     * to the disk. Please add a configuration option of the following form
-     * in order to determine the file name for output files:
-     * <code>
-     * @Option(description="...", name="...)
-     * @FileOption(FileOption.Type.OUTPUT_FILE)
-     * private File outputFile = new File("Default Filename.txt");
-     * </code>
-     * Note that <code>outputFile</code> may be null because the user disabled
-     * output files (do not write anything in this case).
-     * Do not forget to obtain a {@link org.sosy_lab.common.configuration.Configuration}
-     * instance and call <code>inject(this)</code> in your constructor as usual.
-     *
-     * @param out the PrintStream to use for printing the statistics
+     * Prints this group of statistics using the given writer
+     * @param out the writer to use for printing the statistics
      * @param result the result of the analysis
      * @param reached the final reached set
      */
     public void printStatistics(PrintStream out, Result result, ReachedSet reached);
 
     /**
-     * Define a name for this group of statistics.
-     * May be null, in this case no headings is printed and
-     * {@link #printStatistics(PrintStream, Result, ReachedSet)}
-     * should not actually write to the PrintStream
-     * (but may still write output files for example).
-     * @return A String with a human-readable name or null.
+     * @return The name for this group of statistics
      */
     public String getName();
 }

@@ -37,7 +37,7 @@ public class Variable implements Comparable<Variable> {
   }
 
   public Variable copy() {
-    return new Variable(name);
+    return new Variable( new String(name) );
   }
 
   @Override

@@ -1,10 +1,8 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="240" memlimit="3000" cpuCores="2">
-  <!-- try to make it more deterministic -->
-  <option name="-setprop">cpa.predicate.mathsat5.furtherOptions=random_seed=42</option>
+<benchmark tool="cpachecker" timelimit="120" memlimit="3000">
 
-  <rundefinition>
+  <test>
     <sourcefiles>
       <includesfile>integration-ControlFlowInteger.set</includesfile>
       <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
@@ -14,13 +12,13 @@
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
-      <option name="-64"/>
+      <option name="-setprop">analysis.machineModel=Linux64</option>
     </sourcefiles>
     <option name="-noout"/>
     <option name="-predicateAnalysis"/>
     <option name="-heap">2000M</option>
     <option name="-setprop">cpa.conditions.global.time.wall=1min</option>
-  </rundefinition>
+  </test>
 
   <columns>
     <column title="total">time for CPAchecker</column>

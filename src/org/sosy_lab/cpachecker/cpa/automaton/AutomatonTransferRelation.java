@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -120,7 +120,7 @@ class AutomatonTransferRelation implements TransferRelation {
       return Collections.singleton(state);
     }
 
-    Collection<AbstractState> lSuccessors = new HashSet<>(2);
+    Collection<AbstractState> lSuccessors = new HashSet<AbstractState>(2);
     AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
     boolean nonDetState = state.getInternalState().isNonDetState();
@@ -128,7 +128,7 @@ class AutomatonTransferRelation implements TransferRelation {
     // these transitions cannot be evaluated until last, because they might have sideeffects on other CPAs (dont want to execute them twice)
     // the transitionVariables have to be cached (produced during the match operation)
     // the list holds a Transition and the TransitionVariables generated during its match
-    List<Pair<AutomatonTransition, Map<Integer, String>>> transitionsToBeTaken = new ArrayList<>(2);
+    List<Pair<AutomatonTransition, Map<Integer, String>>> transitionsToBeTaken = new ArrayList<Pair<AutomatonTransition, Map<Integer, String>>>(2);
 
     for (AutomatonTransition t : state.getInternalState().getTransitions()) {
       exprArgs.clearTransitionVariables();
@@ -210,7 +210,7 @@ class AutomatonTransferRelation implements TransferRelation {
   }
 
   private static Map<String, AutomatonVariable> deepCloneVars(Map<String, AutomatonVariable> pOld) {
-    Map<String, AutomatonVariable> result = new HashMap<>(pOld.size());
+    Map<String, AutomatonVariable> result = new HashMap<String, AutomatonVariable>(pOld.size());
     for (Entry<String, AutomatonVariable> e : pOld.entrySet()) {
       result.put(e.getKey(), e.getValue().clone());
     }

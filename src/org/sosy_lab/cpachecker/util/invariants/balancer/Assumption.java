@@ -36,7 +36,7 @@ public class Assumption {
 
   public Assumption(Polynomial f, AssumptionType a) {
     // First simplify, if possible.
-    Pair<RationalFunction, AssumptionType> p = simplify(f, a);
+    Pair<RationalFunction,AssumptionType> p = simplify(f,a);
     func = p.getFirst();
     atype = p.getSecond();
   }
@@ -44,7 +44,7 @@ public class Assumption {
   public Assumption(RationalFunction f, AssumptionType a) {
     // First simplify, if possible.
     if (f.isPolynomial()) {
-      Pair<RationalFunction, AssumptionType> p = simplify(f.getNumerator(), a);
+      Pair<RationalFunction,AssumptionType> p = simplify(f.getNumerator(),a);
       f = p.getFirst();
       a = p.getSecond();
     }
@@ -58,7 +58,7 @@ public class Assumption {
    */
   public Assumption not() {
     AssumptionType b = atype.not();
-    return new Assumption(func, b);
+    return new Assumption(func,b);
   }
 
   /*
@@ -69,14 +69,16 @@ public class Assumption {
     // This can strengthen b iff b has either the same rational function, or the additive inverse thereof.
     if (RationalFunction.subtract(func, b.func).isZero()) {
       // In this case the rational functions are the same, so we just conjoin the assumption types.
-      AssumptionType t = AssumptionType.conjoin(this.atype, b.atype);
-      return new Assumption(b.func, t);
-    } else if (RationalFunction.add(func, b.func).isZero()) {
+      AssumptionType t = AssumptionType.conjoin(this.atype,b.atype);
+      return new Assumption(b.func,t);
+    }
+    else if (RationalFunction.add(func,b.func).isZero()) {
       // In this case the rational functions are additive inverses, so we flip one assumption type
       // before conjoining.
-      AssumptionType t = AssumptionType.conjoin(this.atype.flip(), b.atype);
-      return new Assumption(b.func, t);
-    } else {
+      AssumptionType t = AssumptionType.conjoin(this.atype.flip(),b.atype);
+      return new Assumption(b.func,t);
+    }
+    else {
       // Else we can do nothing.
       return null;
     }
@@ -109,7 +111,7 @@ public class Assumption {
       return AssumptionRelation.ISSAMEAS;
     }
     // Compute the conjunction of tt and ot.
-    AssumptionType ct = AssumptionType.conjoin(tt, ot);
+    AssumptionType ct = AssumptionType.conjoin(tt,ot);
     // If the conjunction is of type 'false', then this and other contradict each other.
     if (ct == AssumptionType.FALSE) {
       return AssumptionRelation.CONTRADICTS;
@@ -136,7 +138,7 @@ public class Assumption {
    * In general, it looks for integer content in the polynomial, as well as
    * "sign content" which is -1 if every coefficient in the polynomial is negative.
    */
-  private Pair<RationalFunction, AssumptionType> simplify(Polynomial f, AssumptionType a) {
+  private Pair<RationalFunction,AssumptionType> simplify(Polynomial f, AssumptionType a) {
     // Cancel rational content. Since this is always positive, we need not flip the assumption type.
     f = f.cancelRationalContent();
     // TODO: Clean up.
@@ -157,7 +159,7 @@ public class Assumption {
       }
       d = u*d;
       // Now we want to divide through by d, and flip a if needed.
-      Rational r = new Rational(1, d);
+      Rational r = new Rational(1,d);
       f = Polynomial.multiply(f, new Polynomial(r));
       if (u < 0) {
         a = a.flip();
@@ -253,7 +255,7 @@ public class Assumption {
     FALSE         ("0 <> 0");
 
     private final String text;
-    private static final Vector<AssumptionType> codes = new Vector<>(8);
+    private static final Vector<AssumptionType> codes = new Vector<AssumptionType>(8);
 
     // static block to initialize the static field 'codes'
     // Here, we use the position in the vector to represent the code assigned to

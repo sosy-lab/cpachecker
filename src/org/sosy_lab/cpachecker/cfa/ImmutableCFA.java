@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.*;
-import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Map;
 
@@ -34,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
@@ -55,9 +53,6 @@ class ImmutableCFA implements CFA {
   private final FunctionEntryNode mainFunction;
   private final Optional<ImmutableMultimap<String, Loop>> loopStructure;
   private final Optional<VariableClassification> varClassification;
-  private final Language language;
-
-  private ImmutableSet<CFANode> loopHeads = null;
 
   ImmutableCFA(
       MachineModel pMachineModel,
@@ -65,8 +60,7 @@ class ImmutableCFA implements CFA {
       SetMultimap<String, CFANode> pAllNodes,
       FunctionEntryNode pMainFunction,
       Optional<ImmutableMultimap<String, Loop>> pLoopStructure,
-      Optional<VariableClassification> pVarClassification,
-      Language pLanguage) {
+      Optional<VariableClassification> pVarClassification) {
 
     machineModel = pMachineModel;
     functions = ImmutableMap.copyOf(pFunctions);
@@ -74,23 +68,21 @@ class ImmutableCFA implements CFA {
     mainFunction = checkNotNull(pMainFunction);
     loopStructure = pLoopStructure;
     varClassification = pVarClassification;
-    language = pLanguage;
 
     checkArgument(functions.get(mainFunction.getFunctionName()) == mainFunction);
   }
 
-  private ImmutableCFA(MachineModel pMachineModel, Language pLanguage) {
+  private ImmutableCFA(MachineModel pMachineModel) {
     machineModel = pMachineModel;
     functions = ImmutableMap.of();
     allNodes = ImmutableSortedSet.of();
     mainFunction = null;
     loopStructure = Optional.absent();
     varClassification = Optional.absent();
-    language = pLanguage;
   }
 
-  static ImmutableCFA empty(MachineModel pMachineModel, Language pLanguage) {
-    return new ImmutableCFA(pMachineModel, pLanguage);
+  static ImmutableCFA empty(MachineModel pMachineModel) {
+    return new ImmutableCFA(pMachineModel);
   }
 
   @Override
@@ -144,29 +136,7 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
-  public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
-    if (loopStructure.isPresent()) {
-      if (loopHeads == null) {
-        loopHeads = from(loopStructure.get().values())
-            .transformAndConcat(new Function<Loop, Iterable<CFANode>>() {
-              @Override
-              public Iterable<CFANode> apply(Loop loop) {
-                return loop.getLoopHeads();
-              }
-            }).toSet();
-      }
-      return Optional.of(loopHeads);
-    }
-    return Optional.absent();
-  }
-
-  @Override
   public Optional<VariableClassification> getVarClassification() {
     return varClassification;
-  }
-
-  @Override
-  public Language getLanguage() {
-    return language;
   }
 }

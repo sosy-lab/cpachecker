@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+
+<benchmark tool="cpachecker" timelimit="900" memlimit="15000">
+
+  <!-- GLOBAL OPTIONS -->
+  <option name="-heap">12500M</option>
+  <option name="-predicateAnalysis"/>
+  <option name="-noout"/>
+
+  <test name="concurrency"><sourcefiles>
+      <includesfile>test/programs/benchmarks/Concurrency.set</includesfile>
+  </sourcefiles></test>
+  
+  <test name="control"><sourcefiles>
+      <includesfile>test/programs/benchmarks/ControlFlowInteger.set</includesfile>
+  </sourcefiles></test>
+  
+  <test name="drivers"><sourcefiles>
+      <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
+  </sourcefiles></test>
+  
+  <test name="drivers64">
+      <sourcefiles>
+          <includesfile>test/programs/benchmarks/DeviceDrivers64.set</includesfile>
+      </sourcefiles>
+      <option name="-setprop">cpa.predicate.machineModel=LINUX64</option>
+  </test>
+  
+  <test name="heap"><sourcefiles>
+      <includesfile>test/programs/benchmarks/HeapManipulation.set</includesfile>
+  </sourcefiles></test>
+
+  <test name="systemc"><sourcefiles>
+      <includesfile>test/programs/benchmarks/SystemC.set</includesfile>
+  </sourcefiles></test>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+    <column title="abstractions">Number of abstractions</column>
+    <column title="refinements">Number of refinements</column>
+    <column title="ref time">Time for refinements</column>
+    <column title="cpa time">time for CPA algorithm</column>
+  </columns>
+
+</benchmark>

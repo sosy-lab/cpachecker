@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,22 +28,24 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 
 import com.google.common.base.Optional;
 
-public class CFunctionCallEdge extends FunctionCallEdge {
+public class CFunctionCallEdge extends AbstractCFAEdge {
 
+  private final CFunctionCall functionCall;
+  private final CFunctionSummaryEdge summaryEdge;
 
-
-  public CFunctionCallEdge(String pRawStatement,
+  public CFunctionCallEdge (String pRawStatement,
       int pLineNumber, CFANode pPredecessor, CFunctionEntryNode pSuccessor,
       CFunctionCall pFunctionCall, CFunctionSummaryEdge pSummaryEdge) {
 
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor, pFunctionCall, pSummaryEdge);
-
+    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    functionCall = pFunctionCall;
+    summaryEdge = pSummaryEdge;
   }
 
   @Override
@@ -51,15 +53,12 @@ public class CFunctionCallEdge extends FunctionCallEdge {
     return CFAEdgeType.FunctionCallEdge;
   }
 
-  @Override
   public CFunctionSummaryEdge getSummaryEdge() {
-    return (CFunctionSummaryEdge) summaryEdge;
+    return summaryEdge;
   }
 
-  @SuppressWarnings("unchecked")
-  @Override
   public List<CExpression> getArguments() {
-    return (List<CExpression>) functionCall.getFunctionCallExpression().getParameterExpressions();
+    return functionCall.getFunctionCallExpression().getParameterExpressions();
   }
 
   @Override
@@ -69,7 +68,7 @@ public class CFunctionCallEdge extends FunctionCallEdge {
 
   @Override
   public Optional<CStatement> getRawAST() {
-    return Optional.of((CStatement)functionCall.asStatement());
+    return Optional.of(functionCall.asStatement());
   }
 
   @Override

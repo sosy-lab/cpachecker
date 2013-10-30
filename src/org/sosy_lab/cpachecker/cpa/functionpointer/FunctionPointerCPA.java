@@ -26,25 +26,26 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
-public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithABM {
+public class FunctionPointerCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM, PostProcessor {
 
   private FunctionPointerDomain abstractDomain;
   private MergeOperator mergeOperator;
@@ -52,20 +53,43 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithABM {
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
+  private final PostProcessor postProcessor;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(FunctionPointerCPA.class);
   }
 
-  private FunctionPointerCPA(LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
-    this.abstractDomain = new FunctionPointerDomain();
+  private FunctionPointerCPA(ConfigurableProgramAnalysis pCpa, CFA pCfa, LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
+    super(pCpa);
+    this.abstractDomain = new FunctionPointerDomain(pCpa.getAbstractDomain());
 
-    this.mergeOperator = MergeSepOperator.getInstance();
+    MergeOperator wrappedMerge = getWrappedCpa().getMergeOperator();
+    if (wrappedMerge == MergeSepOperator.getInstance()) {
+      this.mergeOperator = MergeSepOperator.getInstance();
+    } else {
+      this.mergeOperator = new FunctionPointerMergeOperator(wrappedMerge);
+    }
 
-    this.stopOperator = new StopSepOperator(abstractDomain);
-    this.transferRelation = new FunctionPointerTransferRelation(pLogger, pConfig);
-    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    this.reducer = NoOpReducer.getInstance();
+    this.stopOperator = new FunctionPointerStopOperator(pCpa.getStopOperator());
+    this.transferRelation = new FunctionPointerTransferRelation(pCpa.getTransferRelation(), pCfa, pLogger, pConfig);
+    this.precisionAdjustment = new FunctionPointerPrecisionAdjustment(pCpa.getPrecisionAdjustment());
+    if (pCpa instanceof ConfigurableProgramAnalysisWithABM) {
+      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)pCpa).getReducer();
+      if (wrappedReducer != null) {
+        reducer = new FunctionPointerReducer(wrappedReducer);
+      } else {
+        reducer = null;
+      }
+    } else {
+      reducer = null;
+    }
+
+    if(pCpa instanceof PostProcessor) {
+      postProcessor = (PostProcessor)pCpa;
+    } else {
+      postProcessor = null;
+    }
+
   }
 
   @Override
@@ -95,16 +119,23 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithABM {
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return FunctionPointerState.createEmptyState();
+    return FunctionPointerState.createEmptyState(getWrappedCpa().getInitialState(pNode));
   }
 
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
-    return SingletonPrecision.getInstance();
+    return getWrappedCpa().getInitialPrecision(pNode);
   }
 
   @Override
   public Reducer getReducer() {
     return reducer;
+  }
+
+  @Override
+  public void postProcess(ReachedSet pReached) {
+    if(postProcessor != null) {
+      postProcessor.postProcess(pReached);
+    }
   }
 }

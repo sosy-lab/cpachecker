@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ivy-module version="2.0"
-        xmlns:e="http://ant.apache.org/ivy/extra"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">
     <info organisation="org.sosy_lab" module="CPAchecker"/>
@@ -14,9 +13,6 @@
         <!-- Dependencies needed for building or running tests. -->
         <conf name="test" />
 
-        <!-- Dependencies needed for benchmarking. -->
-        <conf name="benchmark" />
-
         <!-- Additional files like JavaDocs or source code that will help developers.
              These are not downloaded by default, but only when "ant install-contrib" is called. -->
         <conf name="contrib" />
@@ -24,14 +20,11 @@
 
     <dependencies>
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.261" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.224" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="14.0" conf="runtime->default; contrib->sources"/>
-
-        <!-- Annotations from JSR 305 (e.g., @Nullable) -->
-        <dependency org="com.google.code.findbugs" name="jsr305" rev="1.3.9" conf="runtime->default"/>
+        <dependency org="com.google.guava" name="guava" rev="12.0" conf="runtime->default; contrib->sources"/>
 
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
@@ -43,7 +36,7 @@
 
         <!-- Dependency on Ivy itself so that we can ugprade it easily.
              Change version number in build.xml for upgrading. -->
-        <dependency org="org.apache.ivy" name="ivy" rev="${ivy.useVersion}" conf="build->default"/>
+        <dependency org="org.apache.ivy" name="ivy" rev="${ivy.version}" conf="build->default"/>
 
         <!-- JFlex Scanner generator
              Used for generating automaton and FQL scanners. -->
@@ -55,27 +48,17 @@
 
         <!-- JUnit
              Testing framework. -->
-        <dependency org="junit" name="junit" rev="4.11" conf="test->default"/>
+        <dependency org="junit" name="junit" rev="4.10" conf="test->default"/>
 
         <!-- The JUnit task for Ant so that we can run the tests.
              The property used here is defined in build.xml according to the current Ant version. -->
         <dependency org="org.apache.ant" name="ant-junit" rev="${ant.version.exact}" transitive="false" conf="build->default"/>
 
-        <!-- Mockito
-             Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="1.9.5" conf="test->default"/>
-
         <!-- Eclipse CDT
              Used for parsing C code. -->
-        <dependency org="org.eclipse.cdt" name="core" rev="5.4.1.201209170703" conf="runtime->default; contrib->sources"/>
+        <dependency org="org.eclipse.cdt" name="core" rev="5.3.1.201109151620" conf="runtime->default; contrib->sources"/>
 
         <!-- SmtInterpol -->
-        <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.0-r8402" conf="runtime->runtime; contrib->sources">
-          <artifact name="smtinterpol" e:classifier="comp" conf="runtime"/>
-          <artifact name="smtinterpol" e:classifier="sources" conf="contrib" ext="zip"/>
-        </dependency>
-
-        <!-- VerifierCloud -->
-        <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
+        <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.0-r6308qb" conf="runtime->runtime; contrib->sources"/>
     </dependencies>
 </ivy-module>

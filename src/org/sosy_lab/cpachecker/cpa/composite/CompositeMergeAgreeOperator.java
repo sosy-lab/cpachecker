@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,20 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import static com.google.common.base.Predicates.instanceOf;
-import static com.google.common.collect.FluentIterable.from;
-
 import java.util.Collections;
 import java.util.Iterator;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -53,8 +48,6 @@ import com.google.common.collect.ImmutableList;
  * guarantee and always assumes this is true.
  */
 public class CompositeMergeAgreeOperator implements MergeOperator {
-
-  private static final Predicate<Object> NON_MERGEABLE_STATE = instanceOf(NonMergeableAbstractState.class);
 
   private final ImmutableList<MergeOperator> mergeOperators;
   private final ImmutableList<StopOperator> stopOperators;
@@ -74,13 +67,7 @@ public class CompositeMergeAgreeOperator implements MergeOperator {
     CompositeState compReachedState   = (CompositeState) reachedState;
     CompositePrecision compPrecision  = (CompositePrecision) precision;
 
-    assert (compSuccessorState.getNumberOfStates() == compReachedState.getNumberOfStates());
-
-    if (from(compSuccessorState.getWrappedStates()).anyMatch(NON_MERGEABLE_STATE)
-        || from(compReachedState.getWrappedStates()).anyMatch(NON_MERGEABLE_STATE)) {
-      // one CPA asks us to not merge at all
-      return reachedState;
-    }
+    assert(compSuccessorState.getNumberOfStates() == compReachedState.getNumberOfStates());
 
     ImmutableList.Builder<AbstractState> mergedStates = ImmutableList.builder();
     Iterator<StopOperator> stopIter   = stopOperators.iterator();

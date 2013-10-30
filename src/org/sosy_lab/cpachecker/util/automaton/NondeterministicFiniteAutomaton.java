@@ -95,7 +95,7 @@ public class NondeterministicFiniteAutomaton<T> {
 
     private StatePool() {
       mNextStateId = 0;
-      mPool = new ArrayList<>();
+      mPool = new ArrayList<State>();
     }
 
     public State get(NondeterministicFiniteAutomaton<?> pAutomaton) {
@@ -105,7 +105,8 @@ public class NondeterministicFiniteAutomaton<T> {
         // we have to create a new state
         lState = new State(mNextStateId++);
         mPool.add(lState);
-      } else {
+      }
+      else {
         // the pool contains more states than the automaton
         // so return the next state not used in the automaton
         lState = mPool.get(pAutomaton.mStatesCounter);
@@ -164,7 +165,8 @@ public class NondeterministicFiniteAutomaton<T> {
       if (lEdge.mSource.equals(mSource) && lEdge.mTarget.equals(mTarget)) {
         if (mLabel == null) {
           return (lEdge.mLabel == null);
-        } else {
+        }
+        else {
           return mLabel.equals(lEdge.mLabel);
         }
       }
@@ -186,12 +188,12 @@ public class NondeterministicFiniteAutomaton<T> {
   public NondeterministicFiniteAutomaton() {
     mStateIterable = new StatePool.StateIterable(this);
 
-    mFinalStates = new HashSet<>();
+    mFinalStates = new HashSet<State>();
 
-    mOutgoingEdges = new ArrayList<>();
-    mIncomingEdges = new ArrayList<>();
+    mOutgoingEdges = new ArrayList<Set<Edge>>();
+    mIncomingEdges = new ArrayList<Set<Edge>>();
 
-    mEdges = new ArrayList<>();
+    mEdges = new ArrayList<Edge>();
 
     setInitialState(createState());
   }
@@ -263,7 +265,7 @@ public class NondeterministicFiniteAutomaton<T> {
   }
 
   public NondeterministicFiniteAutomaton<T> getLambdaFreeAutomaton() {
-    NondeterministicFiniteAutomaton<T> lLambdaFreeAutomaton = new NondeterministicFiniteAutomaton<>();
+    NondeterministicFiniteAutomaton<T> lLambdaFreeAutomaton = new NondeterministicFiniteAutomaton<T>();
 
     // mStatesCounter - 1 because the initial state of lLambdaFreeAutomaton
     // exists already
@@ -295,7 +297,8 @@ public class NondeterministicFiniteAutomaton<T> {
               // again, we use the same states in lLambdaFreeAutomaton
               if (lOutgoingEdge.getSource().equals(lState) && lOutgoingEdge.getTarget().equals(lTargetClosureElement)) {
                 lLambdaFreeAutomaton.addEdge(lState, lTargetClosureElement, lOutgoingEdge);
-              } else {
+              }
+              else {
                 lLambdaFreeAutomaton.createEdge(lState, lTargetClosureElement, lOutgoingEdge.getLabel());
               }
             }
@@ -308,8 +311,8 @@ public class NondeterministicFiniteAutomaton<T> {
   }
 
   private Set<State> getLambdaClosure(State pState) {
-    Set<State> lClosure = new HashSet<>();
-    Set<State> lWorkset = new HashSet<>();
+    Set<State> lClosure = new HashSet<State>();
+    Set<State> lWorkset = new HashSet<State>();
 
     lWorkset.add(pState);
 
@@ -339,7 +342,7 @@ public class NondeterministicFiniteAutomaton<T> {
 
   @Override
   public String toString() {
-    StringBuilder lBuffer = new StringBuilder();
+    StringBuffer lBuffer = new StringBuffer();
 
     lBuffer.append("Initial State: " + getInitialState().ID + "\n");
 
@@ -350,7 +353,8 @@ public class NondeterministicFiniteAutomaton<T> {
     for (State lFinalState : getFinalStates()) {
       if (lFirst) {
         lFirst = false;
-      } else {
+      }
+      else {
         lBuffer.append(", ");
       }
 
@@ -366,7 +370,8 @@ public class NondeterministicFiniteAutomaton<T> {
 
       if (lLabel != null) {
         lLabelString = lLabel.toString();
-      } else {
+      }
+      else {
         lLabelString = "Lambda";
       }
 

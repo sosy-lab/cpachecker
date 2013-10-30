@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.RationalFunction;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Variable;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.Constraint;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 public class TemplateLinearizer {
 
@@ -64,13 +63,13 @@ public class TemplateLinearizer {
    */
   public static LinearInequality linearize(TemplateFormula t, VariableManager vmgr) {
 
-    if (t.isTrue()) {
-      return booleanLineq(t.getFormulaType(), vmgr, true);
-    }
+  	if (t.isTrue()) {
+  		return booleanLineq(vmgr, true);
+  	}
 
-    if (t.isFalse()) {
-      return booleanLineq(t.getFormulaType(), vmgr, false);
-    }
+  	if (t.isFalse()) {
+  		return booleanLineq(vmgr, false);
+  	}
 
     LinearInequality lineq = new LinearInequality(vmgr);
     List<TemplateConstraint> constraints = t.getConstraints();
@@ -100,7 +99,7 @@ public class TemplateLinearizer {
     return lineq;
   }
 
-  public static IRMatrix buildIRMatrix(TemplateFormula t, VariableManager vmgr, Map<String, Variable> paramVars) {
+  public static IRMatrix buildIRMatrix(TemplateFormula t, VariableManager vmgr, Map<String,Variable> paramVars) {
     if (t.isTrue()) {
       return booleanIRMatrix(vmgr, true);
     }
@@ -121,26 +120,26 @@ public class TemplateLinearizer {
     List<RationalFunction> rfs;
     Coeff rhs;
     InfixReln reln;
-    List<IRMatrix> cols = new Vector<>();
+    List<IRMatrix> cols = new Vector<IRMatrix>();
     for (int i = 0; i < constraints.size(); i++) {
       cons = constraints.get(i);
       coeffs = cons.getNormalFormCoeffs(vmgr, VariableWriteMode.REDLOG);
       rhs = cons.getNormalFormConstant(VariableWriteMode.REDLOG);
       rfs = makeRationalFunctions(coeffs, paramVars);
-      rfs.add(rhs.makeRationalFunction(paramVars));
+      rfs.add( rhs.makeRationalFunction(paramVars) );
       reln = cons.getInfixReln();
       if (reln != InfixReln.EQUAL) {
         // The infix relation is LEQ or LT.
-        cols.add(new IRMatrix(rfs, reln));
+        cols.add( new IRMatrix(rfs,reln) );
       } else {
         // In this case the infix relation is EQUAL.
         // Really this corresponds to two lax inequalities.
-        cols.add(new IRMatrix(rfs, InfixReln.LEQ));
+        cols.add( new IRMatrix(rfs, InfixReln.LEQ) );
         coeffs = negative(coeffs);
         rhs = rhs.negative();
-        rfs = makeRationalFunctions(coeffs, paramVars);
-        rfs.add(rhs.makeRationalFunction(paramVars));
-        cols.add(new IRMatrix(rfs, InfixReln.LEQ));
+        rfs = makeRationalFunctions(coeffs,paramVars);
+        rfs.add( rhs.makeRationalFunction(paramVars) );
+        cols.add( new IRMatrix(rfs, InfixReln.LEQ) );
       }
     }
 
@@ -153,7 +152,7 @@ public class TemplateLinearizer {
     return a;
   }
 
-  public static Matrix buildMatrix(TemplateFormula t, VariableManager vmgr, Map<String, Variable> paramVars) {
+  public static Matrix buildMatrix(TemplateFormula t, VariableManager vmgr, Map<String,Variable> paramVars) {
     if (t.isTrue()) {
       return booleanMatrix(vmgr, true);
     }
@@ -174,7 +173,7 @@ public class TemplateLinearizer {
     List<RationalFunction> rfs;
     Coeff rhs;
     InfixReln reln;
-    List<Matrix> cols = new Vector<>();
+    List<Matrix> cols = new Vector<Matrix>();
     for (int i = 0; i < constraints.size(); i++) {
 
       cons = constraints.get(i);
@@ -182,15 +181,15 @@ public class TemplateLinearizer {
       rhs = cons.getNormalFormConstant(VariableWriteMode.REDLOG);
       coeffs.add(rhs.negative());
       rfs = makeRationalFunctions(coeffs, paramVars);
-      cols.add(new Matrix(rfs));
+      cols.add( new Matrix(rfs) );
 
       reln = cons.getInfixReln();
       if (reln == InfixReln.EQUAL) {
         // We consider EQUAL to be two LEQs, which means that
         // in addition to the column itself, we add its negation.
         coeffs = negative(coeffs);
-        rfs = makeRationalFunctions(coeffs, paramVars);
-        cols.add(new Matrix(rfs));
+        rfs = makeRationalFunctions(coeffs,paramVars);
+        cols.add( new Matrix(rfs) );
       }
     }
 
@@ -203,10 +202,10 @@ public class TemplateLinearizer {
     return a;
   }
 
-  private static List<RationalFunction> makeRationalFunctions(List<Coeff> clist, Map<String, Variable> paramVars) {
-    List<RationalFunction> rfs = new Vector<>(clist.size());
+  private static List<RationalFunction> makeRationalFunctions(List<Coeff> clist, Map<String,Variable> paramVars) {
+    List<RationalFunction> rfs = new Vector<RationalFunction>(clist.size());
     for (Coeff c : clist) {
-      rfs.add(c.makeRationalFunction(paramVars));
+      rfs.add( c.makeRationalFunction(paramVars) );
     }
     return rfs;
   }
@@ -217,19 +216,19 @@ public class TemplateLinearizer {
    * @param trueStatement a boolean which says if we want a true or a false statement
    * @return
    */
-  private static LinearInequality booleanLineq(FormulaType<?> type, VariableManager vmgr, boolean trueStatement) {
-    LinearInequality lineq = new LinearInequality(vmgr);
-    int n = vmgr.getNumVars();
-    List<Coeff> coeffs = Collections.nCopies(n, new Coeff(type, "0"));
-    Coeff rhs = new Coeff(type, "0");
-    InfixReln reln;
-    if (trueStatement) {
-      reln = InfixReln.LEQ;
-    } else {
-      reln = InfixReln.LT;
-    }
-    lineq.addIneq(coeffs, reln, rhs);
-    return lineq;
+  private static LinearInequality booleanLineq(VariableManager vmgr, boolean trueStatement) {
+  	LinearInequality lineq = new LinearInequality(vmgr);
+  	int n = vmgr.getNumVars();
+  	List<Coeff> coeffs = Collections.nCopies(n, new Coeff("0"));
+  	Coeff rhs = new Coeff("0");
+  	InfixReln reln;
+  	if (trueStatement) {
+  		reln = InfixReln.LEQ;
+  	} else {
+  	  reln = InfixReln.LT;
+  	}
+  	lineq.addIneq(coeffs, reln, rhs);
+  	return lineq;
   }
 
   private static IRMatrix booleanIRMatrix(VariableManager vmgr, boolean trueStatement) {
@@ -241,7 +240,7 @@ public class TemplateLinearizer {
     } else {
       reln = InfixReln.LT;
     }
-    return new IRMatrix(rfs, reln);
+    return new IRMatrix(rfs,reln);
   }
 
   private static Matrix booleanMatrix(VariableManager vmgr, boolean trueStatement) {
@@ -262,11 +261,11 @@ public class TemplateLinearizer {
    * @return The list of all passed coefficients negated
    */
   private static List<Coeff> negative(List<Coeff> P) {
-    Vector<Coeff> N = new Vector<>();
+    Vector<Coeff> N = new Vector<Coeff>();
     Coeff C;
     for (int i = 0; i < P.size(); i++) {
       C = P.get(i);
-      N.add(C.negative());
+      N.add( C.negative() );
     }
     return N;
   }

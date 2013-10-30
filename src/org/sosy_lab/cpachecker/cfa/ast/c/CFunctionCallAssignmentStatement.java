@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,32 +23,33 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+public final class CFunctionCallAssignmentStatement extends CStatement
+                                                          implements CAssignment, CFunctionCall {
 
+  private final CExpression leftHandSide;
+  private final CFunctionCallExpression rightHandSide;
 
-public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignmentStatement
-                                                          implements CStatement, CAssignment, CFunctionCall {
-
-  public CFunctionCallAssignmentStatement(FileLocation pFileLocation,
+  public CFunctionCallAssignmentStatement(CFileLocation pFileLocation,
                                              CExpression pLeftHandSide,
                                              CFunctionCallExpression pRightHandSide) {
-    super(pFileLocation, pLeftHandSide, pRightHandSide);
+    super(pFileLocation);
+    leftHandSide = pLeftHandSide;
+    rightHandSide = pRightHandSide;
   }
 
   @Override
   public CExpression getLeftHandSide() {
-    return (CExpression)super.getLeftHandSide();
+    return leftHandSide;
   }
 
   @Override
   public CFunctionCallExpression getRightHandSide() {
-    return (CFunctionCallExpression)super.getRightHandSide();
+    return rightHandSide;
   }
 
   @Override
   public CFunctionCallExpression getFunctionCallExpression() {
-    return (CFunctionCallExpression) super.getFunctionCallExpression();
+    return rightHandSide;
   }
 
   @Override
@@ -63,27 +64,7 @@ public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignm
 
   @Override
   public String toASTString() {
-    return getLeftHandSide().toASTString()
-        + " = " + getRightHandSide().toASTString() + ";";
-  }
-
-  @Override
-  public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    if (!(obj instanceof CFunctionCallAssignmentStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return leftHandSide.toASTString()
+        + " = " + rightHandSide.toASTString() + ";";
   }
 }

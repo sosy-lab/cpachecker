@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * This class represents declaration of complex types without declarations of
@@ -38,35 +37,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
  * TODO: As these declarations have no name, they should not be in the hierarchy
  * below {@link CSimpleDeclaration}.
  */
-public final class CComplexTypeDeclaration extends CTypeDeclaration {
+public final class CComplexTypeDeclaration extends CDeclaration {
 
-  public CComplexTypeDeclaration(FileLocation pFileLocation,
-      boolean pIsGlobal, CComplexType pType) {
+  public CComplexTypeDeclaration(CFileLocation pFileLocation,
+      boolean pIsGlobal, CType pType) {
     super(pFileLocation, pIsGlobal, pType, null, null);
   }
 
-  @Override
-  public CComplexType getType() {
-    return (CComplexType)super.getType();
-  }
-
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    return result * prime + super.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    if (!(obj instanceof CComplexTypeDeclaration)) {
-      return false;
-    }
-
-    return super.equals(obj);
-  }
 }

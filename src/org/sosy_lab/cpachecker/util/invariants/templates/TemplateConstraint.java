@@ -35,10 +35,8 @@ import org.sosy_lab.cpachecker.util.invariants.InfixReln;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.Constraint;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 public class TemplateConstraint extends TemplateBoolean implements Constraint {
 
@@ -46,32 +44,25 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   private InfixReln reln = null;
   private TemplateSum RHS = null;
 
-  public TemplateSum getLeft() {
-    return LHS;
-  }
-  public TemplateSum getRight() {
-    return RHS;
-  }
-
 // ------------------------------------------------------------------
 // Constructors
 
   public TemplateConstraint() {
-    LHS = new TemplateSum(FormulaType.RationalType);
-    RHS = new TemplateSum(FormulaType.RationalType);
+    LHS = new TemplateSum();
+    RHS = new TemplateSum();
   }
 
   public TemplateConstraint(TemplateSum s1, InfixReln R, TemplateSum s2) {
-    construct(s1, R, s2);
+    construct(s1,R,s2);
   }
 
   /*
    * Special constructor for comparing a variable to 0.
    */
   public TemplateConstraint(TemplateVariable v, InfixReln R) {
-    TemplateTerm t = new TemplateTerm(v.getFormulaType());
+    TemplateTerm t = new TemplateTerm();
     t.setParameter(v);
-    TemplateTerm z = TemplateTerm.makeZero(v.getFormulaType());
+    TemplateTerm z = TemplateTerm.makeZero();
     LHS = t;
     reln = R;
     RHS = z;
@@ -85,8 +76,8 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
     TemplateSum C2 = s2.getConstantPart();
     TemplateSum V2 = s2.getNonConstantPart();
 
-    LHS = TemplateSum.subtract(V1, V2);
-    RHS = TemplateSum.subtract(C2, C1);
+    LHS = TemplateSum.subtract(V1,V2);
+    RHS = TemplateSum.subtract(C2,C1);
   }
 
 //------------------------------------------------------------------
@@ -106,14 +97,14 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
 
   @Override
   public TemplateBoolean makeCNF() {
-    Vector<TemplateBoolean> v = new Vector<>(1);
+    Vector<TemplateBoolean> v = new Vector<TemplateBoolean>(1);
     v.add(this);
     return new TemplateConjunction(v);
   }
 
   @Override
   public TemplateBoolean makeDNF() {
-    Vector<TemplateBoolean> v = new Vector<>(1);
+    Vector<TemplateBoolean> v = new Vector<TemplateBoolean>(1);
     v.add(this);
     return new TemplateDisjunction(v);
   }
@@ -129,7 +120,7 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
       tb = new TemplateConstraint(RHS.copy(), InfixReln.LEQ, LHS.copy());
       break;
     case EQUAL:
-      Vector<TemplateBoolean> v = new Vector<>(2);
+      Vector<TemplateBoolean> v = new Vector<TemplateBoolean>(2);
       TemplateConstraint tc1 = new TemplateConstraint(LHS.copy(), InfixReln.LT, RHS.copy());
       TemplateConstraint tc2 = new TemplateConstraint(RHS.copy(), InfixReln.LT, LHS.copy());
       v.add(tc1);
@@ -161,7 +152,7 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   }
 
   @Override
-  public boolean evaluate(Map<String, Rational> map) {
+  public boolean evaluate(Map<String,Rational> map) {
     boolean ans = true;
     ans &= LHS.evaluate(map);
     ans &= RHS.evaluate(map);
@@ -175,13 +166,13 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   }
 
   @Override
-  public void postindex(Map<String, Integer> indices) {
+  public void postindex(Map<String,Integer> indices) {
     LHS.postindex(indices);
     RHS.postindex(indices);
   }
 
   @Override
-  public void preindex(Map<String, Integer> indices) {
+  public void preindex(Map<String,Integer> indices) {
     LHS.preindex(indices);
     RHS.preindex(indices);
   }
@@ -209,30 +200,30 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
 // Other cascade methods
 
   @Override
-  public Set<TemplateVariable> getAllVariables() {
-    HashSet<TemplateVariable> vars = new HashSet<>();
-    vars.addAll(LHS.getAllVariables());
-    vars.addAll(RHS.getAllVariables());
+  public Set<String> getAllVariables(VariableWriteMode vwm) {
+    HashSet<String> vars = new HashSet<String>();
+    vars.addAll(LHS.getAllVariables(vwm));
+    vars.addAll(RHS.getAllVariables(vwm));
     return vars;
   }
 
   @Override
   public Set<TemplateVariable> getAllParameters() {
-    HashSet<TemplateVariable> params = new HashSet<>();
+    HashSet<TemplateVariable> params = new HashSet<TemplateVariable>();
     params.addAll(LHS.getAllParameters());
     params.addAll(RHS.getAllParameters());
     return params;
   }
 
   public Set<TemplateVariable> getTopLevelParameters() {
-    HashSet<TemplateVariable> tlp = new HashSet<>();
+    HashSet<TemplateVariable> tlp = new HashSet<TemplateVariable>();
     tlp.addAll(LHS.getTopLevelParameters());
     tlp.addAll(RHS.getTopLevelParameters());
     return tlp;
   }
 
   @Override
-  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
+  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
     map = LHS.getMaxIndices(map);
     map = RHS.getMaxIndices(map);
     return map;
@@ -241,8 +232,8 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   @Override
   public TemplateVariableManager getVariableManager() {
     TemplateVariableManager tvm = new TemplateVariableManager();
-    tvm.merge(LHS.getVariableManager());
-    tvm.merge(RHS.getVariableManager());
+    tvm.merge( LHS.getVariableManager() );
+    tvm.merge( RHS.getVariableManager() );
     return tvm;
   }
 
@@ -254,31 +245,31 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   }
 
   @Override
-  public BooleanFormula translate(FormulaManagerView fmgr) {
-    BooleanFormula form = null;
-    Formula lhs = LHS.translate(fmgr);
-    Formula rhs = RHS.translate(fmgr);
-    switch (reln) {
-    case EQUAL: form = fmgr.makeEqual(lhs, rhs); break;
-    case LEQ:   form = fmgr.makeLessOrEqual(lhs, rhs, true);   break;
-    case LT:    form = fmgr.makeLessThan(lhs, rhs, true); break;
-    }
-    return form;
+  public Formula translate(FormulaManager fmgr) {
+  	Formula form = null;
+  	Formula lhs = LHS.translate(fmgr);
+  	Formula rhs = RHS.translate(fmgr);
+  	switch (reln) {
+  	case EQUAL: form = fmgr.makeEqual(lhs, rhs); break;
+  	case LEQ:   form = fmgr.makeLeq(lhs, rhs);   break;
+  	case LT:    form = fmgr.makeLt(lhs, rhs); break;
+  	}
+  	return form;
   }
 
   @Override
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
-    List<TemplateFormula> atoms = new Vector<>();
-    if (!sAE) {
-      atoms.add(this);
-    } else {
-      // In this case we want to split equations into pairs of inequalities.
-      TemplateConstraint tc1 = new TemplateConstraint(LHS, InfixReln.LEQ, RHS);
-      TemplateConstraint tc2 = new TemplateConstraint(RHS, InfixReln.LEQ, LHS);
-      atoms.add(tc1);
-      atoms.add(tc2);
-    }
-    return atoms;
+    List<TemplateFormula> atoms = new Vector<TemplateFormula>();
+  	if (!sAE) {
+  		atoms.add(this);
+  	} else {
+  		// In this case we want to split equations into pairs of inequalities.
+  		TemplateConstraint tc1 = new TemplateConstraint(LHS, InfixReln.LEQ, RHS);
+  		TemplateConstraint tc2 = new TemplateConstraint(RHS, InfixReln.LEQ, LHS);
+  		atoms.add(tc1);
+  		atoms.add(tc2);
+  	}
+  	return atoms;
   }
 
   @Override
@@ -295,14 +286,14 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   public Set<TemplateTerm> getTopLevelTerms() {
     List<TemplateTerm> terms = LHS.getTerms();
     terms.addAll(RHS.getTerms());
-    Set<TemplateTerm> set = new HashSet<>(terms);
+    Set<TemplateTerm> set = new HashSet<TemplateTerm>(terms);
     return set;
   }
 
   @Override
   public Set<TemplateVariable> getAllPurificationVariables() {
     Set<TemplateVariable> pvs = LHS.getAllPurificationVariables();
-    pvs.addAll(RHS.getAllPurificationVariables());
+    pvs.addAll( RHS.getAllPurificationVariables() );
     return pvs;
   }
 
@@ -321,9 +312,9 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
 
     // Forming the set throws away all but one of each form.
     Vector<TemplateTerm> terms = copy.getTerms();
-    Set<TermForm> forms = new HashSet<>();
+    Set<TermForm> forms = new HashSet<TermForm>();
     for (TemplateTerm t : terms) {
-      forms.add(new TermForm(t));
+      forms.add( new TermForm(t) );
     }
     return forms;
   }
@@ -333,14 +324,14 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
 
   @Override
   public Vector<TemplateConstraint> getConstraints() {
-    Vector<TemplateConstraint> v = new Vector<>();
+    Vector<TemplateConstraint> v = new Vector<TemplateConstraint>();
     v.add(this);
     return v;
   }
 
   @Override
   public Set<TemplateTerm> getRHSTerms() {
-    Set<TemplateTerm> s = new HashSet<>(RHS.getTerms());
+    Set<TemplateTerm> s = new HashSet<TemplateTerm>(RHS.getTerms());
     return s;
   }
 

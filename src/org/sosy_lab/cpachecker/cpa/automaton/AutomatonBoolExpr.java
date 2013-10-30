@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
@@ -44,8 +44,8 @@ import com.google.common.base.Optional;
  * The Expression can be evaluated multiple times.
  */
 interface AutomatonBoolExpr extends AutomatonExpression {
-  static final ResultValue<Boolean> CONST_TRUE = new ResultValue<>(Boolean.TRUE);
-  static final ResultValue<Boolean> CONST_FALSE = new ResultValue<>(Boolean.FALSE);
+  static final ResultValue<Boolean> CONST_TRUE = new ResultValue<Boolean>(Boolean.TRUE);
+  static final ResultValue<Boolean> CONST_FALSE = new ResultValue<Boolean>(Boolean.FALSE);
 
   @Override
   abstract ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
@@ -88,7 +88,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
         }
       } else {
         return CONST_FALSE;
-        //return new ResultValue<>("cannot evaluate if the CFAEdge is not a CLabelNode", "MatchLabelRegEx.eval(..)");
+        //return new ResultValue<Boolean>("cannot evaluate if the CFAEdge is not a CLabelNode", "MatchLabelRegEx.eval(..)");
       }
     }
 
@@ -199,12 +199,12 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       if (pArgs.getAbstractStates().isEmpty()) {
-        return new ResultValue<>("No CPA elements available", "AutomatonBoolExpr.ALLCPAQuery");
+        return new ResultValue<Boolean>("No CPA elements available", "AutomatonBoolExpr.ALLCPAQuery");
       } else {
         // replace transition variables
         String modifiedQueryString = pArgs.replaceVariables(queryString);
         if (modifiedQueryString == null) {
-          return new ResultValue<>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.ALLCPAQuery");
+          return new ResultValue<Boolean>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.ALLCPAQuery");
         }
         for (AbstractState ae : pArgs.getAbstractStates()) {
           if (ae instanceof AbstractQueryableState) {
@@ -246,7 +246,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       // replace transition variables
       String modifiedQueryString = pArgs.replaceVariables(queryString);
       if (modifiedQueryString == null) {
-        return new ResultValue<>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.CPAQuery");
+        return new ResultValue<Boolean>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.CPAQuery");
       }
 
       for (AbstractState ae : pArgs.getAbstractStates()) {
@@ -285,7 +285,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
           }
         }
       }
-      return new ResultValue<>("No State of CPA \"" + cpaName + "\" was found!", "AutomatonBoolExpr.CPAQuery");
+      return new ResultValue<Boolean>("No State of CPA \"" + cpaName + "\" was found!", "AutomatonBoolExpr.CPAQuery");
     }
 
     @Override
@@ -300,7 +300,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       if (pArgs.getAbstractStates().isEmpty()) {
-        return new ResultValue<>("No CPA elements available", "AutomatonBoolExpr.CheckAllCpasForTargetState");
+        return new ResultValue<Boolean>("No CPA elements available", "AutomatonBoolExpr.CheckAllCpasForTargetState");
       } else {
         for (AbstractState ae : pArgs.getAbstractStates()) {
           if (AbstractStates.isTargetState(ae)) {
@@ -363,10 +363,10 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       ResultValue<Integer> resA = a.eval(pArgs);
       ResultValue<Integer> resB = b.eval(pArgs);
       if (resA.canNotEvaluate()) {
-        return new ResultValue<>(resA);
+        return new ResultValue<Boolean>(resA);
       }
       if (resB.canNotEvaluate()) {
-        return new ResultValue<>(resB);
+        return new ResultValue<Boolean>(resB);
       }
       if (resA.getValue().equals(resB.getValue())) {
         return CONST_TRUE;
@@ -399,10 +399,10 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       ResultValue<Integer> resA = a.eval(pArgs);
       ResultValue<Integer> resB = b.eval(pArgs);
       if (resA.canNotEvaluate()) {
-        return new ResultValue<>(resA);
+        return new ResultValue<Boolean>(resA);
       }
       if (resB.canNotEvaluate()) {
-        return new ResultValue<>(resB);
+        return new ResultValue<Boolean>(resB);
       }
       if (! resA.getValue().equals(resB.getValue())) {
         return CONST_TRUE;

@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Level;
@@ -52,6 +51,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
+import de.uni_freiburg.informatik.ultimate.logic.Valuation;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.SMTInterpol;
 
 /** This is a Wrapper around SmtInterpol.
@@ -65,7 +65,7 @@ class SmtInterpolEnvironment {
   /**
    * Enum listing possible types for SmtInterpol.
    */
-  static enum Type {
+  public enum Type {
     BOOL("Bool"),
     INT("Int"),
     REAL("Real");
@@ -95,25 +95,24 @@ class SmtInterpolEnvironment {
   private static int logfileCounter = 0;
 
   /** the wrapped Script */
-  private final Script script;
+  private Script script;
+  private Logics logic = null;
 
   /** This Set stores declared functions.
    * It is used to guarantee, that functions are only declared once. */
-  private final Set<String> declaredFunctions = new HashSet<>();
+  private Set<String> declaredFunctions = new HashSet<String>();
 
   /** The stack contains a List of Declarations for each levels on the assertion-stack.
    * It is used to declare functions again, if stacklevels are popped. */
-  private final List<Collection<Triple<String, Sort[], Sort>>> stack = new ArrayList<>();
+  private List<Collection<Triple<String, Sort[], Sort>>> stack =
+      new ArrayList<Collection<Triple<String, Sort[], Sort>>>();
 
   /** This Collection is the toplevel of the stack. */
   private Collection<Triple<String, Sort[], Sort>> currentDeclarations;
 
-  private final Term trueTerm;
-  private final Term falseTerm;
-
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
-  public SmtInterpolEnvironment(Configuration config, Logics pLogic) throws InvalidConfigurationException {
+  public SmtInterpolEnvironment(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
 
     Logger logger = Logger.getRootLogger(); // TODO use SosyLab-Logger
@@ -136,20 +135,13 @@ class SmtInterpolEnvironment {
     }
 
     try {
-      script.setOption(":produce-interpolants", true);
+      script.setOption(":produce-proofs", true);
       script.setOption(":produce-models", true);
       script.setOption(":verbosity", new BigInteger("2"));
-      script.setLogic(pLogic);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }
-
-    trueTerm = term("true");
-    falseTerm = term("false");
   }
-
-  public Term getTrueTerm() { return trueTerm; }
-  public Term getFalseTerm() { return falseTerm; }
 
   /**  This function creates a filename with following scheme:
        first filename is unchanged, then a number is appended */
@@ -165,6 +157,20 @@ class SmtInterpolEnvironment {
     }
     logfileCounter++;
     return filename;
+  }
+
+  public void setLogic(Logics logic) {
+    assert !isLogicSet() : "Logic was set before, you cannot do this again.";
+    try {
+      script.setLogic(logic);
+      this.logic = logic;
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  public boolean isLogicSet() {
+    return logic != null;
   }
 
   public void setOption(String opt, Object value) {
@@ -221,7 +227,7 @@ class SmtInterpolEnvironment {
     }
 
     for (int i = 0; i < levels; i++) {
-      currentDeclarations = new ArrayList<>();
+      currentDeclarations = new ArrayList<Triple<String, Sort[], Sort>>();
       stack.add(currentDeclarations);
     }
   }
@@ -271,16 +277,18 @@ class SmtInterpolEnvironment {
   /** This function causes the SatSolver to check all the terms on the stack,
    * if their conjunction is SAT or UNSAT. */
   public LBool checkSat() {
+    LBool result = LBool.UNKNOWN;
     try {
-      return script.checkSat();
+      result = script.checkSat();
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }
+    return result;
   }
 
   /** This function returns a map,
    * that contains assignments term->term for all terms in terms. */
-  public Map<Term, Term> getValue(Term[] terms) {
+  public Valuation getValue(Term[] terms) {
     try {
       return script.getValue(terms);
     } catch (SMTLIBException e) {

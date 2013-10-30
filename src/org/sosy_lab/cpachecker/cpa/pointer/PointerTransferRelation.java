@@ -185,7 +185,7 @@ public class PointerTransferRelation implements TransferRelation {
       Pair<Integer, String> warningIndex = Pair.of(lineNumber, variable);
       if (!warnings.contains(warningIndex)) {
         warnings.add(warningIndex);
-        if (edge != null) {
+        if (lineNumber != null) {
           logger.log(Level.WARNING, "Warning: " + message + " in line "
               + lineNumber + ": " + edge.getDescription());
         } else {
@@ -206,7 +206,7 @@ public class PointerTransferRelation implements TransferRelation {
       MemoryRegion warningIndex = memoryRegion;
       if (!memoryLeakWarnings.contains(warningIndex)) {
         memoryLeakWarnings.add(warningIndex);
-        if (edge != null) {
+        if (lineNumber != null) {
           logger.log(Level.WARNING, "Warning: " + message + " in line "
               + lineNumber + ": " + edge.getDescription());
         } else {
@@ -612,7 +612,7 @@ public class PointerTransferRelation implements TransferRelation {
     if (formalParameters != null && formalParameters.size() > 0
         && !actualParameters.isEmpty()) {
 
-      ArrayList<Pointer> actualValues = new ArrayList<>();
+      ArrayList<Pointer> actualValues = new ArrayList<Pointer>();
 
       assert formalParameters.size() == actualParameters.size();
 
@@ -816,7 +816,7 @@ public class PointerTransferRelation implements TransferRelation {
                                                         cfaEdge, parameter);
       }
 
-      List<PointerTarget> newTargets = new ArrayList<>();
+      List<PointerTarget> newTargets = new ArrayList<PointerTarget>();
       boolean success = false;
       MemoryAddress freeMem = null;
 
@@ -1373,11 +1373,11 @@ public class PointerTransferRelation implements TransferRelation {
 
       } catch (UnrecognizedCCodeException e) {
         addError(e.getMessage(), cfaEdge);
-        return new ArrayList<>();
+        return new ArrayList<AbstractState>();
 
       } catch (InvalidPointerException e) {
         addError(e.getMessage(), cfaEdge);
-        return new ArrayList<>();
+        return new ArrayList<AbstractState>();
       }
     }
 
@@ -1528,7 +1528,7 @@ public class PointerTransferRelation implements TransferRelation {
   @SuppressWarnings("unused")
   private void handleStructDeclaration(PointerState element,
                                        TypesState typeElem, Type.CompositeType structType,
-                                       String varName, String recursiveVarName) {
+                                       String varName,String recursiveVarName) {
 
     Set<String> members = structType.getMembers();
 

@@ -40,17 +40,19 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
   @Override
   protected Collection<String> precompute(Block pContext, Collection<AbstractionPredicate> pPredicates) {
     // compute relevant variables
-    Collection<String> relevantVars = new HashSet<>();
-    Collection<ReferencedVariable> unknownVars = new ArrayList<>();
+    Collection<String> relevantVars = new HashSet<String>();
+    Collection<ReferencedVariable> unknownVars = new ArrayList<ReferencedVariable>();
 
     for (ReferencedVariable var : pContext.getReferencedVariables()) {
       if (var.occursInCondition()) {
         relevantVars.add(var.getName());
-      } else if (var.occursOnLhs()) {
+      }
+      else if (var.occursOnLhs()) {
         if (occursInPredicate(var, pPredicates)) {
           relevantVars.add(var.getName());
         }
-      } else {
+      }
+      else {
         unknownVars.add(var);
       }
     }
@@ -58,13 +60,14 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
     boolean changed = true;
     while (changed) {
       changed = false;
-      Collection<ReferencedVariable> yetUnknownVars = new ArrayList<>();
+      Collection<ReferencedVariable> yetUnknownVars = new ArrayList<ReferencedVariable>();
 
       for (ReferencedVariable var : unknownVars) {
         if (relevantVars.contains(var.getLhsVariable().getName())) {
           relevantVars.add(var.getName());
           changed = true;
-        } else {
+        }
+        else {
           yetUnknownVars.add(var);
         }
       }

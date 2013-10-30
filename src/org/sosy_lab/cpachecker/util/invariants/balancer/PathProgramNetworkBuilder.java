@@ -31,11 +31,10 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -46,7 +45,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplatePathFormulaBuil
 
 public class PathProgramNetworkBuilder implements NetworkBuilder {
 
-  private final ARGPath cePath;
+  private final Path cePath;
   private final LogManager logger;
   private final TemplatePathFormulaBuilder tpfb;
   private final SortedSet<CFANode> nodeSet;
@@ -58,7 +57,7 @@ public class PathProgramNetworkBuilder implements NetworkBuilder {
   @SuppressWarnings("unused")
   private TemplateNetwork basicTnet;
 
-  public PathProgramNetworkBuilder(ARGPath pPath, LogManager pLogger) throws RefinementFailedException {
+  public PathProgramNetworkBuilder(Path pPath, LogManager pLogger) throws RefinementFailedException {
     cePath = pPath;
     logger = pLogger;
     tpfb = new TemplatePathFormulaBuilder();
@@ -70,7 +69,7 @@ public class PathProgramNetworkBuilder implements NetworkBuilder {
   private Collection<Loop> findLoops() {
     Collection<Loop> loops;
     try {
-      loops = CFAUtils.findLoops(nodeSet, Language.C);
+      loops = CFAUtils.findLoops(nodeSet);
     } catch (Exception e) {
       logger.log(Level.FINEST, "While constructing path program, could not detect all loops.");
       loops = null;
@@ -79,7 +78,7 @@ public class PathProgramNetworkBuilder implements NetworkBuilder {
   }
 
   private SortedSet<CFANode> getNodeSet() {
-    SortedSet<CFANode> nodes = new TreeSet<>();
+    SortedSet<CFANode> nodes = new TreeSet<CFANode>();
     for (Pair<ARGState, CFAEdge> pair : cePath) {
       ARGState ae = pair.getFirst();
       CFANode n = AbstractStates.extractLocation(ae);
@@ -94,7 +93,7 @@ public class PathProgramNetworkBuilder implements NetworkBuilder {
    */
   private TemplateNetwork buildNetworkWithoutTemplates() {
     // Construct the Vector of transitions.
-    Vector<Transition> trans = new Vector<>();
+    Vector<Transition> trans = new Vector<Transition>();
 
     // We use an empty template map for now.
     TemplateMap tmap = new TemplateMap();
@@ -124,7 +123,7 @@ public class PathProgramNetworkBuilder implements NetworkBuilder {
       l2 = new Location(node);
 
       // Build transition.
-      tran = new Transition(tmap, l1, transitionFormula, l2);
+      tran = new Transition(tmap,l1,transitionFormula,l2);
       trans.add(tran);
     }
     return new TemplateNetwork(tmap, trans);

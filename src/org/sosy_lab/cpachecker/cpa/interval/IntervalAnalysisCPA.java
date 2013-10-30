@@ -45,14 +45,16 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 @Options(prefix="cpa.interval")
-public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis {
+public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis
+{
 
   /**
    * This method returns a CPAfactory for the interval analysis CPA.
    *
    * @return the CPAfactory for the interval analysis CPA
    */
-  public static CPAFactory factory() {
+  public static CPAFactory factory()
+  {
     return AutomaticCPAFactory.forType(IntervalAnalysisCPA.class);
   }
 
@@ -94,7 +96,8 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis {
    * @param config the configuration of the CPAinterval analysis CPA.
    * @throws InvalidConfigurationException
    */
-  private IntervalAnalysisCPA(Configuration config) throws InvalidConfigurationException {
+  private IntervalAnalysisCPA(Configuration config) throws InvalidConfigurationException
+  {
     config.inject(this);
 
     abstractDomain      = new IntervalAnalysisDomain();
@@ -112,7 +115,8 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis {
    * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getAbstractDomain()
    */
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public AbstractDomain getAbstractDomain()
+  {
     return abstractDomain;
   }
 
@@ -120,7 +124,8 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis {
    * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getMergeOperator()
    */
   @Override
-  public MergeOperator getMergeOperator() {
+  public MergeOperator getMergeOperator()
+  {
     return mergeOperator;
   }
 
@@ -128,7 +133,8 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis {
    * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getStopOperator()
    */
   @Override
-  public StopOperator getStopOperator() {
+  public StopOperator getStopOperator()
+  {
     return stopOperator;
   }
 
@@ -136,7 +142,8 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis {
    * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getTransferRelation()
    */
   @Override
-  public TransferRelation getTransferRelation() {
+  public TransferRelation getTransferRelation()
+  {
     return transferRelation;
   }
 
@@ -144,7 +151,8 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis {
    * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialState(org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode)
    */
   @Override
-  public AbstractState getInitialState(CFANode node) {
+  public AbstractState getInitialState(CFANode node)
+  {
     return new IntervalAnalysisState();
   }
 
@@ -152,7 +160,8 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis {
    * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialPrecision(org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode)
    */
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode)
+  {
     return SingletonPrecision.getInstance();
   }
 
@@ -160,7 +169,8 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis {
    * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getPrecisionAdjustment()
    */
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
+  public PrecisionAdjustment getPrecisionAdjustment()
+  {
     return precisionAdjustment;
   }
 }

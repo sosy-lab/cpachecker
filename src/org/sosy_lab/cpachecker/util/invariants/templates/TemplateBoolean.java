@@ -23,12 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.templates;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-
-public abstract class TemplateBoolean extends TemplateFormula implements BooleanFormula {
+public abstract class TemplateBoolean extends TemplateFormula {
 
   @Override
   public TemplateBoolean copy() {
@@ -59,23 +55,6 @@ public abstract class TemplateBoolean extends TemplateFormula implements Boolean
     TemplateBoolean tb = absorbNegations();
     tb = tb.makeDNF();
     return tb;
-  }
-
-  /**
-   * There are different implementations of the Formula and FormulaManager interfaces,
-   * meaning essentially that formulas can be constructed in various "languages". If
-   * you want to translate a TemplateFormula into the corresponding formula in another
-   * "language", you just call this method, passing a FormulaManager for the language
-   * that you want.
-   */
-  @Override
-  public BooleanFormula translate(FormulaManagerView fmgr) {
-    return null;
-  }
-
-  @Override
-  public FormulaType<BooleanFormula> getFormulaType() {
-    return FormulaType.BooleanType;
   }
 
   /**

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +36,7 @@ import com.google.common.collect.ImmutableList;
  * Provides a MergeOperator implementation that just delegates to the component
  * CPAs without any further logic.
  */
-public class CompositeMergePlainOperator implements MergeOperator {
+public class CompositeMergePlainOperator implements MergeOperator{
 
   private final ImmutableList<MergeOperator> mergeOperators;
 
@@ -54,7 +54,7 @@ public class CompositeMergePlainOperator implements MergeOperator {
     CompositeState compReachedState   = (CompositeState) reachedState;
     CompositePrecision compPrecision  = (CompositePrecision) precision;
 
-    assert (compSuccessorState.getNumberOfStates() == compReachedState.getNumberOfStates());
+    assert(compSuccessorState.getNumberOfStates() == compReachedState.getNumberOfStates());
 
     ImmutableList.Builder<AbstractState> mergedStates = ImmutableList.builder();
     Iterator<AbstractState> iter1 = compSuccessorState.getWrappedStates().iterator();

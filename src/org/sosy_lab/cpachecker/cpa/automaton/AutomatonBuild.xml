@@ -8,5 +8,5 @@
     <property name="parser.target" value="AutomatonParser"/>
     <property name="symbols.target" value="AutomatonSym"/>
 
-    <import file="${basedir}/build/build-parser.xml"/>
+    <import file="${basedir}/build-parser.xml"/>
 </project>

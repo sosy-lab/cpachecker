@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,9 +50,9 @@ public class CacheTransferRelation implements TransferRelation {
   public CacheTransferRelation(TransferRelation pCachedTransferRelation) {
     mCachedTransferRelation = pCachedTransferRelation;
     //mSuccessorsCache = new HashMap<CFAEdge, Map<AbstractState, Map<Precision, Collection<? extends AbstractState>>>>();
-    mSuccessorsCache = new HashMap<>();
+    mSuccessorsCache = new HashMap<Precision, Map<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>>>();
 
-    //mHitEdges = new HashSet<>();
+    //mHitEdges = new HashSet<CFAEdge>();
   }
 
   @Override
@@ -76,7 +76,7 @@ public class CacheTransferRelation implements TransferRelation {
     Map<Precision, Collection<? extends AbstractState>> lLevel2Cache = lLevel1Cache.get(pElement);
 
     if (lLevel2Cache == null) {
-      lLevel2Cache = new HashMap<>();
+      lLevel2Cache = new HashMap<Precision, Collection<? extends AbstractState>>();
       lLevel1Cache.put(pElement, lLevel2Cache);
     }
 
@@ -87,11 +87,12 @@ public class CacheTransferRelation implements TransferRelation {
       lLevel2Cache.put(pPrecision, lSuccessors);
 
       lCacheMisses++;
-    } else {
+    }
+    else {
       lCacheHits++;
     }
 
-    if ((lCacheMisses + lCacheHits) % 100 == 0) {
+    if ((lCacheMisses + lCacheHits) % 100 == 0 ) {
       System.out.println("Misses: " + lCacheMisses + ", hits: " + lCacheHits + ", sum: " + (lCacheMisses + lCacheHits));
     }
 
@@ -100,14 +101,14 @@ public class CacheTransferRelation implements TransferRelation {
     Map<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>> lLevel1Cache = mSuccessorsCache.get(pPrecision);
 
     if (lLevel1Cache == null) {
-      lLevel1Cache = new HashMap<>();
+      lLevel1Cache = new HashMap<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>>();
       mSuccessorsCache.put(pPrecision, lLevel1Cache);
     }
 
     Map<AbstractState, Collection<? extends AbstractState>> lLevel2Cache = lLevel1Cache.get(pCfaEdge);
 
     if (lLevel2Cache == null) {
-      lLevel2Cache = new HashMap<>();
+      lLevel2Cache = new HashMap<AbstractState, Collection<? extends AbstractState>>();
       lLevel1Cache.put(pCfaEdge, lLevel2Cache);
     }
 
@@ -118,7 +119,8 @@ public class CacheTransferRelation implements TransferRelation {
       lLevel2Cache.put(pElement, lSuccessors);
 
       //lCacheMisses++;
-    } else {
+    }
+    else {
       //lCacheHits++;
     }
 

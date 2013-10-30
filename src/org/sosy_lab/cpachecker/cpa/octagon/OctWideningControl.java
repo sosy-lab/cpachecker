@@ -29,50 +29,52 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
 class OctWideningControl {
 
-  HashMap<Integer, LoopNode> loopNodeList = new HashMap<>();
+  HashMap<Integer, LoopNode> loopNodeList = new HashMap<Integer, LoopNode>();
 
-  static class LoopNode {
+  static class LoopNode{
     @SuppressWarnings("unused")
     private int nodeId;
     private int iterationCount = 0;
     private boolean isWideningUsed = false;
 
-    public LoopNode(int id) {
+    public LoopNode(int id){
       nodeId = id;
     }
 
-    public void incrementIteration() {
+    public void incrementIteration(){
       iterationCount++;
     }
 
-    public boolean exceedThreshold() {
+    public boolean exceedThreshold(){
       return iterationCount > OctConstants.wideningThreshold;
     }
 
-    public boolean isWideningUsed() {
+    public boolean isWideningUsed(){
       if (isWideningUsed) {
         return true;
-      } else {
+      }
+      else {
         incrementIteration();
-        if (exceedThreshold()) {
+        if (exceedThreshold()){
           switchToWideningUsed();
         }
       }
       return isWideningUsed;
     }
 
-    public void switchToWideningUsed() {
+    public void switchToWideningUsed(){
       isWideningUsed = true;
     }
   }
 
-  public boolean isWideningUsed(LocationState le) {
+  public boolean isWideningUsed(LocationState le){
     Integer nodeId = le.getLocationNode().getNodeNumber();
     LoopNode ln;
-    if (loopNodeList.containsKey(nodeId)) {
+    if (loopNodeList.containsKey(nodeId)){
       ln = loopNodeList.get(nodeId);
       return ln.isWideningUsed();
-    } else {
+    }
+    else{
       ln = new LoopNode(nodeId);
       loopNodeList.put(nodeId, ln);
       return   ln.isWideningUsed();

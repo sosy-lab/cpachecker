@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,14 +54,14 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
  * Helper class that collects all <code>ReferencedVariable</code>s in a given set of nodes.
  */
 public class ReferencedVariablesCollector {
-  Set<String> globalVars = new HashSet<>();
+  Set<String> globalVars = new HashSet<String>();
 
   public ReferencedVariablesCollector(Collection<CFANode> mainNodes) {
     collectVars(mainNodes);
   }
 
   public Set<ReferencedVariable> collectVars(Collection<CFANode> nodes) {
-    Set<ReferencedVariable> collectedVars = new HashSet<>();
+    Set<ReferencedVariable> collectedVars = new HashSet<ReferencedVariable>();
 
     for (CFANode node : nodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
@@ -143,7 +143,8 @@ public class ReferencedVariablesCollector {
     private void collectVar(String var) {
       if (lhsVar == null) {
         collectedVars.add(scoped(new ReferencedVariable(var, true, false, null), currentFunction));
-      } else {
+      }
+      else {
         collectedVars.add(scoped(new ReferencedVariable(var, false, false, lhsVar), currentFunction));
       }
     }

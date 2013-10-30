@@ -100,7 +100,7 @@ public class CachingRelevantPredicatesComputer implements RefineableRelevantPred
   }
 
   static <U, V> void removeCacheEntriesForBlock(Block pBlock, Map<Pair<Block, U>, V> pCache) {
-    Collection<Pair<Block, U>> removeKeys = new ArrayList<>();
+    Collection<Pair<Block, U>> removeKeys = new ArrayList<Pair<Block, U>>();
     for (Pair<Block, U> key : pCache.keySet()) {
       if (key.getFirst().equals(pBlock)) {
         removeKeys.add(key);

@@ -121,7 +121,7 @@ public class IRMatrix implements MatrixI {
    * augmentation columns come from b.
    */
   public static IRMatrix augment(IRMatrix a, IRMatrix b) {
-    IRMatrix c = concat(a, b);
+    IRMatrix c = concat(a,b);
     int bn = b.colNum;
     c.numAugCols = bn;
     c.augIneq = new InfixReln[bn];
@@ -138,7 +138,7 @@ public class IRMatrix implements MatrixI {
   @Override
   public IRMatrix augment(MatrixI b) {
     IRMatrix m = (IRMatrix) b;
-    return IRMatrix.augment(this, m);
+    return IRMatrix.augment(this,m);
   }
 
   /*
@@ -198,7 +198,7 @@ public class IRMatrix implements MatrixI {
   @Override
   public void multRow(int i, RationalFunction f) {
     for (int j = 0; j < colNum; j++) {
-      entry[i][j] = RationalFunction.multiply(entry[i][j], f);
+      entry[i][j] = RationalFunction.multiply(entry[i][j],f);
     }
   }
 
@@ -208,8 +208,8 @@ public class IRMatrix implements MatrixI {
   @Override
   public void addMultiple(int i1, int i2, RationalFunction f) {
     for (int j = 0; j < colNum; j++) {
-      RationalFunction product = RationalFunction.multiply(f, entry[i2][j]);
-      RationalFunction sum = RationalFunction.add(entry[i1][j], product);
+      RationalFunction product = RationalFunction.multiply(f,entry[i2][j]);
+      RationalFunction sum = RationalFunction.add(entry[i1][j],product);
       entry[i1][j] = sum;
     }
   }
@@ -273,7 +273,7 @@ public class IRMatrix implements MatrixI {
             } else {
               atype = AssumptionType.ZERO;
             }
-            Assumption a = new Assumption(f, atype);
+            Assumption a = new Assumption(f,atype);
             aset.add(a);
           }
         }
@@ -298,13 +298,13 @@ public class IRMatrix implements MatrixI {
         if (denom.isConstant()) {
           if (denom.isZero()) {
             aset = new AssumptionSet();
-            aset.add(new Assumption(RationalFunction.makeZero(), AssumptionType.NONZERO));
+            aset.add( new Assumption(RationalFunction.makeZero(),AssumptionType.NONZERO) );
             break outerloop;
           } else {
             // If the denom is a nonzero constant then we add nothing.
           }
         } else {
-          aset.add(new Assumption(denom, AssumptionType.NONZERO));
+          aset.add( new Assumption(denom,AssumptionType.NONZERO) );
         }
       }
     }
@@ -337,7 +337,7 @@ public class IRMatrix implements MatrixI {
 
     while (true) {
       // Look for the next pivot.
-      int[] pivot = getNextPivot(i0, M, j0, N);
+      int[] pivot = getNextPivot(i0,M,j0,N);
       // If there isn't any, then we're done.
       if (pivot[0] == -1) {
         break;
@@ -347,26 +347,26 @@ public class IRMatrix implements MatrixI {
       int j1 = pivot[1];
       // If i1 > i0, then swap these rows, and set i1 = i0.
       if (i1 > i0) {
-        swapRows(i1, i0);
+        swapRows(i1,i0);
         i1 = i0;
       }
       // Get the rational function at the pivot.
       RationalFunction f = entry[i1][j1];
       // Divide row i1 by f.
       RationalFunction fRecip = RationalFunction.makeReciprocal(f);
-      multRow(i1, fRecip);
+      multRow(i1,fRecip);
       // If f has any parameters, then add the assumption that f's numerator is nonzero.
       if (!f.isConstant()) {
         Polynomial num = f.getNumerator();
-        RationalFunction numOverUnity = new RationalFunction(num, new Polynomial(1));
-        assume.add(new Assumption(numOverUnity, AssumptionType.NONZERO));
+        RationalFunction numOverUnity = new RationalFunction(num,new Polynomial(1));
+        assume.add( new Assumption(numOverUnity, AssumptionType.NONZERO) );
       }
       // Now clear out all other entries in column j1.
       for (int i = 0; i < m; i++) {
         if (i != i1 && !entry[i][j1].isZero()) {
           RationalFunction g = entry[i][j1];
           RationalFunction gneg = RationalFunction.makeNegative(g);
-          addMultiple(i, i1, gneg);
+          addMultiple(i,i1,gneg);
         }
       }
       // Advance to the next row and column.
@@ -404,10 +404,10 @@ public class IRMatrix implements MatrixI {
    * Return an array listing those rows i, with i0 <= i < m, that have nonzero entries in column j.
    */
   private int[] findNonzeroEntriesInColumn(int j, int i0, int m) {
-    Vector<Integer> rows = new Vector<>();
+    Vector<Integer> rows = new Vector<Integer>();
     for (int i = i0; i < m; i++) {
       if (!entry[i][j].isZero()) {
-        rows.add(Integer.valueOf(i));
+        rows.add(new Integer(i));
       }
     }
     return makeIntArray(rows);

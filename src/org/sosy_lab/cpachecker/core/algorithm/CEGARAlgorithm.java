@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -68,11 +68,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     private int countFailedRefinements = 0;
     private boolean timedOut = false;
 
-    private int maxReachedSizeBeforeRefinement = 0;
-    private int maxReachedSizeAfterRefinement = 0;
-    private long totalReachedSizeBeforeRefinement = 0;
-    private long totalReachedSizeAfterRefinement = 0;
-
     @Override
     public String getName() {
       return "CEGAR algorithm";
@@ -83,15 +78,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         ReachedSet pReached) {
 
       out.println("Timed out: " + timedOut);
-      out.println("Number of refinements:                " + countRefinements);
+      out.println("Number of refinements:            " + countRefinements);
 
       if (countRefinements > 0) {
-        out.println("Number of successful refinements:     " + countSuccessfulRefinements);
-        out.println("Number of failed refinements:         " + countFailedRefinements);
-        out.println("Max. size of reached set before ref.: " + maxReachedSizeBeforeRefinement);
-        out.println("Max. size of reached set after ref.:  " + maxReachedSizeAfterRefinement);
-        out.println("Avg. size of reached set before ref.: " + div(totalReachedSizeBeforeRefinement, countRefinements));
-        out.println("Avg. size of reached set after ref.:  " + div(totalReachedSizeAfterRefinement, countSuccessfulRefinements));
+        out.println("Number of successful refinements: " + countSuccessfulRefinements);
+        out.println("Number of failed refinements:     " + countFailedRefinements);
         out.println("");
         out.println("Total time for CEGAR algorithm:   " + totalTimer);
         out.println("Time for refinements:             " + refinementTimer);
@@ -156,9 +147,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(description="do not refine after a reset of the CEGAR algorithm")
   private boolean noRefinementInFirstRun = false;
-
-  @Option(description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
-  private boolean globalRefinement = false;
 
   private long startTime = 0;
   private int refinementCount = 0;
@@ -278,8 +266,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   private boolean refine(ReachedSet reached) throws CPAException, InterruptedException {
     logger.log(Level.FINE, "Error found, performing CEGAR");
     stats.countRefinements++;
-    stats.totalReachedSizeBeforeRefinement += reached.size();
-    stats.maxReachedSizeBeforeRefinement = Math.max(stats.maxReachedSizeBeforeRefinement, reached.size());
     sizeOfReachedSetBeforeRefinement = reached.size();
 
     stats.refinementTimer.start();
@@ -298,8 +284,12 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
     if (refinementResult) {
       stats.countSuccessfulRefinements++;
-      stats.totalReachedSizeAfterRefinement += reached.size();
-      stats.maxReachedSizeAfterRefinement = Math.max(stats.maxReachedSizeAfterRefinement, reached.size());
+
+      if (restartOnRefinement) {
+        // TODO
+      }
+
+      runGC();
     }
 
     return refinementResult;

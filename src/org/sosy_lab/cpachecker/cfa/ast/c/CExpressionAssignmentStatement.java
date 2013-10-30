@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,30 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-
-
 /**
  * AST node for the expression "a = b".
  */
-public class CExpressionAssignmentStatement extends AExpressionAssignmentStatement implements CAssignment, CStatement {
+public class CExpressionAssignmentStatement extends CStatement implements CAssignment {
 
-  public CExpressionAssignmentStatement(FileLocation pFileLocation,
+  private final CExpression leftHandSide;
+  private final CExpression rightHandSide;
+
+  public CExpressionAssignmentStatement(CFileLocation pFileLocation,
                                            CExpression pLeftHandSide,
                                            CExpression pRightHandSide) {
-    super(pFileLocation, pLeftHandSide, pRightHandSide);
-
+    super(pFileLocation);
+    leftHandSide = pLeftHandSide;
+    rightHandSide = pRightHandSide;
   }
 
   @Override
   public CExpression getLeftHandSide() {
-    return (CExpression)super.getLeftHandSide();
+    return leftHandSide;
   }
 
   @Override
   public CExpression getRightHandSide() {
-    return (CExpression)super.getRightHandSide();
+    return rightHandSide;
   }
 
   @Override
@@ -60,22 +60,8 @@ public class CExpressionAssignmentStatement extends AExpressionAssignmentStateme
   }
 
   @Override
-  public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    if (!(obj instanceof CExpressionAssignmentStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+  public String toASTString() {
+    return leftHandSide.toASTString()
+        + " = " + rightHandSide.toASTString() + ";";
   }
 }

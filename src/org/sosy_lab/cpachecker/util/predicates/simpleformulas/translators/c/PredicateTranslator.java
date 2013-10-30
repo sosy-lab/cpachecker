@@ -36,20 +36,20 @@ import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Variable;
 
 public class PredicateTranslator {
 
-  private static Map<Predicate, String> mCache = new HashMap<>();
+  private static Map<Predicate, String> mCache = new HashMap<Predicate, String>();
 
   public static String translate(Predicate pPredicate) {
     if (mCache.containsKey(pPredicate)) {
       return mCache.get(pPredicate);
     }
 
-    Set<String> lVariables = new HashSet<>();
+    Set<String> lVariables = new HashSet<String>();
 
     Visitor lVisitor = new Visitor();
     lVariables.addAll(pPredicate.getLeftTerm().accept(lVisitor));
     lVariables.addAll(pPredicate.getRightTerm().accept(lVisitor));
 
-    StringBuilder lResult = new StringBuilder();
+    StringBuffer lResult = new StringBuffer();
 
     lResult.append("void predicate(");
 
@@ -58,7 +58,8 @@ public class PredicateTranslator {
     for (String lVariable : lVariables) {
       if (isFirst) {
         isFirst = false;
-      } else {
+      }
+      else {
         lResult.append(", ");
       }
 

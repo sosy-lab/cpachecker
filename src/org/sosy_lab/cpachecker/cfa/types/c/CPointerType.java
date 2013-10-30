@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,47 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import java.util.Objects;
 
-
-public final class CPointerType implements CType {
-
+public final class CPointerType extends CType {
 
   private final CType type;
-  private boolean   isConst;
-  private boolean   isVolatile;
 
   public CPointerType(final boolean pConst, final boolean pVolatile,
       final CType pType) {
-    isConst = pConst;
-    isVolatile = pVolatile;
+    super(pConst, pVolatile);
     type = pType;
-  }
-
-  @Override
-  public boolean isConst() {
-    return isConst;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return isVolatile;
   }
 
   public CType getType() {
     return type;
-  }
-
-  @Override
-  public String toString() {
-    String decl;
-
-    decl = "(" + type.toString() + ")*";
-
-
-    return (isConst() ? "const " : "")
-        + (isVolatile() ? "volatile " : "")
-        + decl;
   }
 
   @Override
@@ -81,46 +53,5 @@ public final class CPointerType implements CType {
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
         + decl;
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
-  }
-
-  @Override
-  public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
-  }
-
-  /**
-   * Be careful, this method compares the CType as it is to the given object,
-   * typedefs won't be resolved. If you want to compare the type without having
-   * typedefs in it use #getCanonicalType().equals()
-   */
-  @Override
-  public boolean equals(Object obj) {
-    if (obj == this) {
-      return true;
-    }
-
-    if (!(obj instanceof CPointerType)) {
-      return false;
-    }
-
-    CPointerType other = (CPointerType) obj;
-
-    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile)
-           && Objects.equals(type, other.type);
-  }
-
-  @Override
-  public CPointerType getCanonicalType() {
-    return getCanonicalType(false, false);
-  }
-
-  @Override
-  public CPointerType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    return new CPointerType(isConst || pForceConst, isVolatile || pForceVolatile, type.getCanonicalType());
   }
 }

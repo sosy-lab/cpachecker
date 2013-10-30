@@ -38,7 +38,7 @@ public class Condition {
   }
 
   public String getFormula() {
-    return formula;
+	return formula;
   }
 
 }

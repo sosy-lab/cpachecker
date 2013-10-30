@@ -94,7 +94,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   private boolean typesWarningAlreadyDisplayed = false;
 
   public UninitializedVariablesTransferRelation(String printWarnings, LogManager logger) {
-    globalVars = new HashSet<>();
+    globalVars = new HashSet<String>();
     this.printWarnings = Boolean.parseBoolean(printWarnings);
     this.logger = logger;
   }
@@ -242,8 +242,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         }
       }
 
-      LinkedList<String> uninitParameters = new LinkedList<>();
-      LinkedList<String> initParameters = new LinkedList<>();
+      LinkedList<String> uninitParameters = new LinkedList<String>();
+      LinkedList<String> initParameters = new LinkedList<String>();
 
       //collect initialization status of the called function's parameters from the context of the calling function
       for (int i = 0; i < numOfParams; i++) {

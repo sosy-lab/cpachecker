@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -117,12 +117,13 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     // ERROR is REACHED
-    if (cbmc.getResult()) {
+    if (cbmc.getResult()){
       // if this is unwinding assertions violation the analysis result is UNKNOWN
-      if (cbmc.didUnwindingAssertionFail()) {
+      if (cbmc.didUnwindingAssertionFail()){
         logger.log(Level.INFO, "CBMC terminated with unwinding assertions violation");
         return false;
-      } else {
+      }
+      else{
         pReachedSet.add(new DummyErrorState(), SingletonPrecision.getInstance());
         assert pReachedSet.size() == 1 && pReachedSet.hasWaitingState();
 
@@ -135,9 +136,10 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private List<String> buildCBMCArguments(String fileName) {
-    List<String> paramsList = new ArrayList<>();
+  private String[] buildCBMCArguments(String fileName) {
+    List<String> paramsList = new ArrayList<String>();
 
+    paramsList.add("cbmc");
     paramsList.add("--function");
     paramsList.add(mainFunctionName);
     paramsList.add("--"+intWidth);
@@ -146,12 +148,14 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     paramsList.add("--error-label");
     paramsList.add(errorLabel);
 
-    if (noUnwindingAssertions) {
+    if (noUnwindingAssertions){
       paramsList.add("--no-unwinding-assertions");
     }
 
     paramsList.add(fileName);
-    return paramsList;
+
+    String s[] = new String[paramsList.size()];
+    return paramsList.toArray(s);
   }
 
   @Override

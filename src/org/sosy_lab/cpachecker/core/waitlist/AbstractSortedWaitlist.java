@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,7 +50,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   private final WaitlistFactory wrappedWaitlist;
 
   // invariant: all entries in this map are non-empty
-  private final NavigableMap<K, Waitlist> waitlist = new TreeMap<>();
+  private final NavigableMap<K, Waitlist> waitlist = new TreeMap<K, Waitlist>();
 
   private int size = 0;
 

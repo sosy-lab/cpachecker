@@ -47,7 +47,7 @@ public class ExplicitTest {
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA",
         "specification",     "config/specification/default.spc",
         "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
-        "cpa.composite.precAdjust", "COMPONENT",
+        "cpa.composite.precAdjust", "OMNISCIENT",
         "log.consoleLevel", "FINER"
       );
 
