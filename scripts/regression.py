@@ -36,7 +36,7 @@ Util = TableGenerator.Util # only for different names in programm
 
 import xml.etree.ElementTree as ET
 import os
-import argparse
+import optparse
 
 
 OUTPUT_PATH = 'test/results/'
@@ -53,7 +53,7 @@ def generateHTML(fileList):
     tableGenerator.NAME_START = 'diff'
 
     # run
-    tableGenerator.main(['', '--no-diff'] + fileList)
+    tableGenerator.main([''] +  fileList)
 
 
 def getDiffXMLList(listOfTestTags):
@@ -64,7 +64,6 @@ def getDiffXMLList(listOfTestTags):
     emptyElemList = getEmptyElements(listOfTestTags)
     for elem in listOfTestTags:
         newElem = ET.Element('test', elem.attrib)
-        newElem.attrib['baseDir'] = '../'
         extendXMLElem(newElem, elem.findall('systeminfo'))
         extendXMLElem(newElem, elem.findall('columns'))
         extendXMLElem(newElem, elem.findall('time'))
@@ -151,11 +150,11 @@ def status(currentFile):
         return 'unknown'
     return "correct" if (status == 'safe') == isSafeFile else "wrong"
 
-def compareResults(options):
+def compareResults(xmlFiles, options):
     compare = options.compare
     print ('\ncomparing results ...')
 
-    resultFiles = Util.extendFileList(options.xmlFiles)
+    resultFiles = Util.extendFileList(xmlFiles)
 
     if len(resultFiles) == 0:
         print ('Resultfile not found. Check your filenames!')
@@ -280,27 +279,23 @@ def main(args=None):
     if args is None:
         args = sys.argv
 
-    parser = argparse.ArgumentParser(
-        description="Create table with the differences between the results of several benchmark runs."
-    )
-    parser.add_argument("xmlFiles",
-        metavar="TABLE",
-        type=str,
-        nargs='+',
-        help="XML file with the results from the benchmark script"
-    )
-    parser.add_argument("-c", "--compare",
-        action="store", type=str, dest="compare",
-        help="Compare only the results of a specific sourcefile. " + \
+    parser = optparse.OptionParser('%prog [options] result_1.xml ... result_n.xml')
+    parser.add_option("-c", "--compare",
+        action="store", type="string", dest="compare",
+        help="Which sourcefiles should be compared? " + \
              "Use 'a' for 'all' or a number for the position."
     )
-    parser.add_argument("-d", "--dump",
+    parser.add_option("-d", "--dump",
         action="store_true", dest="dump_counts",
-        help="Print summary statistics for the good, bad, and unknown counts."
+        help="Should the good, bad, unknown counts be printed? "
     )
-    options = parser.parse_args(args[1:])
+    options, args = parser.parse_args(args)
 
-    compareResults(options)
+    if len(args) < 2:
+        print ('xml-file needed')
+        sys.exit()
+
+    compareResults(args[1:], options)
 
 
 if __name__ == '__main__':

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
+import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -48,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
@@ -59,9 +59,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class FsmSyntaxAnalizer implements DomainIntervalProvider{
 
-  private final Map<CExpression,Integer> literalIndexMap;
-  private final Map<String,CExpression> stringToExpressionMap;
-
+  private final Map<String,Integer> literalIndexMap;
   private int literalSequence;
   private CFA cfa;
 
@@ -70,9 +68,15 @@ public class FsmSyntaxAnalizer implements DomainIntervalProvider{
    */
   public FsmSyntaxAnalizer(CFA pCfa) {
     this.cfa = pCfa;
-    this.literalIndexMap = new HashMap<CExpression, Integer>();
-    this.stringToExpressionMap = new HashMap<String, CExpression>();
+    this.literalIndexMap = new HashMap<String, Integer>();
     this.literalSequence = 0;
+  }
+
+  @Override
+  public void printLiteralIndexMap(PrintStream pOut) {
+    for (String lit : literalIndexMap.keySet()) {
+      pOut.println(String.format("%10s --> %d", lit, literalIndexMap.get(lit)));
+    }
   }
 
   @Override
@@ -89,33 +93,21 @@ public class FsmSyntaxAnalizer implements DomainIntervalProvider{
    */
   @Override
   public int mapLiteralToIndex(CExpression pLiteral) throws CPATransferException {
-    Integer index = literalIndexMap.get(pLiteral);
-
+    Integer index = literalIndexMap.get(pLiteral.toASTString());
     if (index == null) {
-      if (pLiteral.getFileLocation() == null) {
-        CExpression pEquivalentLiteral = stringToExpressionMap.get(pLiteral.toASTString());
-        return mapLiteralToIndex(pEquivalentLiteral);
-      } else {
-        throw new CPATransferException(String.format("Cannot map literal '%s' (line %d) of class '%s' to index.",
-            pLiteral.toASTString(), pLiteral.getFileLocation().getStartingLineNumber(), pLiteral.getClass().getSimpleName()));
-      }
+      throw new CPATransferException("Cannot map literal to index: " + pLiteral.getClass().getSimpleName() + ": " + pLiteral.toASTString());
     }
 
-    return index.intValue();
+    return index;
   }
 
   /**
    * Assign an sequence number to a given literal.
    * @param literal
    */
-  public void registerLiteral(CExpression literal) {
-    if (!stringToExpressionMap.containsKey(literal.toASTString())) {
-      stringToExpressionMap.put(literal.toASTString(), literal);
-      literalIndexMap.put(literal, literalSequence++);
-    } else {
-      CExpression first = stringToExpressionMap.get(literal.toASTString());
-      Integer firstIndex = literalIndexMap.get(first);
-      literalIndexMap.put(literal, firstIndex);
+  private void registerLiteral(CExpression literal) {
+    if (!literalIndexMap.containsKey(literal.toASTString())) {
+      literalIndexMap.put(literal.toASTString(), literalSequence++);
     }
   }
 
@@ -152,7 +144,7 @@ public class FsmSyntaxAnalizer implements DomainIntervalProvider{
       @Override
       public Void visit(CUnaryExpression pE) throws UnsupportedCCodeException {
         if (pE.getOperand() instanceof CUnaryExpression
-         || pE.getOperand() instanceof CBinaryExpression) {
+            || pE.getOperand() instanceof CBinaryExpression) {
           pE.getOperand().accept(this);
         } else {
           registerLiteral(pE);
@@ -230,13 +222,6 @@ public class FsmSyntaxAnalizer implements DomainIntervalProvider{
         case MultiEdge:
           MultiEdge multiEdge = (MultiEdge) e;
           leavingEdges.addAll(multiEdge.getEdges());
-          break;
-        case FunctionCallEdge:
-          CFunctionCallEdge callEdge = (CFunctionCallEdge) e;
-          for (CExpression arg: callEdge.getArguments()) {
-            arg.accept(exprVisitor);
-          }
-          break;
         }
       }
     }

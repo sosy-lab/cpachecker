@@ -330,6 +330,45 @@ public abstract class MathsatFormulaManager implements FormulaManager {
     return msat_to_msat(msatEnv, getTerm(f));
   }
 
+/* Method for converting MSAT format to NUSMV format.
+  public String printNusmvFormat(Formula f, Set<Formula> preds) {
+
+    StringBuilder out = new StringBuilder();
+    out.append("MODULE main\n");
+    String repr = dumpFormula(f);
+    for (String line : repr.split("\n")) {
+      if (line.startsWith("VAR")) {
+        out.append(line + ";\n");
+      } else if (line.startsWith("DEFINE")) {
+        String[] bits = line.split(" +", 5);
+        out.append("DEFINE " + bits[1] + " " + bits[4] + ";\n");
+      } else if (line.startsWith("FORMULA")) {
+        out.append("INIT" + line.substring(7) + "\n");
+      } else {
+        out.append(line);
+        out.append('\n');
+      }
+    }
+    out.append("\nTRANS FALSE\n");
+    out.append("INVARSPEC (0 = 0)\n");
+    for (Formula p : preds) {
+      repr = p.toString();
+      repr = repr.replaceAll("([a-zA-Z:_0-9]+@[0-9]+)", "\"$1\"");
+      out.append("PRED " + repr + "\n");
+    }
+    return out.toString();
+  }
+*/
+
+  @Override
+  public Formula parseInfix(String s) {
+    long f = msat_from_string(msatEnv, s);
+    Preconditions.checkArgument(!MSAT_ERROR_TERM(f),
+        "Could not parse formula %s as Mathsat formula.", s);
+
+    return encapsulate(f);
+  }
+
   @Override
   public Formula parse(String s) {
     long f = msat_from_msat(msatEnv, s);

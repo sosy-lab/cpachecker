@@ -21,33 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.abm;
+package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-public class ABMARGBlockStartState extends ARGState{
+public class FsmPrecision implements Precision {
 
-  private static final long serialVersionUID = -5143941913753150639L;
-
-  private ARGState analyzedBlock = null;
-
-  public ABMARGBlockStartState(AbstractState pWrappedState, ARGState pParentElement) {
-    super(pWrappedState, pParentElement);
-    // TODO Auto-generated constructor stub
-  }
-
-  public void setAnalyzedBlock(ARGState pRootOfBlock){
-    analyzedBlock = pRootOfBlock;
-  }
-
-  public ARGState getAnalyzedBlock(){
-    return analyzedBlock;
- }
-
-  @Override
-  public String toString() {
-    return "ABMARGBlockStartState "+super.toString();
-  }
 }
-

@@ -21,13 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.types;
+package org.sosy_lab.cpachecker.util;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
-/**
- * This enum stores the sizes for all the basic types that exist.
- */
 public enum MachineModel {
   /**
    * Machine model representing a 32bit Linux machine

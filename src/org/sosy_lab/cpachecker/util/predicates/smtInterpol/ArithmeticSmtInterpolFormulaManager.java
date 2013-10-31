@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUti
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,8 +36,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
-
-import com.google.common.collect.Sets;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
@@ -238,24 +237,27 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
   // But only if an bitwise "and" occurs in the formula.
   @Override
   public Formula getBitwiseAxioms(Formula f) {
-    Deque<Term> toProcess = new ArrayDeque<Term>();
-    Set<Term> seen = Sets.newHashSet();
-    Set<Term> allLiterals = Sets.newHashSet();
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+    Set<Formula> seen = new HashSet<Formula>();
+    Set<Formula> allLiterals = new HashSet<Formula>();
 
     boolean andFound = false;
 
-    toProcess.add(getTerm(f));
+    toProcess.add(f);
     while (!toProcess.isEmpty()) {
-      final Term t = toProcess.pollLast();
+      final Formula tt = toProcess.pollLast();
+      final Term t = getTerm(tt);
 
       if (isNumber(t)) {
-        allLiterals.add(t);
+        allLiterals.add(tt);
       }
       if (uifs.contains(t)) {
         FunctionSymbol funcSym = ((ApplicationTerm) t).getFunction();
         andFound = bitwiseAndUfDecl.equals(funcSym.getName());
       }
-      for (Term c : getArgs(t)) {
+      int arity = getArity(t);
+      for (int i = 0; i < arity; ++i) {
+        Formula c = encapsulate(getArg(t, i));
         if (seen.add(c)) {
           // was not already contained in seen
           toProcess.add(c);
@@ -266,7 +268,8 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
     Term result = getTrueTerm();
     if (andFound) {
       Term z = env.numeral("0");
-      for (Term n : allLiterals) {
+      for (Formula nn : allLiterals) {
+        Term n = getTerm(nn);
         Term u1 = env.term(bitwiseAndUfDecl, n, z);
         Term u2 = env.term(bitwiseAndUfDecl, z, n);
         Term e1;

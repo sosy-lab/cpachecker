@@ -32,6 +32,11 @@ call "ant report-dependencies".
   Open-source license: license-cbmc.txt
   Bit-precise bounded model checker for C
 
+- csisat: CSIsat
+  http://www.sosy-lab.org/~dbeyer/CSIsat/
+  Apache License 2.0: ../License_Apache-2.0.txt
+  SMT solver (used for predicate analysis)
+
 - libJOct.so: Octagon Abstract Domain Library
   http://www.di.ens.fr/~mine/oct/
   Octagon-Abstract-Domain License: license-octagon.txt

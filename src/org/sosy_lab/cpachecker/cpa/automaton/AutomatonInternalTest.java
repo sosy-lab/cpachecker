@@ -58,7 +58,6 @@ public class AutomatonInternalTest {
 
   private final Configuration config;
   private final LogManager logger;
-  private final CParser parser;
 
   private static final File defaultSpec = new File("test/config/automata/defaultSpecification.spc");
 
@@ -69,7 +68,7 @@ public class AutomatonInternalTest {
     logger = new LogManager(config);
 
     ParserOptions options = CParser.Factory.getDefaultOptions();
-    parser = CParser.Factory.getParser(logger, options);
+    AutomatonASTComparator.parser = CParser.Factory.getParser(logger, options);
   }
 
   @Test
@@ -86,7 +85,7 @@ public class AutomatonInternalTest {
   public void testParser() throws Exception {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
     AutomatonScanner scanner = new AutomatonScanner(new java.io.FileInputStream(defaultSpec), defaultSpec, config, logger, sf);
-    Symbol symbol = new AutomatonParser(scanner, sf, logger, parser).parse();
+    Symbol symbol = new AutomatonParser(scanner, sf, logger).parse();
     @SuppressWarnings("unchecked")
     List<Automaton> as = (List<Automaton>) symbol.value;
     for (Automaton a : as) {
@@ -143,8 +142,8 @@ public class AutomatonInternalTest {
   @Test
   public void testJokerReplacementInAST() throws InvalidAutomatonException {
     // tests the replacement of Joker expressions in the AST comparison
-    ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST("$20 = $5($1, $?);", parser);
-    CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST("var1 = function(var2, egal);", parser);
+    ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST("$20 = $5($1, $?);");
+    CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST("var1 = function(var2, egal);");
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
 
     boolean result = patternAST.matches(sourceAST, args);
@@ -208,8 +207,8 @@ public class AutomatonInternalTest {
    */
   public void testAST(String src, String pattern, boolean result) throws InvalidAutomatonException {
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
-    CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST(src, parser);
-    ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST(pattern, parser);
+    CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST(src);
+    ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST(pattern);
 
     Assert.assertEquals(result, patternAST.matches(sourceAST, args));
   }

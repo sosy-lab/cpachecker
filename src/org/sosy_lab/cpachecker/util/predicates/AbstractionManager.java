@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
 
 /**
  * This class stores a mapping between abstract regions and the corresponding
@@ -83,11 +82,9 @@ public final class AbstractionManager {
   private final FormulaManager fmgr;
 
   // Here we keep the mapping abstract predicate variable -> predicate
-  private final Map<Region, AbstractionPredicate> absVarToPredicate = Maps.newHashMap();
+  private final Map<Region, AbstractionPredicate> absVarToPredicate;
   // and the mapping symbolic variable -> predicate
-  private final Map<Formula, AbstractionPredicate> symbVarToPredicate = Maps.newHashMap();
-  // and the mapping atom -> predicate
-  private final Map<Formula, AbstractionPredicate> atomToPredicate = Maps.newHashMap();
+  private final Map<Formula, AbstractionPredicate> symbVarToPredicate;
 
   @Option(name="abs.useCache", description="use caching of region to formula conversions")
   private boolean useCache = true;
@@ -100,6 +97,9 @@ public final class AbstractionManager {
     logger = pLogger;
     rmgr = pRmgr;
     fmgr = pFmgr;
+
+    absVarToPredicate = new HashMap<Region, AbstractionPredicate>();
+    symbVarToPredicate = new HashMap<Formula, AbstractionPredicate>();
 
     if (useCache) {
       toConcreteCache = new HashMap<Region, Formula>();
@@ -115,19 +115,18 @@ public final class AbstractionManager {
    * the atom that defines it
    */
   public AbstractionPredicate makePredicate(Formula atom) {
-    AbstractionPredicate result = atomToPredicate.get(atom);
+    Formula var = fmgr.createPredicateVariable(atom);
+    AbstractionPredicate result = symbVarToPredicate.get(var);
     if (result == null) {
-      Formula symbVar = fmgr.createPredicateVariable(atom);
       Region absVar = rmgr.createPredicate();
 
       logger.log(Level.FINEST, "Created predicate", absVar,
-          "from variable", symbVar, "and atom", atom);
+          "from variable", var, "and atom", atom);
       numberOfPredicates++;
 
-      result = new AbstractionPredicate(absVar, symbVar, atom);
-      symbVarToPredicate.put(symbVar, result);
+      result = new AbstractionPredicate(absVar, var, atom);
+      symbVarToPredicate.put(var, result);
       absVarToPredicate.put(absVar, result);
-      atomToPredicate.put(atom, result);
     }
     return result;
   }

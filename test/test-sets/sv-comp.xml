@@ -12,7 +12,7 @@
     </sourcefiles>
     <sourcefiles>
       <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
-      <option name="-setprop">analysis.machineModel=Linux64</option>
+      <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
     </sourcefiles>
     <option name="-sv-comp12"/>
     <option name="-heap">12500M</option>

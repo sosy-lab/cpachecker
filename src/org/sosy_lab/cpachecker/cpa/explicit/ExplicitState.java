@@ -131,15 +131,15 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   /**
    * This element joins this element with another element.
    *
-   * @param reachedState the other element to join with this element
+   * @param other the other element to join with this element
    * @return a new state representing the join of this element and the other element
    */
-  ExplicitState join(ExplicitState reachedState) {
-    int size = Math.min(constantsMap.size(), reachedState.constantsMap.size());
+  ExplicitState join(ExplicitState other) {
+    int size = Math.min(constantsMap.size(), other.constantsMap.size());
 
     Map<String, Long> newConstantsMap = new HashMap<String, Long>(size);
 
-    for (Map.Entry<String, Long> otherEntry : reachedState.constantsMap.entrySet()) {
+    for (Map.Entry<String, Long> otherEntry : other.constantsMap.entrySet()) {
       String key = otherEntry.getKey();
 
       if (equal(otherEntry.getValue(), constantsMap.get(key))) {
@@ -147,13 +147,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
       }
     }
 
-    // return the reached state if both maps are equal
-    if(newConstantsMap.size() == reachedState.constantsMap.size()) {
-      return reachedState;
-    }
-    else {
-      return new ExplicitState(newConstantsMap);
-    }
+    return new ExplicitState(newConstantsMap);
   }
 
   /**

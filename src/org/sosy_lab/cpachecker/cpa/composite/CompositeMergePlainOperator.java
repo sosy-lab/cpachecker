@@ -40,43 +40,44 @@ public class CompositeMergePlainOperator implements MergeOperator{
 
   private final ImmutableList<MergeOperator> mergeOperators;
 
-  public CompositeMergePlainOperator(ImmutableList<MergeOperator> mergeOperators) {
+  public CompositeMergePlainOperator(ImmutableList<MergeOperator> mergeOperators)
+  {
     this.mergeOperators = mergeOperators;
   }
 
   @Override
-  public AbstractState merge(AbstractState successorState,
-                               AbstractState reachedState,
+  public AbstractState merge(AbstractState element1,
+                               AbstractState element2,
                                Precision precision) throws CPAException {
 
     // Merge Sep Code
-    CompositeState compSuccessorState = (CompositeState) successorState;
-    CompositeState compReachedState   = (CompositeState) reachedState;
-    CompositePrecision compPrecision  = (CompositePrecision) precision;
+    CompositeState comp1 = (CompositeState) element1;
+    CompositeState comp2 = (CompositeState) element2;
+    CompositePrecision prec = (CompositePrecision) precision;
 
-    assert(compSuccessorState.getNumberOfStates() == compReachedState.getNumberOfStates());
+    assert(comp1.getNumberOfStates() == comp2.getNumberOfStates());
 
-    ImmutableList.Builder<AbstractState> mergedStates = ImmutableList.builder();
-    Iterator<AbstractState> iter1 = compSuccessorState.getWrappedStates().iterator();
-    Iterator<AbstractState> iter2 = compReachedState.getWrappedStates().iterator();
-    Iterator<Precision> iterPrec  = compPrecision.getPrecisions().iterator();
+    ImmutableList.Builder<AbstractState> mergedElements = ImmutableList.builder();
+    Iterator<AbstractState> iter1 = comp1.getWrappedStates().iterator();
+    Iterator<AbstractState> iter2 = comp2.getWrappedStates().iterator();
+    Iterator<Precision> precIter = prec.getPrecisions().iterator();
 
-    boolean identicalStates = true;
+    boolean identicElements = true;
     for (MergeOperator mergeOp : mergeOperators) {
-      AbstractState absSuccessorState = iter1.next();
-      AbstractState absReachedState   = iter2.next();
-      AbstractState mergedState       = mergeOp.merge(absSuccessorState, absReachedState, iterPrec.next());
+      AbstractState absElem1 = iter1.next();
+      AbstractState absElem2 = iter2.next();
+      AbstractState merged = mergeOp.merge(absElem1, absElem2, precIter.next());
 
-      if (mergedState != absReachedState) {
-        identicalStates = false;
+      if (merged != absElem2) {
+        identicElements = false;
       }
-      mergedStates.add(mergedState);
+      mergedElements.add (merged);
     }
 
-    if (identicalStates) {
-      return reachedState;
+    if (identicElements) {
+      return element2;
     } else {
-      return new CompositeState(mergedStates.build());
+      return new CompositeState(mergedElements.build());
     }
   }
 }

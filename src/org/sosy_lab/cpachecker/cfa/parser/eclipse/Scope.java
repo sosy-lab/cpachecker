@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -46,8 +46,8 @@ import com.google.common.collect.Lists;
  */
 class Scope {
 
-  private final Deque<Map<String, CSimpleDeclaration>> varsStack = Lists.newLinkedList();
-  private final Deque<Map<String, CSimpleDeclaration>> varsList = Lists.newLinkedList();
+  private final LinkedList<Map<String, CSimpleDeclaration>> varsStack = Lists.newLinkedList();
+  private final LinkedList<Map<String, CSimpleDeclaration>> varsList = Lists.newLinkedList();
 
   private final Map<String, CSimpleDeclaration> functions = new HashMap<String, CSimpleDeclaration>();
   private String currentFunctionName = null;

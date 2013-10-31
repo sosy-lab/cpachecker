@@ -52,8 +52,8 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
         Preconditions.checkState(interpolEnv == 0);
 
         long cfg = msat_create_config();
-        msat_set_option_checked(cfg, "interpolation", "true");
-        msat_set_option_checked( cfg, "model_generation", "true");
+        msat_set_option(cfg, "interpolation", "true");
+        msat_set_option( cfg, "model_generation", "true");
         interpolEnv = mgr.createEnvironment(cfg, useSharedEnv, false);
     }
 
