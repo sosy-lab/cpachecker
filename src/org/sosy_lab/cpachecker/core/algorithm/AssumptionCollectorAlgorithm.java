@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -38,15 +39,10 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
 
-import org.sosy_lab.common.Files;
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.IntegerOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
+import javax.security.auth.login.Configuration;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -68,9 +64,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
-
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 
 /**
  * Outer algorithm to collect all invariants generated during
@@ -406,12 +399,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     }
   }
-  
+
   @Override
   public boolean reset() {
     return false;
   }
-  
+
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (innerAlgorithm instanceof StatisticsProvider) {
@@ -452,5 +445,4 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     }
   }
->>>>>>> .merge-rechts.r8294
 }
