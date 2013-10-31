@@ -41,4 +41,9 @@ public class Struct extends AbstractLocation {
     return false;
   }
 
+  @Override
+  public String toString() {
+    return "struct " + getId();
+  }
+
 }
