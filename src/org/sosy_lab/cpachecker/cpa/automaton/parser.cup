@@ -44,6 +44,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
+import com.google.common.base.Throwables;
+
 parser code {:
   private LogManager logger;
   private CParser cparser;
@@ -93,6 +95,7 @@ parser code {:
       return ((List<Automaton>) symbol.value);
 
     } catch (Exception e) {
+      Throwables.propagateIfPossible(e, InvalidConfigurationException.class);
       if (e instanceof IOException && e.getMessage() != null) {
         throw new InvalidConfigurationException("Could not load automaton from file " + e.getMessage(), e);
       } else {      
