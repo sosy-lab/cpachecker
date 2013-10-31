@@ -40,31 +40,77 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.Struct;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.Union;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.Variable;
 
-
+/**
+ * Instances of this class are pointer states that are used as abstract elements
+ * in the pointer CPA.
+ */
 public class PointerState implements AbstractState {
 
+  /**
+   * The initial empty pointer state.
+   */
+  public static final PointerState INITIAL_STATE = new PointerState();
+
+  /**
+   * The points-to map of the state.
+   */
   private final PersistentSortedMap<Location, LocationSet> pointsToMap;
 
-  public PointerState() {
+  /**
+   * Creates a new pointer state with an empty initial points-to map.
+    */
+  private PointerState() {
     pointsToMap = PathCopyingPersistentTreeMap.<Location, LocationSet>of();
   }
 
+  /**
+   * Creates a new pointer state from the given persistent points-to map.
+   *
+   * @param pPointsToMap the points-to map of this state.
+   */
   private PointerState(PersistentSortedMap<Location, LocationSet> pPointsToMap) {
     this.pointsToMap = pPointsToMap;
   }
 
+  /**
+   * Gets a pointer state representing the points to information of this state
+   * combined with the information that the first given identifier points to the
+   * second given identifier.
+   *
+   * @param pSource the first identifier.
+   * @param pTarget the second identifier.
+   * @return the pointer state
+   */
   public PointerState addPointsToInformation(Location pSource, Location pTarget) {
     LocationSet previousPointsToSet = getPointsToSet(pSource);
     LocationSet newPointsToSet = previousPointsToSet.addElement(pTarget);
     return new PointerState(pointsToMap.putAndCopy(pSource, newPointsToSet));
   }
 
+  /**
+   * Gets a pointer state representing the points to information of this state
+   * combined with the information that the first given identifier points to the
+   * given target identifiers.
+   *
+   * @param pSource the first identifier.
+   * @param pTargets the target identifiers.
+   * @return the pointer state
+   */
   public PointerState addPointsToInformation(Location pSource, Iterable<Location> pTargets) {
     LocationSet previousPointsToSet = getPointsToSet(pSource);
     LocationSet newPointsToSet = previousPointsToSet.addElements(pTargets);
     return new PointerState(pointsToMap.putAndCopy(pSource, newPointsToSet));
   }
 
+  /**
+   * Gets a pointer state representing the points to information of this state
+   * combined with the information that the first given identifier points to the
+   * given target identifiers.
+   *
+   * @param pSource the first identifier.
+   * @param pTargets the target identifiers.
+   * @return the pointer state
+   */
   public PointerState addPointsToInformation(Location pSource, LocationSet pTargets) {
     if (pTargets.isBot()) {
       return this;
@@ -76,6 +122,12 @@ public class PointerState implements AbstractState {
     return new PointerState(pointsToMap.putAndCopy(pSource, previousPointsToSet.addElements(pTargets)));
   }
 
+  /**
+   * Gets the points-to set mapped to the given identifier.
+   *
+   * @param pSource the identifier pointing to the points-to set in question.
+   * @return the points-to set of the given identifier.
+   */
   public LocationSet getPointsToSet(Location pSource) {
     LocationSet result = this.pointsToMap.get(pSource);
     if (result == null) {
@@ -219,6 +271,11 @@ public class PointerState implements AbstractState {
     return new Union(pTypeName);
   }
 
+  /**
+   * Gets all locations known to the state.
+   *
+   * @return all locations known to the state.
+   */
   public Iterable<Location> getKnownLocations() {
     Set<Location> locations = new HashSet<>();
     locations.addAll(pointsToMap.keySet());
@@ -230,6 +287,11 @@ public class PointerState implements AbstractState {
     return locations;
   }
 
+  /**
+   * Gets the points-to map of this state.
+   *
+   * @return the points-to map of this state.
+   */
   public Map<Location, LocationSet> getPointsToMap() {
     return Collections.unmodifiableMap(this.pointsToMap);
   }

@@ -37,7 +37,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 
-
+/**
+ * Instances of this class are configurable program analyses for analyzing a
+ * program to gain information about pointer aliasing.
+ */
 public class PointerCPA extends AbstractCPA {
 
   @Options(prefix="cpa.pointer2")
@@ -75,7 +78,7 @@ public class PointerCPA extends AbstractCPA {
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return new PointerState();
+    return PointerState.INITIAL_STATE;
   }
 
 }
