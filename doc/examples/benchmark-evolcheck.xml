@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="evolcheck" timelimit="900" memlimit="15000">
+
+  <sourcefiles name="initialRevision">
+    <include>path/to/initialRevision.c</include>
+  </sourcefiles>
+
+  <sourcefiles name="firstRevision">
+    <include>path/to/firstRevision.c</include>
+    <option name="--predecessor">path/to/initialRevision.c</option>
+  </sourcefiles>
+
+  <sourcefiles name="secondRevision">
+    <include>path/to/secondRevision.c</include>
+    <option name="--predecessor">path/to/secondRevision.c</option>
+  </sourcefiles>
+
+  <option name="--unwind">10</option>
+  <option name="--save-summaries">evolcheck__summaries</option>
+  <option name="--load-summaries">evolcheck__summaries</option>
+  <option name="--save-omega">evolcheck__omega</option>
+  <option name="--load-omega">evolcheck__omega</option>
+
+  <rundefinition name="evolcheck">
+  </rundefinition>
+</benchmark>

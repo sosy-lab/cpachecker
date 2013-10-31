@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,12 +34,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 public class ARGTransferRelation implements TransferRelation {
@@ -67,7 +70,7 @@ public class ARGTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
 
-    Collection<ARGState> wrappedSuccessors = new ArrayList<ARGState>();
+    Collection<ARGState> wrappedSuccessors = new ArrayList<>();
     for (AbstractState absElement : successors) {
       ARGState successorElem = new ARGState(absElement, element);
       wrappedSuccessors.add(successorElem);
@@ -86,7 +89,7 @@ public class ARGTransferRelation implements TransferRelation {
   boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors, ProofChecker wrappedProofChecker) throws CPATransferException, InterruptedException {
     ARGState element = (ARGState)pElement;
 
-    assert element.getChildren().equals(pSuccessors);
+    assert Iterables.elementsEqual(element.getChildren(), pSuccessors);
 
     AbstractState wrappedState = element.getWrappedState();
     Multimap<CFAEdge, AbstractState> wrappedSuccessors = HashMultimap.create();
@@ -100,8 +103,7 @@ public class ARGTransferRelation implements TransferRelation {
     }
 
     CFANode loc = AbstractStates.extractLocation(element);
-    for (int i = 0; i < loc.getNumLeavingEdges(); ++i) {
-      CFAEdge edge = loc.getLeavingEdge(i);
+    for (CFAEdge edge : leavingEdges(loc)) {
       if (!wrappedProofChecker.areAbstractSuccessors(wrappedState, edge, wrappedSuccessors.get(edge))) {
         return false;
       }

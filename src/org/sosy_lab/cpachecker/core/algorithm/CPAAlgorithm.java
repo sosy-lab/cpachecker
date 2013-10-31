@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,8 +39,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -74,7 +74,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
     private int   countIterations   = 0;
     private int   maxWaitlistSize   = 0;
-    private int   countWaitlistSize = 0;
+    private long  countWaitlistSize = 0;
     private int   countSuccessors   = 0;
     private int   maxSuccessors     = 0;
     private int   countMerge        = 0;
@@ -126,10 +126,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final LogManager                  logger;
 
-  public CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger, Configuration config) throws InvalidConfigurationException {
+  private final ShutdownNotifier                   shutdownNotifier;
+
+  public CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
+      Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     this.cpa = cpa;
     this.logger = logger;
+    this.shutdownNotifier = pShutdownNotifier;
 
     if (forcedCoveringClass != null) {
       forcedCovering = Classes.createInstance(ForcedCovering.class, forcedCoveringClass,
@@ -165,7 +169,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         cpa.getPrecisionAdjustment();
 
     while (reachedSet.hasWaitingState()) {
-      CPAchecker.stopIfNecessary();
+      shutdownNotifier.shutdownIfNecessary();
 
       stats.countIterations++;
 
@@ -188,19 +192,25 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
       if (forcedCovering != null) {
         stats.forcedCoveringTimer.start();
-        boolean stop = forcedCovering.tryForcedCovering(state, precision, reachedSet);
-        stats.forcedCoveringTimer.stop();
+        try {
+          boolean stop = forcedCovering.tryForcedCovering(state, precision, reachedSet);
 
-        if (stop) {
-          // TODO: remove state from reached set?
-          continue;
+          if (stop) {
+            // TODO: remove state from reached set?
+            continue;
+          }
+        } finally {
+          stats.forcedCoveringTimer.stop();
         }
       }
 
       stats.transferTimer.start();
-      Collection<? extends AbstractState> successors =
-          transferRelation.getAbstractSuccessors(state, precision, null);
-      stats.transferTimer.stop();
+      Collection<? extends AbstractState> successors;
+      try {
+        successors = transferRelation.getAbstractSuccessors(state, precision, null);
+      } finally {
+        stats.transferTimer.stop();
+      }
       // TODO When we have a nice way to mark the analysis result as incomplete,
       // we could continue analysis on a CPATransferException with the next state from waitlist.
 
@@ -215,9 +225,12 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.ALL, "Successor of", state, "\nis", successor);
 
         stats.precisionTimer.start();
-        Triple<AbstractState, Precision, Action> precAdjustmentResult =
-            precisionAdjustment.prec(successor, precision, reachedSet);
-        stats.precisionTimer.stop();
+        Triple<AbstractState, Precision, Action> precAdjustmentResult;
+        try {
+          precAdjustmentResult = precisionAdjustment.prec(successor, precision, reachedSet);
+        } finally {
+          stats.precisionTimer.stop();
+        }
 
         successor = precAdjustmentResult.getFirst();
         Precision successorPrecision = precAdjustmentResult.getSecond();
@@ -225,8 +238,12 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
         if (action == Action.BREAK) {
           stats.stopTimer.start();
-          boolean stop = stopOperator.stop(successor, reachedSet.getReached(successor), successorPrecision);
-          stats.stopTimer.stop();
+          boolean stop;
+          try {
+            stop = stopOperator.stop(successor, reachedSet.getReached(successor), successorPrecision);
+          } finally {
+            stats.stopTimer.stop();
+          }
 
           if (stop) {
             // don't signal BREAK for covered states
@@ -261,39 +278,43 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         // merge operator won't do anything (i.e., it is merge-sep).
         if (mergeOperator != MergeSepOperator.getInstance() && !reached.isEmpty()) {
           stats.mergeTimer.start();
+          try {
+            List<AbstractState> toRemove = new ArrayList<>();
+            List<Pair<AbstractState, Precision>> toAdd = new ArrayList<>();
 
-          List<AbstractState> toRemove = new ArrayList<AbstractState>();
-          List<Pair<AbstractState, Precision>> toAdd =
-              new ArrayList<Pair<AbstractState, Precision>>();
+            logger.log(Level.FINER, "Considering", reached.size(),
+                "states from reached set for merge");
+            for (AbstractState reachedState : reached) {
+              AbstractState mergedState =
+                  mergeOperator.merge(successor, reachedState,
+                      successorPrecision);
 
-          logger.log(Level.FINER, "Considering", reached.size(),
-              "states from reached set for merge");
-          for (AbstractState reachedState : reached) {
-            AbstractState mergedState =
-                mergeOperator.merge(successor, reachedState,
-                    successorPrecision);
+              if (!mergedState.equals(reachedState)) {
+                logger.log(Level.FINER,
+                    "Successor was merged with state from reached set");
+                logger.log(Level.ALL, "Merged", successor, "\nand",
+                    reachedState, "\n-->", mergedState);
+                stats.countMerge++;
 
-            if (!mergedState.equals(reachedState)) {
-              logger.log(Level.FINER,
-                  "Successor was merged with state from reached set");
-              logger.log(Level.ALL, "Merged", successor, "\nand",
-                  reachedState, "\n-->", mergedState);
-              stats.countMerge++;
-
-              toRemove.add(reachedState);
-              toAdd.add(Pair.of(mergedState, successorPrecision));
+                toRemove.add(reachedState);
+                toAdd.add(Pair.of(mergedState, successorPrecision));
+              }
             }
-          }
-          reachedSet.removeAll(toRemove);
-          reachedSet.addAll(toAdd);
+            reachedSet.removeAll(toRemove);
+            reachedSet.addAll(toAdd);
 
-          stats.mergeTimer.stop();
+          } finally {
+            stats.mergeTimer.stop();
+          }
         }
 
         stats.stopTimer.start();
-        boolean stop =
-            stopOperator.stop(successor, reached, successorPrecision);
-        stats.stopTimer.stop();
+        boolean stop;
+        try {
+          stop = stopOperator.stop(successor, reached, successorPrecision);
+        } finally {
+          stats.stopTimer.stop();
+        }
 
         if (stop) {
           logger.log(Level.FINER,

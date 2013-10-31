@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,8 +39,7 @@ import com.google.common.collect.Iterators;
  * and precision are transformed by mapping functions.
  */
 public class UnmodifiableReachedSetView
-  implements UnmodifiableReachedSet
-{
+  implements UnmodifiableReachedSet {
   private final UnmodifiableReachedSet underlying;
   private final Function<? super AbstractState, AbstractState> mapStateFunction;
   private final Function<? super Precision, Precision> mapPrecisionFunction;

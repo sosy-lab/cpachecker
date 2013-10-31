@@ -36,23 +36,23 @@ public class ParameterManager {
 
   private final EAPair EAP;
   private String[] params = {};
-  private HashMap<String,ParameterAssignment> PAmap = null;
+  private HashMap<String, ParameterAssignment> PAmap = null;
 
   public ParameterManager(EAPair EAP) {
     this.EAP = EAP;
-    PAmap = new HashMap<String, ParameterAssignment>();
+    PAmap = new HashMap<>();
   }
 
   public ParameterManager(EAPair EAP, String[] params) {
     this.EAP = EAP;
-    PAmap = new HashMap<String, ParameterAssignment>();
+    PAmap = new HashMap<>();
     this.params = params;
     makePAs();
   }
 
   public ParameterManager(EAPair EAP, Collection<String> pParams) {
     this.EAP = EAP;
-    PAmap = new HashMap<String, ParameterAssignment>();
+    PAmap = new HashMap<>();
     this.params = new String[pParams.size()];
     int i = 0;
     for (String s : pParams) {
@@ -74,18 +74,18 @@ public class ParameterManager {
     return PAmap.get(param);
   }
 
-  public HashMap<String,Rational> getRationalValueMap() {
+  public HashMap<String, Rational> getRationalValueMap() {
     // Returns a mapping from parameter names to (constant)
     // rational values, where those parameters that did not get a
     // constant will map to null.
-    HashMap<String,Rational> map = new HashMap<String, Rational>();
+    HashMap<String, Rational> map = new HashMap<>();
     if (PAmap != null) {
       Rational R;
       String a;
       for (int i = 0; i < params.length; i++) {
         a = params[i];
         R = PAmap.get(a).getValue();
-        map.put(a,R);
+        map.put(a, R);
       }
     }
     return map;
@@ -94,7 +94,7 @@ public class ParameterManager {
   public HashSet<String> getAllVars() {
     // Return a set of the names of all variables occurring in the
     // values of all parameters.
-    HashSet<String> vars = new HashSet<String>();
+    HashSet<String> vars = new HashSet<>();
     Iterator<ParameterAssignment> PAs = PAmap.values().iterator();
     ParameterAssignment PA;
     HashSet<String> pavars;
@@ -135,7 +135,7 @@ public class ParameterManager {
     // Store the results in the private global field PAmap.
 
     // Initialize the set of parameters.
-    HashSet<String> waitlist = new HashSet<String>();
+    HashSet<String> waitlist = new HashSet<>();
     for (int i = 0; i < params.length; i++) {
       waitlist.add(params[i]);
     }
@@ -154,8 +154,8 @@ public class ParameterManager {
       a = ID.getName().toString();
       if (waitlist.contains(a)) {
         RHS = eqn.getRightHandSide();
-        PA = new ParameterAssignment(a,RHS);
-        PAmap.put(a,PA);
+        PA = new ParameterAssignment(a, RHS);
+        PAmap.put(a, PA);
         waitlist.remove(a);
       }
     }
@@ -170,7 +170,7 @@ public class ParameterManager {
     while (it.hasNext()) {
       p = it.next();
       dummyPA = new ParameterAssignment(p);
-      PAmap.put(p,dummyPA);
+      PAmap.put(p, dummyPA);
     }
   }
 

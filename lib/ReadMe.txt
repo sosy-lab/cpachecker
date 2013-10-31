@@ -2,17 +2,6 @@ Libraries Used by CPAchecker
 ============================
 
 
-Source-Code Libraries
----------------------
-
-Libraries in source code should be stored under lib/source/.
-
-- ccvisu: CCVisu
-  http://ccvisu.sosy-lab.org/
-  Open-source license: licence_lgpl.txt
-  Clustering algorithm for graphs
-
-
 Binary Libraries
 ----------------
 
@@ -32,19 +21,26 @@ call "ant report-dependencies".
   Open-source license: license-cbmc.txt
   Bit-precise bounded model checker for C
 
-- csisat: CSIsat
-  http://www.sosy-lab.org/~dbeyer/CSIsat/
-  Apache License 2.0: ../License_Apache-2.0.txt
-  SMT solver (used for predicate analysis)
-
 - libJOct.so: Octagon Abstract Domain Library
   http://www.di.ens.fr/~mine/oct/
   Octagon-Abstract-Domain License: license-octagon.txt
   Used for octagon abstract domain
   Source for wrapper in native/source/octagon-libJOct.so/
 
-- libmathsatj.so: Mathsat4
-  http://mathsat4.disi.unitn.it/
+- libmathsat5j.so: MathSAT5
+  http://mathsat.fbk.eu/
   CPAchecker-specific license: license-libmathsatj.txt
   SMT-solver (used for predicate analysis)
   Source for Java wrapper library in native/source/libmathsatj/
+
+- libz3j.so and libz3.so: Z3
+  http://z3.codeplex.com/
+  Microsoft Research License Agreement: license-Z3.txt
+  SMT-solver (used for predicate analysis)
+  Source for Java wrapper library in native/source/libz3j/
+
+- libfoci.so: FOCI
+  http://www.kenmcmil.com/foci2/
+  All rights reserved by Cadence.
+  Not included in CPAchecker, needs to be downloaded manually.
+  Library is required by Z3 for interpolation.

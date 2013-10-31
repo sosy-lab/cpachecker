@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Objects.equal;
-import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.Pair.zipList;
 
 import java.math.BigDecimal;
@@ -35,6 +34,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -52,7 +53,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -60,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -72,9 +77,6 @@ import com.google.common.annotations.VisibleForTesting;
  */
 class AutomatonASTComparator {
 
-  // TODO refactor
-  static CParser parser = null;
-
   /**
    * Every occurrence of the joker expression $? in the pattern is substituted by JOKER_EXPR.
    * This is necessary because the C-parser cannot parse the pattern if it contains Dollar-Symbols.
@@ -84,17 +86,17 @@ class AutomatonASTComparator {
   private static final String NUMBERED_JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Num";
   private static final Pattern NUMBERED_JOKER_PATTERN = Pattern.compile("\\$\\d+");
 
-  static ASTMatcher generatePatternAST(String pPattern) throws InvalidAutomatonException {
+  static ASTMatcher generatePatternAST(String pPattern, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException {
     // $?-Jokers, $1-Jokers and function declaration
     String tmp = addFunctionDeclaration(replaceJokersInPattern(pPattern));
 
-    return parse(tmp).accept(ASTMatcherGenerator.INSTANCE);
+    return parse(tmp, parser).accept(ASTMatcherGenerator.INSTANCE);
   }
 
-  static CStatement generateSourceAST(String pSource) throws InvalidAutomatonException {
+  static CStatement generateSourceAST(String pSource, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException {
     String tmp = addFunctionDeclaration(pSource);
 
-    return parse(tmp);
+    return parse(tmp, parser);
   }
 
   @VisibleForTesting
@@ -138,9 +140,9 @@ class AutomatonASTComparator {
    * @param code The C code to parse.
    * @return The AST.
    * @throws InvalidAutomatonException
+   * @throws InvalidConfigurationException
    */
-  private static CStatement parse(String code) throws InvalidAutomatonException {
-    checkState(parser != null);
+  private static CStatement parse(String code, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException {
     try {
       CAstNode statement = parser.parseSingleStatement(code);
       if (!(statement instanceof CStatement)) {
@@ -165,13 +167,13 @@ class AutomatonASTComparator {
   /**
    * The visitor that generates a pre-compiled ASTMatcher from a pattern AST.
    */
-  private static enum ASTMatcherGenerator implements CRightHandSideVisitor<ASTMatcher, RuntimeException>,
-                                                     CStatementVisitor<ASTMatcher, RuntimeException> {
+  private static enum ASTMatcherGenerator implements CRightHandSideVisitor<ASTMatcher, InvalidAutomatonException>,
+                                                     CStatementVisitor<ASTMatcher, InvalidAutomatonException> {
 
     INSTANCE;
 
     @Override
-    public ASTMatcher visit(CIdExpression exp) {
+    public ASTMatcher visit(CIdExpression exp) throws InvalidAutomatonException {
       String name = exp.getName();
 
       if (name.equals(JOKER_EXPR)) {
@@ -188,27 +190,32 @@ class AutomatonASTComparator {
     }
 
     @Override
-    public ASTMatcher visit(CArraySubscriptExpression exp) {
+    public ASTMatcher visit(CArraySubscriptExpression exp) throws InvalidAutomatonException {
       return new ArraySubscriptExpressionMatcher(exp, exp.getArrayExpression().accept(this), exp.getSubscriptExpression().accept(this));
     }
 
     @Override
-    public ASTMatcher visit(CBinaryExpression exp) {
+    public ASTMatcher visit(CBinaryExpression exp) throws InvalidAutomatonException {
       return new BinaryExpressionMatcher(exp, exp.getOperand1().accept(this), exp.getOperand2().accept(this));
     }
 
     @Override
-    public ASTMatcher visit(CCastExpression exp) {
+    public ASTMatcher visit(CCastExpression exp) throws InvalidAutomatonException {
       return new CastExpressionMatcher(exp, exp.getOperand().accept(this));
     }
 
     @Override
-    public ASTMatcher visit(CFieldReference exp) {
+    public ASTMatcher visit(CComplexCastExpression exp) throws InvalidAutomatonException {
+      return new ComplexCastExpressionMatcher(exp, exp.getOperand().accept(this));
+    }
+
+    @Override
+    public ASTMatcher visit(CFieldReference exp) throws InvalidAutomatonException {
       return new FieldReferenceMatcher(exp, exp.getFieldOwner().accept(this));
     }
 
     @Override
-    public ASTMatcher visit(CCharLiteralExpression exp) {
+    public ASTMatcher visit(CCharLiteralExpression exp) throws InvalidAutomatonException {
       return new ExpressionWithFieldMatcher<CCharLiteralExpression, Character>(CCharLiteralExpression.class, exp) {
 
         @Override
@@ -219,7 +226,7 @@ class AutomatonASTComparator {
     }
 
     @Override
-    public ASTMatcher visit(CFloatLiteralExpression exp) {
+    public ASTMatcher visit(CFloatLiteralExpression exp) throws InvalidAutomatonException {
       return new ExpressionWithFieldMatcher<CFloatLiteralExpression, BigDecimal>(CFloatLiteralExpression.class, exp) {
 
         @Override
@@ -230,7 +237,23 @@ class AutomatonASTComparator {
     }
 
     @Override
-    public ASTMatcher visit(CIntegerLiteralExpression exp) {
+    public ASTMatcher visit(CImaginaryLiteralExpression exp) throws InvalidAutomatonException {
+      return new ExpressionWithTwoFieldsMatcher<CImaginaryLiteralExpression, CLiteralExpression, String>(CImaginaryLiteralExpression.class, exp) {
+
+        @Override
+        protected CLiteralExpression getFieldValue1From(CImaginaryLiteralExpression pSource) {
+          return pSource.getValue();
+        }
+
+        @Override
+        protected String getFieldValue2From(CImaginaryLiteralExpression pSource) {
+          return pSource.getImaginaryString();
+        }
+      };
+    }
+
+    @Override
+    public ASTMatcher visit(CIntegerLiteralExpression exp) throws InvalidAutomatonException {
       return new ExpressionWithFieldMatcher<CIntegerLiteralExpression, BigInteger>(CIntegerLiteralExpression.class, exp) {
 
         @Override
@@ -241,7 +264,7 @@ class AutomatonASTComparator {
     }
 
     @Override
-    public ASTMatcher visit(CStringLiteralExpression exp) {
+    public ASTMatcher visit(CStringLiteralExpression exp) throws InvalidAutomatonException {
       return new ExpressionWithFieldMatcher<CStringLiteralExpression, String>(CStringLiteralExpression.class, exp) {
 
         @Override
@@ -257,13 +280,23 @@ class AutomatonASTComparator {
     }
 
     @Override
-    public ASTMatcher visit(CUnaryExpression exp) {
+    public ASTMatcher visit(CTypeIdInitializerExpression exp) throws InvalidAutomatonException {
+      throw new InvalidAutomatonException("Type-id initializer expressions of the form " + exp.toASTString() + " are currently not supported in automata.");
+    }
+
+    @Override
+    public ASTMatcher visit(CUnaryExpression exp) throws InvalidAutomatonException {
       return new UnaryExpressionMatcher(exp, exp.getOperand().accept(this));
     }
 
     @Override
-    public ASTMatcher visit(CFunctionCallExpression exp) {
-      List<ASTMatcher> parameterPatterns = new ArrayList<ASTMatcher>(exp.getParameterExpressions().size());
+    public ASTMatcher visit(CPointerExpression exp) throws InvalidAutomatonException {
+      return new PointerExpressionMatcher(exp, exp.getOperand().accept(this));
+    }
+
+    @Override
+    public ASTMatcher visit(CFunctionCallExpression exp) throws InvalidAutomatonException {
+      List<ASTMatcher> parameterPatterns = new ArrayList<>(exp.getParameterExpressions().size());
       for (CExpression parameter : exp.getParameterExpressions()) {
         parameterPatterns.add(parameter.accept(this));
       }
@@ -281,7 +314,7 @@ class AutomatonASTComparator {
     }
 
     @Override
-    public ASTMatcher visit(CExpressionStatement stmt) {
+    public ASTMatcher visit(CExpressionStatement stmt) throws InvalidAutomatonException {
       return new OneOperandExpressionMatcher<CExpressionStatement, Void>(
           CExpressionStatement.class, stmt, stmt.getExpression().accept(this)) {
 
@@ -292,7 +325,7 @@ class AutomatonASTComparator {
       };
     }
 
-    private ASTMatcher visit(final CAssignment stmt) {
+    private ASTMatcher visit(final CAssignment stmt) throws InvalidAutomatonException {
       final ASTMatcher leftHandSide = stmt.getLeftHandSide().accept(this);
       final ASTMatcher rightHandSide = stmt.getRightHandSide().accept(this);
 
@@ -313,7 +346,7 @@ class AutomatonASTComparator {
 
           @Override
           public String toString() {
-            return stmt.asStatement().toASTString();
+            return stmt.toASTString();
           }
         };
 
@@ -333,24 +366,24 @@ class AutomatonASTComparator {
 
           @Override
           public String toString() {
-            return stmt.asStatement().toASTString();
+            return stmt.toASTString();
           }
         };
       }
     }
 
     @Override
-    public ASTMatcher visit(final CExpressionAssignmentStatement stmt) {
+    public ASTMatcher visit(final CExpressionAssignmentStatement stmt) throws InvalidAutomatonException {
       return visit((CAssignment)stmt);
     }
 
     @Override
-    public ASTMatcher visit(CFunctionCallAssignmentStatement stmt) {
+    public ASTMatcher visit(CFunctionCallAssignmentStatement stmt) throws InvalidAutomatonException {
       return visit((CAssignment)stmt);
     }
 
     @Override
-    public ASTMatcher visit(CFunctionCallStatement stmt) {
+    public ASTMatcher visit(CFunctionCallStatement stmt) throws InvalidAutomatonException {
       return new OneOperandExpressionMatcher<CFunctionCallStatement, Void>(
           CFunctionCallStatement.class, stmt, stmt.getFunctionCallExpression().accept(this)) {
 
@@ -412,11 +445,54 @@ class AutomatonASTComparator {
     }
   }
 
+  private static abstract class ExpressionWithTwoFieldsMatcher<T extends CAstNode, F, G> extends CheckedExpressionMatcher<T> {
+
+    private final F field1;
+    private final G field2;
+
+    protected ExpressionWithTwoFieldsMatcher(Class<T> pCls, T pPattern) {
+      super(pCls, pPattern);
+      field1 = getFieldValue1From(pPattern);
+      field2 = getFieldValue2From(pPattern);
+    }
+
+    @Override
+    protected boolean matches2(T pSource, AutomatonExpressionArguments pArg) {
+      return equal(field1, getFieldValue1From(pSource)) && equal(field2, getFieldValue2From(pSource));
+    }
+
+    protected F getFieldValue1From(T pSource) {
+      return null;
+    }
+
+    protected G getFieldValue2From(T pSource) {
+      return null;
+    }
+  }
+
   private static abstract class OneOperandExpressionMatcher<T extends CAstNode, F> extends ExpressionWithFieldMatcher<T, F> {
 
     private final ASTMatcher operand;
 
     protected OneOperandExpressionMatcher(Class<T> pCls, T pPattern, ASTMatcher pOperand) {
+      super(pCls, pPattern);
+      operand = pOperand;
+    }
+
+    @Override
+    protected boolean matches2(T pSource, AutomatonExpressionArguments pArgs) {
+      return super.matches2(pSource, pArgs)
+          && operand.matches(getOperandFrom(pSource), pArgs);
+    }
+
+    protected abstract CRightHandSide getOperandFrom(T pSource);
+  }
+
+  private static abstract class OneOperandExpressionWithTwoFieldsMatcher<T extends CAstNode, F, G> extends ExpressionWithTwoFieldsMatcher<T, F, G> {
+
+    private final ASTMatcher operand;
+
+    protected OneOperandExpressionWithTwoFieldsMatcher(Class<T> pCls, T pPattern, ASTMatcher pOperand) {
       super(pCls, pPattern);
       operand = pOperand;
     }
@@ -544,6 +620,28 @@ class AutomatonASTComparator {
 
     @Override
     protected CType getFieldValueFrom(CCastExpression pSource) {
+      return pSource.getExpressionType();
+    }
+  }
+
+  private static class ComplexCastExpressionMatcher extends OneOperandExpressionWithTwoFieldsMatcher<CComplexCastExpression, Boolean, CType> {
+
+    public ComplexCastExpressionMatcher(CComplexCastExpression pPattern, ASTMatcher pOperand) {
+      super(CComplexCastExpression.class, pPattern, pOperand);
+    }
+
+    @Override
+    protected CExpression getOperandFrom(CComplexCastExpression pSource) {
+      return pSource.getOperand();
+    }
+
+    @Override
+    protected Boolean getFieldValue1From(CComplexCastExpression pSource) {
+      return pSource.isRealCast();
+    }
+
+    @Override
+    protected CType getFieldValue2From(CComplexCastExpression pSource) {
       return pSource.getType();
     }
   }
@@ -591,6 +689,18 @@ class AutomatonASTComparator {
     @Override
     protected UnaryOperator getFieldValueFrom(CUnaryExpression pSource) {
       return pSource.getOperator();
+    }
+  }
+
+  private static class PointerExpressionMatcher extends OneOperandExpressionMatcher<CPointerExpression, Void> {
+
+    public PointerExpressionMatcher(CPointerExpression pPattern, ASTMatcher pOperand) {
+      super(CPointerExpression.class, pPattern, pOperand);
+    }
+
+    @Override
+    protected CExpression getOperandFrom(CPointerExpression pSource) {
+      return pSource.getOperand();
     }
   }
 

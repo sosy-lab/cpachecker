@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,18 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+
+
+
+
 /**
  * Interface for all statements that contain an assignment.
  * Only sub-classes of {@link CStatement} may implement this interface.
  */
-public interface CAssignment {
+public interface CAssignment extends IAssignment, CStatement {
 
-  CExpression getLeftHandSide();
+  @Override
+  CLeftHandSide getLeftHandSide();
 
+  @Override
   CRightHandSide getRightHandSide();
-
-  /**
-   * Return "this" casted to CStatement, i.e., this methods performs an upcast.
-   */
-  CStatement asStatement();
 }

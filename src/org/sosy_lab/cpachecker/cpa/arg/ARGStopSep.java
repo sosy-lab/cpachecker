@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,8 +35,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix="cpa.arg")
@@ -56,7 +56,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
   @Override
   public boolean stop(AbstractState pElement,
-      Collection<AbstractState> pReached, Precision pPrecision) throws CPAException {
+      Collection<AbstractState> pReached, Precision pPrecision) throws CPAException, InterruptedException {
 
     ARGState argElement = (ARGState)pElement;
     assert !argElement.isCovered() : "Passing element to stop which is already covered: " + argElement;
@@ -93,6 +93,11 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       }
     }
 
+    // Never try to cover target states
+    if (argElement.isTarget()) {
+      return false;
+    }
+
     // Now do the usual coverage checks
 
     for (AbstractState reachedState : pReached) {
@@ -107,7 +112,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   }
 
   private boolean stop(ARGState pElement, ARGState pReachedState, Precision pPrecision)
-                                                      throws CPAException {
+                                                      throws CPAException, InterruptedException {
 
     if (!pReachedState.mayCover()) {
       return false;
@@ -134,7 +139,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     return stop;
   }
 
-  boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement, ProofChecker wrappedProofChecker) throws CPAException {
+  boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement, ProofChecker wrappedProofChecker) throws CPAException, InterruptedException {
     ARGState argElement = (ARGState)pElement;
     ARGState otherArtElement = (ARGState)pOtherElement;
 
@@ -145,7 +150,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   }
 
   @Override
-  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedState, Precision pPrecision) throws CPAException {
+  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedState, Precision pPrecision) throws CPAException, InterruptedException {
     if (!(wrappedStop instanceof ForcedCoveringStopOperator)) {
       return false;
     }

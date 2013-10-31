@@ -56,9 +56,9 @@ public class UIFAxiomSet {
     // For example, F might give the pre, post, and trans formulas for a transition.
 
     // First get the set of all variables appearing in F
-    Set<String> allVars = new HashSet<String>();
+    Set<String> allVars = new HashSet<>();
     for (int i = 0; i < F.length; i++) {
-      allVars.addAll( getAllPurificationVariablesAsStrings(F[i],VariableWriteMode.PLAIN) );
+      allVars.addAll(getAllPurificationVariablesAsStrings(F[i], VariableWriteMode.PLAIN));
     }
 
     // go through the value that 'name' maps to, searching for those
@@ -69,14 +69,14 @@ public class UIFAxiomSet {
     // formulas that can be passed to redlog as UIF axioms.
 
     // add those axioms to the vector 'axioms'
-    axioms = new Vector<UIFAxiom>();
+    axioms = new Vector<>();
 
     //iterate over function names known to the Purification P
     Collection<String> funcs = P.getFunctionNames();
 
     for (String name : funcs) {
 
-      Vector<TemplateUIF> UIFs = new Vector<TemplateUIF>();
+      Vector<TemplateUIF> UIFs = new Vector<>();
       //get set of fresh vars introduced for this function
       Set<String> varsForFunc = P.getVarsForFunction(name);
       for (String var : varsForFunc) {
@@ -94,7 +94,7 @@ public class UIFAxiomSet {
         TemplateUIF U1 = UIFs.get(i);
         for (int j = i+1; j < m; j++) {
           TemplateUIF U2 = UIFs.get(j);
-          UIFAxiom A = new UIFAxiom(U1,U2);
+          UIFAxiom A = new UIFAxiom(U1, U2);
           axioms.add(A);
         }
       }
@@ -106,14 +106,14 @@ public class UIFAxiomSet {
     if (N > 0) {
       k = 1;
       // declare a subset generator for subsets of order k out of N
-      SG = new SubsetGenerator(N,k);
+      SG = new SubsetGenerator(N, k);
       // we also need a permutation generator for k
       PG = new PermutationGenerator(k);
       // and we must initialize the first subset
       HashSet<Integer> index_subset = SG.getNext();
-      axiomSubset = new Vector<UIFAxiom>();
+      axiomSubset = new Vector<>();
       for (Integer I : index_subset) {
-        axiomSubset.add( axioms.get(I.intValue()) );
+        axiomSubset.add(axioms.get(I.intValue()));
       }
       maxk = getMaxk(N);
     } else {
@@ -144,15 +144,15 @@ public class UIFAxiomSet {
 
   private Set<String> getAllPurificationVariablesAsStrings(TemplateFormula F, VariableWriteMode vwm) {
     Set<TemplateVariable> vars = F.getAllPurificationVariables();
-    Set<String> str = new HashSet<String>();
+    Set<String> str = new HashSet<>();
     for (TemplateVariable v : vars) {
-      str.add( v.toString(vwm) );
+      str.add(v.toString(vwm));
     }
     return str;
   }
 
   public boolean hasMore() {
-    return ( (k < N && k < maxk) || SG.hasMore() || PG.hasMore() );
+    return ((k < N && k < maxk) || SG.hasMore() || PG.hasMore());
   }
 
   public Vector<UIFAxiom> getNext() {
@@ -168,23 +168,23 @@ public class UIFAxiomSet {
           //we have done all the subsets for the current k,
           //so we should increment k and make new SG
           k++;
-          assert(k <= N);
-          SG = new SubsetGenerator(N,k);
+          assert (k <= N);
+          SG = new SubsetGenerator(N, k);
         }
         HashSet<Integer> index_subset = SG.getNext();
 
         //create the axiom subset
-        axiomSubset = new Vector<UIFAxiom>();
+        axiomSubset = new Vector<>();
         for (Integer I : index_subset) {
-          axiomSubset.add( axioms.get(I.intValue()) );
+          axiomSubset.add(axioms.get(I.intValue()));
         }
         PG = new PermutationGenerator(k);
       }
 
       int[] index_perm = PG.getNext();
-      next = new Vector<UIFAxiom>();
+      next = new Vector<>();
       for (int i = 0; i < index_perm.length; i++) {
-        next.add( axiomSubset.get( index_perm[i] ) );
+        next.add( axiomSubset.get(index_perm[i] ));
       }
 
     }

@@ -43,7 +43,7 @@ import com.google.common.base.Preconditions;
  * Simply delegates the operation to the wrapped CPA's precision adjustment operator
  * and updates the {@link MonitorState} based on this computation.
  */
-public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
+public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment wrappedPrecAdjustment;
 
@@ -56,7 +56,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
   @Override
   public Triple<AbstractState, Precision, Action> prec(
       AbstractState pElement, Precision oldPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException {
+      UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
 
     Preconditions.checkArgument(pElement instanceof MonitorState);
     MonitorState element = (MonitorState)pElement;

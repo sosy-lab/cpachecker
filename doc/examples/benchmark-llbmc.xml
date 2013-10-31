@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+
+<benchmark tool="llbmc" timelimit="300" memlimit="15000">
+  <option name="-no-overflow-checks"/>
+  <option name="-ignore-missing-function-bodies"/>
+  <option name="-no-memory-access-checks"/>
+
+  <!-- Define a set of sourcefiles that will be used with all run definitions. -->
+  <sourcefiles name="counterexamples">
+    <include>path/to/sourcefiles*.c</include>
+  </sourcefiles>
+
+  <!-- Define a run definition with one specific option. -->
+  <rundefinition name="counterexamples_llbmc">
+    <option name="-no-div-by-zero-checks"/>
+  </rundefinition>
+</benchmark>
+
+
+

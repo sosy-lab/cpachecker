@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,13 +33,14 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,8 +49,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -60,11 +61,18 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
 
 @Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
+
+  private static final Splitter CONFIG_FILE_CONDITION_SPLITTER = Splitter.on(':').trimResults().limit(2);
 
   private static class RestartAlgorithmStatistics implements Statistics {
 
@@ -75,14 +83,14 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     public RestartAlgorithmStatistics(int pNoOfAlgorithms) {
       noOfAlgorithms = pNoOfAlgorithms;
-      subStats = new ArrayList<Statistics>();
+      subStats = new ArrayList<>();
     }
 
     public Collection<Statistics> getSubStatistics() {
       return subStats;
     }
 
-    public void resetSubStatistics(){
+    public void resetSubStatistics() {
       subStats.clear();
       totalTime = new Timer();
     }
@@ -130,11 +138,14 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  @Option(required=true, description = "list of files with configurations to use")
-  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  @Option(required=true, description = "List of files with configurations to use. "
+      + "A filename can be suffixed with :if-interrupted, :if-failed, and :if-terminated "
+      + "which means that this configuration will only be used if the previous configuration ended with a matching condition.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<File> configFiles;
 
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final RestartAlgorithmStatistics stats;
   private final String filename;
   private final CFA cfa;
@@ -142,7 +153,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   private Algorithm currentAlgorithm;
 
-  public RestartAlgorithm(Configuration config, LogManager pLogger, String pFilename, CFA pCfa) throws InvalidConfigurationException {
+  public RestartAlgorithm(Configuration config, LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier, String pFilename, CFA pCfa) throws InvalidConfigurationException {
     config.inject(this);
 
     if (configFiles.isEmpty()) {
@@ -151,6 +163,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     this.stats = new RestartAlgorithmStatistics(configFiles.size());
     this.logger = pLogger;
+    this.shutdownNotifier = pShutdownNotifier;
     this.filename = pFilename;
     this.cfa = pCfa;
     this.globalConfig = config;
@@ -167,18 +180,28 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     CFANode mainFunction = AbstractStates.extractLocation(pReached.getFirstState());
     assert mainFunction != null : "Location information needed";
 
-    Iterator<File> configFilesIterator = configFiles.iterator();
+    PeekingIterator<File> configFilesIterator = Iterators.peekingIterator(configFiles.iterator());
 
     while (configFilesIterator.hasNext()) {
       stats.totalTime.start();
+      @Nullable ConfigurableProgramAnalysis currentCpa = null;
       ReachedSet currentReached;
+      ShutdownNotifier singleShutdownNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+
+      boolean lastAnalysisInterrupted = false;
+      boolean lastAnalysisFailed = false;
+      boolean lastAnalysisTerminated = false;
+
       try {
         File singleConfigFileName = configFilesIterator.next();
+        // extract first part out of file name
+        singleConfigFileName = new File(CONFIG_FILE_CONDITION_SPLITTER.split(singleConfigFileName.toString()).iterator().next());
 
         try {
-          Pair<Algorithm, ReachedSet> currentPair = createNextAlgorithm(singleConfigFileName, mainFunction);
-          currentAlgorithm = currentPair.getFirst();
-          currentReached = currentPair.getSecond();
+          Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg = createNextAlgorithm(singleConfigFileName, mainFunction, singleShutdownNotifier);
+          currentAlgorithm = currentAlg.getFirst();
+          currentCpa = currentAlg.getSecond();
+          currentReached = currentAlg.getThird();
         } catch (InvalidConfigurationException e) {
           logger.logUserException(Level.WARNING, e, "Skipping one analysis because its configuration is invalid");
           continue;
@@ -192,6 +215,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         if (currentAlgorithm instanceof StatisticsProvider) {
           ((StatisticsProvider)currentAlgorithm).collectStatistics(stats.getSubStatistics());
         }
+        shutdownNotifier.shutdownIfNecessary();
 
         stats.noOfAlgorithmsUsed++;
 
@@ -217,20 +241,69 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
             // sound analysis and completely finished, terminate
             return true;
           }
+          lastAnalysisTerminated = true;
+
         } catch (CPAException e) {
+          lastAnalysisFailed = true;
           if (configFilesIterator.hasNext()) {
             logger.logUserException(Level.WARNING, e, "Analysis not completed");
           } else {
             throw e;
           }
+        } catch (InterruptedException e) {
+          lastAnalysisInterrupted = true;
+          shutdownNotifier.shutdownIfNecessary(); // check if we should also stop
+          logger.logUserException(Level.WARNING, e, "Analysis " + stats.noOfAlgorithmsUsed + " stopped");
         }
       } finally {
+        singleShutdownNotifier.requestShutdown("Analysis terminated"); // shutdown any remaining components
         stats.totalTime.stop();
+      }
+
+      shutdownNotifier.shutdownIfNecessary();
+
+      if (configFilesIterator.hasNext()) {
+        // Check if the next config file has a condition,
+        // and if it has a condition, check if it maches.
+        boolean foundConfig;
+        do {
+          foundConfig = true;
+          String nextConfigFile = configFilesIterator.peek().toString();
+          List<String> parts = CONFIG_FILE_CONDITION_SPLITTER.splitToList(nextConfigFile);
+          if (parts.size() == 2) {
+            String condition = parts.get(1);
+            switch (condition) {
+            case "if-interrupted":
+              foundConfig = lastAnalysisInterrupted;
+              break;
+            case "if-failed":
+              foundConfig = lastAnalysisFailed;
+              break;
+            case "if-terminated":
+              foundConfig = lastAnalysisTerminated;
+              break;
+            default:
+              logger.logf(Level.WARNING, "Ignoring invalid restart condition '%s'.", condition);
+              foundConfig = true;
+            }
+            if (!foundConfig) {
+              logger.logf(Level.INFO, "Ignoring restart configuration '%s' because condition %s did not match.", parts.get(0), condition);
+              configFilesIterator.next();
+              stats.noOfAlgorithmsUsed++;
+            }
+          }
+        } while (!foundConfig && configFilesIterator.hasNext());
       }
 
       if (configFilesIterator.hasNext()) {
         stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
         stats.resetSubStatistics();
+
+        if (currentCpa != null) {
+          CPAs.closeCpaIfPossible(currentCpa, logger);
+        }
+        CPAs.closeIfPossible(currentAlgorithm, logger);
+
         logger.log(Level.INFO, "RestartAlgorithm switches to the next configuration...");
       }
     }
@@ -268,9 +341,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  private Pair<Algorithm, ReachedSet> createNextAlgorithm(File singleConfigFileName, CFANode mainFunction) throws InvalidConfigurationException, CPAException, InterruptedException, IOException {
+  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(File singleConfigFileName, CFANode mainFunction, ShutdownNotifier singleShutdownNotifier) throws InvalidConfigurationException, CPAException, InterruptedException, IOException {
 
     ReachedSet reached;
+    ConfigurableProgramAnalysis cpa;
     Algorithm algorithm;
 
     Configuration.Builder singleConfigBuilder = Configuration.builder();
@@ -283,20 +357,21 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     Configuration singleConfig = singleConfigBuilder.build();
     singleConfig.inject(singleOptions);
 
-    if (singleOptions.runCBMCasExternalTool){
+    ResourceLimitChecker singleLimits = ResourceLimitChecker.fromConfiguration(singleConfig, logger, singleShutdownNotifier);
+    singleLimits.start();
+
+    if (singleOptions.runCBMCasExternalTool) {
       algorithm = new ExternalCBMCAlgorithm(filename, singleConfig, logger);
+      cpa = null;
       reached = new ReachedSetFactory(singleConfig, logger).create();
-    }
-    else{
+    } else {
       ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig, logger);
-      ConfigurableProgramAnalysis cpa = createCPA(singleReachedSetFactory, singleConfig, stats);
-      algorithm = createAlgorithm(cpa, singleConfig, stats, singleReachedSetFactory, singleOptions);
+      cpa = createCPA(singleReachedSetFactory, singleConfig, singleShutdownNotifier, stats);
+      algorithm = createAlgorithm(cpa, singleConfig, singleShutdownNotifier, stats, singleReachedSetFactory, singleOptions);
       reached = createInitialReachedSetForRestart(cpa, mainFunction, singleReachedSetFactory);
     }
 
-    CPAchecker.stopIfNecessary();
-
-    return Pair.of(algorithm, reached);
+    return Triple.of(algorithm, cpa, reached);
   }
 
   private ReachedSet createInitialReachedSetForRestart(
@@ -313,10 +388,12 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     return reached;
   }
 
-  private ConfigurableProgramAnalysis createCPA(ReachedSetFactory pReachedSetFactory, Configuration pConfig, RestartAlgorithmStatistics stats) throws InvalidConfigurationException, CPAException {
+  private ConfigurableProgramAnalysis createCPA(ReachedSetFactory pReachedSetFactory,
+      Configuration pConfig, ShutdownNotifier singleShutdownNotifier,
+      RestartAlgorithmStatistics stats) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    CPABuilder builder = new CPABuilder(pConfig, logger, pReachedSetFactory);
+    CPABuilder builder = new CPABuilder(pConfig, logger, singleShutdownNotifier, pReachedSetFactory);
     ConfigurableProgramAnalysis cpa = builder.buildCPAs(cfa);
 
     if (cpa instanceof StatisticsProvider) {
@@ -327,23 +404,24 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   private Algorithm createAlgorithm(
       final ConfigurableProgramAnalysis cpa, Configuration pConfig,
+      final ShutdownNotifier singleShutdownNotifier,
       final RestartAlgorithmStatistics stats, ReachedSetFactory singleReachedSetFactory,
       RestartAlgorithmOptions pOptions)
   throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
-    Algorithm algorithm = new CPAAlgorithm(cpa, logger, pConfig);
+    Algorithm algorithm = new CPAAlgorithm(cpa, logger, pConfig, singleShutdownNotifier);
 
     if (pOptions.useRefinement) {
       algorithm = new CEGARAlgorithm(algorithm, cpa, pConfig, logger);
     }
 
     if (pOptions.useBMC) {
-      algorithm = new BMCAlgorithm(algorithm, cpa, pConfig, logger, singleReachedSetFactory, cfa);
+      algorithm = new BMCAlgorithm(algorithm, cpa, pConfig, logger, singleReachedSetFactory, singleShutdownNotifier, cfa);
     }
 
     if (pOptions.useCBMC) {
-      algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, pConfig, logger, singleReachedSetFactory, cfa);
+      algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, pConfig, logger, singleShutdownNotifier, cfa, filename);
     }
 
     if (pOptions.useAssumptionCollector) {

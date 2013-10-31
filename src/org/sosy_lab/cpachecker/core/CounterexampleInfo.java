@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 
 import com.google.common.collect.Lists;
 
@@ -38,18 +38,18 @@ public class CounterexampleInfo {
 
   private final boolean spurious;
 
-  private final Path targetPath;
-  private final Object assignment;
+  private final ARGPath targetPath;
+  private final Model model;
 
   // list with additional information about the counterexample
   private final Collection<Pair<Object, File>> furtherInfo;
 
   private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null);
 
-  private CounterexampleInfo(boolean pSpurious, Path pTargetPath, Object pAssignment) {
+  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath, Model pModel) {
     spurious = pSpurious;
     targetPath = pTargetPath;
-    assignment = pAssignment;
+    model = pModel;
 
     if (!spurious) {
       furtherInfo = Lists.newArrayListWithExpectedSize(1);
@@ -62,24 +62,24 @@ public class CounterexampleInfo {
     return SPURIOUS;
   }
 
-  public static CounterexampleInfo feasible(Path pTargetPath, Object pAssignment) {
-    return new CounterexampleInfo(false, pTargetPath, pAssignment);
+  public static CounterexampleInfo feasible(ARGPath pTargetPath, Model pModel) {
+    return new CounterexampleInfo(false, pTargetPath, pModel);
   }
 
   public boolean isSpurious() {
     return spurious;
   }
 
-  public Path getTargetPath() {
+  public ARGPath getTargetPath() {
     checkState(!spurious);
 
     return targetPath;
   }
 
-  public Object getTargetPathAssignment() {
+  public Model getTargetPathModel() {
     checkState(!spurious);
 
-    return assignment;
+    return model;
   }
 
   /**

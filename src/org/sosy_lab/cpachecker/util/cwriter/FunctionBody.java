@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
  */
 class FunctionBody implements Iterable<BasicBlock> {
 
-  private final Stack<BasicBlock> stack = new Stack<BasicBlock>();
+  private final Stack<BasicBlock> stack = new Stack<>();
 
   public FunctionBody(int pElementId, String pFunctionName) {
     stack.push(new BasicBlock(pElementId, pFunctionName));

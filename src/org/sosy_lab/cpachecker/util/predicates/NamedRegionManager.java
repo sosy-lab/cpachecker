@@ -28,11 +28,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Function;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
@@ -81,7 +86,7 @@ public class NamedRegionManager implements RegionManager {
    * Returns a String representation of a region.
    */
   public String dumpRegion(Region r) {
-    Map<Region, String> cache = new HashMap<Region, String>(); // map for same regions
+    Map<Region, String> cache = new HashMap<>(); // map for same regions
     return dumpRegion(r, cache);
   }
 
@@ -140,7 +145,7 @@ public class NamedRegionManager implements RegionManager {
   /** Returns a representation of a region in dot-format (graphviz). */
   public String regionToDot(Region r) {
     nodeCounter = 2; // counter for nodes, values 0 and 1 are used for nodes FALSE and TRUE
-    Map<Region, Integer> cache = new HashMap<Region, Integer>(); // map for same regions
+    Map<Region, Integer> cache = new HashMap<>(); // map for same regions
     StringBuilder str = new StringBuilder("digraph G {\n");
 
     // make nodes for FALSE and TRUE
@@ -188,7 +193,7 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public boolean entails(Region pF1, Region pF2) {
+  public boolean entails(Region pF1, Region pF2) throws InterruptedException {
     return delegate.entails(pF1, pF2);
   }
 
@@ -233,13 +238,37 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
+  public RegionBuilder builder(ShutdownNotifier pShutdownNotifier) {
+    return delegate.builder(pShutdownNotifier);
+  }
+
+  @Override
+  public Region fromFormula(BooleanFormula pF, FormulaManagerView pFmgr, Function<BooleanFormula, Region> pAtomToRegion) {
+    return delegate.fromFormula(pF, pFmgr, pAtomToRegion);
+  }
+
+  @Override
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
     return delegate.getIfThenElse(pF);
+  }
+
+  @Override
+  public Set<Region> extractPredicates(Region pF) {
+    return delegate.extractPredicates(pF);
   }
 
   @Override
   public void printStatistics(PrintStream out) {
     out.println("Number of named predicates:          " + (regionMap.size() - anonymousPredicateCounter));
     delegate.printStatistics(out);
+  }
+
+  public Set<String> getPredicates() {
+    return this.regionMap.keySet();
+  }
+
+  @Override
+  public Region makeIte(Region pF1, Region pF2, Region pF3) {
+    return delegate.makeIte(pF1, pF2, pF3);
   }
 }

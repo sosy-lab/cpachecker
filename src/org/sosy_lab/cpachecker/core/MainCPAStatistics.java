@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,29 +23,23 @@
  */
 package org.sosy_lab.cpachecker.core;
 
+import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.lang.management.GarbageCollectorMXBean;
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
-import java.lang.management.MemoryUsage;
+import java.io.Writer;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
 import javax.management.JMException;
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
@@ -55,8 +49,16 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -64,6 +66,12 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.coverage.CoveragePrinter;
+import org.sosy_lab.cpachecker.coverage.CoveragePrinterGcov;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
+import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -74,366 +82,424 @@ import com.google.common.collect.Multiset;
 @Options
 class MainCPAStatistics implements Statistics {
 
-  /**
-   * Some hints on memory usage numbers that I have found out so far
-   * (as of 2011-11-21 with OpenJDK 6 on Linux, obtained by pwendler).
-   *
-   * There are four ways to get memory numbers:
-   * 1) The relevant methods in the {@link Runtime} class.
-   *    (Java heap memory)
-   * 2) The {@link java.lang.management.MemoryMXBean}.
-   *    (Java heap and non-heap memory)
-   * 3) The {@link java.lang.management.MemoryPoolMXBean}.
-   *    (Java heap and non-heap memory per memory pool)
-   * 4) The method {@link com.sun.management.OperatingSystemMXBean#getCommittedVirtualMemorySize()}.
-   *    (Total memory usage of process)
-   *
-   * 1) gives the same numbers as 2) for the heap memory.
-   * The sum of heap and non-heap given by 2) is the same as the sum of all pools from 3).
-   *
-   * 3) has the benefit of also providing peak usage and "collection usage" numbers,
-   * although I currently don't know how helpful they are. "Collection usage" is
-   * defined as the memory that was used after the JVM "most recently expended
-   * effort in recycling unused objects in this memory pool"
-   * (i.e., performed garbage collection). These numbers are not available for all
-   * memory pools. There is also support for defining usage thresholds which will
-   * result in MBean notifications being emitted.
-   *
-   * 4) is only supported on Sun-family JVMs (at least the method is defined only
-   * in internal JVM classes). I do not know whether this method works on other OS.
-   * On Linux this gives the same number as the "top" command in the "VIRT" column.
-   * According to the man page this includes "all code, data and shared libraries
-   * plus pages that pages that have been mapped but not used" (and thus this
-   * measure includes more than we would like).
-   *
-   *
-   * With the {@link java.lang.management.MemoryPoolMXBean}, one can configure
-   * thresholds for notification when they are full. There is also a threshold
-   * for notification when they are full even after a GC
-   * (see {@link java.lang.management.MemoryPoolMXBean#setCollectionUsageThreshold(long)}).
-   * However, as of 2012-04-02 with OpenJDK 6 on Linux, this is not really
-   * helpful. First, there is one pool (the "Survivor" pool), which supports
-   * thresholds but has a weird maximum size set (the pool grows beyond the
-   * maximum size). Second, there seem to be a lot of notifications even while
-   * GC is still running. I still haven't found a way how to reliably detect
-   * that an OutOfMemoryError would come soon.
-   */
-  private static class MemoryStatistics extends Thread {
+  // Beyond this many states, we omit some statistics because they are costly.
+  private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 1000000;
 
-    private static final long MEMORY_CHECK_INTERVAL = 100; // milliseconds
+  @Option(name="reachedSet.export",
+      description="print reached set to text file")
+  private boolean exportReachedSet = true;
 
-    private final LogManager logger;
+  @Option(name="reachedSet.file",
+      description="print reached set to text file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path outputFile = Paths.get("reached.txt");
 
-    private long maxHeap = 0;
-    private long sumHeap = 0;
-    private long maxHeapAllocated = 0;
-    private long sumHeapAllocated = 0;
-    private long maxNonHeap = 0;
-    private long sumNonHeap = 0;
-    private long maxNonHeapAllocated = 0;
-    private long sumNonHeapAllocated = 0;
-    private long maxProcess = 0;
-    private long sumProcess = 0;
-    private long count = 0;
+  @Option(name="coverage.export",
+      description="print coverage info to file")
+  private boolean exportCoverage = true;
 
-    // necessary stuff to query the OperatingSystemMBean
-    private final MBeanServer mbeanServer;
-    private ObjectName osMbean;
-    private static final String MEMORY_SIZE = "CommittedVirtualMemorySize";
+  @Option(name="coverage.file",
+      description="print coverage info to file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path outputCoverageFile = Paths.get("coverage.info");
 
-    private MemoryStatistics(LogManager pLogger) {
-      super("CPAchecker memory statistics collector");
+  @Option(name="statistics.memory",
+    description="track memory usage of JVM during runtime")
+  private boolean monitorMemoryUsage = true;
 
-      logger = pLogger;
+  private final String programNames;
+  private final LogManager logger;
+  private final Collection<Statistics> subStats;
+  private final MemoryStatistics memStats;
 
-      mbeanServer = ManagementFactory.getPlatformMBeanServer();
+  private final Timer programTime = new Timer();
+  final Timer creationTime = new Timer();
+  final Timer cpaCreationTime = new Timer();
+  private final Timer analysisTime = new Timer();
+
+  private long programCpuTime;
+  private long analysisCpuTime = 0;
+
+  private Statistics cfaCreatorStatistics;
+  private CFA cfa;
+
+  public MainCPAStatistics(Configuration config, LogManager pLogger, String pProgramNames) throws InvalidConfigurationException {
+    logger = pLogger;
+    config.inject(this);
+    programNames = pProgramNames;
+
+    subStats = new ArrayList<>();
+
+    if (monitorMemoryUsage) {
+      memStats = new MemoryStatistics(pLogger);
+      memStats.setDaemon(true);
+      memStats.start();
+    } else {
+      memStats = null;
+    }
+
+    programTime.start();
+    try {
+      programCpuTime = ProcessCpuTime.read();
+    } catch (JMException e) {
+      logger.logDebugException(e, "Querying cpu time failed");
+      logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, some statistics will be missing.");
+      programCpuTime = -1;
+    }
+  }
+
+  public Collection<Statistics> getSubStatistics() {
+    return subStats;
+  }
+
+  @Override
+  public String getName() {
+    return "CPAchecker";
+  }
+
+  void startAnalysisTimer() {
+    analysisTime.start();
+    try {
+      analysisCpuTime = ProcessCpuTime.read();
+    } catch (JMException e) {
+      logger.logDebugException(e, "Querying cpu time failed");
+      // user was already warned
+      analysisCpuTime = -1;
+    }
+  }
+
+  void stopAnalysisTimer() {
+    analysisTime.stop();
+    programTime.stop();
+
+    try {
+      long stopCpuTime = ProcessCpuTime.read();
+
+      if (programCpuTime >= 0) {
+        programCpuTime = stopCpuTime - programCpuTime;
+      }
+      if (analysisCpuTime >= 0) {
+        analysisCpuTime = stopCpuTime - analysisCpuTime;
+      }
+
+    } catch (JMException e) {
+      logger.logDebugException(e, "Querying cpu time failed");
+      // user was already warned
+    }
+  }
+
+  @Override
+  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    checkNotNull(out);
+    checkNotNull(result);
+    checkArgument(result == Result.NOT_YET_STARTED || reached != null);
+
+    // call stop again in case CPAchecker was terminated abnormally
+    if (analysisTime.isRunning()) {
+      analysisTime.stop();
+    }
+    if (programTime.isRunning()) {
+      programTime.stop();
+    }
+    if (memStats != null) {
+      memStats.interrupt(); // stop memory statistics collection
+    }
+
+    if (result != Result.NOT_YET_STARTED) {
+      dumpReachedSet(reached);
+
+      if (exportCoverage && outputCoverageFile != null) {
+        printCoverageInfo(reached);
+      }
+
+      printSubStatistics(out, result, reached);
+    }
+
+    out.println("CPAchecker general statistics");
+    out.println("-----------------------------");
+
+    printCfaStatistics(out);
+
+    if (result != Result.NOT_YET_STARTED) {
       try {
-        osMbean = new ObjectName(ManagementFactory.OPERATING_SYSTEM_MXBEAN_NAME);
-      } catch (MalformedObjectNameException e) {
-        logger.logDebugException(e, "Accessing OperatingSystemMXBean failed");
-        osMbean = null;
+        printReachedSetStatistics(reached, out);
+      } catch (OutOfMemoryError e) {
+        logger.logUserException(Level.WARNING, e,
+            "Out of memory while generating statistics about final reached set");
       }
     }
 
-    @Override
-    public void run() {
-      MemoryMXBean mxBean = ManagementFactory.getMemoryMXBean();
+    out.println();
 
-      while (true) { // no stop condition, call Thread#interrupt() to stop it
-        count++;
+    printTimeStatistics(out, result, reached);
 
-        // get Java heap usage
-        MemoryUsage currentHeap = mxBean.getHeapMemoryUsage();
-        long currentHeapUsed = currentHeap.getUsed();
-        maxHeap = Math.max(maxHeap, currentHeapUsed);
-        sumHeap += currentHeapUsed;
+    out.println();
 
-        long currentHeapAllocated = currentHeap.getCommitted();
-        maxHeapAllocated = Math.max(maxHeapAllocated, currentHeapAllocated);
-        sumHeapAllocated += currentHeapAllocated;
-
-        // get Java non-heap usage
-        MemoryUsage currentNonHeap = mxBean.getNonHeapMemoryUsage();
-        long currentNonHeapUsed = currentNonHeap.getUsed();
-        maxNonHeap = Math.max(maxNonHeap, currentNonHeapUsed);
-        sumNonHeap += currentNonHeapUsed;
-
-        long currentNonHeapAllocated = currentNonHeap.getCommitted();
-        maxNonHeapAllocated = Math.max(maxNonHeapAllocated, currentNonHeapAllocated);
-        sumNonHeapAllocated += currentNonHeapAllocated;
-
-        // get process virtual memory usage
-        if (osMbean != null) {
-          try {
-            long memUsed = (Long) mbeanServer.getAttribute(osMbean, MEMORY_SIZE);
-            maxProcess = Math.max(maxProcess, memUsed);
-            sumProcess += memUsed;
-
-          } catch (JMException e) {
-            logger.logDebugException(e, "Querying memory size failed");
-            osMbean = null;
-          } catch (ClassCastException e) {
-            logger.logDebugException(e, "Querying memory size failed");
-            osMbean = null;
-          }
-        }
-
-        try {
-          sleep(MEMORY_CHECK_INTERVAL);
-        } catch (InterruptedException e) {
-          return; // force thread exit
-        }
-      }
-    }
-
+    printMemoryStatistics(out);
   }
 
-    @Option(name="reachedSet.export",
-        description="print reached set to text file")
-    private boolean exportReachedSet = true;
-
-    @Option(name="reachedSet.file",
-        description="print reached set to text file")
-    @FileOption(FileOption.Type.OUTPUT_FILE)
-    private File outputFile = new File("reached.txt");
-
-    @Option(name="statistics.memory",
-      description="track memory usage of JVM during runtime")
-    private boolean monitorMemoryUsage = true;
-
-    private final LogManager logger;
-    private final Collection<Statistics> subStats;
-    private final MemoryStatistics memStats;
-
-    final Timer programTime = new Timer();
-    final Timer creationTime = new Timer();
-    final Timer cpaCreationTime = new Timer();
-    final Timer analysisTime = new Timer();
-
-    private CFACreator cfaCreator;
-
-    public MainCPAStatistics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-        logger = pLogger;
-        config.inject(this);
-
-        subStats = new ArrayList<Statistics>();
-
-        if (monitorMemoryUsage) {
-          memStats = new MemoryStatistics(pLogger);
-          memStats.setDaemon(true);
-          memStats.start();
-        } else {
-          memStats = null;
-        }
-
-        programTime.start();
+  private void printCoverageInfo(ReachedSet reached) {
+    if (cfa == null) {
+      return;
     }
 
-    public Collection<Statistics> getSubStatistics() {
-      return subStats;
-  }
+    Set<CFANode> locations = getAllLocationsFromReached(reached);
 
-    @Override
-    public String getName() {
-        return "CPAchecker";
+    CoveragePrinter printer = new CoveragePrinterGcov();
+
+    //Add information about visited locations and functions
+    for (CFANode node : locations) {
+      printer.addVisitedLine(node.getLineNumber());
+      printer.addVisitedFunction(node.getFunctionName());
     }
 
-    @Override
-    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-        // call stop again in case CPAchecker was terminated abnormally
-        if (analysisTime.isRunning()) {
-          analysisTime.stop();
+    for (CFANode node : cfa.getAllNodes()) {
+      if (node.getNumLeavingEdges() == 1 && node.getLeavingEdge(0) instanceof CDeclarationEdge) {
+        //We don't mark all global definitions
+        CDeclarationEdge declEdge = (CDeclarationEdge) node.getLeavingEdge(0);
+        if (declEdge.getDeclaration().isGlobal()) {
+          continue;
         }
-        if (programTime.isRunning()) {
-          programTime.stop();
-        }
-        if (memStats != null) {
-          memStats.interrupt(); // stop memory statistics collection
-        }
-
-        if (exportReachedSet && outputFile != null) {
-          try {
-            Files.writeFile(outputFile, Joiner.on('\n').join(reached));
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
-          } catch (OutOfMemoryError e) {
-            logger.logUserException(Level.WARNING, e,
-                "Could not write reached set to file due to memory problems");
-          }
-        }
-
-        for (Statistics s : subStats) {
-          String name = s.getName();
-          if (!Strings.isNullOrEmpty(name)) {
-            name = name + " statistics";
-            out.println(name);
-            out.println(Strings.repeat("-", name.length()));
-          }
-
-          try {
-            s.printStatistics(out, result, reached);
-          } catch (OutOfMemoryError e) {
-            logger.logUserException(Level.WARNING, e,
-                "Out of memory while generating statistics and writing output files");
-          }
-
-          if (!Strings.isNullOrEmpty(name)) {
-            out.println();
-          }
-        }
-
-        out.println("CPAchecker general statistics");
-        out.println("-----------------------------");
-
-        try {
-          printReachedSetStatistics(reached, out);
-        } catch (OutOfMemoryError e) {
-          logger.logUserException(Level.WARNING, e,
-              "Out of memory while generating statistics about final reached set");
-        }
-
-        printTimeStatistics(out);
-
-        out.println("");
-
-        printMemoryStatistics(out);
-    }
-
-
-    private void printReachedSetStatistics(ReachedSet reached, PrintStream out) {
-      if (reached instanceof ForwardingReachedSet) {
-        reached = ((ForwardingReachedSet)reached).getDelegate();
       }
-      int reachedSize = reached.size();
 
-      out.println("Size of reached set:          " + reachedSize);
+      //We don't mark last line - "}"
+      if (node instanceof FunctionExitNode) {
+        continue;
+      }
 
-      if (reached instanceof LocationMappedReachedSet) {
-        LocationMappedReachedSet l = (LocationMappedReachedSet)reached;
-        int locs = l.getNumberOfPartitions();
-        if (locs > 0) {
-          out.println("  Number of locations:        " + locs);
-          out.println("    Avg states per loc.:      " + reachedSize / locs);
-          Map.Entry<Object, Collection<AbstractState>> maxPartition = l.getMaxPartition();
-          out.println("    Max states per loc.:      " + maxPartition.getValue().size() + " (at node " + maxPartition.getKey() + ")");
+      printer.addExistingLine(node.getLineNumber());
+
+      //This part adds lines, which are only on edges, such as "return" or "goto"
+      for (CFAEdge pEdge : CFAUtils.leavingEdges(node)) {
+        if (pEdge instanceof CDeclarationEdge) {
+          continue;
         }
+        int line = pEdge.getLineNumber();
+        CFANode predessor = pEdge.getPredecessor();
+        CFANode successor = pEdge.getSuccessor();
 
-      } else {
-        HashMultiset<CFANode> allLocations = HashMultiset.create(from(reached)
-                                                                      .transform(EXTRACT_LOCATION)
-                                                                      .filter(notNull()));
-
-        int locs = allLocations.entrySet().size();
-        if (locs > 0) {
-          out.println("  Number of locations:        " + locs);
-          out.println("    Avg states per loc.:      " + reachedSize / locs);
-
-          int max = 0;
-          CFANode maxLoc = null;
-          for (Multiset.Entry<CFANode> location : allLocations.entrySet()) {
-            int size = location.getCount();
-            if (size > max) {
-              max = size;
-              maxLoc = location.getElement();
+        if (pEdge instanceof AStatementEdge) {
+          FileLocation location = ((AStatementEdge)pEdge).getStatement().getFileLocation();
+          if (location.getStartingLineNumber() != location.getEndingLineNumber()) {
+            for (int j = location.getStartingLineNumber(); j <= location.getEndingLineNumber(); j++) {
+              printer.addExistingLine(j);
+              if (locations.contains(predessor) && locations.contains(successor)) {
+                printer.addVisitedLine(j);
+              }
             }
           }
-          out.println("    Max states per loc.:      " + max + " (at node " + maxLoc + ")");
         }
-      }
 
-      if (reached instanceof PartitionedReachedSet) {
-        PartitionedReachedSet p = (PartitionedReachedSet)reached;
-        int partitions = p.getNumberOfPartitions();
-        out.println("  Number of partitions:       " + partitions);
-        out.println("    Avg size of partitions:   " + reachedSize / partitions);
-        Map.Entry<Object, Collection<AbstractState>> maxPartition = p.getMaxPartition();
-        out.print  ("    Max size of partitions:   " + maxPartition.getValue().size());
-        if (maxPartition.getValue().size() > 1) {
-          out.println(" (with key " + maxPartition.getKey() + ")");
-        } else {
-          out.println();
-        }
-      }
-      out.println("  Number of target states:    " + from(reached).filter(IS_TARGET_STATE).size());
-    }
+        printer.addExistingLine(line);
 
-    private void printTimeStatistics(PrintStream out) {
-      out.println("Time for analysis setup:      " + creationTime);
-      out.println("  Time for loading CPAs:      " + cpaCreationTime);
-      if (cfaCreator != null) {
-        out.println("  Time for loading C parser:  " + cfaCreator.parserInstantiationTime);
-        out.println("  Time for CFA construction:  " + cfaCreator.totalTime);
-        out.println("    Time for parsing C file:  " + cfaCreator.parsingTime);
-        out.println("    Time for AST to CFA:      " + cfaCreator.conversionTime);
-        out.println("    Time for CFA sanity check:" + cfaCreator.checkTime);
-        out.println("    Time for post-processing: " + cfaCreator.processingTime);
-        if (cfaCreator.pruningTime.getNumberOfIntervals() > 0) {
-          out.println("    Time for CFA pruning:     " + cfaCreator.pruningTime);
+        if (locations.contains(predessor) && locations.contains(successor)) {
+          printer.addVisitedLine(line);
         }
-        if (cfaCreator.exportTime.getNumberOfIntervals() > 0) {
-          out.println("    Time for CFA export:      " + cfaCreator.exportTime);
-        }
-      }
-      out.println("Time for Analysis:            " + analysisTime);
-      out.println("Total time for CPAchecker:    " + programTime);
-    }
-
-    private void printMemoryStatistics(PrintStream out) {
-      List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
-      Set<String> gcNames = new HashSet<String>();
-      long gcTime = 0;
-      int gcCount = 0;
-      for (GarbageCollectorMXBean gcBean : gcBeans) {
-        gcTime += gcBean.getCollectionTime();
-        gcCount += gcBean.getCollectionCount();
-        gcNames.add(gcBean.getName());
-      }
-      out.println("Time for Garbage Collector:   " + Timer.formatTime(gcTime) + " (in " + gcCount + " runs)");
-      out.println("Garbage Collector(s) used:    " + Joiner.on(", ").join(gcNames));
-
-      if (memStats != null) {
-        try {
-          memStats.join(); // thread should have terminated already,
-                           // but wait for it to ensure memory visibility
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-        }
-        out.println("Used heap memory:             " + formatMem(memStats.maxHeap) + " max (" + formatMem(memStats.sumHeap/memStats.count) + " avg)");
-        out.println("Used non-heap memory:         " + formatMem(memStats.maxNonHeap) + " max (" + formatMem(memStats.sumNonHeap/memStats.count) + " avg)");
-        out.println("Allocated heap memory:        " + formatMem(memStats.maxHeapAllocated) + " max (" + formatMem(memStats.sumHeapAllocated/memStats.count) + " avg)");
-        out.println("Allocated non-heap memory:    " + formatMem(memStats.maxNonHeapAllocated) + " max (" + formatMem(memStats.sumNonHeapAllocated/memStats.count) + " avg)");
-        if (memStats.osMbean != null) {
-          out.println("Total process virtual memory: " + formatMem(memStats.maxProcess) + " max (" + formatMem(memStats.sumProcess/memStats.count) + " avg)");
+        if (pEdge instanceof MultiEdge) {
+          for (CFAEdge singleEdge : ((MultiEdge)pEdge).getEdges()) {
+            if (singleEdge instanceof CDeclarationEdge) {
+              continue;
+            }
+            line = singleEdge.getLineNumber();
+            printer.addExistingLine(line);
+            if (locations.contains(predessor) && locations.contains(successor)) {
+              printer.addVisitedLine(line);
+            }
+          }
         }
       }
     }
 
-    private static String formatMem(long mem) {
-      return String.format("%,9dMB", mem >> 20);
+    //Now collect information about all functions
+    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+      printer.addExistingFunction(entryNode.getFunctionName(), entryNode.getLineNumber()
+          , entryNode.getExitNode().getLineNumber());
     }
 
-    public void setCFACreator(CFACreator pCfaCreator) {
-      Preconditions.checkState(cfaCreator == null);
-      cfaCreator = pCfaCreator;
+    try (Writer out = Files.openOutputFile(outputCoverageFile)) {
+      printer.print(out, programNames);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
     }
+  }
+
+  private Set<CFANode> getAllLocationsFromReached(ReachedSet reached) {
+    if (reached instanceof ForwardingReachedSet) {
+      reached = ((ForwardingReachedSet)reached).getDelegate();
+    }
+    if (reached instanceof LocationMappedReachedSet) {
+      return ((LocationMappedReachedSet)reached).getLocations();
+
+    } else {
+      return from(reached)
+                  .transform(EXTRACT_LOCATION)
+                  .filter(notNull())
+                  .toSet();
+    }
+  }
+
+  private void dumpReachedSet(ReachedSet reached) {
+    assert reached != null : "ReachedSet may be null only if analysis not yet started";
+
+    if (exportReachedSet && outputFile != null) {
+      try (Writer w = Files.openOutputFile(outputFile)) {
+        Joiner.on('\n').appendTo(w, reached);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
+      } catch (OutOfMemoryError e) {
+        logger.logUserException(Level.WARNING, e,
+            "Could not write reached set to file due to memory problems");
+      }
+    }
+  }
+
+  private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {
+    assert reached != null : "ReachedSet may be null only if analysis not yet started";
+
+    for (Statistics s : subStats) {
+      String name = s.getName();
+      if (!Strings.isNullOrEmpty(name)) {
+        name = name + " statistics";
+        out.println(name);
+        out.println(Strings.repeat("-", name.length()));
+      }
+
+      try {
+        s.printStatistics(out, result, reached);
+      } catch (OutOfMemoryError e) {
+        logger.logUserException(Level.WARNING, e,
+            "Out of memory while generating statistics and writing output files");
+      }
+
+      if (!Strings.isNullOrEmpty(name)) {
+        out.println();
+      }
+    }
+  }
+
+  private void printReachedSetStatistics(ReachedSet reached, PrintStream out) {
+    assert reached != null : "ReachedSet may be null only if analysis not yet started";
+
+    if (reached instanceof ForwardingReachedSet) {
+      reached = ((ForwardingReachedSet)reached).getDelegate();
+    }
+    int reachedSize = reached.size();
+
+    out.println("Size of reached set:             " + reachedSize);
+
+    if (!reached.isEmpty()) {
+      if (reachedSize < MAX_SIZE_FOR_REACHED_STATISTICS) {
+        printReachedSetStatisticsDetails(reached, out);
+      }
+
+      if (reached.hasWaitingState()) {
+        out.println("  Size of final wait list        " + reached.getWaitlistSize());
+      }
+    }
+  }
+
+  private void printReachedSetStatisticsDetails(ReachedSet reached, PrintStream out) {
+    int reachedSize = reached.size();
+    Set<CFANode> locations;
+    CFANode mostFrequentLocation = null;
+    int mostFrequentLocationCount = 0;
+
+    if (reached instanceof LocationMappedReachedSet) {
+      LocationMappedReachedSet l = (LocationMappedReachedSet)reached;
+      locations = l.getLocations();
+
+      Map.Entry<Object, Collection<AbstractState>> maxPartition = l.getMaxPartition();
+      mostFrequentLocation = (CFANode)maxPartition.getKey();
+      mostFrequentLocationCount = maxPartition.getValue().size();
+
+    } else {
+      HashMultiset<CFANode> allLocations = HashMultiset.create(from(reached)
+                                                                    .transform(EXTRACT_LOCATION)
+                                                                    .filter(notNull()));
+
+      locations = allLocations.elementSet();
+
+      for (Multiset.Entry<CFANode> location : allLocations.entrySet()) {
+        int size = location.getCount();
+        if (size > mostFrequentLocationCount) {
+          mostFrequentLocationCount = size;
+          mostFrequentLocation = location.getElement();
+        }
+      }
+    }
+
+    if (!locations.isEmpty()) {
+      int locs = locations.size();
+      out.println("  Number of reached locations:   " + locs + " (" + StatisticsUtils.toPercent(locs, cfa.getAllNodes().size()) + ")");
+      out.println("    Avg states per location:     " + reachedSize / locs);
+      out.println("    Max states per location:     " + mostFrequentLocationCount + " (at node " + mostFrequentLocation + ")");
+
+      Set<String> functions = from(locations).transform(CFAUtils.GET_FUNCTION).toSet();
+      out.println("  Number of reached functions:   " + functions.size() + " (" + StatisticsUtils.toPercent(functions.size(), cfa.getNumberOfFunctions()) + ")");
+    }
+
+    if (reached instanceof PartitionedReachedSet) {
+      PartitionedReachedSet p = (PartitionedReachedSet)reached;
+      int partitions = p.getNumberOfPartitions();
+      out.println("  Number of partitions:          " + partitions);
+      out.println("    Avg size of partitions:      " + reachedSize / partitions);
+      Map.Entry<Object, Collection<AbstractState>> maxPartition = p.getMaxPartition();
+      out.print  ("    Max size of partitions:      " + maxPartition.getValue().size());
+      if (maxPartition.getValue().size() > 1) {
+        out.println(" (with key " + maxPartition.getKey() + ")");
+      } else {
+        out.println();
+      }
+    }
+    out.println("  Number of target states:       " + from(reached).filter(IS_TARGET_STATE).size());
+  }
+
+  private void printCfaStatistics(PrintStream out) {
+    if (cfa != null) {
+
+      out.println("Number of program locations:     " + cfa.getAllNodes().size());
+      out.println("Number of functions:             " + cfa.getNumberOfFunctions());
+
+      if (cfa.getLoopStructure().isPresent()) {
+        int loops = cfa.getLoopStructure().get().values().size();
+        out.println("Number of loops:                 " + loops);
+      }
+    }
+  }
+
+  private void printTimeStatistics(PrintStream out, Result result, ReachedSet reached) {
+    out.println("Time for analysis setup:      " + creationTime);
+    out.println("  Time for loading CPAs:      " + cpaCreationTime);
+    if (cfaCreatorStatistics != null) {
+      cfaCreatorStatistics.printStatistics(out, result, reached);
+    }
+    out.println("Time for Analysis:            " + analysisTime);
+    out.println("CPU time for analysis:        " + Timer.formatTime(analysisCpuTime/1000/1000));
+    out.println("Total time for CPAchecker:    " + programTime);
+    out.println("Total CPU time for CPAchecker:" + Timer.formatTime(programCpuTime/1000/1000));
+  }
+
+  private void printMemoryStatistics(PrintStream out) {
+    MemoryStatistics.printGcStatistics(out);
+
+    if (memStats != null) {
+      try {
+        memStats.join(); // thread should have terminated already,
+                         // but wait for it to ensure memory visibility
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+      memStats.printStatistics(out);
+    }
+  }
+
+  public void setCFACreator(CFACreator pCfaCreator) {
+    Preconditions.checkState(cfaCreatorStatistics == null);
+    cfaCreatorStatistics = pCfaCreator.getStatistics();
+  }
+
+  public void setCFA(CFA pCfa) {
+    Preconditions.checkState(cfa == null);
+    cfa = pCfa;
+  }
 }

@@ -29,19 +29,23 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import java.util.NoSuchElementException;
 
+import javax.annotation.CheckReturnValue;
+
+import org.sosy_lab.cpachecker.util.NativeLibraries;
+
 import com.google.common.collect.UnmodifiableIterator;
 
 
 class Mathsat5NativeApi {
 
   static {
-    System.loadLibrary("mathsat5j");
+    NativeLibraries.loadLibrary("mathsat5j");
   }
 
   // msat_result
-  public static final int MSAT_UNKNOWN = -1;
-  public static final int MSAT_UNSAT = 0;
-  public static final int MSAT_SAT = 1;
+  private static final int MSAT_UNKNOWN = -1;
+  private static final int MSAT_UNSAT = 0;
+  private static final int MSAT_SAT = 1;
 
   // msat_truth_value
   public static final int MSAT_UNDEF = -1;
@@ -50,16 +54,36 @@ class Mathsat5NativeApi {
 
   interface AllSatModelCallback {
 
-    void callback(long[] model);
+    void callback(long[] model) throws InterruptedException;
+  }
+
+  static interface TerminationTest {
+    boolean shouldTerminate() throws InterruptedException;
   }
 
   // wrappers for some of the native methods with a different number
   // of arguments
   public static int msat_all_sat(long e, long[] important,
-      AllSatModelCallback func) {
+      AllSatModelCallback func) throws InterruptedException {
 
     int result = msat_all_sat(e, important, important.length, func);
     return result;
+  }
+
+  /**
+   * Solve environment and check for satisfiability.
+   * Return true if sat, false if unsat.
+   */
+  public static boolean msat_check_sat(long e) throws InterruptedException {
+    int res = msat_solve(e);
+    switch (res) {
+    case MSAT_SAT:
+      return true;
+    case MSAT_UNSAT:
+      return false;
+    default:
+      throw new IllegalStateException("msat_solve returned " + res);
+    }
   }
 
   public static ModelIterator msat_create_ModelIterator(long e) {
@@ -117,7 +141,15 @@ class Mathsat5NativeApi {
   public static native long msat_create_shared_env(long cfg, long sibling);
   public static native void msat_destroy_env(long e);
 
-  public static native int msat_set_option(long cfg, String option, String value);
+  @CheckReturnValue
+  private static native int msat_set_option(long cfg, String option, String value);
+  public static void msat_set_option_checked(long cfg, String option, String value)
+                                                throws IllegalArgumentException {
+    int retval = msat_set_option(cfg, option, value);
+    if (retval != 0) {
+      throw new IllegalArgumentException("Could not set Mathsat option \""+option+"="+value+"\", error code " + retval);
+    }
+  }
 
   public static native long msat_get_bool_type(long e);
   public static native long msat_get_rational_type(long e);
@@ -165,6 +197,15 @@ class Mathsat5NativeApi {
   public static native long msat_make_array_write(long e, long arr, long idx, long elem);
   public static native long msat_make_bv_number(long e, String numRep, int width, int base);
   public static native long msat_make_bv_concat(long e, long t1, long t2);
+
+  /**
+   * Returns a term representing the selection of t[msb:lsb].
+   * @param e   The environment of the definition
+   * @param msb   The most significant bit of the selection.
+   * @param lsb   The least significant bit of the selection.
+   * @param t   The argument.
+   * @return a term representing the selection of t[msb:lsb].
+   */
   public static native long msat_make_bv_extract(long e, int msb, int lsb, long t);
   public static native long msat_make_bv_or(long e, long t1, long t2);
   public static native long msat_make_bv_xor(long e, long t1, long t2);
@@ -208,7 +249,7 @@ class Mathsat5NativeApi {
   public static native boolean msat_term_is_and(long e, long t);
   public static native boolean msat_term_is_or(long e, long t);
   public static native boolean msat_term_is_not(long e, long t);
-  public static native boolean msat_term_is_iff(long e,long t);
+  public static native boolean msat_term_is_iff(long e, long t);
   public static native boolean msat_term_is_term_ite(long e, long t);
   public static native boolean msat_term_is_constant(long e, long t);
   public static native boolean msat_term_is_uf(long e, long t);
@@ -278,10 +319,10 @@ class Mathsat5NativeApi {
   public static native void msat_assert_formula(long e, long formula);
   //public static native int msat_add_preferred_for_branching(long e, long termBoolvar);
   //public static native int msat_clear_preferred_for_branching(long e)
-  public static native int msat_solve(long e);
+  private static native int msat_solve(long e) throws InterruptedException;
   //public static native int msat_solve_with_assumptions(long e, long[] assumptions, size numAssumptions)
   private static native int msat_all_sat(long e, long[] important, int num_important,
-      AllSatModelCallback func);
+      AllSatModelCallback func) throws InterruptedException;
   //private static native int msat_solve_diversify(long e, DiversifyModelCallback func, long userData)
   public static native long[] msat_get_asserted_formulas(long e);
   public static native long[] msat_get_theory_lemmas(long e);
@@ -314,6 +355,8 @@ class Mathsat5NativeApi {
   /*
    * Special functions
    */
+  public static native long msat_set_termination_test(long e, TerminationTest callback);
+  public static native void msat_free_termination_test(long t);
   public static native String msat_get_version();
   public static native String msat_last_error_message(long e);
 }

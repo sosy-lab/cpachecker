@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,155 +23,57 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import static org.sosy_lab.common.DuplicateOutputStream.mergeStreams;
+import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.util.logging.Level;
-
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-
-import com.google.common.io.Closeables;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 /**
- * This class is a thread which should be register as a VM shutdown hook.
- * It will print all the statistics when CPAchecker terminates.
- * It will also try to stop the analysis when the user presses Ctrl+C.
+ * This class is a thread which should be registered as a VM shutdown hook.
+ * It will try to stop the analysis when the user presses Ctrl+C.
  */
-@Options(prefix="statistics")
 class ShutdownHook extends Thread {
 
-  @Option(name="export", description="write some statistics to disk")
-  private boolean exportStatistics = true;
-
-  @Option(name="file",
-      description="write some statistics to disk")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File exportStatisticsFile = new File("Statistics.txt");
-
-  @Option(name="print", description="print statistics to console")
-  private boolean printStatistics = false;
-
-  private final LogManager logManager;
-  private final String outputDirectory;
   private final Thread mainThread;
+  private final ShutdownNotifier shutdownNotifier;
 
-  // if still null when run() is executed, analysis has been interrupted by user
-  private CPAcheckerResult mResult = null;
+  private volatile boolean enabled = true;
 
   /**
    * Create a shutdown hook. This constructor needs to be called from the
    * thread in which CPAchecker is run.
    */
-  public ShutdownHook(Configuration config, LogManager logger, String pOutputDirectory) throws InvalidConfigurationException {
-    config.inject(this);
-
-    logManager = logger;
-    outputDirectory = pOutputDirectory;
+  public ShutdownHook(ShutdownNotifier pShutdownNotifier) {
+    super("Shutdown Hook");
+    shutdownNotifier = checkNotNull(pShutdownNotifier);
 
     mainThread = Thread.currentThread();
   }
 
-  /**
-   * Set the CPAchecker result after CPAchecker finished
-   * so that it can be used for printing statistics.
-   */
-  public void setResult(CPAcheckerResult pResult) {
-    assert mResult == null;
-    mResult = pResult;
+  public void disableAndStop() {
+    enabled = false;
+    this.interrupt(); // in case it is already running
+  }
+
+  public void disable() {
+    enabled = false;
   }
 
   // We want to use Thread.stop() to force the main thread to stop
   // when interrupted by the user.
-  @SuppressWarnings("deprecation")
   @Override
   public void run() {
-    boolean cancelled = false;
 
-    if (mainThread.isAlive()) {
+    if (enabled && mainThread.isAlive()) {
       // probably the user pressed Ctrl+C
-      mainThread.interrupt();
-      logManager.log(Level.INFO, "Stop signal received, waiting 2s for analysis to stop cleanly...");
-      cancelled = true;
+      shutdownNotifier.requestShutdown("The JVM is shutting down, probably because Ctrl+C was pressed.");
 
+      // Keep this thread alive to that the main thread has the chance to
+      // print the statistics.
+      // (This thread should be the only thing that prevents the JVM
+      // from immediate termination.)
       try {
-        mainThread.join(2000);
+        mainThread.join();
       } catch (InterruptedException e) {}
-      if (mainThread.isAlive()) {
-        logManager.log(Level.WARNING, "Analysis did not stop fast enough, forcing immediate termination now. This might prevent the statistics from being generated.");
-        mainThread.stop();
-      }
-    }
-
-    logManager.flush();
-    System.out.flush();
-    System.err.flush();
-    if (mResult != null && mResult.getResult() != Result.NOT_YET_STARTED) {
-
-      // setup output streams
-      PrintStream console = printStatistics ? System.out : null;
-      FileOutputStream file = null;
-
-      if (exportStatistics && exportStatisticsFile != null) {
-        try {
-          com.google.common.io.Files.createParentDirs(exportStatisticsFile);
-          file = new FileOutputStream(exportStatisticsFile);
-        } catch (IOException e) {
-          logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
-        }
-      }
-
-      PrintStream stream = makePrintStream(mergeStreams(console, file));
-
-      try {
-        // print statistics
-        mResult.printStatistics(stream);
-        stream.println();
-
-        if (cancelled) {
-          stream.println(
-              "***********************************************************************\n" +
-              "* WARNING: Analysis interrupted!! The statistics might be unreliable! *\n" +
-              "***********************************************************************\n");
-        }
-
-        // print result
-        if (!printStatistics) {
-          stream = makePrintStream(mergeStreams(System.out, file)); // ensure that result is printed to System.out
-        }
-        mResult.printResult(stream);
-
-        if (outputDirectory != null) {
-          stream.println("More details about the verification run can be found in the directory \"" + outputDirectory + "\".");
-        }
-
-        stream.flush();
-
-      } finally {
-        // close only file, not System.out
-        if (file != null) {
-          Closeables.closeQuietly(file);
-        }
-      }
-    }
-    logManager.flush();
-  }
-
-  private static PrintStream makePrintStream(OutputStream stream) {
-    if (stream instanceof PrintStream) {
-      return (PrintStream)stream;
-    } else {
-      return new PrintStream(stream);
     }
   }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,8 +38,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageTransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -47,7 +48,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-public class CompositeTransferRelation implements TransferRelation{
+public class CompositeTransferRelation implements TransferRelation {
 
   protected final ImmutableList<TransferRelation> transferRelations;
   protected final int size;
@@ -83,15 +84,14 @@ public class CompositeTransferRelation implements TransferRelation{
         throw new CPATransferException("Analysis without LocationCPA is not supported, please add one to the configuration");
       }
 
-      results = new ArrayList<CompositeState>(node.getNumLeavingEdges());
+      results = new ArrayList<>(node.getNumLeavingEdges());
 
-      for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
-        CFAEdge edge = node.getLeavingEdge(edgeIdx);
+      for (CFAEdge edge : leavingEdges(node)) {
         getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
       }
 
     } else {
-      results = new ArrayList<CompositeState>(1);
+      results = new ArrayList<>(1);
       getAbstractSuccessorForEdge(compositeState, compositePrecision, cfaEdge, results);
 
     }
@@ -107,7 +107,7 @@ public class CompositeTransferRelation implements TransferRelation{
     // first, call all the post operators
     int resultCount = 1;
     List<AbstractState> componentElements = compositeState.getWrappedStates();
-    List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<Collection<? extends AbstractState>>(size);
+    List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<>(size);
 
     for (int i = 0; i < size; i++) {
       TransferRelation lCurrentTransfer = transferRelations.get(i);
@@ -132,7 +132,7 @@ public class CompositeTransferRelation implements TransferRelation{
     // second, call strengthen for each result of the cartesian product
     for (List<AbstractState> lReachedState : allResultingElements) {
 
-      List<Collection<? extends AbstractState>> lStrengthenResults = new ArrayList<Collection<? extends AbstractState>>(size);
+      List<Collection<? extends AbstractState>> lStrengthenResults = new ArrayList<>(size);
 
       resultCount = 1;
 
@@ -192,7 +192,7 @@ public class CompositeTransferRelation implements TransferRelation{
       break;
 
     case 1:
-      List<AbstractState> resultingElements = new ArrayList<AbstractState>(allComponentsSuccessors.size());
+      List<AbstractState> resultingElements = new ArrayList<>(allComponentsSuccessors.size());
       for (Collection<? extends AbstractState> componentSuccessors : allComponentsSuccessors) {
         resultingElements.add(Iterables.getOnlyElement(componentSuccessors));
       }
@@ -202,7 +202,7 @@ public class CompositeTransferRelation implements TransferRelation{
     default:
       // create cartesian product of all componentSuccessors and store the result in allResultingElements
       List<AbstractState> initialPrefix = Collections.emptyList();
-      allResultingElements = new ArrayList<List<AbstractState>>(resultCount);
+      allResultingElements = new ArrayList<>(resultCount);
       createCartesianProduct0(allComponentsSuccessors, initialPrefix, allResultingElements);
     }
 
@@ -221,7 +221,7 @@ public class CompositeTransferRelation implements TransferRelation{
       Collection<? extends AbstractState> myComponentsSuccessors = allComponentsSuccessors.get(depth);
 
       for (AbstractState currentComponent : myComponentsSuccessors) {
-        List<AbstractState> newPrefix = new ArrayList<AbstractState>(prefix);
+        List<AbstractState> newPrefix = new ArrayList<>(prefix);
         newPrefix.add(currentComponent);
 
         createCartesianProduct0(allComponentsSuccessors, newPrefix, allResultingElements);
@@ -245,7 +245,7 @@ public class CompositeTransferRelation implements TransferRelation{
     int resultCount = 1;
     boolean result = true;
     for (int i = 0; i < size; ++i) {
-      Set<AbstractState> componentSuccessors = new HashSet<AbstractState>();
+      Set<AbstractState> componentSuccessors = new HashSet<>();
       for (AbstractState successor : pSuccessors) {
         CompositeState compositeSuccessor = (CompositeState)successor;
         if (compositeSuccessor.getNumberOfStates() != size) {
@@ -265,9 +265,13 @@ public class CompositeTransferRelation implements TransferRelation{
       }
     }
 
-    if (resultCount != pSuccessors.size()) {
-      return false;
+    if (resultCount > pSuccessors.size()) { return false; }
+
+    HashSet<List<AbstractState>> states = new HashSet<>();
+    for (AbstractState successor : pSuccessors) {
+      states.add(((CompositeState) successor).getWrappedStates());
     }
+    if (resultCount != states.size()) { return false; }
 
     return result;
   }

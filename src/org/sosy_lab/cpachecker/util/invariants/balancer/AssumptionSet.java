@@ -36,18 +36,18 @@ public class AssumptionSet implements Iterable<Assumption> {
   private Vector<Assumption> aset;
 
   public AssumptionSet() {
-    aset = new Vector<Assumption>();
+    aset = new Vector<>();
   }
 
   public AssumptionSet(Collection<Assumption> ca) {
-    aset = new Vector<Assumption>();
+    aset = new Vector<>();
     for (Assumption a : ca) {
       add(a);
     }
   }
 
   public AssumptionSet(AssumptionSet as) {
-    aset = new Vector<Assumption>();
+    aset = new Vector<>();
     for (Assumption a : as) {
       // We can use the vector method, since 'as' should already contain no obvious logical redundancies.
       aset.add(a);
@@ -55,7 +55,7 @@ public class AssumptionSet implements Iterable<Assumption> {
   }
 
   public AssumptionSet copy() {
-    Vector<Assumption> v = new Vector<Assumption>(aset.size());
+    Vector<Assumption> v = new Vector<>(aset.size());
     for (Assumption a : aset) {
       v.add(a);
     }
@@ -120,12 +120,12 @@ public class AssumptionSet implements Iterable<Assumption> {
    * return value is only meant to serve as an "early warning" that the set contains a contradiction.
    */
   public boolean add(Assumption a) {
-    Assumption b,c;
+    Assumption b, c;
     for (int i = 0; i < aset.size(); i++) {
       b = aset.get(i);
       c = a.strengthen(b);
       if (c != null) {
-        aset.set(i,c);
+        aset.set(i, c);
         return c.getAssumptionType() != AssumptionType.FALSE;
       }
     }
@@ -139,7 +139,7 @@ public class AssumptionSet implements Iterable<Assumption> {
   public boolean add(Assumption a, boolean writeArgs) {
     System.out.println("Set was:"+this.toString());
     System.out.println("Adding:"+a.toString());
-    Assumption b,c;
+    Assumption b, c;
     for (int i = 0; i < aset.size(); i++) {
       b = aset.get(i);
       System.out.println("Strengthening"+b+"by"+a);

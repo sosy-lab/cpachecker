@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,8 +24,11 @@
 package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.core.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Set;
@@ -39,8 +42,10 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -54,6 +59,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.io.Resources;
 
 @Options(prefix="analysis")
@@ -68,12 +74,12 @@ public class CPAchecker {
   private static class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
 
     private final ReachedSet reached;
-    private final Thread cpacheckerThread;
+    private final ShutdownNotifier shutdownNotifier;
 
-    public CPAcheckerBean(ReachedSet pReached, LogManager logger) {
+    public CPAcheckerBean(ReachedSet pReached, LogManager logger, ShutdownNotifier pShutdownNotifier) {
       super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
       reached = pReached;
-      cpacheckerThread = Thread.currentThread();
+      shutdownNotifier = pShutdownNotifier;
       register();
     }
 
@@ -84,7 +90,7 @@ public class CPAchecker {
 
     @Override
     public void stop() {
-      cpacheckerThread.interrupt();
+      shutdownNotifier.requestShutdown("A stop request was received via the JMX interface.");
     }
 
   }
@@ -102,17 +108,8 @@ public class CPAchecker {
 
   private final LogManager logger;
   private final Configuration config;
+  private final ShutdownNotifier shutdownNotifier;
   private final CoreComponentsFactory factory;
-
-  /**
-   * This method will throw an exception if the user has requested CPAchecker to
-   * stop immediately. This exception should not be caught by the caller.
-   */
-  public static void stopIfNecessary() throws InterruptedException {
-    if (Thread.interrupted()) {
-      throw new InterruptedException();
-    }
-  }
 
   // The content of this String is read from a file that is created by the
   // ant task "init".
@@ -138,15 +135,17 @@ public class CPAchecker {
     return version;
   }
 
-  public CPAchecker(Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
+  public CPAchecker(Configuration pConfiguration, LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config = pConfiguration;
     logger = pLogManager;
+    shutdownNotifier = pShutdownNotifier;
 
     config.inject(this);
-    factory = new CoreComponentsFactory(pConfiguration, pLogManager);
+    factory = new CoreComponentsFactory(pConfiguration, pLogManager, shutdownNotifier);
   }
 
-  public CPAcheckerResult run(String filename) {
+  public CPAcheckerResult run(String programDenotation) {
 
     logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
 
@@ -154,8 +153,11 @@ public class CPAchecker {
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
 
+    final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
+    shutdownNotifier.register(interruptThreadOnShutdown);
+
     try {
-      stats = new MainCPAStatistics(config, logger);
+      stats = new MainCPAStatistics(config, logger, programDenotation);
 
       // create reached set, cpa, algorithm
       stats.creationTime.start();
@@ -164,16 +166,18 @@ public class CPAchecker {
       Algorithm algorithm;
 
       if (runCBMCasExternalTool) {
-        algorithm = new ExternalCBMCAlgorithm(filename, config, logger);
+
+        checkIfValidFile(programDenotation);
+        algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
 
       } else {
-        CFA cfa = parse(filename, stats);
+        CFA cfa = parse(programDenotation, stats);
         GlobalInfo.getInstance().storeCFA(cfa);
-        stopIfNecessary();
+        shutdownNotifier.shutdownIfNecessary();
 
         ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, stats);
 
-        algorithm = factory.createAlgorithm(cpa, filename, cfa, stats);
+        algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);
 
         if (algorithm instanceof ImpactAlgorithm) {
           ImpactAlgorithm mcmillan = (ImpactAlgorithm)algorithm;
@@ -186,11 +190,11 @@ public class CPAchecker {
       printConfigurationWarnings();
 
       stats.creationTime.stop();
-      stopIfNecessary();
+      shutdownNotifier.shutdownIfNecessary();
       // now everything necessary has been instantiated
 
       if (disableAnalysis) {
-        return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
+        return new CPAcheckerResult(Result.NOT_YET_STARTED, null, stats);
       }
 
       // run analysis
@@ -204,11 +208,14 @@ public class CPAchecker {
       logger.logUserException(Level.SEVERE, e, "Could not read file");
 
     } catch (ParserException e) {
-      // only log message, not whole exception because this is a C problem,
-      // not a CPAchecker problem
       logger.logUserException(Level.SEVERE, e, "Parsing failed");
-      logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
-          + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
+      StringBuilder msg = new StringBuilder();
+      msg.append("Please make sure that the code can be compiled by a compiler.\n");
+      if (e.getLanguage() == Language.C) {
+        msg.append("If the code was not preprocessed, please use a C preprocessor\nor specify the -preprocess command-line argument.\n");
+      }
+      msg.append("If the error still occurs, please send this error message\ntogether with the input file to cpachecker-users@sosy-lab.org.\n");
+      logger.log(Level.INFO, msg);
 
     } catch (InvalidConfigurationException e) {
       logger.logUserException(Level.SEVERE, e, "Invalid configuration");
@@ -217,20 +224,47 @@ public class CPAchecker {
       // CPAchecker must exit because it was asked to
       // we return normally instead of propagating the exception
       // so we can return the partial result we have so far
+      if (!Strings.isNullOrEmpty(e.getMessage())) {
+        logger.logUserException(Level.WARNING, e, "Analysis stopped");
+      }
 
     } catch (CPAException e) {
       logger.logUserException(Level.SEVERE, e, null);
+
+    } finally {
+      shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
     return new CPAcheckerResult(result, reached, stats);
+  }
+
+  private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
+    if (!denotesOneFile(fileDenotation)) {
+      throw new InvalidConfigurationException(
+        "Exactly one code file has to be given.");
+    }
+
+    File file = new File(fileDenotation);
+
+    try {
+      org.sosy_lab.common.Files.checkReadableFile(file);
+    } catch (FileNotFoundException e) {
+      throw new InvalidConfigurationException(e.getMessage());
+    }
+  }
+
+  private boolean denotesOneFile(String programDenotation) {
+    return !programDenotation.contains(",");
   }
 
   private CFA parse(String filename, MainCPAStatistics stats) throws InvalidConfigurationException, IOException,
       ParserException, InterruptedException {
     // parse file and create CFA
-    CFACreator cfaCreator = new CFACreator(config, logger);
+    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
     stats.setCFACreator(cfaCreator);
 
-    return cfaCreator.parseFileAndCreateCFA(filename);
+    CFA cfa = cfaCreator.parseFileAndCreateCFA(filename);
+    stats.setCFA(cfa);
+    return cfa;
   }
 
   private void printConfigurationWarnings() {
@@ -255,9 +289,9 @@ public class CPAchecker {
     boolean isComplete = true;
 
     // register management interface for CPAchecker
-    CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
+    CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger, shutdownNotifier);
 
-    stats.analysisTime.start();
+    stats.startAnalysisTimer();
     try {
 
       do {
@@ -271,8 +305,7 @@ public class CPAchecker {
       return isComplete;
 
     } finally {
-      stats.analysisTime.stop();
-      stats.programTime.stop();
+      stats.stopAnalysisTimer();
 
       // unregister management interface for CPAchecker
       mxbean.unregister();

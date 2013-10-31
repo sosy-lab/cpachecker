@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,28 +23,22 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.FILTER_ABSTRACTION_STATES;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Classes.UnexpectedCheckedException;
-import org.sosy_lab.common.Concurrency;
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -55,11 +49,16 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -67,10 +66,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -79,18 +79,21 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
-import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.PathChecker;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -108,13 +111,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                            },
                        AbstractStates.toState(AssumptionStorageState.class));
 
-  private static final Predicate<AbstractState> IS_IN_LOOP = new Predicate<AbstractState>() {
-    @Override
-    public boolean apply(AbstractState pArg0) {
-      LoopstackState loopState = extractStateByType(pArg0, LoopstackState.class);
-      return loopState.getLoop() != null;
-    }
-  };
 
   private class BMCStatistics implements Statistics {
 
@@ -124,6 +120,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private final Timer inductionPreparation = new Timer();
     private final Timer inductionCheck = new Timer();
+    private Timer invariantGeneration;
     private int inductionCutPoints = 0;
 
     @Override
@@ -140,7 +137,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       if (inductionCheck.getNumberOfIntervals() > 0) {
         out.println("Number of cut points for induction:  " + inductionCutPoints);
         out.println("Time for induction formula creation: " + inductionPreparation);
-        out.println("  Time for invariant generation:     " + invariantGenerator.invariantGeneration);
+        if (invariantGeneration.getNumberOfIntervals() > 0) {
+          out.println("  Time for invariant generation:     " + invariantGeneration);
+        }
         out.println("Time for induction check:            " + inductionCheck);
       }
     }
@@ -165,26 +164,32 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   @Option(description="try using induction to verify programs with loops")
   private boolean induction = false;
 
+  @Option(description="Generate invariants and add them to the induction hypothesis.")
+  private boolean useInvariantsForInduction = false;
+
   @Option(description="dump counterexample formula to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File dumpCounterexampleFormula = new File("counterexample.msat");
+  private File dumpCounterexampleFormula = new File("ErrorPath.%d.smt2");
 
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
-  private final InvariantGenerator invariantGenerator;
+  private @Nullable InvariantGenerator invariantGenerator;
 
-  private final FormulaManager fmgr;
+  private final FormulaManagerView fmgr;
   private final PathFormulaManager pmgr;
-  private final TheoremProver prover;
+  private final Solver solver;
 
   private final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
   private final CFA cfa;
 
+  private BooleanFormulaManagerView bfmgr;
+
   public BMCAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa,
                       Configuration config, LogManager logger,
-                      ReachedSetFactory pReachedSetFactory, CFA pCfa)
+                      ReachedSetFactory pReachedSetFactory,
+                      ShutdownNotifier pShutdownNotifier, CFA pCfa)
                       throws InvalidConfigurationException, CPAException {
     config.inject(this);
     this.algorithm = algorithm;
@@ -193,23 +198,27 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     reachedSetFactory = pReachedSetFactory;
     cfa = pCfa;
 
-    invariantGenerator = new InvariantGenerator(config, logger, reachedSetFactory, cfa);
+    if (induction && useInvariantsForInduction) {
+      invariantGenerator = new CPAInvariantGenerator(config, logger, reachedSetFactory, pShutdownNotifier, cfa);
+    } else {
+      invariantGenerator = new DoNothingInvariantGenerator(reachedSetFactory);
+    }
+    stats.invariantGeneration = invariantGenerator.getTimeOfExecution();
 
     PredicateCPA predCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
     if (predCpa == null) {
       throw new InvalidConfigurationException("PredicateCPA needed for BMCAlgorithm");
     }
     fmgr = predCpa.getFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
-    prover = predCpa.getSolver().getTheoremProver();
+    solver = predCpa.getSolver();
   }
 
   @Override
   public boolean run(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    if (induction) {
-      CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
-      invariantGenerator.start(initialLocation);
-    }
+    CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
+    invariantGenerator.start(initialLocation);
 
     try {
       logger.log(Level.INFO, "Creating formula for program");
@@ -224,15 +233,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         return soundInner;
       }
 
-      prover.init();
-      try {
+      try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration()) {
 
         // first check safety
-        boolean safe = checkTargetStates(pReachedSet);
+        boolean safe = checkTargetStates(pReachedSet, prover);
         logger.log(Level.FINER, "Program is safe?:", safe);
 
         if (!safe) {
-          createErrorPath(pReachedSet);
+          createErrorPath(pReachedSet, prover);
         }
 
         prover.pop(); // remove program formula from solver stack
@@ -244,30 +252,30 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         if (soundInner && safe) {
 
           // check bounding assertions
-          sound = checkBoundingAssertions(pReachedSet);
+          sound = checkBoundingAssertions(pReachedSet, prover);
 
           // try to prove program safety via induction
           if (induction) {
-            sound = sound || checkWithInduction();
+            sound = sound || checkWithInduction(prover);
           }
         }
 
         return sound && soundInner;
-
-      } finally {
-        prover.reset();
       }
 
     } finally {
-      invariantGenerator.cancelAndWait();
+      if (invariantGenerator != null) {
+        invariantGenerator.cancel();
+      }
     }
   }
 
   /**
    * This method tries to find a feasible path to (one of) the target state(s).
    * It does so by asking the solver for a satisfying assignment.
+   * @throws InterruptedException
    */
-  private void createErrorPath(final ReachedSet pReachedSet) throws CPATransferException {
+  private void createErrorPath(final ReachedSet pReachedSet, final ProverEnvironment prover) throws CPATransferException, InterruptedException {
     if (!(cpa instanceof ARGCPA)) {
       logger.log(Level.INFO, "Error found, but error path cannot be created without ARGCPA");
       return;
@@ -282,9 +290,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // get the branchingFormula
       // this formula contains predicates for all branches we took
       // this way we can figure out which branches make a feasible path
-      Formula branchingFormula = pmgr.buildBranchingFormula(arg);
+      BooleanFormula branchingFormula = pmgr.buildBranchingFormula(arg);
 
-      if (branchingFormula.isTrue()) {
+      if (bfmgr.isTrue(branchingFormula)) {
         logger.log(Level.WARNING, "Could not create error path because of missing branching informating");
         return;
       }
@@ -321,7 +329,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       Map<Integer, Boolean> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
       ARGState root = (ARGState)pReachedSet.getFirstState();
 
-      Path targetPath;
+      ARGPath targetPath;
       try {
         targetPath = ARGUtils.getPathFromBranchingInformation(root, pReachedSet.asCollection(), branchingInformation);
       } catch (IllegalArgumentException e) {
@@ -329,48 +337,48 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         return;
       }
 
+      // create and store CounterexampleInfo object
+      CounterexampleInfo counterexample;
 
       // replay error path for a more precise satisfying assignment
-      Formula pathFormula = pmgr.makeFormulaForPath(targetPath.asEdgesList()).getFormula();
-      prover.pop(); // remove program formula
+      PathChecker pathChecker = new PathChecker(logger, pmgr, solver);
+      try {
+        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath.asEdgesList());
 
-      prover.push(pathFormula);
+        if (info.isSpurious()) {
+          logger.log(Level.WARNING, "Inconsistent replayed error path!");
+          counterexample = CounterexampleInfo.feasible(targetPath, model);
 
-      if (prover.isUnsat()) {
-        logger.log(Level.WARNING, "Inconsistent replayed error path!");
-      } else {
-        try {
-          model = prover.getModel();
-        } catch (SolverException e) {
-          logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
-          logger.logDebugException(e);
-          return;
+        } else {
+          counterexample = CounterexampleInfo.feasible(targetPath, info.getModel());
+
+          counterexample.addFurtherInformation(fmgr.dumpFormula(bfmgr.and(info.getCounterExampleFormulas())),
+              dumpCounterexampleFormula);
         }
+
+      } catch (CPATransferException e) {
+        // path is now suddenly a problem
+        logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
+        counterexample = CounterexampleInfo.feasible(targetPath, model);
       }
 
-      // create and store CounterexampleInfo object
-      CounterexampleInfo counterexample = CounterexampleInfo.feasible(targetPath, model);
-      if (pathFormula != null) {
-        counterexample.addFurtherInformation(pathFormula, dumpCounterexampleFormula);
-      }
-
-      ((ARGCPA)cpa).setCounterexample(counterexample);
+      ((ARGCPA)cpa).addCounterexample(targetPath.getLast().getFirst(), counterexample);
 
     } finally {
       stats.errorPathCreation.stop();
     }
   }
 
-  private boolean checkTargetStates(final ReachedSet pReachedSet) {
+  private boolean checkTargetStates(final ReachedSet pReachedSet, final ProverEnvironment prover) throws InterruptedException {
     List<AbstractState> targetStates = from(pReachedSet)
                                             .filter(IS_TARGET_STATE)
-                                            .toImmutableList();
+                                            .toList();
 
     if (checkTargetStates) {
       logger.log(Level.FINER, "Found", targetStates.size(), "potential target states");
 
       // create formula
-      Formula program = createFormulaFor(targetStates);
+      BooleanFormula program = createFormulaFor(targetStates);
 
       logger.log(Level.INFO, "Starting satisfiability check...");
       stats.satCheck.start();
@@ -390,13 +398,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private boolean checkBoundingAssertions(final ReachedSet pReachedSet) {
+  private boolean checkBoundingAssertions(final ReachedSet pReachedSet, final ProverEnvironment prover) throws InterruptedException {
     FluentIterable<AbstractState> stopStates = from(pReachedSet)
                                                     .filter(IS_STOP_STATE);
 
     if (boundingAssertions) {
       // create formula for unwinding assertions
-      Formula assertions = createFormulaFor(stopStates);
+      BooleanFormula assertions = createFormulaFor(stopStates);
 
       logger.log(Level.INFO, "Starting assertions check...");
 
@@ -418,45 +426,80 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   /**
    * Create a disjunctive formula of all the path formulas in the supplied iterable.
    */
-  private Formula createFormulaFor(Iterable<AbstractState> states) {
-    Formula f = fmgr.makeFalse();
+  private BooleanFormula createFormulaFor(Iterable<AbstractState> states) {
+    BooleanFormula f = bfmgr.makeBoolean(false);
 
     for (PredicateAbstractState e : AbstractStates.projectToType(states, PredicateAbstractState.class)) {
-      f = fmgr.makeOr(f, e.getPathFormula().getFormula());
+      f = bfmgr.or(f, e.getPathFormula().getFormula());
     }
 
     return f;
   }
 
-  private boolean checkWithInduction() throws CPAException, InterruptedException {
+  private boolean checkWithInduction(final ProverEnvironment prover) throws CPAException, InterruptedException {
     if (!cfa.getLoopStructure().isPresent()) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
       return false;
     }
     Multimap<String, Loop> loops = cfa.getLoopStructure().get();
 
+    // Ignore single-node loops that are only used to cut off the control flow graph
+    Set<Loop> actualLoops = new HashSet<>();
+    Set<Loop> dummyLoops = new HashSet<>();
+    for (Loop loop : loops.values()) {
+      // Do not count label nodes
+      FluentIterable<CFANode> loopNodes = FluentIterable.from(loop.getLoopNodes()).filter(new Predicate<CFANode>() {
+
+        @Override
+        public boolean apply(CFANode pArg0) {
+          return !(pArg0 instanceof CLabelNode);
+        }
+
+      });
+      if (loopNodes.size() > 1) {
+        actualLoops.add(loop);
+      } else {
+        dummyLoops.add(loop);
+      }
+    }
+
     // Induction is currently only possible if there is a single loop.
-    // This check can be weakend in the future,
+    // This check can be weakened in the future,
     // e.g. it is ok if there is only a single loop on each path.
-    if (loops.size() > 1) {
+    if (actualLoops.size() > 1) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, program has too many loops");
       return false;
     }
 
-    if (loops.isEmpty()) {
+    if (actualLoops.isEmpty()) {
       // induction is unnecessary, program has no loops
       return true;
     }
 
     stats.inductionPreparation.start();
 
-    Loop loop = Iterables.getOnlyElement(loops.values());
+    final Loop loop = Iterables.getOnlyElement(actualLoops);
 
     // function edges do not count as incoming/outgoing edges
     FluentIterable<CFAEdge> incomingEdges = from(loop.getIncomingEdges())
                                                  .filter(not(instanceOf(CFunctionReturnEdge.class)));
     FluentIterable<CFAEdge> outgoingEdges = from(loop.getOutgoingEdges())
-                                                 .filter(not(instanceOf(CFunctionCallEdge.class)));
+        .filter(new Predicate<CFAEdge>(){
+          @Override
+          public boolean apply(CFAEdge pInput) {
+            if (!(pInput instanceof CFunctionCallEdge)) {
+              return true;
+            }
+            CFANode nodeAfterFunction = ((CFunctionCallEdge)pInput).getSummaryEdge().getSuccessor();
+            if (nodeAfterFunction.getNumEnteringEdges() == 0) {
+              // This is a function call without the chance to return
+              // to the node after the function (a non-terminating function).
+              // This is an exception where the edge counts as an outgoing edge.
+              return true;
+            }
+            return false;
+          }
+        });
 
     if (incomingEdges.size() > 1) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many incoming edges", incomingEdges);
@@ -485,21 +528,26 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     // the next iteration. We call the latter the continuation edge.
     // The common predecessor node of these two edges will be called cut point.
     // Now we want to show that the control flow of the program will never take
-    // the outgoing edge, if it didn't take it in the iteration before.
+    // the outgoing edge and reach the error location,
+    // if it didn't take it in the iteration before.
     // We create three formulas:
     // A is the assumption from the continuation edge in the previous iteration
     // B is the formula for the loop body in the current iteration up to the cut point
-    // C is the assumption from the continuation edge in the current iteration
-    //   Note that this is the negation of the assumption from the exit edge.
+    // C is the negation of the formula for the path from the cut point to the error location
     // Then we try to prove that the formula (A & B) => C holds.
-    // This implies that control flow cannot take the exit edge.
+    // This implies that control flow cannot reach the error location.
 
     // The conjunction (A & B) is created by running the CPAAlgorithm starting
     // at the cut point and letting it run until the end of the current iteration
     // (i.e. let it finish the iteration it starts in and complete one more iteration).
     // Then we get the abstract state at the cut point in the last iteration
     // and take its path formula, which is exactly (A & B).
-    // C is created manually. It is important to re-use the SSAMap from (A & B)
+    // C is created by letting the CPAAlgorithm run starting at the cut point,
+    // taking the outgoing edge (and not staying within the loop).
+    // Then we can take the disjunction of the path formulas at all reached
+    // target states. Two things are important here:
+    // CPAAlgorithm needs to take only the path out of the loop,
+    // and the path formula needs to be created with the SSAMap from (A & B)
     // in order to get the indices right.
 
     // Everything above is easily extended to k-induction with k >= 1
@@ -527,20 +575,27 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     Multimap<CFANode, AbstractState> reachedPerLocation = Multimaps.index(reached, EXTRACT_LOCATION);
 
     // live view of reached set with only the states in the loop
-    FluentIterable<AbstractState> loopStates = from(reached).filter(IS_IN_LOOP);
+    FluentIterable<AbstractState> loopStates = from(reached).filter(new Predicate<AbstractState>() {
+      @Override
+      public boolean apply(AbstractState pArg0) {
+        LoopstackState loopState = extractStateByType(pArg0, LoopstackState.class);
+        return loop.equals(loopState.getLoop());
+      }
+    });
 
     assert !loopStates.isEmpty();
+
+    // There must not be any target states in real loops
     if (loopStates.anyMatch(IS_TARGET_STATE)) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, target state is contained in the loop");
-      return false;
     }
 
     // get global invariants
-    Formula invariants = extractInvariantsAt(loopHead, invariantGenerator.get());
+    BooleanFormula invariants = extractInvariantsAt(loopHead);
     invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
 
     // Create formulas
-    Formula inductions = fmgr.makeTrue();
+    BooleanFormula inductions = bfmgr.makeBoolean(true);
 
     for (CFAEdge outgoingEdge : outgoingEdges) {
       // filter out exit edges that do not lead to a target state, we don't care about them
@@ -565,23 +620,53 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       // Create (A & B)
       PathFormula pathFormulaAB = extractStateByType(lastcutPointState, PredicateAbstractState.class).getPathFormula();
-      Formula formulaAB = fmgr.makeAnd(invariants, pathFormulaAB.getFormula());
+      BooleanFormula formulaAB = bfmgr.and(invariants, pathFormulaAB.getFormula());
 
-      // Create C
-      PathFormula empty = pmgr.makeEmptyPathFormula(pathFormulaAB); // empty has correct SSAMap
-      PathFormula pathFormulaC = pmgr.makeAnd(empty, outgoingEdge);
-      // we need to negate it, because we used the outgoing edge, not the continuation edge
-      Formula formulaC = fmgr.makeNot(pathFormulaC.getFormula());
+      BooleanFormula formulaC;
+      { // Create C
+        // We want to continue exploration from lastCutPointState,
+        // but with an empty path formula. However, the SSAMap needs to be the one
+        // from lastCutPointState, so we can use a fresh initial state.
+        PathFormula empty = pmgr.makeEmptyPathFormula(pathFormulaAB); // empty has correct SSAMap
+        AbstractState freshCutPointState = cpa.getInitialState(cutPoint);
+        extractStateByType(freshCutPointState, PredicateAbstractState.class)
+            .setPathFormula(empty);
 
-      // Crate (A & B) => C
-      Formula f = fmgr.makeOr(fmgr.makeNot(formulaAB), formulaC);
+        // Prepare CFA such that there is only the path out of the loop
+        // VERY ugly hack.
+        List<CFAEdge> savedEdges = CFAUtils.leavingEdges(cutPoint).toList();
+        for (CFAEdge edge : savedEdges) {
+          if (!edge.equals(outgoingEdge)) {
+            cutPoint.removeLeavingEdge(edge);
+          }
+        }
+        assert cutPoint.getNumLeavingEdges() == 1;
 
-      inductions = fmgr.makeAnd(inductions, f);
+        // Create path formulas by running CPAAlgorithm
+        reached = reachedSetFactory.create();
+        reached.add(freshCutPointState, cpa.getInitialPrecision(cutPoint));
+        algorithm.run(reached);
+
+        Iterable<AbstractState> targetStates = from(reached).filter(IS_TARGET_STATE);
+        formulaC = bfmgr.not(createFormulaFor(targetStates));
+        reached.clear();
+
+        // Reset changed CFA
+        cutPoint.removeLeavingEdge(outgoingEdge);
+        for (CFAEdge edge : savedEdges) {
+          cutPoint.addLeavingEdge(edge);
+        }
+      }
+
+      // Create (A & B) => C
+      BooleanFormula f = bfmgr.or(bfmgr.not(formulaAB), formulaC);
+
+      inductions = bfmgr.and(inductions, f);
     }
 
     // now prove that (A & B) => C is a tautology by checking if the negation is unsatisfiable
 
-    inductions = fmgr.makeNot(inductions);
+    inductions = bfmgr.not(inductions);
 
     stats.inductionPreparation.stop();
 
@@ -601,142 +686,24 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return sound;
   }
 
-  private Formula extractInvariantsAt(CFANode loc, ReachedSet reached) {
+  private BooleanFormula extractInvariantsAt(CFANode loc) throws CPAException, InterruptedException {
+    BooleanFormula invariant =bfmgr.makeBoolean(false);
+    UnmodifiableReachedSet reached = invariantGenerator.get();
+    invariantGenerator = null; // so that GC can collect the generator and the reached set
+
     if (reached.isEmpty()) {
-      return fmgr.makeTrue(); // invariant generation was disabled
+      return bfmgr.makeBoolean(true); // no invariants available
     }
 
-    Formula invariant = fmgr.makeFalse();
-
     for (AbstractState locState : AbstractStates.filterLocation(reached, loc)) {
-      Formula f = AbstractStates.extractReportedFormulas(fmgr, locState);
+      BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState);
       logger.log(Level.ALL, "Invariant:", f);
 
-      invariant = fmgr.makeOr(invariant, f);
+      invariant = bfmgr.or(invariant, f);
     }
     return invariant;
   }
 
-
-  /**
-   * Class that encapsulates invariant generation.
-   * Supports synchronous and asynchronous execution.
-   */
-  @Options(prefix="bmc")
-  private static class InvariantGenerator {
-
-    @Option(name="invariantGenerationConfigFile",
-            description="configuration file for invariant generation")
-    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-    private File configFile;
-
-    @Option(description="generate invariants for induction in parallel to the analysis")
-    private boolean parallelInvariantGeneration = false;
-
-    private final Timer invariantGeneration = new Timer();
-
-    private final LogManager logger;
-    private final Algorithm invariantAlgorithm;
-    private final ReachedSet reached;
-
-    private CFANode initialLocation = null;
-
-    private ExecutorService executor = null;
-    private Future<ReachedSet> invariantGenerationFuture = null;
-
-    public InvariantGenerator(Configuration config, LogManager pLogger, ReachedSetFactory reachedSetFactory, CFA cfa) throws InvalidConfigurationException, CPAException {
-      config.inject(this);
-      logger = pLogger;
-
-      if (configFile != null) {
-        Configuration invariantConfig;
-        try {
-          invariantConfig = Configuration.builder()
-                                .loadFromFile(configFile)
-                                .build();
-        } catch (IOException e) {
-          throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
-        }
-
-        ConfigurableProgramAnalysis invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory).buildCPAs(cfa);
-        invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger, invariantConfig);
-
-        reached = new ReachedSetFactory(invariantConfig, logger).create();
-        reached.add(invariantCPAs.getInitialState(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));
-
-      } else {
-        // invariant generation is disabled
-        invariantAlgorithm = null;
-        reached = new ReachedSetFactory(config, logger).create(); // create reached set that will stay empty
-      }
-    }
-
-    public void start(CFANode pInitialLocation) {
-      checkState(initialLocation == null);
-      initialLocation = pInitialLocation;
-
-      if (!reached.hasWaitingState()) {
-        // invariant generation disabled
-        return;
-      }
-
-      if (parallelInvariantGeneration) {
-
-        executor = Executors.newSingleThreadExecutor();
-        invariantGenerationFuture = executor.submit(new Callable<ReachedSet>() {
-              @Override
-              public ReachedSet call() throws Exception {
-                return findInvariants();
-              }
-            });
-        executor.shutdown();
-      }
-    }
-
-    public void cancelAndWait() {
-      if (invariantGenerationFuture != null) {
-        invariantGenerationFuture.cancel(true);
-        Concurrency.waitForTermination(executor);
-      }
-    }
-
-    public ReachedSet get() throws CPAException, InterruptedException {
-      if (invariantGenerationFuture == null) {
-        return findInvariants();
-
-      } else {
-        try {
-          return invariantGenerationFuture.get();
-
-        } catch (ExecutionException e) {
-          Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
-          throw new UnexpectedCheckedException("invariant generation", e.getCause());
-        }
-      }
-    }
-
-    private ReachedSet findInvariants() throws CPAException, InterruptedException {
-      checkState(initialLocation != null);
-
-      if (!reached.hasWaitingState()) {
-        // invariant generation disabled
-        return reached;
-      }
-
-      invariantGeneration.start();
-      logger.log(Level.INFO, "Finding invariants");
-
-      try {
-        assert invariantAlgorithm != null;
-        invariantAlgorithm.run(reached);
-
-        return reached;
-
-      } finally {
-        invariantGeneration.stop();
-      }
-    }
-  }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {

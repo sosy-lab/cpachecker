@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,28 +23,37 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.util.Objects;
+
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CCastExpression extends CExpression {
+public final class CCastExpression extends AExpression implements CExpression {
 
   private final CExpression operand;
-  private final CType     type;
 
-  public CCastExpression(final CFileLocation pFileLocation,
+  /**
+   * @param pFileLocation where is this cast?
+   * @param pExpressionType target-type of the cast
+   * @param pOperand is casted to target-type
+   */
+  public CCastExpression(final FileLocation pFileLocation,
                             final CType pExpressionType,
-                            final CExpression pOperand,
-                            final CType pType) {
+                            final CExpression pOperand) {
     super(pFileLocation, pExpressionType);
     operand = pOperand;
-    type = pType;
+  }
+
+  /** returns the target-type of the cast-expression.
+   * The operand is casted to this type. */
+  @Override
+  public CType getExpressionType() {
+    return (CType)super.getExpressionType();
   }
 
   public CExpression getOperand() {
     return operand;
-  }
-
-  public CType getType() {
-    return type;
   }
 
   @Override
@@ -59,6 +68,38 @@ public final class CCastExpression extends CExpression {
 
   @Override
   public String toASTString() {
-    return "(" + type.toASTString("") + ")" + operand.toParenthesizedASTString();
+    return "(" + getExpressionType().toASTString("") + ")" + operand.toParenthesizedASTString();
   }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(operand);
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CCastExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    CCastExpression other = (CCastExpression) obj;
+
+    return Objects.equals(other.operand, operand);
+  }
+
 }

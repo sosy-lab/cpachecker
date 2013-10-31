@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 
+import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
+
 import com.google.common.base.Optional;
 
 public interface CFAEdge {
@@ -34,7 +36,7 @@ public interface CFAEdge {
 
   public CFANode getSuccessor();
 
-  public Optional<?> getRawAST();
+  public Optional<? extends IAstNode> getRawAST();
 
   public int getLineNumber();
 

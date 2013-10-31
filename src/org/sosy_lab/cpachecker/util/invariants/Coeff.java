@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateNumber;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateSum;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
 import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 public class Coeff {
 
@@ -48,10 +49,10 @@ public class Coeff {
     this.vwm = vwm;
   }
 
-  public RationalFunction makeRationalFunction(Map<String,Variable> paramVars) {
+  public RationalFunction makeRationalFunction(Map<String, Variable> paramVars) {
     Polynomial num = value.makePolynomial(paramVars);
     Polynomial denom = new Polynomial(1);
-    RationalFunction f = new RationalFunction(num,denom);
+    RationalFunction f = new RationalFunction(num, denom);
     f.simplify();
     return f;
   }
@@ -59,9 +60,9 @@ public class Coeff {
   /*
    * For this constructor, the string must represent an integer.
    */
-  public Coeff(String s) {
-    TemplateNumber n = new TemplateNumber(s);
-    TemplateTerm t = new TemplateTerm();
+  public Coeff(FormulaType<?> type, String s) {
+    TemplateNumber n = new TemplateNumber(type, s);
+    TemplateTerm t = new TemplateTerm(type);
     t.setCoefficient(n);
     value = t;
   }
@@ -91,9 +92,9 @@ public class Coeff {
 
   /*
   public static Vector<Coeff> makeCoeffList(String[] C) {
-    Vector<Coeff> coeffs = new Vector<Coeff>();
+    Vector<Coeff> coeffs = new Vector<>();
     for (int i = 0; i < C.length; i++) {
-      coeffs.add( new Coeff( C[i] ) );
+      coeffs.add( new Coeff(C[i] ));
     }
     return coeffs;
   }

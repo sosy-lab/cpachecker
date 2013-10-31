@@ -9,7 +9,7 @@
 	
 	<sourcefiles>
 	    <includesfile>test/programs/benchmarks/DeviceDrivers64.set</includesfile>
-	    <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
+	    <option name="-setprop">analysis.machineModel=Linux64</option>
 	</sourcefiles>
 
 	<test name="01_explicit_cegar">

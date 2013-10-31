@@ -30,8 +30,9 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.cpachecker.util.invariants.Rational;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class TemplateNegation extends TemplateBoolean {
 
@@ -126,7 +127,7 @@ public class TemplateNegation extends TemplateBoolean {
   }
 
   @Override
-  public boolean evaluate(Map<String,Rational> map) {
+  public boolean evaluate(Map<String, Rational> map) {
     boolean ans = arg.evaluate(map);
     return ans;
   }
@@ -137,12 +138,12 @@ public class TemplateNegation extends TemplateBoolean {
   }
 
   @Override
-  public void postindex(Map<String,Integer> indices) {
+  public void postindex(Map<String, Integer> indices) {
     arg.postindex(indices);
   }
 
   @Override
-  public void preindex(Map<String,Integer> indices) {
+  public void preindex(Map<String, Integer> indices) {
     arg.preindex(indices);
   }
 
@@ -171,8 +172,8 @@ public class TemplateNegation extends TemplateBoolean {
   }
 
   @Override
-  public Set<String> getAllVariables(VariableWriteMode vwm) {
-    return arg.getAllVariables(vwm);
+  public Set<TemplateVariable> getAllVariables() {
+    return arg.getAllVariables();
   }
 
   @Override
@@ -181,7 +182,7 @@ public class TemplateNegation extends TemplateBoolean {
   }
 
   @Override
-  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
+  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
     map = arg.getMaxIndices(map);
     return map;
   }
@@ -189,24 +190,25 @@ public class TemplateNegation extends TemplateBoolean {
   @Override
   public TemplateVariableManager getVariableManager() {
     TemplateVariableManager tvm = new TemplateVariableManager();
-    tvm.merge( arg.getVariableManager() );
+    tvm.merge(arg.getVariableManager());
     return tvm;
   }
 
   @Override
-  public Formula translate(FormulaManager fmgr) {
-    Formula form = arg.translate(fmgr);
-    form = fmgr.makeNot(form);
+  public BooleanFormula translate(FormulaManagerView fmgr) {
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    BooleanFormula form = arg.translate(fmgr);
+    form = bfmgr.not(form);
     return form;
   }
 
   @Override
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
-    List<TemplateFormula> atoms = new Vector<TemplateFormula>();
+    List<TemplateFormula> atoms = new Vector<>();
     if (cO) {
       atoms.add(this);
     } else {
-      atoms.addAll( arg.extractAtoms(sAE, cO) );
+      atoms.addAll(arg.extractAtoms(sAE, cO));
     }
     return atoms;
   }

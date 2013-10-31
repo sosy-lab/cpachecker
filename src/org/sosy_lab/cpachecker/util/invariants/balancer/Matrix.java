@@ -120,9 +120,9 @@ public class Matrix implements MatrixI {
     m.outOfPivots = outOfPivots;
     m.verbose = verbose;
     // Copy pivot rows:
-    m.pivotRows = new Vector<Integer>(pivotRows.size());
+    m.pivotRows = new Vector<>(pivotRows.size());
     for (Integer i : pivotRows) {
-      m.pivotRows.add( new Integer(i.intValue()) );
+      m.pivotRows.add(Integer.valueOf(i.intValue()));
     }
     //
     return m;
@@ -145,7 +145,7 @@ public class Matrix implements MatrixI {
   }
 
   public static Matrix makeIdentity(int n) {
-    Matrix id = new Matrix(n,n);
+    Matrix id = new Matrix(n, n);
     for (int i = 0; i < n; i++) {
       id.entry[i][i] = RationalFunction.makeUnity();
     }
@@ -220,7 +220,7 @@ public class Matrix implements MatrixI {
    * augmentation columns come from b.
    */
   public static Matrix augment(Matrix a, Matrix b) {
-    Matrix c = concat(a,b);
+    Matrix c = concat(a, b);
     int bn = b.colNum;
     c.numAugCols = bn;
     return c;
@@ -229,7 +229,7 @@ public class Matrix implements MatrixI {
   @Override
   public Matrix augment(MatrixI b) {
     Matrix m = (Matrix)b;
-    return Matrix.augment(this,m);
+    return Matrix.augment(this, m);
   }
 
   /*
@@ -285,7 +285,7 @@ public class Matrix implements MatrixI {
   @Override
   public void multRow(int i, RationalFunction f) {
     for (int j = 0; j < colNum; j++) {
-      entry[i][j] = RationalFunction.multiply(entry[i][j],f);
+      entry[i][j] = RationalFunction.multiply(entry[i][j], f);
     }
   }
 
@@ -295,8 +295,8 @@ public class Matrix implements MatrixI {
   @Override
   public void addMultiple(int i1, int i2, RationalFunction f) {
     for (int j = 0; j < colNum; j++) {
-      RationalFunction product = RationalFunction.multiply(f,entry[i2][j]);
-      RationalFunction sum = RationalFunction.add(entry[i1][j],product);
+      RationalFunction product = RationalFunction.multiply(f, entry[i2][j]);
+      RationalFunction sum = RationalFunction.add(entry[i1][j], product);
       entry[i1][j] = sum;
     }
   }
@@ -344,7 +344,7 @@ public class Matrix implements MatrixI {
         for (int j = 0; j < numAugCols; j++) {
           RationalFunction f = entry[i][colNum - numAugCols + j];
           if (!f.isZero()) {
-            aset.add( new Assumption(f, AssumptionType.ZERO ) );
+            aset.add(new Assumption(f, AssumptionType.ZERO ));
           }
         }
       }
@@ -368,13 +368,13 @@ public class Matrix implements MatrixI {
         if (denom.isConstant()) {
           if (denom.isZero()) {
             aset = new AssumptionSet();
-            aset.add( new Assumption(RationalFunction.makeZero(),AssumptionType.NONZERO) );
+            aset.add(new Assumption(RationalFunction.makeZero(), AssumptionType.NONZERO));
             break outerloop;
           } else {
             // If the denom is a nonzero constant then we add nothing.
           }
         } else {
-          aset.add( new Assumption(denom,AssumptionType.NONZERO) );
+          aset.add(new Assumption(denom, AssumptionType.NONZERO));
         }
       }
     }
@@ -404,7 +404,7 @@ public class Matrix implements MatrixI {
     int n = colNum;
     int i0 = nextI0;
     int j0 = nextJ0;
-    pivotRows = new Vector<Integer>();
+    pivotRows = new Vector<>();
 
     AssumptionSet aset = new AssumptionSet();
 
@@ -421,9 +421,9 @@ public class Matrix implements MatrixI {
       // Look for the next pivot.
       int[] pivot;
       if (useFreePivoting) {
-        pivot = getNextPivotFree(i0,M,j0,N);
+        pivot = getNextPivotFree(i0, M, j0, N);
       } else {
-        pivot = getNextPivot(i0,M,j0,N);
+        pivot = getNextPivot(i0, M, j0, N);
       }
       // If there isn't any, then we're done.
       if (pivot[0] == -1) {
@@ -448,14 +448,14 @@ public class Matrix implements MatrixI {
 
       // If i1 > i0, then swap these rows, and set i1 = i0.
       if (i1 > i0) {
-        swapRows(i1,i0);
+        swapRows(i1, i0);
         // and do the same to E
         E.swapRows(i1, i0);
         // log it
         if (verbose && logger != null) {
-          logger.log(Level.ALL,"Swapped rows",i1,"and",i0);
-          logger.log(Level.ALL,"Matrix:","\n"+this.toString());
-          logger.log(Level.ALL,"E:","\n"+E.toString());
+          logger.log(Level.ALL, "Swapped rows",i1,"and",i0);
+          logger.log(Level.ALL, "Matrix:","\n"+this.toString());
+          logger.log(Level.ALL, "E:","\n"+E.toString());
         }
         // set i1 = i0.
         i1 = i0;
@@ -464,12 +464,12 @@ public class Matrix implements MatrixI {
       // Similarly, for the column.
       // If j1 > j0, then swap these rows, and set j1 = j0.
       if (j1 > j0) {
-        swapCols(j1,j0);
+        swapCols(j1, j0);
         // (Can't do the same to E, since this is not a row operation!)
         // log it
         if (verbose && logger != null) {
-          logger.log(Level.ALL,"Swapped columns",j1,"and",j0);
-          logger.log(Level.ALL,"Matrix:","\n"+this.toString());
+          logger.log(Level.ALL, "Swapped columns",j1,"and",j0);
+          logger.log(Level.ALL, "Matrix:","\n"+this.toString());
         }
         // set j1 = j0.
         j1 = j0;
@@ -483,14 +483,14 @@ public class Matrix implements MatrixI {
       // Divide row i1 by f, if necessary.
       if (!f.isUnity()) {
         RationalFunction fRecip = RationalFunction.makeReciprocal(f);
-        multRow(i1,fRecip);
+        multRow(i1, fRecip);
         // and do the same to E
-        E.multRow(i1,fRecip);
+        E.multRow(i1, fRecip);
         // log it
         if (verbose && logger != null) {
-          logger.log(Level.ALL,"Multiplied row",i1,"by",fRecip);
-          logger.log(Level.ALL,"Matrix:","\n"+this.toString());
-          logger.log(Level.ALL,"E:","\n"+E.toString());
+          logger.log(Level.ALL, "Multiplied row",i1,"by",fRecip);
+          logger.log(Level.ALL, "Matrix:","\n"+this.toString());
+          logger.log(Level.ALL, "E:","\n"+E.toString());
         }
       }
 
@@ -498,8 +498,8 @@ public class Matrix implements MatrixI {
       // First, make sure we divided by a nonconstant.
       if (!f.getNumerator().isConstant()) {
         // Form the assumption.
-        Assumption a = new Assumption(f.getNumerator(),AssumptionType.NONZERO);
-        aset.add( a );
+        Assumption a = new Assumption(f.getNumerator(), AssumptionType.NONZERO);
+        aset.add(a);
       }
 
       // Now clear out all other entries in column j1.
@@ -507,14 +507,14 @@ public class Matrix implements MatrixI {
         if (i != i1 && !entry[i][j1].isZero()) {
           RationalFunction g = entry[i][j1];
           RationalFunction gneg = RationalFunction.makeNegative(g);
-          addMultiple(i,i1,gneg);
+          addMultiple(i, i1, gneg);
           // and do the same to E
-          E.addMultiple(i,i1,gneg);
+          E.addMultiple(i, i1, gneg);
           // log it
           if (verbose && logger != null) {
-            logger.log(Level.ALL,"Added",gneg,"times row",i1,"to row",i);
-            logger.log(Level.ALL,"Matrix:","\n"+this.toString());
-            logger.log(Level.ALL,"E:","\n"+E.toString());
+            logger.log(Level.ALL, "Added",gneg,"times row",i1,"to row",i);
+            logger.log(Level.ALL, "Matrix:","\n"+this.toString());
+            logger.log(Level.ALL, "E:","\n"+E.toString());
           }
         }
       }
@@ -530,14 +530,14 @@ public class Matrix implements MatrixI {
    * Version of RREF algorithm that takes a logger and an AssumptionManager.
    */
   public void putInRREF(AssumptionManager amgr, LogManager logger) throws BadAssumptionsException {
-    logger.log(Level.ALL,"Setting matrix to verbose mode, for completion of RREF.");
+    logger.log(Level.ALL, "Setting matrix to verbose mode, for completion of RREF.");
     verbose = true;
     int m = rowNum;
     int n = colNum;
     int i0 = nextI0;
     int j0 = nextJ0;
     if (i0 == 0 && j0 == 0) {
-      pivotRows = new Vector<Integer>();
+      pivotRows = new Vector<>();
     }
 
     int M = m;
@@ -563,7 +563,7 @@ public class Matrix implements MatrixI {
         // They are necessary consequences of the assumptions we have made so far,
         // so we add them as such, if there were any.
         if (azr.size() > 0) {
-          logger.log(Level.ALL,"Adding almost-zero row assumptions.");
+          logger.log(Level.ALL, "Adding almost-zero row assumptions.");
           amgr.addNecessaryAssumptions(azr);
         }
         break;
@@ -586,7 +586,7 @@ public class Matrix implements MatrixI {
       // First, make sure we are dividing by a nonconstant.
       if (!f.getNumerator().isConstant()) {
         // Form the assumption.
-        Assumption a = new Assumption(f.getNumerator(),AssumptionType.NONZERO);
+        Assumption a = new Assumption(f.getNumerator(), AssumptionType.NONZERO);
         // Add it, as a possibly unnecessary assumption.
         amgr.addPossiblyUnnecessaryAssumption(a);
       }
@@ -594,13 +594,13 @@ public class Matrix implements MatrixI {
 
       // If i1 > i0, then swap these rows, and set i1 = i0.
       if (i1 > i0) {
-        swapRows(i1,i0);
+        swapRows(i1, i0);
         // and do the same to E
         E.swapRows(i1, i0);
         // log it
         if (verbose) {
-          logger.log(Level.ALL,"Swapped rows",i1,"and",i0);
-          logger.log(Level.ALL,"Matrix:","\n"+this.toString());
+          logger.log(Level.ALL, "Swapped rows",i1,"and",i0);
+          logger.log(Level.ALL, "Matrix:","\n"+this.toString());
           //logger.log(Level.ALL,"E:","\n"+E.toString());
         }
         // set i1 = i0.
@@ -613,12 +613,12 @@ public class Matrix implements MatrixI {
       // Similarly, for the column.
       // If j1 > j0, then swap these rows, and set j1 = j0.
       if (j1 > j0) {
-        swapCols(j1,j0);
+        swapCols(j1, j0);
         // (Can't do the same to E, since this is not a row operation!)
         // log it
         if (verbose) {
-          logger.log(Level.ALL,"Swapped columns",j1,"and",j0);
-          logger.log(Level.ALL,"Matrix:","\n"+this.toString());
+          logger.log(Level.ALL, "Swapped columns",j1,"and",j0);
+          logger.log(Level.ALL, "Matrix:","\n"+this.toString());
         }
         // set j1 = j0.
         j1 = j0;
@@ -627,13 +627,13 @@ public class Matrix implements MatrixI {
       // Divide row i1 by f, if f is not unity.
       if (!f.isUnity()) {
         RationalFunction fRecip = RationalFunction.makeReciprocal(f);
-        multRow(i1,fRecip);
+        multRow(i1, fRecip);
         // and do the same to E
-        E.multRow(i1,fRecip);
+        E.multRow(i1, fRecip);
         // log it
         if (verbose) {
-          logger.log(Level.ALL,"Multiplied row",i1,"by",fRecip);
-          logger.log(Level.ALL,"Matrix:","\n"+this.toString());
+          logger.log(Level.ALL, "Multiplied row",i1,"by",fRecip);
+          logger.log(Level.ALL, "Matrix:","\n"+this.toString());
           //logger.log(Level.ALL,"E:","\n"+E.toString());
         }
       }
@@ -643,13 +643,13 @@ public class Matrix implements MatrixI {
         if (i != i1 && !entry[i][j1].isZero()) {
           RationalFunction g = entry[i][j1];
           RationalFunction gneg = RationalFunction.makeNegative(g);
-          addMultiple(i,i1,gneg);
+          addMultiple(i, i1, gneg);
           // and do the same to E
-          E.addMultiple(i,i1,gneg);
+          E.addMultiple(i, i1, gneg);
           // log it
           if (verbose) {
-            logger.log(Level.ALL,"Added",gneg,"times row",i1,"to row",i);
-            logger.log(Level.ALL,"Matrix:","\n"+this.toString());
+            logger.log(Level.ALL, "Added",gneg,"times row",i1,"to row",i);
+            logger.log(Level.ALL, "Matrix:","\n"+this.toString());
             //logger.log(Level.ALL,"E:","\n"+E.toString());
           }
         }
@@ -693,10 +693,10 @@ public class Matrix implements MatrixI {
     int[] pivot = {-1, -1};
     // Wrap all entries in the remaining submatrix as SortablePivotEntries,
     // so that they can be sorted according to how well we prefer them as pivots.
-    List<SortablePivotEntry> spes = new Vector<SortablePivotEntry>();
+    List<SortablePivotEntry> spes = new Vector<>();
     for (int j = j0; j < n; j++) {
       for (int i = i0; i < m; i++) {
-        spes.add( new SortablePivotEntry(i,j,entry[i][j]) );
+        spes.add(new SortablePivotEntry(i, j, entry[i][j]));
       }
     }
     if (spes.size() == 0) {
@@ -732,7 +732,7 @@ public class Matrix implements MatrixI {
     }
 
     public int[] getPoint() {
-      int[] pt = {i,j};
+      int[] pt = {i, j};
       return pt;
     }
 
@@ -766,11 +766,11 @@ public class Matrix implements MatrixI {
       return pivot;
     }
 
-    logger.log(Level.ALL,"Selecting next variable-numerator pivot,",
+    logger.log(Level.ALL, "Selecting next variable-numerator pivot,",
         "for submatrix starting at",i0,",",j0,"in matrix:","\n"+this);
 
     // Start by forming the nonzero assumption on the numerator of each remaining nonzero entry.
-    List<PointedAssumption> nz = new Vector<PointedAssumption>();
+    List<PointedAssumption> nz = new Vector<>();
     for (int j = j0; j < n; j++) {
       for (int i = i0; i < m; i++) {
         Polynomial p = entry[i][j].getNumerator();
@@ -784,26 +784,26 @@ public class Matrix implements MatrixI {
           pivot[0] = i; pivot[1] = j;
           return pivot;
         }
-        assert(!p.isConstant());
+        assert (!p.isConstant());
         Assumption a = new Assumption(p, AssumptionType.NONZERO);
-        nz.add( new PointedAssumption(i,j,a) );
+        nz.add(new PointedAssumption(i, j, a));
       }
     }
 
     // If nz is empty, it's because all the remaining entries are zeros.
     if (nz.size() == 0) {
-      logger.log(Level.ALL,"All remaining entries are zero.");
+      logger.log(Level.ALL, "All remaining entries are zero.");
       return pivot;
     }
 
-    logger.log(Level.ALL,"Found potential assumptions:\n",nz);
+    logger.log(Level.ALL, "Found potential assumptions:\n",nz);
 
     // Now sort these into classes:
     //   A = those which are already implied by the current assumption set.
     //   B = those which are not already implied, but at least do not immediately contradict
     //       the current assumption set.
-    List<PointedAssumption> implied = new Vector<PointedAssumption>();
-    List<PointedAssumption> noncontra = new Vector<PointedAssumption>();
+    List<PointedAssumption> implied = new Vector<>();
+    List<PointedAssumption> noncontra = new Vector<>();
     for (PointedAssumption a : nz) {
       AssumptionRelation rel = amgr.matchAgainst(a.getAssumption());
       switch (rel) {
@@ -824,13 +824,13 @@ public class Matrix implements MatrixI {
       }
     }
 
-    logger.log(Level.ALL,"The following are implied by the assumptions we have already made:\n",implied);
-    logger.log(Level.ALL,"The following are not implied by those already made, but are at least non-contradictory:\n",noncontra);
+    logger.log(Level.ALL, "The following are implied by the assumptions we have already made:\n",implied);
+    logger.log(Level.ALL, "The following are not implied by those already made, but are at least non-contradictory:\n",noncontra);
 
     // Did we get any acceptable ones?
     // If not...
     if (implied.size() == 0 && noncontra.size() == 0) {
-      logger.log(Level.ALL,"Every potential pivot results in a contradictory assumption!");
+      logger.log(Level.ALL, "Every potential pivot results in a contradictory assumption!");
       throw new BadAssumptionsException();
     }
     // Otherwise we got at least one acceptable one.
@@ -841,11 +841,11 @@ public class Matrix implements MatrixI {
     // For now, we just take any member of 'implied', or, if it is empty, then any member of 'noncontra'.
     if (implied.size() > 0) {
       PointedAssumption a = implied.get(0);
-      logger.log(Level.ALL,"We choose an assumption implied by those already in force:\n",a);
+      logger.log(Level.ALL, "We choose an assumption implied by those already in force:\n",a);
       return a.getPoint();
     } else {
       PointedAssumption a = noncontra.get(0);
-      logger.log(Level.ALL,"We choose an assumption not immediately contradictory with those in force:\n",a);
+      logger.log(Level.ALL, "We choose an assumption not immediately contradictory with those in force:\n",a);
       return a.getPoint();
     }
   }
@@ -854,10 +854,10 @@ public class Matrix implements MatrixI {
    * Return an array listing those rows i, with i0 <= i < m, that have nonzero entries in column j.
    */
   private int[] findNonzeroEntriesInColumn(int j, int i0, int m) {
-    Vector<Integer> rows = new Vector<Integer>();
+    Vector<Integer> rows = new Vector<>();
     for (int i = i0; i < m; i++) {
       if (!entry[i][j].isZero()) {
-        rows.add(new Integer(i));
+        rows.add(Integer.valueOf(i));
       }
     }
     return makeIntArray(rows);
@@ -881,8 +881,7 @@ public class Matrix implements MatrixI {
         kind = 10;
         height = 0;
         sign = 0;
-      }
-      else if (!f.isConstant()) {
+      } else if (!f.isConstant()) {
         if (f.getNumerator().isConstant()) {
           // If num const, this is almost as good as a constant function.
           kind = 1;
@@ -899,8 +898,7 @@ public class Matrix implements MatrixI {
           height = f.getTermHeight();
           sign = 0;
         }
-      }
-      else {
+      } else {
         // In this case f must be a nonzero constant.
         kind = 0;
         Rational r = f.getConstant();
@@ -925,7 +923,7 @@ public class Matrix implements MatrixI {
     }
 
     public int[] getRowCol() {
-      int[] rc = {i0,j0};
+      int[] rc = {i0, j0};
       return rc;
     }
 
@@ -1027,13 +1025,13 @@ public class Matrix implements MatrixI {
     String spaces = new String(sps);
 
     // Now write.
-    List<String> abbreviatedEntries = new Vector<String>();
+    List<String> abbreviatedEntries = new Vector<>();
     String s = "";
     String e;
     int W;
     for (int i = 0; i < rowNum; i++) {
       String rn = Integer.toString(i);
-      s += spaces.substring(0,maxrownumchars-rn.length()) + rn + " ";
+      s += spaces.substring(0, maxrownumchars-rn.length()) + rn + " ";
       s += left;
       for (int j = 0; j < colNum; j++) {
         e = entry[i][j].toString();
@@ -1043,7 +1041,7 @@ public class Matrix implements MatrixI {
         }
         if (widths[j] < maxLen) {
           W = widths[j] - e.length();
-          s += pre[j] + spaces.substring(0,W) + e;
+          s += pre[j] + spaces.substring(0, W) + e;
         } else {
           s += pre[j] + e;
         }
@@ -1069,7 +1067,7 @@ public class Matrix implements MatrixI {
     for (int i = 0; i < rowNum; i++) {
       for (int j = 0; j < colNum; j++) {
         RationalFunction f = entry[i][j];
-        entry[i][j] = RationalFunction.applySubstitution(subs,f);
+        entry[i][j] = RationalFunction.applySubstitution(subs, f);
       }
     }
   }

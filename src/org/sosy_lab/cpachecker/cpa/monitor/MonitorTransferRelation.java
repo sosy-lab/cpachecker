@@ -164,7 +164,7 @@ public class MonitorTransferRelation implements TransferRelation {
     }
 
     // wrap elements
-    List<MonitorState> wrappedSuccessors = new ArrayList<MonitorState>(successors.size());
+    List<MonitorState> wrappedSuccessors = new ArrayList<>(successors.size());
     for (AbstractState absElement : successors) {
       MonitorState successorElem = new MonitorState(absElement, totalTimeOnPath, preventingCondition);
 
@@ -254,7 +254,7 @@ public class MonitorTransferRelation implements TransferRelation {
     }
 
     // wrap elements
-    List<MonitorState> wrappedSuccessors = new ArrayList<MonitorState>(successors.size());
+    List<MonitorState> wrappedSuccessors = new ArrayList<>(successors.size());
     for (AbstractState absElement : successors) {
       MonitorState successorElem = new MonitorState(
           absElement, totalTimeOnPath, preventingCondition);

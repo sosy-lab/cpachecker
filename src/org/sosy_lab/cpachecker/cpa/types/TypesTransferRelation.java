@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -51,11 +52,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -101,7 +101,7 @@ public class TypesTransferRelation implements TransferRelation {
         // function
 
         CFunctionDeclaration funcDef = funcDefNode.getFunctionDefinition();
-        handleFunctionDeclaration(successor, funcCallEdge, funcDef.getType());
+        handleFunctionDeclaration(successor, funcCallEdge, funcDef.getType(), funcDef.getParameters());
       }
       break;
 
@@ -116,7 +116,7 @@ public class TypesTransferRelation implements TransferRelation {
           && (cfaEdge.getPredecessor() instanceof FunctionEntryNode)) {
         //since by this point all global variables have been processed, we can now process the entry function
         CFunctionDeclaration funcDef = functionEntryNode.getFunctionDefinition();
-        handleFunctionDeclaration(successor, null, funcDef.getType());
+        handleFunctionDeclaration(successor, null, funcDef.getType(), funcDef.getParameters());
 
         entryFunctionProcessed = true;
       }
@@ -136,7 +136,7 @@ public class TypesTransferRelation implements TransferRelation {
     CType specifier = declarationEdge.getDeclaration().getType();
 
     if (decl instanceof CFunctionDeclaration) {
-      handleFunctionDeclaration(element, declarationEdge, (CFunctionType)specifier);
+      handleFunctionDeclaration(element, declarationEdge, (CFunctionType)specifier, ((CFunctionDeclaration) decl).getParameters());
 
     } else {
       Type type = getType(element, declarationEdge, specifier);
@@ -158,10 +158,11 @@ public class TypesTransferRelation implements TransferRelation {
 
   private void handleFunctionDeclaration(TypesState element,
                                         CFAEdge cfaEdge,
-                                        CFunctionType funcDeclSpecifier)
+                                        CFunctionType funcDeclSpecifier,
+                                        List<CParameterDeclaration> parameters)
                                         throws UnrecognizedCCodeException {
 
-    FunctionType function = getType(element, cfaEdge, funcDeclSpecifier);
+    FunctionType function = getType(element, cfaEdge, funcDeclSpecifier, parameters);
 
     if (cfaEdge != null && cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       assert function.getName().equals(cfaEdge.getSuccessor().getFunctionName());
@@ -227,13 +228,13 @@ public class TypesTransferRelation implements TransferRelation {
       String name = compositeSpecifier.getName();
       CompositeType compType;
 
-      switch (compositeSpecifier.getKey()) {
-      case CCompositeType.k_struct:
+      switch (compositeSpecifier.getKind()) {
+      case STRUCT:
         compType = new StructType(name, constant);
         name = "struct " + name;
         break;
 
-      case CCompositeType.k_union:
+      case UNION:
         compType = new StructType(name, constant);
         name = "union " + name;
         break;
@@ -324,9 +325,9 @@ public class TypesTransferRelation implements TransferRelation {
 
       type = enumType;
 
-    } else if (declSpecifier instanceof CNamedType) {
+    } else if (declSpecifier instanceof CTypedefType) {
       // type reference to type declared with typedef
-      CNamedType namedTypeSpecifier = (CNamedType)declSpecifier;
+      CTypedefType namedTypeSpecifier = (CTypedefType)declSpecifier;
 
       type = element.getTypedef(namedTypeSpecifier.getName());
 
@@ -375,9 +376,9 @@ public class TypesTransferRelation implements TransferRelation {
       type = getType(element, cfaEdge, pointerSpecifier.getType());
       type = new PointerType(type, pointerSpecifier.isConst());
 
-    } else if (declSpecifier instanceof CTypedef) {
-      CTypedef typedef = (CTypedef)declSpecifier;
-      return getType(element, cfaEdge, typedef.getType());
+    } else if (declSpecifier instanceof CTypedefType) {
+      CTypedefType typedef = (CTypedefType)declSpecifier;
+      return getType(element, cfaEdge, typedef.getRealType());
 
     } else {
       throw new UnrecognizedCCodeException("Unknown type class " + declSpecifier.getClass().getSimpleName(), cfaEdge);
@@ -386,14 +387,15 @@ public class TypesTransferRelation implements TransferRelation {
     return type;
   }
 
-  private FunctionType getType(TypesState element, CFAEdge cfaEdge, CFunctionType funcDeclSpecifier)
+  private FunctionType getType(TypesState element, CFAEdge cfaEdge, CFunctionType funcDeclSpecifier,
+                      List<CParameterDeclaration> parameters)
                       throws UnrecognizedCCodeException {
 
     Type returnType = getType(element, cfaEdge, funcDeclSpecifier.getReturnType());
 
     FunctionType function = new FunctionType(funcDeclSpecifier.getName(), returnType, funcDeclSpecifier.takesVarArgs());
 
-    for (CSimpleDeclaration parameter : funcDeclSpecifier.getParameters()) {
+    for (CSimpleDeclaration parameter : parameters) {
 
       Type parameterType = getType(element, cfaEdge, parameter.getType());
 

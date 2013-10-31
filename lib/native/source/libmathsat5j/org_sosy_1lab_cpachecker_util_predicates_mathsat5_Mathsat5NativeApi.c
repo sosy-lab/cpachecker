@@ -61,6 +61,10 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
 		mtype *m_arg##num = NULL;
 
 #define STRUCT_ARG(mtype, num) \
+  if (arg##num == 0) { \
+    throwException(jenv, "java/lang/IllegalArgumentException", "Null passed to MathSAT"); \
+    return; \
+  } \
   mtype m_arg##num; \
   m_arg##num.repr = (void *)((size_t)arg##num);
 
@@ -87,7 +91,11 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
     \
     size_t i; \
     for (i = 0; i < sz; ++i) { \
-       m_arg##num[i].repr = (void *)((size_t)tmp[i]); \
+      m_arg##num[i].repr = (void *)((size_t)tmp[i]); \
+      if (m_arg##num[i].repr == NULL) { \
+        throwException(jenv, "java/lang/IllegalArgumentException", "Null passed to MathSAT"); \
+        goto out##num##b; \
+      } \
     } \
     (*jenv)->ReleaseLongArrayElements(jenv, arg##num, tmp, 0); \
   }
@@ -287,21 +295,17 @@ typedef jobject jjnamedtermswrapper;
 
 // Now really define the functions.
 
-struct msat_all_sat_helper {
+struct msat_callback_info {
 	JNIEnv *jenv;
 	jmethodID callback_method;
 	jobject obj;
 };
 
 static int call_java_callback(msat_term *model, int size, void *user_data) {
-	int retval = 1;
-	struct msat_all_sat_helper *helper =
-			(struct msat_all_sat_helper *) user_data;
+	int retval = 0; // 0 means "terminate search"
+	struct msat_callback_info *helper =
+			(struct msat_callback_info *) user_data;
 	JNIEnv *jenv = helper->jenv;
-	if ((*jenv)->ExceptionCheck(jenv)) {
-		//retval = 1;
-		return retval; // exit JNI code as soon as possible
-	}
 
 	jlongArray jmodel = (*jenv)->NewLongArray(jenv, (size_t) size);
 	if (jmodel == NULL) {
@@ -309,7 +313,6 @@ static int call_java_callback(msat_term *model, int size, void *user_data) {
 	}
 	jlong *jarr = malloc(sizeof(jlong) * size);
 	if (jarr == NULL) {
-		//retval = 1;
 		throwException(jenv, "java/lang/OutOfMemoryError",
 				"Cannot allocate memory for allsat result");
 		goto out_jarr;
@@ -324,12 +327,34 @@ static int call_java_callback(msat_term *model, int size, void *user_data) {
 
 	(*jenv)->CallVoidMethod(jenv, helper->obj, helper->callback_method, jmodel);
 
+	if (!(*jenv)->ExceptionCheck(jenv)) {
+		retval = 1; // everything successful, no exceptions: continue search
+	}
+
 	out_jarr: free(jarr);
 
 	out_jmodel:
 	// explicitly delete local reference because this is a long running computation
 	(*jenv)->DeleteLocalRef(jenv, jmodel);
 	return retval;
+}
+
+static int call_java_termination_test(void *user_data) {
+	struct msat_callback_info *helper = (struct msat_callback_info *) user_data;
+	JNIEnv *jenv = helper->jenv;
+
+	if (helper->obj == NULL) {
+		throwException(jenv, "java/lang/IllegalArgumentException", "Illegal termination test object");
+		return 1;
+	}
+
+	jboolean result = (*jenv)->CallBooleanMethod(jenv, helper->obj, helper->callback_method);
+
+	if ((*jenv)->ExceptionCheck(jenv)) {
+		return 1;
+	}
+
+	return result;
 }
 
 /*
@@ -975,7 +1000,7 @@ jmethodID mid = (*jenv)->GetMethodID(jenv, cls, "callback", "([J)V");
 if (mid == NULL) {
 	goto out;
 }
-struct msat_all_sat_helper helper = {jenv, mid, arg4};
+struct msat_callback_info helper = {jenv, mid, arg4};
 int retval = msat_all_sat(m_arg1, m_arg2, m_arg3, &call_java_callback, (void *)&helper);
 
 out:
@@ -1047,6 +1072,58 @@ SIMPLE_ARG(size_t, 3)
 CALL3(msat_term, get_interpolant)
 FREE_INT_ARRAY_ARG(2)
 TERM_RETURN
+
+
+DEFINE_FUNC(long, 1set_1termination_1test) WITH_TWO_ARGS(jenv, object)
+  ENV_ARG(1)
+
+  jclass cls = (*jenv)->FindClass(jenv,
+    "org/sosy_lab/cpachecker/util/predicates/mathsat5/Mathsat5NativeApi$TerminationTest");
+  if (cls == NULL) {
+    return;
+  }
+  jmethodID mid = (*jenv)->GetMethodID(jenv, cls, "shouldTerminate", "()Z");
+  if (mid == NULL) {
+    return;
+  }
+  if (arg2 == NULL) {
+    throwException(jenv, "java/lang/NullPointerException", "TerminationTest may not be null");
+    return;
+  }
+
+  // We can't use a struct on the stack here
+  // because it needs to live longer than this method call.
+  struct msat_callback_info *helper = malloc(sizeof(struct msat_callback_info));
+  helper->jenv = jenv;
+  helper->callback_method = mid;
+  // Similarly we need a global ref to arg2 instance of a local ref.
+  helper->obj = (*jenv)->NewGlobalRef(jenv, arg2);
+
+  int retval = msat_set_termination_test(m_arg1, &call_java_termination_test, helper);
+  if (retval != 0) {
+    const char *msg = msat_last_error_message(m_arg1);
+    throwException(jenv, "java/lang/IllegalArgumentException", msg);
+    return;
+  }
+  // Ugly: return the struct's address so that it can be free'd later on.
+  return (long)helper;
+}
+
+// This method is not defined by Mathsat,
+// we need it to prevent a memory leak.
+// This may be called only after the environment with this termination test has been destroyed.
+DEFINE_FUNC(void, 1free_1termination_1test) WITH_ONE_ARG(long)
+  struct msat_callback_info *helper = (struct msat_callback_info *)arg1;
+  if (helper == NULL) {
+    throwException(jenv, "java/lang/NullPointerTest", "Argument to msat_free_termination_test may not be null");
+    return;
+  }
+
+  (*jenv)->DeleteGlobalRef(jenv, helper->obj);
+  helper->obj = NULL;
+  free(helper);
+}
+
 
 DEFINE_FUNC(string, 1last_1error_1message) WITH_ONE_ARG(jenv)
 ENV_ARG(1)

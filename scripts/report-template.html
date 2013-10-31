@@ -244,6 +244,15 @@ a.action:hover {
     line-height: 25px;
 }
 
+{{if errorpath == '[]':}}
+#leftContent, #middleLine {
+    display: none;
+}
+#rightContent {
+    left: 0px;
+}
+{{endif}}
+
 </style>
 
     <link href="http://www.sosy-lab.org/lib/google-code-prettify-2011-06-01/prettify.css" type="text/css" rel="stylesheet" />
@@ -839,7 +848,7 @@ a.action:hover {
                     for (var i = 0; i < errpath.length; i++) {
                         var step = errpath[i];
                         //edge2errindex[step.source + '->' + step.target] = i;
-                        if (step.desc == 'Function start dummy edge') {
+                        if (step.desc.indexOf('Function start dummy edge') == 0) {
                             level += 1;
                             self.edge2li[step.source + '->' + step.target] = li;
                             self.index2li[i] = li;

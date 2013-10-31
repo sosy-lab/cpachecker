@@ -1,27 +1,25 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="120" memlimit="3000">
+<benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
 
   <option name="-noout"/>
+  <option name="-spec">sv-comp</option>
   <option name="-heap">2000M</option>
   <option name="-explicitAnalysis"/>
-  <option name="-setprop">cpa.conditions.global.time.wall=1min</option>
+  <option name="-setprop">limits.time.cpu=1min</option>
 
-  <test>
-    <option name="-setprop">analysis.useRefinement=true</option>
-    <option name="-setprop">cegar.refiner=cpa.explicit.refiner.DelegatingExplicitRefiner</option>
+  <rundefinition>
     <sourcefiles>
-      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <includesfile>integration-ControlFlowInteger.set</includesfile>
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>integration-SystemC.set</includesfile>
-      <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
-      <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
+      <option name="-skipRecursion"/>
+      <option name="-64"/>
     </sourcefiles>
-  </test>
+  </rundefinition>
 
   <columns>
     <column title="total">time for CPAchecker</column>

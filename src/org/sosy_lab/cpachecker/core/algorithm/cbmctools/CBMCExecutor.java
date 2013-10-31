@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,26 +26,44 @@ package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
+import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.util.NativeLibraries;
 
-public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
+import com.google.common.collect.ImmutableMap;
+
+public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> {
+
+  private static final int MAX_CBMC_ERROR_OUTPUT_SHOWN = 10;
+  private static final Map<String, String> CBMC_ENV_VARS = ImmutableMap.of("LANG", "C");
 
   private Boolean result = null;
   private boolean unwindingAssertionFailed = false;
-  private boolean gaveErrorOutput = false;
+  private volatile int errorOutputCount = 0;
 
-  public CBMCExecutor(LogManager logger, String[] args) throws IOException {
-    super(logger, RuntimeException.class, args);
+  public CBMCExecutor(LogManager logger, List<String> args) throws IOException {
+    super(logger, CounterexampleAnalysisFailed.class, CBMC_ENV_VARS, getCommandLine(args));
+  }
+
+  private static String[] getCommandLine(List<String> args) {
+    String[] cmd = new String[args.size() + 1];
+    cmd[0] = NativeLibraries.getNativeLibraryPath().resolve("cbmc").toString();
+    for (int i = 0; i < args.size(); i++) {
+      cmd[i+1] = args.get(i);
+    }
+    return cmd;
   }
 
   @Override
-  protected void handleExitCode(int pCode) {
+  protected void handleExitCode(int pCode) throws CounterexampleAnalysisFailed {
     switch (pCode) {
     case 0: // Verification successful (Path is infeasible)
-      if (gaveErrorOutput) {
+      if (errorOutputCount > 0) {
         logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings. Please check the log above!");
       } else {
         result = false;
@@ -53,7 +71,7 @@ public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
       break;
 
     case 10: // Verification failed (Path is feasible)
-      if (gaveErrorOutput) {
+      if (errorOutputCount > 0) {
         logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings. Please check the log above!");
       } else {
         result = true;
@@ -66,27 +84,38 @@ public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
   }
 
   @Override
-  protected void handleErrorOutput(String pLine) throws RuntimeException {
+  protected void handleErrorOutput(String pLine) throws CounterexampleAnalysisFailed {
     // CBMC does not seem to print this anymore to stderr
     //if (!(pLine.startsWith("Verified ") && pLine.endsWith("original clauses.")))
 
-    if (!pLine.startsWith("**** WARNING: no body for function ")) {
-      // ignore warning which is not interesting for us
+    if (pLine.contains("Out of memory") || pLine.equals("terminate called after throwing an instance of 'Minisat::OutOfMemoryException'")) {
+      throw new CounterexampleAnalysisFailed("CBMC run out of memory.");
 
-      gaveErrorOutput = true;
-      super.handleErrorOutput(pLine);
+    } else if (pLine.startsWith("**** WARNING: no body for function ")
+             || pLine.contains("warning: #pragma once in main file")) {
+      // ignore warning that are not interesting for us
+
+    } else {
+      if (errorOutputCount == MAX_CBMC_ERROR_OUTPUT_SHOWN) {
+        logger.log(Level.WARNING, "Skipping further CBMC error output...");
+        errorOutputCount++;
+
+      } else if (errorOutputCount < MAX_CBMC_ERROR_OUTPUT_SHOWN) {
+        errorOutputCount++;
+        super.handleErrorOutput(pLine);
+      }
     }
   }
 
   @Override
-  protected void handleOutput(String pLine) throws RuntimeException {
-    if (pLine.contains("unwinding assertion")){
+  protected void handleOutput(String pLine) throws CounterexampleAnalysisFailed {
+    if (pLine.contains("unwinding assertion")) {
       unwindingAssertionFailed = true;
     }
     super.handleOutput(pLine);
   }
 
-  public boolean didUnwindingAssertionFailed(){
+  public boolean didUnwindingAssertionFail() {
     return unwindingAssertionFailed;
   }
 

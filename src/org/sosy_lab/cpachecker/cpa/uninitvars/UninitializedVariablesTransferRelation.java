@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -94,7 +95,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   private boolean typesWarningAlreadyDisplayed = false;
 
   public UninitializedVariablesTransferRelation(String printWarnings, LogManager logger) {
-    globalVars = new HashSet<String>();
+    globalVars = new HashSet<>();
     this.printWarnings = Boolean.parseBoolean(printWarnings);
     this.logger = logger;
   }
@@ -131,7 +132,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       //handle statement like a = func(x) in the CFunctionSummaryEdge
       CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge)cfaEdge;
       CFunctionSummaryEdge ctrEdge = functionReturnEdge.getSummaryEdge();
-      handleStatement(successor, ctrEdge.getExpression().asStatement(), ctrEdge);
+      handleStatement(successor, ctrEdge.getExpression(), ctrEdge);
       break;
 
     case AssumeEdge:
@@ -242,8 +243,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         }
       }
 
-      LinkedList<String> uninitParameters = new LinkedList<String>();
-      LinkedList<String> initParameters = new LinkedList<String>();
+      LinkedList<String> uninitParameters = new LinkedList<>();
+      LinkedList<String> initParameters = new LinkedList<>();
 
       //collect initialization status of the called function's parameters from the context of the calling function
       for (int i = 0; i < numOfParams; i++) {
@@ -304,7 +305,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       handleAssign(element, assignExpression, cfaEdge);
 
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+      throw new UnrecognizedCCodeException("unknown statement", cfaEdge, expression);
     }
   }
 
@@ -343,10 +344,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         }
       }
 
-    } else if (
-
-        ((op1 instanceof CUnaryExpression)
-            && (((CUnaryExpression)op1).getOperator() == UnaryOperator.STAR))
+    } else if ((op1 instanceof CPointerExpression)
             || (op1 instanceof CArraySubscriptExpression)) {
       // assignment to the target of a pointer or an array element,
       // this does not change the initialization status of the variable
@@ -412,6 +410,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         return isExpressionUninitialized(element, unaryExpression.getOperand(), cfaEdge);
       }
 
+    } else if (expression instanceof  CPointerExpression) {
+      return isExpressionUninitialized(element, ((CPointerExpression)expression).getOperand(), cfaEdge);
+
     } else if (expression instanceof CBinaryExpression) {
       CBinaryExpression binExpression = (CBinaryExpression) expression;
       return isExpressionUninitialized(element, binExpression.getOperand1(), cfaEdge)
@@ -450,7 +451,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       return false;
 
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+      throw new UnrecognizedCCodeException("unknown expression", cfaEdge, expression);
     }
   }
 

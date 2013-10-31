@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.abm;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
@@ -36,12 +38,15 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.abm.ABMTransferRelation.BackwardARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+
+import com.google.common.base.Preconditions;
 
 /**
  * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
@@ -57,7 +62,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
   final Timer computeCounterexampleTimer = new Timer();
 
   private final ABMTransferRelation transfer;
-  private final Map<ARGState, ARGState> pathStateToReachedState = new HashMap<ARGState, ARGState>();
+  private final Map<ARGState, ARGState> pathStateToReachedState = new HashMap<>();
 
   protected AbstractABMBasedRefiner(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -72,10 +77,10 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
    * When inheriting from this class, implement this method instead of
    * {@link #performRefinement(ReachedSet)}.
    */
-  protected abstract CounterexampleInfo performRefinement0(ARGReachedSet pReached, Path pPath) throws CPAException, InterruptedException;
+  protected abstract CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException;
 
   @Override
-  protected final CounterexampleInfo performRefinement(ARGReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+  protected final CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
     if (pPath == null) {
       return CounterexampleInfo.spurious();
     } else {
@@ -84,7 +89,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
   }
 
   @Override
-  protected final Path computePath(ARGState pLastElement, ARGReachedSet pReachedSet) throws InterruptedException, CPATransferException {
+  protected final ARGPath computePath(ARGState pLastElement, ARGReachedSet pReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
 
     pathStateToReachedState.clear();
@@ -94,7 +99,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
       ARGState subgraph;
       computeSubtreeTimer.start();
       try {
-        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARGState(pLastElement.getWrappedState(), null), pathStateToReachedState);
+        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new BackwardARGState(pLastElement.getWrappedState(), null), pathStateToReachedState);
         if (subgraph == null) {
           return null;
         }
@@ -113,8 +118,8 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
     }
   }
 
-  private Path computeCounterexample(ARGState root) {
-    Path path = new Path();
+  private ARGPath computeCounterexample(ARGState root) {
+    ARGPath path = new ARGPath();
     ARGState currentElement = root;
     while (currentElement.getChildren().size() > 0) {
       ARGState child = currentElement.getChildren().iterator().next();
@@ -128,13 +133,13 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
     return path;
   }
 
-  private static class ABMReachedSet extends ARGReachedSet.ForwardingARTReachedSet {
+  private static class ABMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
     private final ABMTransferRelation transfer;
-    private final Path path;
+    private final ARGPath path;
     private final Map<ARGState, ARGState> pathStateToReachedState;
 
-    private ABMReachedSet(ABMTransferRelation pTransfer, ARGReachedSet pReached, Path pPath, Map<ARGState, ARGState> pPathElementToReachedState) {
+    private ABMReachedSet(ABMTransferRelation pTransfer, ARGReachedSet pReached, ARGPath pPath, Map<ARGState, ARGState> pPathElementToReachedState) {
       super(pReached);
       this.transfer = pTransfer;
       this.path = pPath;
@@ -142,8 +147,19 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
     }
 
     @Override
-    public void removeSubtree(ARGState element, Precision newPrecision) {
-      transfer.removeSubtree(delegate, path, element, newPrecision, pathStateToReachedState);
+    public void removeSubtree(ARGState element, Precision newPrecision,
+        Class<? extends Precision> pPrecisionType) {
+      ArrayList<Precision> listP = new ArrayList<>();
+      listP.add(newPrecision);
+      ArrayList<Class<? extends Precision>> listPT = new ArrayList<>();
+      listPT.add(pPrecisionType);
+      removeSubtree(element, listP, listPT);
+    }
+
+    @Override
+    public void removeSubtree(ARGState element, List<Precision> newPrecisions, List<Class<? extends Precision>> pPrecisionTypes) {
+      Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
+      transfer.removeSubtree(delegate, path, element, newPrecisions, pPrecisionTypes, pathStateToReachedState);
     }
 
     @Override

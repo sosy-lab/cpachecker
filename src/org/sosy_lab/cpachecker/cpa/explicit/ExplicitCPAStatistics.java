@@ -23,21 +23,46 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.file.Path;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.explicit.refiner.DelegatingExplicitRefiner;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision.RefinablePrecision;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+import com.google.common.collect.HashMultimap;
+
+@Options(prefix="cpa.explicit")
 public class ExplicitCPAStatistics implements Statistics {
+
+  @Option(description="target file to hold the exported precision")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path precisionFile = null;
+
+  private final ExplicitCPA cpa;
 
   private AbstractARGBasedRefiner refiner = null;
 
-  public ExplicitCPAStatistics() {}
+  public ExplicitCPAStatistics(ExplicitCPA cpa) throws InvalidConfigurationException {
+    this.cpa = cpa;
+
+    this.cpa.getConfiguration().inject(this, ExplicitCPAStatistics.class);
+  }
 
   @Override
   public String getName() {
@@ -59,8 +84,8 @@ public class ExplicitCPAStatistics implements Statistics {
     for (AbstractState currentAbstractState : reached) {
       ExplicitState currentState = AbstractStates.extractStateByType(currentAbstractState, ExplicitState.class);
 
-      int numberOfVariables         = currentState.getConstantsMap().size();
-      int numberOfGlobalVariables   = getNumberOfGlobalVariables(currentState);
+      int numberOfVariables         = currentState.getSize();
+      int numberOfGlobalVariables   = currentState.getNumberOfGlobalVariables();
 
       totalNumberOfVariables        = totalNumberOfGlobalVariables + numberOfVariables;
       totalNumberOfGlobalVariables  = totalNumberOfGlobalVariables + numberOfGlobalVariables;
@@ -75,22 +100,44 @@ public class ExplicitCPAStatistics implements Statistics {
     out.println("Avg. number of variables: " + ((totalNumberOfVariables * 10000) / reached.size()) / 10000.0);
     out.println("Avg. number of global variables: " + ((totalNumberOfGlobalVariables * 10000) / reached.size()) / 10000.0);
 
-    if (refiner != null) {
-      if (refiner instanceof DelegatingExplicitRefiner) {
-        ((DelegatingExplicitRefiner)refiner).printStatistics(out, result, reached);
-      }
+    if (refiner != null && precisionFile != null) {
+      exportPrecision(reached);
     }
   }
 
-  private int getNumberOfGlobalVariables(ExplicitState state) {
-    int numberOfGlobalVariables = 0;
+  /**
+   * This method exports the precision to file.
+   *
+   * @param reached the set of reached states.
+   */
+  private void exportPrecision(ReachedSet reached) {
+    RefinablePrecision consolidatedPrecision = getConsolidatedPrecision(reached);
+    try (Writer writer = Files.openOutputFile(precisionFile)) {
+      consolidatedPrecision.serialize(writer);
+    } catch (IOException e) {
+      cpa.getLogger().logUserException(Level.WARNING, e, "Could not write explicit precision to file");
+    }
+  }
 
-    for(String variableName : state.getConstantsMap().keySet()) {
-      if(variableName.contains("::")) {
-        numberOfGlobalVariables++;
+  /**
+   * This method iterates of every state of the reached set and joins their respective precision into one map.
+   *
+   * @param reached the set of reached states
+   * @return the join over precisions of states in the reached set
+   */
+  private RefinablePrecision getConsolidatedPrecision(ReachedSet reached) {
+    RefinablePrecision joinedPrecision = null;
+    for (Precision precision : reached.getPrecisions()) {
+      if (precision instanceof WrapperPrecision) {
+        ExplicitPrecision prec = ((WrapperPrecision)precision).retrieveWrappedPrecision(ExplicitPrecision.class);
+        if (joinedPrecision == null) {
+          joinedPrecision = prec.getRefinablePrecision().refine(HashMultimap.<CFANode, String>create());
+        }
+        else {
+          joinedPrecision.join(prec.getRefinablePrecision());
+        }
       }
     }
-
-    return numberOfGlobalVariables;
+    return joinedPrecision;
   }
 }

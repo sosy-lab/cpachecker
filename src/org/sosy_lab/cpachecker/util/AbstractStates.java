@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Iterator;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -37,15 +36,17 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
+import com.google.common.collect.TreeTraverser;
 
 /**
  * Helper class that provides several useful methods for handling AbstractStates.
@@ -173,24 +174,22 @@ public final class AbstractStates {
    */
   public static FluentIterable<AbstractState> asIterable(final AbstractState as) {
 
-    return new TreeIterable<AbstractState>(as, ABSTRACT_STATE_CHILDREN_FUNCTION);
-  }
+    return new TreeTraverser<AbstractState>() {
 
-  private static final Function<AbstractState, Iterator<? extends AbstractState>> ABSTRACT_STATE_CHILDREN_FUNCTION
-    = new Function<AbstractState, Iterator<? extends AbstractState>>() {
       @Override
-      public Iterator<? extends AbstractState> apply(AbstractState state) {
+      public Iterable<AbstractState> children(AbstractState state) {
         if (state instanceof AbstractSingleWrapperState) {
           AbstractState wrapped = ((AbstractSingleWrapperState)state).getWrappedState();
-          return Iterators.singletonIterator(wrapped);
+          return ImmutableList.of(wrapped);
 
         } else if (state instanceof AbstractWrapperState) {
-          return ((AbstractWrapperState)state).getWrappedStates().iterator();
+          return ((AbstractWrapperState)state).getWrappedStates();
         }
 
-        return Iterators.emptyIterator();
+        return ImmutableList.of();
       }
-    };
+    }.preOrderTraversal(as);
+  }
 
   private static final Function<AbstractState, Iterable<AbstractState>> AS_ITERABLE
     = new Function<AbstractState, Iterable<AbstractState>>() {
@@ -209,13 +208,14 @@ public final class AbstractStates {
    * the given abstract state, according to reported
    * formulas
    */
-  public static Formula extractReportedFormulas(FormulaManager manager, AbstractState state) {
-    Formula result = manager.makeTrue();
+  public static BooleanFormula extractReportedFormulas(FormulaManagerView manager, AbstractState state) {
+    BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
+    BooleanFormula result = bfmgr.makeBoolean(true);
 
     // traverse through all the sub-states contained in this state
     for (FormulaReportingState s : asIterable(state).filter(FormulaReportingState.class)) {
 
-      result = manager.makeAnd(result, s.getFormulaApproximation(manager));
+      result = bfmgr.and(result, s.getFormulaApproximation(manager));
     }
 
     return result;

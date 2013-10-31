@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,6 +56,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private final Algorithm innerAlgorithm;
   private final LogManager logger;
+  private final ARGCPA cpa;
 
   private final List<? extends AdjustableConditionCPA> conditionCPAs;
 
@@ -73,12 +74,12 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     if (!(pCpa instanceof ARGCPA)) {
       throw new InvalidConfigurationException("ARGCPA needed for RestartWithConditionsAlgorithm");
     }
-    ARGCPA cpa = (ARGCPA)pCpa;
+    cpa = (ARGCPA)pCpa;
     if (cpa.retrieveWrappedCpa(AssumptionStorageCPA.class) == null) {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for RestartWithConditionsAlgorithm");
     }
 
-    conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toImmutableList();
+    conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
   }
 
   @Override
@@ -126,7 +127,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private List<AbstractState> getStatesWithAssumptions(ReachedSet reached) {
 
-    List<AbstractState> retList = new ArrayList<AbstractState>();
+    List<AbstractState> retList = new ArrayList<>();
 
     for (AbstractState state : reached) {
 
@@ -140,8 +141,8 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
         // check if stored assumption is not "true"
         AssumptionStorageState s = AbstractStates.extractStateByType(state, AssumptionStorageState.class);
 
-        if (!s.getAssumption().isTrue()
-            || !s.getStopFormula().isTrue()) {
+        if (!s.isAssumptionTrue()
+            || !s.isStopFormulaTrue()) {
 
           retList.add(state);
         }
@@ -152,11 +153,11 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private void adjustThresholds(List<AbstractState> pStatesWithAssumptions, ReachedSet pReached) {
 
-    ARGReachedSet reached = new ARGReachedSet(pReached);
+    ARGReachedSet reached = new ARGReachedSet(pReached, cpa);
     for (AbstractState s: pStatesWithAssumptions) {
       ARGState argState = (ARGState)s;
 
-      for (ARGState parent : ImmutableSet.copyOf(argState.getParents())){
+      for (ARGState parent : ImmutableSet.copyOf(argState.getParents())) {
         reached.removeSubtree(parent);
       }
     }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -78,25 +78,28 @@ public class CPABuilder {
 
   private final Configuration config;
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final ReachedSetFactory reachedSetFactory;
 
-  public CPABuilder(Configuration pConfig, LogManager pLogger, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
+  public CPABuilder(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
+      ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
     this.config = pConfig;
     this.logger = pLogger;
+    this.shutdownNotifier = pShutdownNotifier;
     this.reachedSetFactory = pReachedSetFactory;
     config.inject(this);
   }
 
   public ConfigurableProgramAnalysis buildCPAs(final CFA cfa) throws InvalidConfigurationException, CPAException {
-    Set<String> usedAliases = new HashSet<String>();
+    Set<String> usedAliases = new HashSet<>();
 
     // create automata cpas for specification given in specification file
     List<ConfigurableProgramAnalysis> cpas = null;
     if (specificationFiles != null) {
-      cpas = new ArrayList<ConfigurableProgramAnalysis>();
+      cpas = new ArrayList<>();
 
       for (File specFile : specificationFiles) {
-        List<Automaton> automata = AutomatonParser.parseAutomatonFile(specFile, config, logger);
+        List<Automaton> automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel());
 
         for (Automaton automaton : automata) {
           String cpaAlias = automaton.getName();
@@ -107,6 +110,7 @@ public class CPABuilder {
           CPAFactory factory = ControlAutomatonCPA.factory();
           factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
           factory.setLogger(logger);
+          factory.set(cfa, CFA.class);
           factory.set(automaton, Automaton.class);
           cpas.add(factory.createInstance());
           logger.log(Level.FINER, "Loaded Automaton\"" + automaton.getName() + "\"");
@@ -140,6 +144,7 @@ public class CPABuilder {
 
     factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
     factory.setLogger(logger);
+    factory.setShutdownNotifier(shutdownNotifier);
     if (reachedSetFactory != null) {
       factory.set(reachedSetFactory, ReachedSetFactory.class);
     }
@@ -147,10 +152,18 @@ public class CPABuilder {
       factory.set(cfa, CFA.class);
     }
 
-    createAndSetChildrenCPAs(cpaName, cpaAlias, factory, usedAliases, cpas, cfa);
+    boolean hasChildren = createAndSetChildrenCPAs(cpaName, cpaAlias, factory, usedAliases, cpas, cfa);
 
     if (cpas != null && !cpas.isEmpty()) {
       throw new InvalidConfigurationException("Option specification gave specification automata, but no CompositeCPA was used");
+    }
+    if (optionName.equals(CPA_OPTION_NAME)
+        && cpaClass.equals(CompositeCPA.class)
+        && !hasChildren) {
+      // This is the top-level CompositeCPA that is the default,
+      // but without any children. This means that the user did not specify any
+      // meaningful configuration.
+      throw new InvalidConfigurationException("Please specify a configuration with '-config CONFIG_FILE' or '-CONFIG' (for example, '-explicitAnalysis' or '-predicateAnalysis'). See README.txt for more details.");
     }
 
     // finally call createInstance
@@ -240,7 +253,7 @@ public class CPABuilder {
     return (CPAFactory)factoryObj;
   }
 
-  private void createAndSetChildrenCPAs(String cpaName, String cpaAlias,
+  private boolean createAndSetChildrenCPAs(String cpaName, String cpaAlias,
       CPAFactory factory, Set<String> usedAliases, List<ConfigurableProgramAnalysis> cpas,
       final CFA cfa) throws InvalidConfigurationException, CPAException {
     String childOptionName = cpaAlias + ".cpa";
@@ -268,6 +281,7 @@ public class CPABuilder {
         throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childOptionName + " was specified!", e);
       }
       logger.log(Level.FINER, "CPA " + cpaAlias + " got child " + childCpaName);
+      return true;
 
     } else if (childrenCpaNames != null) {
       // several children CPAs
@@ -287,6 +301,8 @@ public class CPABuilder {
         throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childrenOptionName + " was specified!", e);
       }
       logger.log(Level.FINER, "CPA " + cpaAlias + " got children " + childrenCpaNames);
+      return true;
     }
+    return false;
   }
 }

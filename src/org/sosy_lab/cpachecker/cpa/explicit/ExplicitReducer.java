@@ -51,7 +51,7 @@ public class ExplicitReducer implements Reducer {
     ExplicitState clonedElement = expandedState.clone();
     for (String trackedVar : expandedState.getTrackedVariableNames()) {
       if (!occursInBlock(pContext, trackedVar)) {
-        clonedElement.deleteValue(trackedVar);
+        clonedElement.forget(trackedVar);
       }
     }
 
@@ -66,7 +66,7 @@ public class ExplicitReducer implements Reducer {
 
     ExplicitState diffElement = rootState.clone();
     for (String trackedVar : reducedState.getTrackedVariableNames()) {
-      diffElement.deleteValue(trackedVar);
+      diffElement.forget(trackedVar);
     }
     //TODO: following is needed with threshold != inf
   /*  for (String trackedVar : diffElement.getTrackedVariableNames()) {
@@ -82,6 +82,9 @@ public class ExplicitReducer implements Reducer {
         diffElement.forget(trackedVar);
       }
     }
+    // set difference to avoid null pointer exception due to precision adaption of omniscient composite precision adjustment
+    // to avoid that due to precision adaption in ABM ART which is not yet propagated tracked variable information is deleted
+    diffElement.addToDelta(diffElement);
 
     return diffElement;
   }
@@ -117,6 +120,18 @@ public class ExplicitReducer implements Reducer {
   @Override
   public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
     return 0;
+  }
+
+  @Override
+  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
+      CFANode pCallNode) {
+    return getVariableReducedState(pExpandedState, pContext, pCallNode);
+  }
+
+  @Override
+  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
+      AbstractState pReducedState) {
+    return getVariableExpandedState(pRootState, pReducedContext, pReducedState);
   }
 
 }

@@ -39,14 +39,14 @@ public class ReducedFunctionTest {
 
   @Test
   public void testAddAndRemoveEdges() {
-    ReducedNode entryNode = new ReducedNode(null);
-    ReducedNode exitNode = new ReducedNode(null);
+    ReducedNode entryNode = new ReducedNode(null, false);
+    ReducedNode exitNode = new ReducedNode(null, false);
 
-    ReducedNode n1 = new ReducedNode(null);
-    ReducedNode n2 = new ReducedNode(null);
-    ReducedNode n3 = new ReducedNode(null);
-    ReducedNode n4 = new ReducedNode(null);
-    ReducedNode n5 = new ReducedNode(null);
+    ReducedNode n1 = new ReducedNode(null, false);
+    ReducedNode n2 = new ReducedNode(null, false);
+    ReducedNode n3 = new ReducedNode(null, false);
+    ReducedNode n4 = new ReducedNode(null, false);
+    ReducedNode n5 = new ReducedNode(null, false);
 
     ReducedFunctionUnderTest funct = new ReducedFunctionUnderTest(entryNode, exitNode);
 
@@ -59,29 +59,29 @@ public class ReducedFunctionTest {
 
     assertEquals(2, funct.getNumOfActiveNodes());
     assertEquals(2, funct.getAllActiveNodes().size());
-    assertEquals(1, funct.getLeavingEdges(n1).length);
+    assertEquals(1, funct.getLeavingEdges(n1).size());
     assertEquals(1, funct.getNumEnteringEdges(n3));
-    assertEquals(0, funct.getLeavingEdges(n3).length);
+    assertEquals(0, funct.getLeavingEdges(n3).size());
   }
 
   @Test
   public void testUltimate() {
-    ReducedNode entryNode = new ReducedNode(new CFANode(0, "test"));
-    ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"));
+    ReducedNode entryNode = new ReducedNode(new CFANode(0, "test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode(100, "test"), false);
 
-    ReducedNode n4 = new ReducedNode(new CFANode(4, "loophead"));
-    ReducedNode n5 = new ReducedNode(new CFANode(5, "test"));
-    ReducedNode n6 = new ReducedNode(new CFANode(6, "test"));
-    ReducedNode n7 = new ReducedNode(new CFANode(7, "test"));
-    ReducedNode n8 = new ReducedNode(new CFANode(8, "test"));
-    ReducedNode n9 = new ReducedNode(new CFANode(9, "test"));
-    ReducedNode n20 = new ReducedNode(new CFANode(20, "test"));
-    ReducedNode n21 = new ReducedNode(new CFANode(21, "test"));
-    ReducedNode n22 = new ReducedNode(new CFANode(22, "test"));
-    ReducedNode n23 = new ReducedNode(new CFANode(23, "test"));
-    ReducedNode n24 = new ReducedNode(new CFANode(24, "test"));
-    ReducedNode n25 = new ReducedNode(new CFANode(25, "test"));
-    ReducedNode n26 = new ReducedNode(new CFANode(26, "test"));
+    ReducedNode n4 = new ReducedNode(new CFANode(4, "loophead"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode(5, "test"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode(6, "test"), false);
+    ReducedNode n7 = new ReducedNode(new CFANode(7, "test"), false);
+    ReducedNode n8 = new ReducedNode(new CFANode(8, "test"), false);
+    ReducedNode n9 = new ReducedNode(new CFANode(9, "test"), false);
+    ReducedNode n20 = new ReducedNode(new CFANode(20, "test"), false);
+    ReducedNode n21 = new ReducedNode(new CFANode(21, "test"), false);
+    ReducedNode n22 = new ReducedNode(new CFANode(22, "test"), false);
+    ReducedNode n23 = new ReducedNode(new CFANode(23, "test"), false);
+    ReducedNode n24 = new ReducedNode(new CFANode(24, "test"), false);
+    ReducedNode n25 = new ReducedNode(new CFANode(25, "test"), false);
+    ReducedNode n26 = new ReducedNode(new CFANode(26, "test"), false);
 
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
@@ -105,14 +105,14 @@ public class ReducedFunctionTest {
 
   @Test
   public void test() {
-    ReducedNode entryNode = new ReducedNode(null);
-    ReducedNode exitNode = new ReducedNode(null);
+    ReducedNode entryNode = new ReducedNode(null, false);
+    ReducedNode exitNode = new ReducedNode(null, false);
 
-    ReducedNode n1 = new ReducedNode(null);
-    ReducedNode n2 = new ReducedNode(null);
-    ReducedNode n3 = new ReducedNode(null);
-    ReducedNode n4 = new ReducedNode(null);
-    ReducedNode n5 = new ReducedNode(null);
+    ReducedNode n1 = new ReducedNode(null, false);
+    ReducedNode n2 = new ReducedNode(null, false);
+    ReducedNode n3 = new ReducedNode(null, false);
+    ReducedNode n4 = new ReducedNode(null, false);
+    ReducedNode n5 = new ReducedNode(null, false);
 
     ReducedFunctionUnderTest funct = new ReducedFunctionUnderTest(entryNode, exitNode);
 
@@ -129,14 +129,14 @@ public class ReducedFunctionTest {
     assertEquals(funct.getNumLeavingEdges(n3), 1);
     assertEquals(funct.getNumLeavingEdges(n5), 0);
 
-    assertEquals(funct.getLeavingEdges(n1).length, 1);
-    assertEquals(funct.getLeavingEdges(n5).length, 0);
+    assertEquals(funct.getLeavingEdges(n1).size(), 1);
+    assertEquals(funct.getLeavingEdges(n5).size(), 0);
   }
 
   @Test
   public void test_MultipleEdgesBetweenTwoNodes() {
-    ReducedNode entryNode = new ReducedNode(null);
-    ReducedNode exitNode = new ReducedNode(null);
+    ReducedNode entryNode = new ReducedNode(null, false);
+    ReducedNode exitNode = new ReducedNode(null, false);
 
     ReducedFunctionUnderTest funct = new ReducedFunctionUnderTest(entryNode, exitNode);
 

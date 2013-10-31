@@ -23,75 +23,33 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-
-import com.google.common.base.CharMatcher;
 
 /**
  * Exception thrown when a CPA cannot handle some C code attached to a CFAEdge.
  */
-public class UnrecognizedCCodeException extends CPATransferException {
-
-  private static final CharMatcher SEMICOLON = CharMatcher.is(';');
-
-  private static final String MESSAGE = "Unrecognized C code";
+public class UnrecognizedCCodeException extends UnrecognizedCodeException {
 
   private static final long serialVersionUID = -8319167530363457020L;
 
-  protected UnrecognizedCCodeException(String msg1, String msg2, CFAEdge edge, CAstNode astNode) {
-    super(createMessage(msg1, msg2, edge, astNode));
+  protected UnrecognizedCCodeException(String msg1, @Nullable String msg2,
+      @Nullable CFAEdge edge, @Nullable IAstNode astNode) {
+    super(msg1, msg2, edge, astNode);
   }
 
   public UnrecognizedCCodeException(String msg2, CFAEdge edge, CAstNode astNode) {
-    super(createMessage(MESSAGE, msg2, edge, astNode));
+    super(msg2, edge, astNode);
   }
 
   public UnrecognizedCCodeException(String msg2, CFAEdge edge) {
-    super(createMessage(MESSAGE, msg2, edge, null));
+    super(msg2, edge);
   }
 
-  public UnrecognizedCCodeException(CFAEdge edge, CAstNode astNode) {
-    super(createMessage(MESSAGE, null, edge, astNode));
-  }
-
-
-  protected static String createMessage(String msg1, String msg2, CFAEdge edge, CAstNode astNode) {
-    checkNotNull(msg1);
-    if (astNode == null) {
-      astNode = (CAstNode)edge.getRawAST().get();
-    }
-
-    String code = astNode.toASTString();
-    String rawCode = edge.getRawStatement();
-
-    StringBuilder sb = new StringBuilder();
-    sb.append(msg1);
-    if (msg2 != null) {
-      sb.append(" (");
-      sb.append(msg2);
-      sb.append(")");
-    }
-    sb.append(" in line ");
-    sb.append(edge.getLineNumber());
-    sb.append(": ");
-    sb.append(code);
-
-    // remove all whitespaces and trailing semicolons for comparison
-    String codeWithoutWhitespace    = CharMatcher.WHITESPACE.removeFrom(code);
-    String rawCodeWithoutWhitespace = CharMatcher.WHITESPACE.removeFrom(rawCode);
-
-    codeWithoutWhitespace    = SEMICOLON.trimFrom(codeWithoutWhitespace);
-    rawCodeWithoutWhitespace = SEMICOLON.trimFrom(rawCodeWithoutWhitespace);
-
-    if (!codeWithoutWhitespace.equals(rawCodeWithoutWhitespace)) {
-      sb.append(" (line was originally ");
-      sb.append(rawCode);
-      sb.append(")");
-    }
-
-    return sb.toString();
+  public UnrecognizedCCodeException(String msg2, CAstNode astNode) {
+    super(msg2, astNode);
   }
 }

@@ -1,0 +1,852 @@
+(set-info :source |printed by MathSAT|)
+(declare-fun |CdAudio535DeviceControl::tmp___6| () Real)
+(define-fun .def_24264 () Bool (= |CdAudio535DeviceControl::tmp___6| (to_real 259)))
+(declare-fun s () Real)
+(declare-fun NP () Real)
+(define-fun .def_349 () Bool (= s NP))
+(declare-fun |CdAudio535DeviceControl::status| () Real)
+(define-fun .def_24732 () Bool (= |CdAudio535DeviceControl::status| (to_real 259)))
+(declare-fun |CdAudio535DeviceControl::tmp___8| () Real)
+(define-fun .def_24735 () Bool (= |CdAudio535DeviceControl::tmp___8| (to_real 259)))
+(declare-fun compRegistered () Real)
+(define-fun .def_473 () Bool (= compRegistered (to_real 0)))
+(declare-fun |CdAudio435DeviceControl::status| () Real)
+(define-fun .def_24960 () Bool (<= |CdAudio435DeviceControl::status| (to_real (- 1073741670))))
+(declare-fun routine () Real)
+(define-fun .def_521 () Bool (= routine (to_real 0)))
+(declare-fun |CdAudioAtapiDeviceControl::status| () Real)
+(define-fun .def_23529 () Bool (<= (to_real 0) |CdAudioAtapiDeviceControl::status|))
+(declare-fun SKIP1 () Real)
+(define-fun .def_659 () Bool (= s SKIP1))
+(declare-fun |CdAudio535DeviceControl::tmp___0| () Real)
+(define-fun .def_23716 () Bool (= |CdAudio535DeviceControl::tmp___0| (to_real 259)))
+(declare-fun MPR3 () Real)
+(define-fun .def_1095 () Bool (= NP MPR3))
+(declare-fun |CdAudio535DeviceControl::tmp___5| () Real)
+(define-fun .def_24055 () Bool (= |CdAudio535DeviceControl::tmp___5| (to_real 259)))
+(define-fun .def_1097 () Bool (= s MPR3))
+(declare-fun |CdAudio535DeviceControl::tmp___1| () Real)
+(define-fun .def_24126 () Bool (<= (to_real 0) |CdAudio535DeviceControl::tmp___1|))
+(declare-fun myStatus () Real)
+(define-fun .def_25543 () Bool (= myStatus (to_real (- 1073741802))))
+(define-fun .def_1425 () Bool (= routine (to_real 1)))
+(declare-fun MPR1 () Real)
+(define-fun .def_1581 () Bool (= s MPR1))
+(declare-fun IPC () Real)
+(define-fun .def_1697 () Bool (= MPR3 IPC))
+(declare-fun setEventCalled () Real)
+(define-fun .def_2024 () Bool (= setEventCalled (to_real 1)))
+(define-fun .def_25115 () Bool (<= |CdAudio535DeviceControl::status| (to_real (- 1073741670))))
+(declare-fun |IofCallDriver::compRetStatus| () Real)
+(define-fun .def_2218 () Bool (= |IofCallDriver::compRetStatus| (to_real (- 1073741802))))
+(define-fun .def_25365 () Bool (= |CdAudio535DeviceControl::status| (to_real (- 1073741764))))
+(define-fun .def_2335 () Bool (= NP MPR1))
+(define-fun .def_25404 () Bool (= |CdAudio435DeviceControl::status| (to_real (- 1073741764))))
+(declare-fun pended () Real)
+(define-fun .def_4242 () Bool (= pended (to_real 0)))
+(define-fun .def_25476 () Bool (= |CdAudio435DeviceControl::status| (to_real (- 1073741808))))
+(declare-fun UNLOADED () Real)
+(define-fun .def_10335 () Bool (= s UNLOADED))
+(declare-fun |CdAudioPower::tmp| () Real)
+(declare-fun lowerDriverReturn () Real)
+(define-fun .def_10390 () Bool (= |CdAudioPower::tmp| lowerDriverReturn))
+(define-fun .def_10386 () Bool (= NP SKIP1))
+(define-fun .def_10649 () Bool (= SKIP1 MPR1))
+(declare-fun |main::status| () Real)
+(define-fun .def_10393 () Bool (= lowerDriverReturn |main::status|))
+(declare-fun |CdAudioPnp::tmp___0| () Real)
+(define-fun .def_10655 () Bool (= lowerDriverReturn |CdAudioPnp::tmp___0|))
+(declare-fun |CdAudioSendToNextDriver::tmp| () Real)
+(define-fun .def_10652 () Bool (= lowerDriverReturn |CdAudioSendToNextDriver::tmp|))
+(declare-fun |CdAudioDeviceControl::status| () Real)
+(define-fun .def_12156 () Bool (= lowerDriverReturn |CdAudioDeviceControl::status|))
+(declare-fun DC () Real)
+(define-fun .def_12116 () Bool (= s DC))
+(declare-fun |CdAudioHPCdrDeviceControl::tmp| () Real)
+(define-fun .def_12481 () Bool (= lowerDriverReturn |CdAudioHPCdrDeviceControl::tmp|))
+(declare-fun |CdAudioHPCdrDeviceControl::tmp___0| () Real)
+(define-fun .def_12229 () Bool (= lowerDriverReturn |CdAudioHPCdrDeviceControl::tmp___0|))
+(declare-fun |CdAudio535DeviceControl::tmp___7| () Real)
+(define-fun .def_12771 () Bool (= lowerDriverReturn |CdAudio535DeviceControl::tmp___7|))
+(declare-fun |CdAudioAtapiDeviceControl::tmp| () Real)
+(define-fun .def_12616 () Bool (= lowerDriverReturn |CdAudioAtapiDeviceControl::tmp|))
+(declare-fun |CdAudio435DeviceControl::tmp___0| () Real)
+(define-fun .def_13134 () Bool (= lowerDriverReturn |CdAudio435DeviceControl::tmp___0|))
+(declare-fun |CdAudio435DeviceControl::tmp___2| () Real)
+(define-fun .def_12924 () Bool (= lowerDriverReturn |CdAudio435DeviceControl::tmp___2|))
+(declare-fun SKIP2 () Real)
+(define-fun .def_13473 () Bool (= DC SKIP2))
+(declare-fun |CdAudioPnp::tmp| () Real)
+(define-fun .def_13352 () Bool (= lowerDriverReturn |CdAudioPnp::tmp|))
+(define-fun .def_13808 () Bool (= |CdAudioSendToNextDriver::tmp| (to_real 259)))
+(define-fun .def_13810 () Bool (= |CdAudioPnp::tmp___0| (to_real 259)))
+(define-fun .def_13475 () Bool (= s SKIP2))
+(define-fun .def_13806 () Bool (= MPR3 DC))
+(declare-fun |CdAudioPnp::status| () Real)
+(define-fun .def_14550 () Bool (= |CdAudioPnp::status| (to_real 259)))
+(define-fun .def_15248 () Bool (= |CdAudioPnp::tmp| (to_real 259)))
+(define-fun .def_13812 () Bool (= |main::status| (to_real 259)))
+(define-fun .def_14547 () Bool (= myStatus (to_real 259)))
+(define-fun .def_15430 () Bool (= s IPC))
+(define-fun .def_15432 () Bool (= |CdAudioHPCdrDeviceControl::tmp___0| (to_real 259)))
+(define-fun .def_15286 () Bool (= |CdAudioDeviceControl::status| (to_real 259)))
+(define-fun .def_15428 () Bool (= IPC DC))
+(define-fun .def_18261 () Bool (<= (to_real 0) |IofCallDriver::compRetStatus|))
+(define-fun .def_18329 () Bool (= DC (to_real 2)))
+(define-fun .def_17679 () Bool (= |CdAudioHPCdrDeviceControl::tmp| (to_real 259)))
+(define-fun .def_18259 () Bool (<= (to_real 0) myStatus))
+(define-fun .def_20259 () Bool (= |CdAudioAtapiDeviceControl::status| (to_real 259)))
+(declare-fun |SendSrbSynchronous::Buffer| () Real)
+(define-fun .def_20256 () Bool (= |SendSrbSynchronous::Buffer| (to_real 0)))
+(define-fun .def_18333 () Bool (= NP DC))
+(define-fun .def_18330 () Bool (= NP (to_real 1)))
+(declare-fun |AG_SetStatusAndReturn::status| () Real)
+(define-fun .def_21896 () Bool (= |AG_SetStatusAndReturn::status| (to_real 259)))
+(define-fun .def_21217 () Bool (= |CdAudio535DeviceControl::tmp___7| (to_real 259)))
+(define-fun .def_21005 () Bool (= |CdAudio435DeviceControl::tmp___0| (to_real 259)))
+(define-fun .def_20634 () Bool (= |CdAudio435DeviceControl::tmp___2| (to_real 259)))
+(declare-fun |CdAudio535DeviceControl::tmp___4| () Real)
+(define-fun .def_22305 () Bool (<= (to_real 0) |CdAudio535DeviceControl::tmp___4|))
+(define-fun .def_22302 () Bool (<= (to_real 0) |AG_SetStatusAndReturn::status|))
+(define-fun .def_22268 () Bool (= |CdAudio435DeviceControl::status| (to_real 259)))
+(declare-fun |CdAudio535DeviceControl::tmp___3| () Real)
+(define-fun .def_21899 () Bool (= |CdAudio535DeviceControl::tmp___3| (to_real 259)))
+(define-fun .def_23364 () Bool (<= (to_real 0) |CdAudio435DeviceControl::status|))
+(define-fun .def_22311 () Bool (<= (to_real 0) |main::status|))
+(define-fun .def_22309 () Bool (<= (to_real 0) |CdAudioDeviceControl::status|))
+(define-fun .def_22306 () Bool (= |CdAudio535DeviceControl::tmp___4| (to_real 259)))
+
+errorFn N1:
+(assert false)
+
+_BLAST_init N7:
+(assert .def_521)
+
+SendSrbSynchronous N26:
+(assert .def_20256)
+(assert .def_349)
+(assert false)
+
+CdAudioSignalCompletion N69:
+(assert .def_349)
+(assert false)
+(assert .def_2335)
+(assert .def_14547)
+
+CdAudioSignalCompletion N71:
+(assert .def_349)
+(assert false)
+(assert .def_2024)
+(assert .def_2335)
+(assert .def_14547)
+
+CdAudioStartDevice N74:
+(assert .def_349)
+(assert .def_473)
+(assert .def_2335)
+
+CdAudioStartDevice N92:
+(assert .def_349)
+(assert false)
+
+CdAudioStartDevice N106:
+(assert false)
+
+CdAudioStartDevice N133:
+(assert .def_349)
+(assert false)
+
+CdAudioPnp N136:
+(assert .def_10386)
+(assert .def_349)
+(assert .def_10649)
+(assert .def_1697)
+(assert .def_13806)
+(assert .def_473)
+(assert .def_2335)
+(assert .def_13473)
+(assert .def_14547)
+(assert .def_1097)
+
+CdAudioPnp N172:
+(assert .def_349)
+(assert false)
+(assert .def_14550)
+
+CdAudioPnp N175:
+(assert .def_14550)
+(assert .def_12116)
+
+CdAudioPnp N180:
+(assert .def_13475)
+(assert .def_13806)
+(assert .def_15248)
+(assert .def_13473)
+(assert .def_1097)
+(assert .def_13352)
+
+CdAudioPnp N182:
+(assert .def_349)
+(assert .def_1697)
+(assert .def_473)
+(assert .def_2335)
+(assert .def_14547)
+
+CdAudioPnp N194:
+(assert .def_349)
+(assert false)
+(assert .def_14550)
+
+CdAudioPnp N207:
+(assert .def_349)
+(assert false)
+(assert .def_14550)
+
+CdAudioPnp N208:
+(assert .def_14550)
+(assert .def_12116)
+
+CdAudioPnp N212:
+(assert .def_13810)
+(assert .def_13475)
+(assert .def_13806)
+(assert .def_10655)
+(assert .def_13473)
+(assert .def_1097)
+
+CdAudioDeviceControl N217:
+(assert .def_25543)
+(assert .def_10386)
+(assert .def_349)
+(assert .def_10649)
+(assert .def_18330)
+(assert .def_13806)
+(assert .def_473)
+(assert .def_15428)
+(assert .def_18329)
+(assert .def_13473)
+(assert .def_4242)
+(assert .def_1097)
+
+CdAudioDeviceControl N243:
+(assert .def_15430)
+(assert false)
+(assert .def_13475)
+(assert .def_15286)
+(assert .def_13806)
+(assert .def_12156)
+(assert .def_22309)
+(assert .def_13473)
+(assert .def_12116)
+(assert .def_1097)
+
+CdAudioDeviceControl N246:
+(assert false)
+(assert .def_13475)
+(assert .def_15286)
+(assert .def_13806)
+(assert .def_12156)
+(assert .def_22309)
+(assert .def_13473)
+(assert .def_12116)
+(assert .def_1097)
+
+CdAudioDeviceControl N249:
+(assert .def_349)
+(assert .def_13475)
+(assert .def_18333)
+(assert .def_15286)
+(assert .def_13806)
+(assert .def_12156)
+(assert .def_22309)
+(assert .def_13473)
+(assert .def_1097)
+(assert .def_12116)
+
+CdAudioDeviceControl N252:
+(assert .def_15430)
+(assert false)
+(assert .def_13475)
+(assert .def_15286)
+(assert .def_13806)
+(assert .def_15428)
+(assert .def_12156)
+(assert .def_13473)
+(assert .def_1097)
+
+CdAudioDeviceControl N256:
+(assert .def_13475)
+(assert .def_15286)
+(assert .def_13806)
+(assert .def_12156)
+(assert .def_13473)
+(assert .def_1097)
+
+CdAudioSendToNextDriver N260:
+(assert .def_10386)
+(assert .def_349)
+(assert .def_18333)
+(assert .def_10649)
+(assert .def_13806)
+(assert .def_473)
+(assert .def_15428)
+(assert .def_13473)
+
+CdAudioSendToNextDriver N276:
+(assert .def_13808)
+(assert .def_15430)
+(assert .def_349)
+(assert .def_18333)
+(assert .def_13475)
+(assert .def_13806)
+(assert .def_15428)
+(assert .def_10652)
+(assert .def_13473)
+(assert .def_1097)
+
+CdAudioIsPlayActive N279:
+(assert .def_10386)
+(assert .def_349)
+(assert .def_10649)
+(assert .def_13806)
+(assert .def_473)
+(assert .def_13473)
+(assert .def_1097)
+
+CdAudioIsPlayActive N310:
+(assert .def_10386)
+(assert .def_349)
+(assert .def_10649)
+(assert .def_13806)
+(assert .def_473)
+(assert .def_13473)
+
+CdAudio535DeviceControl N323:
+(assert .def_10386)
+(assert .def_349)
+(assert .def_10649)
+(assert .def_13806)
+(assert .def_473)
+(assert .def_13473)
+(assert .def_1097)
+
+CdAudio535DeviceControl N560:
+(assert .def_349)
+
+CdAudio535DeviceControl N575:
+(assert .def_23716)
+(assert .def_12116)
+
+CdAudio535DeviceControl N580:
+(assert .def_349)
+(assert .def_25115)
+
+CdAudio535DeviceControl N585:
+(assert .def_12116)
+(assert .def_24126)
+
+CdAudio535DeviceControl N601:
+(assert .def_349)
+
+CdAudio535DeviceControl N611:
+(assert .def_21899)
+(assert .def_12116)
+
+CdAudio535DeviceControl N615:
+(assert .def_349)
+(assert .def_25115)
+(assert .def_25365)
+
+CdAudio535DeviceControl N630:
+(assert .def_22305)
+(assert .def_12116)
+(assert .def_22306)
+
+CdAudio535DeviceControl N655:
+(assert .def_24055)
+(assert .def_12116)
+
+CdAudio535DeviceControl N661:
+(assert .def_24264)
+(assert .def_12116)
+
+CdAudio535DeviceControl N665:
+(assert .def_349)
+(assert .def_24732)
+
+CdAudio535DeviceControl N687:
+(assert .def_349)
+(assert .def_24732)
+
+CdAudio535DeviceControl N702:
+(assert .def_349)
+(assert .def_24732)
+
+CdAudio535DeviceControl N710:
+(assert .def_349)
+(assert .def_24732)
+
+CdAudio535DeviceControl N719:
+(assert .def_10386)
+(assert .def_349)
+(assert .def_10649)
+(assert .def_13806)
+(assert .def_473)
+(assert .def_13473)
+
+CdAudio535DeviceControl N721:
+(assert .def_15430)
+(assert .def_13475)
+(assert .def_12771)
+(assert .def_13806)
+(assert .def_21217)
+(assert .def_13473)
+(assert .def_1097)
+
+CdAudio535DeviceControl N725:
+(assert false)
+(assert .def_24735)
+(assert .def_12116)
+
+AG_SetStatusAndReturn N728:
+(assert .def_349)
+(assert .def_22302)
+(assert false)
+(assert .def_21896)
+
+AG_SetStatusAndReturn N735:
+(assert .def_22302)
+(assert false)
+(assert .def_21896)
+(assert .def_12116)
+
+CdAudio435DeviceControl N738:
+(assert .def_10386)
+(assert .def_349)
+(assert .def_10649)
+(assert .def_13806)
+(assert .def_473)
+(assert .def_13473)
+(assert .def_1097)
+
+CdAudio435DeviceControl N989:
+(assert .def_349)
+
+CdAudio435DeviceControl N1004:
+(assert .def_22268)
+(assert .def_12116)
+
+CdAudio435DeviceControl N1008:
+(assert .def_349)
+(assert .def_24960)
+(assert .def_25404)
+
+CdAudio435DeviceControl N1024:
+(assert .def_23364)
+(assert .def_12116)
+
+CdAudio435DeviceControl N1050:
+(assert .def_349)
+(assert .def_22268)
+
+CdAudio435DeviceControl N1065:
+(assert .def_22268)
+(assert .def_12116)
+
+CdAudio435DeviceControl N1073:
+(assert .def_349)
+(assert .def_22268)
+
+CdAudio435DeviceControl N1085:
+(assert .def_349)
+(assert .def_22268)
+(assert .def_24960)
+(assert .def_25476)
+
+CdAudio435DeviceControl N1103:
+(assert .def_22268)
+(assert .def_12116)
+
+CdAudio435DeviceControl N1113:
+(assert .def_22268)
+(assert .def_12116)
+
+CdAudio435DeviceControl N1117:
+(assert .def_349)
+(assert .def_24960)
+
+CdAudio435DeviceControl N1125:
+(assert .def_23364)
+(assert .def_12116)
+
+CdAudio435DeviceControl N1129:
+(assert .def_349)
+(assert false)
+
+CdAudio435DeviceControl N1137:
+(assert .def_23364)
+
+CdAudio435DeviceControl N1150:
+(assert .def_22268)
+(assert .def_12116)
+
+CdAudio435DeviceControl N1154:
+(assert .def_349)
+(assert .def_22268)
+
+CdAudio435DeviceControl N1175:
+(assert .def_22268)
+(assert .def_12116)
+
+CdAudio435DeviceControl N1186:
+(assert .def_22268)
+(assert .def_12116)
+
+CdAudio435DeviceControl N1190:
+(assert .def_349)
+(assert .def_22268)
+
+CdAudio435DeviceControl N1204:
+(assert .def_349)
+(assert .def_22268)
+
+CdAudio435DeviceControl N1213:
+(assert .def_10386)
+(assert .def_349)
+(assert .def_10649)
+(assert .def_13806)
+(assert .def_473)
+(assert .def_13473)
+
+CdAudio435DeviceControl N1225:
+(assert .def_22268)
+(assert .def_12116)
+
+CdAudio435DeviceControl N1228:
+(assert .def_13475)
+(assert .def_13806)
+(assert .def_13134)
+(assert .def_21005)
+(assert .def_13473)
+(assert .def_1097)
+
+CdAudio435DeviceControl N1232:
+(assert .def_13475)
+(assert .def_13806)
+(assert .def_12924)
+(assert .def_13473)
+(assert .def_1097)
+(assert .def_20634)
+
+CdAudio435DeviceControl N1241:
+(assert false)
+(assert .def_22268)
+(assert .def_12116)
+
+CdAudioAtapiDeviceControl N1244:
+(assert .def_10386)
+(assert .def_349)
+(assert .def_18333)
+(assert .def_10649)
+(assert .def_13806)
+(assert .def_473)
+(assert .def_13473)
+
+CdAudioAtapiDeviceControl N1277:
+(assert .def_20259)
+(assert .def_349)
+
+CdAudioAtapiDeviceControl N1282:
+(assert .def_23529)
+(assert .def_12116)
+
+CdAudioAtapiDeviceControl N1284:
+(assert .def_349)
+(assert .def_13475)
+(assert .def_18333)
+(assert .def_13806)
+(assert .def_12616)
+(assert .def_13473)
+(assert .def_1097)
+
+CdAudioAtapiDeviceControl N1288:
+(assert .def_20259)
+(assert .def_12116)
+
+HpCdrProcessLastSession N1291:
+(assert .def_349)
+(assert .def_15428)
+(assert .def_18259)
+
+HPCdrCompletion N1300:
+(assert .def_25543)
+(assert .def_349)
+(assert false)
+(assert .def_13806)
+(assert .def_15428)
+(assert .def_4242)
+
+HPCdrCompletion N1315:
+(assert .def_349)
+(assert .def_15428)
+(assert .def_18259)
+
+CdAudioHPCdrDeviceControl N1318:
+(assert .def_25543)
+(assert .def_10386)
+(assert .def_349)
+(assert .def_10649)
+(assert .def_13806)
+(assert .def_473)
+(assert .def_15428)
+(assert .def_13473)
+(assert .def_4242)
+
+CdAudioHPCdrDeviceControl N1351:
+(assert .def_15430)
+(assert .def_12481)
+(assert false)
+(assert .def_13806)
+(assert .def_15428)
+(assert .def_17679)
+(assert .def_1097)
+
+CdAudioHPCdrDeviceControl N1353:
+(assert .def_15430)
+(assert .def_15432)
+(assert .def_12229)
+(assert .def_13475)
+(assert .def_13806)
+(assert .def_15428)
+(assert .def_13473)
+(assert .def_1097)
+
+CdAudioForwardIrpSynchronous N1357:
+(assert .def_349)
+(assert .def_1697)
+(assert .def_473)
+(assert .def_2335)
+(assert .def_14547)
+
+CdAudioForwardIrpSynchronous N1376:
+(assert .def_349)
+(assert false)
+(assert .def_2024)
+(assert .def_14547)
+(assert .def_1097)
+
+CdAudioForwardIrpSynchronous N1380:
+(assert .def_349)
+(assert false)
+(assert .def_14547)
+
+CdAudioUnload N1384:
+(assert .def_15430)
+(assert false)
+(assert .def_13475)
+(assert .def_13806)
+(assert .def_10393)
+(assert .def_22311)
+(assert .def_13812)
+(assert .def_13473)
+(assert .def_1097)
+(assert .def_12116)
+
+CdAudioPower N1388:
+(assert .def_10386)
+(assert .def_349)
+(assert .def_10649)
+(assert .def_473)
+(assert .def_521)
+(assert .def_13473)
+
+CdAudioPower N1404:
+(assert .def_10390)
+(assert .def_13475)
+(assert .def_13473)
+
+stub_driver_init N1407:
+(assert .def_25543)
+(assert .def_10386)
+(assert .def_10649)
+(assert .def_1697)
+(assert .def_18330)
+(assert .def_13806)
+(assert .def_15428)
+(assert .def_521)
+(assert .def_18329)
+(assert .def_2335)
+(assert .def_1095)
+(assert .def_13473)
+(assert .def_14547)
+
+main N1457:
+(assert .def_10386)
+(assert .def_10649)
+(assert .def_1697)
+(assert .def_18330)
+(assert .def_13806)
+(assert .def_15428)
+(assert .def_521)
+(assert .def_18329)
+(assert .def_2335)
+(assert .def_1095)
+(assert .def_13473)
+(assert .def_10335)
+
+main N1473:
+(assert .def_349)
+(assert .def_10386)
+(assert .def_10649)
+(assert .def_18330)
+(assert .def_473)
+(assert .def_13806)
+(assert .def_521)
+(assert .def_1097)
+(assert .def_14547)
+(assert .def_25543)
+(assert .def_1697)
+(assert .def_15428)
+(assert .def_18329)
+(assert .def_2335)
+(assert .def_4242)
+(assert .def_13473)
+
+main N1500:
+(assert .def_15430)
+(assert .def_349)
+(assert false)
+(assert .def_18333)
+(assert .def_13475)
+(assert .def_13806)
+(assert .def_10393)
+(assert .def_15428)
+(assert .def_22311)
+(assert .def_13812)
+(assert .def_13473)
+(assert .def_1097)
+(assert .def_12116)
+
+main N1503:
+(assert .def_13475)
+(assert .def_13806)
+(assert .def_10393)
+(assert .def_13812)
+(assert .def_13473)
+(assert .def_1097)
+(assert .def_12116)
+
+main N1506:
+(assert .def_13475)
+(assert .def_10393)
+(assert .def_13473)
+
+main N1513:
+(assert .def_15430)
+(assert false)
+(assert .def_13475)
+(assert .def_13806)
+(assert .def_10393)
+(assert .def_22311)
+(assert .def_13812)
+(assert .def_13473)
+(assert .def_1097)
+(assert .def_12116)
+
+stubMoreProcessingRequired N1562:
+(assert .def_349)
+(assert false)
+(assert .def_13806)
+(assert .def_15428)
+(assert .def_2024)
+(assert .def_2335)
+(assert .def_14547)
+
+IofCallDriver N1571:
+(assert .def_349)
+(assert .def_10386)
+(assert .def_18333)
+(assert .def_10649)
+(assert .def_473)
+(assert .def_13806)
+(assert .def_521)
+(assert .def_659)
+(assert .def_14547)
+(assert .def_25543)
+(assert .def_1425)
+(assert .def_1697)
+(assert .def_15428)
+(assert .def_2335)
+(assert .def_4242)
+(assert .def_13473)
+
+IofCallDriver N1585:
+(assert .def_349)
+(assert .def_13806)
+(assert .def_15428)
+(assert .def_18261)
+(assert .def_2218)
+
+IofCallDriver N1588:
+(assert .def_349)
+(assert .def_2024)
+(assert .def_2218)
+(assert .def_2335)
+(assert .def_14547)
+
+IofCallDriver N1592:
+(assert .def_1581)
+(assert false)
+(assert .def_13806)
+(assert .def_15428)
+(assert .def_2024)
+(assert .def_2335)
+(assert .def_14547)
+
+IofCompleteRequest N1646:
+(assert .def_20259)
+(assert .def_349)
+(assert .def_22302)
+(assert false)
+(assert .def_22268)
+(assert .def_21896)
+(assert .def_14550)
+(assert .def_23364)
+(assert .def_23529)
+
+KeSetEvent N1655:
+(assert .def_349)
+(assert false)
+(assert .def_14550)
+(assert .def_2335)
+(assert .def_14547)
+
+KeWaitForSingleObject N1662:
+(assert .def_10386)
+(assert .def_349)
+(assert .def_10649)
+(assert false)
+(assert .def_1697)
+(assert .def_13806)
+(assert .def_473)
+(assert .def_2024)
+(assert .def_2335)
+(assert .def_13473)
+(assert .def_14547)
+(assert .def_1097)
+
+PoCallDriver N1697:
+(assert .def_10386)
+(assert .def_10649)
+(assert .def_473)
+(assert .def_521)
+(assert .def_659)
+(assert .def_13473)
+
+PoCallDriver N1713:
+(assert false)
+
+ZwClose N1768:
+(assert .def_349)
+(assert false)
+

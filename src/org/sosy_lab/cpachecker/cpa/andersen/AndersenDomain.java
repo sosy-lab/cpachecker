@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,13 +30,11 @@ public class AndersenDomain implements AbstractDomain {
 
   @Override
   public boolean isLessOrEqual(AbstractState currentElement, AbstractState reachedState) {
-    return false;
-//    return ((PointerAElement)currentElement).isLessOrEqual((PointerAElement)reachedState);
+    return ((AndersenState) currentElement).isLessOrEqual((AndersenState)reachedState);
   }
 
   @Override
   public AbstractState join(AbstractState currentElement, AbstractState reachedState) {
-    return null;
-//    return ((PointerAElement)currentElement).join((PointerAElement)reachedState);
+    return ((AndersenState) currentElement).join((AndersenState)reachedState);
   }
 }

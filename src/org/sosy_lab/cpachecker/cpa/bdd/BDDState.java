@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,15 +28,15 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
+import com.google.common.base.Joiner;
+
 public class BDDState implements AbstractQueryableState {
 
   private Region currentState;
   private final NamedRegionManager manager;
-  private final String functionName;
 
-  public BDDState(NamedRegionManager mgr, Region state, String functionName) {
+  public BDDState(NamedRegionManager mgr, Region state) {
     this.currentState = state;
-    this.functionName = functionName;
     this.manager = mgr;
   }
 
@@ -44,22 +44,12 @@ public class BDDState implements AbstractQueryableState {
     return currentState;
   }
 
-  public String getFunctionName() {
-    return functionName;
-  }
-
-  public boolean isLessOrEqual(BDDState other) {
-    assert this.functionName.equals(other.functionName) : "same function needed: "
-        + this.functionName + " vs " + other.functionName;
-
+  public boolean isLessOrEqual(BDDState other) throws InterruptedException {
     return manager.entails(this.currentState, other.currentState);
   }
 
   public BDDState join(BDDState other) {
-    assert this.functionName.equals(other.functionName) : "same function needed: "
-        + this.functionName + " vs " + other.functionName;
-
-    Region result = manager.makeOr(this.currentState, other.currentState);
+     Region result = manager.makeOr(this.currentState, other.currentState);
 
     // FIRST check the other element
     if (result.equals(other.currentState)) {
@@ -70,26 +60,25 @@ public class BDDState implements AbstractQueryableState {
       return this;
 
     } else {
-      return new BDDState(this.manager, result, this.functionName);
+      return new BDDState(this.manager, result);
     }
   }
 
   @Override
   public String toString() {
-    return manager.dumpRegion(currentState) + "\n"
-        + manager.regionToDot(currentState);
+    return //manager.dumpRegion(currentState) + "\n" +
+        manager.regionToDot(currentState);
   }
 
   public String toCompactString() {
-    return manager.dumpRegion(currentState);
+    return "";//manager.dumpRegion(currentState);
   }
 
   @Override
   public boolean equals(Object o) {
     if (o instanceof BDDState) {
       BDDState other = (BDDState) o;
-      return this.functionName.equals(other.functionName) &&
-          this.currentState.equals(other.currentState);
+      return this.currentState.equals(other.currentState);
     }
     return false;
   }
@@ -113,6 +102,10 @@ public class BDDState implements AbstractQueryableState {
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.equals("VALUES")) {
       return manager.dumpRegion(this.currentState);
+    } else if (pProperty.equals("VARSET")) {
+      return "(" + Joiner.on(", ").join(manager.getPredicates()) + ")";
+    } else if (pProperty.equals("VARSETSIZE")) {
+      return manager.getPredicates().size();
     } else {
       throw new InvalidQueryException("BDDCPA Element can only return the current values (\"VALUES\")");
     }

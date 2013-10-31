@@ -23,16 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
-
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
@@ -42,27 +38,33 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 /** This is a Class similiar to Mathsat-NativeApi,
  *  it contains some useful functions. */
-public class SmtInterpolUtil {
-
-  static boolean log = false; // debug
+class SmtInterpolUtil {
+  private SmtInterpolUtil() { }
 
   /** A Term is an Atom, iff its function is no element of {"And", "Or", "Not"}.*/
   public static boolean isAtom(Term t) {
-    boolean is = !isAnd(t) && !isOr(t) && !isNot(t);
-    if (log) {
-      System.out.println("   isAtom (" + t +"): " + is);
-    }
+    boolean is = !isAnd(t) && !isOr(t) && !isNot(t) && !isImplication(t) && !isIfThenElse(t);
+    assert is || isBoolean(t);
     return is;
   }
 
   public static boolean isVariable(Term t) {
-    boolean is = !isTrue(t) && !isFalse(t)
+    // A variable is the same as an UIF without parameters
+    return !isTrue(t) && !isFalse(t)
         && (t instanceof ApplicationTerm)
-        && ((ApplicationTerm) t).getParameters().length == 0;
-    if (log) {
-      System.out.println("   isVariable (" + t +"): " + is);
+        && ((ApplicationTerm) t).getParameters().length == 0
+        && ((ApplicationTerm) t).getFunction().getDefinition() == null;
+  }
+
+  public static boolean isUIF(Term t) {
+    if (!(t instanceof ApplicationTerm)) {
+      return false;
     }
-    return is;
+    FunctionSymbol func = ((ApplicationTerm) t).getFunction();
+    return (t instanceof ApplicationTerm)
+        && ((ApplicationTerm) t).getParameters().length > 0
+        && !func.isIntern()
+        && !func.isInterpreted();
   }
 
   /** check for ConstantTerm with Number or
@@ -95,9 +97,6 @@ public class SmtInterpolUtil {
     }
 
     // TODO hex or binary data, string?
-    if (log) {
-      System.out.println("   isNumber (" + t +"): " + is);
-    }
     return is;
   }
 
@@ -132,53 +131,62 @@ public class SmtInterpolUtil {
   }
 
   public static boolean isBoolean(Term t) {
-    boolean is = (t instanceof ApplicationTerm)
-          && t.getTheory().getBooleanSort() == ((ApplicationTerm) t).getSort();
-    if (log) {
-      System.out.println("   isBoolean (" + t +"): " + is);
-    }
-    return is;
+    return t.getTheory().getBooleanSort() == t.getSort();
   }
 
-  /** t1 and t2
-   * @param theory */
+  /** t1 and t2 */
   public static boolean isAnd(Term t) {
-    boolean is = (t instanceof ApplicationTerm)
-        && t.getTheory().m_And == ((ApplicationTerm) t).getFunction();
-    if (log) {
-      System.out.println("   isAnd (" + t +"): " + is);
-    }
-    return is;
+    return isFunction(t, t.getTheory().m_And);
   }
 
   /** t1 or t2 */
   public static boolean isOr(Term t) {
-    boolean is = (t instanceof ApplicationTerm)
-        && t.getTheory().m_Or == ((ApplicationTerm) t).getFunction();
-    if (log) {
-      System.out.println("   isOr (" + t +"): " + is);
-    }
-    return is;
+    return isFunction(t, t.getTheory().m_Or);
   }
 
   /** not t */
   public static boolean isNot(Term t) {
-    boolean is = (t instanceof ApplicationTerm)
-        && t.getTheory().m_Not == ((ApplicationTerm) t).getFunction();
-    if (log) {
-      System.out.println("   isNot (" + t +"): " + is);
-    }
-    return is;
+    return isFunction(t, t.getTheory().m_Not);
+  }
+
+  /** t1 => t2 */
+  public static boolean isImplication(Term t) {
+    return isFunction(t, t.getTheory().m_Implies);
+  }
+
+  /** t1 or t2 */
+  public static boolean isXor(Term t) {
+    return isFunction(t, t.getTheory().m_Xor);
+  }
+
+  /** (ite t1 t2 t3) */
+  public static boolean isIfThenElse(Term t) {
+    return isFunction(t, "ite");
+
   }
 
   /** t1 = t2 */
   public static boolean isEqual(Term t) {
-    boolean is = (t instanceof ApplicationTerm)
-        && "=".equals(((ApplicationTerm) t).getFunction().getName());
-    if (log) {
-      System.out.println("   isEqual (" + t +"): " + is);
+    return isFunction(t, "=");
+  }
+
+  public static boolean isFunction(Term t, String name) {
+    return (t instanceof ApplicationTerm)
+        && name.equals(((ApplicationTerm) t).getFunction().getName());
+  }
+
+  public static boolean isFunction(Term t, FunctionSymbol func) {
+    return (t instanceof ApplicationTerm)
+        && func == ((ApplicationTerm) t).getFunction();
+  }
+
+  public static Term[] getArgs(Term t) {
+    if (t instanceof ApplicationTerm) {
+      return ((ApplicationTerm) t).getParameters();
+    } else {
+      throw new IllegalArgumentException("Cannot get children of term type "
+          + t.getClass().getSimpleName() + " in term " + t.toStringDirect());
     }
-    return is;
   }
 
   public static int getArity(Term t) {
@@ -198,19 +206,11 @@ public class SmtInterpolUtil {
   }
 
   public static boolean isTrue(Term t) {
-    boolean isTrue = t.getTheory().TRUE == t;
-    if (log) {
-      System.out.println("   isTrue (" + t +"): " + isTrue);
-    }
-    return isTrue;
+    return t.getTheory().TRUE == t;
   }
 
   public static boolean isFalse(Term t) {
-    boolean isFalse = t.getTheory().FALSE == t;
-    if (log) {
-      System.out.println("   isFalse (" + t +"): " + isFalse);
-    }
-    return isFalse;
+    return t.getTheory().FALSE == t;
   }
 
   /** this function creates a new Term with the same function and new parameters. */
@@ -236,137 +236,29 @@ public class SmtInterpolUtil {
 
   /** this function returns all variables in the terms.
    * Doubles are removed. */
-  public static Term[] getVars(Iterable<Term> termList) {
-    Set<Term> vars = new HashSet<Term>();
-    for (Term t : termList) {
-      getVars(t, vars);
+  public static Term[] getVars(Collection<Term> termList) {
+    Set<Term> vars = new HashSet<>();
+    Set<Term> seen = new HashSet<>();
+    Deque<Term> todo = new ArrayDeque<>(termList);
+
+    while (!todo.isEmpty()) {
+      Term t = todo.removeLast();
+      if (!seen.add(t)) {
+        continue;
+      }
+
+      if (isVariable(t)) {
+        vars.add(t);
+      } else if (t instanceof ApplicationTerm) {
+        Term[] params = ((ApplicationTerm) t).getParameters();
+        Collections.addAll(todo, params);
+      }
     }
     return toTermArray(vars);
   }
 
-  private static void getVars(Term t, Set<Term> vars) {
-    if (t instanceof ApplicationTerm &&
-        (t != t.getTheory().TRUE) && (t != t.getTheory().FALSE)) {
-      Term[] params = ((ApplicationTerm) t).getParameters();
-      if (params.length == 0) { // no params --> term is variable
-        vars.add(t);
-
-      } else {
-        for (Term innerTerm : params) { // recursive call
-          getVars(innerTerm, vars);
-        }
-      }
-    }
-  }
-
-  /** This function simplifies a term and returns a shorter terms.
-   * It factors out common children of the term.
-   * Example:   (a&b)|(a&c)  -->   a&(b|c)   */
-  public static Term simplify(SmtInterpolEnvironment env, Term t) {
-    if (t instanceof ApplicationTerm) {
-      ApplicationTerm at = (ApplicationTerm) t;
-      String function = at.getFunction().getName();
-
-      // OR:  (a&b&c)|(a&d&e)   -->    a&((b&c)|(d&e))
-      // AND: (a|b|c)&(a|d|e)   -->    a|((b|c)&(d|e))
-      if ("or".equals(function) || "and".equals(function)) {
-        return factorOut(at, env);
-
-      } else {
-        return t;
-      }
-    } else {
-      return t;
-    }
-  }
-
- /** This method factors out common children of the term.
-  * Example:   (a&b)|(a&c)  -->   a&(b|c)   */
-  private static Term factorOut(ApplicationTerm at, SmtInterpolEnvironment env) {
-    Term[] params = at.getParameters();
-    String function = at.getFunction().getName();
-
-    assert params.length >= 2 && ("and".equals(function) || "or".equals(function));
-
-    String childFunction = "and".equals(function) ? "or" : "and";
-    List<Set<Term>> children = new ArrayList<Set<Term>>(params.length);
-
-    // collect children of params
-    for (Term param : params) {
-      if (param instanceof ApplicationTerm) {
-        ApplicationTerm appTerm = (ApplicationTerm) param;
-        if (childFunction.equals(appTerm.getFunction().getName())) {
-          children.add(Sets.newHashSet(appTerm.getParameters()));
-        } else {
-          return at; // if one child is no AND/OR, there is no common child
-        }
-      } else {
-        return at; // if one child is no AND/OR, there is no common child
-      }
-    }
-
-    // get common terms of children
-    Set<Term> commonTerms = intersection(children);
-    if (commonTerms.isEmpty()) {
-      return at;
-    }
-    // get distinct terms for each child, build terms for newChildren
-    Term[] newChildren = new Term[children.size()];
-    Term neutralTerm = env.term("and".equals(childFunction) ? "true" : "false");
-    for (int i = 0; i < newChildren.length; i++) {
-      Set<Term> currentChildren = children.get(i);
-      currentChildren.removeAll(commonTerms);
-
-      Term newChild;
-      switch (currentChildren.size()) {
-      case 0:
-        // ((a)&(a|c)) == ((a|false)&(a|c)) --> (a|(false&c)) == (a)
-        // ((a)|(a&c)) == ((a&true)|(a&c)) --> (a&(true|c)) == (a)
-        // all params are common, so child is empty,
-        // we can not remove the child, so use neutral term
-        newChild = neutralTerm;
-        break;
-
-      case 1:
-        // (a|b)&(a|c) --> (a|(b&c))
-        // one param in child, can be used directly
-        newChild = Iterables.getOnlyElement(currentChildren);
-        break;
-
-      default:
-        // (a|b|c)&(a|d|e|f) --> (a|((b|c)&(d|e|f)))
-        // num of distinct params >= 2, function needed to connect params
-        newChild = env.term(childFunction, toTermArray(currentChildren));
-     }
-
-      newChildren[i] = newChild;
-    }
-
-    assert newChildren.length >= 2;
-    assert !commonTerms.isEmpty();
-
-    // build new term from commonTerms and newChildren
-    Term[] ts = commonTerms.toArray(new Term[commonTerms.size()+1]);
-    ts[commonTerms.size()] = env.term(function, newChildren);
-
-    return env.term(childFunction, ts);
-  }
-
   static Term[] toTermArray(Collection<? extends Term> terms) {
     return terms.toArray(new Term[terms.size()]);
-  }
-
-  static <T> Set<T> intersection(Iterable<Set<T>> sets) {
-    Iterator<Set<T>> it = sets.iterator();
-    if (!it.hasNext()) {
-      return ImmutableSet.of();
-    }
-
-    HashSet<T> result = Sets.newHashSet(it.next());
-    while (it.hasNext()) {
-      result.retainAll(it.next());
-    }
-    return result;
   }
 
   /** this function can be used to print a bigger term*/
@@ -399,4 +291,5 @@ public class SmtInterpolUtil {
       str.append(t.toStringDirect()).append("\n");
     }
   }
+
 }

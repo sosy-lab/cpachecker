@@ -27,16 +27,19 @@ import java.util.List;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
-import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 // "Formula Manager tester"
 public class FMtester {
@@ -55,6 +58,7 @@ public class FMtester {
     // delcare and construct the basic objects
     //Dialect dialect = Dialect.GNUC;
     Configuration config = Configuration.defaultConfiguration();
+    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
     LogManager logger;
     CFACreator cfac;
     FunctionEntryNode root = null;
@@ -64,19 +68,19 @@ public class FMtester {
     //
 
     try {
-      logger = new LogManager(config);
-      cfac = new CFACreator(config, logger);
+      logger = new BasicLogManager(config);
+      cfac = new CFACreator(config, logger, shutdownNotifier);
       CFA cfa = cfac.parseFileAndCreateCFA(testfile);
       root = cfa.getMainFunction();
 
       // construct FormulaManager, and extended one
       fmgr = new TemplateFormulaManager();
-      ExtendedFormulaManager emgr = new ExtendedFormulaManager(fmgr, config, logger);
+      FormulaManagerView emgr = new FormulaManagerView(fmgr, config, logger);
       //
 
-      pfmgr = new PathFormulaManagerImpl(emgr, config, logger);
+      pfmgr = new PathFormulaManagerImpl(emgr, config, logger, MachineModel.LINUX32);
     } catch (Exception e) {
-      System.err.println( e.getMessage() );
+      System.err.println(e.getMessage());
     }
 
     List<CFAEdge> edgeSet = getEdgeSet(root);

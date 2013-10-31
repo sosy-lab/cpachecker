@@ -24,33 +24,43 @@
 package org.sosy_lab.cpachecker.util.invariants;
 
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateBoolean;
-import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
 
 public class TFtester {
 
   public static void main(String[] args) {
 
     TemplateFormulaManager tfm = new TemplateFormulaManager();
-    Formula a1 = tfm.makeVariable("a", 1);
-    Formula a2 = tfm.makeVariable("a", 2);
-    Formula b1 = tfm.makeVariable("b", 1);
-    Formula b2 = tfm.makeVariable("b", 2);
-    Formula c1 = tfm.makeVariable("c", 1);
-    Formula c2 = tfm.makeVariable("c", 2);
-    Formula d1 = tfm.makeVariable("d", 1);
-    Formula d2 = tfm.makeVariable("d", 2);
 
-    Formula A = tfm.makeGeq(a1, a2);
-    Formula B = tfm.makeGt(b1, b2);
-    Formula C = tfm.makeLeq(c1, c2);
-    Formula D = tfm.makeLt(d1, d2);
+    FormulaManagerView view = new FormulaManagerView(tfm);
+    RationalFormulaManagerView nfmgr = view.getRationalFormulaManager();
+    BooleanFormulaManagerView bfmgr = view.getBooleanFormulaManager();
+    FormulaType<RationalFormula> type = FormulaType.RationalType;
+    RationalFormula a1 = view.makeVariable(type, "a", 1);
+    RationalFormula a2 = view.makeVariable(type, "a", 2);
+    RationalFormula b1 = view.makeVariable(type, "b", 1);
+    RationalFormula b2 = view.makeVariable(type, "b", 2);
+    RationalFormula c1 = view.makeVariable(type, "c", 1);
+    RationalFormula c2 = view.makeVariable(type, "c", 2);
+    RationalFormula d1 = view.makeVariable(type, "d", 1);
+    RationalFormula d2 = view.makeVariable(type, "d", 2);
 
-    Formula P = tfm.makeOr(A, B);
-    Formula Q = tfm.makeOr(C, D);
-    Formula R = tfm.makeNot(Q);
+    BooleanFormula A = nfmgr.greaterOrEquals(a1, a2);
+    BooleanFormula B = nfmgr.greaterThan(b1, b2);
+    BooleanFormula C = nfmgr.lessOrEquals(c1, c2);
+    BooleanFormula D = nfmgr.lessThan(d1, d2);
 
-    TemplateBoolean F = (TemplateBoolean) tfm.makeAnd(P, R);
+    BooleanFormula P = bfmgr.or(A, B);
+    BooleanFormula Q = bfmgr.or(C, D);
+    BooleanFormula R = bfmgr.not(Q);
+
+    TemplateBoolean F = (TemplateBoolean) bfmgr.and(P, R);
 
     printS("R:");
     printTF(R);
@@ -76,7 +86,7 @@ public class TFtester {
     printTF(Hs);
 
     TemplateBoolean M = F;
-    TemplateBoolean N = (TemplateBoolean) tfm.makeNot(M);
+    TemplateBoolean N = (TemplateBoolean) bfmgr.not(M);
     printS("N:");
     printTF(N);
     TemplateBoolean K = M.logicNegate();
@@ -92,7 +102,7 @@ public class TFtester {
     System.out.println(s);
   }
 
-  private static void printTF(Formula f) {
+  private static void printTF(BooleanFormula f) {
     System.out.println(f.toString());
   }
 

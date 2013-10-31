@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Preconditions;
 
@@ -36,36 +38,59 @@ public class AssumptionStorageState implements AbstractState {
 
   // this formula provides the assumption generated from other sources than heuristics,
   // e.g. assumptions for arithmetic overflow
-  private final Formula assumption;
+  private final BooleanFormula assumption;
 
   // if a heuristic told us to stop the analysis, this formula provides the reason
   // if it is TRUE, there is no reason -> don't stop
-  private final Formula stopFormula;
+  private final BooleanFormula stopFormula;
+
+  private final FormulaManagerView fmgr;
 
   // the assumption represented by this class is always the conjunction of "assumption" and "stopFormula"
 
-  public AssumptionStorageState(Formula pAssumption, Formula pStopFormula) {
+  public AssumptionStorageState(FormulaManagerView pFmgr, BooleanFormula pAssumption, BooleanFormula pStopFormula) {
     assumption = Preconditions.checkNotNull(pAssumption);
     stopFormula = Preconditions.checkNotNull(pStopFormula);
+    fmgr = pFmgr;
 
-    assert !assumption.isFalse(); // FALSE would mean "stop the analysis", but this should be signaled by stopFormula
+    assert !fmgr.getBooleanFormulaManager().isFalse(assumption); // FALSE would mean "stop the analysis", but this should be signaled by stopFormula
   }
 
-  public Formula getAssumption() {
+  public BooleanFormula getAssumption() {
     return assumption;
   }
 
-  public Formula getStopFormula() {
+  public Appender getAssumptionAsString() {
+    return fmgr.dumpFormula(assumption);
+  }
+
+  public boolean isAssumptionTrue() {
+    return fmgr.getBooleanFormulaManager().isTrue(assumption);
+  }
+
+  public boolean isAssumptionFalse() {
+    return fmgr.getBooleanFormulaManager().isFalse(assumption);
+  }
+
+  public BooleanFormula getStopFormula() {
     return stopFormula;
+  }
+
+  public boolean isStopFormulaTrue() {
+    return fmgr.getBooleanFormulaManager().isTrue(stopFormula);
+  }
+
+  public boolean isStopFormulaFalse() {
+    return fmgr.getBooleanFormulaManager().isFalse(stopFormula);
   }
 
   @Override
   public String toString() {
-    return (stopFormula.isTrue() ? "" : "<STOP> ") + "assume: (" + assumption + " & " + stopFormula + ")";
+    return (fmgr.getBooleanFormulaManager().isTrue(stopFormula) ? "" : "<STOP> ") + "assume: (" + assumption + " & " + stopFormula + ")";
   }
 
   public boolean isStop() {
-    return !stopFormula.isTrue();
+    return !fmgr.getBooleanFormulaManager().isTrue(stopFormula);
   }
 
   @Override

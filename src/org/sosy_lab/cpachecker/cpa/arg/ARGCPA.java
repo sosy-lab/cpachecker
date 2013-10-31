@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +27,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,15 +48,15 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -72,12 +76,12 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final ARGStopSep stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
-  private final Statistics stats;
+  private final ARGStatistics stats;
   private final ProofChecker wrappedProofChecker;
   private final PostProcessor innerPostProcessor;
   private final Collection<PostProcessor> postProcessors;
 
-  private CounterexampleInfo lastCounterexample = null;
+  private final Map<ARGState, CounterexampleInfo> counterexamples = new WeakHashMap<>();
 
   private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(cpa);
@@ -131,31 +135,27 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public AbstractDomain getAbstractDomain ()
-  {
+  public AbstractDomain getAbstractDomain() {
     return abstractDomain;
   }
 
   @Override
-  public TransferRelation getTransferRelation ()
-  {
+  public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
   @Override
-  public MergeOperator getMergeOperator ()
-  {
+  public MergeOperator getMergeOperator() {
     return mergeOperator;
   }
 
   @Override
-  public StopOperator getStopOperator ()
-  {
+  public ForcedCoveringStopOperator getStopOperator() {
     return stopOperator;
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment () {
+  public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
 
@@ -165,7 +165,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public AbstractState getInitialState (CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ARG
     return new ARGState(getWrappedCpa().getInitialState(pNode), null);
   }
@@ -180,17 +180,37 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     super.collectStatistics(pStatsCollection);
   }
 
-  public CounterexampleInfo getLastCounterexample() {
-    return lastCounterexample;
+  Map<ARGState, CounterexampleInfo> getCounterexamples() {
+    return Collections.unmodifiableMap(counterexamples);
   }
 
-  public void clearCounterexample() {
-    lastCounterexample = null;
-  }
-
-  public void setCounterexample(CounterexampleInfo pCounterexample) {
+  public void addCounterexample(ARGState targetState, CounterexampleInfo pCounterexample) {
+    checkArgument(targetState.isTarget());
     checkArgument(!pCounterexample.isSpurious());
-    lastCounterexample = pCounterexample;
+    if (pCounterexample.getTargetPath() != null) {
+      // With ABM, the targetState and the last state of the path
+      // may actually be not identical.
+      checkArgument(pCounterexample.getTargetPath().getLast().getFirst().isTarget());
+    }
+    counterexamples.put(targetState, pCounterexample);
+  }
+
+  public void clearCounterexamples(Set<ARGState> toRemove) {
+    // Actually the goal would be that this method is not necessary
+    // because the GC automatically removes counterexamples when the ARGState
+    // is removed from the ReachedSet.
+    // However, counterexamples may reference their target state through
+    // the target path attribute, so the GC may not remove the counterexample.
+    // While this is not a problem for correctness
+    // (we check in the end which counterexamples are still valid),
+    // it may be a memory leak.
+    // Thus this method.
+
+    counterexamples.keySet().removeAll(toRemove);
+  }
+
+  ARGToDotWriter getRefinementGraphWriter() {
+    return stats.getRefinementGraphWriter();
   }
 
   @Override
@@ -201,10 +221,11 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return stopOperator.isCoveredBy(pElement, pOtherElement, wrappedProofChecker);
   }
+
 
   @Override
   public void postProcess(ReachedSet pReached) {

@@ -29,8 +29,10 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 public class RedlogInterface {
 
@@ -41,9 +43,9 @@ public class RedlogInterface {
   // diagnostic output features of this class, which it supports.
   //private boolean verbose = false;
 
-  public RedlogInterface(LogManager pLogger) {
+  public RedlogInterface(Configuration config, LogManager pLogger) {
     logger = pLogger;
-    parser = CParser.Factory.getParser(logger, CParser.Factory.getDefaultOptions());
+    parser = CParser.Factory.getParser(config, logger, CParser.Factory.getDefaultOptions(), MachineModel.LINUX32);
   }
 
   /**
@@ -64,7 +66,7 @@ public class RedlogInterface {
     String wrapper_path = "src/org/sosy_lab/cpachecker/util/invariants/redlog/rlwrapper.py";
     try {
       ProcessExecutor<RuntimeException> redlog =
-        new ProcessExecutor<RuntimeException>(logger,RuntimeException.class,wrapper_path);
+        new ProcessExecutor<>(logger, RuntimeException.class, wrapper_path);
       redlog.println(phi);
       redlog.sendEOF();
       redlog.join();
@@ -72,7 +74,7 @@ public class RedlogInterface {
     } catch (Exception e) {
       System.err.println(e.getMessage());
     }
-    logger.log(Level.ALL,"Redlog output:\n",output);
+    logger.log(Level.ALL, "Redlog output:\n",output);
     EliminationAnswer EA = null;
     if (output.size() > 0 && !output.get(0).equals("segfault")) {
       EA = build(output);

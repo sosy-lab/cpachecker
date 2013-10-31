@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,35 +22,35 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public abstract class CType {
+public interface CType extends Type {
 
-  private boolean   isConst;
-  private boolean   isVolatile;
+  public boolean isConst();
 
-  public CType(final boolean pConst, final boolean pVolatile) {
-    isConst = pConst;
-    isVolatile = pVolatile;
-  }
+  @Override
+  public abstract String toString();
 
-  public boolean isConst() {
-    return isConst;
-  }
-
-  public boolean isVolatile() {
-    return isVolatile;
-  }
+  public boolean isVolatile();
 
   /**
-   * Return a string representation of a variable declaration with a given name
-   * and this type.
-   *
-   * Example:
-   * If this type is array of int, and we call <code>toASTString("foo")</code>,
-   * the result is <pre>int foo[]</pre>.
-   *
-   * @param declarator The name of the variable to declare.
-   * @return A string representation of this type.
+   * Will throw a UnsupportedOperationException
+   * @return
    */
-  public abstract String toASTString(String declarator);
+  @Override
+  public int hashCode();
+
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
+  @Override
+  public boolean equals(Object obj);
+
+  public abstract <R, X extends Exception> R accept(CTypeVisitor<R, X> visitor) throws X;
+
+  public CType getCanonicalType();
+
+  public CType getCanonicalType(boolean forceConst, boolean forceVolatile);
 }

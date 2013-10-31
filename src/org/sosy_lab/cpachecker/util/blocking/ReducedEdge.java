@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.util.blocking;
 
 import java.util.HashSet;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-
-public class ReducedEdge {
-  private HashSet<CFAEdge> summarizes = new HashSet<CFAEdge>();
-  private ReducedNode pointsTo;
+class ReducedEdge {
+  private final Set<CFAEdge> summarizes = new HashSet<>();
+  private final ReducedNode pointsTo;
 
   public void addEdge(CFAEdge pEdge) {
     this.summarizes.add(pEdge);

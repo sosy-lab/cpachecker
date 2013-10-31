@@ -29,7 +29,6 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -37,7 +36,8 @@ import java.util.Vector;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaList;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class TemplateSumList extends TemplateFormulaList {
 
@@ -90,7 +90,7 @@ public class TemplateSumList extends TemplateFormulaList {
     }
   }
 
-  public boolean evaluate(Map<String,Rational> map) {
+  public boolean evaluate(Map<String, Rational> map) {
     boolean ans = true;
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
@@ -108,7 +108,7 @@ public class TemplateSumList extends TemplateFormulaList {
     }
   }
 
-  public void postindex(Map<String,Integer> indices) {
+  public void postindex(Map<String, Integer> indices) {
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
         sums[i].postindex(indices);
@@ -116,7 +116,7 @@ public class TemplateSumList extends TemplateFormulaList {
     }
   }
 
-  public void preindex(Map<String,Integer> indices) {
+  public void preindex(Map<String, Integer> indices) {
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
         sums[i].preindex(indices);
@@ -160,18 +160,18 @@ public class TemplateSumList extends TemplateFormulaList {
 //------------------------------------------------------------------
 // Other cascade methods
 
-  public Set<String> getAllVariables(VariableWriteMode vwm) {
-    HashSet<String> vars = new HashSet<String>();
+  public Set<TemplateVariable> getAllVariables() {
+    HashSet<TemplateVariable> vars = new HashSet<>();
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
-        vars.addAll(sums[i].getAllVariables(vwm));
+        vars.addAll(sums[i].getAllVariables());
       }
     }
     return vars;
   }
 
   public Set<TemplateVariable> getAllParameters() {
-    HashSet<TemplateVariable> params = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> params = new HashSet<>();
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
         params.addAll(sums[i].getAllParameters());
@@ -180,7 +180,7 @@ public class TemplateSumList extends TemplateFormulaList {
     return params;
   }
 
-  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
+  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
         map = sums[i].getMaxIndices(map);
@@ -193,7 +193,7 @@ public class TemplateSumList extends TemplateFormulaList {
     TemplateVariableManager tvm = new TemplateVariableManager();
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
-        tvm.merge( sums[i].getVariableManager() );
+        tvm.merge(sums[i].getVariableManager());
       }
     }
     return tvm;
@@ -207,12 +207,12 @@ public class TemplateSumList extends TemplateFormulaList {
     }
   }
 
-  public FormulaList translate(FormulaManager fmgr) {
-  	List<Formula> lf = new Vector<Formula>(sums.length);
-  	for (int i = 0; i < sums.length; i++) {
-  		lf.add( sums[i].translate(fmgr) );
-  	}
-  	return fmgr.makeList(lf);
+  public FormulaList translate(FormulaManagerView fmgr) {
+    Formula[] lf = new Formula[sums.length];
+    for (int i = 0; i < sums.length; i++) {
+      lf[i] = (sums[i].translate(fmgr));
+    }
+    return new AbstractFormulaList(lf);
   }
 
 //------------------------------------------------------------------
@@ -223,7 +223,7 @@ public class TemplateSumList extends TemplateFormulaList {
   }
 
   public Iterator<TemplateSum> iterator() {
-    Vector<TemplateSum> V = new Vector<TemplateSum>();
+    Vector<TemplateSum> V = new Vector<>();
     for (int i = 0; i < sums.length; i++) {
       V.add(sums[i]);
     }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,12 +30,14 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.LogManager.StringHandler;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -58,7 +60,7 @@ public class AutomatonTest {
       Files.writeFile(tmpSpc, content);
       TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
       Assert.assertTrue(results.isSafe());
-      Assert.assertTrue(results.logContains("File \"./test/config/automata/tmpSpecification.spc\" was referenced multiple times."));
+      Assert.assertTrue(results.logContains("File \"test/config/automata/tmpSpecification.spc\" was referenced multiple times."));
       Assert.assertTrue("Could not delete temporary specification",tmpSpc.delete());
   }
   @Test
@@ -299,9 +301,10 @@ public class AutomatonTest {
                                         .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
                                         .setOptions(pProperties)
                                         .build();
-    StringHandler stringLogHandler = new LogManager.StringHandler();
-    LogManager logger = new LogManager(config, stringLogHandler);
-    CPAchecker cpaChecker = new CPAchecker(config, logger);
+    StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
+    LogManager logger = new BasicLogManager(config, stringLogHandler);
+    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
+    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownNotifier);
     CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
     return new TestResults(stringLogHandler.getLog(), results);
   }

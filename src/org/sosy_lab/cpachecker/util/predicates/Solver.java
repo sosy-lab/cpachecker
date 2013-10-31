@@ -26,58 +26,94 @@ package org.sosy_lab.cpachecker.util.predicates;
 import java.util.Map;
 
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.Maps;
 
 /**
- * Alternative to {@link TheoremProver} which provides not basic calls to the
- * solver but more high-level queries.
- *
- * All methods of this class may only be called when the backing prover is in
- * its default state (i.e., a call to {@link TheoremProver#init()} would not fail.
- * It is guaranteed that after using methods of this class, the solver is again
- * in the same state.
+ * Abstraction of an SMT solver that also provides some higher-level methods.
  */
 public class Solver {
 
-  private final ExtendedFormulaManager fmgr;
-  private final TheoremProver prover;
+  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
+  private final FormulaManagerFactory factory;
 
-  private final Map<Formula, Boolean> implicationCache = Maps.newHashMap();
+  private final Map<BooleanFormula, Boolean> unsatCache = Maps.newHashMap();
 
   // stats
   public final Timer solverTime = new Timer();
-  public int implicationChecks = 0;
-  public int trivialImplicationChecks = 0;
-  public int cachedImplicationChecks = 0;
+  public int satChecks = 0;
+  public int trivialSatChecks = 0;
+  public int cachedSatChecks = 0;
 
-  public Solver(ExtendedFormulaManager pFmgr, TheoremProver pProver) {
+  public Solver(FormulaManagerView pFmgr, FormulaManagerFactory pFactory) {
     fmgr = pFmgr;
-    prover = pProver;
+    bfmgr = fmgr.getBooleanFormulaManager();
+    factory = pFactory;
   }
 
   /**
    * Direct reference to the underlying SMT solver for more complicated queries.
+   * This creates a fresh, new, environment in the solver.
+   * This environment needs to be closed after it is used by calling {@link ProverEnvironment#close()}.
+   * It is recommended to use the try-with-resources syntax.
    */
-  public TheoremProver getTheoremProver() {
-    return prover;
+  public ProverEnvironment newProverEnvironment() {
+    return factory.newProverEnvironment(false);
+  }
+
+  /**
+   * Direct reference to the underlying SMT solver for more complicated queries.
+   * This creates a fresh, new, environment in the solver.
+   * This environment needs to be closed after it is used by calling {@link ProverEnvironment#close()}.
+   * It is recommended to use the try-with-resources syntax.
+   *
+   * The solver is told to enable model generation.
+   */
+  public ProverEnvironment newProverEnvironmentWithModelGeneration() {
+    return factory.newProverEnvironment(true);
   }
 
   /**
    * Checks whether a formula is unsat.
    */
-  public boolean isUnsat(Formula f) {
+  public boolean isUnsat(BooleanFormula f) throws InterruptedException {
+    satChecks++;
+
+    if (bfmgr.isTrue(f)) {
+      trivialSatChecks++;
+      return false;
+    }
+    if (bfmgr.isFalse(f)) {
+      trivialSatChecks++;
+      return true;
+    }
+    Boolean result = unsatCache.get(f);
+    if (result != null) {
+      cachedSatChecks++;
+      return result;
+    }
+
     solverTime.start();
-    prover.init();
     try {
-      prover.push(f);
-      return prover.isUnsat();
+      result = isUnsatUncached(f);
+
+      unsatCache.put(f, result);
+      return result;
 
     } finally {
-      prover.reset();
       solverTime.stop();
+    }
+  }
+
+  private boolean isUnsatUncached(BooleanFormula f) throws InterruptedException {
+    try (ProverEnvironment prover = newProverEnvironment()) {
+      prover.push(f);
+      return prover.isUnsat();
     }
   }
 
@@ -85,29 +121,38 @@ public class Solver {
    * Checks whether a => b.
    * The result is cached.
    */
-  public boolean implies(Formula a, Formula b) {
-    implicationChecks++;
-
-    if (a.isFalse() || b.isTrue()) {
-      trivialImplicationChecks++;
+  public boolean implies(BooleanFormula a, BooleanFormula b) throws InterruptedException {
+    if (bfmgr.isFalse(a) || bfmgr.isTrue(b)) {
+      satChecks++;
+      trivialSatChecks++;
       return true;
     }
     if (a.equals(b)) {
-      trivialImplicationChecks++;
+      satChecks++;
+      trivialSatChecks++;
       return true;
     }
 
-    Formula f = fmgr.makeNot(fmgr.makeImplication(a, b));
+    BooleanFormula f = bfmgr.not(bfmgr.implication(a, b));
 
-    Boolean result = implicationCache.get(f);
-    if (result != null) {
-      cachedImplicationChecks++;
-      return result;
+    return isUnsat(f);
+  }
+
+  /**
+   * Populate the cache for unsatisfiability queries with a formula
+   * that is known to be unsat.
+   * @param unsat An unsatisfiable formula.
+   */
+  public void addUnsatisfiableFormulaToCache(BooleanFormula unsat) {
+    if (unsatCache.containsKey(unsat) || bfmgr.isFalse(unsat)) {
+      return;
+    }
+    try {
+      assert isUnsatUncached(unsat);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
 
-    result = isUnsat(f);
-
-    implicationCache.put(f, result);
-    return result;
+    unsatCache.put(unsat, true);
   }
 }

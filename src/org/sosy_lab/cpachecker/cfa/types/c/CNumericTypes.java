@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,36 +32,25 @@ public class CNumericTypes {
 
   private CNumericTypes() { }
 
-  private static CIntegerLiteralExpression create(long l) {
-    return new CIntegerLiteralExpression(null, null, BigInteger.valueOf(l));
+  // type constants
+  public final static CSimpleType CHAR          = new CSimpleType(false, false, CBasicType.CHAR, false, false, false, false, false, false, false);
+  public final static CSimpleType INT           = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+  public final static CSimpleType SIGNED_INT    = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
+  public final static CSimpleType SHORT_INT     = new CSimpleType(false, false, CBasicType.INT, false, true, false, false, false, false, false);
+  public final static CSimpleType LONG_INT      = new CSimpleType(false, false, CBasicType.INT, true, false, false, false, false, false, false);
+  public final static CSimpleType LONG_LONG_INT = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, true);
+  public final static CSimpleType VOID          = new CSimpleType(false, false, CBasicType.VOID, false, false, false, false, false, false, false);
+
+  private static CIntegerLiteralExpression create(long l, CType type) {
+    return new CIntegerLiteralExpression(null, type, BigInteger.valueOf(l));
   }
 
-  public static final CIntegerLiteralExpression ZERO = create(0L);
-  public static final CIntegerLiteralExpression ONE = create(1L);
-
-  public static final CIntegerLiteralExpression FALSE = ZERO;
-  public static final CIntegerLiteralExpression TRUE = ONE;
+  public static final CIntegerLiteralExpression ZERO = create(0L, INT);
+  public static final CIntegerLiteralExpression ONE = create(1L, INT);
 
   /* type bounds, assuming 32-bit machine */
-  // TODO use MachineModel here
-  public static final CIntegerLiteralExpression INT_MAX = create(2147483647L);
-  public static final CIntegerLiteralExpression INT_MIN = create(-2147483648L);
-  public static final CIntegerLiteralExpression UINT_MIN = ZERO;
-  public static final CIntegerLiteralExpression UINT_MAX = create(4294967295L);
-
-  public static final CIntegerLiteralExpression LONG_MAX = create(2147483647L);
-  public static final CIntegerLiteralExpression LONG_MIN = create(-2147483648L);
-  public static final CIntegerLiteralExpression ULONG_MIN = ZERO;
-  public static final CIntegerLiteralExpression ULONG_MAX = create(4294967295L);
-
-  public static final CIntegerLiteralExpression SHRT_MAX = create(32767L);
-  public static final CIntegerLiteralExpression SHRT_MIN = create(-32768L);
-  public static final CIntegerLiteralExpression USHRT_MIN = ZERO;
-  public static final CIntegerLiteralExpression USHRT_MAX = create(65535L);
-
-  public static final CIntegerLiteralExpression CHAR_MAX = create(127L);
-  public static final CIntegerLiteralExpression CHAR_MIN = create(-128L);
-  public static final CIntegerLiteralExpression UCHAR_MIN = ZERO;
-  public static final CIntegerLiteralExpression UCHAR_MAX = create(255L);
+  // TODO move to MachineModel
+  public static final CIntegerLiteralExpression INT_MAX = create(2147483647L, INT);
+  public static final CIntegerLiteralExpression INT_MIN = create(-2147483648L, INT);
 
 }

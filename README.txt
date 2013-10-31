@@ -17,15 +17,6 @@ Prepare Programs for Verification by CPAchecker
    CPAchecker is able to parse and analyze a large subset of (GNU)C.
    If parsing fails for your program, please send a report to
    cpachecker-users@sosy-lab.org.
-   In this case, you can pre-process and simplify the sources with CIL
-   (http://hal.cs.berkeley.edu/cil/, mirror at http://www.cs.berkeley.edu/~necula/cil/).
-   The suggested command-line arguments for CIL are:
-   --dosimplify --printCilAsIs --save-temps --domakeCFG
-   Additionally usable argument:
-   --dosimpleMem
-   Comments:
-   --save-temps saves files to the current directory, a different directory can
-   be specified by using --save-temps=<DIRECTORY>
 
 
 Verifying a Program with CPAchecker
@@ -35,14 +26,14 @@ Verifying a Program with CPAchecker
    If you use your own program, remember to pre-process it as mentioned above.
    Example: doc/examples/example.c
    A good source for more example programs is the benchmark set of the
-   TACAS 2012 Competition on Software Verification (http://sv-comp.sosy-lab.org/),
+   TACAS 2013 Competition on Software Verification (http://sv-comp.sosy-lab.org/),
    which can be checked out from https://svn.sosy-lab.org/software/sv-benchmarks/trunk.
 
 2. If you want to enable certain analyses like predicate analysis,
    choose a configuration file. This file defines for example which CPAs are used.
    Standard configuration files can be found in the directory config/.
    Example: config/predicateAnalysis.properties
-   The configuration options used in this file are explained in doc/Configuration.txt.
+   The configuration of CPAchecker is explained in doc/Configuration.txt.
 
 3. Choose a specification file (you may not need this for some CPAs).
    The standard configuration files use config/specification/default.spc
@@ -58,6 +49,11 @@ Verifying a Program with CPAchecker
    This example can also be abbreviated to:
    scripts/cpa.sh -predicateAnalysis doc/examples/example.c
 
+   A Java 1.7 compatible JVM is necessary. If it is not in your PATH,
+   you need to specify it in the environment variable JAVA.
+   Example: export JAVA=/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
+   for 64bit OpenJDK 7 on Ubuntu.
+
    On Windows, you need to use cpa.bat instead of cpa.sh.
    Also, predicateAnalysis is currently not supported on Windows,
    so you need to use other analyses like explicitAnalysis.
@@ -66,13 +62,16 @@ Verifying a Program with CPAchecker
      ARG.dot: Visualization of abstract reachability tree (Graphviz format)
      cfa*.dot: Visualization of control flow automaton (Graphviz format)
      counterexample.msat: Formula representation of the error path
-     ErrorPath.txt: A path through the program that leads to an error
-     ErrorPathAssignment.txt: Assignments for all variables on the error path.
+     coverage.info: Coverage information (similar to those of testing tools) in Gcov format
+     ErrorPath.*.txt: A path through the program that leads to an error
+     ErrorPath.*.assignment.txt: Assignments for all variables on the error path.
      predmap.txt: Predicates used by predicate analysis to prove program safety
      reached.txt: Dump of all reached abstract states
      Statistics.txt: Time statistics (can also be printed to console with "-stats")
    Note that not all of these files will be available for all configurations.
    Also some of these files are only produced if an error is found (or vice-versa).
    CPAchecker will overwrite files in this directory!
-   These files may be used to generate a report that can be viewed in a browser.
-   Cf. BuildReport.txt for this.
+   A graphical report which can be viewed in a browser can be generated
+   from these files by running
+   scripts/report-generator.py
+   (Cf. doc/BuildReport.txt).

@@ -132,8 +132,8 @@ public class EAPair {
   public Vector<CAstNode> getAllDenominators() {
     // Checks for syntactical identity between denominators and
     // only counts them once.
-    HashSet<String> seen = new HashSet<String>();
-    Vector<CAstNode> denoms = new Vector<CAstNode>();
+    HashSet<String> seen = new HashSet<>();
+    Vector<CAstNode> denoms = new Vector<>();
     Vector<CAstNode> found;
     int n = soln.getNumEquations();
     Equation E;

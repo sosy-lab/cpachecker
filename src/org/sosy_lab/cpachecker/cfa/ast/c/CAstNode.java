@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,31 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import com.google.common.base.Function;
 
-public abstract class CAstNode {
 
-  private final CFileLocation fileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 
-  public CAstNode(final CFileLocation pFileLocation) {
-    fileLocation = pFileLocation;
-  }
 
-  public CFileLocation getFileLocation() {
-    return fileLocation;
-  }
+public interface CAstNode extends IAstNode {
 
-  public abstract String toASTString();
-
-  protected String toParenthesizedASTString() {
-    return "(" + toASTString() + ")";
-  }
-
-  public static final Function<CAstNode, String> TO_AST_STRING
-      = new Function<CAstNode, String>() {
-        @Override
-        public String apply(CAstNode pInput) {
-          return pInput.toASTString();
-        }
-      };
 }

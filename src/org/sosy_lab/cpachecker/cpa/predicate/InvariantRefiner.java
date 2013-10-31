@@ -27,6 +27,7 @@ import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Vector;
@@ -37,15 +38,14 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -56,31 +56,25 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.NetworkBuilder;
 import org.sosy_lab.cpachecker.util.invariants.balancer.SingleLoopNetworkBuilder;
 import org.sosy_lab.cpachecker.util.invariants.balancer.TemplateNetwork;
 import org.sosy_lab.cpachecker.util.invariants.balancer.WeispfenningBalancer;
-import org.sosy_lab.cpachecker.util.invariants.templates.TemplateConstraint;
+import org.sosy_lab.cpachecker.util.invariants.templates.TemplateBoolean;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
-import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaManager;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.Lists;
 
 @Options(prefix="cpa.predicate.refinement")
 public class InvariantRefiner extends AbstractARGBasedRefiner {
 
-  @Option(description="split arithmetic equalities when extracting predicates from interpolants")
-  private boolean splitItpAtoms = false;
-
-  private final PredicateRefiner predicateRefiner;
+  private final PredicateAbstractionRefinementStrategy predicateRefinementStrategy;
   private final PredicateCPA predicateCpa;
   private final Configuration config;
   private final LogManager logger;
-  private final AbstractionManager amgr;
-  private final ExtendedFormulaManager emgr;
-  private final TemplateFormulaManager tmgr;
+  private final PredicateAbstractionManager amgr;
+  private final FormulaManagerView emgr;
   //private final TemplatePathFormulaBuilder tpfb;
   //private final TheoremProver prover;
 
@@ -91,8 +85,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
   public InvariantRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
 
-    predicateRefiner = PredicateRefiner.create(pCpa);
-    predicateCpa = this.getArtCpa().retrieveWrappedCpa(PredicateCPA.class);
+    predicateCpa = this.getArgCpa().retrieveWrappedCpa(PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(getClass().getSimpleName() + " needs a PredicateCPA");
     }
@@ -101,14 +94,16 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     config.inject(this, InvariantRefiner.class);
     logger = predicateCpa.getLogger();
 
-    amgr = predicateCpa.getAbstractionManager();
+    amgr = predicateCpa.getPredicateManager();
     emgr = predicateCpa.getFormulaManager();
 
-    tmgr = new TemplateFormulaManager();
     //tpfb = new TemplatePathFormulaBuilder();
 
     //prover = predicateCpa.getTheoremProver();
 
+    predicateRefinementStrategy = new PredicateAbstractionRefinementStrategy(config, logger, emgr, amgr,
+        predicateCpa.getStaticRefiner(),
+        predicateCpa.getSolver());
   }
 
   public static InvariantRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
@@ -116,19 +111,19 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(ARGReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+  protected CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
 
     totalRefinement.start();
 
     // build the counterexample
-    CounterexampleTraceInfo<Collection<AbstractionPredicate>> counterexample = buildCounterexampleTrace(pPath);
+    List<BooleanFormula> predicates = buildCounterexampleTrace(pPath);
 
-    if (counterexample != null) {
+    if (predicates != null) {
       // the counterexample path was spurious, and we refine
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      List<ARGState> path = predicateRefiner.transformPath(pPath);
-      predicateRefiner.performRefinement(pReached, path, counterexample, false);
+      List<ARGState> path = PredicateCPARefiner.transformPath(pPath);
+      predicateRefinementStrategy.performRefinement(pReached, path, predicates, false);
 
       totalRefinement.stop();
       return CounterexampleInfo.spurious();
@@ -140,9 +135,9 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
 
   }
 
-  private CounterexampleTraceInfo<Collection<AbstractionPredicate>> buildCounterexampleTrace(Path pPath) throws CPAException {
+  private List<BooleanFormula> buildCounterexampleTrace(ARGPath pPath) throws CPAException {
 
-    CounterexampleTraceInfo<Collection<AbstractionPredicate>> ceti = null;
+    List<BooleanFormula> ceti = null;
 
     NetworkBuilder nbuilder = null;
     try {
@@ -159,7 +154,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     //Balancer balancer = new BasicBalancer(logger);
     //Balancer balancer = new MatrixBalancer(logger);
     //Balancer balancer = new AcyclicColumnRelianceBalancer(logger);
-    Balancer balancer = new WeispfenningBalancer(logger);
+    Balancer balancer = new WeispfenningBalancer(config, logger);
 
     // Try template networks until one succeeds, or we run out of ideas.
     while (tnet != null) {
@@ -182,7 +177,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
         logger.log(Level.ALL, "Invariants:\n", tnet.dumpTemplates());
 
         // Build a CounterexampleTraceInfo object.
-        ceti = new CounterexampleTraceInfo<Collection<AbstractionPredicate>>();
+        ceti = new ArrayList<>();
         // Add the predicates for each of the computed invariants.
         addPredicates(ceti, tnet, pPath);
         // Break out of the while loop on invariant template choices.
@@ -204,17 +199,18 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     return ceti;
   }
 
-  private void addPredicates(CounterexampleTraceInfo<Collection<AbstractionPredicate>> ceti, TemplateNetwork tnet, Path pPath) throws CPAException {
+  private void addPredicates(List<BooleanFormula> ceti, TemplateNetwork tnet, ARGPath pPath) throws CPAException {
     // Since we are going to use the methods in PredicateRefiner, we need to pad the List
     // of AbstractionPredicate Collections in ceti to make the predicates in phi correspond to
     // the loop head location, and so that the predicates after that location are all 'false'.
     // For symmetry, we add 'true' predicates before the loop head location.
 
+    BooleanFormulaManagerView bfmgr = emgr.getBooleanFormulaManager();
+
     // Make true and false formulas.
-    Collection<AbstractionPredicate> trueFormula = new Vector<AbstractionPredicate>();
-    trueFormula.add(amgr.makePredicate(emgr.makeTrue()));
-    Collection<AbstractionPredicate> falseFormula = new Vector<AbstractionPredicate>();
-    falseFormula.add(amgr.makePredicate(emgr.makeFalse()));
+    BooleanFormula trueFormula = bfmgr.makeBoolean(true);
+    Collection<AbstractionPredicate> falseFormula = new Vector<>();
+    falseFormula.add(amgr.createPredicateFor(bfmgr.makeBoolean(false)));
 
     // Get the list of abstraction elements.
     List<CFANode> path = transformPath(pPath);
@@ -227,61 +223,18 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
       CFANode loc = path.get(i);
       phi = tnet.getTemplate(loc).getTemplateFormula();
       if (phi != null) {
-        boolean atomic = true;
-        //Collection<AbstractionPredicate> phiPreds = makeAbstractionPredicates(phi);
-        Collection<AbstractionPredicate> phiPreds = makeAbstrPreds(phi, atomic);
-        ceti.addPredicatesForRefinement(phiPreds);
+        ceti.add(convertFormula(phi));
       } else {
-        ceti.addPredicatesForRefinement(trueFormula);
+        ceti.add(trueFormula);
       }
     }
   }
 
-  private Collection<AbstractionPredicate> makeAbstrPreds(TemplateFormula invariant, boolean atomic) {
-    if (atomic) {
-      return makeAbstractionPredicates(invariant);
-    } else {
-      return makeAbstractionPredicatesNonatomic(invariant);
-    }
+  private BooleanFormula convertFormula(TemplateFormula invariant) {
+    return ((TemplateBoolean)invariant).translate(emgr);
   }
 
-  private Collection<AbstractionPredicate> makeAbstractionPredicates(TemplateFormula invariant) {
-    // Extract the atomic formulas from 'invariant',
-    // then create equivalent Formulas using emgr,
-    // and finally pass these, one atom at a time,
-    // to amgr's makePredicate method, which will
-    // return an AbstractionPredicate for each atom.
-
-    // Here we use the same booleans (splitItpAtoms, false) that are used in the call to
-    // extractAtoms in PredicateRefinementManager.getAtomsAsPredicates:
-    Collection<Formula> atoms = tmgr.extractAtoms(invariant, splitItpAtoms, false);
-
-    Collection<AbstractionPredicate> preds = new Vector<AbstractionPredicate>();
-
-    for (Formula atom : atoms) {
-      try {
-        TemplateConstraint tc = (TemplateConstraint)atom;
-        Formula formula = tc.translate(emgr.getDelegate());
-        preds.add( amgr.makePredicate(formula) );
-      } catch (ClassCastException e) {
-        // This should not happen! If it does, then tmgr.extractAtoms did something wrong.
-        logger.log(Level.ALL, "Refinement atom was not in the form of a constraint.", atom);
-      }
-    }
-
-    return preds;
-  }
-
-  private Collection<AbstractionPredicate> makeAbstractionPredicatesNonatomic(TemplateFormula invariant) {
-    // Like makeAbstractionPredicates, only does /not/ split the passed
-    // invariant into atoms, but keeps it whole.
-    Collection<AbstractionPredicate> preds = new Vector<AbstractionPredicate>();
-    Formula formula = invariant.translate(emgr.getDelegate());
-    preds.add( amgr.makePredicate(formula) );
-    return preds;
-  }
-
-  private List<CFANode> transformPath(Path pPath) {
+  private List<CFANode> transformPath(ARGPath pPath) {
     // Just extracts information from pPath, putting it into
     // convenient form.
     List<CFANode> result = Lists.newArrayList();

@@ -47,6 +47,14 @@ public class Mathsat5NativeApiTest0 {
     assertEquals(true, msat_is_bv_type(env, type));
     assertEquals(32, msat_get_bv_type_size(env, type));
 
+    long funcDecl = msat_declare_function(env, "testVar", type);
+    long var = msat_make_constant(env, funcDecl);
+    type = msat_term_get_type(var);
+
+    assertEquals(true, msat_is_bv_type(env, type));
+    assertEquals(32, msat_get_bv_type_size(env, type));
+
+
     msat_destroy_env(env);
   }
 }

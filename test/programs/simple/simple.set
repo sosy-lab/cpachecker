@@ -1,0 +1,9 @@
+bitvectors/*_unsafe.i
+bitvectors/*_safe.i
+pointer_aliasing/*_unsafe.i
+pointer_aliasing/*_safe.i
+arrays/*_unsafe.i
+arrays/*_safe.i
+*_unsafe.c
+*_safe.c
+

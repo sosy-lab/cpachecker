@@ -39,14 +39,14 @@ import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
 
 public class TemplateMap {
 
-  private HashMap<Location,Template> map;
+  private HashMap<Location, Template> map;
 
   public TemplateMap() {
-    map = new HashMap<Location,Template>();
+    map = new HashMap<>();
   }
 
   public void put(Location L, Template T) {
-  	map.put(L, T);
+    map.put(L, T);
   }
 
   /**
@@ -54,14 +54,14 @@ public class TemplateMap {
    * @return the TemplateFormula for the Location whose CFANode is N.
    */
   public Template getTemplate(CFANode N) {
-  	Template T = null;
-  	for (Location L : map.keySet()) {
-  		if (L.getNode() == N) {
-  			T = map.get(L);
-  			break;
-  		}
-  	}
-  	return T;
+    Template T = null;
+    for (Location L : map.keySet()) {
+      if (L.getNode() == N) {
+        T = map.get(L);
+        break;
+      }
+    }
+    return T;
   }
 
   public Template getTemplate(Location L) {
@@ -73,7 +73,7 @@ public class TemplateMap {
   }
 
   public Set<TemplateVariable> getAllVariables() {
-    Set<TemplateVariable> vars = new HashSet<TemplateVariable>();
+    Set<TemplateVariable> vars = new HashSet<>();
     Collection<Template> range = map.values();
     for (Template t : range) {
       vars.addAll(t.getAllVariables());
@@ -89,7 +89,7 @@ public class TemplateMap {
     return pur;
   }
 
-  public boolean evaluate(Map<String,Rational> vals) {
+  public boolean evaluate(Map<String, Rational> vals) {
     boolean ans = true;
     for (Template t : map.values()) {
       ans &= t.evaluate(vals);
@@ -108,17 +108,17 @@ public class TemplateMap {
   }
 
   public Vector<TemplateBoolean> getAllNonzeroParameterClauses() {
-    Vector<TemplateBoolean> clauses = new Vector<TemplateBoolean>();
+    Vector<TemplateBoolean> clauses = new Vector<>();
     for (Template t : map.values()) {
-      clauses.add( t.getNonzeroParameterClause() );
+      clauses.add(t.getNonzeroParameterClause());
     }
     return clauses;
   }
 
   public Set<String> writeAllParameters(VariableWriteMode vwm) {
-    Set<String> params = new HashSet<String>();
+    Set<String> params = new HashSet<>();
     for (Template t : map.values()) {
-      params.addAll( t.writeAllParameters(vwm) );
+      params.addAll(t.writeAllParameters(vwm));
     }
     return params;
   }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,14 +50,13 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 @Options(prefix="cpa.pointerA")
 public class AndersenCPA implements ConfigurableProgramAnalysisWithABM {
 
-  public static CPAFactory factory()
-  {
+  public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(AndersenCPA.class);
   }
 
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for PointerACPA")
-  private String mergeType = "SEP";
+  private String mergeType = "JOIN";
 
   @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
       description="which stop operator to use for PointerACPA")

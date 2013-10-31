@@ -32,6 +32,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
@@ -96,11 +97,16 @@ public class CFATraversal {
   // function providing the outgoing edges for a CFANode
   private final Function<CFANode, Iterable<CFAEdge>> edgeSupplier;
 
+  // function providing the successor node of an edge
+  private final Function<CFAEdge, CFANode> successorSupplier;
+
   // predicate for whether an edge should be ignored
   private final Predicate<CFAEdge> ignoreEdge;
 
-  protected CFATraversal(Function<CFANode, Iterable<CFAEdge>> pEdgeSupplier, Predicate<CFAEdge> pIgnoreEdge) {
+  protected CFATraversal(Function<CFANode, Iterable<CFAEdge>> pEdgeSupplier,
+      Function<CFAEdge, CFANode> pSuccessorSupplier, Predicate<CFAEdge> pIgnoreEdge) {
     edgeSupplier = pEdgeSupplier;
+    successorSupplier = pSuccessorSupplier;
     ignoreEdge = pIgnoreEdge;
   }
 
@@ -109,7 +115,8 @@ public class CFATraversal {
    * the CFA, visiting all nodes and edges in a DFS-like strategy.
    */
   public static final CFATraversal dfs() {
-    return new CFATraversal(FORWARD_EDGE_SUPPLIER, Predicates.<CFAEdge>alwaysFalse());
+    return new CFATraversal(FORWARD_EDGE_SUPPLIER, CFAUtils.TO_SUCCESSOR,
+        Predicates.<CFAEdge>alwaysFalse());
   }
 
   /**
@@ -119,9 +126,9 @@ public class CFATraversal {
    */
   public CFATraversal backwards() {
     if (edgeSupplier == FORWARD_EDGE_SUPPLIER) {
-      return new CFATraversal(BACKWARD_EDGE_SUPPLIER, ignoreEdge);
+      return new CFATraversal(BACKWARD_EDGE_SUPPLIER, CFAUtils.TO_PREDECESSOR, ignoreEdge);
     } else if (edgeSupplier == BACKWARD_EDGE_SUPPLIER) {
-      return new CFATraversal(FORWARD_EDGE_SUPPLIER, ignoreEdge);
+      return new CFATraversal(FORWARD_EDGE_SUPPLIER, CFAUtils.TO_SUCCESSOR, ignoreEdge);
     } else {
       throw new AssertionError();
     }
@@ -135,6 +142,7 @@ public class CFATraversal {
    */
   public CFATraversal ignoreSummaryEdges() {
     return new CFATraversal(edgeSupplier,
+        successorSupplier,
         Predicates.<CFAEdge>or(ignoreEdge,
             Predicates.instanceOf(CFunctionSummaryEdge.class)));
   }
@@ -148,6 +156,7 @@ public class CFATraversal {
   @SuppressWarnings("unchecked")
   public CFATraversal ignoreFunctionCalls() {
     return new CFATraversal(edgeSupplier,
+        successorSupplier,
         Predicates.<CFAEdge>or(
             ignoreEdge,
             Predicates.instanceOf(CFunctionCallEdge.class),
@@ -164,7 +173,7 @@ public class CFATraversal {
    */
   public void traverse(final CFANode startingNode, final CFATraversal.CFAVisitor visitor) {
 
-    Deque<CFANode> toProcess = new ArrayDeque<CFANode>();
+    Deque<CFANode> toProcess = new ArrayDeque<>();
 
     toProcess.addLast(startingNode);
 
@@ -188,7 +197,7 @@ public class CFATraversal {
           }
 
           if (result != TraversalProcess.SKIP) {
-            toProcess.addLast(edge.getSuccessor());
+            toProcess.addLast(successorSupplier.apply(edge));
           }
         }
       }
@@ -240,7 +249,7 @@ public class CFATraversal {
    */
   public final static class NodeCollectingCFAVisitor extends ForwardingCFAVisitor {
 
-    private final Set<CFANode> visitedNodes = new HashSet<CFANode>();
+    private final Set<CFANode> visitedNodes = new HashSet<>();
 
     /**
      * Creates a new instance which delegates calls to another visitor, but
@@ -289,7 +298,7 @@ public class CFATraversal {
    */
   public final static class EdgeCollectingCFAVisitor extends ForwardingCFAVisitor {
 
-    private final List<CFAEdge> visitedEdges = new ArrayList<CFAEdge>();
+    private final List<CFAEdge> visitedEdges = new ArrayList<>();
 
     /**
      * Creates a new instance which delegates calls to another visitor.
@@ -382,6 +391,41 @@ public class CFATraversal {
         }
       }
       return totalResult;
+    }
+  }
+
+
+  /**
+   * An implementation of {@link CFAVisitor} that delegates to another visitor
+   * and splits {@link MultiEdge}s into their contained edges during the process.
+   *
+   * No additional CFANodes are visited, only edges.
+   * The edges of one MultiEdge are always handled in one sequence
+   * from start to end (forwads), with no other edges or nodes in between,
+   * regardless of the actual CFATraversal instance.
+   * Thus it is best to use this implementation only with CFATraversal.dfs().
+   */
+  public static class SplitMultiEdgesCFAVisitor extends CFATraversal.ForwardingCFAVisitor {
+
+    protected SplitMultiEdgesCFAVisitor(CFAVisitor pDelegate) {
+      super(pDelegate);
+    }
+
+    @Override
+    public TraversalProcess visitEdge(CFAEdge pEdge) {
+      if (pEdge instanceof MultiEdge) {
+        for (CFAEdge edge : ((MultiEdge)pEdge).getEdges()) {
+          TraversalProcess result = visitEdge(edge);
+
+          if (result != TraversalProcess.CONTINUE) {
+            return result;
+          }
+        }
+
+        return TraversalProcess.CONTINUE;
+      } else {
+        return super.visitEdge(pEdge);
+      }
     }
   }
 

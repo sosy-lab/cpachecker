@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,27 +23,43 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CUnaryExpression extends CExpression {
+public class CUnaryExpression extends AUnaryExpression implements CExpression {
 
-  private final CExpression operand;
-  private final UnaryOperator  operator;
 
-  public CUnaryExpression(final CFileLocation pFileLocation,
+
+  public CUnaryExpression(final FileLocation pFileLocation,
                              final CType pType, final CExpression pOperand,
                              final UnaryOperator pOperator) {
-    super(pFileLocation, pType);
-    operand = pOperand;
-    operator = pOperator;
+    super(pFileLocation, pType, pOperand, pOperator);
+
   }
 
+  @Override
   public CExpression getOperand() {
-    return operand;
+    return (CExpression) super.getOperand();
   }
 
+  @Override
   public UnaryOperator getOperator() {
-    return operator;
+    return (UnaryOperator) super.getOperator();
+  }
+
+  @Override
+  public CType getExpressionType() {
+    return (CType) super.getExpressionType();
+  }
+
+  @Override
+  public String toASTString() {
+    if (getOperator() == UnaryOperator.SIZEOF) {
+      return getOperator().getOperator() + "(" + getOperand().toASTString() + ")";
+    } else {
+      return getOperator().getOperator() + getOperand().toParenthesizedASTString();
+    }
   }
 
   @Override
@@ -56,10 +72,9 @@ public class CUnaryExpression extends CExpression {
     return v.visit(this);
   }
 
-  public static enum UnaryOperator {
+  public static enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
     PLUS   ("+"),
     MINUS  ("-"),
-    STAR   ("*"),
     AMPER  ("&"),
     TILDE  ("~"),
     NOT    ("!"),
@@ -75,17 +90,29 @@ public class CUnaryExpression extends CExpression {
     /**
      * Returns the string representation of this operator (e.g. "*", "+").
      */
+    @Override
     public String getOperator() {
       return mOp;
     }
   }
 
   @Override
-  public String toASTString() {
-    if (operator == UnaryOperator.SIZEOF) {
-      return operator.getOperator() + "(" + operand.toASTString() + ")";
-    } else {
-      return operator.getOperator() + operand.toParenthesizedASTString();
+  public int hashCode() {
+    int prime = 31;
+    int result = 7;
+    return prime * result + super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
+
+    if (!(obj instanceof CUnaryExpression)) {
+      return false;
+    }
+
+    return super.equals(obj);
   }
 }

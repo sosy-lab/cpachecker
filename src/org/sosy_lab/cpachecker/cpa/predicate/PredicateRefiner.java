@@ -23,272 +23,61 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
-
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.PathChecker;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Multimap;
+public abstract class PredicateRefiner implements Refiner {
 
-/**
- * This class provides the refinement strategy for the classical predicate
- * abstraction (adding the predicates from the interpolant to the precision
- * and removing the relevant parts of the ARG).
- */
-@Options(prefix="cpa.predicate.refinement")
-public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>> implements StatisticsProvider {
-
-  @Option(description="refinement will add all discovered predicates "
-          + "to all the locations in the abstract trace")
-  private boolean addPredicatesGlobally = false;
-
-  private class Stats implements Statistics {
-    @Override
-    public String getName() {
-      return "Predicate Abstraction Refiner";
-    }
-
-    @Override
-    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      PredicateRefiner.this.printStatistics(out, pResult, pReached);
-      out.println("  Precision update:               " + precisionUpdate);
-      out.println("  ARG update:                     " + argUpdate);
-    }
-  }
-
-  private final Timer precisionUpdate = new Timer();
-  private final Timer argUpdate = new Timer();
-
-  public static PredicateRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+  public static PredicateCPARefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
 
+    Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
+    FormulaManagerView fmgr = predicateCpa.getFormulaManager();
+    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
+    Solver solver = predicateCpa.getSolver();
+    PredicateStaticRefiner staticRefiner = predicateCpa.getStaticRefiner();
 
-    PredicateRefinementManager manager = new PredicateRefinementManager(predicateCpa.getFormulaManager(),
-                                          predicateCpa.getPathFormulaManager(),
-                                          predicateCpa.getSolver(),
-                                          predicateCpa.getAbstractionManager(),
-                                          predicateCpa.getFormulaManagerFactory(),
-                                          predicateCpa.getConfiguration(),
-                                          logger);
+    InterpolationManager manager = new InterpolationManager(
+        fmgr,
+        pfmgr,
+        solver,
+        predicateCpa.getFormulaManagerFactory(),
+        config,
+        predicateCpa.getShutdownNotifier(),
+        logger);
 
-    return new PredicateRefiner(predicateCpa.getConfiguration(), logger, pCpa, manager);
-  }
+    PathChecker pathChecker = new PathChecker(logger, pfmgr, solver);
 
-  protected PredicateRefiner(final Configuration config, final LogManager logger,
-      final ConfigurableProgramAnalysis pCpa,
-      final PredicateRefinementManager pInterpolationManager) throws CPAException, InvalidConfigurationException {
+    RefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
+        config,
+        logger,
+        fmgr,
+        predicateCpa.getPredicateManager(),
+        staticRefiner,
+        solver);
 
-    super(config, logger, pCpa, pInterpolationManager);
-
-    config.inject(this, PredicateRefiner.class);
-  }
-
-  @Override
-  protected final List<ARGState> transformPath(Path pPath) {
-    List<ARGState> result = from(pPath)
-      .skip(1)
-      .transform(Pair.<ARGState>getProjectionToFirst())
-      .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
-                                 toState(PredicateAbstractState.class)))
-      .toImmutableList();
-
-    assert pPath.getLast().getFirst() == result.get(result.size()-1);
-    return result;
-  }
-
-  private static final Function<PredicateAbstractState, Formula> GET_BLOCK_FORMULA
-                = new Function<PredicateAbstractState, Formula>() {
-                    @Override
-                    public Formula apply(PredicateAbstractState e) {
-                      assert e.isAbstractionState();
-                      return e.getAbstractionFormula().getBlockFormula();
-                    }
-                  };
-
-  @Override
-  protected List<Formula> getFormulasForPath(List<ARGState> path, ARGState initialState) throws CPATransferException {
-    return from(path)
-        .transform(toState(PredicateAbstractState.class))
-        .transform(GET_BLOCK_FORMULA)
-        .toImmutableList();
-  }
-
-  @Override
-  protected void performRefinement(ARGReachedSet pReached,
-      List<ARGState> pPath,
-      CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample,
-      boolean pRepeatedCounterexample) throws CPAException {
-
-    precisionUpdate.start();
-
-    // get previous precision
-    UnmodifiableReachedSet reached = pReached.asReachedSet();
-    Precision oldPrecision = reached.getPrecision(reached.getLastState());
-    PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
-    if (oldPredicatePrecision == null) {
-      throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
-    }
-
-    Pair<ARGState, PredicatePrecision> refinementResult =
-            performRefinement(oldPredicatePrecision, pPath, pCounterexample, pRepeatedCounterexample);
-    precisionUpdate.stop();
-
-    argUpdate.start();
-
-    pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
-
-    argUpdate.stop();
-  }
-
-  private Pair<ARGState, PredicatePrecision> performRefinement(PredicatePrecision oldPrecision,
-      List<ARGState> pPath,
-      CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo,
-      boolean pRepeatedCounterexample) throws CPAException {
-
-    List<Collection<AbstractionPredicate>> newPreds = pInfo.getPredicatesForRefinement();
-
-    // target state is not really an interpolation point, exclude it
-    List<ARGState> interpolationPoints = pPath.subList(0, pPath.size()-1);
-    assert interpolationPoints.size() == newPreds.size();
-
-    Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
-    Set<AbstractionPredicate> globalPredicates = oldPrecision.getGlobalPredicates();
-
-    boolean predicatesFound = false;
-    boolean newPredicatesFound = false;
-    ARGState firstInterpolationPoint = null;
-    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-
-    pmapBuilder.putAll(oldPredicateMap);
-
-    // iterate through interpolationPoints and find first point with new predicates, from there we have to cut the ARG
-    // also build new precision
-    int i = 0;
-    for (ARGState interpolationPoint : interpolationPoints) {
-      Collection<AbstractionPredicate> localPreds = newPreds.get(i++);
-
-      if (localPreds.size() > 0) {
-        // found predicates
-        predicatesFound = true;
-        CFANode loc = AbstractStates.extractLocation(interpolationPoint);
-
-        if (firstInterpolationPoint == null) {
-          firstInterpolationPoint = interpolationPoint;
-        }
-
-        if (!oldPredicateMap.get(loc).containsAll(localPreds)) {
-          // new predicates for this location
-
-          System.out.println(localPreds);
-
-          newPredicatesFound = true;
-
-          pmapBuilder.putAll(loc, localPreds);
-          pmapBuilder.putAll(loc, globalPredicates);
-        }
-
-      }
-    }
-    if (!predicatesFound) {
-      // The only reason why this might appear is that the very last block is
-      // infeasible in itself, however, we check for such cases during strengthen,
-      // so they shouldn't appear here.
-      throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
-    }
-    assert firstInterpolationPoint != null;
-
-    ImmutableSetMultimap<CFANode, AbstractionPredicate> newPredicateMap = pmapBuilder.build();
-    PredicatePrecision newPrecision;
-    if (addPredicatesGlobally) {
-      newPrecision = new PredicatePrecision(newPredicateMap.values());
-    } else {
-      newPrecision = new PredicatePrecision(newPredicateMap, globalPredicates);
-    }
-
-    logger.log(Level.ALL, "Predicate map now is", newPredicateMap);
-
-    // We have two different strategies for the refinement root: set it to
-    // the firstInterpolationPoint or set it to highest location in the ARG
-    // where the same CFANode appears.
-    // Both work, so this is a heuristics question to get the best performance.
-    // My benchmark showed, that at least for the benchmarks-lbe examples it is
-    // best to use strategy one iff newPredicatesFound.
-
-    ARGState refinementRoot = null;
-    if (newPredicatesFound) {
-      refinementRoot = firstInterpolationPoint;
-
-      logger.log(Level.FINEST, "Found spurious counterexample,",
-          "trying strategy 1: remove everything below", refinementRoot, "from ARG.");
-
-    } else {
-      if (pRepeatedCounterexample) {
-        throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
-      }
-
-      CFANode firstInterpolationPointLocation = AbstractStates.extractLocation(firstInterpolationPoint);
-
-      logger.log(Level.FINEST, "Found spurious counterexample,",
-          "trying strategy 2: remove everything below node", firstInterpolationPointLocation, "from ARG.");
-
-      // find first element in path with location == firstInterpolationPointLocation,
-      // this is not necessary equal to firstInterpolationPoint
-      for (ARGState abstractionPoint : pPath) {
-        CFANode loc = AbstractStates.extractLocation(abstractionPoint);
-        if (loc.equals(firstInterpolationPointLocation)) {
-          refinementRoot = abstractionPoint;
-          break;
-        }
-      }
-      if (refinementRoot == null) {
-        throw new CPAException("Inconsistent ARG, did not find element for " + firstInterpolationPointLocation);
-      }
-    }
-    return Pair.of(refinementRoot, newPrecision);
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(new Stats());
+    return new PredicateCPARefiner(
+        config,
+        logger,
+        pCpa,
+        manager,
+        pathChecker,
+        fmgr,
+        pfmgr,
+        strategy);
   }
 }

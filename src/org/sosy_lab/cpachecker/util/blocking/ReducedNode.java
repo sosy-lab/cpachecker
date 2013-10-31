@@ -27,21 +27,25 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
-public class ReducedNode {
+class ReducedNode {
   private static int uniqueNodeIdSequence = 0;
 
   private final CFANode wrappedNode;
   private final int uniqueNodeId;
   private int summarizations;
-  private boolean isAbstractioNode;
   private int functionCallId;
+  private final boolean isLoopHead;
 
   public ReducedNode(CFANode pWrappedNode) {
+    this(pWrappedNode, false);
+  }
+
+  public ReducedNode(CFANode pWrappedNode, boolean pIsLoopHead) {
     this.wrappedNode = pWrappedNode;
     this.uniqueNodeId = ReducedNode.uniqueNodeIdSequence++;
     this.summarizations = 0;
     this.functionCallId = 0;
-    this.isAbstractioNode = false;
+    this.isLoopHead = pIsLoopHead;
   }
 
   public CFANode getWrapped() {
@@ -60,14 +64,6 @@ public class ReducedNode {
     this.summarizations += pIncBy;
   }
 
-  public void setIsAbstractionNode(boolean pIsAbstractionNode) {
-    this.isAbstractioNode = pIsAbstractionNode;
-  }
-
-  public boolean getIsAbstractionNode() {
-    return this.isAbstractioNode || this.getWrapped().isLoopStart();
-  }
-
   public boolean isFunctionEntry() {
     return getWrapped() instanceof FunctionEntryNode;
   }
@@ -77,7 +73,7 @@ public class ReducedNode {
   }
 
   public boolean isLoopHead() {
-    return getWrapped().isLoopStart();
+    return isLoopHead;
   }
 
   public String getNodeKindText() {

@@ -34,13 +34,13 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionSet;
 public class AugmentationColumn extends UsableColumn {
 
   private final int colNum = -1;
-  private Map<Integer,AssumptionSet> asets;
+  private Map<Integer, AssumptionSet> asets;
   private Set<Integer> requests;
   final int height = Integer.MIN_VALUE;
 
   public AugmentationColumn() {
-    asets = new HashMap<Integer,AssumptionSet>();
-    requests = new HashSet<Integer>();
+    asets = new HashMap<>();
+    requests = new HashSet<>();
   }
 
   @Override
@@ -55,7 +55,7 @@ public class AugmentationColumn extends UsableColumn {
 
   @Override
   public void clearRequests() {
-    requests = new HashSet<Integer>();
+    requests = new HashSet<>();
   }
 
   public void addSet(Integer r, AssumptionSet a) {
@@ -75,7 +75,7 @@ public class AugmentationColumn extends UsableColumn {
   public AssumptionSet getRequestedAssumptions() {
     AssumptionSet aset = new AssumptionSet();
     for (Integer r : requests) {
-      aset.addAll( asets.get(r) );
+      aset.addAll(asets.get(r));
     }
     return aset;
   }

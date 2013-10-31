@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,18 +24,21 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -55,11 +58,11 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAB
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -101,7 +104,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final PrecisionAdjustment precisionAdjustment;
   private final Statistics stats = new AutomatonStatistics(this);
 
-  protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration config, LogManager logger)
+  protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration config, LogManager logger, CFA cfa)
       throws InvalidConfigurationException {
 
     config.inject(this, ControlAutomatonCPA.class);
@@ -116,7 +119,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
 
     } else {
-      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger);
+      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger, cfa.getMachineModel());
       if (lst.isEmpty()) {
         throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.getAbsolutePath());
       } else if (lst.size() > 1) {
@@ -130,11 +133,11 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
 
     if (export && exportFile != null) {
-      try {
-        String fileName = String.format(exportFile.getAbsolutePath(), automaton.getName());
-        automaton.writeDotFile(new PrintStream(fileName));
-      } catch (FileNotFoundException e) {
-        logger.log(Level.WARNING, "Could not create/write to the Automaton DOT file \"" + exportFile + "\"");
+      String fileName = String.format(exportFile.getAbsolutePath(), automaton.getName());
+      try (Writer w = Files.openOutputFile(Paths.get(fileName))) {
+        automaton.writeDotFile(w);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
       }
     }
 
@@ -204,7 +207,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     return getAbstractDomain().isLessOrEqual(pElement, pOtherElement);
   }
 }

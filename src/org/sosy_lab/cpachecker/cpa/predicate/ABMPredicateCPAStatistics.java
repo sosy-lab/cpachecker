@@ -23,38 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.io.PrintStream;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateRefiner.ExtendedPredicateRefiner;
 
 class ABMPredicateCPAStatistics implements Statistics {
 
-  private ExtendedPredicateRefiner refiner = null;
+  private final ABMPredicateReducer reducer;
+
+  ABMPredicateCPAStatistics(ABMPredicateReducer pReducer) {
+    reducer = pReducer;
+  }
 
   @Override
   public String getName() {
     return null; // because we don't want our own heading in the statistics
   }
 
-  void addRefiner(ExtendedPredicateRefiner pRef) {
-    checkState(refiner == null);
-    refiner = pRef;
-  }
-
   @Override
   public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-    out.println("Reduce elements:            " + ABMPredicateReducer.reduceTimer);
-    out.println("Expand elements:            " + ABMPredicateReducer.expandTimer);
-    out.println("Extract predicates:         " + ABMPredicateReducer.extractTimer);
-
-    if (refiner != null) {
-      out.println("SSA renaming:               " + refiner.ssaRenamingTimer);
-    }
+    out.println("Reduce elements:            " + reducer.reduceTimer);
+    out.println("Expand elements:            " + reducer.expandTimer);
+    out.println("Extract predicates:         " + reducer.extractTimer);
     out.println();
   }
 

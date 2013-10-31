@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,39 +24,29 @@
 package org.sosy_lab.cpachecker.cfa.model.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 import com.google.common.base.Optional;
 
-public class CDeclarationEdge extends AbstractCFAEdge {
+public class CDeclarationEdge extends ADeclarationEdge {
 
-  private final CDeclaration declaration;
+
 
   public CDeclarationEdge(final String pRawSignature, final int pLineNumber,
       final CFANode pPredecessor, final CFANode pSuccessor, final CDeclaration pDeclaration) {
 
-    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor);
-    declaration = pDeclaration;
+    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor, pDeclaration);
+
   }
 
   @Override
-  public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.DeclarationEdge;
-  }
-
   public CDeclaration getDeclaration() {
-    return declaration;
+    return (CDeclaration) declaration;
   }
 
   @Override
   public Optional<CDeclaration> getRawAST() {
-    return Optional.of(declaration);
-  }
-
-  @Override
-  public String getCode() {
-    return declaration.toASTString();
+    return Optional.of((CDeclaration)declaration);
   }
 }

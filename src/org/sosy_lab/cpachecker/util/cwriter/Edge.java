@@ -59,10 +59,9 @@ class Edge implements Comparable<Edge> {
     int otherElementId = pO.getChildState().getStateId();
     int thisElementId = this.getChildState().getStateId();
 
-    if (thisElementId > otherElementId){
+    if (thisElementId > otherElementId) {
       return 1;
-    }
-    else if (thisElementId < otherElementId){
+    } else if (thisElementId < otherElementId) {
       return -1;
     }
     return 0;

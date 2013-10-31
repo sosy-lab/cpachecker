@@ -68,7 +68,7 @@ public class LocationTransferRelationBackwards implements TransferRelation {
 
     CFANode node = ((LocationState)element).getLocationNode();
 
-    List<LocationState> allSuccessors = new ArrayList<LocationState>(node.getNumEnteringEdges());
+    List<LocationState> allSuccessors = new ArrayList<>(node.getNumEnteringEdges());
 
     for (CFANode predecessor : CFAUtils.predecessorsOf(node)) {
       allSuccessors.add(factory.getState(predecessor));

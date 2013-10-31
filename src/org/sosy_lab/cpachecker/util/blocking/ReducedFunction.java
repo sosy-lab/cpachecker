@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.blocking;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,16 +35,15 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
 
-
-public class ReducedFunction {
-  private final Table<ReducedNode,ReducedNode,Set<ReducedEdge>> cfaEdges;
+class ReducedFunction {
+  private final Table<ReducedNode, ReducedNode, Set<ReducedEdge>> cfaEdges;
   private final Multiset<ReducedNode> activeNodes;
   private final ReducedNode entryNode;
   private final ReducedNode exitNode;
 
   public ReducedFunction(ReducedNode pEntryNode, ReducedNode pExitNode) {
-    assert(pEntryNode != null);
-    assert(pExitNode != null);
+    assert (pEntryNode != null);
+    assert (pExitNode != null);
 
     this.cfaEdges = HashBasedTable.create();
     this.activeNodes = HashMultiset.create();
@@ -61,7 +61,7 @@ public class ReducedFunction {
   public void addEdge(ReducedNode pFrom, ReducedNode pTo, ReducedEdge pEdge) {
     Set<ReducedEdge> edges = cfaEdges.get(pFrom, pTo);
     if (edges == null) {
-      edges = new HashSet<ReducedEdge>();
+      edges = new HashSet<>();
     }
     edges.add(pEdge);
     cfaEdges.put(pFrom, pTo, edges);
@@ -113,8 +113,8 @@ public class ReducedFunction {
     return cfaEdges.rowMap();
   }
 
-  public ReducedEdge[] getLeavingEdges(ReducedNode pOfNode) {
-    ArrayList<ReducedEdge> result = new ArrayList<ReducedEdge>();
+  public List<ReducedEdge> getLeavingEdges(ReducedNode pOfNode) {
+    ArrayList<ReducedEdge> result = new ArrayList<>();
     Collection<Set<ReducedEdge>> edges = cfaEdges.row(pOfNode).values();
     for (Set<ReducedEdge> edgesToNode: edges) {
       for (ReducedEdge e: edgesToNode) {
@@ -122,7 +122,7 @@ public class ReducedFunction {
       }
     }
 
-    return result.toArray(new ReducedEdge[result.size()]);
+    return result;
   }
 
   public int getNumEnteringEdges(ReducedNode pOfNode) {

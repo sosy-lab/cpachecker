@@ -46,9 +46,9 @@ public class UninitializedVariablesState implements AbstractQueryableState {
   private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
 
   public UninitializedVariablesState(String entryFunction) {
-    globalVars = new ArrayList<String>();
-    localVars = new LinkedList<Pair<String, Collection<String>>>();
-    warnings = new ArrayList<Triple<Integer, String, String>>();
+    globalVars = new ArrayList<>();
+    localVars = new LinkedList<>();
+    warnings = new ArrayList<>();
     // create context of the entry function
     callFunction(entryFunction);
   }
@@ -139,16 +139,15 @@ public class UninitializedVariablesState implements AbstractQueryableState {
 
   @Override
   protected UninitializedVariablesState clone() {
-    LinkedList<Pair<String, Collection<String>>> newLocalVars =
-                                    new LinkedList<Pair<String, Collection<String>>>();
+    LinkedList<Pair<String, Collection<String>>> newLocalVars = new LinkedList<>();
 
     for (Pair<String, Collection<String>> localContext : localVars) {
       newLocalVars.addLast(Pair.of(localContext.getFirst(),
-                                   (Collection<String>)new ArrayList<String>(localContext.getSecond())));
+                                   (Collection<String>)new ArrayList<>(localContext.getSecond())));
     }
 
-    return new UninitializedVariablesState(new ArrayList<String>(globalVars), newLocalVars,
-                                             new ArrayList<Triple<Integer, String, String>>(warnings));
+    return new UninitializedVariablesState(new ArrayList<>(globalVars), newLocalVars,
+                                             new ArrayList<>(warnings));
   }
 
   @Override

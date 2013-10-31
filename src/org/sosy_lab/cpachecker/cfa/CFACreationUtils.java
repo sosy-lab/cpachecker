@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,9 +29,9 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 
 /**
  * Helper class that contains some complex operations that may be useful during
@@ -68,8 +68,7 @@ public class CFACreationUtils {
     if (isReachableNode(predecessor)) {
 
       // all checks passed, add it to the CFA
-      edge.getPredecessor().addLeavingEdge(edge);
-      edge.getSuccessor().addEnteringEdge(edge);
+      addEdgeUnconditionallyToCFA(edge);
 
     } else {
       // unreachable edge, don't add it to the CFA
@@ -93,16 +92,25 @@ public class CFACreationUtils {
   }
 
   /**
+   * This method adds this edge to the leaving and entering edges
+   * of its predecessor and successor respectively.
+   * It does so without further checks, so use with care and only if really
+   * necessary.
+   */
+  public static void addEdgeUnconditionallyToCFA(CFAEdge edge) {
+    edge.getPredecessor().addLeavingEdge(edge);
+    edge.getSuccessor().addEnteringEdge(edge);
+  }
+
+  /**
    * Returns true if a node is reachable, that is if it contains an incoming edge.
    * Label nodes and function start nodes are always considered to be reachable.
-   * If a LabelNode has an empty labelText, it is not reachable through gotos.
    */
   public static boolean isReachableNode(CFANode node) {
     return (node.getNumEnteringEdges() > 0)
         || (node instanceof FunctionEntryNode)
         || (node.isLoopStart())
-        || ((node instanceof CLabelNode)
-            && !((CLabelNode)node).getLabel().isEmpty());
+        || (node instanceof CLabelNode);
   }
 
   /**

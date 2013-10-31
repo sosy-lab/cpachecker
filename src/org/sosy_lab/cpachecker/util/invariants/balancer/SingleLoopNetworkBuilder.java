@@ -35,11 +35,12 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -52,14 +53,14 @@ import org.sosy_lab.cpachecker.util.invariants.choosers.SingleLoopTemplateChoose
 import org.sosy_lab.cpachecker.util.invariants.choosers.TemplateChooser;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplatePathFormulaBuilder;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 
 public class SingleLoopNetworkBuilder implements NetworkBuilder {
 
-  private final Path cePath;
+  private final ARGPath cePath;
   private final LogManager logger;
   private final TemplatePathFormulaBuilder tpfb;
   private final Loop loop;
@@ -75,7 +76,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
   private final PathFormula exitFormula;
   private final TemplateChooser chooser;
 
-  public SingleLoopNetworkBuilder(Path pPath, LogManager pLogger) throws RefinementFailedException {
+  public SingleLoopNetworkBuilder(ARGPath pPath, LogManager pLogger) throws RefinementFailedException {
     cePath = pPath;
     logger = pLogger;
     tpfb = new TemplatePathFormulaBuilder();
@@ -125,7 +126,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     loopFormulaHead = loopFormulas.get(1);
     loopFormulaTail = loopFormulas.get(2);
 
-    Pair<PathFormula,PathFormula> exitHeadAndTail = buildExitFormulaHeadAndTail(cePath, loopHead);
+    Pair<PathFormula, PathFormula> exitHeadAndTail = buildExitFormulaHeadAndTail(cePath, loopHead);
     exitFormulaHead = exitHeadAndTail.getFirst();
     exitFormulaTail = exitHeadAndTail.getSecond();
     exitFormula = buildExitFormula(cePath, loopHead);
@@ -144,10 +145,10 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     // If we are going to use the CFAUtils.findLoops method, we have to essentially "cut" the counterexample path
     // out of the CFA it belongs to; i.e. for each node in the path delete all those of its edges that point to
     // nodes not in the path. Otherwise CFAUtils.findLoops will have an error.
-    SortedSet<CFANode> nodes = new TreeSet<CFANode>(getAllNodes());
+    SortedSet<CFANode> nodes = new TreeSet<>(getAllNodes());
     // Now ask CFAUtils to find any and all the loops in the counterexample path.
     try {
-      Collection<Loop> loops = CFAUtils.findLoops(nodes);
+      Collection<Loop> loops = CFAUtils.findLoops(nodes, Language.C);
 
       if (loops.size() > 1) {
         // there are too many loops
@@ -179,9 +180,9 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     return CFATraversal.dfs().collectNodesReachableFrom(root);
   }
 
-  private PathFormula buildEntryFormula(Path pPath, CFANode loopHead) {
+  private PathFormula buildEntryFormula(ARGPath pPath, CFANode loopHead) {
     // gather CFAEdges until hit ARGState whose location is loopHead
-    Vector<CFAEdge> edges = new Vector<CFAEdge>();
+    Vector<CFAEdge> edges = new Vector<>();
 
     for (Pair<ARGState, CFAEdge> pair : pPath) {
       ARGState ae = pair.getFirst();
@@ -200,30 +201,30 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
 
   private List<PathFormula> buildLoopFormulas(Loop loop) {
     logger.log(Level.ALL, "Loop:\n",loop);
-    Vector<CFANode> loopNodes = new Vector<CFANode>(loop.getLoopNodes());
+    Vector<CFANode> loopNodes = new Vector<>(loop.getLoopNodes());
     Vector<CFAEdge> loopEdges = GraphUtil.makeEdgeLoop(loopNodes, logger);
-    logger.log(Level.ALL,"Sequence of edges in loop:\n",loopEdges);
+    logger.log(Level.ALL, "Sequence of edges in loop:\n",loopEdges);
     // head:
-    Vector<CFAEdge> loopHead = new Vector<CFAEdge>(1);
+    Vector<CFAEdge> loopHead = new Vector<>(1);
     loopHead.add(loopEdges.get(0));
     // tail:
-    Vector<CFAEdge> loopTail = new Vector<CFAEdge>(loopEdges.size()-1);
+    Vector<CFAEdge> loopTail = new Vector<>(loopEdges.size()-1);
     loopTail.addAll(loopEdges);
     loopTail.remove(0);
     // Build path formulas.
     PathFormula loopFormula = tpfb.buildPathFormula(loopEdges);
     PathFormula loopFormulaHead = tpfb.buildPathFormula(loopHead);
     PathFormula loopFormulaTail = tpfb.buildPathFormula(loopTail);
-    List<PathFormula> three = new Vector<PathFormula>(3);
+    List<PathFormula> three = new Vector<>(3);
     three.add(loopFormula);
     three.add(loopFormulaHead);
     three.add(loopFormulaTail);
     return three;
   }
 
-  private PathFormula buildExitFormula(Path pPath, CFANode loopHead) {
+  private PathFormula buildExitFormula(ARGPath pPath, CFANode loopHead) {
     // gather CFAEdges from ARGState whose location is loopHead to end of path
-    Vector<CFAEdge> edges = new Vector<CFAEdge>();
+    Vector<CFAEdge> edges = new Vector<>();
 
     boolean begun = false;
     int N = pPath.size() - 1; // we ignore last pair, since last edge is useless, hence " - 1"
@@ -247,11 +248,11 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     return exitFormula;
   }
 
-  private Pair<PathFormula,PathFormula> buildExitFormulaHeadAndTail(Path pPath, CFANode loopHead) {
+  private Pair<PathFormula, PathFormula> buildExitFormulaHeadAndTail(ARGPath pPath, CFANode loopHead) {
     // Like buildExitFormula method, only returns the formula for the exit path in two parts:
     // the "head", being the first edge, and the "tail", being the remainder of the path.
     CFAEdge headEdge = null;
-    Vector<CFAEdge> tailEdges = new Vector<CFAEdge>();
+    Vector<CFAEdge> tailEdges = new Vector<>();
 
     boolean begun = false;
     int N = pPath.size() - 1; // we ignore last pair, since last edge is useless, hence " - 1"
@@ -273,7 +274,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     // build path formula for these edges
     PathFormula headFormula = tpfb.buildPathFormula(headEdge);
     PathFormula tailFormula = tpfb.buildPathFormula(tailEdges);
-    Pair<PathFormula,PathFormula> exitFormulae = Pair.<PathFormula,PathFormula>of(headFormula,tailFormula);
+    Pair<PathFormula, PathFormula> exitFormulae = Pair.<PathFormula, PathFormula>of(headFormula, tailFormula);
     return exitFormulae;
   }
 

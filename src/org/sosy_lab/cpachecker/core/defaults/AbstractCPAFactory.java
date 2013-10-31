@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +27,7 @@ import java.util.List;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
@@ -36,6 +37,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
 
   private LogManager logger = null;
   private Configuration configuration = null;
+  private ShutdownNotifier shutdownNotifier = null;
 
   @Override
   public CPAFactory setChild(ConfigurableProgramAnalysis pChild)
@@ -67,6 +69,15 @@ public abstract class AbstractCPAFactory implements CPAFactory {
     return this;
   }
 
+  @Override
+  public CPAFactory setShutdownNotifier(ShutdownNotifier pShutdownNotifier) {
+    Preconditions.checkNotNull(pShutdownNotifier);
+    Preconditions.checkState(shutdownNotifier == null, "setShutdownNotifier called twice on CPAFactory");
+
+    shutdownNotifier = pShutdownNotifier;
+    return this;
+  }
+
   protected LogManager getLogger() {
     Preconditions.checkState(logger != null, "LogManager object needed to create CPA");
     return logger;
@@ -75,6 +86,11 @@ public abstract class AbstractCPAFactory implements CPAFactory {
   protected Configuration getConfiguration() {
     Preconditions.checkState(configuration != null, "Configuration object needed to create CPA");
     return configuration;
+  }
+
+  public ShutdownNotifier getShutdownNotifier() {
+    Preconditions.checkState(shutdownNotifier != null, "ShutdownNotifier object needed to create CPA");
+    return shutdownNotifier;
   }
 
   @Override

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -78,31 +78,18 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
   @Override
   public String toString() {
     return "Function " + getCurrentFunction()
-         + " called from node " + getCallNode()
-         + ", stack depth " + getDepth()
-         + " [" + Integer.toHexString(super.hashCode()) + "]";
+        + " called from node " + getCallNode()
+        + ", stack depth " + getDepth()
+        + " [" + Integer.toHexString(super.hashCode()) + "]";
   }
 
-  @Override
-  public boolean equals(Object obj) {
-    if (obj == this) {
-      return true;
-    }
-    if (CallstackState.class != obj.getClass()) {
-      return false;
-    }
-
-    CallstackState other = (CallstackState)obj;
-    return (this.previousState == other.previousState)
-        && (this.currentFunction.equals(other.currentFunction))
-        && (this.callerNode.equals(other.callerNode));
-  }
-
-  @Override
-  public int hashCode() {
-    return (((callerNode.hashCode() * 31)
-        + System.identityHashCode(previousState)) * 17)
-        + currentFunction.hashCode();
+  public boolean sameStateInProofChecking(CallstackState pOther) {
+    if (pOther.callerNode == callerNode
+        && pOther.depth == depth
+        && pOther.currentFunction.equals(currentFunction)
+        && (pOther.previousState == previousState || (previousState != null && pOther.previousState != null && previousState
+            .sameStateInProofChecking(pOther.previousState)))) { return true; }
+    return false;
   }
 
   @Override
@@ -125,7 +112,8 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
       }
     }
 
-    throw new InvalidQueryException(String.format("Evaluating %s not supported by %s", pProperty, this.getClass().getCanonicalName()));
+    throw new InvalidQueryException(String.format("Evaluating %s not supported by %s", pProperty, this.getClass()
+        .getCanonicalName()));
   }
 
   @Override

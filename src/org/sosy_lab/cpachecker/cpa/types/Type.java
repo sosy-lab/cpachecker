@@ -169,7 +169,7 @@ public interface Type {
       }
       PrimitiveType other = (PrimitiveType)obj;
       return (this == other)
-          || (   (primitiveType == other.primitiveType)
+          || ((primitiveType == other.primitiveType)
               && (signed == other.signed)
               && (super.equals(other)));
     }
@@ -239,7 +239,7 @@ public interface Type {
       }
       PointerType other = (PointerType)obj;
       return (this == obj)
-          || (   super.equals(other))
+          || (super.equals(other))
               && targetType.equals(other.targetType);
     }
 
@@ -294,7 +294,7 @@ public static final class ArrayType extends AbstractType {
       }
       ArrayType other = (ArrayType)obj;
       return (this == other)
-          || (   super.equals(other)
+          || (super.equals(other)
               && type.equals(other.type));
     }
 
@@ -319,7 +319,7 @@ public static final class ArrayType extends AbstractType {
 
     public CompositeType(String name, boolean constant) {
       super(constant);
-      this.members = new LinkedHashMap<String, Type>();
+      this.members = new LinkedHashMap<>();
       this.name = name;
     }
 
@@ -354,7 +354,7 @@ public static final class ArrayType extends AbstractType {
       CompositeType other = (CompositeType)obj;
 
       return (obj == this)
-        || (   super.equals(other)
+        || (super.equals(other)
             && name.equals(other.name)
             && members.equals(other.members));
     }
@@ -467,7 +467,7 @@ public static final class ArrayType extends AbstractType {
 
     public EnumType(String name, boolean constant) {
       super(constant);
-      this.enumerators = new HashMap<String, Long>();
+      this.enumerators = new HashMap<>();
       this.name = name;
     }
 
@@ -510,7 +510,7 @@ public static final class ArrayType extends AbstractType {
       EnumType other = (EnumType)obj;
 
       return (obj == this)
-        || (   super.equals(other)
+        || (super.equals(other)
             && name.equals(other.name)
             && enumerators.equals(other.enumerators));
     }
@@ -564,7 +564,7 @@ public static final class ArrayType extends AbstractType {
       super(false);
       this.name = name;
       this.returnType = returnType;
-      this.parameters = new LinkedHashMap<String, Type>();
+      this.parameters = new LinkedHashMap<>();
       this.hasVarArgs = hasVarArgs;
     }
 
@@ -622,7 +622,7 @@ public static final class ArrayType extends AbstractType {
       FunctionType other = (FunctionType)obj;
 
       return (obj == this)
-        || (   name.equals(other.name)
+        || (name.equals(other.name)
             && returnType.equals(other.returnType)
             && parameters.equals(other.parameters)
             && hasVarArgs == other.hasVarArgs);

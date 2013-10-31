@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,10 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.core.algorithm;
+
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -49,7 +53,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -61,12 +64,16 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
     private final Timer totalTimer = new Timer();
     private final Timer refinementTimer = new Timer();
-    private final Timer gcTimer = new Timer();
 
     private volatile int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
     private int countFailedRefinements = 0;
     private boolean timedOut = false;
+
+    private int maxReachedSizeBeforeRefinement = 0;
+    private int maxReachedSizeAfterRefinement = 0;
+    private long totalReachedSizeBeforeRefinement = 0;
+    private long totalReachedSizeAfterRefinement = 0;
 
     @Override
     public String getName() {
@@ -78,17 +85,20 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         ReachedSet pReached) {
 
       out.println("Timed out: " + timedOut);
-      out.println("Number of refinements:            " + countRefinements);
+      out.println("Number of refinements:                " + countRefinements);
 
       if (countRefinements > 0) {
-        out.println("Number of successful refinements: " + countSuccessfulRefinements);
-        out.println("Number of failed refinements:     " + countFailedRefinements);
+        out.println("Number of successful refinements:     " + countSuccessfulRefinements);
+        out.println("Number of failed refinements:         " + countFailedRefinements);
+        out.println("Max. size of reached set before ref.: " + maxReachedSizeBeforeRefinement);
+        out.println("Max. size of reached set after ref.:  " + maxReachedSizeAfterRefinement);
+        out.println("Avg. size of reached set before ref.: " + div(totalReachedSizeBeforeRefinement, countRefinements));
+        out.println("Avg. size of reached set after ref.:  " + div(totalReachedSizeAfterRefinement, countSuccessfulRefinements));
         out.println("");
         out.println("Total time for CEGAR algorithm:   " + totalTimer);
         out.println("Time for refinements:             " + refinementTimer);
         out.println("Average time for refinement:      " + refinementTimer.printAvgTime());
         out.println("Max time for refinement:          " + refinementTimer.printMaxTime());
-        out.println("Time for garbage collection:      " + gcTimer);
       }
     }
   }
@@ -123,21 +133,14 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private static final int GC_PERIOD = 100;
-  private int gcCounter = 0;
-
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
 
-  @Option(required = true,
+  @Option(name="refiner", required = true,
       description = "Which refinement algorithm to use? "
       + "(give class name, required for CEGAR) If the package name starts with "
       + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
   private Class<? extends Refiner> refiner = null;
-
-  @Option(description = "completely restart analysis on refinement "
-      + "by removing everything from the reached set")
-  private boolean restartOnRefinement = false;
 
   @Option(description = "threshold (in ms) after which the CEGAR algorithm gives up refining (spurious) counterexamples")
   private int stopRefiningThreshold = -1; //TODO maybe use ProgressObserver instead?
@@ -147,9 +150,12 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(description="do not refine after a reset of the CEGAR algorithm")
   private boolean noRefinementInFirstRun = false;
-
+  
+  @Option(name="globalRefinement", description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
+  private boolean globalRefinement = false;
   private long startTime = 0;
   private int refinementCount = 0;
+
   private final LogManager logger;
   private final Algorithm algorithm;
   private final Refiner mRefiner;
@@ -228,8 +234,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
-    boolean isComplete = true;
-
+    boolean isComplete        = true;
+    int initialReachedSetSize = reached.size();
+    
     stats.totalTimer.start();
     if (startTime == 0) {
       startTime = System.currentTimeMillis();
@@ -239,12 +246,12 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       boolean refinementSuccessful;
       do {
         refinementSuccessful = false;
-
+        
         // run algorithm
         isComplete &= algorithm.run(reached);
 
-        // if the last state is a target state do refinement
-        if (AbstractStates.isTargetState(reached.getLastState())) {
+        // if there is any target state do refinement
+        if (refinementNecessary(reached)) {
           if ((stopRefiningThreshold == -1 || System.currentTimeMillis() - startTime <= stopRefiningThreshold) &&
               (stopRefiningCount == -1 || stopRefiningCount > refinementCount) &&
               !(resets == 0 && noRefinementInFirstRun)) {
@@ -252,6 +259,12 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
             refinementSuccessful = refine(reached);
           } else {
             stats.timedOut = true;
+          }
+
+          // assert that reached set is free of target states,
+          // if refinement was successful and initial reached set was empty (i.e. stopAfterError=true) 
+          if (refinementSuccessful && initialReachedSetSize == 1) {
+            assert !from(reached).anyMatch(IS_TARGET_STATE);
           }
         }
 
@@ -263,9 +276,22 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     return isComplete;
   }
 
+  private boolean refinementNecessary(ReachedSet reached) {
+    if (globalRefinement) {
+      // check other states
+      return from(reached).anyMatch(IS_TARGET_STATE);
+
+    } else {
+      // check only last state
+      return isTargetState(reached.getLastState());
+    }
+  }
+
   private boolean refine(ReachedSet reached) throws CPAException, InterruptedException {
     logger.log(Level.FINE, "Error found, performing CEGAR");
     stats.countRefinements++;
+    stats.totalReachedSizeBeforeRefinement += reached.size();
+    stats.maxReachedSizeBeforeRefinement = Math.max(stats.maxReachedSizeBeforeRefinement, reached.size());
     sizeOfReachedSetBeforeRefinement = reached.size();
 
     stats.refinementTimer.start();
@@ -284,25 +310,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
     if (refinementResult) {
       stats.countSuccessfulRefinements++;
-
-      if (restartOnRefinement) {
-        // TODO
-      }
-
-      runGC();
+      stats.totalReachedSizeAfterRefinement += reached.size();
+      stats.maxReachedSizeAfterRefinement = Math.max(stats.maxReachedSizeAfterRefinement, reached.size());
     }
 
     return refinementResult;
-  }
-
-
-  private void runGC() {
-    if ((++gcCounter % GC_PERIOD) == 0) {
-      stats.gcTimer.start();
-      System.gc();
-      gcCounter = 0;
-      stats.gcTimer.stop();
-    }
   }
 
   @Override

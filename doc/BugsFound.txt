@@ -1,0 +1,10 @@
+# Please report bugs that CPAchecker found!
+
+# Use one line for each bug report; the line contents will be inserted in an HTML page between tags <li> and </li>;
+# empty lines and lines starting with '#' are omitted.
+
+# Place latest bugs first; the first n bugs will be shown on the CPAchecker web page.
+
+2013-03-04: Bug found in the Linux kernel: <a href="https://patchwork.kernel.org/patch/2204681/">https://patchwork.kernel.org/patch/2204681/</a> (<a href="http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=193d01532a730a53cbc74462799dbc43968b97fd">commit</a>)
+2012-02-13: Bug found in the Linux kernel: <a href="https://linuxtv.org/patch/9871/">https://linuxtv.org/patch/9871/</a>
+

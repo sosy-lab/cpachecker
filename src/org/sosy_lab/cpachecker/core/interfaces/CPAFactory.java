@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,7 @@ import java.util.List;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -71,6 +72,13 @@ public interface CPAFactory {
    * @return this
    */
   public CPAFactory setConfiguration(Configuration configuration);
+
+  /**
+   * Provides a ShutdownNotifier instance to the CPA. If it does not need it, this
+   * method should do nothing.
+   * @return this
+   */
+  public CPAFactory setShutdownNotifier(ShutdownNotifier shutdownNotifier);
 
   /**
    * Provides exactly one child to the CPA. If the CPA does not support wrapping

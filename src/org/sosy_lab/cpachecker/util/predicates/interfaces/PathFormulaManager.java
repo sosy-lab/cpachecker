@@ -28,11 +28,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 public interface PathFormulaManager {
 
@@ -42,7 +42,7 @@ public interface PathFormulaManager {
 
   /**
    * Creates a new path formula representing an OR of the two arguments. Differently
-   * from {@link FormulaManager#makeOr(Formula, Formula)},
+   * from {@link FormulaManager#makeOr(BooleanFormula, BooleanFormula)},
    * it also merges the SSA maps and creates the necessary adjustments to the
    * formulas if the two SSA maps contain different values for the same variables.
    *
@@ -52,7 +52,7 @@ public interface PathFormulaManager {
    */
   PathFormula makeOr(PathFormula pF1, PathFormula pF2);
 
-  PathFormula makeAnd(PathFormula pPathFormula, Formula pOtherFormula);
+  PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula);
 
   PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge) throws CPATransferException;
 
@@ -72,7 +72,7 @@ public interface PathFormulaManager {
    * @return A formula containing a predicate for each branching.
    * @throws CPATransferException
    */
-  Formula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
+  BooleanFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
       throws CPATransferException;
 
   /**

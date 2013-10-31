@@ -25,15 +25,18 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaList;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 
-public class TemplateUIF extends TemplateFormula {
+public class TemplateUIF extends TemplateNumericValue {
 
   private String name = null;
   private TemplateSumList args = null;
@@ -44,15 +47,17 @@ public class TemplateUIF extends TemplateFormula {
 //------------------------------------------------------------------
 // Constructors
 
-  public TemplateUIF(String pName, TemplateSumList pArgs) {
+  public TemplateUIF(String pName, FormulaType<?> returnValue, TemplateSumList pArgs) {
+    super(returnValue);
     name = pName;
     args = pArgs;
   }
 
-  public TemplateUIF(String pName, TemplateSumList pArgs, int pIdx) {
+  public TemplateUIF(String pName, FormulaType<?> returnValue, TemplateSumList pArgs, int pIdx) {
+    super(returnValue);
     name = pName;
     args = pArgs;
-    index = new Integer(pIdx);
+    index = Integer.valueOf(pIdx);
   }
 
   //----------------------------------------------------------------
@@ -60,18 +65,24 @@ public class TemplateUIF extends TemplateFormula {
 
   @Override
   public TemplateUIF copy() {
+    return withFormulaType(getFormulaType());
+  }
+
+  @Override
+  public TemplateUIF withFormulaType(FormulaType<?> pNewType) {
+
     /*
     TemplateUIF u = null;
     if (index == null) {
-      u = new TemplateUIF(name,args.copy());
+      u = new TemplateUIF(name, args.copy());
     } else {
-      u = new TemplateUIF(name,args.copy(),index.intValue());
+      u = new TemplateUIF(name, args.copy(), index.intValue());
     }
     */
 
-    TemplateUIF u = new TemplateUIF( new String(name), args.copy() );
+    TemplateUIF u = new TemplateUIF(name, pNewType, args.copy());
     if (index != null) {
-      u.index = new Integer(index);
+      u.index = Integer.valueOf(index);
     }
     if (oldPurifiedName != null) {
       u.oldPurifiedName = oldPurifiedName.copy();
@@ -100,7 +111,7 @@ public class TemplateUIF extends TemplateFormula {
   }
 
   @Override
-  public boolean evaluate(Map<String,Rational> map) {
+  public boolean evaluate(Map<String, Rational> map) {
     boolean ans = true;
     if (args!=null) {
       ans &= args.evaluate(map);
@@ -116,14 +127,14 @@ public class TemplateUIF extends TemplateFormula {
   }
 
   @Override
-  public void postindex(Map<String,Integer> indices) {
+  public void postindex(Map<String, Integer> indices) {
     if (args!=null) {
       args.postindex(indices);
     }
   }
 
   @Override
-  public void preindex(Map<String,Integer> indices) {
+  public void preindex(Map<String, Integer> indices) {
     if (args!=null) {
       args.preindex(indices);
     }
@@ -170,17 +181,17 @@ public class TemplateUIF extends TemplateFormula {
 // Other cascade methods
 
   @Override
-  public Set<String> getAllVariables(VariableWriteMode vwm) {
-    HashSet<String> vars = new HashSet<String>();
+  public Set<TemplateVariable> getAllVariables() {
+    HashSet<TemplateVariable> vars = new HashSet<>();
     if (args != null) {
-      vars.addAll(args.getAllVariables(vwm));
+      vars.addAll(args.getAllVariables());
     }
     return vars;
   }
 
   @Override
   public Set<TemplateVariable> getAllParameters() {
-    HashSet<TemplateVariable> params = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> params = new HashSet<>();
     if (args != null) {
       params.addAll(args.getAllParameters());
     }
@@ -188,7 +199,7 @@ public class TemplateUIF extends TemplateFormula {
   }
 
   @Override
-  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
+  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
     if (args!=null) {
       map = args.getMaxIndices(map);
     }
@@ -211,15 +222,18 @@ public class TemplateUIF extends TemplateFormula {
   }
 
   @Override
-  public Formula translate(FormulaManager fmgr) {
-  	Formula form = null;
-  	FormulaList fl = args.translate(fmgr);
-  	if (hasIndex()) {
-  		form = fmgr.makeUIF(name, fl, index.intValue());
-  	} else {
-  		form = fmgr.makeUIF(name, fl);
-  	}
-  	return form;
+  public Formula translate(FormulaManagerView fmgr) {
+    Formula form = null;
+    List<Formula> fl = ((AbstractFormulaList)args.translate(fmgr)).getTerms();
+    FunctionFormulaManagerView ffmgr = fmgr.getFunctionFormulaManager();
+    if (hasIndex()) {
+      form = ffmgr.createFuncAndCall(name, index.intValue(), getFormulaType(), fl);
+      //form = fmgr.makeUIF(name, fl, index.intValue());
+    } else {
+      form = ffmgr.createFuncAndCall(name, getFormulaType(), fl);
+      //form = fmgr.makeUIF(name, fl);
+    }
+    return form;
   }
 
 //------------------------------------------------------------------
@@ -234,7 +248,7 @@ public class TemplateUIF extends TemplateFormula {
   }
 
   public boolean hasIndex() {
-  	return (index != null);
+    return (index != null);
   }
 
   public Integer getIndex() {

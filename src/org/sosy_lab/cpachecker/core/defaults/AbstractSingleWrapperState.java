@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 import java.io.Serializable;
-import java.util.Collections;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
@@ -33,6 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Base class for AbstractStates which wrap the abstract state of exactly
@@ -92,7 +92,7 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
   }
 
   @Override
-  public Iterable<? extends AbstractState> getWrappedStates() {
-    return Collections.singleton(wrappedState);
+  public ImmutableList<AbstractState> getWrappedStates() {
+    return ImmutableList.of(wrappedState);
   }
 }

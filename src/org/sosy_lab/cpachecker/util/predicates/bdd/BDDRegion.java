@@ -30,43 +30,49 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 /**
  * Regions represented using BDDs
  */
-class BDDRegion implements Region {
+public class BDDRegion implements Region {
 
-    private final BDD bddRepr;
+  private final BDD bddRepr;
 
-    public BDDRegion(BDD pBDD) {
-        bddRepr = pBDD;
+  BDDRegion(BDD pBDD) {
+    bddRepr = pBDD;
+  }
+
+  @Override
+  public boolean isTrue() {
+    return bddRepr.isOne();
+  }
+
+  @Override
+  public boolean isFalse() {
+    return bddRepr.isZero();
+  }
+
+  BDD getBDD() {
+    return bddRepr;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof BDDRegion) {
+      return bddRepr.equals(((BDDRegion)o).bddRepr);
     }
+    return false;
+  }
 
-    @Override
-    public boolean isTrue() {
-      return bddRepr.isOne();
-    }
+  @Override
+  public int hashCode() {
+    return bddRepr.hashCode();
+  }
 
-    @Override
-    public boolean isFalse() {
-      return bddRepr.isZero();
+  @Override
+  public String toString() {
+    if (bddRepr.isOne()) {
+      return "true";
+    } else if (bddRepr.isZero()) {
+      return "false";
+    } else {
+      return bddRepr.toString();
     }
-
-    BDD getBDD() {
-        return bddRepr;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o instanceof BDDRegion) {
-            return bddRepr.equals(((BDDRegion)o).bddRepr);
-        }
-        return false;
-    }
-
-    @Override
-    public int hashCode() {
-        return bddRepr.hashCode();
-    }
-
-    @Override
-    public String toString() {
-      return bddRepr.isOne() ? "true" : bddRepr.toString();
-    }
+  }
 }

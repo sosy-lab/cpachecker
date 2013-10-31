@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,17 +24,18 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.AbstractEclipseCParser;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT6Parser;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT7Parser;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -45,26 +46,30 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  * It may offer timing of it's operations. If present, this is not expected to
  * be thread-safe.
  */
-public interface CParser {
+public interface CParser extends Parser {
 
   /**
-   * Parse the content of a file into a CFA.
+   * Parse the content of files into a single CFA.
    *
-   * @param fileName  The file to parse.
+   * @param fileNames  The List of files to parse. The first part of the pair
+   *                   should be the filename, the second part should be the
+   *                   prefix which will be appended to static variables
    * @return The CFA.
    * @throws IOException If file cannot be read.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseFile(String filename) throws ParserException, IOException;
+  ParseResult parseFile(List<Pair<String, String>> filenames) throws CParserException, IOException, InvalidConfigurationException;
 
   /**
-   * Parse the content of a String into a CFA.
+   * Parse the content of Strings into a single CFA.
    *
-   * @param code  The code to parse.
+   * @param code  The List of code fragments to parse. The first part of the pair
+   *                   should be the code, the second part should be the
+   *                   prefix which will be appended to static variables
    * @return The CFA.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseString(String code) throws ParserException;
+  ParseResult parseString(List<Pair<String, String>> code) throws CParserException, InvalidConfigurationException;
 
   /**
    * Method for parsing a string that contains exactly one function with exactly
@@ -83,20 +88,7 @@ public interface CParser {
    * @return The AST for the statement.
    * @throws ParserException If parsing fails.
    */
-  CAstNode parseSingleStatement(String code) throws ParserException;
-
-  /**
-   * Return a timer that measured the time needed for parsing.
-   * Optional method: may return null.
-   */
-  Timer getParseTime();
-
-  /**
-   * Return a timer that measured the time need for CFA construction.
-   * Optional method: may return null.
-   */
-  Timer getCFAConstructionTime();
-
+  CAstNode parseSingleStatement(String code) throws CParserException, InvalidConfigurationException;
 
   /**
    * Enum for clients of this class to choose the C dialect the parser uses.
@@ -122,7 +114,6 @@ public interface CParser {
    */
   public static class Factory {
 
-    private static boolean IS_CDT_7 = isCDT7();
 
     public static ParserOptions getOptions(Configuration config) throws InvalidConfigurationException {
       ParserOptions result = new ParserOptions();
@@ -134,25 +125,8 @@ public interface CParser {
       return new ParserOptions();
     }
 
-    public static CParser getParser(LogManager logger, ParserOptions options) {
-      AbstractEclipseCParser<?> result;
-      if (IS_CDT_7) {
-        result = new EclipseCDT7Parser(logger, options.dialect);
-      } else {
-        result = new EclipseCDT6Parser(logger, options.dialect);
-      }
-      return result;
-    }
-
-    private static boolean isCDT7() {
-      // check whether there is the IncludeFileContentProvider class
-      // if it is, we have at least CDT 7
-      try {
-        Class.forName("org.eclipse.cdt.core.parser.IncludeFileContentProvider");
-        return true;
-      } catch (ClassNotFoundException _) {
-        return false;
-      }
+    public static CParser getParser(Configuration config, LogManager logger, ParserOptions options, MachineModel machine) {
+      return EclipseParsers.getCParser(config, logger, options.dialect, machine);
     }
   }
 }

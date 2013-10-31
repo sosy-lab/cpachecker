@@ -23,11 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
+import static com.google.common.base.Preconditions.*;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
+
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import net.sf.javabdd.BDD;
@@ -40,9 +47,19 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 /**
@@ -68,6 +85,19 @@ public class BDDRegionManager implements RegionManager {
   // documentation of the packages can be found at source of BDDFactory.init()
   private String bddPackage = "java";
 
+  @Option(description="Initial size of the BDD node table.")
+  private int initBddNodeTableSize = 10000;
+
+  @Option(description="Size of the BDD cache if cache ratio is not used.")
+  private int bddCacheSize = 1000;
+
+  @Option(description="Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD cache size).")
+  private double bddCacheRatio = 0.1;
+
+  // Statistics
+  private final StatInt cleanupQueueSize = new StatInt(StatKind.AVG, "Size of BDD node cleanup queue");
+  private final StatTimer cleanupTimer = new StatTimer("Time for BDD node cleanup");
+
   private final LogManager logger;
   private final BDDFactory factory;
   private final Region trueFormula;
@@ -79,7 +109,7 @@ public class BDDRegionManager implements RegionManager {
   private BDDRegionManager(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
-    factory = BDDFactory.init(bddPackage, 10000, 1000);
+    factory = BDDFactory.init(bddPackage, initBddNodeTableSize, bddCacheSize);
 
     // register callbacks for logging
     try {
@@ -110,6 +140,8 @@ public class BDDRegionManager implements RegionManager {
     }
 
     factory.setVarNum(varcount);
+    factory.setCacheRatio(bddCacheRatio);
+
     trueFormula = new BDDRegion(factory.one());
     falseFormula = new BDDRegion(factory.zero());
   }
@@ -159,16 +191,24 @@ public class BDDRegionManager implements RegionManager {
   @Override
   public void printStatistics(PrintStream out) {
     try {
-      out.println("Number of BDD nodes:                 " + factory.getNodeNum());
-      out.println("Size of BDD node table:              " + factory.getNodeTableSize());
-
-      // cache size is currently always 1000
-      //out.println("Size of BDD cache:                   " + factory.getCacheSize());
-
       BDDFactory.GCStats stats = factory.getGCStats();
-      out.println("Time for BDD garbage collection:     " + Timer.formatTime(stats.sumtime) + " (in " + stats.num + " runs)");
-      // unfortunately, factory.getCacheStats() returns an empty object
-      // because statistics collection for the cache is disabled in the library
+
+      writingStatisticsTo(out)
+        .put("Number of BDD nodes", factory.getNodeNum())
+        .put("Size of BDD node table", factory.getNodeTableSize())
+
+        // Cache size is currently always equal to bddCacheSize,
+        // unfortunately the library does not update it on cache resizes.
+        //.put("Size of BDD cache", factory.getCacheSize())
+
+        .put(cleanupQueueSize)
+        .put(cleanupTimer)
+
+        .put("Time for BDD garbage collection", Timer.formatTime(stats.sumtime) + " (in " + stats.num + " runs)")
+        ;
+
+      // Cache stats are disabled in JFactory (CACHESTATS = false)
+      //out.println(factory.getCacheStats());
     } catch (UnsupportedOperationException e) {
       // Not all factories might have all statistics supported.
       // As statistics are not that important, just ignore it.
@@ -201,7 +241,7 @@ public class BDDRegionManager implements RegionManager {
   // free() must be called manually.
 
   // The reference objects will appear in this queue as soon as their target object was GCed.
-  private final ReferenceQueue<BDDRegion> referenceQueue = new ReferenceQueue<BDDRegion>();
+  private final ReferenceQueue<BDDRegion> referenceQueue = new ReferenceQueue<>();
 
   // In this map we store the info which BDD to free after a BDDRegion object was GCed.
   private final Map<PhantomReference<BDDRegion>, BDD> referenceMap = Maps.newIdentityHashMap();
@@ -214,12 +254,20 @@ public class BDDRegionManager implements RegionManager {
    * BDD library is not multi-threaded.
    */
   private void cleanupReferences() {
-    PhantomReference<? extends BDDRegion> ref;
-    while ((ref = (PhantomReference<? extends BDDRegion>)referenceQueue.poll()) != null) {
+    cleanupTimer.start();
+    try {
+      int count = 0;
+      PhantomReference<? extends BDDRegion> ref;
+      while ((ref = (PhantomReference<? extends BDDRegion>)referenceQueue.poll()) != null) {
+        count++;
 
-      BDD bdd = referenceMap.remove(ref);
-      assert bdd != null;
-      bdd.free();
+        BDD bdd = referenceMap.remove(ref);
+        assert bdd != null;
+        bdd.free();
+      }
+      cleanupQueueSize.setNextValue(count);
+    } finally {
+      cleanupTimer.stop();
     }
   }
 
@@ -231,7 +279,7 @@ public class BDDRegionManager implements RegionManager {
   private BDDRegion wrap(BDD bdd) {
     BDDRegion region = new BDDRegion(bdd);
 
-    PhantomReference<BDDRegion> ref = new PhantomReference<BDDRegion>(region, referenceQueue);
+    PhantomReference<BDDRegion> ref = new PhantomReference<>(region, referenceQueue);
     referenceMap.put(ref, bdd);
 
     return region;
@@ -303,6 +351,13 @@ public class BDDRegionManager implements RegionManager {
     return wrap(unwrap(pF1).xor(unwrap(pF2)));
   }
 
+
+  @Override
+  public Region makeIte(Region pF1, Region pF2, Region pF3) {
+    cleanupReferences();
+    return wrap(unwrap(pF1).ite(unwrap(pF2), unwrap(pF3)));
+  }
+
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
     cleanupReferences();
@@ -330,6 +385,276 @@ public class BDDRegionManager implements RegionManager {
 
     return result;
   }
+
+  @Override
+  public Set<Region> extractPredicates(Region pF) {
+    cleanupReferences();
+
+    BDD f = unwrap(pF);
+    int[] vars = f.scanSet();
+    if (vars == null) {
+      return ImmutableSet.of();
+    }
+
+    ImmutableSet.Builder<Region> predicateBuilder = ImmutableSet.builder();
+    for (int var : vars) {
+      predicateBuilder.add(wrap(factory.ithVar(var)));
+    }
+    return predicateBuilder.build();
+  }
+
+  @Override
+  public RegionBuilder builder(ShutdownNotifier pShutdownNotifier) {
+    return new BDDRegionBuilder(pShutdownNotifier);
+  }
+
+  private class BDDRegionBuilder implements RegionBuilder {
+
+    private final ShutdownNotifier shutdownNotifier;
+
+    private BDDRegionBuilder(ShutdownNotifier pShutdownNotifier) {
+      shutdownNotifier = pShutdownNotifier;
+    }
+
+    // Invariant: currentCube and everything in cubes
+    // is allowed to be mutated/destroyed, i.e., there is no other reference to it.
+    private BDD currentCube = null;
+
+    // Invariants:
+    // cubes contains a number of BDDs, whose disjunction makes up the result.
+    // cubes may also contain null values, which are to be ignored,
+    // but there is always at least one non-null value (if the list is not empty).
+    // The cube at index i is one built from i+1 models.
+    // When inserting, we find the left-most place in the list where we can insert.
+    // If the list is empty, we just add the cube at position 0.
+    // If this position is filled, we take the new cube and the cube from position 0,
+    // disjunct them and try storing the result at position 1,
+    // iteratively increasing the position.
+    // This is used to create balanced disjunctions
+    // instead of using a single growing BDD,
+    // while at the same time limiting the number of stored BDDs
+    // (log(numOfCubes) many).
+    private final List<BDD> cubes = new ArrayList<>();
+
+    @Override
+    public void startNewConjunction() {
+      checkState(currentCube == null);
+      // one() creates new BDD
+      currentCube = factory.one(); // true
+    }
+
+    @Override
+    public void addPositiveRegion(Region r) {
+      checkState(currentCube != null);
+      // call id() for copy
+      currentCube.andWith(((BDDRegion)r).getBDD().id());
+    }
+
+    @Override
+    public void addNegativeRegion(Region r) {
+      checkState(currentCube != null);
+      // not() creates new BDD
+      currentCube.andWith(((BDDRegion)r).getBDD().not());
+    }
+
+    @Override
+    public void finishConjunction() {
+      checkState(currentCube != null);
+
+      for (int i = 0; i < cubes.size(); i++) {
+        BDD cubeAtI = cubes.get(i);
+
+        if (cubeAtI == null) {
+          cubes.set(i, currentCube);
+          currentCube = null;
+          return;
+        } else {
+          currentCube.orWith(cubeAtI);
+          cubes.set(i, null);
+        }
+      }
+
+      if (currentCube != null) {
+        cubes.add(currentCube);
+        currentCube = null;
+      }
+    }
+
+    @Override
+    public Region getResult() throws InterruptedException {
+      checkState(currentCube == null);
+      if (cubes.isEmpty()) {
+        return falseFormula;
+      } else {
+        buildBalancedOr();
+        // call id() for copy
+        return wrap(Iterables.getOnlyElement(cubes).id());
+      }
+    }
+
+    private void buildBalancedOr() throws InterruptedException {
+      BDD result = factory.zero(); // false
+
+      for (BDD cube : cubes) {
+        if (cube != null) {
+          shutdownNotifier.shutdownIfNecessary();
+          result.orWith(cube);
+        }
+      }
+      cubes.clear();
+      cubes.add(result);
+      assert (cubes.size() == 1);
+    }
+
+    @Override
+    public void close() {
+      checkState(currentCube == null);
+      for (BDD bdd : cubes) {
+        bdd.free();
+      }
+      cubes.clear();
+    }
+  }
+
+  @Override
+  public Region fromFormula(BooleanFormula pF, FormulaManagerView fmgr,
+      Function<BooleanFormula, Region> atomToRegion) {
+    cleanupReferences();
+
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    if (bfmgr.isFalse(pF)) {
+      return makeFalse();
+    }
+
+    if (bfmgr.isTrue(pF)) {
+      return makeTrue();
+    }
+
+
+    try (FormulaToRegionConverter converter = new FormulaToRegionConverter(fmgr, atomToRegion)) {
+      return wrap(converter.visit(pF));
+    }
+  }
+
+  /**
+   * Class for creating BDDs out of a formula.
+   * This class directly uses the BDD objects and their manual reference counting,
+   * because for large formulas, the performance impact of creating BDDRegion
+   * objects, putting them into the referenceMap and referenceQueue,
+   * gc'ing the BDDRegions again, and calling cleanupReferences() would be too big.
+   */
+  private class FormulaToRegionConverter extends BooleanFormulaManagerView.BooleanFormulaVisitor<BDD>
+                                         implements AutoCloseable {
+
+    private final Function<BooleanFormula, Region> atomToRegion;
+    private final Map<BooleanFormula, BDD> cache = new HashMap<>();
+
+    FormulaToRegionConverter(FormulaManagerView pFmgr,
+        Function<BooleanFormula, Region> pAtomToRegion) {
+      super(pFmgr);
+      atomToRegion = pAtomToRegion;
+    }
+
+    @Override
+    protected BDD visitTrue() {
+      return factory.one();
+    }
+
+    @Override
+    protected BDD visitFalse() {
+      return factory.zero();
+    }
+
+    @Override
+    public BDD visitAtom(BooleanFormula pAtom) {
+      return ((BDDRegion)atomToRegion.apply(pAtom)).getBDD().id();
+    }
+
+    private BDD convert(BooleanFormula pOperand) {
+      BDD operand = cache.get(pOperand);
+      if (operand == null) {
+        operand = visit(pOperand);
+        cache.put(pOperand, operand);
+      }
+      return operand.id(); // copy BDD so the one in the cache won't be consumed
+    }
+
+    @Override
+    public void close() {
+      for (BDD bdd : cache.values()) {
+        bdd.free();
+      }
+      cache.clear();
+    }
+
+    @Override
+    public BDD visitNot(BooleanFormula pOperand) {
+      BDD operand = convert(pOperand);
+      BDD result = operand.not();
+      operand.free();
+      return result;
+    }
+
+    private BDD visitBinary(BooleanFormula pOperand1, BooleanFormula pOperand2,
+        BDDFactory.BDDOp operator) {
+
+      BDD operand1 = convert(pOperand1);
+      BDD operand2 = convert(pOperand2);
+
+      // optimization: applyWith() destroys arg0 and arg1,
+      // but this is ok, because we would free them otherwise anyway
+      return operand1.applyWith(operand2, operator);
+    }
+
+    private BDD visitMulti(BDDFactory.BDDOp operator, BooleanFormula... pOperands) {
+      checkArgument(pOperands.length >= 2);
+
+      BDD result = convert(pOperands[0]);
+      for (int i = 1; i < pOperands.length; i++) {
+        // optimization: applyWith() destroys arg0 and arg1,
+        // but this is ok, because we would free them otherwise anyway
+        result = result.applyWith(convert(pOperands[i]), operator);
+      }
+
+      return result;
+    }
+
+    @Override
+    public BDD visitAnd(BooleanFormula... pOperands) {
+      return visitMulti(BDDFactory.and, pOperands);
+    }
+
+    @Override
+    public BDD visitOr(BooleanFormula... pOperands) {
+      return visitMulti(BDDFactory.or, pOperands);
+    }
+
+    @Override
+    public BDD visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      return visitBinary(pOperand1, pOperand2, BDDFactory.biimp);
+    }
+
+    @Override
+    protected BDD visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      return visitBinary(pOperand1, pOperand2, BDDFactory.imp);
+    }
+
+    @Override
+    public BDD visitIfThenElse(BooleanFormula pCondition,
+        BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
+      BDD condition = convert(pCondition);
+      BDD thenBDD = convert(pThenFormula);
+      BDD elseBDD = convert(pElseFormula);
+
+      BDD result = condition.ite(thenBDD, elseBDD);
+
+      condition.free();
+      thenBDD.free();
+      elseBDD.free();
+      return result;
+    }
+  }
+
 
   public String getVersion() {
     return factory.getVersion();

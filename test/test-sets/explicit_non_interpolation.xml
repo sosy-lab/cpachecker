@@ -1,51 +1,51 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="1020" memlimit="15000">
+<benchmark tool="cpachecker" timelimit="900" hardtimelimit="1020" memlimit="15000">
   <sourcefiles>
     <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
     <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
-    <includesfile>../programs/benchmarks/SystemC.set</includesfile>
-    <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
   </sourcefiles>
 
   <sourcefiles>
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
-    <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
+    <option name="-64"/>
   </sourcefiles>
 
   <option name="-heap">12500M</option>
   <option name="-noout"></option>
+  <option name="-spec">sv-comp</option>
 
-  <test name="abelf">
+  <rundefinition name="abelf">
     <option name="-predicateAnalysis-PredAbsRefiner-ABElf"/>
-  </test>
+  </rundefinition>
 
-  <test name="abelf_explicit">
+  <rundefinition name="abelf_explicit">
     <option name="-predicateAnalysis-PredAbsRefiner-ABElf"/>
     <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.explicit.ExplicitCPA,cpa.predicate.PredicateCPA,cpa.conditions.global.GlobalConditionsCPA</option>
-  </test>
+  </rundefinition>
 
 
-  <test name="abelf_cbmc">
+  <rundefinition name="abelf_cbmc">
     <option name="-predicateAnalysis-PredAbsRefiner-ABElf-cbmc"/>
-  </test>
+  </rundefinition>
 
-  <test name="abelf_cbmc_explicit">
+  <rundefinition name="abelf_cbmc_explicit">
     <option name="-predicateAnalysis-PredAbsRefiner-ABElf-cbmc"/>
     <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.explicit.ExplicitCPA,cpa.predicate.PredicateCPA,cpa.conditions.global.GlobalConditionsCPA</option>
-  </test>
+  </rundefinition>
 
 
-  <test name="explicit">
+  <rundefinition name="explicit">
     <option name="-explicitAnalysis"/>
-  </test>
+  </rundefinition>
 
-  <test name="explicit_thres13">
+  <rundefinition name="explicit_thres13">
     <option name="-explicitAnalysis"/>
     <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.explicit.ExplicitCPA,cpa.conditions.global.GlobalConditionsCPA,cpa.conditions.path.PathConditionsCPA</option>
     <option name="-setprop">cpa.conditions.path.condition=AssignmentsInPathCondition</option>
     <option name="-setprop">cpa.explicit.precision.path.defaultThreshold=13</option>
-  </test>
+  </rundefinition>
 
   <columns>
     <column title="#refs">Number of refinements:</column>

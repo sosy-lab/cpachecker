@@ -65,14 +65,14 @@ public class AssumptionManager {
     AssumptionRelation rel = matchAgainst(a);
     switch (rel) {
     case CONTRADICTS:
-      logger.log(Level.ALL,"Tried to add contradictory assumption!",a);
+      logger.log(Level.ALL, "Tried to add contradictory assumption!",a);
       throw new BadAssumptionsException();
     case WEAKENS:
     case ISSAMEAS:
-      logger.log(Level.ALL,"Assumption",a,"already implied by existing set. We leave the set unchanged.");
+      logger.log(Level.ALL, "Assumption",a,"already implied by existing set. We leave the set unchanged.");
       return;
     default:
-      logger.log(Level.ALL,"Adding new possibly unnecessary assumption, ",a);
+      logger.log(Level.ALL, "Adding new possibly unnecessary assumption, ",a);
       // In this case we must create a new stack frame, and then apply any substitutions resulting from a.
       // The assumption stack will automatically create a FRESH COPY of everything we send it.
       stack.addNewFrame(currentAssumptionSet, allCurrentMatrices(), a);
@@ -85,7 +85,7 @@ public class AssumptionManager {
   }
 
   private List<Matrix> allCurrentMatrices() {
-    List<Matrix> ml = new Vector<Matrix>(currentMatrixQueue.size()+1);
+    List<Matrix> ml = new Vector<>(currentMatrixQueue.size()+1);
     if (currentMatrix != null) {
       ml.add(currentMatrix);
     }
@@ -106,16 +106,16 @@ public class AssumptionManager {
   public void addNecessaryAssumptions(AssumptionSet na) throws BadAssumptionsException {
     // Add the assumptions to the current assumption set, and check whether this
     // gave rise to an immediate contradiction.
-    logger.log(Level.ALL,"Adding necessary assumptions:",na);
+    logger.log(Level.ALL, "Adding necessary assumptions:",na);
     boolean consistent = currentAssumptionSet.addAll(na);
     if (!consistent) {
       // Then there is a contradiction, so we throw an exception.
-      logger.log(Level.ALL,"There was a contradiction!");
+      logger.log(Level.ALL, "There was a contradiction!");
       throw new BadAssumptionsException();
     } else {
       // Then there was no immediate contradiction. So we proceed to apply these assumptions
       // as substitutions to both the current matrix, and also all matrices yet to be processed.
-      logger.log(Level.ALL,"There was no immediate contradiction.",
+      logger.log(Level.ALL, "There was no immediate contradiction.",
           "Assumption set is now:\n",currentAssumptionSet,
           "\nWe now apply substitutions if possible.");
       zeroSubsCurrent(na);
@@ -150,14 +150,14 @@ public class AssumptionManager {
     } else {
       // There is a frame to backtrack to. So we set our data to be what was preserved in the frame.
       currentAssumptionSet = f.getAssumptionSet();
-      currentMatrixQueue = new ArrayDeque<Matrix>(f.getMatrices());
+      currentMatrixQueue = new ArrayDeque<>(f.getMatrices());
       currentMatrix = null;
       logger.log(Level.ALL, "Restoring assumption set to:\n",currentAssumptionSet);
       logger.log(Level.ALL, "Restoring matrix queue to:\n",currentMatrixQueue);
       // Get the assumption that is to be applied to these data.
       // This is the alternative to the assumption that we made the last time we were at this juncture.
       Assumption a = f.getAssumption();
-      logger.log(Level.ALL,"We now apply assumption",a,"whose negation we applied last time we were at this juncture.");
+      logger.log(Level.ALL, "We now apply assumption",a,"whose negation we applied last time we were at this juncture.");
       // Now, if a is going to cause a contradition when added, this is something we really should
       // have realized last time we were at this juncture. Had we realized it then, then we would not
       // have added ~a as a possibly unnecessary assumption, but instead as a necessary one.
@@ -174,7 +174,7 @@ public class AssumptionManager {
    * Make the currentMatrixQueue into a deque containing a COPY of each matrix in the passed collection.
    */
   public void makeMatrixQueueCopy(Collection<Matrix> c) {
-    currentMatrixQueue = new ArrayDeque<Matrix>();
+    currentMatrixQueue = new ArrayDeque<>();
     for (Matrix m : c) {
       currentMatrixQueue.add(m.copy());
     }
@@ -202,7 +202,7 @@ public class AssumptionManager {
     List<Matrix> ml = allCurrentMatrices();
 
     // Compute substitutions based on the assumptions.
-    List<Substitution> subs = new Vector<Substitution>();
+    List<Substitution> subs = new Vector<>();
     for (Assumption a : aset) {
       // We can only use assumptions of type ZERO.
       if (a.getAssumptionType() != AssumptionType.ZERO) {
@@ -225,7 +225,7 @@ public class AssumptionManager {
     // as possible.)
     for (Matrix m : ml) {
       // First make a fresh copy of the substitutions.
-      List<Substitution> ss = new Vector<Substitution>(subs.size());
+      List<Substitution> ss = new Vector<>(subs.size());
       for (Substitution s : subs) {
         ss.add(s.copy());
       }

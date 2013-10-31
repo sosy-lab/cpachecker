@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -64,8 +66,9 @@ public class CFAReduction {
 
   private final Configuration config;
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
-  public CFAReduction(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public CFAReduction(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
 
     if (config.getProperty("specification") == null) {
@@ -74,6 +77,7 @@ public class CFAReduction {
 
     this.config = config;
     this.logger = logger;
+    this.shutdownNotifier = pShutdownNotifier;
   }
 
 
@@ -132,18 +136,21 @@ public class CFAReduction {
                                            .clearOption("CompositeCPA.cpas")
                                            .build();
 
-      CPABuilder lBuilder = new CPABuilder(lConfig, logger, lReachedSetFactory);
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger, shutdownNotifier, lReachedSetFactory);
       ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs(cfa);
-      Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger, lConfig);
+      Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger, lConfig, shutdownNotifier);
       ReachedSet lReached = lReachedSetFactory.create();
       lReached.add(lCpas.getInitialState(cfa.getMainFunction()), lCpas.getInitialPrecision(cfa.getMainFunction()));
 
       lAlgorithm.run(lReached);
 
+      CPAs.closeCpaIfPossible(lCpas, logger);
+      CPAs.closeIfPossible(lAlgorithm, logger);
+
       return from(lReached)
                .filter(IS_TARGET_STATE)
                .transform(EXTRACT_LOCATION)
-               .toImmutableSet();
+               .toSet();
 
     } catch (CPAException e) {
       logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");

@@ -32,7 +32,7 @@ public class ColumnChoiceStack {
   Stack<ColumnChoiceFrame> stack;
 
   ColumnChoiceStack(ColumnChoiceFrame cf) {
-    stack = new Stack<ColumnChoiceFrame>();
+    stack = new Stack<>();
     stack.push(cf);
   }
 

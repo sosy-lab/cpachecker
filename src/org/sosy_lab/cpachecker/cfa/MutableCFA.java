@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,27 +31,35 @@ import java.util.SortedSet;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SortedSetMultimap;
 
 public class MutableCFA implements CFA {
 
+  private final MachineModel machineModel;
   private final Map<String, FunctionEntryNode> functions;
   private final SortedSetMultimap<String, CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
+  private final Language language;
 
   public MutableCFA(
+      MachineModel pMachineModel,
       Map<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pAllNodes,
-      FunctionEntryNode pMainFunction) {
+      FunctionEntryNode pMainFunction,
+      Language pLanguage) {
 
+    machineModel = pMachineModel;
     functions = pFunctions;
     allNodes = pAllNodes;
     mainFunction = pMainFunction;
+    language = pLanguage;
 
     assert functions.keySet().equals(allNodes.keySet());
     assert functions.get(mainFunction.getFunctionName()) == mainFunction;
@@ -75,6 +83,11 @@ public class MutableCFA implements CFA {
     if (functionNodes.isEmpty()) {
       functions.remove(pNode.getFunctionName());
     }
+  }
+
+  @Override
+  public MachineModel getMachineModel() {
+    return machineModel;
   }
 
   @Override
@@ -126,13 +139,23 @@ public class MutableCFA implements CFA {
     return Optional.absent();
   }
 
+  @Override
+  public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
+    return Optional.absent();
+  }
+
   public ImmutableCFA makeImmutableCFA(Optional<ImmutableMultimap<String,
       Loop>> pLoopStructure, Optional<VariableClassification> pVarClassification) {
-    return new ImmutableCFA(functions, allNodes, mainFunction, pLoopStructure, pVarClassification);
+    return new ImmutableCFA(machineModel, functions, allNodes, mainFunction, pLoopStructure, pVarClassification, language);
   }
 
   @Override
   public Optional<VariableClassification> getVarClassification() {
     return Optional.absent();
+  }
+
+  @Override
+  public Language getLanguage() {
+      return language;
   }
 }

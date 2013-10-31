@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,16 +25,19 @@ package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class AssumptionStorageDomain implements AbstractDomain {
 
-  private final FormulaManager formulaManager;
+  private final FormulaManagerView formulaManager;
+  private final BooleanFormulaManagerView bfmgr;
 
   public AssumptionStorageDomain(
-      FormulaManager pFormulaManager) {
+      FormulaManagerView pFormulaManager) {
     formulaManager = pFormulaManager;
+    bfmgr = formulaManager.getBooleanFormulaManager();
   }
 
   @Override
@@ -46,19 +49,20 @@ public class AssumptionStorageDomain implements AbstractDomain {
     // create the disjunction of the stop formulas
     // however, if one of them is true, we would loose the information from the other
     // so handle these special cases separately
-    Formula stopFormula1 = storageElement1.getStopFormula();
-    Formula stopFormula2 = storageElement2.getStopFormula();
-    Formula newStopFormula;
-    if (stopFormula1.isTrue()) {
+    BooleanFormula stopFormula1 = storageElement1.getStopFormula();
+    BooleanFormula stopFormula2 = storageElement2.getStopFormula();
+    BooleanFormula newStopFormula;
+    if (bfmgr.isTrue(stopFormula1)) {
       newStopFormula = stopFormula2;
-    } else if (stopFormula2.isTrue()) {
+    } else if (bfmgr.isTrue(stopFormula2)) {
       newStopFormula = stopFormula1;
     } else {
-      newStopFormula = formulaManager.makeOr(stopFormula1, stopFormula2);
+      newStopFormula = bfmgr.or(stopFormula1, stopFormula2);
     }
 
     return new AssumptionStorageState(
-        formulaManager.makeAnd(storageElement1.getAssumption(),
+        formulaManager,
+        bfmgr.and(storageElement1.getAssumption(),
                                storageElement2.getAssumption()),
         newStopFormula);
   }

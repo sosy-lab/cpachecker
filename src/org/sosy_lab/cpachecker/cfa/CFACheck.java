@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,11 +31,13 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Function;
@@ -51,8 +53,8 @@ public class CFACheck {
    */
   public static boolean check(FunctionEntryNode cfa, Collection<CFANode> nodes) {
 
-    Set<CFANode> visitedNodes = new HashSet<CFANode>();
-    Deque<CFANode> waitingNodeList = new ArrayDeque<CFANode>();
+    Set<CFANode> visitedNodes = new HashSet<>();
+    Deque<CFANode> waitingNodeList = new ArrayDeque<>();
 
     waitingNodeList.add(cfa);
     while (!waitingNodeList.isEmpty()) {
@@ -69,8 +71,8 @@ public class CFACheck {
 
     if (nodes != null) {
       if (!visitedNodes.equals(nodes)) {
-        assert false : "\nNodes in CFA but not reachable through traversal: " + Iterables.transform(Sets.difference(new HashSet<CFANode>(nodes), visitedNodes), DEBUG_FORMAT)
-                     + "\nNodes reached that are not in CFA: " + Iterables.transform(Sets.difference(visitedNodes, new HashSet<CFANode>(nodes)), DEBUG_FORMAT);
+        assert false : "\nNodes in CFA but not reachable through traversal: " + Iterables.transform(Sets.difference(new HashSet<>(nodes), visitedNodes), DEBUG_FORMAT)
+                     + "\nNodes reached that are not in CFA: " + Iterables.transform(Sets.difference(visitedNodes, new HashSet<>(nodes)), DEBUG_FORMAT);
       }
     }
     return true;
@@ -103,16 +105,27 @@ public class CFACheck {
 //        assert false : "Dead end at node " + pNode;
         break;
 
-      case 1: break;
+      case 1:
+        CFAEdge edge = pNode.getLeavingEdge(0);
+        assert !(edge instanceof AssumeEdge) : "AssumeEdge does not appear in pair at node " + DEBUG_FORMAT.apply(pNode);
+        assert !(edge instanceof CFunctionSummaryStatementEdge) : "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node " + DEBUG_FORMAT.apply(pNode);
+        break;
 
       case 2:
         CFAEdge edge1 = pNode.getLeavingEdge(0);
         CFAEdge edge2 = pNode.getLeavingEdge(1);
-        assert (edge1 instanceof CAssumeEdge) && (edge2 instanceof CAssumeEdge) : "Branching without conditions at node " + DEBUG_FORMAT.apply(pNode);
+        //relax this assumption for summary edges
+        if (edge1 instanceof CFunctionSummaryStatementEdge) {
+          assert edge2 instanceof CFunctionCallEdge : "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node " + DEBUG_FORMAT.apply(pNode);
+        } else if (edge2 instanceof CFunctionSummaryStatementEdge) {
+          assert edge1 instanceof CFunctionCallEdge : "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node " + DEBUG_FORMAT.apply(pNode);
+        } else {
+          assert (edge1 instanceof AssumeEdge) && (edge2 instanceof AssumeEdge) : "Branching without conditions at node " + DEBUG_FORMAT.apply(pNode);  // TODO Ask for permission
 
-        CAssumeEdge ae1 = (CAssumeEdge)edge1;
-        CAssumeEdge ae2 = (CAssumeEdge)edge2;
-        assert ae1.getTruthAssumption() != ae2.getTruthAssumption() : "Inconsistent branching at node " + DEBUG_FORMAT.apply(pNode);
+          AssumeEdge ae1 = (AssumeEdge)edge1;
+          AssumeEdge ae2 = (AssumeEdge)edge2;
+          assert ae1.getTruthAssumption() != ae2.getTruthAssumption() : "Inconsistent branching at node " + DEBUG_FORMAT.apply(pNode);
+        }
         break;
 
       default:
@@ -127,8 +140,8 @@ public class CFACheck {
    * @param pNode Node to be checked
    */
   private static void isConsistent(CFANode pNode) {
-    Set<CFAEdge> seenEdges = new HashSet<CFAEdge>();
-    Set<CFANode> seenNodes = new HashSet<CFANode>();
+    Set<CFAEdge> seenEdges = new HashSet<>();
+    Set<CFANode> seenNodes = new HashSet<>();
 
     for (CFAEdge edge : leavingEdges(pNode)) {
       if (!seenEdges.add(edge)) {

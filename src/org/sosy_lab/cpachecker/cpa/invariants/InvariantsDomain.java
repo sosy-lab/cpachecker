@@ -23,16 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-
-import com.google.common.collect.MapDifference;
-import com.google.common.collect.MapDifference.ValueDifference;
-import com.google.common.collect.Maps;
 
 enum InvariantsDomain implements AbstractDomain {
 
@@ -40,51 +32,20 @@ enum InvariantsDomain implements AbstractDomain {
 
   @Override
   public InvariantsState join(AbstractState pElement1, AbstractState pElement2) {
-    InvariantsState element1 = (InvariantsState)pElement1;
-    InvariantsState element2 = (InvariantsState)pElement2;
-
-    MapDifference<String, SimpleInterval> differences = Maps.difference(element1.getIntervals(), element2.getIntervals());
-
-    if (differences.areEqual()) {
-      return element2;
-    }
-
-    Map<String, SimpleInterval> result = new HashMap<String, SimpleInterval>(element1.getIntervals().size());
-    result.putAll(differences.entriesInCommon());
-
-    for (Entry<String, ValueDifference<SimpleInterval>> entry : differences.entriesDiffering().entrySet()) {
-      ValueDifference<SimpleInterval> values = entry.getValue();
-      result.put(entry.getKey(), SimpleInterval.span(values.leftValue(), values.rightValue()));
-    }
-
-    return new InvariantsState(result);
+    InvariantsState element1 = (InvariantsState) pElement1;
+    InvariantsState element2 = (InvariantsState) pElement2;
+    InvariantsState result = element1.join(element2, false);
+    return result;
   }
 
   @Override
   public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) {
-    // check whether element 1 (or left) contains more information than element 2 (or right)
-    InvariantsState element1 = (InvariantsState)pElement1;
-    InvariantsState element2 = (InvariantsState)pElement2;
-
-    MapDifference<String, SimpleInterval> differences = Maps.difference(element1.getIntervals(), element2.getIntervals());
-
-    if (differences.areEqual()) {
+    if (pElement1 == pElement2) {
       return true;
     }
-
-    if (!differences.entriesOnlyOnRight().isEmpty()) {
-      // right knows more, so it is not greater than left
-      return false;
-    }
-
-    for (ValueDifference<SimpleInterval> values : differences.entriesDiffering().values()) {
-      if (!values.rightValue().contains(values.leftValue())) {
-        // right is more specific, so it has more information
-        return false;
-      }
-    }
-
-    return true;
+    InvariantsState element1 = (InvariantsState) pElement1;
+    InvariantsState element2 = (InvariantsState) pElement2;
+    return element1.isLessThanOrEqualTo(element2);
   }
 
 }

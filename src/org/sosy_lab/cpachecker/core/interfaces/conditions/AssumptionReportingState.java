@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces.conditions;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 
@@ -34,13 +36,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 public interface AssumptionReportingState {
 
   /**
-   * Get the assumption that the given abstract state
+   * Get the assumptions that the given abstract state
    * wants to report for its containing node's location.
    *
-   * @return an assumption representing the assumptions to generate
-   *         for the given state, or the value null representing
-   *         the assumption true.
+   * @return a (possibly empty) list of assumptions
+   *         representing the assumptions to generate
+   *         for the given state
    */
-  public CExpression getAssumption();
+  public List<CExpression> getAssumptions();
 
 }

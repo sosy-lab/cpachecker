@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cfa.blocks;
+
+import com.google.common.base.Objects;
 
 /**
  * Represents a reference to a variable in the CFA.
@@ -64,7 +66,7 @@ public class ReferencedVariable {
     }
 
     ReferencedVariable rhs = (ReferencedVariable)o;
-    return ident.equals(rhs.ident) && occursInCondition == rhs.occursInCondition && occursOnLhs == rhs.occursOnLhs && (lhsVariable == null && rhs.lhsVariable == null || lhsVariable.equals(rhs.lhsVariable));
+    return ident.equals(rhs.ident) && occursInCondition == rhs.occursInCondition && occursOnLhs == rhs.occursOnLhs && Objects.equal(lhsVariable, rhs.lhsVariable);
   }
 
   @Override

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,11 +31,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -54,14 +56,14 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
  * Helper class that collects all <code>ReferencedVariable</code>s in a given set of nodes.
  */
 public class ReferencedVariablesCollector {
-  Set<String> globalVars = new HashSet<String>();
+  Set<String> globalVars = new HashSet<>();
 
   public ReferencedVariablesCollector(Collection<CFANode> mainNodes) {
     collectVars(mainNodes);
   }
 
   public Set<ReferencedVariable> collectVars(Collection<CFANode> nodes) {
-    Set<ReferencedVariable> collectedVars = new HashSet<ReferencedVariable>();
+    Set<ReferencedVariable> collectedVars = new HashSet<>();
 
     for (CFANode node : nodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
@@ -143,8 +145,7 @@ public class ReferencedVariablesCollector {
     private void collectVar(String var) {
       if (lhsVar == null) {
         collectedVars.add(scoped(new ReferencedVariable(var, true, false, null), currentFunction));
-      }
-      else {
+      } else {
         collectedVars.add(scoped(new ReferencedVariable(var, false, false, lhsVar), currentFunction));
       }
     }
@@ -177,6 +178,12 @@ public class ReferencedVariablesCollector {
     }
 
     @Override
+    public Void visit(CComplexCastExpression pE) {
+      pE.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
     public Void visit(CFieldReference pE) {
       collectVar(pE.toASTString());
       pE.getFieldOwner().accept(this);
@@ -198,7 +205,6 @@ public class ReferencedVariablesCollector {
 
       switch (op) {
       case AMPER:
-      case STAR:
         collectVar(pE.toASTString());
         //$FALL-THROUGH$
       default:
@@ -206,6 +212,13 @@ public class ReferencedVariablesCollector {
       }
 
 
+      return null;
+    }
+
+    @Override
+    public Void visit(CPointerExpression pE) {
+      collectVar(pE.toASTString());
+      pE.getOperand().accept(this);
       return null;
     }
 

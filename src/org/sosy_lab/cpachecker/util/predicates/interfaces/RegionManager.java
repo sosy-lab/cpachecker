@@ -24,8 +24,13 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.io.PrintStream;
+import java.util.Set;
 
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+
+import com.google.common.base.Function;
 
 /**
  * An AbstractFormulaManager is an object that knows how to create/manipulate
@@ -40,7 +45,7 @@ public interface RegionManager {
    * @param f2 an AbstractFormula
    * @return true if (f1 => f2), false otherwise
    */
-  public boolean entails(Region f1, Region f2);
+  public boolean entails(Region f1, Region f2) throws InterruptedException;
 
   /**
    * @return a representation of logical truth
@@ -92,6 +97,15 @@ public interface RegionManager {
   public Region makeUnequal(Region f1, Region f2);
 
   /**
+   * Creates a region representing an if then else construct of the three arguments
+   * @param f1 an AbstractFormula
+   * @param f2 an AbstractFormula
+   * @param f3 an AbstractFormula
+   * @return (if f1 then f2 else f3)
+   */
+  public Region makeIte(Region f1, Region f2, Region f3);
+
+  /**
    * Creates a region representing an existential quantification of the second
    * argument. If there are more arguments, each of them is quantified.
    * @param f1 an AbstractFormula
@@ -105,6 +119,22 @@ public interface RegionManager {
    * @return a new predicate
    */
   public Region createPredicate();
+
+  /**
+   * Returns the set of all predicates that occur in the representation of this region.
+   * @return a set of regions where each region represents one predicate
+   */
+  public Set<Region> extractPredicates(Region f);
+
+  /**
+   * Convert a formula into a region.
+   * @param pF The formula to convert.
+   * @param fmgr The formula manager that belongs to pF.
+   * @param atomToRegion A function that returns a region for each atom in the formula.
+   * @return a region representing pF
+   */
+  public Region fromFormula(BooleanFormula pF, FormulaManagerView fmgr,
+      Function<BooleanFormula, Region> atomToRegion);
 
   /**
    * A region consists of the form
@@ -121,4 +151,46 @@ public interface RegionManager {
    * Prints some information about the RegionManager.
    */
   public void printStatistics(PrintStream out);
+
+  /**
+   * Return a new {@link RegionBuilder} instance.
+   */
+  public RegionBuilder builder(ShutdownNotifier pShutdownNotifier);
+
+  /**
+   * A stateful region builder for regions that are disjunctions
+   * of conjunctive literals.
+   */
+  public static interface RegionBuilder extends AutoCloseable {
+
+    /**
+     * Start a new conjunctive clause.
+     */
+    void startNewConjunction();
+
+    /**
+     * Add a region to the current conjunctive clause.
+     */
+    void addPositiveRegion(Region r);
+
+    /**
+     * Add the negation of a region to the current conjunctive clause.
+     * @param r
+     */
+    void addNegativeRegion(Region r);
+
+    /**
+     * End the current conjunctive clause and add it to the global disjunction.
+     */
+    void finishConjunction();
+
+    /**
+     * Retrieve the disjunction of all the conjunctive clauses created
+     * with this builder so far.
+     */
+    Region getResult() throws InterruptedException;
+
+    @Override
+    public void close();
+  }
 }

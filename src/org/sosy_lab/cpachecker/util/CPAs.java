@@ -23,14 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.util.Iterator;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
-import com.google.common.base.Function;
+import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterators;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.TreeTraverser;
 
 /**
  * Helper functions to work with CPAs.
@@ -63,16 +65,39 @@ public class CPAs {
    */
   public static FluentIterable<ConfigurableProgramAnalysis> asIterable(final ConfigurableProgramAnalysis pCpa) {
 
-    return new TreeIterable<ConfigurableProgramAnalysis>(pCpa, CPA_CHILDREN_FUNCTION);
+    return new TreeTraverser<ConfigurableProgramAnalysis>() {
+      @Override
+      public Iterable<ConfigurableProgramAnalysis> children(ConfigurableProgramAnalysis cpa) {
+        return (cpa instanceof WrapperCPA)
+             ? ((WrapperCPA)cpa).getWrappedCPAs()
+             : ImmutableList.<ConfigurableProgramAnalysis>of();
+      }
+    }.preOrderTraversal(pCpa);
   }
 
-  private static final Function<ConfigurableProgramAnalysis, Iterator<? extends ConfigurableProgramAnalysis>> CPA_CHILDREN_FUNCTION =
-    new Function<ConfigurableProgramAnalysis, Iterator<? extends ConfigurableProgramAnalysis>>() {
-      @Override
-      public Iterator<? extends ConfigurableProgramAnalysis> apply(ConfigurableProgramAnalysis cpa) {
-        return (cpa instanceof WrapperCPA)
-             ? ((WrapperCPA)cpa).getWrappedCPAs().iterator()
-             : Iterators.<ConfigurableProgramAnalysis>emptyIterator();
+  /**
+   * Close all CPAs (including wrapped CPAs) if they support this.
+   * @param cpa A CPA (possibly a WrapperCPA).
+   */
+  public static void closeCpaIfPossible(ConfigurableProgramAnalysis cpa, LogManager logger) {
+    for (ConfigurableProgramAnalysis currentCpa : CPAs.asIterable(cpa)) {
+      closeIfPossible(currentCpa, logger);
+    }
+  }
+
+  /**
+   * Call {@link AutoCloseable#close()} on an supplied object if it implements
+   * {@link AutoCloseable}. Checked exceptions are logged but not re-thrown.
+   * @param obj An object.
+   */
+  public static void closeIfPossible(Object obj, LogManager logger) {
+    if (obj instanceof AutoCloseable) {
+      try {
+        ((AutoCloseable)obj).close();
+      } catch (Exception e) {
+        Throwables.propagateIfPossible(e);
+        logger.logUserException(Level.WARNING, e, "Failed to close " + obj.getClass().getSimpleName());
       }
-    };
+    }
+  }
 }

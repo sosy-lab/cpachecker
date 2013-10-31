@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,17 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+
 
 /**
- * Super class for side-effect free expressions.
+ * Interface for side-effect free expressions.
  */
-public abstract class CExpression extends CRightHandSide {
+public interface  CExpression  extends CRightHandSide, IAExpression {
 
-  public CExpression(final CFileLocation pFileLocation,
-                        final CType pType) {
-    super(pFileLocation, pType);
-  }
+  public  <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X;
 
-  public abstract <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X;
 }

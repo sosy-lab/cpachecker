@@ -56,7 +56,7 @@ public class DominatorTransferRelation implements TransferRelation {
 
     Collection<? extends AbstractState> successorsOfDominatedElement = this.cpa.getTransferRelation().getAbstractSuccessors(dominatorState.getDominatedState(), prec, cfaEdge);
 
-    Collection<DominatorState> successors = new ArrayList<DominatorState>(successorsOfDominatedElement.size());
+    Collection<DominatorState> successors = new ArrayList<>(successorsOfDominatedElement.size());
     for (AbstractState successorOfDominatedElement : successorsOfDominatedElement) {
       DominatorState successor = new DominatorState(successorOfDominatedElement, dominatorState);
       successor.update(successorOfDominatedElement);

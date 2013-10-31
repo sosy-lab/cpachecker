@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 
 
 class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
@@ -48,7 +49,6 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
   //necessary stuff to query the OperatingSystemMBean for the process cpu time
   private final MBeanServer mbeanServer;
   private final ObjectName osMbean;
-  private static final String PROCESS_CPU_TIME = "ProcessCpuTime";
   private static final String MEMORY_SIZE = "CommittedVirtualMemorySize";
 
   private final MemoryMXBean memory;
@@ -111,9 +111,9 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
       return false;
     }
 
-    Object cputimeObject;
+    long cputimeNanos;
     try {
-      cputimeObject = mbeanServer.getAttribute(osMbean, PROCESS_CPU_TIME);
+      cputimeNanos = ProcessCpuTime.read();
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
       logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, cpu time threshold disabled");
@@ -122,14 +122,7 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
       return false;
     }
 
-    if (!(cputimeObject instanceof Long)) {
-      logger.log(Level.WARNING, "Invalid value received for cpu time: " + cputimeObject + ", cpu time threshold disabled");
-
-      cpuTimeDisabled = true;
-      return false;
-    }
-
-    long cputime = ((Long)cputimeObject) / (1000*1000);
+    long cputime = cputimeNanos / (1000*1000);
 
     return (cputime > threshold);
   }
@@ -140,7 +133,7 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
       return false;
     }
 
-    return (memory.getHeapMemoryUsage().getUsed() > threshold);
+    return ((memory.getHeapMemoryUsage().getUsed() / (1024*1024)) > threshold);
   }
 
   private boolean checkProcessMemory() {

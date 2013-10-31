@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,24 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-public final class CFunctionCallStatement extends CStatement implements CFunctionCall {
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-  private final CFunctionCallExpression functionCall;
+public final class CFunctionCallStatement extends AFunctionCallStatement implements CStatement, CFunctionCall {
 
-  public CFunctionCallStatement(CFileLocation pFileLocation,
+
+
+  public CFunctionCallStatement(FileLocation pFileLocation,
                                    CFunctionCallExpression pFunctionCall) {
-    super(pFileLocation);
-    functionCall = pFunctionCall;
+    super(pFileLocation, pFunctionCall);
+
   }
 
   @Override
   public CFunctionCallExpression getFunctionCallExpression() {
-    return functionCall;
-  }
-
-  @Override
-  public CStatement asStatement() {
-    return this;
+    return (CFunctionCallExpression) super.getFunctionCallExpression();
   }
 
   @Override
@@ -49,7 +47,22 @@ public final class CFunctionCallStatement extends CStatement implements CFunctio
   }
 
   @Override
-  public String toASTString() {
-    return functionCall.toASTString() + ";";
+  public int hashCode() {
+    int prime = 31;
+    int result = 7;
+    return prime * result + super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CFunctionCallStatement)) {
+      return false;
+    }
+
+    return super.equals(obj);
   }
 }

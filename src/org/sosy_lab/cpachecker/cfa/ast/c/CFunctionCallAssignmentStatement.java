@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,38 +23,32 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-public final class CFunctionCallAssignmentStatement extends CStatement
-                                                          implements CAssignment, CFunctionCall {
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-  private final CExpression leftHandSide;
-  private final CFunctionCallExpression rightHandSide;
 
-  public CFunctionCallAssignmentStatement(CFileLocation pFileLocation,
-                                             CExpression pLeftHandSide,
+public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignmentStatement
+                                                          implements CStatement, CAssignment, CFunctionCall {
+
+  public CFunctionCallAssignmentStatement(FileLocation pFileLocation,
+                                             CLeftHandSide pLeftHandSide,
                                              CFunctionCallExpression pRightHandSide) {
-    super(pFileLocation);
-    leftHandSide = pLeftHandSide;
-    rightHandSide = pRightHandSide;
+    super(pFileLocation, pLeftHandSide, pRightHandSide);
   }
 
   @Override
-  public CExpression getLeftHandSide() {
-    return leftHandSide;
+  public CLeftHandSide getLeftHandSide() {
+    return (CLeftHandSide)super.getLeftHandSide();
   }
 
   @Override
   public CFunctionCallExpression getRightHandSide() {
-    return rightHandSide;
+    return (CFunctionCallExpression)super.getRightHandSide();
   }
 
   @Override
   public CFunctionCallExpression getFunctionCallExpression() {
-    return rightHandSide;
-  }
-
-  @Override
-  public CStatement asStatement() {
-    return this;
+    return (CFunctionCallExpression) super.getFunctionCallExpression();
   }
 
   @Override
@@ -64,7 +58,27 @@ public final class CFunctionCallAssignmentStatement extends CStatement
 
   @Override
   public String toASTString() {
-    return leftHandSide.toASTString()
-        + " = " + rightHandSide.toASTString() + ";";
+    return getLeftHandSide().toASTString()
+        + " = " + getRightHandSide().toASTString() + ";";
+  }
+
+  @Override
+  public int hashCode() {
+    int prime = 31;
+    int result = 7;
+    return prime * result + super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CFunctionCallAssignmentStatement)) {
+      return false;
+    }
+
+    return super.equals(obj);
   }
 }

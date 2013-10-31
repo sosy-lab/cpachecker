@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,25 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.configuration.OptionCollector;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 /**
@@ -60,14 +65,15 @@ class CmdLineArguments {
 
     private static final long serialVersionUID = -6526968677815416436L;
 
-    private InvalidCmdlineArgumentException(String msg) {
+    private InvalidCmdlineArgumentException(final String msg) {
       super(msg);
     }
   }
 
   private CmdLineArguments() { } // prevent instantiation, this is a static helper class
 
-  private static final Pattern DEFAULT_CONFIG_FILES_PATTERN = Pattern.compile("^[a-zA-Z0-9-]+$");
+  private static final Pattern DEFAULT_CONFIG_FILES_PATTERN = Pattern.compile("^[a-zA-Z0-9-+]+$");
+
 
   /**
    * The directory where to look for configuration files for options like
@@ -79,9 +85,10 @@ class CmdLineArguments {
 
   private static final String CMC_CONFIGURATION_FILES_OPTION = "restartAlgorithm.configFiles";
 
-  private static final Set<String> UNSUPPORTED_SPECIFICATIONS = ImmutableSet.of(
-      "valid-free", "valid-deref", "valid-memtrack"
-      );
+  private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
+  private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
+
+  private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
   /**
    * Reads the arguments and process them.
@@ -92,13 +99,9 @@ class CmdLineArguments {
    * @return a map with all options found in the command line
    * @throws InvalidCmdlineArgumentException if there is an error in the command line
    */
-  static Map<String, String> processArguments(String[] args) throws InvalidCmdlineArgumentException {
-    if (args == null || args.length < 1) {
-      throw new InvalidCmdlineArgumentException("Configuration file or list of CPAs needed. Use -help for more information.");
-    }
-
-    Map<String, String> properties = new HashMap<String, String>();
-    List<String> programs = new ArrayList<String>();
+  static Map<String, String> processArguments(final String[] args) throws InvalidCmdlineArgumentException {
+    Map<String, String> properties = new HashMap<>();
+    List<String> programs = new ArrayList<>();
 
     Iterator<String> argsIt = Arrays.asList(args).iterator();
 
@@ -107,15 +110,21 @@ class CmdLineArguments {
       if (   handleArgument0("-cbmc",    "analysis.useCBMC", "true",            arg, properties)
           || handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
           || handleArgument0("-noout",   "output.disable",   "true",            arg, properties)
+          || handleArgument0("-java",    "language",         "JAVA",            arg, properties)
+          || handleArgument0("-32",      "analysis.machineModel", "Linux32",    arg, properties)
+          || handleArgument0("-64",      "analysis.machineModel", "Linux64",    arg, properties)
+          || handleArgument0("-preprocess",    "parser.usePreprocessor", "true", arg, properties)
           || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
           || handleArgument1("-config",        CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
           || handleArgument1("-timelimit",     "cpa.conditions.global.time.wall", arg, argsIt, properties)
+          || handleArgument1("-sourcepath",    "java.sourcepath",         arg, argsIt, properties)
+          || handleArgument1("-cp",            "java.classpath",          arg, argsIt, properties)
+          || handleArgument1("-classpath",     "java.classpath",          arg, argsIt, properties)
           || handleMultipleArgument1("-spec",  "specification",           arg, argsIt, properties)
       ) {
         // nothing left to do
-
       } else if (arg.equals("-cmc")) {
         handleCmc(argsIt, properties);
 
@@ -130,6 +139,10 @@ class CmdLineArguments {
       } else if (arg.equals("-nolog")) {
         putIfNotExistent(properties, "log.level", "off");
         putIfNotExistent(properties, "log.consoleLevel", "off");
+
+      } else if (arg.equals("-skipRecursion")) {
+        putIfNotExistent(properties, "analysis.summaryEdges", "true");
+        putIfNotExistent(properties, "cpa.callstack.skipRecursion", "true");
 
       } else if (arg.equals("-setprop")) {
         if (argsIt.hasNext()) {
@@ -164,17 +177,25 @@ class CmdLineArguments {
 
       } else if (arg.startsWith("-") && !(new File(arg).exists())) {
         String argName = arg.substring(1); // remove "-"
-        File f = new File(String.format(DEFAULT_CONFIG_FILES_DIR, argName));
 
-        if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches() && f.exists()) {
-          try {
-            Files.checkReadableFile(f);
-            putIfNotExistent(properties, CONFIGURATION_FILE_OPTION, f.getPath());
-          } catch (FileNotFoundException e) {
-            System.out.println("Invalid configuration " + argName + " (" + e.getMessage() + ")");
-            System.exit(0);
+        if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
+          Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, argName);
+
+          if (configFile != null) {
+            try {
+              Files.checkReadableFile(configFile);
+              putIfNotExistent(properties, CONFIGURATION_FILE_OPTION, configFile.toString());
+            } catch (FileNotFoundException e) {
+              System.out.println("Invalid configuration " + argName + " (" + e.getMessage() + ")");
+              System.exit(0);
+            }
+          } else {
+            System.out.println("Invalid option " + arg);
+            System.out.println("If you meant to specify a configuration file, the file "
+                + String.format(DEFAULT_CONFIG_FILES_DIR, argName) + " does not exist.");
+            System.out.println("");
+            printHelp();
           }
-
         } else {
           System.out.println("Invalid option " + arg);
           System.out.println("");
@@ -190,10 +211,11 @@ class CmdLineArguments {
     if (!programs.isEmpty()) {
       putIfNotExistent(properties, "analysis.programNames", Joiner.on(", ").join(programs));
     }
+
     return properties;
   }
 
-  private static void handleCmc(Iterator<String> argsIt, Map<String, String> properties)
+  private static void handleCmc(final Iterator<String> argsIt, final Map<String, String> properties)
       throws InvalidCmdlineArgumentException {
     properties.put("analysis.restartAfterUnknown", "true");
 
@@ -202,10 +224,10 @@ class CmdLineArguments {
 
       // replace "predicateAnalysis" with config/predicateAnalysis.properties etc.
       if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches() && !(new File(newValue).exists())) {
-        File f = new File(String.format(DEFAULT_CONFIG_FILES_DIR, newValue));
+        Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, newValue);
 
-        if (f.exists()) {
-          newValue = f.getPath();
+        if (configFile != null) {
+          newValue = configFile.toString();
         }
       }
 
@@ -237,16 +259,23 @@ class CmdLineArguments {
     System.out.println(" -stats");
     System.out.println(" -nolog");
     System.out.println(" -noout");
+    System.out.println(" -java");
+    System.out.println(" -32");
+    System.out.println(" -64");
+    System.out.println(" -skipRecursion");
     System.out.println(" -setprop");
     System.out.println(" -printOptions [-v|-verbose]");
     System.out.println(" -printUsedOptions");
     System.out.println(" -help");
     System.out.println();
+    System.out.println("You can also specify any of the configuration files in the directory config/");
+    System.out.println("with -CONFIG_FILE, e.g., -predicateAnalysis for config/predicateAnalysis.properties.");
+    System.out.println();
     System.out.println("More information on how to configure CPAchecker can be found in 'doc/Configuration.txt'.");
     System.exit(0);
   }
 
-  private static void putIfNotExistent(Map<String, String> properties, String key, String value)
+  private static void putIfNotExistent(final Map<String, String> properties, final String key, final String value)
       throws InvalidCmdlineArgumentException {
 
     if (properties.containsKey(key)) {
@@ -259,8 +288,8 @@ class CmdLineArguments {
   /**
    * Handle a command line argument with no value.
    */
-  private static boolean handleArgument0(String arg, String option, String value, String currentArg,
-        Map<String, String> properties) throws InvalidCmdlineArgumentException {
+  private static boolean handleArgument0(final String arg, final String option, final String value, final String currentArg,
+        final Map<String, String> properties) throws InvalidCmdlineArgumentException {
     if (currentArg.equals(arg)) {
       putIfNotExistent(properties, option, value);
       return true;
@@ -272,8 +301,8 @@ class CmdLineArguments {
   /**
    * Handle a command line argument with one value.
    */
-  private static boolean handleArgument1(String arg, String option, String currentArg,
-        Iterator<String> args, Map<String, String> properties)
+  private static boolean handleArgument1(final String arg, final String option, final String currentArg,
+        final Iterator<String> args, final Map<String, String> properties)
         throws InvalidCmdlineArgumentException {
     if (currentArg.equals(arg)) {
       if (args.hasNext()) {
@@ -290,17 +319,43 @@ class CmdLineArguments {
   /**
    * Handle a command line argument with one value that may appear several times.
    */
-  private static boolean handleMultipleArgument1(String arg, String option, String currentArg,
-      Iterator<String> args, Map<String, String> properties)
+  private static boolean handleMultipleArgument1(final String arg, final String option, final String currentArg,
+      final Iterator<String> args, final Map<String, String> properties)
       throws InvalidCmdlineArgumentException {
     if (currentArg.equals(arg)) {
       if (args.hasNext()) {
 
         String newValue = args.next();
-        if (arg.equals("-spec")
-            && UNSUPPORTED_SPECIFICATIONS.contains(newValue)) {
-          System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
-          System.exit(0);
+        if (arg.equals("-spec")) {
+          // handle normal specification definitions
+          if(SPECIFICATION_FILES_PATTERN.matcher(newValue).matches()) {
+            Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, newValue);
+            if (specFile != null) {
+              newValue = specFile.toString();
+            } else {
+              System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
+              System.exit(0);
+            }
+          }
+
+          // handle property files, as demanded by SV-COMP, which are just mapped to an explicit entry function and
+          // the respective specification definition
+          else if(PROPERTY_FILE_PATTERN.matcher(newValue).matches()) {
+            Path propertyFile = Paths.get(newValue);
+            if (java.nio.file.Files.exists(propertyFile)) {
+              PropertyFileParser parser = new PropertyFileParser(propertyFile.toFile());
+              parser.parse();
+              putIfNotExistent(properties, "analysis.entryFunction", parser.entryFunction);
+
+              // set the file from where to read the specification automaton
+              newValue = parser.propertyType.automatonFileName;
+            }
+
+            else {
+              System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
+              System.exit(0);
+            }
+          }
         }
 
         String value = properties.get(option);
@@ -317,6 +372,99 @@ class CmdLineArguments {
       return true;
     } else {
       return false;
+    }
+  }
+
+  /**
+   * Try to locate a file whose (partial) name is given by the user,
+   * using a file name template which is filled with the user given name.
+   *
+   * If the path is relative, it is first looked up in the current directory,
+   * and (if the file does not exist there), it is looked up in the parent directory
+   * of the code base.
+   *
+   * If the file cannot be found, null is returned.
+   *
+   * @param template The string template for the path.
+   * @param name The value for filling in the template.
+   * @return An absolute Path object pointing to an existing file or null.
+   */
+  private static Path findFile(final String template, final String name) {
+    final String fileName = String.format(template, name);
+
+    Path file = Paths.get(fileName);
+
+    // look in current directory first
+    if (java.nio.file.Files.exists(file)) {
+      return file.toAbsolutePath();
+    }
+
+    // look relative to code location second
+    Path codeLocation = Paths.get(CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+    Path baseDir = codeLocation.getParent();
+
+    file = baseDir.resolve(fileName);
+    if (java.nio.file.Files.exists(file)) {
+      return file.toAbsolutePath();
+    }
+
+    return null;
+  }
+
+  /**
+   * A simple class that reads a property, i.e. basically an entry function and a proposition, from a given property,
+   * and maps the proposition to a file from where to read the specification automaton.
+   */
+  private static class PropertyFileParser {
+    private final File propertyFile;
+
+    private String entryFunction;
+    private PropertyType propertyType;
+
+    private static final Pattern PROPERTY_PATTERN =
+        Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
+
+    private PropertyFileParser(final File pPropertyFile) {
+      propertyFile = pPropertyFile;
+    }
+
+    private void parse() throws InvalidCmdlineArgumentException {
+      String rawProperty = null;
+      try (BufferedReader br = java.nio.file.Files.newBufferedReader(propertyFile.toPath(), Charset.defaultCharset())) {
+        rawProperty = br.readLine();
+      }
+      catch (IOException e) {
+        throw new InvalidCmdlineArgumentException("The given property file could not be read!");
+      }
+
+      Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
+
+      if(rawProperty == null || !matcher.matches() || matcher.groupCount() != 2) {
+        throw new InvalidCmdlineArgumentException("The given property is not well-formed!");
+      }
+
+      entryFunction = matcher.group(1);
+
+      if(matcher.group(2).equals(PropertyType.REACHABILITY.property)) {
+        propertyType = PropertyType.REACHABILITY;
+      } else {
+        throw new InvalidCmdlineArgumentException("The property given in the property file is not yet supported.");
+      }
+    }
+
+    private enum PropertyType {
+      REACHABILITY    ("G ! label(ERROR)", "config/specification/sv-comp.spc"),
+      VALID_FREE      ("G valid-free",      null),
+      VALID_DEREF     ("G valid-deref",     null),
+      VALID_MEMTRACK  ("G valid-memtrack",  null);
+
+      private final String property;
+      private final String automatonFileName;
+
+      PropertyType (String pProperty, String pAutomatonFileName) {
+        property          = pProperty;
+        automatonFileName = pAutomatonFileName;
+      }
     }
   }
 }

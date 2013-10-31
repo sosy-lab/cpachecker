@@ -52,12 +52,12 @@ public class UsableColumn implements Comparable<UsableColumn> {
     logger = lm;
     // We construct this to be the column j in the matrix mat.
     int m = mat.getRowNum();
-    entries = new Vector<RationalFunction>(m);
+    entries = new Vector<>(m);
     for (int i = 0; i < m; i++) {
-      entries.add( mat.getEntry(i, j) );
+      entries.add(mat.getEntry(i, j));
     }
     colNum = j;
-    requests = new HashSet<Integer>();
+    requests = new HashSet<>();
     logger.log(Level.ALL, "Constructed UsableColumn with entries:\n",entries);
   }
 
@@ -113,7 +113,7 @@ public class UsableColumn implements Comparable<UsableColumn> {
   }
 
   public void clearRequests() {
-    requests = new HashSet<Integer>();
+    requests = new HashSet<>();
   }
 
   public void makeRequest(Integer r) {
@@ -121,7 +121,7 @@ public class UsableColumn implements Comparable<UsableColumn> {
   }
 
   void makeRequest(PivotRow2 pr) {
-    requests.add( pr.getRowNum() );
+    requests.add(pr.getRowNum());
   }
 
   List<PivotRow2> query() {

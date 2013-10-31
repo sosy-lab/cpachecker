@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,16 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+
+
 /**
  * Interface for all statements that contain function calls.
- * Only sub-classes of {@link CStatement} may implement this interface.
  */
-public interface CFunctionCall {
+public interface CFunctionCall extends AFunctionCall, CStatement {
 
+  @Override
   CFunctionCallExpression getFunctionCallExpression();
-
-  /**
-   * Return "this" casted to CStatement, i.e., this methods performs an upcast.
-   */
-  CStatement asStatement();
 }

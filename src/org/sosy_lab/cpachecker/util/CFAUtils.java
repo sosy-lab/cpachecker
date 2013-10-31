@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -35,16 +36,25 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
+import com.google.common.primitives.Ints;
 
 public class CFAUtils {
 
@@ -172,7 +182,7 @@ public class CFAUtils {
     };
   }
 
-  private static final Function<CFAEdge,  CFANode> TO_PREDECESSOR = new Function<CFAEdge,  CFANode>() {
+  static final Function<CFAEdge,  CFANode> TO_PREDECESSOR = new Function<CFAEdge,  CFANode>() {
       @Override
       public CFANode apply(CFAEdge pInput) {
         return pInput.getPredecessor();
@@ -180,7 +190,7 @@ public class CFAUtils {
     };
 
 
-  private static final Function<CFAEdge,  CFANode> TO_SUCCESSOR = new Function<CFAEdge,  CFANode>() {
+  static final Function<CFAEdge,  CFANode> TO_SUCCESSOR = new Function<CFAEdge,  CFANode>() {
     @Override
     public CFANode apply(CFAEdge pInput) {
       return pInput.getSuccessor();
@@ -219,9 +229,27 @@ public class CFAUtils {
     return allLeavingEdges(node).transform(TO_SUCCESSOR);
   }
 
+  public static final Function<CFANode, String> GET_FUNCTION = new Function<CFANode, String>() {
+    @Override
+    public String apply(CFANode pInput) {
+      return pInput.getFunctionName();
+    }
+  };
+
+  /**
+   * A comparator for comparing {@link CFANode}s by their line numbers.
+   */
+  public static final Comparator<CFANode> LINE_NUMBER_COMPARATOR = new Comparator<CFANode>() {
+    @Override
+    public int compare(CFANode pO1, CFANode pO2) {
+      return Ints.compare(pO1.getLineNumber(), pO2.getLineNumber());
+    }
+  };
+
+
   // wrapper class for Set<CFANode> because Java arrays don't like generics
   private static class Edge {
-    private final Set<CFANode> nodes = new HashSet<CFANode>(1);
+    private final Set<CFANode> nodes = new HashSet<>(1);
 
     private void add(Edge n) {
       nodes.addAll(n.nodes);
@@ -264,16 +292,12 @@ public class CFAUtils {
         assert outgoingEdges != null;
       }
 
-      Set<CFAEdge> incomingEdges = new HashSet<CFAEdge>();
-      Set<CFAEdge> outgoingEdges = new HashSet<CFAEdge>();
+      Set<CFAEdge> incomingEdges = new HashSet<>();
+      Set<CFAEdge> outgoingEdges = new HashSet<>();
 
       for (CFANode n : nodes) {
-        for (int i = 0; i < n.getNumEnteringEdges(); i++) {
-          incomingEdges.add(n.getEnteringEdge(i));
-        }
-        for (int i = 0; i < n.getNumLeavingEdges(); i++) {
-          outgoingEdges.add(n.getLeavingEdge(i));
-        }
+        enteringEdges(n).copyInto(incomingEdges);
+        leavingEdges(n).copyInto(outgoingEdges);
       }
 
       innerLoopEdges = Sets.intersection(incomingEdges, outgoingEdges).immutableCopy();
@@ -321,6 +345,11 @@ public class CFAUtils {
       return nodes;
     }
 
+    public ImmutableSet<CFAEdge> getInnerLoopEdges() {
+      computeSets();
+      return innerLoopEdges;
+    }
+
     public ImmutableSet<CFANode> getLoopHeads() {
       return loopHeads;
     }
@@ -345,16 +374,99 @@ public class CFAUtils {
     }
   }
 
-  public static Collection<Loop> findLoops(SortedSet<CFANode> nodes) throws ParserException {
-    final int min = nodes.first().getNodeNumber();
-    final int max = nodes.last().getNodeNumber();
-    final int size = max + 1 - min;
+  /**
+   * This Visitor searches for backwards edges in the CFA, if some backwards edges
+   * were found can be obtained by calling the method hasBackwardsEdges()
+   */
+  static class FindBackwardsEdgesVisitor extends DefaultCFAVisitor {
 
-    nodes = new TreeSet<CFANode>(nodes); // copy nodes because we change it
+    private boolean hasBackwardsEdges = false;
+
+    @Override
+    public TraversalProcess visitNode(CFANode pNode) {
+
+      if (pNode.getNumLeavingEdges() == 0) {
+        return TraversalProcess.CONTINUE;
+      } else if (pNode.getNumLeavingEdges() == 1
+                 && pNode.getLeavingEdge(0).getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId()) {
+
+        hasBackwardsEdges = true;
+        return TraversalProcess.ABORT;
+      } else if (pNode.getNumLeavingEdges() == 2
+                 && (pNode.getLeavingEdge(0).getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId() ||
+                 pNode.getLeavingEdge(1).getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId())) {
+        hasBackwardsEdges = true;
+        return TraversalProcess.ABORT;
+      } else if (pNode.getNumLeavingEdges() > 2) {
+        throw new CFAGenerationRuntimeException("forgotten case in traversing cfa with more than 2 leaving edges");
+      } else {
+        return TraversalProcess.CONTINUE;
+      }
+    }
+
+    public boolean hasBackwardsEdges() {
+      return hasBackwardsEdges;
+    }
+  }
+
+  /**
+   * Searches for backwards edges from a given starting node
+   * @param actNode The node where the search is started
+   * @return indicates if a backwards edge was found
+   */
+  private static boolean hasBackWardsEdges(CFANode rootNode) {
+    FindBackwardsEdgesVisitor visitor = new FindBackwardsEdgesVisitor();
+
+    CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(rootNode, visitor);
+
+    return visitor.hasBackwardsEdges();
+  }
+
+  /**
+   * Find all loops inside a given set of CFA nodes.
+   * The nodes in the given set may not be connected
+   * with any nodes outside of this set.
+   * This method tries to differentiate nested loops.
+   *
+   * @param nodes The set of nodes to look for loops in.
+   * @param language The source language.
+   * @return A collection of found loops.
+   * @throws ParserException
+   */
+  public static Collection<Loop> findLoops(SortedSet<CFANode> nodes, Language language) throws ParserException {
+
+    // if there are no backwards directed edges, there are no loops, so we do
+    // not need to search for them
+    {
+      CFANode functionExitNode = nodes.first(); // The function exit node is always the first
+      if (functionExitNode instanceof FunctionExitNode) {
+        CFANode functionEntryNode = ((FunctionExitNode)functionExitNode).getEntryNode();
+
+        if (!hasBackWardsEdges(functionEntryNode)) {
+          return ImmutableList.of();
+        }
+      }
+    }
+
+    nodes = new TreeSet<>(nodes); // copy nodes because we change it
+
+    // We need to store some information per pair of CFANodes.
+    // We could use Map<Pair<CFANode, CFANode>> but it would be very memory
+    // inefficient. Instead we use some arrays.
+    // We use the reverse post-order id of each node as the array index for that node,
+    // because this id is unique, without gaps, and its minimum is 0.
+    // It's important to not use the node number because it has large gaps.
+    final Function<CFANode, Integer> arrayIndexForNode = new Function<CFANode, Integer>() {
+        @Override
+        public Integer apply(CFANode n) {
+          return n.getReversePostorderId();
+        }
+      };
+    // this is the size of the arrays
+    int size = nodes.size();
 
     // all nodes of the graph
-    // Fields may be null, iff there is no node with this number.
-    // forall i : nodes[i].getNodeNumber() == i + min
+    // forall i : arrayIndexForNode.apply(nodes[i]) == i
     final CFANode[] nodesArray = new CFANode[size];
 
     // all edges of the graph
@@ -362,33 +474,60 @@ public class CFAUtils {
     // The set edges[i][j].nodes contains all nodes that were eliminated and merged into this edge.
     final Edge[][] edges =  new Edge[size][size];
 
+    List<Loop> loops = new ArrayList<>();
+
     // FIRST step: initialize arrays
     for (CFANode n : nodes) {
-      int i = n.getNodeNumber() - min;
-      assert nodesArray[i] == null;
+      int i = arrayIndexForNode.apply(n);
+      assert nodesArray[i] == null : "reverse post-order id is not unique, "
+          + i + " occurs twice in function " + n.getFunctionName()
+          + " at " + n + " and " + nodesArray[i];
       nodesArray[i] = n;
 
-      for (int e = 0; e < n.getNumLeavingEdges(); e++) {
-        CFAEdge edge = n.getLeavingEdge(e);
+      for (CFAEdge edge : leavingEdges(n)) {
         CFANode succ = edge.getSuccessor();
-        int j = succ.getNodeNumber() - min;
+        int j = arrayIndexForNode.apply(succ);
         edges[i][j] = new Edge();
+
+        if (i == j) {
+          // self-edge
+          handleLoop(succ, i, edges, loops);
+        }
       }
     }
 
     // SECOND step: simplify graph and identify loops
-    List<Loop> loops = new ArrayList<Loop>();
     boolean changed;
     do {
       // first try without the "reverse merge" strategy
       // this strategy may eliminate real loop heads too early so that the
       // algorithm would propose another node of the loop has loop head
       // (which is counter-intuitive to the user)
-      changed = identifyLoops(false, nodes, min, nodesArray, edges, loops);
+      changed = identifyLoops(false, nodes, arrayIndexForNode, nodesArray, edges, loops);
 
       if (!changed && !nodes.isEmpty()) {
         // but if we have to, try and use this strategy
-        changed = identifyLoops(true, nodes, min, nodesArray, edges, loops);
+        changed = identifyLoops(true, nodes, arrayIndexForNode, nodesArray, edges, loops);
+      }
+
+      if (!changed && !nodes.isEmpty()) {
+        // This is a very complex loop structure.
+        // We just pick a node randomly and merge it into others.
+        // This is imprecise, but not wrong.
+
+        CFANode currentNode = nodes.last();
+        final int current = arrayIndexForNode.apply(currentNode);
+
+        // Mark this node as a loop head
+        if (edges[current][current] == null) {
+          edges[current][current] = new Edge();
+        }
+        handleLoop(currentNode, current, edges, loops);
+
+        // Now merge current into all its successors
+        mergeNodeIntoSuccessors(currentNode, current, nodesArray, edges, loops);
+        nodes.remove(currentNode);
+        changed = true;
       }
 
     } while (changed && !nodes.isEmpty()); // stop if nothing has changed or nodes is empty
@@ -396,14 +535,21 @@ public class CFAUtils {
 
     // check that the complete graph has collapsed
     if (!nodes.isEmpty()) {
-      throw new ParserException("Code structure is too complex, could not detect all loops!");
+      switch (language) {
+      case C:
+        throw new CParserException("Code structure is too complex, could not detect all loops!");
+      case JAVA:
+        throw new JParserException("Code structure is too complex, could not detect all loops!");
+      default:
+        throw new AssertionError("unknown language");
+      }
     }
 
     // THIRD step:
     // check all pairs of loops if one is an inner loop of the other
     // the check is symmetric, so we need to check only (i1, i2) with i1 < i2
 
-    NavigableSet<Integer> toRemove = new TreeSet<Integer>();
+    NavigableSet<Integer> toRemove = new TreeSet<>();
     for (int i1 = 0; i1 < loops.size(); i1++) {
       Loop l1 = loops.get(i1);
 
@@ -443,10 +589,9 @@ public class CFAUtils {
     return loops;
   }
 
-  private static boolean identifyLoops(boolean reverseMerge, SortedSet<CFANode> nodes, final int offset,
+  private static boolean identifyLoops(boolean reverseMerge, SortedSet<CFANode> nodes,
+      final Function<CFANode, Integer> arrayIndexForNode,
       final CFANode[] nodesArray, final Edge[][] edges, List<Loop> loops) {
-
-    final int size = edges.length;
 
     boolean changed = false;
 
@@ -454,7 +599,7 @@ public class CFAUtils {
       Iterator<CFANode> it = nodes.iterator();
       while (it.hasNext()) {
         final CFANode currentNode = it.next();
-        final int current = currentNode.getNodeNumber() - offset;
+        final int current = arrayIndexForNode.apply(currentNode);
 
         // find edges of current
         final int predecessor = findSingleIncomingEdgeOfNode(current, edges);
@@ -489,17 +634,7 @@ public class CFAUtils {
           changed = true;
 
           // copy all outgoing edges (current,j) to (predecessor,j)
-          for (int j = 0; j < size; j++) {
-            if (edges[current][j] != null) {
-              // combine three edges (predecessor,current) (current,j) and (predecessor,j)
-              // into a single edge (predecessor,j)
-              Edge targetEdge = getEdge(predecessor, j, edges);
-              targetEdge.add(edges[predecessor][current]);
-              targetEdge.add(edges[current][j]);
-              targetEdge.add(currentNode);
-              edges[current][j] = null;
-            }
-          }
+          moveOutgoingEdges(currentNode, current, predecessor, edges);
 
           // delete from graph
           edges[predecessor][current] = null;
@@ -517,17 +652,7 @@ public class CFAUtils {
           changed = true;
 
           // copy all incoming edges (j,current) to (j,successor)
-          for (int j = 0; j < size; j++) {
-            if (edges[j][current] != null) {
-              // combine three edges (j,current) (current,successor) and (j,successor)
-              // into a single edge (j,successor)
-              Edge targetEdge = getEdge(j, successor, edges);
-              targetEdge.add(edges[j][current]);
-              targetEdge.add(edges[current][successor]);
-              targetEdge.add(currentNode);
-              edges[j][current] = null;
-            }
-          }
+          moveIncomingEdges(currentNode, current, successor, edges);
 
           // delete from graph
           edges[current][successor] = null;
@@ -542,6 +667,83 @@ public class CFAUtils {
       }
 
       return changed;
+  }
+
+  private static void moveIncomingEdges(final CFANode fromNode, final int from, final int to,
+      final Edge[][] edges) {
+    Edge edgeFromTo = edges[from][to];
+
+    for (int j = 0; j < edges.length; j++) {
+      if (edges[j][from] != null) {
+        // combine three edges (j,current) (current,successor) and (j,successor)
+        // into a single edge (j,successor)
+        Edge targetEdge = getEdge(j, to, edges);
+        targetEdge.add(edges[j][from]);
+        if (edgeFromTo != null) {
+          targetEdge.add(edgeFromTo);
+        }
+        targetEdge.add(fromNode);
+        edges[j][from] = null;
+      }
+    }
+  }
+
+  /**
+   * Copy all outgoing edges of "from" to "to", and delete them from "from" afterwards.
+   */
+  private static void moveOutgoingEdges(final CFANode fromNode, final int from, final int to,
+      final Edge[][] edges) {
+    Edge edgeToFrom = edges[to][from];
+
+    for (int j = 0; j < edges.length; j++) {
+      if (edges[from][j] != null) {
+        // combine three edges (predecessor,current) (current,j) and (predecessor,j)
+        // into a single edge (predecessor,j)
+        Edge targetEdge = getEdge(to, j, edges);
+        targetEdge.add(edges[from][j]);
+        if (edgeToFrom != null) {
+          targetEdge.add(edgeToFrom);
+        }
+        targetEdge.add(fromNode);
+        edges[from][j] = null;
+      }
+    }
+  }
+
+  private static void mergeNodeIntoSuccessors(CFANode currentNode, final int current,
+      final CFANode[] nodesArray, final Edge[][] edges, List<Loop> loops) {
+    List<Integer> predecessors = new ArrayList<>();
+    List<Integer> successors = new ArrayList<>();
+    for (int i = 0; i < edges.length; i++) {
+      if (edges[i][current] != null) {
+        predecessors.add(i);
+      }
+      if (edges[current][i] != null) {
+        successors.add(i);
+      }
+    }
+
+    for (int successor : successors) {
+      for (int predecessor : predecessors) {
+        // create edge (pred, succ) from (pred, current) and (current, succ)
+        Edge targetEdge = getEdge(predecessor, successor, edges);
+        targetEdge.add(edges[predecessor][current]);
+        targetEdge.add(edges[current][successor]);
+        targetEdge.add(currentNode);
+
+      }
+      if (edges[successor][successor] != null) {
+        CFANode succ = nodesArray[successor];
+        handleLoop(succ, successor, edges, loops);
+      }
+    }
+
+    for (int predecessor : predecessors) {
+      edges[predecessor][current] = null;
+    }
+    for (int successor : successors) {
+      edges[current][successor] = null;
+    }
   }
 
   // get edge from edges array, ensuring that it is added if it does not exist yet
