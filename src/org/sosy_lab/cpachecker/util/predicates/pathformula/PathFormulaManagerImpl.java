@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CToFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.PointerAliasHandling;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.FormulaEncodingWithUFOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
@@ -158,15 +159,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private CtoFormulaConverter createConverter(FormulaManagerView pFmgr, Configuration config, LogManager pLogger,
       MachineModel pMachineModel, CFA pCFA) throws InvalidConfigurationException {
-    final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
     if (handlePointerAliasing) {
       if (pointerAnalysisWithUFs) {
         assert pCFA != null : "Pointer analysis with UF requires CFA for VariableClassification";
+        final FormulaEncodingWithUFOptions options = new FormulaEncodingWithUFOptions(config);
         return new CToFormulaWithUFConverter(options, pFmgr, pCFA, pLogger);
       } else {
+        final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
         return new PointerAliasHandling(options, config, pFmgr, pMachineModel, pLogger);
       }
     } else {
+      final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       return new CtoFormulaConverter(options, pFmgr, pMachineModel, pLogger);
     }
   }
