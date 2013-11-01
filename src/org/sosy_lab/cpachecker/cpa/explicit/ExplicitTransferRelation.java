@@ -521,6 +521,11 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     if (missingScopedFieldName) {
       notScopedFieldValue = value;
     } else {
+      // some heuristics to clear wrong information
+      // when a struct or a pointer to one is assigned
+//      newElement.forgetAllWithPrefix(assignedVar + ".");
+      newElement.forgetAllWithPrefix(assignedVar + "->");
+
       if (value == null) {
         // Don't erase it when there if it has yet to be evaluated
         if (missingInformationRightJExpression == null) {
