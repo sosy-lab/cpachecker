@@ -51,13 +51,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils;
 
 class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
@@ -120,7 +120,12 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
      * to the width of the promoted left operand, the behavior is undefined.
      */
 
-    final boolean signed = CtoFormulaTypeUtils.isSignedType(calculationType);
+    final boolean signed;
+    if (calculationType instanceof CSimpleType) {
+      signed = conv.machineModel.isSigned((CSimpleType)calculationType);
+    } else {
+      signed = false;
+    }
 
     // to INT or bigger
     final CType promT1 = conv.getPromotedCType(t1).getCanonicalType();

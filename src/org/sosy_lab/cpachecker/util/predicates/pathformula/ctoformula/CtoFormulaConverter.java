@@ -764,7 +764,7 @@ public class CtoFormulaConverter {
       // Sign extend with ones when pfromType is signed and sign bit is set
       BitvectorFormula extendBits;
       int bitsToExtend = (sto - sfrom) * bitsPerByte;
-      if (pfromType.isUnsigned()) {
+      if (!machineModel.isSigned(pfromType)) {
         extendBits = efmgr.makeBitvector(bitsToExtend, 0);
       } else {
         BitvectorFormula zeroes = efmgr.makeBitvector(bitsToExtend, 0);
