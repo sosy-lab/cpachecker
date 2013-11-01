@@ -61,6 +61,15 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   }
 
   @Override
+  public Long extend(Long pNumber, int pExtensionBits, boolean pSigned) {
+    if (pSigned) {
+      return msat_make_bv_sext(mathsatEnv, pExtensionBits, pNumber);
+    } else {
+      return msat_make_bv_zext(mathsatEnv, pExtensionBits, pNumber);
+    }
+  }
+
+  @Override
   public Long makeBitvectorImpl(int pLength, long pI) {
     return makeBitvectorImpl(pLength, BigInteger.valueOf(pI));
   }

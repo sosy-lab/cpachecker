@@ -531,6 +531,24 @@ public class FormulaManagerView {
     return conc;
   }
 
+  @SuppressWarnings("unchecked")
+  public <T extends Formula> T makeExtend(T pFormula, int pExtensionBits, boolean pSigned) {
+    checkArgument(pExtensionBits >= 0);
+    Class<T> clazz = getInterface(pFormula);
+    Formula t;
+    if (clazz==BooleanFormula.class) {
+      throw new IllegalArgumentException();
+    } else if (clazz == RationalFormula.class) {
+      throw new IllegalArgumentException();
+    } else if (clazz == BitvectorFormula.class) {
+      t = bitvectorFormulaManager.extend((BitvectorFormula)pFormula, pExtensionBits, pSigned);
+    } else {
+      throw new IllegalArgumentException("Not supported interface");
+    }
+
+    return (T) t;
+  }
+
   public  <T extends Formula> BooleanFormula makeEqual(T pLhs, T pRhs) {
     Class<T> clazz = getInterface(pLhs);
     BooleanFormula t;

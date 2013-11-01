@@ -124,6 +124,28 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     return value;
   }
 
+  private Map<Integer, FunctionFormulaType<RationalFormula>> extendSignedMethods = new HashMap<>();
+  private Map<Integer, FunctionFormulaType<RationalFormula>> extendUnsignedMethods = new HashMap<>();
+
+  private FunctionFormulaType<RationalFormula> getExtendDecl(int extensionBits, boolean pSigned) {
+    Integer hasKey = Integer.valueOf(extensionBits);
+    FunctionFormulaType<RationalFormula> value;
+    if (pSigned) {
+      value = extendSignedMethods.get(hasKey);
+      if (value == null) {
+        value = functionManager.createFunction("_extendSigned("+ extensionBits + ")_", formulaType, formulaType);
+        extendSignedMethods.put(hasKey, value);
+      }
+    } else {
+      value = extendUnsignedMethods.get(hasKey);
+      if (value == null) {
+        value = functionManager.createFunction("_extendUnsigned("+ extensionBits + ")_", formulaType, formulaType);
+        extendUnsignedMethods.put(hasKey, value);
+      }
+    }
+    return value;
+  }
+
   @Override
   public BitvectorFormula makeBitvector(int pLength, long pI) {
     RationalFormula number = rationalFormulaManager.makeNumber(pI);
@@ -320,6 +342,16 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     }
     FunctionFormulaType<RationalFormula> extractUfDecl = getExtractDecl(pMsb, pLsb);
     return makeUf(returnType, extractUfDecl, pFirst);
+  }
+
+  @Override
+  public BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {
+    FormulaType<BitvectorFormula> returnType = getFormulaType(getLength(pNumber) + pExtensionBits);
+    if (ignoreExtractConcat) {
+      return wrap(returnType, unwrap(pNumber));
+    }
+    FunctionFormulaType<RationalFormula> extendUfDecl = getExtendDecl(pExtensionBits, pSigned);
+    return makeUf(returnType, extendUfDecl, pNumber);
   }
 
   @Override
