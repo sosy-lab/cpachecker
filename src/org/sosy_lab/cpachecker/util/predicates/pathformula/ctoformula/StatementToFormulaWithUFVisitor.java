@@ -218,8 +218,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                              deferredAllocationPool.getSize() :
                                              new CIntegerLiteralExpression(null,
                                                                            PointerTargetSet.CHAR,
-                                                                           BigInteger.valueOf(PointerTargetSet
-                                                                                            .DEFAULT_ALLOCATION_SIZE));
+                                                                           BigInteger.valueOf(conv.options.defaultAllocationSize()));
     conv.logger.logfOnce(Level.WARNING,
                          "The void * pointer %s to a deferred allocation escaped form tracking! " +
                            "Allocating array void[%d]. (in the following line(s):\n %s)",
@@ -850,7 +849,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           if (!conv.options.revealAllocationTypeFromLHS() && !conv.options.deferUntypedAllocations()) {
             final CExpression length;
             if (size == null) {
-              size = PointerTargetSet.DEFAULT_ALLOCATION_SIZE;
+              size = conv.options.defaultAllocationSize();
               length = new CIntegerLiteralExpression(parameter.getFileLocation(),
                                                      parameter.getExpressionType(),
                                                      BigInteger.valueOf(size));

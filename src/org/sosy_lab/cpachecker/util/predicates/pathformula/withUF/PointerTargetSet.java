@@ -258,9 +258,11 @@ public class PointerTargetSet implements Serializable {
   public static class CSizeofVisitor extends BaseSizeofVisitor
                                      implements CTypeVisitor<Integer, IllegalArgumentException> {
 
-    public CSizeofVisitor(final EvaluatingCExpressionVisitor evaluatingVisitor) {
+    public CSizeofVisitor(final EvaluatingCExpressionVisitor evaluatingVisitor,
+                           final FormulaEncodingWithUFOptions options) {
       super(evaluatingVisitor.getMachineModel());
       this.evaluatingVisitor = evaluatingVisitor;
+      this.options = options;
     }
 
     @Override
@@ -274,7 +276,7 @@ public class PointerTargetSet implements Serializable {
       }
 
       if (length == null) {
-        length = DEFAULT_ARRAY_LENGTH;
+        length = options.defaultArrayLength();
       }
 
       final int sizeOfType = t.getType().accept(this);
@@ -282,6 +284,7 @@ public class PointerTargetSet implements Serializable {
     }
 
     private final EvaluatingCExpressionVisitor evaluatingVisitor;
+    private final FormulaEncodingWithUFOptions options;
   }
 
   /**
@@ -506,6 +509,7 @@ public class PointerTargetSet implements Serializable {
     private PointerTargetSetBuilder(final PointerTargetSet pointerTargetSet) {
       super(pointerTargetSet.evaluatingVisitor,
             pointerTargetSet.sizeofVisitor,
+            pointerTargetSet.options,
             pointerTargetSet.bases,
             pointerTargetSet.lastBase,
             pointerTargetSet.fields,
@@ -610,8 +614,10 @@ public class PointerTargetSet implements Serializable {
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
         Integer length = arrayType.getLength() != null ? arrayType.getLength().accept(evaluatingVisitor) : null;
-        if (length == null || length > DEFAULT_ARRAY_LENGTH) {
-          length = DEFAULT_ARRAY_LENGTH;
+        if (length == null) {
+          length = options.defaultArrayLength();
+        } else if (length > options.maxArrayLength()) {
+          length = options.maxArrayLength();
         }
         int offset = 0;
         for (int i = 0; i < length; ++i) {
@@ -712,8 +718,10 @@ public class PointerTargetSet implements Serializable {
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
         Integer length = arrayType.getLength() != null ? arrayType.getLength().accept(evaluatingVisitor) : null;
-        if (length == null || length > DEFAULT_ARRAY_LENGTH) {
-          length = DEFAULT_ARRAY_LENGTH;
+        if (length == null) {
+          length = options.defaultArrayLength();
+        } else if (length > options.maxArrayLength()) {
+          length = options.maxArrayLength();
         }
         int offset = 0;
         for (int i = 0; i < length; ++i) {
@@ -855,6 +863,7 @@ public class PointerTargetSet implements Serializable {
     public PointerTargetSet build() {
       return new PointerTargetSet(evaluatingVisitor,
                                   sizeofVisitor,
+                                  options,
                                   bases,
                                   lastBase,
                                   fields,
@@ -922,7 +931,7 @@ public class PointerTargetSet implements Serializable {
         Integer size = deferredAllocationPool.getSize() != null ?
                          deferredAllocationPool.getSize().getValue().intValue() : null;
         if (size == null) {
-          size = DEFAULT_ALLOCATION_SIZE;
+          size = options.defaultAllocationSize();
         }
         for (String baseVariable : deferredAllocationPool.getBaseVariables()) {
           if (!addedBaseVariables.contains(baseVariable)) {
@@ -953,10 +962,12 @@ public class PointerTargetSet implements Serializable {
   }
 
   public static final PointerTargetSet emptyPointerTargetSet(final MachineModel machineModel,
+                                                             final FormulaEncodingWithUFOptions options,
                                                              final FormulaManagerView formulaManager) {
     final EvaluatingCExpressionVisitor evaluatingVisitor = new EvaluatingCExpressionVisitor(machineModel);
     return new PointerTargetSet(evaluatingVisitor,
-                                new CSizeofVisitor(evaluatingVisitor),
+                                new CSizeofVisitor(evaluatingVisitor, options),
+                                options,
                                 PathCopyingPersistentTreeMap.<String, CType>of(),
                                 null,
                                 PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
@@ -1042,9 +1053,11 @@ public class PointerTargetSet implements Serializable {
 
     final PointerTargetSetBuilder builder1 = new PointerTargetSetBuilder(emptyPointerTargetSet(
                                                                                evaluatingVisitor.getMachineModel(),
+                                                                               options,
                                                                                formulaManager)),
                                   builder2 = new PointerTargetSetBuilder(emptyPointerTargetSet(
                                                                                evaluatingVisitor.getMachineModel(),
+                                                                               options,
                                                                                formulaManager));
     if (reverseBases == reverseFields) {
       builder1.setFields(mergedFields.getFirst());
@@ -1127,6 +1140,7 @@ public class PointerTargetSet implements Serializable {
     final PointerTargetSet result  =
       new PointerTargetSet(evaluatingVisitor,
                            sizeofVisitor,
+                           options,
                            mergedBases.getThird(),
                            lastBase,
                            mergedFields.getThird(),
@@ -1417,6 +1431,7 @@ public class PointerTargetSet implements Serializable {
 
   private PointerTargetSet(final EvaluatingCExpressionVisitor evaluatingVisitor,
                            final CSizeofVisitor sizeofVisitor,
+                           final FormulaEncodingWithUFOptions options,
                            final PersistentSortedMap<String, CType> bases,
                            final String lastBase,
                            final PersistentSortedMap<CompositeField, Boolean> fields,
@@ -1426,6 +1441,7 @@ public class PointerTargetSet implements Serializable {
     this.evaluatingVisitor = evaluatingVisitor;
     this.sizeofVisitor = sizeofVisitor;
 
+    this.options = options;
     this.formulaManager = formulaManager;
 
     this.bases = bases;
@@ -1462,6 +1478,7 @@ public class PointerTargetSet implements Serializable {
 
   private static final Joiner joiner = Joiner.on(" ");
 
+  protected final FormulaEncodingWithUFOptions options;
   protected final EvaluatingCExpressionVisitor evaluatingVisitor;
   protected final CSizeofVisitor sizeofVisitor;
 
@@ -1492,9 +1509,6 @@ public class PointerTargetSet implements Serializable {
   protected final FormulaType<?> pointerType;
 
   private static int dynamicAllocationCounter = 0;
-
-  public static final int DEFAULT_ARRAY_LENGTH = 20;
-  public static final int DEFAULT_ALLOCATION_SIZE = 4;
 
   public static final CSimpleType CHAR =
     new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);

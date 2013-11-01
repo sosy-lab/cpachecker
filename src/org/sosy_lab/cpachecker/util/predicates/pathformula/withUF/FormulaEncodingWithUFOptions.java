@@ -55,6 +55,15 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
                         "regardless of whether they were ever really used in code.")
   private int maxPreFilledAllocationSize = 0;
 
+  @Option(description = "The default size in bytes for memory allocations when the value cannot be determined.")
+  private int defaultAllocationSize = 4;
+
+  @Option(description = "The default length for arrays when the real length cannot be determined.")
+  private int defaultArrayLength = 20;
+
+  @Option(description = "The maximum length for arrays (elements beyond this will be ignored).")
+  private int maxArrayLength = 20;
+
   public FormulaEncodingWithUFOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
     config.inject(this, FormulaEncodingWithUFOptions.class);
@@ -90,5 +99,17 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
 
   public int maxPreFilledAllocationSize() {
     return maxPreFilledAllocationSize;
+  }
+
+  public int defaultAllocationSize() {
+    return defaultAllocationSize;
+  }
+
+  public int defaultArrayLength() {
+    return defaultArrayLength;
+  }
+
+  public int maxArrayLength() {
+    return maxArrayLength;
   }
 }

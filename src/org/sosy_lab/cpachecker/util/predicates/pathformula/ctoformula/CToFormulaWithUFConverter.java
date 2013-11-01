@@ -118,6 +118,13 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     options = pOptions;
   }
 
+  public PathFormulaWithUF makeEmptyPathFormula() {
+    return new PathFormulaWithUF(bfmgr.makeBoolean(true),
+                                 SSAMap.emptySSAMap(),
+                                 PointerTargetSet.emptyPointerTargetSet(machineModel, options, fmgr),
+                                 0);
+  }
+
   public static String getUFName(final CType type) {
     String result = ufNameCache.get(type);
     if (result != null) {
@@ -617,11 +624,17 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
           PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType()).equals(lvalueElementType)) {
         Integer length = lvalueArrayType.getLength() != null ?
                            lvalueArrayType.getLength().accept(pts.getEvaluatingVisitor()) : null;
-        if (length == null || length > PointerTargetSet.DEFAULT_ARRAY_LENGTH) {
-          if (rvalue instanceof List && ((List<?>) rvalue).size() < PointerTargetSet.DEFAULT_ARRAY_LENGTH) {
+        if (length == null) {
+          if (rvalue instanceof List && ((List<?>) rvalue).size() <= options.maxArrayLength()) {
             length = ((List<?>) rvalue).size();
           } else {
-            length = PointerTargetSet.DEFAULT_ARRAY_LENGTH;
+            length = options.defaultArrayLength();
+          }
+        } else if (length > options.maxArrayLength()) {
+          if (rvalue instanceof List && ((List<?>) rvalue).size() <= options.maxArrayLength()) {
+            length = ((List<?>) rvalue).size();
+          } else {
+            length = options.maxArrayLength();
           }
         }
         if (!(rvalue instanceof List) || ((List<?>) rvalue).size() >= length) {

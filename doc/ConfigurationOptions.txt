@@ -778,6 +778,13 @@ cpa.predicate.blk.useCache = true
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
 
+# The default size in bytes for memory allocations when the value cannot be
+# determined.
+cpa.predicate.defaultAllocationSize = 4
+
+# The default length for arrays when the real length cannot be determined.
+cpa.predicate.defaultArrayLength = 20
+
 # Use deferred allocation heuristic that tracks void * variables until the
 # actual type of the allocation is figured out.
 cpa.predicate.deferUntypedAllocations = false
@@ -840,6 +847,9 @@ cpa.predicate.mathsat5.logfile = "mathsat5.%03d.smt2"
 
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
+
+# The maximum length for arrays (elements beyond this will be ignored).
+cpa.predicate.maxArrayLength = 20
 
 # Maximum size of allocations for which all structure fields are regarded
 # always essential, regardless of whether they were ever really used in code.
