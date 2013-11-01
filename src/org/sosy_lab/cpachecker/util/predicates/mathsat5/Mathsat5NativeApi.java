@@ -214,8 +214,8 @@ class Mathsat5NativeApi {
   public static native long msat_make_bv_lshl(long e, long t1, long t2);
   public static native long msat_make_bv_lshr(long e, long t1, long t2);
   public static native long msat_make_bv_ashr(long e, long t1, long t2);
-  public static native long msat_make_bv_zext(long e, long t, int width);
-  public static native long msat_make_bv_sext(long e, long t, int width);
+  public static native long msat_make_bv_zext(long e, int amount, long t);
+  public static native long msat_make_bv_sext(long e, int amount, long t);
   public static native long msat_make_bv_plus(long e, long t1, long t2);
   public static native long msat_make_bv_minus(long e, long t1, long t2);
   public static native long msat_make_bv_neg(long e, long t);
