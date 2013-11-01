@@ -12,11 +12,9 @@
   <sourcefiles name="BitVectors">
     <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
   </sourcefiles>
-<!--
   <sourcefiles name="Concurrency">
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
   </sourcefiles>
--->
   <sourcefiles name="ControlFlowInteger">
     <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
   </sourcefiles>
@@ -24,18 +22,21 @@
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
     <option name="-64"/>
   </sourcefiles>
+  <!-- Demonstration Category
+  <sourcefiles name="DriverChallenges">
+    <includesfile>../programs/benchmarks/DriverChallenges.set</includesfile>
+    <option name="-64"/>
+  </sourcefiles>
+  -->
   <sourcefiles name="HeapManipulation">
     <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
   </sourcefiles>
   <sourcefiles name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
   </sourcefiles>
-<!--
   <sourcefiles name="MemorySafety">
     <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
-    <option name="-preprocess"/>
   </sourcefiles>
--->
   <sourcefiles name="ProductLines">
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
   </sourcefiles>
