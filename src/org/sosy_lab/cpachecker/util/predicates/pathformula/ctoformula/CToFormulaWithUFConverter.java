@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -357,9 +358,9 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     if (isZeroing) {
       final BooleanFormula initialization = makeAssignment(
         type,
-        PointerTargetSet.CHAR,
+        CNumericTypes.SIGNED_CHAR,
         result,
-        fmgr.makeNumber(getFormulaTypeFromCType(PointerTargetSet.CHAR, pts), 0),
+        fmgr.makeNumber(getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR, pts), 0),
         new PointerTargetPattern(base, 0, 0),
         false,
         false,

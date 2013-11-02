@@ -218,7 +218,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final CIntegerLiteralExpression size = deferredAllocationPool.getSize() != null ?
                                              deferredAllocationPool.getSize() :
                                              new CIntegerLiteralExpression(null,
-                                                                           PointerTargetSet.CHAR,
+                                                                           CNumericTypes.SIGNED_CHAR,
                                                                            BigInteger.valueOf(conv.options.defaultAllocationSize()));
     conv.logger.logfOnce(Level.WARNING,
                          "The void * pointer %s to a deferred allocation escaped form tracking! " +
@@ -352,7 +352,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   throws UnrecognizedCCodeException {
     final CType lhsType = PointerTargetSet.simplifyType(lhs.getExpressionType());
     final CType rhsType = rhs != null ? PointerTargetSet.simplifyType(rhs.getExpressionType()) :
-                            PointerTargetSet.CHAR;
+                            CNumericTypes.SIGNED_CHAR;
 
     final ImmutableList<Pair<CCompositeType, String>> rhsUsedFields;
     final ImmutableMap<String, CType> rhsUsedDeferredAllocationPointers;
@@ -578,13 +578,13 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       initializers.add(new CInitializerExpression(
                              e.getFileLocation(),
                              new CCharLiteralExpression(e.getFileLocation(),
-                                                        PointerTargetSet.CHAR,
+                                                        CNumericTypes.SIGNED_CHAR,
                                                         s.charAt(i))));
     }
     if (zeroTerminated) {
       initializers.add(new CInitializerExpression(
                              e.getFileLocation(),
-                             new CCharLiteralExpression(e.getFileLocation(), PointerTargetSet.CHAR, '\0')));
+                             new CCharLiteralExpression(e.getFileLocation(), CNumericTypes.SIGNED_CHAR, '\0')));
     }
     return new CInitializerList(e.getFileLocation(), initializers);
   }
@@ -592,7 +592,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   public Object visitInitializer(CType type, CInitializer topInitializer, final boolean isAutomatic)
   throws UnrecognizedCCodeException {
     type = PointerTargetSet.simplifyType(type);
-    final Formula zero = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(PointerTargetSet.CHAR, pts), 0);
+    final Formula zero = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR, pts), 0);
     if (type instanceof CArrayType) {
       if (topInitializer instanceof CInitializerExpression &&
           ((CArrayType) type).getType() instanceof CSimpleType &&
