@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.DeferredAllocationPool;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
@@ -101,11 +102,13 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   public StatementToFormulaWithUFVisitor(final ExpressionToFormulaWithUFVisitor delegate,
                                          final LvalueToPointerTargetPatternVisitor lvalueVisitor,
                                          final CToFormulaWithUFConverter conv,
+                                         final ErrorConditions errorConditions,
                                          final PointerTargetSetBuilder pts) {
     super(delegate);
     this.delegate = delegate;
     this.lvalueVisitor = lvalueVisitor;
     this.conv = conv;
+    this.errorConditions = errorConditions;
     this.pts = pts;
     this.isRelevantLhsVisitor = new IsRelevantLhsVisitor();
   }
@@ -1037,6 +1040,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
 
   @SuppressWarnings("hiding")
   private final CToFormulaWithUFConverter conv;
+  private final ErrorConditions errorConditions;
   private final PointerTargetSetBuilder pts;
   @SuppressWarnings("hiding")
   private final ExpressionToFormulaWithUFVisitor delegate;

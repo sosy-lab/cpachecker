@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -841,7 +842,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @Override
-  public PathFormulaWithUF makeAnd(final PathFormula oldFormula, final CFAEdge edge) throws CPATransferException {
+  public Pair<PathFormulaWithUF, ErrorConditions> makeAnd(final PathFormula oldFormula, final CFAEdge edge) throws CPATransferException {
     if (oldFormula instanceof PathFormulaWithUF) {
       return makeAnd((PathFormulaWithUF) oldFormula, edge);
     } else {
@@ -849,10 +850,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  private PathFormulaWithUF makeAnd(final PathFormulaWithUF oldFormula, final CFAEdge edge) throws CPATransferException {
+  private Pair<PathFormulaWithUF, ErrorConditions> makeAnd(final PathFormulaWithUF oldFormula, final CFAEdge edge) throws CPATransferException {
+    ErrorConditions errorConditions = new ErrorConditions(bfmgr);
 
     if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
-      return oldFormula;
+      return Pair.of(oldFormula, errorConditions);
     }
 
     final String function = edge.getPredecessor() != null ? edge.getPredecessor().getFunctionName() : null;
@@ -860,14 +862,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     final Constraints constraints = new Constraints(bfmgr);
     final PointerTargetSetBuilder pts = oldFormula.getPointerTargetSet().builder();
 
-    BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints, pts);
+    BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints, errorConditions, pts);
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
 
     final SSAMap newSsa = ssa.build();
     final PointerTargetSet newPts = pts.build();
     final BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-    return new PathFormulaWithUF(newFormula, newSsa, newPts, newLength);
+    return Pair.of(new PathFormulaWithUF(newFormula, newSsa, newPts, newLength), errorConditions);
   }
 
   private ExpressionToFormulaWithUFVisitor getExpressionToFormulaWithUFVisitor(final CFAEdge cfaEdge,
@@ -888,6 +890,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                              final String function,
                                                                              final SSAMapBuilder ssa,
                                                                              final Constraints constraints,
+                                                                             final ErrorConditions errorConditions,
                                                                              final PointerTargetSetBuilder pts) {
     final ExpressionToFormulaWithUFVisitor delegate = getExpressionToFormulaWithUFVisitor(cfaEdge,
                                                                                           function,
@@ -895,7 +898,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                                           constraints,
                                                                                           pts);
     final LvalueToPointerTargetPatternVisitor lvalueVisitor = getLvalueToPointerTargetPatternVisitor(cfaEdge, pts);
-    return new StatementToFormulaWithUFVisitor(delegate, lvalueVisitor, this, pts);
+    return new StatementToFormulaWithUFVisitor(delegate, lvalueVisitor, this, errorConditions, pts);
   }
 
   protected BooleanFormula makeReturn(final CExpression resultExpression,
@@ -1138,6 +1141,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   private BooleanFormula createFormulaForEdge(final CFAEdge edge,
       final String function, final SSAMapBuilder ssa, final Constraints constraints,
+      final ErrorConditions errorConditions,
       final PointerTargetSetBuilder pts) throws CPATransferException {
 
     if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
@@ -1148,7 +1152,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         if (singleEdge instanceof BlankEdge) {
           continue;
         }
-        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, constraints, pts));
+        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, constraints, errorConditions, pts));
       }
 
       // Big conjunction at the end is better than creating a new conjunction
@@ -1158,7 +1162,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     // A new visitor for each edge produces correct log and error messages.
     final StatementToFormulaWithUFVisitor statementVisitor =
-        getStatementToFormulaWithUFVisitor(edge, function, ssa, constraints, pts);
+        getStatementToFormulaWithUFVisitor(edge, function, ssa, constraints, errorConditions, pts);
 
     switch (edge.getEdgeType()) {
     case StatementEdge: {

@@ -97,6 +97,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -790,15 +791,16 @@ public class CtoFormulaConverter {
   }
 
 //  @Override
-  public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge)
+  public Pair<? extends PathFormula, ErrorConditions> makeAnd(PathFormula oldFormula, CFAEdge edge)
       throws CPATransferException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
+    ErrorConditions errorConditions = new ErrorConditions(bfmgr);
 
     if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
 
       // in this case there's absolutely nothing to do, so take a shortcut
-      return oldFormula;
+      return Pair.of(oldFormula, errorConditions);
     }
 
     String function = (edge.getPredecessor() != null)
@@ -815,12 +817,12 @@ public class CtoFormulaConverter {
     if (bfmgr.isTrue(edgeFormula) && (newSsa == oldFormula.getSsa())) {
       // formula is just "true" and SSAMap is identical
       // i.e. no writes to SSAMap, no branching and length should stay the same
-      return oldFormula;
+      return Pair.of(oldFormula, errorConditions);
     }
 
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-    return new PathFormula(newFormula, newSsa, newLength);
+    return Pair.of(new PathFormula(newFormula, newSsa, newLength), errorConditions);
   }
 
   /**

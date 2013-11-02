@@ -174,7 +174,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public PathFormula makeAnd(final PathFormula pOldFormula,
                              final CFAEdge pEdge) throws CPATransferException {
-    PathFormula result = converter.makeAnd(pOldFormula, pEdge);
+    PathFormula result = converter.makeAnd(pOldFormula, pEdge).getFirst();
 
     if (useNondetFlags) {
       SSAMapBuilder ssa = result.getSsa().builder();
