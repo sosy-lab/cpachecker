@@ -38,17 +38,20 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -250,6 +253,13 @@ public class PointerTransferRelation implements TransferRelation {
         if (declEdge.getDeclaration() instanceof CVariableDeclaration) {
           CVariableDeclaration decl = (CVariableDeclaration)declEdge.getDeclaration();
           handleDeclaration(successor, cfaEdge, decl.isGlobal(), decl.getName(), decl.getType());
+          if (decl.getInitializer() instanceof CInitializerExpression) {
+            CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
+            Pointer p = successor.lookupPointer(decl.getName());
+            if (p != null) {
+              handleAssignment(successor, decl.getName(), p, false, init, cfaEdge);
+            }
+          }
         }
         break;
 
@@ -789,6 +799,9 @@ public class PointerTransferRelation implements TransferRelation {
       // statement is an assignment expression, e.g. a = b or a = a+b;
       handleAssignmentStatement(element, (CAssignment)expression, cfaEdge);
 
+    } else if (expression instanceof CExpressionStatement) {
+      // TODO: check for invalid pointer dereferences
+
     } else {
       throw new UnrecognizedCCodeException("unknown statement", cfaEdge, expression);
     }
@@ -930,47 +943,34 @@ public class PointerTransferRelation implements TransferRelation {
 
       leftPointer = element.lookupPointer(leftExpression.toASTString());
       leftVarName = leftExpression.toASTString();
-      if (leftPointer == null) {
-        element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
-        if (!leftCast) {
-          throw new UnrecognizedCCodeException("dereferencing a non-pointer",
-              cfaEdge, leftExpression);
+      leftPointer = checkSafeLvalueDerference(element, leftPointer, leftCast, leftExpression, cfaEdge);
+
+    } else if (leftExpression instanceof CArraySubscriptExpression) {
+      // a[i]
+      leftDereference = true;
+
+      CExpression array = ((CArraySubscriptExpression)leftExpression).getArrayExpression();
+      if (!(array instanceof CIdExpression)) {
+        // not a variable at left hand side
+        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
+            leftExpression);
+      }
+      leftVarName = array.toASTString();
+      leftPointer = element.lookupPointer(leftVarName);
+
+      if (leftPointer != null)  {
+        CExpression subscript = ((CArraySubscriptExpression)leftExpression).getSubscriptExpression();
+        if (subscript instanceof CIntegerLiteralExpression) {
+          leftPointer = leftPointer.withOffset(((CIntegerLiteralExpression) subscript).asLong(), element);
         } else {
-          addWarning("Casting non-pointer value "
-              + leftExpression.toASTString()
-              + " to pointer and dereferencing it", cfaEdge, leftExpression
-              .toASTString());
-        }
-
-      } else {
-
-        if (!leftPointer.isDereferencable()) {
-          element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
-          throw new InvalidPointerException("Unsafe deref of pointer "
-              + leftPointer.getLocation() + " = " + leftPointer);
-        }
-
-        if (!leftPointer.isSafe()) {
-          element.addProperty(ElementProperty.POTENTIALLY_UNSAFE_DEREFERENCE);
-          addWarning("Potentially unsafe deref of pointer "
-              + leftPointer.getLocation() + " = " + leftPointer, cfaEdge,
-              pointerExpression.toASTString());
-
-          // if program continues after deref, pointer did not contain NULL, INVALID or UNINITIALIZED
-          element.pointerOpAssumeInequality(leftPointer, Memory.NULL_POINTER);
-          element.pointerOpAssumeInequality(leftPointer,
-              Memory.INVALID_POINTER);
-          element.pointerOpAssumeInequality(leftPointer,
-              Memory.UNINITIALIZED_POINTER);
-        }
-
-        if (!leftPointer.isPointerToPointer()) {
-          // other pointers are not of interest to us
-          leftPointer = null;
+          leftPointer = leftPointer.withUnknownOffset(element);
         }
       }
+
+      leftPointer = checkSafeLvalueDerference(element, leftPointer, false, leftExpression, cfaEdge);
+
     } else {
-      // TODO fields, arrays
+      // TODO fields
       throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
           leftExpression);
     }
@@ -981,6 +981,50 @@ public class PointerTransferRelation implements TransferRelation {
     // handles *a = x and a = x
     handleAssignment(element, leftVarName, leftPointer, leftDereference, op2,
         cfaEdge);
+  }
+
+  private Pointer checkSafeLvalueDerference(PointerState element, Pointer leftPointer, boolean leftCast,
+      CExpression leftExpression, CFAEdge cfaEdge) throws UnrecognizedCCodeException, InvalidPointerException {
+    if (leftPointer == null) {
+      element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
+      if (!leftCast) {
+        throw new UnrecognizedCCodeException("dereferencing a non-pointer",
+            cfaEdge, leftExpression);
+      } else {
+        addWarning("Casting non-pointer value "
+            + leftExpression.toASTString()
+            + " to pointer and dereferencing it", cfaEdge, leftExpression
+            .toASTString());
+      }
+
+    } else {
+
+      if (!leftPointer.isDereferencable()) {
+        element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
+        throw new InvalidPointerException("Unsafe deref of pointer "
+            + leftPointer.getLocation() + " = " + leftPointer);
+      }
+
+      if (!leftPointer.isSafe()) {
+        element.addProperty(ElementProperty.POTENTIALLY_UNSAFE_DEREFERENCE);
+        addWarning("Potentially unsafe deref of pointer "
+            + leftPointer.getLocation() + " = " + leftPointer, cfaEdge,
+            leftExpression.toASTString());
+
+        // if program continues after deref, pointer did not contain NULL, INVALID or UNINITIALIZED
+        element.pointerOpAssumeInequality(leftPointer, Memory.NULL_POINTER);
+        element.pointerOpAssumeInequality(leftPointer,
+            Memory.INVALID_POINTER);
+        element.pointerOpAssumeInequality(leftPointer,
+            Memory.UNINITIALIZED_POINTER);
+      }
+
+      if (!leftPointer.isPointerToPointer()) {
+        // other pointers are not of interest to us
+        leftPointer = null;
+      }
+    }
+    return leftPointer;
   }
 
   /**
@@ -1332,10 +1376,6 @@ public class PointerTransferRelation implements TransferRelation {
       missing = new MissingInformation();
       missing.mallocSizeMemory = memAddress;
       missing.mallocSizeASTNode = parameter;
-
-    } else {
-      throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
-          parameter);
     }
   }
 
