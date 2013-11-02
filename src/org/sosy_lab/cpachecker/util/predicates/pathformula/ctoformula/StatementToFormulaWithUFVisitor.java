@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -229,7 +230,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       conv.makeAllocation(deferredAllocationPool.wasAllocationZeroing(),
                           new CArrayType(false,
                                          false,
-                                         PointerTargetSet.VOID,
+                                         CNumericTypes.VOID,
                                          size),
                           baseVariable,
                           edge,
@@ -249,7 +250,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     boolean passed = false;
     for (final Map.Entry<String, CType> usedPointer : rhsUsedDeferredAllocationPointers.entrySet()) {
       boolean handled = false;
-      if (!usedPointer.getValue().equals(PointerTargetSet.POINTER_TO_VOID)) {
+      if (!usedPointer.getValue().equals(CPointerType.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
         handled = true;
       } else if (rhs instanceof CExpression && ExpressionToFormulaWithUFVisitor.isSimpleTarget((CExpression) rhs)) {
@@ -258,7 +259,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                rhsUsedDeferredAllocationPointers.size() == 1 :
                "Wrong assumptions on deferred allocations tracking: rhs is not a single pointer";
         final CType lhsType = PointerTargetSet.simplifyType(lhs.getExpressionType());
-        if (lhsType.equals(PointerTargetSet.POINTER_TO_VOID) &&
+        if (lhsType.equals(CPointerType.POINTER_TO_VOID) &&
             ExpressionToFormulaWithUFVisitor.isSimpleTarget(lhs) &&
             lhsTarget instanceof String) {
           final Map.Entry<String, CType> lhsUsedPointer = !lhsUsedDeferredAllocationPointers.isEmpty() ?
@@ -284,7 +285,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       }
     }
     for (final Map.Entry<String, CType> usedPointer : lhsUsedDeferredAllocationPointers.entrySet()) {
-      if (!usedPointer.getValue().equals(PointerTargetSet.POINTER_TO_VOID)) {
+      if (!usedPointer.getValue().equals(CPointerType.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
       } else if (ExpressionToFormulaWithUFVisitor.isSimpleTarget(lhs)) {
         assert lhsTarget instanceof String &&
@@ -304,7 +305,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                  final Map<String, CType> usedDeferredAllocationPointers)
   throws UnrecognizedCCodeException {
     for (final Map.Entry<String, CType> usedPointer : usedDeferredAllocationPointers.entrySet()) {
-      if (!usedPointer.getValue().equals(PointerTargetSet.POINTER_TO_VOID)) {
+      if (!usedPointer.getValue().equals(CPointerType.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
       } else if (e instanceof CBinaryExpression) {
         final CBinaryExpression binaryExpression = (CBinaryExpression) e;
@@ -397,7 +398,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           if (!isAllocation) {
             if (ExpressionToFormulaWithUFVisitor.isRevealingType(lhsType)) {
               handleDeferredAllocationTypeRevelation(variable, lhsType);
-            } else if (lhsType.equals(PointerTargetSet.POINTER_TO_VOID) &&
+            } else if (lhsType.equals(CPointerType.POINTER_TO_VOID) &&
                        ExpressionToFormulaWithUFVisitor.isSimpleTarget(lhs) &&
                        lastTarget instanceof String) {
               if (pts.isDeferredAllocationPointer((String) lastTarget)) {
@@ -857,7 +858,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
             } else {
               length = parameter;
             }
-            newType = new CArrayType(false, false, PointerTargetSet.VOID, length);
+            newType = new CArrayType(false, false, CNumericTypes.VOID, length);
           } else {
             newType = null;
           }
@@ -874,15 +875,15 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                      pts);
         } else {
           final String newBase = conv.makeAllocVariableName(functionName,
-                                                                PointerTargetSet.VOID,
-                                                                PointerTargetSet.POINTER_TO_VOID);
+                                                                CNumericTypes.VOID,
+                                                                CPointerType.POINTER_TO_VOID);
           pts.addTemporaryDeferredAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                              size != null ? new CIntegerLiteralExpression(parameter.getFileLocation(),
                                                                                           parameter.getExpressionType(),
                                                                                           BigInteger.valueOf(size)) :
                                                             null,
                                              newBase);
-          return conv.makeConstant(PointerTargetSet.getBaseName(newBase), PointerTargetSet.POINTER_TO_VOID, ssa, pts);
+          return conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID, ssa, pts);
         }
       } else if ((conv.options.isMemoryAllocationFunction(functionName) ||
                   conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) &&
@@ -897,13 +898,13 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                                                .getDeclaration());
         final CFunctionCallExpression delegateCall =
           new CFunctionCallExpression(e.getFileLocation(),
-                                      PointerTargetSet.POINTER_TO_VOID,
+                                      CPointerType.POINTER_TO_VOID,
                                       delegateFuncitonNameExpression,
                                       parameters,
                                       e.getDeclaration());
         if (!conv.options.makeMemoryAllocationsAlwaysSucceed()) {
           final Formula nondet = conv.makeFreshVariable(functionName,
-                                                        PointerTargetSet.POINTER_TO_VOID,
+                                                        CPointerType.POINTER_TO_VOID,
                                                         ssa,
                                                         pts);
           final Formula zero = conv.fmgr.makeNumber(pts.getPointerType(), 0);

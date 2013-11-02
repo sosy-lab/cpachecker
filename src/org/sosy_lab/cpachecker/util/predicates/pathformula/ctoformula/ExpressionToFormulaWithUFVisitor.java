@@ -78,7 +78,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     final Formula base = e.getArrayExpression().accept(this);
     final CExpression subscript = e.getSubscriptExpression();
     final CType subscriptType = PointerTargetSet.simplifyType(subscript.getExpressionType());
-    final Formula index = conv.makeCast(subscriptType, PointerTargetSet.POINTER_TO_VOID, subscript.accept(this), edge);
+    final Formula index = conv.makeCast(subscriptType, CPointerType.POINTER_TO_VOID, subscript.accept(this), edge);
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     final int size = pts.getSize(resultType);
     final Formula coeff = conv.fmgr.makeNumber(pts.getPointerType(), size);
@@ -119,7 +119,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
       final String variableName = variable.getName();
       lastTarget = variableName;
       if (pts.isDeferredAllocationPointer(variableName)) {
-        usedDeferredAllocationPointers.put(variableName, PointerTargetSet.POINTER_TO_VOID);
+        usedDeferredAllocationPointers.put(variableName, CPointerType.POINTER_TO_VOID);
       }
       return conv.makeVariable(variable, ssa, pts);
     } else {
@@ -151,7 +151,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
 
   static boolean isRevealingType(final CType type) {
     return (type instanceof CPointerType || type instanceof CArrayType) &&
-           !type.equals(PointerTargetSet.POINTER_TO_VOID);
+           !type.equals(CPointerType.POINTER_TO_VOID);
   }
 
   @Override
@@ -163,7 +163,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         lastTarget instanceof String &&
         pts.isDeferredAllocationPointer(((String) lastTarget))) {
       assert usedDeferredAllocationPointers.containsKey(lastTarget) &&
-             usedDeferredAllocationPointers.get(lastTarget).equals(PointerTargetSet.POINTER_TO_VOID) :
+             usedDeferredAllocationPointers.get(lastTarget).equals(CPointerType.POINTER_TO_VOID) :
              "Wrong assumptions on deferred allocations tracking: unknown pointer encountered";
       usedDeferredAllocationPointers.put((String) lastTarget, resultType);
     }
@@ -192,7 +192,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         final String variableName = variable.getName();
         lastTarget = variableName;
         if (pts.isDeferredAllocationPointer(variableName)) {
-          usedDeferredAllocationPointers.put(variableName, PointerTargetSet.POINTER_TO_VOID);
+          usedDeferredAllocationPointers.put(variableName, CPointerType.POINTER_TO_VOID);
         }
         return conv.makeVariable(variable, ssa, pts);
       } else {
