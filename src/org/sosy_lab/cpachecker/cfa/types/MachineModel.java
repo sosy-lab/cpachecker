@@ -143,6 +143,33 @@ public enum MachineModel {
     return ptrEquivalent;
   }
 
+  /**
+   * This method returns the signed integer type of the result
+   * of subtracting two pointers, also called <code>ptrdiff_t</code>.
+   *
+   * <p>From ISO-C99 (6.5.6, #9):<p>
+   * When two pointers are subtracted, [...] The size of the result is implementation-defined,
+   * and its type (a signed integer type) is <code>ptrdiff_t</code> defined in the stddef.h-header.
+   */
+  public CSimpleType getPointerDiffType() {
+    // ptrEquivalent should not be unsigned, so canonical type is always signed
+    assert !ptrEquivalent.isUnsigned();
+    return ptrEquivalent.getCanonicalType();
+  }
+
+  /**
+   * This method decides, if a plain <code>char</code> is signed or unsigned.
+   *
+   * <p>From ISO-C99 (6.2.5, #15):<p>
+   * The three types <code>char</code>, <code>signed char</code>, and
+   * <code>unsigned char</code> are collectively called the <i>character types</i>.
+   * The implementation shall define <code>char</code> to have the same range, representation, and behavior
+   * as either <code>signed char</code> or <code>unsigned char</code>.
+   */
+  public boolean isDefaultCharSigned() {
+    return true;
+  }
+
   public int getSizeofCharInBits() {
     return mSizeofCharInBits;
   }

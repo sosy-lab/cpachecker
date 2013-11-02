@@ -47,7 +47,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   private final PathFormulaManager delegate;
 
-  private final Map<Pair<PathFormula, CFAEdge>, PathFormula> andFormulaCache
+  private final Map<Pair<CFAEdge, PathFormula>, PathFormula> andFormulaCache
             = new HashMap<>();
 
   private final Map<Pair<PathFormula, PathFormula>, PathFormula> orFormulaCache
@@ -66,7 +66,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
 
-    final Pair<PathFormula, CFAEdge> formulaCacheKey = Pair.of(pOldFormula, pEdge);
+    final Pair<CFAEdge, PathFormula> formulaCacheKey = Pair.of(pEdge, pOldFormula);
     PathFormula result = andFormulaCache.get(formulaCacheKey);
     if (result == null) {
       pathFormulaComputationTimer.start();

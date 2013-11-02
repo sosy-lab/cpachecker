@@ -6,6 +6,7 @@ import subprocess
 import sys
 import string
 import os
+import benchmark.result as result
 
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
@@ -164,18 +165,18 @@ class Tool(benchmark.tools.template.BaseTool):
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
                 if line.startswith('SAFE'):
-                    newStatus = 'SAFE'
+                    newStatus = result.STR_TRUE
                 elif line.startswith('UNSAFE'):
-                    newStatus = 'UNSAFE'
+                    newStatus = result.STR_FALSE
                 else:
-                    newStatus = 'UNKNOWN' if not status.startswith('ERROR') else None
+                    newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
                 if newStatus:
                     status = newStatus if not status else "{0} ({1})".format(status, newStatus)
 
         if status == 'KILLED (UNKNOWN)':
             status = 'KILLED'
         if not status:
-            status = "UNKNOWN"
+            status = result.STR_UNKNOWN
         return status
 
 

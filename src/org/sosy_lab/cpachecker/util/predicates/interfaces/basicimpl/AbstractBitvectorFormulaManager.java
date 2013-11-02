@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -371,6 +373,18 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
     return wrap(makeBitvectorImpl(pLength, i));
   }
   protected abstract TFormulaInfo makeBitvectorImpl(int pLength, long pI) ;
+
+  @Override
+  public BitvectorFormula makeBitvector(int pLength, BigInteger i) {
+    return wrap(makeBitvectorImpl(pLength, i));
+  }
+  protected abstract TFormulaInfo makeBitvectorImpl(int pLength, BigInteger pI) ;
+
+  @Override
+  public BitvectorFormula makeBitvector(int pLength, String i) {
+    return wrap(makeBitvectorImpl(pLength, i));
+  }
+  protected abstract TFormulaInfo makeBitvectorImpl(int pLength, String pI) ;
 
 
   @Override

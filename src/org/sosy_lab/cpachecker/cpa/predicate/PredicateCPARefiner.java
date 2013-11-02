@@ -213,7 +213,12 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
         if (preciseInfo != null) {
           targetPath = preciseInfo.getFirst();
-          preciseCounterexample = preciseInfo.getSecond();
+          if (preciseInfo.getSecond() != null) {
+            preciseCounterexample = preciseInfo.getSecond();
+          } else {
+            logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
+            preciseCounterexample = counterexample;
+          }
         } else {
           logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
           targetPath = allStatesTrace;
@@ -284,7 +289,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
   }
 
-  private Pair<ARGPath, CounterexampleTraceInfo> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo counterexample) {
+  private Pair<ARGPath, CounterexampleTraceInfo> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo counterexample) throws InterruptedException {
     errorPathProcessing.start();
     try {
 
@@ -322,8 +327,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
       if (info2.isSpurious()) {
         logger.log(Level.WARNING, "Inconsistent replayed error path!");
-        return null;
-
+        return Pair.of(targetPath, null);
       } else {
         return Pair.of(targetPath, info2);
       }

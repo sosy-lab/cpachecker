@@ -38,11 +38,7 @@ import com.google.common.collect.ImmutableSet;
  * the C-to-formula encoding process.
  */
 @Options(prefix="cpa.predicate")
-class FormulaEncodingOptions {
-
-  @Option(description = "Handle aliasing of pointers. "
-      + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
-  private boolean handlePointerAliasing = true;
+public class FormulaEncodingOptions {
 
   @Option(description = "Handle field access via extract and concat instead of new variables.")
   private boolean handleFieldAccess = false;
@@ -51,12 +47,6 @@ class FormulaEncodingOptions {
       + "(coming from uninitialized variables or external function calls). "
       + "This is slow and provides little benefit.")
   private boolean handleNondetPointerAliasing = false;
-
-  // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
-  // use variables
-  @Option(name="lvalsAsUIFs",
-      description="use uninterpreted functions for *, & and array access")
-  private boolean lvalsAsUif = false;
 
   @Option(description="Set of functions that should be considered as giving "
     + "a non-deterministic return value. "
@@ -70,25 +60,49 @@ class FormulaEncodingOptions {
 
   @Option(description="Regexp pattern for functions that should be considered as giving "
     + "a non-deterministic return value (c.f. cpa.predicate.nondedFunctions)")
-  private Pattern nondetFunctionsRegexp = Pattern.compile("^(__VERIFIER_)?nondet_[a-z]*");
+  private Pattern nondetFunctionsRegexp = Pattern.compile("^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*");
 
   @Option(description="Name of an external function that will be interpreted as if the function "
      + "call would be replaced by an externally defined expression over the program variables."
      + " This will only work when all variables referenced by the dimacs file are global and declared before this function is called.")
   private String externModelFunctionName = "__VERIFIER_externModelSatisfied";
 
-  @Option(description = "Set of functions that provide new memory on the heap.")
+  @Option(description = "Set of functions that non-deterministically provide new memory on the heap, " +
+  		                  "i.e. they can return either a valid pointer or zero.")
   private Set<String> memoryAllocationFunctions = ImmutableSet.of(
-      "malloc", "__kmalloc", "kzalloc"
+      "malloc", "__kmalloc", "kmalloc"
       );
 
 
+  @Option(description = "The function used to model successful heap object allocation. " +
+                        "This is only used, when pointer analysis with UFs is enabled.")
+  private String successfulAllocFunctionName = "__VERIFIER_successful_alloc";
+
+  @Option(description = "The function used to model successful heap object allocation with zeroing. " +
+                        "This is only used, when pointer analysis with UFs is enabled.")
+  private String successfulZallocFunctionName = "__VERIFIER_successful_zalloc";
+
+  @Option(description = "Set of functions that non-deterministically provide new zeroed memory on the heap, " +
+                        "i.e. they can return either a valid pointer or zero.")
+  private Set<String> memoryAllocationFunctionsWithZeroing = ImmutableSet.of("kzalloc");
+
+  @Option(description = "Setting this to true makes memoryAllocationFunctions always return a valid pointer.")
+  private boolean memoryAllocationsAlwaysSucceed = false;
+
+  @Option(description = "Enable the option to allow detecting the allocation type by type " +
+                        "of the LHS of the assignment, e.g. char *arr = malloc(size) is detected as char[size]")
+  private boolean revealAllocationTypeFromLhs = false;
+
+  @Option(description = "Use deferred allocation heuristic that tracks void * variables until the actual type " +
+                        "of the allocation is figured out.")
+  private boolean deferUntypedAllocations = false;
+
+  @Option(description = "Maximum size of allocations for which all structure fields are regarded always essential, " +
+                        "regardless of whether they were ever really used in code.")
+  private int maxPreFilledAllocationSize = 0;
+
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-  }
-
-  public boolean handlePointerAliasing() {
-    return handlePointerAliasing;
   }
 
   public boolean handleFieldAccess() {
@@ -97,10 +111,6 @@ class FormulaEncodingOptions {
 
   public boolean handleNondetPointerAliasing() {
     return handleNondetPointerAliasing;
-  }
-
-  public boolean useUifForLvals() {
-    return lvalsAsUif;
   }
 
   public boolean isNondetFunction(String function) {
@@ -114,5 +124,41 @@ class FormulaEncodingOptions {
 
   public boolean isExternModelFunction(String function) {
     return function.equals(externModelFunctionName);
+  }
+
+  public boolean isSuccessfulAllocFunctionName(final String name) {
+    return successfulAllocFunctionName.equals(name);
+  }
+
+  public boolean isSuccessfulZallocFunctionName(final String name) {
+    return successfulZallocFunctionName.equals(name);
+  }
+
+  public String getSuccessfulAllocFunctionName() {
+    return successfulAllocFunctionName;
+  }
+
+  public String getSuccessfulZallocFunctionName() {
+    return successfulZallocFunctionName;
+  }
+
+  public boolean isMemoryAllocationFunctionWithZeroing(final String name) {
+    return memoryAllocationFunctionsWithZeroing.contains(name);
+  }
+
+  public boolean makeMemoryAllocationsAlwaysSucceed() {
+    return memoryAllocationsAlwaysSucceed;
+  }
+
+  public boolean revealAllocationTypeFromLHS() {
+    return revealAllocationTypeFromLhs;
+  }
+
+  public boolean deferUntypedAllocations() {
+    return deferUntypedAllocations;
+  }
+
+  public int maxPreFilledAllocationSize() {
+    return maxPreFilledAllocationSize;
   }
 }

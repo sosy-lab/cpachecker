@@ -311,6 +311,7 @@ class CFABuilder extends ASTVisitor {
 
         } else {
           newD = globalScope.getTypes().get(newType.getQualifiedName() + "__" + (counter - 1));
+          used = fileScope.registerTypeDeclaration(newD);
 
           ASTTypeConverter conv = new ASTTypeConverter(fileScope, astCreator, staticVariablePrefix);
           IType key = conv.getTypeFromTypeConversion(newType);
@@ -468,6 +469,7 @@ class CFABuilder extends ASTVisitor {
   private ParseResult createSingleFileCFA() {
     ImmutableMap<String, CFunctionDeclaration> functions = globalScope.getFunctions();
     ImmutableMap<String, CComplexTypeDeclaration> types = globalScope.getTypes();
+    ImmutableMap<String, CTypeDefDeclaration> typedefs = globalScope.getTypeDefs();
     ImmutableMap<String, CSimpleDeclaration> globalVars = globalScope.getGlobalVars();
 
     FillInAllBindingsVisitor fillInAllBindingsVisitor = new FillInAllBindingsVisitor(globalScope);
@@ -478,7 +480,11 @@ class CFABuilder extends ASTVisitor {
     for (Pair<List<IASTFunctionDefinition>, Pair<String, GlobalScope>> pair : functionDeclarations) {
       for (IASTFunctionDefinition declaration : pair.getFirst()) {
 
-        FunctionScope localScope = new FunctionScope(functions, types, globalVars, renamedTypes.get(pair.getSecond().getFirst()));
+        FunctionScope localScope = new FunctionScope(functions,
+                                                     types,
+                                                     typedefs,
+                                                     globalVars,
+                                                     renamedTypes.get(pair.getSecond().getFirst()));
         CFAFunctionBuilder functionBuilder;
 
         try {
@@ -535,6 +541,7 @@ class CFABuilder extends ASTVisitor {
 
     ImmutableMap<String, CFunctionDeclaration> functions = globalScope.getFunctions();
     ImmutableMap<String, CComplexTypeDeclaration> types = globalScope.getTypes();
+    ImmutableMap<String, CTypeDefDeclaration> typedefs = globalScope.getTypeDefs();
     ImmutableMap<String, CSimpleDeclaration> globalVars = globalScope.getGlobalVars();
 
     FillInAllBindingsVisitor fillInAllBindingsVisitor = new FillInAllBindingsVisitor(globalScope);
@@ -560,7 +567,11 @@ class CFABuilder extends ASTVisitor {
         }
         localTypes.putAll(pair.getSecond().getSecond().getTypes());
 
-        FunctionScope localScope = new FunctionScope(functions, ImmutableMap.copyOf(localTypes), globalVars, renamedTypes.get(pair.getSecond().getFirst()));
+        FunctionScope localScope = new FunctionScope(functions,
+                                                     ImmutableMap.copyOf(localTypes),
+                                                     typedefs,
+                                                     globalVars,
+                                                     renamedTypes.get(pair.getSecond().getFirst()));
         CFAFunctionBuilder functionBuilder;
 
         try {

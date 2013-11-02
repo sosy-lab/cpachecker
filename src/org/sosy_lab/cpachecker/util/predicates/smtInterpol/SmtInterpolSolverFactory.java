@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.SolverFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
@@ -44,13 +45,14 @@ public class SmtInterpolSolverFactory implements SolverFactory {
   // calls it reflectively
 
   @Override
-  public FormulaManager create(Configuration pConfig, LogManager pLogger, boolean pUseIntegers) throws InvalidConfigurationException {
-    return SmtInterpolFormulaManager.create(pConfig, pLogger, pUseIntegers);
+  public FormulaManager create(Configuration pConfig, LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier, boolean pUseIntegers) throws InvalidConfigurationException {
+    return SmtInterpolFormulaManager.create(pConfig, pLogger, pShutdownNotifier, pUseIntegers);
   }
 
   @Override
   public ProverEnvironment createProver(FormulaManager pMgr) {
-    return new SmtInterpolTheoremProver((SmtInterpolFormulaManager)pMgr);
+    return ((SmtInterpolFormulaManager)pMgr).createProver();
   }
 
   @Override

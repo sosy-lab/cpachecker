@@ -30,6 +30,7 @@ import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
@@ -41,7 +42,7 @@ public class PCCStrategyBuilder {
   private static final String STRATEGY_CLASS_PREFIX = "org.sosy_lab.cpachecker.pcc.strategy";
 
   public static PCCStrategy buildStrategy(String pPccStrategy, Configuration pConfig, LogManager pLogger,
-      ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+      ShutdownNotifier pShutdownNotifier, ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     if (pPccStrategy == null) { throw new InvalidConfigurationException(
         "No PCC strategy defined."); }
 
@@ -63,25 +64,27 @@ public class PCCStrategyBuilder {
       Class<?>[] paramTypes;
       for (Constructor<?> con : cons) {
         paramTypes = con.getParameterTypes();
-        if (paramTypes.length != 3) {
+        if (paramTypes.length != 4) {
           continue;
         } else {
-          if (paramTypes[0] == Configuration.class && paramTypes[1] == LogManager.class) {
+          if (paramTypes[0] == Configuration.class
+              && paramTypes[1] == LogManager.class
+              && paramTypes[2] == ShutdownNotifier.class) {
             if (pCpa == null) {
-              return (PCCStrategy) con.newInstance(pConfig, pLogger, pCpa);
+              return (PCCStrategy) con.newInstance(pConfig, pLogger, pShutdownNotifier, pCpa);
             }
-            if (paramTypes[2] == ProofChecker.class) {
+            if (paramTypes[3] == ProofChecker.class) {
               if (!(pCpa instanceof ProofChecker)) {
                 continue;
               }
-              return (PCCStrategy) con.newInstance(pConfig, pLogger, pCpa);
+              return (PCCStrategy) con.newInstance(pConfig, pLogger, pShutdownNotifier, pCpa);
             }
-            if (paramTypes[2] == PropertyCheckerCPA.class) {
+            if (paramTypes[3] == PropertyCheckerCPA.class) {
               if (!(pCpa instanceof PropertyCheckerCPA)) {
                 continue;
               }
               return (PCCStrategy) con.newInstance(pConfig,
-                  pLogger, pCpa);
+                  pLogger, pShutdownNotifier, pCpa);
             }
           }
         }
@@ -91,7 +94,7 @@ public class PCCStrategyBuilder {
           "Cannot create PCC Strategy "
               + pPccStrategy
               +
-              " if it does not provide a constructor (Configuration, LogManager, (PropertyCheckerCPA|ProofChecker)");
+              " if it does not provide a constructor (Configuration, LogManager, ShutdownNotifier, (PropertyCheckerCPA|ProofChecker)");
     } catch (SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException
         | InvocationTargetException e) {
       throw new UnsupportedOperationException(

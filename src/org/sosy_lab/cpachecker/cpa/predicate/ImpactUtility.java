@@ -120,7 +120,7 @@ final class ImpactUtility {
    * @return True if the state was actually changed.
    */
   boolean strengthenStateWithInterpolant(final BooleanFormula itp,
-      final ARGState s, final AbstractionFormula lastAbstraction) {
+      final ARGState s, final AbstractionFormula lastAbstraction) throws InterruptedException {
     checkState(!requiresPreviousBlockAbstraction()
         || lastAbstraction != null);
 
@@ -158,7 +158,7 @@ final class ImpactUtility {
 
     } else if (abstractInterpolantOnly) {
       // Compute an abstraction of "itp"
-      newAbstraction = predAbsMgr.buildAbstraction(location, itp, blockFormula, preds, PredicateAbstractionManager.noAbstractionReuse);
+      newAbstraction = predAbsMgr.buildAbstraction(location, itp, blockFormula, preds);
 
     } else {
       // Compute an abstraction of "lastAbstraction & blockFormula"

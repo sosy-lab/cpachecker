@@ -2,6 +2,7 @@ import subprocess
 
 import benchmark.util as Util
 import benchmark.tools.template
+import benchmark.result as result
 
 class Tool(benchmark.tools.template.BaseTool):
 
@@ -21,10 +22,10 @@ class Tool(benchmark.tools.template.BaseTool):
     def getStatus(self, returncode, returnsignal, output, isTimeout):
         if "VERIFICATION SUCCESSFUL" in output:
             assert returncode == 0
-            status = "SAFE"
+            status = result.STR_TRUE
         elif "VERIFICATION FAILED" in output:
             assert returncode == 10
-            status = "UNSAFE"
+            status = result.STR_FALSE
         elif returnsignal == 9:
             status = "TIMEOUT"
         elif returnsignal == 6:

@@ -32,6 +32,8 @@ import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -192,14 +194,17 @@ class PredicateCPAStatistics extends AbstractStatistics {
       PredicateAbstractionManager amgr = cpa.getPredicateManager();
 
       MutablePredicateSets predicates = new MutablePredicateSets();
+      {
+        Set<Precision> seenPrecisions = Collections.newSetFromMap(new IdentityHashMap<Precision, Boolean>());
 
-      for (Precision precision : reached.getPrecisions()) {
-        if (precision instanceof WrapperPrecision) {
-          PredicatePrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
-          predicates.locationInstance.putAll(preds.getLocationInstancePredicates());
-          predicates.location.putAll(preds.getLocalPredicates());
-          predicates.function.putAll(preds.getFunctionPredicates());
-          predicates.global.addAll(preds.getGlobalPredicates());
+        for (Precision precision : reached.getPrecisions()) {
+          if (seenPrecisions.add(precision) && precision instanceof WrapperPrecision) {
+            PredicatePrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
+            predicates.locationInstance.putAll(preds.getLocationInstancePredicates());
+            predicates.location.putAll(preds.getLocalPredicates());
+            predicates.function.putAll(preds.getFunctionPredicates());
+            predicates.global.addAll(preds.getGlobalPredicates());
+          }
         }
       }
 

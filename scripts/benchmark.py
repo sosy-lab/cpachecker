@@ -133,7 +133,10 @@ class Worker(threading.Thread):
             run.wallTime = 0
             run.cpuTime = 0
             try:
-                os.remove(run.logFile)
+                if config.debug:
+                   os.rename(run.logFile, run.logFile + ".killed")
+                else:
+                   os.remove(run.logFile)
             except OSError:
                 pass
             return
@@ -418,7 +421,7 @@ def handleCloudResults(benchmark, outputHandler):
 
                 if returnValue is not None:
                     # Do not delete stdOut file if there was some problem
-                    # os.remove(stdoutFile)
+                    os.remove(stdoutFile)
                     pass
                 else:
                     executedAllRuns = False;
@@ -621,14 +624,15 @@ def main(argv=None):
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
 
-    if not config.cloud:
-        try:
-            processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
-            if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
-                logging.warn("Already running instance of this script detected. " + \
-                             "Please make sure to not interfere with somebody else's benchmarks.")
-        except OSError:
-            pass # this does not work on Windows
+    # Temporarily disabled because of problems with hanging ps processes.
+    #if not config.cloud:
+    #    try:
+    #        processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
+    #        if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
+    #            logging.warn("Already running instance of this script detected. " + \
+    #                         "Please make sure to not interfere with somebody else's benchmarks.")
+    #    except OSError:
+    #        pass # this does not work on Windows
 
     for arg in config.files:
         if STOPPED_BY_INTERRUPT: break

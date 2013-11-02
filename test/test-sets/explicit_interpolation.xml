@@ -1,11 +1,10 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="1020" memlimit="15000">
+<benchmark tool="cpachecker" timelimit="900" hardtimelimit="1020" memlimit="15000">
   <sourcefiles>
     <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
     <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
-    <includesfile>../programs/benchmarks/SystemC.set</includesfile>
-    <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
   </sourcefiles>
 
   <sourcefiles>
@@ -15,6 +14,7 @@
 
   <option name="-heap">12500M</option>
   <option name="-noout"></option>
+  <option name="-spec">sv-comp</option>
 
   <rundefinition name="explicit-interpolation_scoped">
     <option name="-explicitAnalysis-ItpRefiner"/>

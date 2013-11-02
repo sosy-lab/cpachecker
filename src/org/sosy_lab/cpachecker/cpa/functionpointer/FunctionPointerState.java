@@ -173,6 +173,9 @@ class FunctionPointerState implements AbstractState, Serializable {
   // This map should never contain UnknownTargets.
   private final PersistentSortedMap<String, FunctionPointerTarget> pointerVariableValues;
 
+  // cache hashCode
+  private transient int hashCode;
+
   private FunctionPointerState() {
     pointerVariableValues = PathCopyingPersistentTreeMap.of();
   }
@@ -229,6 +232,9 @@ class FunctionPointerState implements AbstractState, Serializable {
 
   @Override
   public int hashCode() {
-    return pointerVariableValues.hashCode();
+    if (hashCode == 0) {
+      hashCode = pointerVariableValues.hashCode();
+    }
+    return hashCode;
   }
 }

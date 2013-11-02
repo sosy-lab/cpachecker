@@ -68,7 +68,7 @@ public class DominatorDomain implements AbstractDomain {
   private final static DominatorTopState topState = new DominatorTopState();
 
   @Override
-  public boolean isLessOrEqual(AbstractState element1, AbstractState element2) throws CPAException {
+  public boolean isLessOrEqual(AbstractState element1, AbstractState element2) throws CPAException, InterruptedException {
     if (element1.equals(element2)) {
       return true;
     }

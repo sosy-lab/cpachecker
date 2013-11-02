@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 
 import benchmark.util as Util
 import benchmark.tools.template
+import benchmark.result as result
 
 class Tool(benchmark.tools.template.BaseTool):
 
@@ -64,16 +65,16 @@ class Tool(benchmark.tools.template.BaseTool):
                     assert returncode == 10
                     reason = tree.find('goto_trace').find('failure').findtext('reason')
                     if 'unwinding assertion' in reason:
-                        status = "UNKNOWN"
+                        status = result.STR_UNKNOWN
                     else:
-                        status = "UNSAFE"
+                        status = result.STR_FALSE
 
                 elif status == "SUCCESS":
                     assert returncode == 0
                     if "--no-unwinding-assertions" in self.options:
-                        status = "UNKNOWN"
+                        status = result.STR_UNKNOWN
                     else:
-                        status = "SAFE"
+                        status = result.STR_TRUE
 
             except Exception as e: # catch all exceptions
                 if isTimeout:

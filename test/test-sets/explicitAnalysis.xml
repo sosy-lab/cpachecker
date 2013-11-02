@@ -2,16 +2,17 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="1800" memlimit="2000">
   <option name="-noout"/>
+  <option name="-spec">sv-comp</option>
   <option name="-heap">1200M</option>
 
-  <sourcefiles name="ControlFlowInteger-MemPrecise">
-    <includesfile>../programs/benchmarks/ControlFlowInteger-MemPrecise.set</includesfile>
+  <sourcefiles name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
   </sourcefiles>
-  <sourcefiles name="ControlFlowInteger-MemSimple">
-    <includesfile>../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
+  <sourcefiles name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
   </sourcefiles>
-  <sourcefiles name="SystemC">
-    <includesfile>../programs/benchmarks/SystemC.set</includesfile>
+  <sourcefiles name="Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
   </sourcefiles>
   <sourcefiles name="Nested">
     <includesfile>nested.set</includesfile>

@@ -3,6 +3,7 @@ import os
 
 import benchmark.util as Util
 import benchmark.tools.template
+import benchmark.result as result
 
 class Tool(benchmark.tools.template.BaseTool):
 
@@ -42,12 +43,12 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        status = 'UNKNOWN'
+        status = result.STR_UNKNOWN
         for line in output.splitlines():
             if line.startswith('Error found! The system is unsafe :-('):
-                status = 'UNSAFE'
+                status = result.STR_FALSE
             elif line.startswith('No error found.  The system is safe :-)'):
-                status = 'SAFE'
+                status = result.STR_TRUE
             elif line.startswith('Fatal error: exception Out_of_memory'):
                 status = 'OUT OF MEMORY'
             elif line.startswith('Error: label \'ERROR\' appears multiple times'):

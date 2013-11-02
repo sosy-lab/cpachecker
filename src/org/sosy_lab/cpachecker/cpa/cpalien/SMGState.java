@@ -39,7 +39,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoin;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -104,6 +107,13 @@ public class SMGState implements AbstractQueryableState {
    */
   final public void setRuntimeCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
     runtimeCheckLevel = pLevel;
+
+    if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.FULL)) {
+      SMGJoin.performChecks(true);
+    } else {
+      SMGJoin.performChecks(false);
+    }
+
     if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.HALF)) {
       CLangSMG.setPerformChecks(true, logger);
     }
@@ -351,6 +361,10 @@ public class SMGState implements AbstractQueryableState {
     return null;
   }
 
+  public void setInvalidRead() {
+    this.invalidRead  = true;
+  }
+
   private boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {
 
     //TODO better Algorithm and Refactor
@@ -414,11 +428,6 @@ public class SMGState implements AbstractQueryableState {
     }
 
     return true;
-  }
-
-
-  public void setInvalidRead() {
-    this.invalidRead  = true;
   }
 
   /**
@@ -628,15 +637,15 @@ public class SMGState implements AbstractQueryableState {
    *
    * @param reachedState already reached state, that may cover this state already.
    * @return True, if this state is covered by the given state, false otherwise.
+   * @throws SMGInconsistentException
    */
-  public boolean isLessOrEqual(SMGState reachedState) {
-
-    if(reachedState == this) {
+  public boolean isLessOrEqual(SMGState reachedState) throws SMGInconsistentException {
+    SMGJoin join = new SMGJoin(reachedState.heap, this.heap);
+    if (join.isDefined() &&
+        (join.getStatus() == SMGJoinStatus.LEFT_ENTAIL || join.getStatus() == SMGJoinStatus.EQUAL)){
       return true;
     }
-
-    boolean result = heap.isLessOrEqual(reachedState.heap);
-    return result;
+    return false;
   }
 
   @Override
@@ -803,16 +812,6 @@ public class SMGState implements AbstractQueryableState {
   }
 
   /**
-   * Set the two given symbolic values to be not equal.
-   *
-   * @param value1 the first symbolic value.
-   * @param value2 the second symbolic value.
-   */
-  public void setUnequal(int value1, int value2) {
-    // TODO Auto-generated method stub
-  }
-
-  /**
    * Determine, whether the two given symbolic values are not equal.
    * If this method does not return true, the relation of these
    * symbolic values is unknown.
@@ -822,7 +821,7 @@ public class SMGState implements AbstractQueryableState {
    * @return true, if the symbolic values are known to be not equal, false, if it is unknown.
    * @throws SMGInconsistentException
    */
-  public boolean isUnequal(int value1, int value2) throws SMGInconsistentException {
+  public boolean isUnequal(int value1, int value2) {
     // TODO Neq Relation for more precise comparison
 
     if (isPointer(value1) && isPointer(value2)) {
@@ -830,16 +829,22 @@ public class SMGState implements AbstractQueryableState {
       if (value1 != value2) {
         /* This is just a safety check,
         equal pointers should have equal symbolic values.*/
-        SMGEdgePointsTo edge1 = getPointerFromValue(value1);
-        SMGEdgePointsTo edge2 = getPointerFromValue(value2);
+        SMGEdgePointsTo edge1;
+        SMGEdgePointsTo edge2;
+        try {
+          edge1 = getPointerFromValue(value1);
+          edge2 = getPointerFromValue(value2);
+        } catch (SMGInconsistentException e) {
+          throw new AssertionError(e.getMessage());
+        }
 
         return edge1.getObject() != edge2.getObject() || edge1.getOffset() != edge2.getOffset();
       } else {
         return false;
       }
+    } else {
+      return heap.haveNeqRelation(Integer.valueOf(value1), Integer.valueOf(value2));
     }
-
-    return false;
   }
 
   /**
@@ -902,10 +907,10 @@ public class SMGState implements AbstractQueryableState {
    *
    * @param pSource the SMGObject providing the hv-edges
    * @param pTarget the target of the copy process
-   * @param pTargetRangeOffset
-   * @param pSourceRangeSize
-   * @param pSourceRangeOffset
-   * @throws SMGInconsistentException
+   * @param pTargetRangeOffset begin the copy of source at this offset
+   * @param pSourceRangeSize the size of the copy of source
+   * @param pSourceRangeOffset insert the copy of source into target at this offset
+   * @throws SMGInconsistentException thrown if the copying leads to an inconsistent SMG.
    */
   public void copy(SMGObject pSource, SMGObject pTarget, int pSourceRangeOffset, int pSourceRangeSize, int pTargetRangeOffset) throws SMGInconsistentException {
 
@@ -952,10 +957,15 @@ public class SMGState implements AbstractQueryableState {
     }
 
     performConsistencyCheck(runtimeCheckLevel);
+    //TODO Why do I do this here?
     heap.pruneUnreachable();
     performConsistencyCheck(runtimeCheckLevel);
   }
 
+  /**
+   * Signals a dereference of a pointer or array
+   *  which could not be resolved.
+   */
   public void setUnknownDereference() {
     //TODO: This can actually be an invalid read too
     //      The flagging mechanism should be improved
@@ -965,5 +975,13 @@ public class SMGState implements AbstractQueryableState {
 
   public SMGObject getNullObject() {
     return heap.getNullObject();
+  }
+
+  public void identifyEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
+    heap.mergeValues(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
+  }
+
+  public void identifyNonEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
+    heap.addNeqRelation(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
   }
 }

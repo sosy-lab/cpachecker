@@ -61,7 +61,7 @@ public class PathChecker {
     solver = pSolver;
   }
 
-  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException {
+  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException {
     List<SSAMap> ssaMaps = new ArrayList<>(pPath.size());
 
     PathFormula pathFormula = pmgr.makeEmptyPathFormula();

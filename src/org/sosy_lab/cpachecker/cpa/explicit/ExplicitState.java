@@ -38,6 +38,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -70,7 +71,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     constantsMap = PathCopyingPersistentTreeMap.of();
   }
 
-  public ExplicitState(PersistentMap<String, Long> constantsMap) {
+  public ExplicitState(PersistentSortedMap<String, Long> constantsMap) {
     this.constantsMap = MemoryLocation.transform(constantsMap);
   }
 

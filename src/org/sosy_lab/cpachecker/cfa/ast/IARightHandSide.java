@@ -32,6 +32,14 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 public interface IARightHandSide extends IAstNode {
 
 
+  /**
+   * This method returns the type of the expression.
+   * If the expression is evaluated, the result of the evaluation has this type.
+   * <p>
+   * In some cases the parser can not determine the correct type
+   * (because of missing information),
+   * then this method can return a ProblemType.
+   */
   public Type getExpressionType();
 
 

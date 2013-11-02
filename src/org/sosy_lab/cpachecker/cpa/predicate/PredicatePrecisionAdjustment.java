@@ -62,7 +62,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   final Timer totalPrecTime = new Timer();
   final Timer invariantGenerationTime = new Timer();
   final Timer computingAbstractionTime = new Timer();
-  final Timer reuseAbstractionTime = new Timer();
 
   int numAbstractions = 0;
   int numAbstractionsFalse = 0;
@@ -91,18 +90,20 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public Triple<AbstractState, Precision, Action> prec(
       AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException {
+      UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
 
     totalPrecTime.start();
+    try {
+      if (pElement instanceof ComputeAbstractionState) {
+        ComputeAbstractionState element = (ComputeAbstractionState)pElement;
+        PredicatePrecision precision = (PredicatePrecision)pPrecision;
 
-    if (pElement instanceof ComputeAbstractionState) {
-      ComputeAbstractionState element = (ComputeAbstractionState)pElement;
-      PredicatePrecision precision = (PredicatePrecision)pPrecision;
+        pElement = computeAbstraction(element, precision);
+      }
 
-      pElement = computeAbstraction(element, precision);
+    } finally {
+      totalPrecTime.stop();
     }
-
-    totalPrecTime.stop();
     return Triple.of(pElement, pPrecision, Action.CONTINUE);
   }
 
@@ -111,7 +112,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
    */
   private AbstractState computeAbstraction(
       ComputeAbstractionState element,
-      PredicatePrecision precision) throws CPAException {
+      PredicatePrecision precision) throws CPAException, InterruptedException {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
     PersistentMap<CFANode, Integer> abstractionLocations = element.getAbstractionLocationsOnPath();
@@ -137,9 +138,12 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     // compute new abstraction
     computingAbstractionTime.start();
-    newAbstractionFormula = formulaManager.buildAbstraction(
-        loc, abstractionFormula, pathFormula, preds);
-    computingAbstractionTime.stop();
+    try {
+      newAbstractionFormula = formulaManager.buildAbstraction(
+          loc, abstractionFormula, pathFormula, preds);
+    } finally {
+      computingAbstractionTime.stop();
+    }
 
     // if the abstraction is false, return bottom (represented by empty set)
     if (newAbstractionFormula.isFalse()) {

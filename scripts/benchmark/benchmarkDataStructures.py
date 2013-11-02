@@ -22,20 +22,27 @@ CPAchecker web page:
   http://cpachecker.sosy-lab.org
 """
 
+# prepare for Python 3
+from __future__ import absolute_import, print_function, unicode_literals
+
 import logging
 import os
 import time
 import xml.etree.ElementTree as ET
+import sys
 
 from datetime import date
 
-import runexecutor
-import util as Util
+from . import result
+from . import runexecutor
+from . import util as Util
 
 MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
 CORELIMIT = runexecutor.CORELIMIT
 
+SOFTTIMELIMIT = 'softtimelimit'
+HARDTIMELIMIT = 'hardtimelimit'
 
 
 def getOptionsFromXML(optionsTag):
@@ -126,8 +133,8 @@ class Benchmark:
         toolModule = "benchmark.tools." + toolName
         try:
             self.tool = __import__(toolModule, fromlist=['Tool']).Tool()
-        except ImportError:
-            sys.exit('Unsupported tool "{0}" specified.'.format(toolName))
+        except ImportError as ie:
+            sys.exit('Unsupported tool "{0}" specified. ImportError: {1}'.format(toolName, ie))
         except AttributeError:
             sys.exit('The module for "{0}" does not define the necessary class.'.format(toolName))
 
@@ -156,6 +163,18 @@ class Benchmark:
         overrideLimit(config.memorylimit, MEMLIMIT)
         overrideLimit(config.timelimit, TIMELIMIT)
         overrideLimit(config.corelimit, CORELIMIT)
+
+        if HARDTIMELIMIT in keys:
+            hardtimelimit = int(rootTag.get(HARDTIMELIMIT))
+            if TIMELIMIT in self.rlimits:
+                if hardtimelimit < self.rlimits[TIMELIMIT]:
+                    logging.warning('Hard timelimit %d is smaller than timelimit %d, ignoring the former.'
+                                    % (hardtimelimit, self.rlimits[TIMELIMIT]))
+                else:
+                    self.rlimits[SOFTTIMELIMIT] = self.rlimits[TIMELIMIT]
+                    self.rlimits[TIMELIMIT] = hardtimelimit
+            else:
+                self.rlimits[TIMELIMIT] = hardtimelimit
 
         # get number of threads, default value is 1
         self.numOfThreads = int(rootTag.get("threads")) if ("threads" in keys) else 1
@@ -283,6 +302,23 @@ class RunSet:
             names.append(self.blocks[0].realName)
         self.name = '.'.join(filter(None, names))
         self.fullName = self.benchmark.name + (("." + self.name) if self.name else "")
+
+        # Currently we store logfiles as "basename.log",
+        # so we cannot distinguish sourcefiles in different folder with same basename.
+        # For a 'local benchmark' this causes overriding of logfiles after reading them,
+        # so the result is correct, only the logfile is gone.
+        # For 'cloud-mode' the logfile is overridden before reading it,
+        # so the result will be wrong and every measured value will be missing.
+        if self.shouldBeExecuted():
+            sourcefilesSet = set()
+            for run in self.runs:
+                base = os.path.basename(run.sourcefile)
+                if base in sourcefilesSet:
+                    logging.warning("sourcefile with basename '" + base + 
+                    "' appears twice in runset. This could cause problems with equal logfile-names.")
+                else:
+                    sourcefilesSet.add(base)
+            del sourcefilesSet
 
 
     def shouldBeExecuted(self):
@@ -439,25 +475,23 @@ class Run():
     def afterExecution(self, returnvalue, output):
 
         rlimits = self.benchmark.rlimits
+        isTimeout = self._isTimeout()
 
         # calculation: returnvalue == (returncode * 256) + returnsignal
         # highest bit of returnsignal shows only whether a core file was produced, we clear it
         returnsignal = returnvalue & 0x7F
         returncode = returnvalue >> 8
         logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
-        self.status = self.tool.getStatus(returncode, returnsignal, output, self._isTimeout())
+        self.status = self.tool.getStatus(returncode, returnsignal, output, isTimeout)
         self.tool.addColumnValues(output, self.columns)
 
         # Tools sometimes produce a result even after a timeout.
         # This should not be counted, so we overwrite the result with TIMEOUT
         # here. if this is the case.
         # However, we don't want to forget more specific results like SEGFAULT,
-        # so we do this only if the result is a "normal" one like SAFE.
-        if not self.status in ['SAFE', 'UNSAFE', 'UNKNOWN']:
-            if TIMELIMIT in rlimits:
-                timeLimit = rlimits[TIMELIMIT] + 20
-                if self.wallTime > timeLimit or self.cpuTime > timeLimit:
-                    self.status = "TIMEOUT"
+        # so we do this only if the result is a "normal" one like TRUE.
+        if self.status in [result.STR_TRUE, result.STR_FALSE, result.STR_UNKNOWN] and isTimeout:
+            self.status = "TIMEOUT"
         if returnsignal == 9 \
                 and MEMLIMIT in rlimits \
                 and self.memUsage \
@@ -468,7 +502,9 @@ class Run():
     def _isTimeout(self):
         ''' try to find out whether the tool terminated because of a timeout '''
         rlimits = self.benchmark.rlimits
-        if TIMELIMIT in rlimits:
+        if SOFTTIMELIMIT in rlimits:
+            limit = rlimits[SOFTTIMELIMIT]
+        elif TIMELIMIT in rlimits:
             limit = rlimits[TIMELIMIT]
         else:
             limit = float('inf')

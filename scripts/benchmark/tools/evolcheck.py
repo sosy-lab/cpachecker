@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 
 import benchmark.util as Util
 import benchmark.tools.template
+import benchmark.result as result
 
 class Tool(benchmark.tools.template.BaseTool):
 
@@ -59,7 +60,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
         for line in output.splitlines():
             if 'A real bug found.' in line:
-                status = 'UNSAFE'
+                status = result.STR_FALSE
             elif 'VERIFICATION SUCCESSFUL' in line:
                 verificationSuccessfulFound = True
             elif 'VERIFICATION FAILED' in line:
@@ -69,13 +70,13 @@ class Tool(benchmark.tools.template.BaseTool):
             elif 'The program models are identical' in line:
                 status = self.previousStatus
             elif 'Assertion(s) hold trivially.' in line:
-                status = 'SAFE'
+                status = result.STR_TRUE
 
         if status is None:
             if verificationSuccessfulFound and not verificationFailedFound:
-                status = 'SAFE'
+                status = result.STR_TRUE
             else:
-                status = 'UNKNOWN'
+                status = result.STR_UNKNOWN
 
         self.previousStatus = status
 

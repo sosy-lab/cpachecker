@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -65,6 +67,18 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(long i);
+
+  @Override
+  public RationalFormula makeNumber(BigInteger i) {
+    return wrap(makeNumberImpl(i));
+  }
+  protected abstract TFormulaInfo makeNumberImpl(BigInteger i);
+
+  @Override
+  public RationalFormula makeNumber(String i) {
+    return wrap(makeNumberImpl(i));
+  }
+  protected abstract TFormulaInfo makeNumberImpl(String i);
 
   @Override
   public RationalFormula makeVariable(String pVar) {

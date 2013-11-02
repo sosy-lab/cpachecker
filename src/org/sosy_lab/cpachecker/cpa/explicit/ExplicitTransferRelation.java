@@ -89,6 +89,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -768,17 +769,17 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     @Override
-    public Long visit(JBinaryExpression pE) throws UnrecognizedCCodeException {
+    public Long visit(JBinaryExpression pE) {
       JBinaryExpression.BinaryOperator binaryOperator   = pE.getOperator();
 
-      IAExpression lVarInBinaryExp  = pE.getOperand1();
+      JExpression lVarInBinaryExp  = pE.getOperand1();
 
-      lVarInBinaryExp = unwrap(lVarInBinaryExp);
+      lVarInBinaryExp = (JExpression) unwrap(lVarInBinaryExp);
 
-      IAExpression rVarInBinaryExp  = pE.getOperand2();
+      JExpression rVarInBinaryExp  = pE.getOperand2();
 
-      Long leftValue                  = ((JExpression) lVarInBinaryExp).accept(this);
-      Long rightValue                 = ((JExpression) rVarInBinaryExp).accept(this);
+      Long leftValue                  = lVarInBinaryExp.accept(this);
+      Long rightValue                 = rVarInBinaryExp.accept(this);
 
       if ((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue) || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
         if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
@@ -818,16 +819,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       return checkNotNull(v.evaluateMemoryLocation((CLeftHandSide) pLValue));
     }
 
-    protected boolean isAssignable(IAExpression expression) throws UnrecognizedCCodeException {
-
-      if (expression instanceof CIdExpression) {
-        return true;
-      }
-
-      if (expression instanceof CFieldReference || expression instanceof CArraySubscriptExpression) {
-        ExplicitExpressionValueVisitor evv = getVisitor();
-        return evv.canBeEvaluated((CLeftHandSide) expression);
-      }
+    protected boolean isAssignable(JExpression expression) {
 
       boolean result = false;
 
@@ -845,6 +837,22 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       }
 
       return result;
+    }
+
+
+
+    protected boolean isAssignable(CExpression expression) throws UnrecognizedCCodeException  {
+
+      if (expression instanceof CIdExpression) {
+        return true;
+      }
+
+      if (expression instanceof CFieldReference || expression instanceof CArraySubscriptExpression) {
+        ExplicitExpressionValueVisitor evv = getVisitor();
+        return evv.canBeEvaluated((CLeftHandSide) expression);
+      }
+
+      return false;
     }
   }
 
@@ -868,12 +876,12 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     @Override
-    protected boolean isAssignable(IAExpression pExpression) throws UnrecognizedCCodeException {
+    protected boolean isAssignable(CExpression pExpression) throws UnrecognizedCCodeException {
 
       //TODO Ugly, Refactor
       if (pExpression instanceof CLeftHandSide) {
         MemoryLocation memLoc =
-            expressionEvaluator.evaluateLeftHandSide((CLeftHandSide) pExpression);
+            expressionEvaluator.evaluateLeftHandSide(pExpression);
 
         return memLoc != null;
       }
@@ -937,7 +945,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     @Override
-    public Long visit(JBinaryExpression binaryExpression) throws UnrecognizedCCodeException {
+    public Long visit(JBinaryExpression binaryExpression) {
 
       if ((binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.EQUALS
           || binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.NOT_EQUALS)
@@ -951,7 +959,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       return super.visit(binaryExpression);
     }
 
-    private Long handleEnumComparison(JExpression operand1, JExpression operand2, JBinaryExpression.BinaryOperator operator) throws UnrecognizedCCodeException {
+    private Long handleEnumComparison(JExpression operand1, JExpression operand2,
+        JBinaryExpression.BinaryOperator operator) {
 
       String value1;
       String value2;
@@ -1022,7 +1031,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     @Override
-    public Long visit(JIdExpression idExp) throws UnrecognizedCCodeException {
+    public Long visit(JIdExpression idExp) {
 
       String varName = handleIdExpression(idExp);
 
@@ -1517,17 +1526,11 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
           if (riteAddend instanceof CLiteralExpression && (operation == BinaryOperator.PLUS || operation == BinaryOperator.MINUS)) {
             BinaryOperator newOperation = (operation == BinaryOperator.PLUS) ? BinaryOperator.MINUS : BinaryOperator.PLUS;
 
-            CBinaryExpression sum = new CBinaryExpression(expr.getFileLocation(),
-                                                                expr.getExpressionType(),
-                                                                riteOperand,
-                                                                riteAddend,
-                                                                newOperation);
-
-            CBinaryExpression assume = new CBinaryExpression(expression.getFileLocation(),
-                                                                   binaryExpression.getExpressionType(),
-                                                                   leftAddend,
-                                                                   sum,
-                                                                   operator);
+            final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(machineModel, logger);
+            final CBinaryExpression sum = binExprBuilder.buildBinaryExpression(
+                riteOperand, riteAddend, newOperation);
+            final CBinaryExpression assume = binExprBuilder.buildBinaryExpression(
+                leftAddend, sum, operator);
             return assume;
           }
         }

@@ -52,9 +52,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 /**
@@ -93,6 +93,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulae = new HashMap<>();
 
+  private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
 
   public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk) throws InvalidConfigurationException {
@@ -101,7 +102,8 @@ public class PredicateTransferRelation implements TransferRelation {
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
-    bfmgr = pCpa.getFormulaManager().getBooleanFormulaManager();
+    fmgr = pCpa.getFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
     blk = pBlk;
   }
 
@@ -144,7 +146,7 @@ public class PredicateTransferRelation implements TransferRelation {
    * successor. This currently only envolves an optional sat check.
    */
   private Collection<PredicateAbstractState> handleNonAbstractionFormulaLocation(
-      PathFormula pathFormula, PredicateAbstractState oldState) {
+      PathFormula pathFormula, PredicateAbstractState oldState) throws InterruptedException {
     boolean satCheck = (satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize);
 
     logger.log(Level.FINEST, "Handling non-abstraction location",
@@ -192,7 +194,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState pElement,
-      List<AbstractState> otherElements, CFAEdge edge, Precision pPrecision) throws CPATransferException {
+      List<AbstractState> otherElements, CFAEdge edge, Precision pPrecision) throws CPATransferException, InterruptedException {
 
     strengthenTimer.start();
     try {
@@ -250,15 +252,15 @@ public class PredicateTransferRelation implements TransferRelation {
   private PredicateAbstractState strengthen(PredicateAbstractState pElement,
       AssumptionStorageState pElement2) {
 
-    BooleanFormula asmpt = pElement2.getAssumption();
-
-    if (bfmgr.isTrue(asmpt) || bfmgr.isFalse(asmpt)) {
+    if (pElement2.isAssumptionTrue() || pElement2.isAssumptionFalse()) {
       // we don't add the assumption false in order to not forget the content of the path formula
       // (we need it for post-processing)
       return pElement;
     }
 
-    PathFormula pf = pathFormulaManager.makeAnd(pElement.getPathFormula(), asmpt);
+    String asmpt = pElement2.getAssumptionAsString().toString();
+
+    PathFormula pf = pathFormulaManager.makeAnd(pElement.getPathFormula(), fmgr.parse(asmpt));
 
     return replacePathFormula(pElement, pf);
   }
@@ -279,7 +281,7 @@ public class PredicateTransferRelation implements TransferRelation {
   }
 
   private PredicateAbstractState strengthenSatCheck(
-      PredicateAbstractState pElement, CFANode loc) {
+      PredicateAbstractState pElement, CFANode loc) throws InterruptedException {
     logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
 
     strengthenCheckTimer.start();

@@ -47,7 +47,7 @@ public class CompositeMergePlainOperator implements MergeOperator {
   @Override
   public AbstractState merge(AbstractState successorState,
                                AbstractState reachedState,
-                               Precision precision) throws CPAException {
+                               Precision precision) throws CPAException, InterruptedException {
 
     // Merge Sep Code
     CompositeState compSuccessorState = (CompositeState) successorState;

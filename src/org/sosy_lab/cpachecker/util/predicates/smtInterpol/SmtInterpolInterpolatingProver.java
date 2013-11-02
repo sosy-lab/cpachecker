@@ -90,7 +90,7 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
   }
 
   @Override
-  public boolean isUnsat() {
+  public boolean isUnsat() throws InterruptedException {
     return !env.checkSat();
   }
 

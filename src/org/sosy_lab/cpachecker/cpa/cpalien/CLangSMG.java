@@ -35,7 +35,6 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
@@ -373,6 +372,15 @@ public class CLangSMG extends SMG {
     return Collections.unmodifiableSet(heap_objects);
   }
 
+  /**
+   * Constant.
+   *
+   * Checks whether given object is on the heap.
+   *
+   * @param object SMGObject to be checked.
+   * @return True, if the given object is referenced in the set of heap objects, false otherwise.
+   *
+   */
   public boolean isHeapObject(SMGObject object) {
     return heap_objects.contains(object);
   }
@@ -408,162 +416,6 @@ public class CLangSMG extends SMG {
     return stack_objects.peek().getReturnObject();
   }
 
-  /**
-   * Computes whether this SMG is covered by the given SMG.
-   * A SMG is covered by another SMG, if the set of concrete states
-   * a SMG represents is a subset of the set of concrete states the other
-   * SMG represents.
-   *
-   *
-   * @param reachedStateHeap already reached SMG, that may cover this SMG.
-   * @return True, if this SMG is covered by the given SMG, false otherwise.
-   */
-  public boolean isLessOrEqual(CLangSMG reachedStateHeap) {
-    // For a successful comparison, the SMG has to be garbage free
-    if (hasMemoryLeaks() || reachedStateHeap.hasMemoryLeaks()) {
-      return false;
-    }
-
-    /* This SMG is not less or equal to the reached SMG,
-     * if it contains less function stack elements.
-     */
-    if(stack_objects.size() < reachedStateHeap.stack_objects.size()) {
-      return false;
-    }
-
-    /* For this SMG to be less or equal to the reached SMG,
-     * every stack frame has to be less or equal to this state.
-     */
-    if(!isLessOrEqual(stack_objects, reachedStateHeap.stack_objects, reachedStateHeap)) {
-      return false;
-    }
-
-    /* This SMG stack is not less or equal to the reachedSMG,
-     * if it contains less global objects.
-     */
-    if (global_objects.size() < reachedStateHeap.global_objects.size()) {
-      return false;
-    }
-
-    /* Check every subSMG of every global variable,
-     * if its subSMG isLessOrEqual than
-     * the subSMG of the reached variable
-     */
-    Set<String> variables = reachedStateHeap.global_objects.keySet();
-
-    for(String variable : variables) {
-      if(!global_objects.containsKey(variable)) {
-        return false;
-      } else {
-        SMGObject objectOfVariable = global_objects.get(variable);
-        SMGObject reachedObjectOfVariable = reachedStateHeap.global_objects.get(variable);
-        if (isLessOrEqual(objectOfVariable, reachedObjectOfVariable, reachedStateHeap)) {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  }
-
-  private boolean isLessOrEqual(ArrayDeque<CLangStackFrame> pStack_objects,
-      ArrayDeque<CLangStackFrame> pReachedStateStack_objects,
-      CLangSMG pReachedCLangSMG) {
-
-    for (CLangStackFrame reachedHeapStack : pReachedStateStack_objects) {
-      for (CLangStackFrame stack : pStack_objects) {
-        if (!stack.isLessOrEqual(this, reachedHeapStack, pReachedCLangSMG)) {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Determines, if object1 and the subSMG of object1 is less or equal to
-   * object2 and the subSMG of object2. Note that object1 is part of
-   * the SMG of this object while object2 is part of the SMG given as parameter.
-   *
-   *
-   * @param object1 Check, if this SMGObject and its SubSMG is less or equal to object2 and its SubSMG.
-   * @param object2 Check, if the SMGObject of object1 and its SubSMG is less or equal to this SMGObject.
-   * @param variable2SMG The SMG variable2 is a part of.
-   * @return Whether object1 and its subSMG is less or equal to object2 and its subSMG.
-   */
-  public boolean isLessOrEqual(SMGObject object1, SMGObject object2,
-      CLangSMG object2SMG) {
-
-    return isLessOrEqualRec(object1, object2, object2SMG,
-        new HashSet<Pair<SMGObject, SMGObject>>());
-  }
-
-  private boolean isLessOrEqualRec(SMGObject object1, SMGObject object2,
-      CLangSMG object2SMG, Set<Pair<SMGObject, SMGObject>> reached) {
-
-    assert this.getObjects().contains(object1);
-    assert object2SMG.getObjects().contains(object2);
-
-    if (!object1.getLabel().equals(object2.getLabel())) {
-      return false;
-    }
-
-    if (object1.getSizeInBytes() != object2.getSizeInBytes()) {
-      return false;
-    }
-
-    //If both objects have different validity, they are not equal
-    if (this.isObjectValid(object1) != object2SMG.isObjectValid(object2)) {
-      return false;
-    }
-
-    /*
-     * Every HVEdge of object2 has to be equal to object1 for object1 to
-     * be less or equal to object2.
-     */
-    Set<SMGEdgeHasValue> object2HVEdges =
-        object2SMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(object2));
-
-    Set<SMGEdgeHasValue> object1HVEdges =
-        getHVEdges(SMGEdgeHasValueFilter.objectFilter(object1));
-
-    Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>> objectPTEdges = new HashSet<>();
-
-    for(SMGEdgeHasValue object2HVEdge : object2HVEdges) {
-      if(!object1HVEdges.contains(object2HVEdge)) {
-        return false;
-      }
-
-      int object2HVEdgeValue = object2HVEdge.getValue();
-
-      if (object2SMG.isPointer(object2HVEdgeValue)) {
-        assert isPointer(object2HVEdgeValue);
-
-        SMGEdgePointsTo object2PTEdge = object2SMG.getPointer(object2HVEdgeValue);
-        SMGEdgePointsTo object1PTEdge = getPointer(object2HVEdgeValue);
-        objectPTEdges.add(Pair.of(object1PTEdge, object2PTEdge));
-      }
-    }
-
-    for (Pair<SMGEdgePointsTo, SMGEdgePointsTo> edges : objectPTEdges) {
-
-      SMGObject newObject1 = edges.getFirst().getObject();
-      SMGObject newObject2 = edges.getSecond().getObject();
-
-      Pair<SMGObject, SMGObject> target = Pair.of(newObject1, newObject2);
-
-      if (!reached.contains(target)) {
-        reached.add(target);
-        if (!isLessOrEqualRec(newObject1, newObject2, object2SMG, reached)) {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  }
-
   @Nullable
   public String getFunctionName(SMGObject pObject) {
 
@@ -576,6 +428,15 @@ public class CLangSMG extends SMG {
     }
 
     return null;
+  }
+
+  @Override
+  public void mergeValues(int v1, int v2) {
+    super.mergeValues(v1, v2);
+
+    if (CLangSMG.performChecks()) {
+      CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
+    }
   }
 }
 

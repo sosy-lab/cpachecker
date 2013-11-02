@@ -309,7 +309,24 @@ class ASTTypeConverter {
   }
 
   private CTypedefType conv(final ITypedef t) {
+
+    final String name = t.getName();
+
+    CType oldType = scope.lookupTypedef(name);
+    int counter = 0;
+    while (oldType == null && counter < typeConversions.size() && typeConversions.size() > 1) {
+      oldType = scope.lookupType(name + "__" + counter);
+      counter++;
+    }
+
+    // We have seen this type already.
+    if (oldType != null && counter == 0) {
+      return new CTypedefType(false, false, t.getName(), oldType);
+    } else if (oldType != null) {
+      return new CTypedefType(false, false, name + "__" + counter, oldType);
+    } else { // New typedef type (somehow recognized by CDT, but not found in declared types)
       return new CTypedefType(false, false, t.getName(), convert(t.getType()));
+    }
   }
 
   private List<CCompositeTypeMemberDeclaration> conv(IField[] pFields) {
@@ -478,11 +495,13 @@ class ASTTypeConverter {
     String name = ASTConverter.convert(d.getName());
     CComplexType realType = scope.lookupType(type.toASTString() + " " + name);
 
-    int counter = 0;
-    while (realType == null && counter < typeConversions.size() && typeConversions.size() > 1) {
-      realType = scope.lookupType(type.toASTString() + " " + name + "__" + counter);
-      name = name + "__" + counter;
+    int counter = -1;
+    while (realType == null && counter < (typeConversions.size() - 1) && typeConversions.size() > 1) {
       counter++;
+      realType = scope.lookupType(type.toASTString() + " " + name + "__" + counter);
+    }
+    if (counter >= 0) {
+      name = name + "__" + counter;
     }
 
     return new CElaboratedType(d.isConst(), d.isVolatile(), type, name, realType);

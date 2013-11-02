@@ -3,6 +3,7 @@ import subprocess
 
 import benchmark.util as Util
 import benchmark.tools.template
+import benchmark.result as result
 
 class Tool(benchmark.tools.template.BaseTool):
     """
@@ -49,13 +50,13 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        status = 'UNKNOWN'
+        status = result.STR_UNKNOWN
 
         for line in output.splitlines():
             if 'Error detected.' in line:
-                status = 'UNSAFE'
+                status = result.STR_FALSE
             elif 'No error detected.' in line:
-                status = 'SAFE'
+                status = result.STR_TRUE
 
         # delete tmp-files
         try:

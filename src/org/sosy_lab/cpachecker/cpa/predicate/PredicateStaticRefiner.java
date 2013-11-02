@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
@@ -96,7 +95,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
 
   @Option(description = "Dump CFA assume edges as SMTLIB2 formulas to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumePredicatesFile = Paths.get("CfaAssumePredicates.txt");
+  private Path assumePredicatesFile = null;
 
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView formulaManagerView;
@@ -177,7 +176,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
     }
   }
 
-  private boolean isContradicting(AssumeEdge assume, AStatementEdge stmt) throws CPATransferException {
+  private boolean isContradicting(AssumeEdge assume, AStatementEdge stmt) throws CPATransferException, InterruptedException {
     // Check stmt ==> assume?
 
     BooleanFormula stmtFormula = pathFormulaManager.makeAnd(
@@ -207,7 +206,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
      */
   }
 
-  private boolean hasContradictingOperationInFlow(AssumeEdge e) throws CPATransferException {
+  private boolean hasContradictingOperationInFlow(AssumeEdge e) throws CPATransferException, InterruptedException {
     buildDirectlyAffectingStatements();
 
     Multimap<String, String> referenced = varClasses.getVariablesOfExpression(e, (CExpression) e.getExpression());
@@ -225,7 +224,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
     return false;
   }
 
-  private Set<AssumeEdge> getAllNonLoopControlFlowAssumes() throws CPATransferException {
+  private Set<AssumeEdge> getAllNonLoopControlFlowAssumes() throws CPATransferException, InterruptedException {
     Set<AssumeEdge> result = new HashSet<>();
 
     for (CFANode u : cfa.getAllNodes()) {
@@ -244,7 +243,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
     return result;
   }
 
-  private Set<AssumeEdge> getAssumeEdgesAlongPath(UnmodifiableReachedSet reached, ARGState targetState) throws CPATransferException {
+  private Set<AssumeEdge> getAssumeEdgesAlongPath(UnmodifiableReachedSet reached, ARGState targetState) throws CPATransferException, InterruptedException {
     Set<AssumeEdge> result = new HashSet<>();
 
     Set<ARGState> allStatesOnPath = ARGUtils.getAllStatesOnPathsTo(targetState);
@@ -283,9 +282,10 @@ public class PredicateStaticRefiner extends StaticRefiner {
    *
    * @return a precision for the predicate CPA
    * @throws CPATransferException
+   * @throws InterruptedException
    */
   public PredicatePrecision extractPrecisionFromCfa(UnmodifiableReachedSet pReached,
-      List<ARGState> abstractionStatesTrace, boolean atomicPredicates) throws CPATransferException {
+      List<ARGState> abstractionStatesTrace, boolean atomicPredicates) throws CPATransferException, InterruptedException {
     logger.log(Level.FINER, "Extracting precision from CFA...");
 
     // Predicates that should be tracked on function scope

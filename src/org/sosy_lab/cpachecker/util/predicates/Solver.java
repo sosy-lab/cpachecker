@@ -81,7 +81,7 @@ public class Solver {
   /**
    * Checks whether a formula is unsat.
    */
-  public boolean isUnsat(BooleanFormula f) {
+  public boolean isUnsat(BooleanFormula f) throws InterruptedException {
     satChecks++;
 
     if (bfmgr.isTrue(f)) {
@@ -110,7 +110,7 @@ public class Solver {
     }
   }
 
-  private boolean isUnsatUncached(BooleanFormula f) {
+  private boolean isUnsatUncached(BooleanFormula f) throws InterruptedException {
     try (ProverEnvironment prover = newProverEnvironment()) {
       prover.push(f);
       return prover.isUnsat();
@@ -121,7 +121,7 @@ public class Solver {
    * Checks whether a => b.
    * The result is cached.
    */
-  public boolean implies(BooleanFormula a, BooleanFormula b) {
+  public boolean implies(BooleanFormula a, BooleanFormula b) throws InterruptedException {
     if (bfmgr.isFalse(a) || bfmgr.isTrue(b)) {
       satChecks++;
       trivialSatChecks++;
@@ -147,7 +147,11 @@ public class Solver {
     if (unsatCache.containsKey(unsat) || bfmgr.isFalse(unsat)) {
       return;
     }
-    assert isUnsatUncached(unsat);
+    try {
+      assert isUnsatUncached(unsat);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
 
     unsatCache.put(unsat, true);
   }

@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -70,6 +72,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -80,6 +83,8 @@ import com.google.common.collect.Maps;
  * Instances of this class represent states in the light-weight invariants analysis.
  */
 public class InvariantsState implements AbstractState, FormulaReportingState {
+
+  private static final CollectVarsVisitor<CompoundState> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
   private static final FormulaDepthCountVisitor<CompoundState> FORMULA_DEPTH_COUNT_VISITOR = new FormulaDepthCountVisitor<>();
 
@@ -549,7 +554,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     // If exact evaluation is enabled or the expression relates a maximum of one variable
     // to constants, then environment information may be gained
     if (!(pEvaluationVisitor instanceof FormulaAbstractionVisitor)
-        || assumption.accept(new CollectVarsVisitor<CompoundState>()).size() <= 1) {
+        || assumption.accept(COLLECT_VARS_VISITOR).size() <= 1) {
       PushAssumptionToEnvironmentVisitor patev =
           new PushAssumptionToEnvironmentVisitor(pEvaluationVisitor, this.environment);
       if (!assumption.accept(patev, CompoundState.logicalTrue())) {
@@ -596,7 +601,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       pVariableRelationSet.refineBy(union);
       return;
     }
-    Set<String> variables = pFormula.accept(new CollectVarsVisitor<CompoundState>());
+    Set<String> variables = pFormula.accept(COLLECT_VARS_VISITOR);
     if (variables.size() == 2 && pFormula.accept(new CanExtractVariableRelationVisitor(Collections.unmodifiableMap(environment)), pEvaluationVisitor)) {
       Iterator<String> variableIterator = variables.iterator();
       String var1Name = variableIterator.next();
@@ -681,16 +686,36 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     ToFormulaVisitor<CompoundState, BooleanFormula> toBooleanFormulaVisitor =
         ToBooleanFormulaVisitor.getVisitor(pManager, evaluationVisitor, useBitvectors);
 
+    final Predicate<String> acceptVariable = new Predicate<String>() {
+
+      @Override
+      public boolean apply(@Nullable String pInput) {
+        return pInput != null && !pInput.contains("*");
+      }
+
+    };
+
+    final Predicate<InvariantsFormula<CompoundState>> acceptFormula = new Predicate<InvariantsFormula<CompoundState>>() {
+
+      @Override
+      public boolean apply(@Nullable InvariantsFormula<CompoundState> pInput) {
+        return pInput != null
+            && !pInput.equals(TOP)
+            && FluentIterable.from(pInput.accept(COLLECT_VARS_VISITOR)).allMatch(acceptVariable);
+      }
+
+    };
+
     Set<InvariantsFormula<CompoundState>> assumptions = new HashSet<>();
     assumptions.addAll(collectedInterestingAssumptions);
     assumptions.addAll(this.assumptions);
 
     for (Map.Entry<String, InvariantsFormula<CompoundState>> entry : this.environment.entrySet()) {
       InvariantsFormula<CompoundState> valueFormula = entry.getValue();
-      if (valueFormula.equals(TOP)) {
+      String varName = entry.getKey();
+      if (!acceptVariable.apply(varName) || !acceptFormula.apply(valueFormula)) {
         continue;
       }
-      String varName = entry.getKey();
       CType type = types.get(varName);
       BooleanFormula formula = null;
       if (type instanceof CSimpleType) {
@@ -708,9 +733,11 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     }
 
     for (InvariantsFormula<CompoundState> assumption : getAssumptionsAndEnvironment()) {
-      BooleanFormula assumptionFormula = assumption.accept(toBooleanFormulaVisitor, getEnvironment());
-      if (assumptionFormula != null) {
-        result = bfmgr.and(result, assumptionFormula);
+      if (acceptFormula.apply(assumption)) {
+        BooleanFormula assumptionFormula = assumption.accept(toBooleanFormulaVisitor, getEnvironment());
+        if (assumptionFormula != null) {
+          result = bfmgr.and(result, assumptionFormula);
+        }
       }
     }
 
@@ -796,10 +823,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     }
     // Only states with equal information regarding interesting assumptions and environment may be combined
     if (!collectedInterestingAssumptions.equals(pElement2.collectedInterestingAssumptions)) {
-      return false;
-    }
-    // Environments must be equal at least with respect to interesting variables
-    if (!environmentsEqualWithRespectToInterestingVariables(pElement2)) {
       return false;
     }
     // Only two checks remain to test for equality:

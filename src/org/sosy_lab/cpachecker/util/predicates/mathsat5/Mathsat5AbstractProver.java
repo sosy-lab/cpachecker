@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import org.sosy_lab.cpachecker.core.Model;
@@ -39,15 +38,19 @@ abstract class Mathsat5AbstractProver {
 
   protected final Mathsat5FormulaManager mgr;
   protected long curEnv;
+  private final long curConfig;
 
-  protected Mathsat5AbstractProver(Mathsat5FormulaManager pMgr, long pEnv) {
+  private final long terminationTest;
+
+  protected Mathsat5AbstractProver(Mathsat5FormulaManager pMgr, long pConfig,
+      boolean pShared, boolean pGhostFilter) {
     mgr = pMgr;
-    curEnv = pEnv;
-
-    checkNotNull(curEnv);
+    curConfig = pConfig;
+    curEnv = mgr.createEnvironment(pConfig, pShared, pGhostFilter);
+    terminationTest = mgr.addTerminationTest(curEnv);
   }
 
-  public boolean isUnsat() {
+  public boolean isUnsat() throws InterruptedException {
     Preconditions.checkState(curEnv != 0);
     return !msat_check_sat(curEnv);
   }
@@ -66,5 +69,7 @@ abstract class Mathsat5AbstractProver {
     Preconditions.checkState(curEnv != 0);
     msat_destroy_env(curEnv);
     curEnv = 0;
+    msat_free_termination_test(terminationTest);
+    msat_destroy_config(curConfig);
   }
 }

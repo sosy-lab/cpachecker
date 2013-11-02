@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -116,7 +117,7 @@ public class InvariantsCPA extends AbstractCPA {
     private int interestingVariableLimit = 2;
 
     @Option(description="whether or not to use a bit vector formula manager when extracting invariant approximations from states.")
-    private boolean useBitvectors = true;
+    private boolean useBitvectors = false;
 
   }
 
@@ -139,6 +140,11 @@ public class InvariantsCPA extends AbstractCPA {
    * The reached set factory used.
    */
   private final ReachedSetFactory reachedSetFactory;
+
+  /**
+   * The notifier that tells us when to stop.
+   */
+  private final ShutdownNotifier shutdownNotifier;
 
   /**
    * The analyzed control flow automaton.
@@ -165,10 +171,11 @@ public class InvariantsCPA extends AbstractCPA {
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
   public InvariantsCPA(Configuration config, LogManager logger, InvariantsOptions options,
-      ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
+      ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
     super(options.merge, "sep", InvariantsDomain.INSTANCE, InvariantsTransferRelation.INSTANCE);
     this.config = config;
     this.logManager = logger;
+    this.shutdownNotifier = pShutdownNotifier;
     this.reachedSetFactory = pReachedSetFactory;
     this.cfa = pCfa;
     this.options = options;
@@ -188,10 +195,10 @@ public class InvariantsCPA extends AbstractCPA {
         configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA");
         configurationBuilder.setOption("specification", "config/specification/default.spc");
 
-        ConfigurableProgramAnalysis cpa = new CPABuilder(configurationBuilder.build(), logManager, reachedSetFactory).buildCPAs(cfa);
+        ConfigurableProgramAnalysis cpa = new CPABuilder(configurationBuilder.build(), logManager, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
         ReachedSet reached = reachedSetFactory.create();
         reached.add(cpa.getInitialState(pNode), cpa.getInitialPrecision(pNode));
-        new CPAAlgorithm(cpa, logManager, config).run(reached);
+        new CPAAlgorithm(cpa, logManager, config, shutdownNotifier).run(reached);
 
         for (AbstractState state : FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE)) {
           CFANode location = AbstractStates.extractLocation(state);

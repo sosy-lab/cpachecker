@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import java.io.File;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
@@ -37,6 +40,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
@@ -46,13 +50,14 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunc
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractRationalFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
+import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.TerminationTest;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Splitter.MapSplitter;
 import com.google.common.collect.ImmutableMap;
 
 @Options(prefix="cpa.predicate.mathsat5")
-public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
+public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> implements AutoCloseable {
 
   @Options(prefix="cpa.predicate.mathsat5")
   private static class Mathsat5Settings {
@@ -84,22 +89,27 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     }
   }
 
-  // TODO This is ugly.
-  // We need this as a workaround until we can have separate solver environments
-  // in every CPA and copy formulas between them.
-  private static Mathsat5FormulaManager instance = null;
+  private final LogManager logger;
 
   private final Mathsat5FormulaCreator formulaCreator;
   private final long mathsatEnv;
+  private final long mathsatConfig;
   private final Mathsat5Settings settings;
-  private int logfileCounter = 0;
+  private static final AtomicInteger logfileCounter = new AtomicInteger(0);
+
+  private final ShutdownNotifier shutdownNotifier;
+  private final TerminationTest terminationTest;
 
   private Mathsat5FormulaManager(
+      LogManager pLogger,
+      long pMathsatConfig,
       AbstractUnsafeFormulaManager<Long> unsafeManager,
       AbstractFunctionFormulaManager<Long> pFunctionManager,
       AbstractBooleanFormulaManager<Long> pBooleanManager,
       AbstractRationalFormulaManager<Long> pNumericManager,
-      AbstractBitvectorFormulaManager<Long> pBitpreciseManager, Mathsat5Settings pSettings) {
+      AbstractBitvectorFormulaManager<Long> pBitpreciseManager,
+      Mathsat5Settings pSettings,
+      final ShutdownNotifier pShutdownNotifier) {
 
     super(unsafeManager, pFunctionManager, pBooleanManager, pNumericManager, pBitpreciseManager);
     FormulaCreator<Long> creator = getFormulaCreator();
@@ -107,20 +117,31 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
       throw new IllegalArgumentException("the formel-creator has to be a Mathsat5FormulaCreator instance!");
     }
     formulaCreator = (Mathsat5FormulaCreator) getFormulaCreator();
+    mathsatConfig = pMathsatConfig;
     mathsatEnv = formulaCreator.getEnv();
     settings = pSettings;
+    logger = checkNotNull(pLogger);
+
+    shutdownNotifier = checkNotNull(pShutdownNotifier);
+    terminationTest = new TerminationTest() {
+        @Override
+        public boolean shouldTerminate() throws InterruptedException {
+          pShutdownNotifier.shutdownIfNecessary();
+          return false;
+        }
+      };
   }
 
+  ShutdownNotifier getShutdownNotifier() {
+    return shutdownNotifier;
+  }
 
   static long getMsatTerm(Formula pT) {
     return ((Mathsat5Formula)pT).getTerm();
   }
 
-  public static synchronized Mathsat5FormulaManager create(LogManager logger,
-      Configuration config, boolean useIntegers) throws InvalidConfigurationException {
-    if (instance != null) {
-      return instance;
-    }
+  public static Mathsat5FormulaManager create(LogManager logger,
+      Configuration config, ShutdownNotifier pShutdownNotifier, boolean useIntegers) throws InvalidConfigurationException {
 
     // Init Msat
     Mathsat5Settings settings = new Mathsat5Settings(config);
@@ -148,10 +169,9 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     Mathsat5RationalFormulaManager rationalTheory = Mathsat5RationalFormulaManager.create(creator, functionTheory);
     Mathsat5BitvectorFormulaManager bitvectorTheory  = Mathsat5BitvectorFormulaManager.create(creator);
 
-    instance = new Mathsat5FormulaManager(
+    return new Mathsat5FormulaManager(logger, msatConf,
         unsafeManager, functionTheory, booleanTheory,
-        rationalTheory, bitvectorTheory, settings);
-    return instance;
+        rationalTheory, bitvectorTheory, settings, pShutdownNotifier);
   }
 
   BooleanFormula encapsulateBooleanFormula(long t) {
@@ -196,7 +216,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     }
 
     if (settings.logAllQueries && settings.logfile != null) {
-      String filename = String.format(settings.logfile.getAbsolutePath(), logfileCounter++);
+      String filename = String.format(settings.logfile.getAbsolutePath(), logfileCounter.getAndIncrement());
 
       msat_set_option_checked(cfg, "debug.api_call_trace", "1");
       msat_set_option_checked(cfg, "debug.api_call_trace_filename", filename);
@@ -211,8 +231,18 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     return env;
   }
 
+  long addTerminationTest(long env) {
+    return msat_set_termination_test(env, terminationTest);
+  }
+
   long getMsatEnv() {
     return mathsatEnv;
   }
 
+  @Override
+  public void close() {
+    logger.log(Level.FINER, "Freeing Mathsat environment");
+    msat_destroy_env(mathsatEnv);
+    msat_destroy_config(mathsatConfig);
+  }
 }

@@ -27,7 +27,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Files;
 
@@ -46,30 +48,49 @@ public final class SMGPlotter {
   }
 
   private final HashMap <SMGObject, String> objectIndex = new HashMap<>();
+  static private int nulls = 0;
   private int offset = 0;
 
   public SMGPlotter() {} /* utility class */
+
+  private String convertToValidDot(String original) {
+    return original.replaceAll("[:]", "_");
+  }
 
   public String smgAsDot(CLangSMG smg, String name, String location) {
     StringBuilder sb = new StringBuilder();
 
     sb.append("digraph gr_" + name.replace('-', '_') + "{\n");
     offset += 2;
-    sb.append(newLineWithOffset("label = \"Location: " + location.replace("\"", "") + "\";"));
+    sb.append(newLineWithOffset("label = \"Location: " + location.replace("\"", "\\\"") + "\";"));
 
     addStackSubgraph(smg, sb);
 
     for (SMGObject heapObject : smg.getHeapObjects()) {
-      //if (heapObject.notNull()){
-        sb.append(newLineWithOffset(smgObjectAsDot(heapObject, smg)));
-        objectIndex.put(heapObject, heapObject.getLabel());
-      //}
+      if (heapObject.notNull()) {
+        sb.append(newLineWithOffset(smgObjectAsDot(heapObject, smg.isObjectValid(heapObject))));
+      }
+      objectIndex.put(heapObject, convertToValidDot(heapObject.getLabel()));
     }
 
     addGlobalObjectSubgraph(smg, sb);
 
     for (int value : smg.getValues()) {
-      sb.append(newLineWithOffset(smgValueAsDot(value)));
+      if (value != smg.getNullValue()) {
+        sb.append(newLineWithOffset(smgValueAsDot(value)));
+      }
+    }
+
+    Set<Integer> processed = new HashSet<>();
+    for (Integer value : smg.getValues()) {
+      if (value != smg.getNullValue()) {
+        for (Integer neqValue : smg.getNeqsForValue(value)) {
+          if (! processed.contains(neqValue)) {
+            sb.append(newLineWithOffset(neqRelationAsDot(value, neqValue)));
+          }
+        }
+        processed.add(value);
+      }
     }
 
     for (SMGEdgeHasValue edge: smg.getHVEdges()) {
@@ -77,7 +98,9 @@ public final class SMGPlotter {
     }
 
     for (SMGEdgePointsTo edge: smg.getPTEdges().values()) {
-      sb.append(newLineWithOffset(smgPTEdgeAsDot(edge)));
+      if (edge.getValue() != smg.getNullValue()) {
+        sb.append(newLineWithOffset(smgPTEdgeAsDot(edge)));
+      }
     }
 
     sb.append("}");
@@ -90,10 +113,10 @@ public final class SMGPlotter {
     offset += 2;
     pSb.append(newLineWithOffset("label=\"Stack\";"));
 
-    int i = 0;
+    int i = pSmg.getStackFrames().size();
     for (CLangStackFrame stack_item : pSmg.getStackFrames()) {
       addStackItemSubgraph(stack_item, pSb, i);
-      i++;
+      i--;
     }
     offset -= 2;
     pSb.append(newLineWithOffset("}"));
@@ -103,9 +126,13 @@ public final class SMGPlotter {
     pSb.append(newLineWithOffset("subgraph cluster_stack_" + pStackFrame.getFunctionDeclaration().getName() + "{"));
     offset += 2;
     pSb.append(newLineWithOffset("fontcolor=blue;"));
-    pSb.append(newLineWithOffset("label=\"" + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
+    pSb.append(newLineWithOffset("label=\"#" + pIndex + ": " + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
 
-    pSb.append(newLineWithOffset(smgScopeFrameAsDot(pStackFrame.getVariables(), String.valueOf(pIndex))));
+    HashMap<String, SMGObject> to_print = new HashMap<>();
+    to_print.putAll(pStackFrame.getVariables());
+    to_print.put(CLangStackFrame.RETVAL_LABEL, pStackFrame.getReturnObject());
+
+    pSb.append(newLineWithOffset(smgScopeFrameAsDot(to_print, String.valueOf(pIndex))));
 
     offset -= 2;
     pSb.append(newLineWithOffset("}"));
@@ -135,30 +162,59 @@ public final class SMGPlotter {
   }
 
   private void addGlobalObjectSubgraph(CLangSMG pSmg, StringBuilder pSb) {
-    pSb.append(newLineWithOffset("subgraph cluster_global{"));
-    offset += 2;
-    pSb.append(newLineWithOffset("label=\"Global objects\";"));
-    pSb.append(newLineWithOffset(smgScopeFrameAsDot(pSmg.getGlobalObjects(), "global")));
-    offset -= 2;
-    pSb.append(newLineWithOffset("}"));
+    if (pSmg.getGlobalObjects().size() > 0) {
+      pSb.append(newLineWithOffset("subgraph cluster_global{"));
+      offset += 2;
+      pSb.append(newLineWithOffset("label=\"Global objects\";"));
+      pSb.append(newLineWithOffset(smgScopeFrameAsDot(pSmg.getGlobalObjects(), "global")));
+      offset -= 2;
+      pSb.append(newLineWithOffset("}"));
+    }
+  }
+
+  private static String newNullLabel() {
+    SMGPlotter.nulls += 1;
+    return "value_null_" + SMGPlotter.nulls;
   }
 
   private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge) {
-    return objectIndex.get(pEdge.getObject()) + " -> value_" + pEdge.getValue() + "[label=\"[" + pEdge.getOffset() + "]\"];";
+    if (pEdge.getValue() == 0) {
+      String newNull = newNullLabel();
+      return newNull + "[shape=plaintext, label=\"NULL\"];" + objectIndex.get(pEdge.getObject()) + " -> " + newNull + "[label=\"[" + pEdge.getOffset() + "]\"];";
+    } else {
+      return objectIndex.get(pEdge.getObject()) + " -> value_" + pEdge.getValue() + "[label=\"[" + pEdge.getOffset() + "]\"];";
+    }
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()) + "[label=\"+" + pEdge.getOffset() + "b\"];";
+    return "value_" + pEdge.getValue() + " -> " + convertToValidDot(objectIndex.get(pEdge.getObject())) + "[label=\"+" + pEdge.getOffset() + "b\"];";
   }
 
-  private static String smgObjectAsDot(SMGObject pObject, CLangSMG pSmg) {
-
-    String valid = pSmg.isObjectValid(pObject) ? "" : " : invalid ";
-    return pObject.getLabel() + " [ shape=rectangle, label = \"" + pObject.toString() + valid + "\"];";
+  private String smgObjectAsDot(SMGObject pObject, boolean pValidity) {
+    String shape;
+    String color;
+    if (pValidity) {
+      shape="rectangle"; color="black";
+    } else {
+      shape="doubleoctagon"; color="red";
+    }
+    return this.convertToValidDot(pObject.getLabel()) + " [ color=" + color + ", shape=" + shape + ", label = \"" + pObject.toString() + "\"];";
   }
 
   private static String smgValueAsDot(int value) {
     return "value_" + value + "[label=\"#" + value + "\"];";
+  }
+
+  private static String neqRelationAsDot(Integer v1, Integer v2) {
+    String targetNode;
+    String returnString = "";
+    if (v2.equals(0)) {
+      targetNode = newNullLabel();
+      returnString = targetNode + "[shape=plaintext, label=\"NULL\", fontcolor=\"red\"];\n";
+    } else {
+      targetNode = "value_" + v2;
+    }
+    return returnString + "value_" + v1 + " -> " + targetNode + "[color=\"red\", fontcolor=\"red\", label=\"neq\"]";
   }
 
   private String newLineWithOffset(String pLine) {

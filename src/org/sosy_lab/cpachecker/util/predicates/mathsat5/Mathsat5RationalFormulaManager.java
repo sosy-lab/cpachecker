@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
@@ -76,6 +78,16 @@ class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManager<Long
   @Override
   public Long makeNumberImpl(long pI) {
     return msat_make_number(mathsatEnv, Long.toString(pI));
+  }
+
+  @Override
+  public Long makeNumberImpl(BigInteger pI) {
+    return msat_make_number(mathsatEnv, pI.toString());
+  }
+
+  @Override
+  public Long makeNumberImpl(String pI) {
+    return msat_make_number(mathsatEnv, pI);
   }
 
 

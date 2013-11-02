@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -43,6 +44,7 @@ public class SMG {
   final private HashSet<SMGEdgeHasValue> hv_edges = new HashSet<>();
   final private HashMap<Integer, SMGEdgePointsTo> pt_edges = new HashMap<>();
   final private HashMap<SMGObject, Boolean> object_validity = new HashMap<>();
+  final private NeqRelation neq = new NeqRelation();
 
   final private MachineModel machine_model;
 
@@ -92,6 +94,8 @@ public class SMG {
     this.object_validity.putAll(pHeap.object_validity);
 
     this.machine_model = pHeap.machine_model;
+
+    this.neq.putAll(pHeap.neq);
   }
 
   @Override
@@ -100,6 +104,7 @@ public class SMG {
     int result = 1;
     result = prime * result + ((hv_edges == null) ? 0 : hv_edges.hashCode());
     result = prime * result + ((machine_model == null) ? 0 : machine_model.hashCode());
+    result = prime * result + ((neq == null) ? 0 : neq.hashCode());
     result = prime * result + ((object_validity == null) ? 0 : object_validity.hashCode());
     result = prime * result + ((objects == null) ? 0 : objects.hashCode());
     result = prime * result + ((pt_edges == null) ? 0 : pt_edges.hashCode());
@@ -127,6 +132,13 @@ public class SMG {
       return false;
     }
     if (machine_model != other.machine_model) {
+      return false;
+    }
+    if (neq == null) {
+      if (other.neq != null) {
+        return false;
+      }
+    } else if (!neq.equals(other.neq)) {
       return false;
     }
     if (object_validity == null) {
@@ -181,7 +193,8 @@ public class SMG {
    * @param pValue Value to remove
    */
   final public void removeValue(final Integer pValue) {
-    this.values.remove(pValue);
+    values.remove(pValue);
+    neq.removeValue(pValue);
   }
   /**
    * Remove {@link pObj} from the SMG. This method does not remove
@@ -316,6 +329,18 @@ public class SMG {
   public void replaceHVSet(Set<SMGEdgeHasValue> pNewHV) {
     hv_edges.clear();
     hv_edges.addAll(pNewHV);
+  }
+
+  /**
+   * Adds a neq relation between two values to the SMG
+   *
+   * @param pV1
+   * @param pV2
+   *
+   * Keeps consistency: no
+   */
+  public void addNeqRelation(Integer pV1, Integer pV2) {
+    neq.add_relation(pV1, pV2);
   }
 
   /* ********************************************* */
@@ -488,10 +513,9 @@ public class SMG {
    * @return true, if the {@link SMGEdgePointsTo} edge with the source
    * {@link value} exists, otherwise false.
    */
-  public final boolean isPointer(Integer value) {
+  public boolean isPointer(Integer value) {
     return this.pt_edges.containsKey(value);
   }
-
 
   /**
    * Returns the {@link SMGEdgePointsTo} edge with the
@@ -501,12 +525,45 @@ public class SMG {
    * @return the {@link SMGEdgePointsTo} edge with the
    * {@link value} as source.
    */
-  public final SMGEdgePointsTo getPointer(Integer value) {
+  public SMGEdgePointsTo getPointer(Integer value) {
     return this.pt_edges.get(value);
+  }
+
+  public void mergeValues(int pV1, int pV2) {
+    if (pV1 == pV2) {
+      return;
+    }
+    if (pV2 == nullAddress) {
+      int tmp = pV1;
+      pV1 = pV2;
+      pV2 = tmp;
+    }
+
+    neq.mergeValues(pV1, pV2);
+    removeValue(pV2);
+    HashSet<SMGEdgeHasValue> new_hv_edges = new HashSet<>();
+    for (SMGEdgeHasValue hv : hv_edges) {
+      if (hv.getValue() != pV2) {
+        new_hv_edges.add(hv);
+      } else {
+        new_hv_edges.add(new SMGEdgeHasValue(hv.getType(), hv.getOffset(), hv.getObject(), pV1));
+      }
+    }
+    hv_edges.clear();
+    hv_edges.addAll(new_hv_edges);
+    // TODO: Handle PT Edges: I'm not entirely sure how they should be handled
+  }
+
+  public boolean haveNeqRelation(Integer pV1, Integer pV2) {
+    return neq.neq_exists(pV1, pV2);
+  }
+
+  public Set<Integer> getNeqsForValue(Integer pV) {
+    return neq.getNeqsForValue(pV);
   }
 }
 
-class SMGConsistencyVerifier {
+final class SMGConsistencyVerifier {
   private SMGConsistencyVerifier() {} /* utility class */
 
   /**
@@ -716,6 +773,8 @@ class SMGConsistencyVerifier {
     return true;
   }
 
+  //TODO: NEQ CONSISTENCY
+
   /**
    * Verify a single SMG if it meets all consistency criteria.
    * @param pLogger A logger to record results
@@ -754,5 +813,116 @@ class SMGConsistencyVerifier {
     pLogger.log(Level.FINEST, "Ending consistency check of a SMG");
 
     return toReturn;
+  }
+}
+
+final class NeqRelation {
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((smgValues == null) ? 0 : smgValues.hashCode());
+    return result;
+  }
+
+  public Set<Integer> getNeqsForValue(Integer pV) {
+    if (smgValues.containsKey(pV)) {
+      return Collections.unmodifiableSet(new HashSet<>(smgValues.get(pV)));
+    }
+    return Collections.unmodifiableSet(new HashSet<Integer>());
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    NeqRelation other = (NeqRelation) obj;
+    if (smgValues == null) {
+      if (other.smgValues != null) {
+        return false;
+      }
+    } else if (!smgValues.equals(other.smgValues)) {
+      return false;
+    }
+    return true;
+  }
+
+  private final Map<Integer, List<Integer>> smgValues = new HashMap<>();
+
+  public void add_relation(Integer pOne, Integer pTwo) {
+    if (! smgValues.containsKey(pOne)) {
+      smgValues.put(pOne, new ArrayList<Integer>());
+    }
+    if (! smgValues.containsKey(pTwo)) {
+      smgValues.put(pTwo, new ArrayList<Integer>());
+    }
+
+    if (! smgValues.get(pOne).contains(pTwo)) {
+      smgValues.get(pOne).add(pTwo);
+      smgValues.get(pTwo).add(pOne);
+    }
+  }
+
+  public void putAll(NeqRelation pNeq) {
+    for (Integer key : pNeq.smgValues.keySet()) {
+      smgValues.put(key, new ArrayList<Integer>());
+      smgValues.get(key).addAll(pNeq.smgValues.get(key));
+    }
+  }
+
+  public void remove_relation(Integer pOne, Integer pTwo) {
+    if (smgValues.containsKey(pOne) && smgValues.containsKey(pTwo)) {
+      List<Integer> listOne = smgValues.get(pOne);
+      List<Integer> listTwo = smgValues.get(pTwo);
+
+      if (listOne.contains(pTwo)) {
+        listOne.remove(pTwo);
+        listTwo.remove(pOne);
+      }
+    }
+  }
+
+  public boolean neq_exists(Integer pOne, Integer pTwo) {
+    if (smgValues.containsKey(pOne) && smgValues.get(pOne).contains(pTwo)) {
+      return true;
+    }
+    return false;
+  }
+
+  public void removeValue(Integer pOne) {
+    if (smgValues.containsKey(pOne)) {
+      for (Integer other : smgValues.get(pOne)) {
+        smgValues.get(other).remove(pOne);
+      }
+      smgValues.remove(pOne);
+    }
+  }
+
+  public void mergeValues(Integer pOne, Integer pTwo) {
+    if (! smgValues.containsKey(pOne)) {
+      smgValues.put(pOne, new ArrayList<Integer>());
+    }
+    if (! smgValues.containsKey(pTwo)) {
+      smgValues.put(pTwo, new ArrayList<Integer>());
+    }
+
+    List<Integer> values = smgValues.get(pTwo);
+    removeValue(pTwo);
+
+    List<Integer> my = smgValues.get(pOne);
+    for (Integer value : values) {
+      List<Integer> other = smgValues.get(value);
+      if ((! value.equals(pOne)) && (! other.contains(pOne))) {
+        other.add(pOne);
+        my.add(value);
+      }
+    }
   }
 }

@@ -3,6 +3,7 @@ import subprocess
 import os
 import benchmark.util as Util
 import benchmark.tools.template
+import benchmark.result as result
 
 class Tool(benchmark.tools.template.BaseTool):
     """
@@ -44,13 +45,13 @@ class Tool(benchmark.tools.template.BaseTool):
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
         if 'SSSAFE' in output:
-            status = 'SAFE'
+            status = result.STR_TRUE
         elif 'UNSAFE' in output:
-            status = 'UNSAFE'
+            status = result.STR_FALSE
         else:
-            status = 'UNKNOWN'
+            status = result.STR_UNKNOWN
 
-        if status == 'UNKNOWN' and isTimeout:
+        if status == result.STR_UNKNOWN and isTimeout:
             status = 'TIMEOUT'
 
         return status

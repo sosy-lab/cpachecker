@@ -59,9 +59,9 @@ public class ReducedFunctionTest {
 
     assertEquals(2, funct.getNumOfActiveNodes());
     assertEquals(2, funct.getAllActiveNodes().size());
-    assertEquals(1, funct.getLeavingEdges(n1).length);
+    assertEquals(1, funct.getLeavingEdges(n1).size());
     assertEquals(1, funct.getNumEnteringEdges(n3));
-    assertEquals(0, funct.getLeavingEdges(n3).length);
+    assertEquals(0, funct.getLeavingEdges(n3).size());
   }
 
   @Test
@@ -129,8 +129,8 @@ public class ReducedFunctionTest {
     assertEquals(funct.getNumLeavingEdges(n3), 1);
     assertEquals(funct.getNumLeavingEdges(n5), 0);
 
-    assertEquals(funct.getLeavingEdges(n1).length, 1);
-    assertEquals(funct.getLeavingEdges(n5).length, 0);
+    assertEquals(funct.getLeavingEdges(n1).size(), 1);
+    assertEquals(funct.getLeavingEdges(n5).size(), 0);
   }
 
   @Test

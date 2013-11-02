@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -33,10 +36,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.configuration.OptionCollector;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
@@ -60,7 +65,7 @@ class CmdLineArguments {
 
     private static final long serialVersionUID = -6526968677815416436L;
 
-    private InvalidCmdlineArgumentException(String msg) {
+    private InvalidCmdlineArgumentException(final String msg) {
       super(msg);
     }
   }
@@ -68,6 +73,7 @@ class CmdLineArguments {
   private CmdLineArguments() { } // prevent instantiation, this is a static helper class
 
   private static final Pattern DEFAULT_CONFIG_FILES_PATTERN = Pattern.compile("^[a-zA-Z0-9-+]+$");
+
 
   /**
    * The directory where to look for configuration files for options like
@@ -82,6 +88,8 @@ class CmdLineArguments {
   private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
 
+  private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
+
   /**
    * Reads the arguments and process them.
    *
@@ -91,7 +99,7 @@ class CmdLineArguments {
    * @return a map with all options found in the command line
    * @throws InvalidCmdlineArgumentException if there is an error in the command line
    */
-  static Map<String, String> processArguments(String[] args) throws InvalidCmdlineArgumentException {
+  static Map<String, String> processArguments(final String[] args) throws InvalidCmdlineArgumentException {
     Map<String, String> properties = new HashMap<>();
     List<String> programs = new ArrayList<>();
 
@@ -131,6 +139,10 @@ class CmdLineArguments {
       } else if (arg.equals("-nolog")) {
         putIfNotExistent(properties, "log.level", "off");
         putIfNotExistent(properties, "log.consoleLevel", "off");
+
+      } else if (arg.equals("-skipRecursion")) {
+        putIfNotExistent(properties, "analysis.summaryEdges", "true");
+        putIfNotExistent(properties, "cpa.callstack.skipRecursion", "true");
 
       } else if (arg.equals("-setprop")) {
         if (argsIt.hasNext()) {
@@ -203,7 +215,7 @@ class CmdLineArguments {
     return properties;
   }
 
-  private static void handleCmc(Iterator<String> argsIt, Map<String, String> properties)
+  private static void handleCmc(final Iterator<String> argsIt, final Map<String, String> properties)
       throws InvalidCmdlineArgumentException {
     properties.put("analysis.restartAfterUnknown", "true");
 
@@ -250,6 +262,7 @@ class CmdLineArguments {
     System.out.println(" -java");
     System.out.println(" -32");
     System.out.println(" -64");
+    System.out.println(" -skipRecursion");
     System.out.println(" -setprop");
     System.out.println(" -printOptions [-v|-verbose]");
     System.out.println(" -printUsedOptions");
@@ -262,7 +275,7 @@ class CmdLineArguments {
     System.exit(0);
   }
 
-  private static void putIfNotExistent(Map<String, String> properties, String key, String value)
+  private static void putIfNotExistent(final Map<String, String> properties, final String key, final String value)
       throws InvalidCmdlineArgumentException {
 
     if (properties.containsKey(key)) {
@@ -275,8 +288,8 @@ class CmdLineArguments {
   /**
    * Handle a command line argument with no value.
    */
-  private static boolean handleArgument0(String arg, String option, String value, String currentArg,
-        Map<String, String> properties) throws InvalidCmdlineArgumentException {
+  private static boolean handleArgument0(final String arg, final String option, final String value, final String currentArg,
+        final Map<String, String> properties) throws InvalidCmdlineArgumentException {
     if (currentArg.equals(arg)) {
       putIfNotExistent(properties, option, value);
       return true;
@@ -288,8 +301,8 @@ class CmdLineArguments {
   /**
    * Handle a command line argument with one value.
    */
-  private static boolean handleArgument1(String arg, String option, String currentArg,
-        Iterator<String> args, Map<String, String> properties)
+  private static boolean handleArgument1(final String arg, final String option, final String currentArg,
+        final Iterator<String> args, final Map<String, String> properties)
         throws InvalidCmdlineArgumentException {
     if (currentArg.equals(arg)) {
       if (args.hasNext()) {
@@ -306,22 +319,42 @@ class CmdLineArguments {
   /**
    * Handle a command line argument with one value that may appear several times.
    */
-  private static boolean handleMultipleArgument1(String arg, String option, String currentArg,
-      Iterator<String> args, Map<String, String> properties)
+  private static boolean handleMultipleArgument1(final String arg, final String option, final String currentArg,
+      final Iterator<String> args, final Map<String, String> properties)
       throws InvalidCmdlineArgumentException {
     if (currentArg.equals(arg)) {
       if (args.hasNext()) {
 
         String newValue = args.next();
-        if (arg.equals("-spec")
-            && SPECIFICATION_FILES_PATTERN.matcher(newValue).matches()) {
+        if (arg.equals("-spec")) {
+          // handle normal specification definitions
+          if(SPECIFICATION_FILES_PATTERN.matcher(newValue).matches()) {
+            Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, newValue);
+            if (specFile != null) {
+              newValue = specFile.toString();
+            } else {
+              System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
+              System.exit(0);
+            }
+          }
 
-          Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, newValue);
-          if (specFile != null) {
-            newValue = specFile.toString();
-          } else {
-            System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
-            System.exit(0);
+          // handle property files, as demanded by SV-COMP, which are just mapped to an explicit entry function and
+          // the respective specification definition
+          else if(PROPERTY_FILE_PATTERN.matcher(newValue).matches()) {
+            Path propertyFile = Paths.get(newValue);
+            if (java.nio.file.Files.exists(propertyFile)) {
+              PropertyFileParser parser = new PropertyFileParser(propertyFile.toFile());
+              parser.parse();
+              putIfNotExistent(properties, "analysis.entryFunction", parser.entryFunction);
+
+              // set the file from where to read the specification automaton
+              newValue = parser.propertyType.automatonFileName;
+            }
+
+            else {
+              System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
+              System.exit(0);
+            }
           }
         }
 
@@ -356,8 +389,9 @@ class CmdLineArguments {
    * @param name The value for filling in the template.
    * @return An absolute Path object pointing to an existing file or null.
    */
-  private static Path findFile(String template, String name) {
+  private static Path findFile(final String template, final String name) {
     final String fileName = String.format(template, name);
+
     Path file = Paths.get(fileName);
 
     // look in current directory first
@@ -375,5 +409,62 @@ class CmdLineArguments {
     }
 
     return null;
+  }
+
+  /**
+   * A simple class that reads a property, i.e. basically an entry function and a proposition, from a given property,
+   * and maps the proposition to a file from where to read the specification automaton.
+   */
+  private static class PropertyFileParser {
+    private final File propertyFile;
+
+    private String entryFunction;
+    private PropertyType propertyType;
+
+    private static final Pattern PROPERTY_PATTERN =
+        Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
+
+    private PropertyFileParser(final File pPropertyFile) {
+      propertyFile = pPropertyFile;
+    }
+
+    private void parse() throws InvalidCmdlineArgumentException {
+      String rawProperty = null;
+      try (BufferedReader br = java.nio.file.Files.newBufferedReader(propertyFile.toPath(), Charset.defaultCharset())) {
+        rawProperty = br.readLine();
+      }
+      catch (IOException e) {
+        throw new InvalidCmdlineArgumentException("The given property file could not be read!");
+      }
+
+      Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
+
+      if(rawProperty == null || !matcher.matches() || matcher.groupCount() != 2) {
+        throw new InvalidCmdlineArgumentException("The given property is not well-formed!");
+      }
+
+      entryFunction = matcher.group(1);
+
+      if(matcher.group(2).equals(PropertyType.REACHABILITY.property)) {
+        propertyType = PropertyType.REACHABILITY;
+      } else {
+        throw new InvalidCmdlineArgumentException("The property given in the property file is not yet supported.");
+      }
+    }
+
+    private enum PropertyType {
+      REACHABILITY    ("G ! label(ERROR)", "config/specification/sv-comp.spc"),
+      VALID_FREE      ("G valid-free",      null),
+      VALID_DEREF     ("G valid-deref",     null),
+      VALID_MEMTRACK  ("G valid-memtrack",  null);
+
+      private final String property;
+      private final String automatonFileName;
+
+      PropertyType (String pProperty, String pAutomatonFileName) {
+        property          = pProperty;
+        automatonFileName = pAutomatonFileName;
+      }
+    }
   }
 }

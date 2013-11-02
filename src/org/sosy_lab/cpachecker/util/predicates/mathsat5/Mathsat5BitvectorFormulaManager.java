@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
 
 /**
@@ -60,15 +62,25 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
 
   @Override
   public Long makeBitvectorImpl(int pLength, long pI) {
-    if (pI < 0) {
-      long max = (long)Math.pow(2, pLength - 1);
-      if (pI < -max) {
+    return makeBitvectorImpl(pLength, BigInteger.valueOf(pI));
+  }
+
+  @Override
+  public Long makeBitvectorImpl(int pLength, BigInteger pI) {
+    if (pI.signum() < 0) {
+      BigInteger max = BigInteger.valueOf(2).pow(pLength - 1);
+      if (pI.compareTo(max.negate()) < 0) {
         throw new IllegalArgumentException(pI + " is to small for a bitvector with length " + pLength);
       }
-      long n = (long)Math.pow(2, pLength);
-      pI = pI + n;
+      BigInteger n = BigInteger.valueOf(2).pow(pLength);
+      pI = pI.add(n);
     }
-    return msat_make_bv_number(mathsatEnv, Long.toString(pI), pLength, 10);
+    return msat_make_bv_number(mathsatEnv, pI.toString(), pLength, 10);
+  }
+
+  @Override
+  public Long makeBitvectorImpl(int pLength, String pI) {
+    return msat_make_bv_number(mathsatEnv, pI, pLength, 10);
   }
 
 

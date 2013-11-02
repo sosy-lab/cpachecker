@@ -161,53 +161,6 @@ final public class CLangStackFrame {
   }
 
   /**
-   * Prototype. Determines if this stack frame is semantically less or equal to the given stack frame.
-   *
-   * @param cLangSMG The C SMG this Stack frame is contained in.
-   * @param pReachedStack The stack frame of the smg of an already reached abstract state.
-   * @param reachedCLangSMG the SMG containing the stack frame {@code} pReachedStack} of an already reached state,
-   * @return True, if this stack frame is semantically equal or less precise.
-   */
-  public boolean isLessOrEqual(CLangSMG cLangSMG, CLangStackFrame pReachedStack, CLangSMG reachedCLangSMG) {
-
-    //Check if this belongs to the same Stack frame
-    boolean isTheSameFunction = (stack_function.getQualifiedName().equals(
-        pReachedStack.stack_function.getQualifiedName()));
-
-    if(!isTheSameFunction) {
-      return false;
-    }
-
-    /* This SMG stack is not less or equal to the reached SMG stack,
-     * if it contains less variables.
-     */
-    if (stack_variables.size() < pReachedStack.stack_variables.size()) {
-      return false;
-    }
-
-    /* Check every subSMG of every variable, if its subSMG isLessOrEqual than
-     * the subSMG of the reached variable
-     */
-    Set<String> variables = pReachedStack.stack_variables.keySet();
-
-    for(String variable : variables) {
-      if(!containsVariable(variable)) {
-        return false;
-      } else {
-        SMGObject objectOfVariable = getVariable(variable);
-        SMGObject reachedObjectOfVariable = pReachedStack.getVariable(variable);
-        if (!cLangSMG.isLessOrEqual(objectOfVariable, reachedObjectOfVariable, reachedCLangSMG)) {
-          return false;
-        }
-      }
-    }
-
-    cLangSMG.isLessOrEqual(returnValueObject, pReachedStack.returnValueObject, reachedCLangSMG);
-
-    return true;
-  }
-
-  /**
    * @return a set of all objects: return value object, variables, parameters
    */
   public Set<SMGObject> getAllObjects() {

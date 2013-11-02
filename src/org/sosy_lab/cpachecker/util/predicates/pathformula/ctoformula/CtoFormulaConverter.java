@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.typ
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,8 +36,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -118,19 +117,6 @@ import com.google.common.collect.ImmutableSet;
  */
 public class CtoFormulaConverter {
 
-  public static CtoFormulaConverter create(Configuration config,
-      FormulaManagerView pFmgr, MachineModel pMachineModel, LogManager pLogger)
-          throws InvalidConfigurationException {
-
-    FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-
-    if (options.handlePointerAliasing()) {
-      return new PointerAliasHandling(options, config, pFmgr, pMachineModel, pLogger);
-    } else {
-      return new CtoFormulaConverter(options, pFmgr, pMachineModel, pLogger);
-    }
-  }
-
   static final String ASSUME_FUNCTION_NAME = "__VERIFIER_assume";
 
   // list of functions that are pure (no side-effects)
@@ -171,6 +157,8 @@ public class CtoFormulaConverter {
   private final Map<String, BitvectorFormula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
 
+  private final Map<CType, FormulaType<?>> typeCache = new IdentityHashMap<>();
+
   final FormulaEncodingOptions options;
   final MachineModel machineModel;
   private final CtoFormulaSizeofVisitor sizeofVisitor;
@@ -187,7 +175,7 @@ public class CtoFormulaConverter {
 
   private final FunctionFormulaType<BitvectorFormula> stringUfDecl;
 
-  CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
+  public CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
       MachineModel pMachineModel, LogManager logger) {
 
     this.fmgr = fmgr;
@@ -280,11 +268,16 @@ public class CtoFormulaConverter {
   }
 
   public FormulaType<?> getFormulaTypeFromCType(CType type) {
-    int byteSize = getSizeof(type);
+    FormulaType<?> result = typeCache.get(type);
+    if (result == null) {
+      int byteSize = getSizeof(type);
 
-    int bitsPerByte = machineModel.getSizeofCharInBits();
-    // byte to bits
-    return efmgr.getFormulaType(byteSize * bitsPerByte);
+      int bitsPerByte = machineModel.getSizeofCharInBits();
+      // byte to bits
+      result = efmgr.getFormulaType(byteSize * bitsPerByte);
+      typeCache.put(type, result);
+    }
+    return result;
   }
 
   static boolean hasRepresentableDereference(Variable v) {
@@ -299,7 +292,7 @@ public class CtoFormulaConverter {
   * Call only if you are sure you have a local variable!
   */
   static String scoped(String var, String function) {
-    return function + "::" + var;
+    return (function + "::" + var).intern();
   }
 
   /**
@@ -806,10 +799,10 @@ public class CtoFormulaConverter {
     pT2 = pT2.getCanonicalType();
 
     if (pT1 instanceof CEnumType) {
-      pT1 = CNumericTypes.INT;
+      pT1 = CNumericTypes.INT.getCanonicalType();
     }
     if (pT2 instanceof CEnumType) {
-      pT2 = CNumericTypes.INT;
+      pT2 = CNumericTypes.INT.getCanonicalType();
     }
 
     // UNDEFINED: What should happen when we have two pointer?
@@ -821,7 +814,7 @@ public class CtoFormulaConverter {
         CSimpleType s2 = (CSimpleType)pT2;
         CSimpleType resolved = getImplicitSimpleCType(s1, s2);
 
-        if (!s1.getCanonicalType().equals(s2.getCanonicalType())) {
+        if (!s1.equals(s2)) {
           logger.logOnce(Level.FINEST, "Implicit Cast of", s1, "and", s2, "to", resolved);
         }
 
@@ -845,8 +838,13 @@ public class CtoFormulaConverter {
       }
     }
 
-    if (pT1.getCanonicalType().equals(pT2.getCanonicalType())) {
+    if (pT1.equals(pT2)) {
       return pT1;
+    }
+    if (pT1 instanceof CPointerType && pT2 instanceof CPointerType) {
+      // Two pointer types, probably a comparison,
+      // type does actually not matter.
+      return CPointerType.POINTER_TO_VOID;
     }
 
     int s1 = getSizeof(pT1);
@@ -1205,6 +1203,10 @@ public class CtoFormulaConverter {
       if (expressionType instanceof CFunctionType) {
         CFunctionType funcPtrType = (CFunctionType)expressionType;
         retType = funcPtrType.getReturnType();
+      } else if (expressionType instanceof CPointerType &&
+                 ((CPointerType) expressionType).getType().getCanonicalType() instanceof CFunctionType) {
+        CFunctionType funcPtrType = (CFunctionType) ((CPointerType) expressionType).getType().getCanonicalType();
+        retType = funcPtrType.getReturnType();
       } else {
         throw new UnrecognizedCCodeException("Cannot handle function pointer call with unknown type " + expressionType, edge, funcCallExp);
       }
@@ -1411,19 +1413,11 @@ public class CtoFormulaConverter {
 
   protected ExpressionToFormulaVisitor getCExpressionVisitor(CFAEdge pEdge, String pFunction,
       SSAMapBuilder pSsa, Constraints pCo) {
-    if (options.useUifForLvals()) {
-      return new ExpressionToFormulaVisitorUIF(this, pEdge, pFunction, pSsa, pCo);
-    } else {
-      return new ExpressionToFormulaVisitor(this, pEdge, pFunction, pSsa, pCo);
-    }
+    return new ExpressionToFormulaVisitor(this, pEdge, pFunction, pSsa, pCo);
   }
 
   protected LvalueVisitor getLvalueVisitor(CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
-    if (options.useUifForLvals()) {
-      return new LvalueVisitorUIF(this, pEdge, pFunction, pSsa, pCo);
-    } else {
-      return new LvalueVisitor(this, pEdge, pFunction, pSsa, pCo);
-    }
+    return new LvalueVisitor(this, pEdge, pFunction, pSsa, pCo);
   }
 
   /**
@@ -1605,11 +1599,6 @@ public class CtoFormulaConverter {
    * We call this method for unsupported Expressions and just make a new Variable.
    */
   Formula makeVariableUnsafe(CExpression exp, String function, SSAMapBuilder ssa, boolean makeFresh) {
-
-    // We actually support this expression?
-    assert !options.handlePointerAliasing() || !isSupportedExpression(exp)
-       : "A supported Expression is handled as unsupported!";
-
     if (makeFresh) {
       logger.logOnce(Level.WARNING, "Program contains array, or pointer (multiple level of indirection), or field (enable handleFieldAccess and handleFieldAliasing) access; analysis is imprecise in case of aliasing.");
     }

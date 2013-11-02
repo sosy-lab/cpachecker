@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Objects;
 
 
@@ -34,8 +36,8 @@ public abstract class AExpressionAssignmentStatement extends AStatement implemen
   public AExpressionAssignmentStatement(FileLocation pFileLocation, IALeftHandSide pLeftHandSide,
       IAExpression pRightHandSide) {
     super(pFileLocation);
-    leftHandSide = pLeftHandSide;
-    rightHandSide = pRightHandSide;
+    leftHandSide = checkNotNull(pLeftHandSide);
+    rightHandSide = checkNotNull(pRightHandSide);
   }
 
   @Override

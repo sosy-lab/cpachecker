@@ -37,8 +37,8 @@ import tempfile
 import threading
 import time
 
-import benchmark.util as Util
-import benchmark.filewriter as filewriter
+from . import util as Util
+from . import filewriter
 
 readFile = filewriter.readFile
 writeFile = filewriter.writeFile
@@ -51,6 +51,7 @@ CPUSET = 'cpuset'
 MEMORY = 'memory'
 
 _BYTE_FACTOR = 1024 # byte in kilobyte
+_WALLTIME_LIMIT_OVERHEAD = 30 # seconds
 
 
 class RunExecutor():
@@ -202,6 +203,7 @@ class RunExecutor():
         outputFile.flush()
 
         timelimitThread = None
+        oomThread = None
         wallTimeBefore = time.time()
 
         p = None
@@ -211,6 +213,14 @@ class RunExecutor():
                                  env=runningEnv, cwd=runningDir,
                                  preexec_fn=preSubprocess)
 
+        except OSError as e:
+            logging.critical("OSError {0} while starting {1}: {2}. "
+                             + "Assure that the directory containing the tool to be benchmarked is included "
+                             + "in the PATH environment variable or an alias is set."
+                             .format(e.errno, args[0], e.strerror))
+            return (0, 0, 0)
+
+        try:
             with self.SUB_PROCESSES_LOCK:
                 self.SUB_PROCESSES.add(p)
 
@@ -220,14 +230,18 @@ class RunExecutor():
                 timelimitThread = _TimelimitThread(cgroups[CPUACCT], rlimits[TIMELIMIT], p, myCpuCount)
                 timelimitThread.start()
 
+            if MEMLIMIT in rlimits:
+                oomThread = _OomEventThread(cgroups[MEMORY], p, rlimits[MEMLIMIT])
+                oomThread.start()
+        
+            logging.debug("waiting for: pid:{0}".format(p.pid))
             pid, returnvalue, ru_child = os.wait4(p.pid, 0)
+            logging.debug("waiting finished: pid:{0}, retVal:{1}".format(pid, returnvalue))
 
         except OSError as e:
             returnvalue = 0
             ru_child = None
-            logging.critical("I caught an OSError({0}): {1}.".format(e.errno, e.strerror) \
-                             + "Assure that the directory containing the tool to be benchmarked is included " \
-                             + "in the PATH environment variable or an alias is set.")
+            logging.critical("OSError {0} while waiting for termination of {1} ({2}): {3}.".format(e.errno, args[0], p.pid, e.strerror))
 
         finally:
             with self.SUB_PROCESSES_LOCK:
@@ -235,6 +249,9 @@ class RunExecutor():
 
             if timelimitThread:
                 timelimitThread.cancel()
+
+            if oomThread:
+                oomThread.cancel()
 
             outputFile.close() # normally subprocess closes file, we do this again
 
@@ -378,6 +395,75 @@ def _readCpuTime(cgroupCpuacct):
     return float(readFile(cgroupCpuacct, 'cpuacct.usage'))/1000000000 # nano-seconds to seconds
 
 
+class _OomEventThread(threading.Thread):
+    """
+    Thread that kills the process when they run out of memory.
+    Usually the kernel would do this by itself,
+    but sometimes the process still hangs because it does not even have
+    enough memory left to get killed
+    (the memory limit also effects some kernel-internal memory related to our process).
+    So we disable the kernel-side killing,
+    and instead let the kernel notify us via an event when the cgroup ran out of memory.
+    Then we kill the process ourselves and increase the memory limit a little bit.
+    
+    The notification works by opening an "event file descriptor" with eventfd,
+    and telling the kernel to notify us about OOMs by writing the event file
+    descriptor and an file descriptor of the memory.oom_control file
+    to cgroup.event_control.
+    The kernel-side process killing is disabled by writing 1 to memory.oom_control.
+    Sources:
+    https://www.kernel.org/doc/Documentation/cgroups/memory.txt
+    https://access.redhat.com/site/documentation//en-US/Red_Hat_Enterprise_Linux/6/html/Resource_Management_Guide/sec-memory.html#ex-OOM-control-notifications
+    """
+    def __init__(self, cgroup, process, memlimit):
+        super(_OomEventThread, self).__init__()
+        daemon = True
+        self._finished = threading.Event()
+        self._process = process
+        self._memlimit = memlimit
+        self._cgroup = cgroup
+
+        ofd = os.open(os.path.join(cgroup, 'memory.oom_control'), os.O_WRONLY)
+        try:
+            from ctypes import cdll
+            libc = cdll.LoadLibrary('libc.so.6')
+
+            # Important to use CLOEXEC, otherwise the benchmarked tool inherits
+            # the file descriptor.
+            EFD_CLOEXEC = 0x80000 # from <sys/eventfd.h>
+            self._efd = libc.eventfd(0, EFD_CLOEXEC) 
+
+            writeFile('{} {}'.format(self._efd, ofd),
+                      cgroup, 'cgroup.event_control')
+
+            # If everything worked, disable Kernel-side process killing
+            os.write(ofd, '1')
+        finally:
+            os.close(ofd)
+
+    def run(self):
+        try:
+            # In an eventfd, there are always 8 bytes
+            eventNumber = os.read(self._efd, 8) # blocks
+            # If read returned, this means the kernel sent us an event.
+            # It does so either on OOM or if the cgroup os removed.
+            if not self._finished.is_set():
+                logging.info('Killing process {0} due to out-of-memory event from kernel.'.format(self._process.pid))
+                _killSubprocess(self._process)
+
+                # We now need to increase the memory limit of this cgroup
+                # to give the process a chance to terminate
+                # 10MB ought to be enough
+                writeFile(str((self._memlimit + 10) * _BYTE_FACTOR * _BYTE_FACTOR),
+                          self._cgroup, 'memory.memsw.limit_in_bytes')
+
+        finally:
+            os.close(self._efd)
+
+    def cancel(self):
+        self._finished.set()
+
+
 class _TimelimitThread(threading.Thread):
     """
     Thread that periodically checks whether the given process has already
@@ -388,20 +474,26 @@ class _TimelimitThread(threading.Thread):
         daemon = True
         self.cgroupCpuacct = cgroupCpuacct
         self.timelimit = timelimit
+        self.latestKillTime = time.time() + timelimit + _WALLTIME_LIMIT_OVERHEAD
         self.cpuCount = cpuCount
         self.process = process
         self.finished = threading.Event()
 
     def run(self):
         while not self.finished.is_set():
-            usedTime = _readCpuTime(self.cgroupCpuacct)
-            if usedTime >= self.timelimit:
+            usedCpuTime = _readCpuTime(self.cgroupCpuacct)
+            remainingCpuTime = self.timelimit - usedCpuTime
+            remainingWallTime = self.latestKillTime - time.time()
+            logging.debug("TimelimitThread for process {0}: used cpu time: {1}, remaining cpu time: {2}, remaining wall time: {3}."
+                          .format(self.process.pid, usedCpuTime, remainingCpuTime, remainingWallTime))
+            if remainingCpuTime <= 0 or remainingWallTime <= 0:
+                logging.info('Killing process {0} due to timeout.'.format(self.process.pid))
                 _killSubprocess(self.process)
                 self.finished.set()
                 return
 
-            remainingTime = self.timelimit - usedTime + 1
-            self.finished.wait(remainingTime/self.cpuCount)
+            remainingTime = max(remainingCpuTime/self.cpuCount, remainingWallTime)
+            self.finished.wait(remainingTime + 1)
 
     def cancel(self):
         self.finished.set()
@@ -491,17 +583,24 @@ def _addTaskToCgroup(cgroup, pid):
             tasksFile.write(str(pid))
 
 def _killAllTasksInCgroup(cgroup):
-    if cgroup:
-        tasksFile = os.path.join(cgroup, 'tasks')
-        while os.path.getsize(tasksFile) > 0:
-            with open(tasksFile, 'rt') as tasks:
-                for task in tasks:
-                    logging.warning('Run has left-over process with pid {0}'.format(task))
-                    try:
-                        os.kill(int(task), signal.SIGKILL)
-                    except OSError:
-                        # task already terminated between reading and killing
-                        pass
+    tasksFile = os.path.join(cgroup, 'tasks')
+    i = 1
+    while i <= 2: # Do two triess of killing processes
+        with open(tasksFile, 'rt') as tasks:
+            task = None
+            for task in tasks:
+                logging.warning('Run has left-over process with pid {0}, killing it (try {1}).'.format(task, i))
+                try:
+                    os.kill(int(task), signal.SIGKILL)
+                except OSError:
+                    # task already terminated between reading and killing
+                    pass
+
+            if task is None:
+                return # No process was hanging, exit
+            elif i == 2:
+                logging.warning('Run still has left over processes after second try of killing them, giving up.')
+            i += 1
 
 def _removeCgroup(cgroup):
     if cgroup:

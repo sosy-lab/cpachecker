@@ -56,6 +56,7 @@ public abstract class ImpactRefiner implements Refiner {
         solver,
         predicateCpa.getFormulaManagerFactory(),
         config,
+        predicateCpa.getShutdownNotifier(),
         logger);
 
     PathChecker pathChecker = new PathChecker(logger, pfmgr, solver);
