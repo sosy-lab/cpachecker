@@ -165,7 +165,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           conv.logger.logf(Level.WARNING,
                            "Can't refine allocation type, but the sizes differ: %s : %d != %d",
                            type,
-                           typeSize +
+                           typeSize,
                            size);
           return type;
         }
