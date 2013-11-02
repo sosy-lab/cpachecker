@@ -468,7 +468,13 @@ public class Pointer implements Cloneable {
 
   public static class MallocAndAssign implements PointerOperation {
 
+    private final boolean guaranteeSuccess;
+
     private MemoryAddress memAddress = null;
+
+    public MallocAndAssign(boolean pGuaranteeSuccess) {
+      guaranteeSuccess = pGuaranteeSuccess;
+    }
 
     @Override
     public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) {
@@ -480,7 +486,9 @@ public class Pointer implements Cloneable {
         memAddress = memory.malloc();
       }
 
-      pointer.targets.add(Memory.NULL_POINTER);
+      if (!guaranteeSuccess) {
+        pointer.targets.add(Memory.NULL_POINTER);
+      }
       pointer.targets.add(memAddress);
 
 

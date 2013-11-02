@@ -34,6 +34,10 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -91,6 +95,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
+@Options(prefix="cpa.pointer")
 public class PointerTransferRelation implements TransferRelation {
 
   /*
@@ -150,6 +155,9 @@ public class PointerTransferRelation implements TransferRelation {
 
   private MissingInformation                missing            = null;
 
+  @Option(description = "Setting this to true makes memory-allocation functions like malloc() always return a valid pointer.")
+  private boolean memoryAllocationsAlwaysSucceed = false;
+
   private static boolean                    printWarnings      = false;
   private static Set<Pair<Integer, String>> warnings           = null;
   private static LogManager                 logger             = null;
@@ -160,8 +168,9 @@ public class PointerTransferRelation implements TransferRelation {
 
   private final MachineModel machineModel;
 
-  public PointerTransferRelation(boolean pPrintWarnings,
-      LogManager pLogger, MachineModel pMachineModel) {
+  public PointerTransferRelation(boolean pPrintWarnings, Configuration config,
+      LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
+    config.inject(this);
     printWarnings = pPrintWarnings;
     warnings = printWarnings ? new HashSet<Pair<Integer, String>>() : null;
     logger = pLogger;
@@ -1300,7 +1309,7 @@ public class PointerTransferRelation implements TransferRelation {
     }
     CExpression parameter = parameters.get(0);
 
-    Pointer.MallocAndAssign op = new Pointer.MallocAndAssign();
+    Pointer.MallocAndAssign op = new Pointer.MallocAndAssign(memoryAllocationsAlwaysSucceed);
     element.pointerOp(op, pointer, leftDereference);
     MemoryAddress memAddress = op.getMallocResult();
 
