@@ -461,15 +461,15 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
   }
 
   @SuppressWarnings("hiding")
-  protected final CToFormulaWithUFConverter conv;
-  protected final PointerTargetSetBuilder pts;
+  private final CToFormulaWithUFConverter conv;
+  private final PointerTargetSetBuilder pts;
 
-  protected final BaseVisitor baseVisitor;
+  private final BaseVisitor baseVisitor;
 
-  protected Object lastTarget;
-  protected final List<Pair<String, CType>> sharedBases = new ArrayList<>();
-  protected final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>();
-  protected final List<Pair<CCompositeType, String>> addressedFields = new ArrayList<>();
-  protected final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();
-  protected final Map<String, CType> usedDeferredAllocationPointers = new HashMap<>();
+  private Object lastTarget;
+  private final List<Pair<String, CType>> sharedBases = new ArrayList<>();
+  private final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>();
+  private final List<Pair<CCompositeType, String>> addressedFields = new ArrayList<>();
+  private final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();
+  private final Map<String, CType> usedDeferredAllocationPointers = new HashMap<>();
 }

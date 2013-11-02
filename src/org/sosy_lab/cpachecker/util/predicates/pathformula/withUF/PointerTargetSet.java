@@ -132,8 +132,8 @@ public class PointerTargetSet implements Serializable {
       return compositeType.hashCode() * 17 + fieldName.hashCode();
     }
 
-    private String compositeType;
-    private String fieldName;
+    private final String compositeType;
+    private final String fieldName;
   }
 
   /**

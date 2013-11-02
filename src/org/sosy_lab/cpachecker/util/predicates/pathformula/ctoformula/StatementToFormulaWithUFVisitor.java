@@ -99,12 +99,14 @@ import com.google.common.collect.Iterables;
 public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
 
   public StatementToFormulaWithUFVisitor(final ExpressionToFormulaWithUFVisitor delegate,
-                                         final LvalueToPointerTargetPatternVisitor lvalueVisitor) {
+                                         final LvalueToPointerTargetPatternVisitor lvalueVisitor,
+                                         final CToFormulaWithUFConverter conv,
+                                         final PointerTargetSetBuilder pts) {
     super(delegate);
     this.delegate = delegate;
     this.lvalueVisitor = lvalueVisitor;
-    this.conv = delegate.conv;
-    this.pts = delegate.pts;
+    this.conv = conv;
+    this.pts = pts;
     this.isRelevantLhsVisitor = new IsRelevantLhsVisitor();
   }
 
@@ -1034,10 +1036,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   }
 
   @SuppressWarnings("hiding")
-  protected final CToFormulaWithUFConverter conv;
-  protected final PointerTargetSetBuilder pts;
+  private final CToFormulaWithUFConverter conv;
+  private final PointerTargetSetBuilder pts;
   @SuppressWarnings("hiding")
-  protected final ExpressionToFormulaWithUFVisitor delegate;
-  protected final LvalueToPointerTargetPatternVisitor lvalueVisitor;
-  protected final IsRelevantLhsVisitor isRelevantLhsVisitor;
+  private final ExpressionToFormulaWithUFVisitor delegate;
+  private final LvalueToPointerTargetPatternVisitor lvalueVisitor;
+  private final IsRelevantLhsVisitor isRelevantLhsVisitor;
 }
