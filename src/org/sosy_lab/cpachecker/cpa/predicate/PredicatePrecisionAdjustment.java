@@ -94,23 +94,26 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     totalPrecTime.start();
     try {
-      if (pElement instanceof ComputeAbstractionState) {
-        ComputeAbstractionState element = (ComputeAbstractionState)pElement;
+      PredicateAbstractState element = (PredicateAbstractState)pElement;
+
+      if (element instanceof ComputeAbstractionState) {
         PredicatePrecision precision = (PredicatePrecision)pPrecision;
 
-        pElement = computeAbstraction(element, precision);
+        element = computeAbstraction((ComputeAbstractionState)element, precision);
       }
+
+      Action action = element.isTarget() ? Action.BREAK : Action.CONTINUE;
+      return Triple.<AbstractState, Precision, Action>of(element, pPrecision, action);
 
     } finally {
       totalPrecTime.stop();
     }
-    return Triple.of(pElement, pPrecision, Action.CONTINUE);
   }
 
   /**
    * Compute an abstraction.
    */
-  private AbstractState computeAbstraction(
+  private PredicateAbstractState computeAbstraction(
       ComputeAbstractionState element,
       PredicatePrecision precision) throws CPAException, InterruptedException {
 
