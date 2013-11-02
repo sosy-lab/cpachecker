@@ -842,7 +842,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   @Override
-  public Pair<PathFormulaWithUF, ErrorConditions> makeAnd(final PathFormula oldFormula, final CFAEdge edge) throws CPATransferException {
+  public Pair<PathFormula, ErrorConditions> makeAnd(final PathFormula oldFormula, final CFAEdge edge) throws CPATransferException {
     if (oldFormula instanceof PathFormulaWithUF) {
       return makeAnd((PathFormulaWithUF) oldFormula, edge);
     } else {
@@ -850,11 +850,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  private Pair<PathFormulaWithUF, ErrorConditions> makeAnd(final PathFormulaWithUF oldFormula, final CFAEdge edge) throws CPATransferException {
+  private Pair<PathFormula, ErrorConditions> makeAnd(final PathFormulaWithUF oldFormula, final CFAEdge edge) throws CPATransferException {
     ErrorConditions errorConditions = new ErrorConditions(bfmgr);
 
     if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
-      return Pair.of(oldFormula, errorConditions);
+      return Pair.<PathFormula, ErrorConditions>of(oldFormula, errorConditions);
     }
 
     final String function = edge.getPredecessor() != null ? edge.getPredecessor().getFunctionName() : null;
@@ -869,7 +869,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     final PointerTargetSet newPts = pts.build();
     final BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-    return Pair.of(new PathFormulaWithUF(newFormula, newSsa, newPts, newLength), errorConditions);
+    PathFormula result = new PathFormulaWithUF(newFormula, newSsa, newPts, newLength);
+    return Pair.of(result, errorConditions);
   }
 
   private ExpressionToFormulaWithUFVisitor getExpressionToFormulaWithUFVisitor(final CFAEdge cfaEdge,

@@ -103,7 +103,7 @@ public class ABMPredicateReducer implements Reducer {
                                                                              .empty();
 
       return PredicateAbstractState.mkAbstractionState(bfmgr, pathFormula,
-          newAbstraction, abstractionLocations);
+          newAbstraction, abstractionLocations, predicateElement.getViolatedProperty());
     } finally {
       reduceTimer.stop();
     }
@@ -154,7 +154,7 @@ public class ABMPredicateReducer implements Reducer {
       PersistentMap<CFANode, Integer> abstractionLocations = reducedState.getAbstractionLocationsOnPath();
 
       return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-          newAbstractionFormula, abstractionLocations);
+          newAbstractionFormula, abstractionLocations, reducedState.getViolatedProperty());
     } finally {
       expandTimer.stop();
     }
@@ -423,6 +423,6 @@ public class ABMPredicateReducer implements Reducer {
     PersistentMap<CFANode, Integer> abstractionLocations = rootState.getAbstractionLocationsOnPath();
 
     return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-        newAbstractionFormula, abstractionLocations);
+        newAbstractionFormula, abstractionLocations, reducedState.getViolatedProperty());
   }
 }

@@ -172,12 +172,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeAnd(final PathFormula pOldFormula,
+  public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula,
                              final CFAEdge pEdge) throws CPATransferException {
-    PathFormula result = converter.makeAnd(pOldFormula, pEdge).getFirst();
+    Pair<PathFormula, ErrorConditions> result = converter.makeAnd(pOldFormula, pEdge);
 
     if (useNondetFlags) {
-      SSAMapBuilder ssa = result.getSsa().builder();
+      PathFormula pf = result.getFirst();
+      SSAMapBuilder ssa = pf.getSsa().builder();
 
       int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
       int lFlagIndex = ssa.getIndex(NONDET_FLAG_VARIABLE);
@@ -187,7 +188,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           lFlagIndex = 1; // ssa indices start with 2, so next flag that is generated also uses index 2
         }
 
-        BooleanFormula edgeFormula = result.getFormula();
+        BooleanFormula edgeFormula = pf.getFormula();
 
         for (int lIndex = lFlagIndex + 1; lIndex <= lNondetIndex; lIndex++) {
           Formula nondetVar = fmgr.makeVariable(NONDET_FORMULA_TYPE, NONDET_FLAG_VARIABLE, lIndex);
@@ -199,11 +200,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         //setSsaIndex(ssa, Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
         ssa.setIndex(NONDET_FLAG_VARIABLE, NONDET_TYPE, lNondetIndex);
 
-        result = new PathFormula(edgeFormula, ssa.build(), result.getLength());
+        result = Pair.of(new PathFormula(edgeFormula, ssa.build(), pf.getLength()),
+                         result.getSecond());
       }
     }
 
     return result;
+  }
+
+  @Override
+  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
+    return makeAndWithErrorConditions(pOldFormula, pEdge).getFirst();
   }
 
   @Override
