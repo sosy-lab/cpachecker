@@ -255,25 +255,31 @@ public class PointerTargetSet implements Serializable {
     private final PersistentList<String> baseVariables;
   }
 
+  /**
+   * Return the length of an array if statically given, or null.
+   */
+  public static Integer getArrayLength(CArrayType t) {
+
+    final CExpression arrayLength = t.getLength();
+    if (arrayLength instanceof CIntegerLiteralExpression) {
+      return ((CIntegerLiteralExpression)arrayLength).getValue().intValue();
+    }
+
+    return null;
+  }
+
   public static class CSizeofVisitor extends BaseSizeofVisitor
                                      implements CTypeVisitor<Integer, IllegalArgumentException> {
 
-    public CSizeofVisitor(final EvaluatingCExpressionVisitor evaluatingVisitor,
+    public CSizeofVisitor(final MachineModel machineModel,
                            final FormulaEncodingWithUFOptions options) {
-      super(evaluatingVisitor.getMachineModel());
-      this.evaluatingVisitor = evaluatingVisitor;
+      super(machineModel);
       this.options = options;
     }
 
     @Override
     public Integer visit(final CArrayType t) throws IllegalArgumentException {
-
-      final CExpression arrayLength = t.getLength();
-      Integer length = null;
-
-      if (arrayLength != null) {
-        length = arrayLength.accept(evaluatingVisitor);
-      }
+      Integer length = getArrayLength(t);
 
       if (length == null) {
         length = options.defaultArrayLength();
@@ -283,7 +289,6 @@ public class PointerTargetSet implements Serializable {
       return length * sizeOfType;
     }
 
-    private final EvaluatingCExpressionVisitor evaluatingVisitor;
     private final FormulaEncodingWithUFOptions options;
   }
 
@@ -507,7 +512,7 @@ public class PointerTargetSet implements Serializable {
   public final static class PointerTargetSetBuilder extends PointerTargetSet {
 
     private PointerTargetSetBuilder(final PointerTargetSet pointerTargetSet) {
-      super(pointerTargetSet.evaluatingVisitor,
+      super(pointerTargetSet.machineModel,
             pointerTargetSet.sizeofVisitor,
             pointerTargetSet.options,
             pointerTargetSet.bases,
@@ -613,7 +618,7 @@ public class PointerTargetSet implements Serializable {
       assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
-        Integer length = arrayType.getLength() != null ? arrayType.getLength().accept(evaluatingVisitor) : null;
+        Integer length = getArrayLength(arrayType);
         if (length == null) {
           length = options.defaultArrayLength();
         } else if (length > options.maxArrayLength()) {
@@ -717,7 +722,7 @@ public class PointerTargetSet implements Serializable {
       assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
-        Integer length = arrayType.getLength() != null ? arrayType.getLength().accept(evaluatingVisitor) : null;
+        Integer length = getArrayLength(arrayType);
         if (length == null) {
           length = options.defaultArrayLength();
         } else if (length > options.maxArrayLength()) {
@@ -861,7 +866,7 @@ public class PointerTargetSet implements Serializable {
      * Returns an immutable PointerTargetSet with all the changes made to the builder.
      */
     public PointerTargetSet build() {
-      return new PointerTargetSet(evaluatingVisitor,
+      return new PointerTargetSet(machineModel,
                                   sizeofVisitor,
                                   options,
                                   bases,
@@ -890,10 +895,6 @@ public class PointerTargetSet implements Serializable {
 
   private static final String getUnitedFieldBaseName(final int index) {
     return UNITED_BASE_FIELD_NAME_PREFIX + index;
-  }
-
-  public EvaluatingCExpressionVisitor getEvaluatingVisitor() {
-    return evaluatingVisitor;
   }
 
   public FormulaType<?> getPointerType() {
@@ -964,9 +965,8 @@ public class PointerTargetSet implements Serializable {
   public static final PointerTargetSet emptyPointerTargetSet(final MachineModel machineModel,
                                                              final FormulaEncodingWithUFOptions options,
                                                              final FormulaManagerView formulaManager) {
-    final EvaluatingCExpressionVisitor evaluatingVisitor = new EvaluatingCExpressionVisitor(machineModel);
-    return new PointerTargetSet(evaluatingVisitor,
-                                new CSizeofVisitor(evaluatingVisitor, options),
+    return new PointerTargetSet(machineModel,
+                                new CSizeofVisitor(machineModel, options),
                                 options,
                                 PathCopyingPersistentTreeMap.<String, CType>of(),
                                 null,
@@ -1052,11 +1052,11 @@ public class PointerTargetSet implements Serializable {
                         mergeSortedMaps(other.targets, targets, PointerTargetSet.<PointerTarget>mergeOnConflict());
 
     final PointerTargetSetBuilder builder1 = new PointerTargetSetBuilder(emptyPointerTargetSet(
-                                                                               evaluatingVisitor.getMachineModel(),
+                                                                               machineModel,
                                                                                options,
                                                                                formulaManager)),
                                   builder2 = new PointerTargetSetBuilder(emptyPointerTargetSet(
-                                                                               evaluatingVisitor.getMachineModel(),
+                                                                               machineModel,
                                                                                options,
                                                                                formulaManager));
     if (reverseBases == reverseFields) {
@@ -1138,7 +1138,7 @@ public class PointerTargetSet implements Serializable {
                                                            PointerTargetSet.<PointerTarget>destructiveMergeOnConflict();
 
     final PointerTargetSet result  =
-      new PointerTargetSet(evaluatingVisitor,
+      new PointerTargetSet(machineModel,
                            sizeofVisitor,
                            options,
                            mergedBases.getThird(),
@@ -1429,7 +1429,7 @@ public class PointerTargetSet implements Serializable {
     }
   }
 
-  private PointerTargetSet(final EvaluatingCExpressionVisitor evaluatingVisitor,
+  private PointerTargetSet(final MachineModel machineModel,
                            final CSizeofVisitor sizeofVisitor,
                            final FormulaEncodingWithUFOptions options,
                            final PersistentSortedMap<String, CType> bases,
@@ -1438,7 +1438,7 @@ public class PointerTargetSet implements Serializable {
                            final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations,
                            final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
                            final FormulaManagerView formulaManager) {
-    this.evaluatingVisitor = evaluatingVisitor;
+    this.machineModel = machineModel;
     this.sizeofVisitor = sizeofVisitor;
 
     this.options = options;
@@ -1452,7 +1452,6 @@ public class PointerTargetSet implements Serializable {
 
     this.targets = targets;
 
-    final MachineModel machineModel = this.evaluatingVisitor.getMachineModel();
     final int pointerSize = machineModel.getSizeofPtr();
     final int bitsPerByte = machineModel.getSizeofCharInBits();
     this.pointerType = this.formulaManager.getBitvectorFormulaManager()
@@ -1479,7 +1478,7 @@ public class PointerTargetSet implements Serializable {
   private static final Joiner joiner = Joiner.on(" ");
 
   protected final FormulaEncodingWithUFOptions options;
-  protected final EvaluatingCExpressionVisitor evaluatingVisitor;
+  protected final MachineModel machineModel;
   protected final CSizeofVisitor sizeofVisitor;
 
   protected final FormulaManagerView formulaManager;

@@ -561,8 +561,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   }
 
   private CInitializerList stringLiteralToInitializerList(final CStringLiteralExpression e,
-                                                          final CExpression lengthExpression) {
-    Integer length = lengthExpression.accept(pts.getEvaluatingVisitor());
+                                                          final CArrayType type) {
+    Integer length = PointerTargetSet.getArrayLength(type);
     final String s = e.getContentString();
     if (length == null) {
       length = s.length() + 1;
@@ -599,16 +599,13 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           ((CInitializerExpression) topInitializer).getExpression() instanceof CStringLiteralExpression) {
         topInitializer = stringLiteralToInitializerList(
           (CStringLiteralExpression) ((CInitializerExpression) topInitializer).getExpression(),
-          ((CArrayType) type).getLength());
+          (CArrayType) type);
       }
       assert topInitializer instanceof CInitializerList : "Wrong array initializer";
       final CInitializerList initializerList = (CInitializerList) topInitializer;
       final CType elementType = PointerTargetSet.simplifyType(((CArrayType) type).getType());
-      final CExpression lengthExpression = ((CArrayType) type).getLength();
-      final Integer length;
-      if (lengthExpression != null) {
-        length = lengthExpression.accept(pts.getEvaluatingVisitor());
-      } else {
+      Integer length = PointerTargetSet.getArrayLength((CArrayType)type);
+      if (length == null) {
         length = initializerList.getInitializers().size();
       }
       if (length == null) {
@@ -642,10 +639,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           }
           final Object rhs = visitInitializer(elementType, designatedInitializer.getRightHandSide(), isAutomatic);
           if (designator instanceof CArrayRangeDesignator) {
-            final Integer floor = ((CArrayRangeDesignator) designator).getFloorExpression()
-                                                                      .accept(pts.getEvaluatingVisitor());
-            final Integer ceiling = ((CArrayRangeDesignator) designator).getFloorExpression()
-                                                                        .accept(pts.getEvaluatingVisitor());
+            final Integer floor = tryEvaluateExpression(((CArrayRangeDesignator) designator).getFloorExpression());
+            final Integer ceiling = tryEvaluateExpression(((CArrayRangeDesignator) designator).getFloorExpression());
             if (floor != null && ceiling != null) {
               for (int i = floor; i <= ceiling; i++) {
                 result.set(i, rhs);
@@ -655,8 +650,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
               throw new UnrecognizedCCodeException("Can't evaluate array range designator bounds", edge, designator);
             }
           } else if (designator instanceof CArrayDesignator) {
-            final Integer subscript = ((CArrayDesignator) designator).getSubscriptExpression()
-                                                                      .accept(pts.getEvaluatingVisitor());
+            final Integer subscript = tryEvaluateExpression(((CArrayDesignator) designator).getSubscriptExpression());
             if (subscript != null) {
               index = subscript;
               result.set(index, rhs);
@@ -787,6 +781,13 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     }
   }
 
+  private static Integer tryEvaluateExpression(CExpression e) {
+    if (e instanceof CIntegerLiteralExpression) {
+      return ((CIntegerLiteralExpression)e).getValue().intValue();
+    }
+    return null;
+  }
+
   private static boolean isSizeof(final CExpression e) {
     return e instanceof CUnaryExpression && ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF ||
            e instanceof CTypeIdExpression && ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF;
@@ -845,7 +846,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
             throw new UnrecognizedCCodeException("Can't determine type for internal memory allocation", edge, e);
           }
         } else {
-          size = parameter.accept(pts.getEvaluatingVisitor());
+          size = tryEvaluateExpression(parameter);
           if (!conv.options.revealAllocationTypeFromLHS() && !conv.options.deferUntypedAllocations()) {
             final CExpression length;
             if (size == null) {
