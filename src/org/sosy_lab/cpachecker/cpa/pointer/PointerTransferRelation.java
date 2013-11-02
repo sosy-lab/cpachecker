@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -66,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -87,12 +87,6 @@ import org.sosy_lab.cpachecker.cpa.pointer.Memory.StackArrayCell;
 import org.sosy_lab.cpachecker.cpa.pointer.Memory.Variable;
 import org.sosy_lab.cpachecker.cpa.pointer.Pointer.PointerOperation;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerState.ElementProperty;
-import org.sosy_lab.cpachecker.cpa.types.Type;
-import org.sosy_lab.cpachecker.cpa.types.Type.ArrayType;
-import org.sosy_lab.cpachecker.cpa.types.Type.FunctionType;
-import org.sosy_lab.cpachecker.cpa.types.Type.PointerType;
-import org.sosy_lab.cpachecker.cpa.types.Type.TypeClass;
-import org.sosy_lab.cpachecker.cpa.types.TypesState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -144,10 +138,6 @@ public class PointerTransferRelation implements TransferRelation {
    * PointerState.
    */
   private static class MissingInformation {
-    private Pointer         typeInformationPointer = null;
-    private CFAEdge         typeInformationEdge    = null;
-    private String          typeInformationName    = null;
-
     private Pointer         actionLeftPointer      = null;
     private Pointer         actionRightPointer     = null;
     private boolean         actionDereferenceFirst = false;
@@ -168,12 +158,15 @@ public class PointerTransferRelation implements TransferRelation {
   private CFunctionEntryNode functionEntryNode = null;
   private boolean entryFunctionProcessed = false;
 
+  private final MachineModel machineModel;
+
   public PointerTransferRelation(boolean pPrintWarnings,
-      LogManager pLogger) {
+      LogManager pLogger, MachineModel pMachineModel) {
     printWarnings = pPrintWarnings;
     warnings = printWarnings ? new HashSet<Pair<Integer, String>>() : null;
     logger = pLogger;
     memoryLeakWarnings = printWarnings ? new LinkedList<MemoryRegion>() : null;
+    machineModel = pMachineModel;
   }
 
   public static void addWarning(String message, CFAEdge edge, String variable) {
@@ -383,12 +376,7 @@ public class PointerTransferRelation implements TransferRelation {
 
       element.pointerOp(new Pointer.Assign(array), p);
 
-      // store the pointer so the type analysis CPA can update its
-      // type information
-      missing = new MissingInformation();
-      missing.typeInformationPointer = p;
-      missing.typeInformationEdge = edge;
-      missing.typeInformationName = name;
+      setSizeOfTarget(p, specifier);
 
     } else if (specifier instanceof CPointerType) {
 
@@ -425,10 +413,7 @@ public class PointerTransferRelation implements TransferRelation {
           }
         }
 
-        missing = new MissingInformation();
-        missing.typeInformationPointer = ptr;
-        missing.typeInformationEdge = edge;
-        missing.typeInformationName = name;
+        setSizeOfTarget(ptr, specifier);
 
       } else {
         Pointer p = new Pointer(depth);
@@ -444,13 +429,10 @@ public class PointerTransferRelation implements TransferRelation {
           element.pointerOp(new Pointer.Assign(pTarg), p);
 
         }
-        // store the pointer so the type analysis CPA can update its
-        // type information
-        missing = new MissingInformation();
-        missing.typeInformationPointer = p;
-        missing.typeInformationEdge = edge;
-        missing.typeInformationName = name;
 
+        setSizeOfTarget(p, specifier);
+
+        // TODO:
         // initializers do not need to be considered, because they have to be
         // constant and constant pointers are considered null
         // local variables do not have initializers in CIL
@@ -670,13 +652,17 @@ public class PointerTransferRelation implements TransferRelation {
       element.callFunction(funcName);
     }
 
-    element.addNewLocalPointer(RETURN_VALUE_VARIABLE, null);
-    element.addTemporaryTracking(RETURN_VALUE_VARIABLE, new Pointer());
-
-    // always have MissingInformation because we do not know if the function
-    // returns a pointer (and the sizeOfTargets of the parameters are not known
-    // if there are any)
-    missing = new MissingInformation();
+    for (CParameterDeclaration param : funcDefNode.getFunctionParameters()) {
+      String paramName = param.getName();
+      Pointer pointer = element.lookupPointer(paramName);
+      if (pointer != null) {
+        setSizeOfTarget(pointer, param.getType());
+      }
+    }
+    if (funcDefNode.getFunctionDefinition().getType().getReturnType() instanceof CPointerType) {
+      element.addNewLocalPointer(RETURN_VALUE_VARIABLE, null);
+      element.addTemporaryTracking(RETURN_VALUE_VARIABLE, new Pointer());
+    }
   }
 
   private long parseIntegerLiteral(CLiteralExpression expression, CFAEdge edge)
@@ -1364,9 +1350,6 @@ public class PointerTransferRelation implements TransferRelation {
         if (ae instanceof ExplicitState) {
           strengthen(pointerState, (ExplicitState)ae, cfaEdge,
               precision);
-
-        } else if (ae instanceof TypesState) {
-          strengthen(pointerState, (TypesState)ae, cfaEdge, precision);
         }
 
       } catch (UnrecognizedCCodeException e) {
@@ -1471,183 +1454,22 @@ public class PointerTransferRelation implements TransferRelation {
     }
   }
 
-  /**
-   * strengthen called for TypesCPA
-   */
-  private void strengthen(PointerState pointerElement,
-      TypesState typesState, CFAEdge cfaEdge, Precision precision)
-      throws UnrecognizedCCodeException {
+  private void setSizeOfTarget(Pointer pointer, CType type) {
 
-    if (cfaEdge instanceof CFunctionCallEdge) {
-      // function call, adjust sizeOfTarget of parameters
-
-      CFunctionEntryNode funcDefNode =
-          (CFunctionEntryNode)cfaEdge.getSuccessor();
-      String funcName = funcDefNode.getFunctionName();
-
-      FunctionType function = typesState.getFunction(funcName);
-      for (String paramName : function.getParameters()) {
-        Pointer pointer = pointerElement.lookupPointer(paramName);
-        if (pointer != null) {
-          Type type = function.getParameterType(paramName);
-
-          setSizeOfTarget(pointer, type);
-        }
-      }
-      if (function.getReturnType().getTypeClass() != Type.TypeClass.POINTER) {
-        pointerElement.removeTemporaryTracking(pointerElement
-            .lookupVariable(RETURN_VALUE_VARIABLE));
-      }
-
-    } else {
-
-      if (missing.typeInformationPointer == null) {
-        return;
-      }
-
-      // pointer variable declaration
-      String functionName = cfaEdge.getSuccessor().getFunctionName();
-      if (missing.typeInformationEdge instanceof CDeclarationEdge
-          && ((CDeclarationEdge) missing.typeInformationEdge).getDeclaration().isGlobal()) {
-        functionName = null;
-      }
-
-      String varName = missing.typeInformationName;
-      Type type = typesState.getVariableType(functionName, varName);
-
-      setSizeOfTarget(missing.typeInformationPointer, type);
-    }
-  }
-
-  /**
-   * TODO call, implementation
-   * recursively traverses all fields of a struct
-   */
-  @SuppressWarnings("unused")
-  private void handleStructDeclaration(PointerState element,
-                                       TypesState typeElem, Type.CompositeType structType,
-                                       String varName, String recursiveVarName) {
-
-    Set<String> members = structType.getMembers();
-
-    for (String member : members) {
-      Type t = structType.getMemberType(member);
-      //for a field that is itself a struct, repeat the whole process
-      if (t != null && t.getTypeClass() == TypeClass.STRUCT) {
-        handleStructDeclaration(element, typeElem, (Type.CompositeType)t, member,
-            recursiveVarName + "." + member);
-      } else {
-        //TODO handle pointers
-      }
-    }
-  }
-
-  /**
-   * checks all possible locations for type information of a given name
-   */
-  private Type findType(TypesState typeElem, CFAEdge cfaEdge, String varName) {
-    Type t = null;
-    //check type definitions
-    t = typeElem.getTypedef(varName);
-    //if this fails, check functions
-    if (t == null) {
-      t = typeElem.getFunction(varName);
-    }
-    //if this also fails, check variables for the global context
-    if (t == null) {
-      t = typeElem.getVariableType(null, varName);
-    }
-    try {
-      //if again there was no result, check local variables and function parameters
-      if (t == null) {
-        t = typeElem.getVariableType(cfaEdge.getSuccessor().getFunctionName(), varName);
-      }
-    } catch (IllegalArgumentException e) {
-      //if nothing at all can be found, just return null
-    }
-    return t;
-  }
-
-  /**
-   * TODO call
-   * checks whether a given expression is a field reference;
-   * if yes, find the type of the referenced field, if no, try to determine the type of the variable
-   */
-  @SuppressWarnings("unused")
-  private Type checkForFieldReferenceType(CExpression exp, TypesState typeElem,
-                                          CFAEdge cfaEdge) {
-
-    String name = exp.toASTString();
-    Type t = null;
-
-    if (exp instanceof CFieldReference) {
-      String[] s = name.split("[.]");
-      t = findType(typeElem, cfaEdge, s[0]);
-      int i = 1;
-
-      //follow the field reference to its end
-      while (t != null && t.getTypeClass() == TypeClass.STRUCT && i < s.length) {
-        t = ((Type.CompositeType)t).getMemberType(s[i]);
-        i++;
-      }
-
-    //if exp is not a field reference, simply try to find the type of the associated variable name
-    } else {
-      t = findType(typeElem, cfaEdge, name);
-    }
-    return t;
-  }
-
-  /**
-   * TODO call, implementation
-   * recursively checks the fields of a struct being assigned to another struct of
-   * the same type, setting the assignee's fields accordingly
-   */
-  @SuppressWarnings("unused")
-  private void checkFields(PointerState element, CFAEdge cfaEdge, CExpression exp,
-                           TypesState typeElem, Type.CompositeType structType,
-                           String leftName, String rightName,
-                           String recursiveLeftName, String recursiveRightName) {
-
-    Set<String> members = structType.getMembers();
-
-    //check all members
-    for (String member : members) {
-      Type t = structType.getMemberType(member);
-
-      //for a field that is itself a struct, repeat the whole process
-      if (t != null && t.getTypeClass() == TypeClass.STRUCT) {
-        checkFields(element, cfaEdge, exp, typeElem, (Type.CompositeType)t, member, member,
-                         recursiveLeftName + "." + member, recursiveRightName + "." + member);
-
-      //else, check the assigned variable and set the assignee accordingly
-      } else {
-        //TODO handle copying of pointers
-      }
-    }
-  }
-
-  private void setSizeOfTarget(Pointer pointer, Type type) {
-
-    switch (type.getTypeClass()) {
-
-    case POINTER:
-      Type targetType = ((PointerType)type).getTargetType();
-      if (targetType.getTypeClass() == TypeClass.STRUCT) {
+    if (type instanceof CPointerType) {
+      CType targetType = ((CPointerType)type).getType().getCanonicalType();
+      if (targetType instanceof CCompositeType) {
         pointer.setSizeOfTarget(1);
       } else {
-        pointer.setSizeOfTarget(targetType.sizeOf());
+        pointer.setSizeOfTarget(sizeOf(targetType));
       }
-      break;
-
-    case ARRAY:
-      pointer.setSizeOfTarget(((ArrayType)type).getType().sizeOf());
-      break;
-
-    default:
-      addWarning("Types determined by TypesCPA und PointerCPA differ!",
-          null, pointer.getLocation().toString());
+    } else if (type instanceof CArrayType) {
+      pointer.setSizeOfTarget(sizeOf(((CArrayType)type).getType()));
     }
+  }
+
+  private int sizeOf(CType type) {
+    return machineModel.getSizeof(type);
   }
 
   public void setFunctionEntryNode(CFunctionEntryNode pEntryFunctionDefNode) {
