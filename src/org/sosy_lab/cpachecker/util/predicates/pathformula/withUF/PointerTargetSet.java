@@ -32,10 +32,8 @@ import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -723,37 +721,6 @@ public class PointerTargetSet implements Serializable {
     } else {
       return fm.makeGreaterThan(newBaseFormula, fm.makeNumber(pointerType, 0L), true);
     }
-  }
-
-  /**
-   * Conjoins the given formula with constraints representing disjointness of the allocated shared objects.
-   *
-   */
-  public BooleanFormula forceDisjointnessConstraints(final BooleanFormula formula) {
-    BooleanFormula disjointnessFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
-    // In case we have deferred memory allocations, add the appropriate constraints
-    if (!deferredAllocations.isEmpty()) {
-      final Set<String> addedBaseVariables = new HashSet<>();
-      String lastBase = this.lastBase;
-      for (Map.Entry<String, DeferredAllocationPool> pointerVariableEntry : deferredAllocations.entrySet()) {
-        final DeferredAllocationPool deferredAllocationPool = pointerVariableEntry.getValue();
-        Integer size = deferredAllocationPool.getSize() != null ?
-                         deferredAllocationPool.getSize().getValue().intValue() : null;
-        if (size == null) {
-          size = options.defaultAllocationSize();
-        }
-        for (String baseVariable : deferredAllocationPool.getBaseVariables()) {
-          if (!addedBaseVariables.contains(baseVariable)) {
-            disjointnessFormula = formulaManager.makeAnd(disjointnessFormula,
-                                                         getNextBaseAddressInequality(baseVariable,
-                                                                                      lastBase));
-            lastBase = baseVariable;
-            addedBaseVariables.add(baseVariable);
-          }
-        }
-      }
-    }
-    return formulaManager.getBooleanFormulaManager().and(formula, disjointnessFormula);
   }
 
   public boolean isActualBase(final String name) {
