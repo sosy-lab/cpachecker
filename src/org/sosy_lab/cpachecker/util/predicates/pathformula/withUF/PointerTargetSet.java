@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.SortedSet;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -735,6 +736,10 @@ public class PointerTargetSet implements Serializable {
     type = simplifyType(type);
     final CType baseType = bases.get(name);
     return baseType != null && baseType.equals(type);
+  }
+
+  public SortedSet<String> getAllBases() {
+    return bases.keySet();
   }
 
   public static final PointerTargetSet emptyPointerTargetSet(final MachineModel machineModel,
