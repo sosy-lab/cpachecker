@@ -81,7 +81,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     final Formula index = conv.makeCast(subscriptType, CPointerType.POINTER_TO_VOID, subscript.accept(this), edge);
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     final int size = pts.getSize(resultType);
-    final Formula coeff = conv.fmgr.makeNumber(pts.getPointerType(), size);
+    final Formula coeff = conv.fmgr.makeNumber(conv.pointerType, size);
     final Formula offset = conv.fmgr.makeMultiply(coeff, index);
     lastTarget = conv.fmgr.makePlus(base, offset);
     return conv.isCompositeType(resultType) ? (Formula) lastTarget :
@@ -128,7 +128,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         final Formula base = e.getFieldOwner().accept(this);
         final String fieldName = e.getFieldName();
         usedFields.add(Pair.of((CCompositeType) fieldOwnerType, fieldName));
-        final Formula offset = conv.fmgr.makeNumber(pts.getPointerType(),
+        final Formula offset = conv.fmgr.makeNumber(conv.pointerType,
                                                     pts.getOffset((CCompositeType) fieldOwnerType, fieldName));
         lastTarget = conv.fmgr.makePlus(base, offset);
         return conv.isCompositeType(resultType) ? (Formula) lastTarget :

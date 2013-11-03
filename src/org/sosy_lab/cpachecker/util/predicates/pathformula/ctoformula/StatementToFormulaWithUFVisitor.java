@@ -912,8 +912,9 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                         CPointerType.POINTER_TO_VOID,
                                                         ssa,
                                                         pts);
-          final Formula zero = conv.fmgr.makeNumber(pts.getPointerType(), 0);
-          return conv.bfmgr.ifThenElse(conv.bfmgr.not(conv.fmgr.makeEqual(nondet, zero)), visit(delegateCall), zero);
+          return conv.bfmgr.ifThenElse(conv.bfmgr.not(conv.fmgr.makeEqual(nondet, conv.nullPointer)),
+                                        visit(delegateCall),
+                                        conv.nullPointer);
         } else {
           return visit(delegateCall);
         }
@@ -922,8 +923,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           && parameters.size() == 1) {
 
         final Formula operand = parameters.get(0).accept(delegate);
-        final Formula zero = conv.fmgr.makeNumber(pts.getPointerType(), 0);
-        BooleanFormula validFree = conv.fmgr.makeEqual(operand, zero);
+        BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
 
         for (String base : pts.getAllBases()) {
           Formula baseF = conv.makeConstant(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID, ssa, pts);

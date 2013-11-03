@@ -109,6 +109,9 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   @SuppressWarnings("hiding") // same instance with narrower type
   final FormulaEncodingWithUFOptions options;
 
+  final FormulaType<?> pointerType = super.getFormulaTypeFromCType(CPointerType.POINTER_TO_VOID);
+  final Formula nullPointer = fmgr.makeNumber(pointerType, 0);
+
   public CToFormulaWithUFConverter(final FormulaEncodingWithUFOptions pOptions,
                                    final FormulaManagerView formulaManagerView,
                                    final @Nonnull CFA cfa,
@@ -399,7 +402,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
             isRelevantField(compositeType, memberName, pts)) {
           fields.add(Pair.of(compositeType, memberName));
           addSharingConstraints(cfaEdge,
-                                fmgr.makePlus(address, fmgr.makeNumber(pts.getPointerType(), offset)),
+                                fmgr.makePlus(address, fmgr.makeNumber(pointerType, offset)),
                                 newBase,
                                 fields,
                                 ssa,
@@ -436,8 +439,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                        final PointerTargetSetBuilder pts) {
     if (!pattern.isExact()) {
       for (final PointerTarget target : pts.getMatchingTargets(lvalueType, pattern)) {
-        final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(pts.getPointerType(), target.getBaseName()),
-                                                    fmgr.makeNumber(pts.getPointerType(), target.getOffset()));
+        final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(pointerType, target.getBaseName()),
+                                                    fmgr.makeNumber(pointerType, target.getOffset()));
         final BooleanFormula updateCondition = fmgr.makeEqual(targetAddress, lvalue);
         final BooleanFormula retention = fmgr.makeEqual(ffmgr.createFuncAndCall(ufName,
                                                                                 newIndex,
@@ -451,8 +454,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       }
     }
     for (final PointerTarget target : pts.getSpuriousTargets(lvalueType, pattern)) {
-      final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(pts.getPointerType(), target.getBaseName()),
-                                                  fmgr.makeNumber(pts.getPointerType(), target.getOffset()));
+      final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(pointerType, target.getBaseName()),
+                                                  fmgr.makeNumber(pointerType, target.getOffset()));
       constraints.addConstraint(fmgr.makeEqual(ffmgr.createFuncAndCall(ufName,
                                                                        newIndex,
                                                                        returnType,
@@ -474,8 +477,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                 final PointerTargetSetBuilder pts) {
     final PointerTargetPattern exact = new PointerTargetPattern();
     for (final PointerTarget target : pts.getMatchingTargets(firstElementType, pattern)) {
-      final Formula candidateAddress = fmgr.makePlus(fmgr.makeVariable(pts.getPointerType(), target.getBaseName()),
-                                                     fmgr.makeNumber(pts.getPointerType(), target.getOffset()));
+      final Formula candidateAddress = fmgr.makePlus(fmgr.makeVariable(pointerType, target.getBaseName()),
+                                                     fmgr.makeNumber(pointerType, target.getOffset()));
       final BooleanFormula negAntecedent = bfmgr.not(fmgr.makeEqual(candidateAddress, startAddress));
       exact.setBase(target.getBase());
       exact.setRange(target.getOffset(), size);
@@ -486,8 +489,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         final int newIndex = oldIndex + 1;
         final FormulaType<?> returnType = getFormulaTypeFromCType(type, pts);
         for (final PointerTarget spurious : pts.getSpuriousTargets(type, exact)) {
-          final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(pts.getPointerType(), spurious.getBaseName()),
-                                                      fmgr.makeNumber(pts.getPointerType(), spurious.getOffset()));
+          final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(pointerType, spurious.getBaseName()),
+                                                      fmgr.makeNumber(pointerType, spurious.getOffset()));
           consequent = bfmgr.and(consequent, fmgr.makeEqual(ffmgr.createFuncAndCall(ufName,
                                                                                     newIndex,
                                                                                     returnType,
@@ -515,9 +518,9 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final int newIndex = oldIndex + 1;
       final FormulaType<?> returnType = getFormulaTypeFromCType(type, pts);
       for (final PointerTarget spurious : pts.getSpuriousTargets(type, any)) {
-        final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(pts.getPointerType(), spurious.getBaseName()),
-                                      fmgr.makeNumber(pts.getPointerType(), spurious.getOffset()));
-        final Formula endAddress = fmgr.makePlus(startAddress, fmgr.makeNumber(pts.getPointerType(), size));
+        final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(pointerType, spurious.getBaseName()),
+                                      fmgr.makeNumber(pointerType, spurious.getOffset()));
+        final Formula endAddress = fmgr.makePlus(startAddress, fmgr.makeNumber(pointerType, size));
         constraints.addConstraint(bfmgr.or(bfmgr.and(fmgr.makeLessOrEqual(startAddress, targetAddress, false),
                                                      fmgr.makeLessOrEqual(targetAddress, endAddress,false)),
                                            fmgr.makeEqual(ffmgr.createFuncAndCall(ufName,
@@ -649,7 +652,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
             final CType newRvalueType = rvalueType instanceof CArrayType ?
                                           PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType()) :
                                           rvalueType;
-            final Formula offsetFormula = fmgr.makeNumber(pts.getPointerType(), offset);
+            final Formula offsetFormula = fmgr.makeNumber(pointerType, offset);
             final Formula newLvalue = fmgr.makePlus((Formula) lvalue, offsetFormula);
                   Object newRvalue = rvalue == null ? null :
                                      rvalue instanceof Formula ?
@@ -727,7 +730,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                  rvalue instanceof String && // The field of a pure structure was used somewhere (i.e. has SSA index)
                  hasIndex(rvalue + FIELD_NAME_SEPARATOR + memberName, newLvalueType, ssa))) {
               final CType newRvalueType = rvalueType instanceof CCompositeType ? newLvalueType : rvalueType;
-              final Formula offsetFormula = fmgr.makeNumber(pts.getPointerType(), offset);
+              final Formula offsetFormula = fmgr.makeNumber(pointerType, offset);
               final Object newLvalue = lvalue instanceof Formula ?
                                          fmgr.makePlus((Formula) lvalue, offsetFormula) :
                                          lvalue + FIELD_NAME_SEPARATOR + memberName;
