@@ -290,7 +290,13 @@ public class ARGUtils {
         break;
 
       default:
-        throw new IllegalArgumentException("ARG splits with more than two branches!");
+        Set<ARGState> candidates = Sets.intersection(Sets.newHashSet(children), arg).immutableCopy();
+        if (candidates.size() != 1) {
+          throw new IllegalArgumentException("ARG splits with more than two branches!");
+        }
+        child = Iterables.getOnlyElement(candidates);
+        edge = currentElement.getEdgeToChild(child);
+        break;
       }
 
       if (!arg.contains(child)) {
