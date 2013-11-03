@@ -222,13 +222,12 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   Formula makeConstant(final String name,
                        final CType type,
-                       final SSAMapBuilder ssa,
                        final PointerTargetSetBuilder pts) {
     return fmgr.makeVariable(getFormulaTypeFromCType(type, pts), name);
   }
 
-  Formula makeConstant(final Variable var, final SSAMapBuilder ssa, final PointerTargetSetBuilder pts) {
-    return makeConstant(var.getName(), var.getType(), ssa, pts);
+  Formula makeConstant(final Variable var, final PointerTargetSetBuilder pts) {
+    return makeConstant(var.getName(), var.getType(), pts);
   }
 
   @Override
@@ -360,7 +359,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                          final PointerTargetSetBuilder pts)
   throws UnrecognizedCCodeException {
     final CType baseType = PointerTargetSet.getBaseType(type);
-    final Formula result = makeConstant(Variable.create(PointerTargetSet.getBaseName(base), baseType), ssa, pts);
+    final Formula result = makeConstant(PointerTargetSet.getBaseName(base), baseType, pts);
     if (isZeroing) {
       final BooleanFormula initialization = makeAssignment(
         type,
