@@ -75,7 +75,7 @@ public class FormulaEncodingOptions {
 
   @Option(description = "Set of functions that non-deterministically provide new zeroed memory on the heap, " +
                         "i.e. they can return either a valid pointer or zero.")
-  private Set<String> memoryAllocationFunctionsWithZeroing = ImmutableSet.of("kzalloc");
+  private Set<String> memoryAllocationFunctionsWithZeroing = ImmutableSet.of("kzalloc", "calloc");
 
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);

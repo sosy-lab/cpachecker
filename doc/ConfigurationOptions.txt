@@ -881,7 +881,7 @@ cpa.predicate.memoryAllocationFunctionsWithSuperfluousParameters = {
 
 # Set of functions that non-deterministically provide new zeroed memory on
 # the heap, i.e. they can return either a valid pointer or zero.
-cpa.predicate.memoryAllocationFunctionsWithZeroing = {"kzalloc"}
+cpa.predicate.memoryAllocationFunctionsWithZeroing = {"kzalloc", "calloc"}
 
 # Setting this to true makes memoryAllocationFunctions always return a valid
 # pointer.
