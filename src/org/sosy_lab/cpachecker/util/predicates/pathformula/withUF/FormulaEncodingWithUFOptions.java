@@ -67,6 +67,9 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
   @Option(description = "Function that is used to free allocated memory.")
   private String memoryFreeFunctionName = "free";
 
+  @Option(description = "Ignore variables that are not relevant for reachability properties.")
+  private boolean ignoreIrrelevantVariables = true;
+
   public FormulaEncodingWithUFOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
     config.inject(this, FormulaEncodingWithUFOptions.class);
@@ -118,5 +121,9 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
 
   public boolean isMemoryFreeFunction(final String name) {
     return memoryFreeFunctionName.equals(name);
+  }
+
+  public boolean ignoreIrrelevantVariables() {
+    return ignoreIrrelevantVariables;
   }
 }
