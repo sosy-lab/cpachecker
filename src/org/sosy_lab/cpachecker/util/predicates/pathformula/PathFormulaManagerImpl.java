@@ -707,8 +707,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               }
         });
         if (!outgoingEdges.allMatch(Predicates.instanceOf(AssumeEdge.class))) {
-          logger.log(Level.WARNING, "ARG branching without AssumeEdge");
-          return  bfmgr.makeBoolean(true);
+          if (from(pathElement.getChildren()).anyMatch(AbstractStates.IS_TARGET_STATE)) {
+            // We expect this situation of one of the children is a target state created by PredicateCPA.
+            continue;
+          } else {
+            logger.log(Level.WARNING, "ARG branching without AssumeEdge");
+            return bfmgr.makeBoolean(true);
+          }
         }
 
         AssumeEdge edge = null;
