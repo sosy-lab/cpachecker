@@ -166,7 +166,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> impleme
     Mathsat5UnsafeFormulaManager unsafeManager = new Mathsat5UnsafeFormulaManager(creator);
     Mathsat5FunctionFormulaManager functionTheory = new Mathsat5FunctionFormulaManager(creator, unsafeManager);
     Mathsat5BooleanFormulaManager booleanTheory = Mathsat5BooleanFormulaManager.create(creator);
-    Mathsat5RationalFormulaManager rationalTheory = Mathsat5RationalFormulaManager.create(creator, functionTheory);
+    Mathsat5RationalFormulaManager rationalTheory = new Mathsat5RationalFormulaManager(creator, functionTheory, useIntegers);
     Mathsat5BitvectorFormulaManager bitvectorTheory  = Mathsat5BitvectorFormulaManager.create(creator);
 
     return new Mathsat5FormulaManager(logger, msatConf,
