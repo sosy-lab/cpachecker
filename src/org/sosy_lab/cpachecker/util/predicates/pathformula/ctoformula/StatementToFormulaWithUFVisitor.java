@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -833,17 +834,14 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         return conv.makeFreshVariable(functionName, returnType, ssa, pts);
 
       } else if ((conv.options.isSuccessfulAllocFunctionName(functionName) ||
-                  conv.options.isSuccessfulZallocFunctionName(functionName)) &&
-                  parameters.size() >= 1) {
+                  conv.options.isSuccessfulZallocFunctionName(functionName))) {
         return handleSucessfulMemoryAllocation(functionName, e);
 
       } else if ((conv.options.isMemoryAllocationFunction(functionName) ||
-                  conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) &&
-                  parameters.size() >= 1) {
+                  conv.options.isMemoryAllocationFunctionWithZeroing(functionName))) {
         return handleMemoryAllocation(e, (CIdExpression)functionNameExpression, functionName);
 
-      } else if (conv.options.isMemoryFreeFunction(functionName)
-                  && parameters.size() == 1) {
+      } else if (conv.options.isMemoryFreeFunction(functionName)) {
         return handleMemoryFree(e, parameters);
 
       } else if (conv.options.isNondetFunction(functionName)) {
@@ -944,7 +942,16 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
    */
   private Formula handleMemoryAllocation(final CFunctionCallExpression e,
       final CIdExpression functionNameExpression, final String functionName) throws UnrecognizedCCodeException {
-    final List<CExpression> parameters = e.getParameterExpressions();
+    List<CExpression> parameters = e.getParameterExpressions();
+    if (parameters.size() != 1) {
+      if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
+        parameters = Collections.singletonList(parameters.get(0));
+      } else {
+        throw new UnrecognizedCCodeException(
+            String.format("Memory allocation function %s() called with %d parameters instead of 1",
+                          functionName, parameters.size()), edge, e);
+      }
+    }
 
     final String delegateFunctionName = !conv.options.isMemoryAllocationFunctionWithZeroing(functionName) ?
                                           conv.options.getSuccessfulAllocFunctionName() :
@@ -978,7 +985,16 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
    */
   private Formula handleSucessfulMemoryAllocation(final String functionName,
       final CFunctionCallExpression e) throws UnrecognizedCCodeException {
-    final List<CExpression> parameters = e.getParameterExpressions();
+    List<CExpression> parameters = e.getParameterExpressions();
+    if (parameters.size() != 1) {
+      if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
+        parameters = Collections.singletonList(parameters.get(0));
+      } else {
+        throw new UnrecognizedCCodeException(
+            String.format("Memory allocation function %s() called with %d parameters instead of 1",
+                          functionName, parameters.size()), edge, e);
+      }
+    }
 
     final CExpression parameter = parameters.get(0);
     Integer size = null;
@@ -1042,6 +1058,11 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
    */
   private Formula handleMemoryFree(final CFunctionCallExpression e,
       final List<CExpression> parameters) throws UnrecognizedCCodeException {
+    if (parameters.size() != 1) {
+      throw new UnrecognizedCCodeException(
+          String.format("free() called with %d parameters", parameters.size()), edge, e);
+    }
+
     final Formula operand = parameters.get(0).accept(delegate);
     BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
 

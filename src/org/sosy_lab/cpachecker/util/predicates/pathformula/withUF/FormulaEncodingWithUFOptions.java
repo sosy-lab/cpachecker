@@ -29,8 +29,14 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 
+import com.google.common.collect.ImmutableSet;
+
 @Options(prefix="cpa.predicate")
 public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
+
+  @Option(description = "Memory allocation functions of which all parameters but the first should be ignored.")
+  private ImmutableSet<String> memoryAllocationFunctionsWithSuperfluousParameters = ImmutableSet.of(
+      "__kmalloc", "kmalloc", "kzalloc");
 
   @Option(description = "The function used to model successful heap object allocation. " +
                         "This is only used, when pointer analysis with UFs is enabled.")
@@ -73,6 +79,10 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
   public FormulaEncodingWithUFOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
     config.inject(this, FormulaEncodingWithUFOptions.class);
+  }
+
+  public boolean hasSuperfluousParameters(final String name) {
+    return memoryAllocationFunctionsWithSuperfluousParameters.contains(name);
   }
 
   public boolean isSuccessfulAllocFunctionName(final String name) {
