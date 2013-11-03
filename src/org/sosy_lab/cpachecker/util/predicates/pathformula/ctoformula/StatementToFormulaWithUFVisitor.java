@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import java.io.File;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -851,15 +850,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         return null; // Nondet
 
       } else if (conv.options.isExternModelFunction(functionName)) {
-        assert parameters.size() > 0 : "No external model given!";
-        // the parameter comes in C syntax (with ")
-        final String fileName = parameters.get(0).toASTString().replaceAll("\"", "");
-        final File modelFile = new File(fileName);
-        final BooleanFormula externalModel = loadExternalFormula(modelFile);
-        final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType, pts);
-        return conv.bfmgr.ifThenElse(externalModel,
-                                     conv.fmgr.makeNumber(returnFormulaType, 1),
-                                     conv.fmgr.makeNumber(returnFormulaType, 0));
+        return handleExternModelFunction(e, parameters);
 
       } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
         throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
