@@ -82,6 +82,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -163,6 +164,10 @@ class CFAFunctionBuilder extends ASTVisitor {
   private FunctionEntryNode cfa = null;
   private final List<CFANode> cfaNodes = new ArrayList<>();
 
+  // There can be global declarations in a function
+  // because we move some declarations to the global scope (e.g., static variables)
+  private final List<Pair<IADeclaration, String>> globalDeclarations = new ArrayList<>();
+
   private final FunctionScope scope;
   private final ASTConverter astCreator;
 
@@ -204,6 +209,10 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   boolean didEncounterAsm() {
     return encounteredAsm;
+  }
+
+  List<Pair<IADeclaration, String>> getGlobalDeclarations() {
+    return globalDeclarations;
   }
 
   /**
@@ -344,14 +353,18 @@ class CFAFunctionBuilder extends ASTVisitor {
         }
       }
 
+      if (newD.isGlobal()) {
+        globalDeclarations.add(Pair.<IADeclaration, String>of(newD, rawSignature));
 
-      CFANode nextNode = newCFANode(filelocStart);
+      } else {
+        CFANode nextNode = newCFANode(filelocStart);
 
-      final CDeclarationEdge edge = new CDeclarationEdge(rawSignature, filelocStart,
-          prevNode, nextNode, newD);
-      addToCFA(edge);
+        final CDeclarationEdge edge = new CDeclarationEdge(rawSignature, filelocStart,
+            prevNode, nextNode, newD);
+        addToCFA(edge);
 
-      prevNode = nextNode;
+        prevNode = nextNode;
+      }
     }
     prevNode = createEdgesForSideEffects(prevNode, astCreator.getAndResetPostSideAssignments(), rawSignature, filelocStart);
 
