@@ -983,6 +983,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   private BooleanFormula makeDeclaration(final CDeclarationEdge declarationEdge,
+                                         final Constraints constraints,
+                                         final PointerTargetSetBuilder pts,
                                          final StatementToFormulaWithUFVisitor statementVisitor)
   throws CPATransferException {
 
@@ -1013,6 +1015,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       logDebug("Ignoring declaration of unused variable", declarationEdge);
       return bfmgr.makeBoolean(true);
     }
+
+    Formula address = makeConstant(PointerTargetSet.getBaseName(declaration.getQualifiedName()),
+                                   PointerTargetSet.getBaseType(declarationType), pts);
+    constraints.addConstraint(fmgr.makeEqual(makeBaseAddressOfTerm(address), address));
 
     // if there is an initializer associated to this variable,
     // take it into account
@@ -1207,7 +1213,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     case DeclarationEdge: {
       final CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
-      return makeDeclaration(declarationEdge, statementVisitor);
+      return makeDeclaration(declarationEdge, constraints, pts, statementVisitor);
     }
 
     case AssumeEdge: {
