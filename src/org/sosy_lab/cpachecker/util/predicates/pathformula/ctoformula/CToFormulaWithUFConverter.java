@@ -154,6 +154,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return  allocVariableName + FRESH_INDEX_SEPARATOR + PointerTargetSetBuilder.getNextDynamicAllocationIndex();
   }
 
+  Formula makeBaseAddressOfTerm(final Formula address) {
+    return ffmgr.createFuncAndCall("*__BASE_ADDRESS_OF__", pointerType, ImmutableList.of(address));
+  }
+
   static String getReturnVarName() {
     return RETURN_VARIABLE_NAME;
   }

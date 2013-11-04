@@ -31,6 +31,8 @@ import java.util.Map;
 import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -76,6 +78,37 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     this.baseVisitor = new BaseVisitor(conv, cfaEdge, pts);
   }
 
+  private void addEqualBaseAdressConstraint(Formula p1, Formula p2) {
+    constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(p1),
+                                                  conv.makeBaseAddressOfTerm(p2)));
+  }
+  @Override
+  public Formula visit(CBinaryExpression pExp) throws UnrecognizedCCodeException {
+    if (pExp.getOperator() != BinaryOperator.PLUS
+        && pExp.getOperator() != BinaryOperator.MINUS) {
+      return super.visit(pExp);
+    }
+
+    // potentially pointer arithmetic
+    CType t1 = PointerTargetSet.simplifyType(pExp.getOperand1().getExpressionType());
+    CType t2 = PointerTargetSet.simplifyType(pExp.getOperand2().getExpressionType());
+
+    final Formula result = super.visit(pExp);
+    final Object savedLastTarget = lastTarget;
+    if (t1 instanceof CPointerType) {
+      if (!(t2 instanceof CPointerType)) {
+        Formula operand1 = pExp.getOperand1().accept(this);
+        addEqualBaseAdressConstraint(result, operand1);
+      }
+    } else if (t2 instanceof CPointerType) {
+      Formula operand2 = pExp.getOperand1().accept(this);
+      addEqualBaseAdressConstraint(result, operand2);
+    }
+    lastTarget = savedLastTarget;
+
+    return result;
+  }
+
   @Override
   public Formula visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
     final Formula base = e.getArrayExpression().accept(this);
@@ -86,9 +119,11 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     final int size = pts.getSize(resultType);
     final Formula coeff = conv.fmgr.makeNumber(conv.pointerType, size);
     final Formula offset = conv.fmgr.makeMultiply(coeff, index);
-    lastTarget = conv.fmgr.makePlus(base, offset);
-    return conv.isCompositeType(resultType) ? (Formula) lastTarget :
-           conv.makeDereferece(resultType, (Formula) lastTarget, ssa, errorConditions, pts);
+    final Formula address = conv.fmgr.makePlus(base, offset);
+    lastTarget = address;
+    addEqualBaseAdressConstraint(base, address);
+    return conv.isCompositeType(resultType) ? address :
+           conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
   }
 
   static CFieldReference eliminateArrow(final CFieldReference e, final CFAEdge edge)
@@ -133,7 +168,9 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         usedFields.add(Pair.of((CCompositeType) fieldOwnerType, fieldName));
         final Formula offset = conv.fmgr.makeNumber(conv.pointerType,
                                                     pts.getOffset((CCompositeType) fieldOwnerType, fieldName));
-        lastTarget = conv.fmgr.makePlus(base, offset);
+        final Formula address = conv.fmgr.makePlus(base, offset);
+        lastTarget = address;
+        addEqualBaseAdressConstraint(base, address);
         return conv.isCompositeType(resultType) ? (Formula) lastTarget :
                conv.makeDereferece(resultType, (Formula) lastTarget, ssa, errorConditions, pts);
       } else {
