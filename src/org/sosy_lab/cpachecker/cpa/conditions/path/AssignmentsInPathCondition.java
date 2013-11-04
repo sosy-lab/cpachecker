@@ -374,6 +374,13 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
         maximum = Math.max(maximum, mapping.get(variableName).size());
       }
     }
+    public void addAssignment(org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState element) {
+      element.addToValueMapping(mapping);
+
+      for (String variableName : mapping.keys()) {
+        maximum = Math.max(maximum, mapping.get(variableName).size());
+      }
+    }
 
     @Override
     public boolean variableExceedsThreshold(String variableName) {
