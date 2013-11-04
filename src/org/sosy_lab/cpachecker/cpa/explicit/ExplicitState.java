@@ -27,11 +27,9 @@ import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -50,9 +48,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.common.primitives.Longs;
 
 public class ExplicitState implements AbstractQueryableState, FormulaReportingState, Serializable {
   private static final long serialVersionUID = -3152134511524554357L;
@@ -138,16 +137,10 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param functionName the name of the function that is about to be left
    */
   void dropFrame(String functionName) {
-    List<MemoryLocation> toDropAll = new ArrayList<>();
-
     for (MemoryLocation variableName : constantsMap.keySet()) {
       if (variableName.isOnFunctionStack(functionName)) {
-        toDropAll.add(variableName);
+        constantsMap = constantsMap.removeAndCopy(variableName);
       }
-    }
-
-    for (MemoryLocation variableNameToDrop : toDropAll) {
-      constantsMap = constantsMap.removeAndCopy(variableNameToDrop);
     }
   }
 
@@ -519,14 +512,15 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    *
    * @return the set of tracked variables by this state
    */
-  public ImmutableCollection<String> getTrackedVariableNames() {
+  public Set<String> getTrackedVariableNames() {
     Set<String> result = new HashSet<>();
 
     for (MemoryLocation loc : constantsMap.keySet()) {
       result.add(loc.getAsSimpleString());
     }
 
-    return ImmutableSet.copyOf(result);
+    // no copy necessary, fresh instance of set
+    return Collections.unmodifiableSet(result);
   }
 
   /**
@@ -534,8 +528,9 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    *
    * @return the set of tracked variables by this state
    */
-  public ImmutableCollection<MemoryLocation> getTrackedMemoryLocations() {
-    return ImmutableSet.copyOf(constantsMap.keySet());
+  public Set<MemoryLocation> getTrackedMemoryLocations() {
+    // no copy necessary, set is immutable
+    return constantsMap.keySet();
   }
 
   /**
@@ -603,10 +598,9 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
       int hc = 17;
       int hashMultiplier = 59;
 
-      hc = hc * hashMultiplier + ((functionName != null) ? functionName.hashCode() : 0);
+      hc = hc * hashMultiplier + Objects.hashCode(functionName);
       hc = hc * hashMultiplier + identifier.hashCode();
-      hc = hc * hashMultiplier + identifier.hashCode();
-      hc = hc * hashMultiplier + ((int) (offset ^ (offset >>> 32)));
+      hc = hc * hashMultiplier + Longs.hashCode(offset);
 
       return hc;
     }
@@ -667,14 +661,13 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     public static PersistentMap<MemoryLocation, Long> transform(
         PersistentMap<String, Long> pConstantMap) {
 
-      Map<MemoryLocation, Long> result = new HashMap<>();
+      PersistentMap<MemoryLocation, Long> result = PathCopyingPersistentTreeMap.of();
 
-      for (String name : pConstantMap.keySet()) {
-        long value = pConstantMap.get(name);
-        result.put(valueOf(name), value);
+      for (Map.Entry<String, Long> entry : pConstantMap.entrySet()) {
+        result = result.putAndCopy(valueOf(entry.getKey()), checkNotNull(entry.getValue()));
       }
 
-      return PathCopyingPersistentTreeMap.copyOf(result);
+      return result;
     }
 
     @Override
@@ -696,17 +689,14 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
         }
       }
 
-      if (result == 0) {
-        result = identifier.compareTo(other.identifier);
+      if (result != 0) {
+        return result;
       }
 
-      if (result == 0) {
-        long value = offset - other.offset;
-        // If value > 0 return 1, if value < 0 return -1, if value == 0 return 0
-        result = value == 0 ? 0 : (value > 0 ? 1 : -1);
-      }
-
-      return result;
+      return ComparisonChain.start()
+          .compare(identifier, other.identifier)
+          .compare(offset, other.offset)
+          .result();
     }
   }
 
@@ -723,7 +713,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     }
 
     // Doesn't need a copy, Memory Location is Immutable
-    return result;
+    return Collections.unmodifiableSet(result);
   }
 
   public Set<MemoryLocation> getGlobalMemoryLocations() {
@@ -738,7 +728,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     }
 
     // Doesn't need a copy, Memory Location is Immutable
-    return result;
+    return Collections.unmodifiableSet(result);
   }
 
   public void forgetValuesWithIdentifier(String pIdentifier) {
