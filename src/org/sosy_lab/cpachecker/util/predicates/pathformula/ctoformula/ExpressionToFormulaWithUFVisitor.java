@@ -248,7 +248,34 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         final Variable baseVariable = operand.accept(baseVisitor);
         if (baseVariable == null) {
           final int oldUsedFieldsSize = usedFields.size();
-          Formula addressExpression = operand.accept(this);
+          Formula addressExpression = null;
+
+          if (operand instanceof CFieldReference) {
+            // for &(s->f) and &((*s).f) do special case because the pointer is
+            // not actually dereferenced and thus we don't want to add error conditions
+            // for invalid-deref
+            CFieldReference field = (CFieldReference)operand;
+            CExpression fieldOwner = field.getFieldOwner();
+            boolean isDeref = field.isPointerDereference();
+            if (!isDeref && fieldOwner instanceof CPointerExpression) {
+              fieldOwner = ((CPointerExpression)fieldOwner).getOperand();
+              isDeref = true;
+            }
+            if (isDeref) {
+              final Formula base = fieldOwner.accept(this);
+              final String fieldName = field.getFieldName();
+              final CPointerType pointerType = (CPointerType)PointerTargetSet.simplifyType(fieldOwner.getExpressionType());
+              final CCompositeType compositeType = (CCompositeType)PointerTargetSet.simplifyType(pointerType.getType());
+              usedFields.add(Pair.of(compositeType, fieldName));
+              final Formula offset = conv.fmgr.makeNumber(conv.pointerType,
+                                                          pts.getOffset(compositeType, fieldName));
+              lastTarget = addressExpression = conv.fmgr.makePlus(base, offset);
+            }
+          }
+
+          if (addressExpression == null) {
+            addressExpression = operand.accept(this);
+          }
           for (int i = oldUsedFieldsSize; i < usedFields.size(); i++) {
             addressedFields.add(usedFields.get(i));
           }
