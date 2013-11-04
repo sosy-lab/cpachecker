@@ -171,8 +171,8 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         final Formula address = conv.fmgr.makePlus(base, offset);
         lastTarget = address;
         addEqualBaseAdressConstraint(base, address);
-        return conv.isCompositeType(resultType) ? (Formula) lastTarget :
-               conv.makeDereferece(resultType, (Formula) lastTarget, ssa, errorConditions, pts);
+        return conv.isCompositeType(resultType) ? address :
+               conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
       } else {
         throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
       }
@@ -215,9 +215,10 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
       // This means the UF for type t get's used instead of the UF for actual type of p.
       final CExpression pointer = ((CPointerExpression)operand).getOperand();
 
-      lastTarget = pointer.accept(this);
-      return conv.isCompositeType(resultType) ? (Formula) lastTarget :
-             conv.makeDereferece(resultType, (Formula) lastTarget, ssa, errorConditions, pts);
+      final Formula address = pointer.accept(this);
+      lastTarget = address;
+      return conv.isCompositeType(resultType) ? address :
+             conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
     }
 
     return result;
@@ -240,11 +241,12 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
       }
     } else {
       variable = conv.scopedIfNecessary(e, ssa, function);
-      lastTarget = conv.makeConstant(PointerTargetSet.getBaseName(variable.getName()),
-                                     PointerTargetSet.getBaseType(resultType),
-                                     pts);
-      return conv.isCompositeType(resultType) ? (Formula) lastTarget :
-             conv.makeDereferece(resultType, (Formula) lastTarget, ssa, errorConditions, pts);
+      final Formula address = conv.makeConstant(PointerTargetSet.getBaseName(variable.getName()),
+                                                PointerTargetSet.getBaseType(resultType),
+                                                pts);
+      lastTarget = address;
+      return conv.isCompositeType(resultType) ? address :
+             conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
     }
   }
 
@@ -364,9 +366,10 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     final CExpression operand = e.getOperand();
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     if (!(resultType instanceof CFunctionType)) {
-      lastTarget = operand.accept(this);
-      return conv.isCompositeType(resultType) ? (Formula) lastTarget :
-             conv.makeDereferece(resultType, (Formula) lastTarget, ssa, errorConditions, pts);
+      final Formula address = operand.accept(this);
+      lastTarget = address;
+      return conv.isCompositeType(resultType) ? address :
+             conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
     } else {
       lastTarget = null;
       return operand.accept(this);
