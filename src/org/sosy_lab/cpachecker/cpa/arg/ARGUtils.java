@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -462,6 +464,35 @@ public class ARGUtils {
         if (pPathStates.contains(child)) {
           CFANode childLoc = AbstractStates.extractLocation(child);
           CFAEdge edge = loc.getEdgeTo(childLoc);
+          if (edge instanceof MultiEdge) {
+            // Write out a long linear chain of pseudo-states
+            // because the AutomatonCPA also iterates through the MultiEdge.
+            List<CFAEdge> edges = ((MultiEdge)edge).getEdges();
+
+            // first, write edge entering the list
+            int i = 0;
+            sb.append("    MATCH \"");
+            escape(edges.get(i).getRawStatement(), sb);
+            sb.append("\" -> ");
+            sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1));
+            sb.append(";\n");
+
+            // inner part
+            for (; i < edges.size()-1; i++) {
+              sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + " :\n");
+              sb.append("    MATCH \"");
+              escape(edges.get(i).getRawStatement(), sb);
+              sb.append("\" -> ");
+              sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1));
+              sb.append(";\n");
+            }
+
+            // last edge connecting it with the real successor
+            edge = edges.get(i);
+            sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + " :\n");
+            // remainder is written by code below
+          }
+
           sb.append("    MATCH \"");
           escape(edge.getRawStatement(), sb);
           sb.append("\" -> ");
