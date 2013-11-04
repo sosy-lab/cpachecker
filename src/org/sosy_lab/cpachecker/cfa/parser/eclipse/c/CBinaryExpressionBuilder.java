@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 
 
@@ -99,6 +100,7 @@ public class CBinaryExpressionBuilder {
       BinaryOperator.PLUS,
       BinaryOperator.MINUS);
 
+  @SuppressWarnings("unused")
   private final static Set<BinaryOperator> multiplicativeOperators = Sets.immutableEnumSet(
       BinaryOperator.MULTIPLY,
       BinaryOperator.MODULO,
@@ -196,6 +198,7 @@ public class CBinaryExpressionBuilder {
    * @param pType2 type of the second operand
    * @param pBinOperator used to get the result-type
    */
+  @VisibleForTesting
   CType getResultTypeForBinaryOperation(final CType pType1, final CType pType2,
       final BinaryOperator pBinOperator) {
     /*
@@ -262,8 +265,21 @@ public class CBinaryExpressionBuilder {
    * @param pType2 type of the second operand
    * @param pBinOperator for logging and some checks. Not needed, if both types are 'simple'.
    */
+  @VisibleForTesting
   CType getCalculationTypeForBinaryOperation(CType pType1, CType pType2,
       final BinaryOperator pBinOperator) {
+
+    /* CalculationType of SHIFT is the type of the first operand.
+     *
+     * ISO-C99 (6.5.7 #3): Bitwise shift operators
+     * The integer promotions are performed on each of the operands.
+     * The type of the result is that of the promoted left operand.
+     */
+    if (shiftOperators.contains(pBinOperator)) {
+      assert integerTypes.contains(((CSimpleType) pType1).getType());
+      assert integerTypes.contains(((CSimpleType) pType2).getType());
+      return getPromotedCType((CSimpleType) pType1);
+    }
 
     // both are simple types, we need a common simple type --> USUAL ARITHMETIC CONVERSIONS
     if (pType1 instanceof CSimpleType && pType2 instanceof CSimpleType) {
@@ -290,7 +306,23 @@ public class CBinaryExpressionBuilder {
 
       assert relationalOperators.contains(pBinOperator) : ""
           + "unusual calculation " + pBinOperator + " with two pointer-operands.";
-      return CNumericTypes.SIGNED_INT;
+
+      // we compare function-pointer and function, so return function-pointer
+      if (pType1 instanceof CPointerType && pType2 instanceof CFunctionType) {
+        if (((CPointerType) pType1).getType() instanceof CFunctionType) { return pType1; }
+      } else if (pType2 instanceof CPointerType && pType1 instanceof CFunctionType) {
+        if (((CPointerType) pType2).getType() instanceof CFunctionType) { return pType2; }
+      }
+
+      // there are 2 pointers and this is a comparison, so type does actually not matter.
+
+      if (pType1.equals(pType2)) { return pType1; }
+
+      logger.logf(Level.FINEST,
+          "using calculationtype POINTER_TO_VOID for %s (%s, %s) of (%s, %s)",
+          pBinOperator, pType1, pType2, pType1.getClass(), pType2.getClass());
+
+      return CPointerType.POINTER_TO_VOID;
     }
 
 

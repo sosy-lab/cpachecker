@@ -47,7 +47,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   private final PathFormulaManager delegate;
 
-  private final Map<Pair<CFAEdge, PathFormula>, PathFormula> andFormulaCache
+  private final Map<Pair<CFAEdge, PathFormula>, Pair<PathFormula, ErrorConditions>> andFormulaCache
             = new HashMap<>();
 
   private final Map<Pair<PathFormula, PathFormula>, PathFormula> orFormulaCache
@@ -64,14 +64,14 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
+  public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
 
     final Pair<CFAEdge, PathFormula> formulaCacheKey = Pair.of(pEdge, pOldFormula);
-    PathFormula result = andFormulaCache.get(formulaCacheKey);
+    Pair<PathFormula, ErrorConditions> result = andFormulaCache.get(formulaCacheKey);
     if (result == null) {
       pathFormulaComputationTimer.start();
       // compute new pathFormula with the operation on the edge
-      result = delegate.makeAnd(pOldFormula, pEdge);
+      result = delegate.makeAndWithErrorConditions(pOldFormula, pEdge);
       pathFormulaComputationTimer.stop();
       andFormulaCache.put(formulaCacheKey, result);
 
@@ -79,6 +79,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       pathFormulaCacheHits++;
     }
     return result;
+  }
+
+  @Override
+  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
+    return makeAndWithErrorConditions(pOldFormula, pEdge).getFirst();
   }
 
   @Override

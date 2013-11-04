@@ -479,7 +479,9 @@ public class CFAUtils {
     // FIRST step: initialize arrays
     for (CFANode n : nodes) {
       int i = arrayIndexForNode.apply(n);
-      assert nodesArray[i] == null : "reverse post-order id is not unique";
+      assert nodesArray[i] == null : "reverse post-order id is not unique, "
+          + i + " occurs twice in function " + n.getFunctionName()
+          + " at " + n + " and " + nodesArray[i];
       nodesArray[i] = n;
 
       for (CFAEdge edge : leavingEdges(n)) {

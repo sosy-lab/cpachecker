@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.base.Predicates.notNull;
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -65,7 +68,7 @@ public class PathChecker {
     List<SSAMap> ssaMaps = new ArrayList<>(pPath.size());
 
     PathFormula pathFormula = pmgr.makeEmptyPathFormula();
-    for (CFAEdge edge : pPath) {
+    for (CFAEdge edge : from(pPath).filter(notNull())) {
       pathFormula = pmgr.makeAnd(pathFormula, edge);
       ssaMaps.add(pathFormula.getSsa());
     }

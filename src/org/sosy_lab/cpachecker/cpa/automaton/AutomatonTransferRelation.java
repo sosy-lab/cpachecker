@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.FluentIterable.from;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,6 +43,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -49,6 +53,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
@@ -78,6 +83,66 @@ class AutomatonTransferRelation implements TransferRelation {
                       throws CPATransferException {
 
     Preconditions.checkArgument(pElement instanceof AutomatonState);
+
+    if (!(pCfaEdge instanceof MultiEdge)) {
+      return getAbstractSuccessors0(pElement, pPrecision, pCfaEdge);
+    }
+
+    final List<CFAEdge> edges = ((MultiEdge)pCfaEdge).getEdges();
+    checkArgument(!edges.isEmpty());
+
+    // As long as each transition produces only 0 or 1 successors,
+    // we can just iterate through the edges.
+    AutomatonState currentState = (AutomatonState)pElement;
+    Collection<AutomatonState> currentSuccessors = null;
+    int edgeIndex = 0;
+    for (CFAEdge edge : edges) {
+      currentSuccessors = getAbstractSuccessors0(currentState, pPrecision, edge);
+      if (currentSuccessors.isEmpty()) {
+        return currentSuccessors; // bottom
+      } else if (currentSuccessors.size() == 1) {
+        currentState = Iterables.getOnlyElement(currentSuccessors);
+      } else {
+        break;
+      }
+      edgeIndex++;
+    }
+    if (edgeIndex == edges.size()) {
+      return currentSuccessors;
+    }
+
+    // If there are two or more successors once, we use a waitlist algorithm.
+    Deque<Pair<AutomatonState, Integer>> queue = new ArrayDeque<>(1);
+    for (AutomatonState successor : currentSuccessors) {
+      queue.addLast(Pair.of(successor, edgeIndex+1));
+    }
+    currentSuccessors.clear();
+
+    List<AutomatonState> results = new ArrayList<>();
+    while (!queue.isEmpty()) {
+      Pair<AutomatonState, Integer> entry = queue.pollFirst();
+      AutomatonState state = entry.getFirst();
+      edgeIndex = entry.getSecond();
+      CFAEdge edge = edges.get(edgeIndex);
+      Integer successorIndex = edgeIndex+1;
+
+      if (successorIndex == edges.size()) {
+        // last iteration
+        results.addAll(getAbstractSuccessors0(state, pPrecision, edge));
+
+      } else {
+        for (AutomatonState successor : getAbstractSuccessors0(state, pPrecision, edge)) {
+          queue.addLast(Pair.of(successor, successorIndex));
+        }
+      }
+
+    }
+    return results;
+  }
+
+  private Collection<AutomatonState> getAbstractSuccessors0(
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
+      throws CPATransferException {
     totalPostTime.start();
     try {
 
@@ -109,7 +174,7 @@ class AutomatonTransferRelation implements TransferRelation {
    * If the only following state is BOTTOM an empty set is returned.
    * @throws CPATransferException
    */
-  private Collection<? extends AbstractState> getFollowStates(AutomatonState state, List<AbstractState> otherElements, CFAEdge edge, boolean failOnUnknownMatch) throws CPATransferException {
+  private Collection<AutomatonState> getFollowStates(AutomatonState state, List<AbstractState> otherElements, CFAEdge edge, boolean failOnUnknownMatch) throws CPATransferException {
     Preconditions.checkArgument(!(state instanceof AutomatonUnknownState));
     if (state == cpa.getBottomState()) {
       return Collections.emptySet();
@@ -120,7 +185,7 @@ class AutomatonTransferRelation implements TransferRelation {
       return Collections.singleton(state);
     }
 
-    Collection<AbstractState> lSuccessors = new HashSet<>(2);
+    Collection<AutomatonState> lSuccessors = new HashSet<>(2);
     AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
     boolean nonDetState = state.getInternalState().isNonDetState();
@@ -141,7 +206,7 @@ class AutomatonTransferRelation implements TransferRelation {
           throw new CPATransferException("Automaton transition condition could not be evaluated: " + match.getFailureMessage());
         }
         // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
-        return Collections.singleton(new AutomatonUnknownState(state));
+        return Collections.<AutomatonState>singleton(new AutomatonUnknownState(state));
       } else {
         if (match.getValue()) {
           edgeMatched = true;
@@ -154,7 +219,7 @@ class AutomatonTransferRelation implements TransferRelation {
               throw new CPATransferException("Automaton transition assertions could not be evaluated: " + assertionsHold.getFailureMessage());
             }
             // cannot yet be evaluated
-            return Collections.singleton(new AutomatonUnknownState(state));
+            return Collections.<AutomatonState>singleton(new AutomatonUnknownState(state));
 
           } else if (assertionsHold.getValue()) {
             if (!t.canExecuteActionsOn(exprArgs)) {
@@ -162,7 +227,7 @@ class AutomatonTransferRelation implements TransferRelation {
                 throw new CPATransferException("Automaton transition action could not be executed");
               }
               // cannot yet execute, goto UnknownState
-              return Collections.singleton(new AutomatonUnknownState(state));
+              return Collections.<AutomatonState>singleton(new AutomatonUnknownState(state));
             }
 
             // delay execution as described above

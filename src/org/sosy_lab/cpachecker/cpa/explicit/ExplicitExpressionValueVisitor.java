@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -93,6 +94,7 @@ import org.sosy_lab.cpachecker.cpa.forwarding.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.collect.Sets;
+import com.google.common.primitives.UnsignedLongs;
 
 
 /**
@@ -105,6 +107,8 @@ public class ExplicitExpressionValueVisitor
     JRightHandSideVisitor<Long, RuntimeException>,
     JExpressionVisitor<Long, RuntimeException> {
 
+  /** length of type LONG in Java. */
+  private final static int SIZE_OF_JAVA_LONG = 64;
 
   private final ExplicitState state;
   private final String functionName;
@@ -162,16 +166,12 @@ public class ExplicitExpressionValueVisitor
 
   @Override
   public Long visit(final CBinaryExpression pE) throws UnrecognizedCCodeException {
-    final BinaryOperator binaryOperator = pE.getOperator();
-    final CType calculationType = pE.getCalculationType();
 
-    final Long lVal = evaluate(pE.getOperand1(), calculationType);
+    final Long lVal = pE.getOperand1().accept(this);
     if (lVal == null) { return null; }
-    final Long rVal = evaluate(pE.getOperand2(), calculationType);
+    final Long rVal = pE.getOperand2().accept(this);
     if (rVal == null) { return null; }
-
-    Long result = calculateBinaryOperation(lVal, rVal, binaryOperator,
-        pE.getExpressionType(), machineModel, logger, edge);
+    Long result = calculateBinaryOperation(lVal, rVal, pE, machineModel, logger, edge);
 
     return result;
   }
@@ -179,17 +179,37 @@ public class ExplicitExpressionValueVisitor
   /**
    * This method calculates the exact result for a binary operation.
    *
-   * @param lVal first operand, should be casted to calculation-type.
-   * @param rVal second operand, should be casted to calculation-type.
+   * @param lVal first operand
+   * @param rVal second operand
    * @param binaryOperator this operation willbe performed
    * @param resultType the result will be casted to this type
    * @param machineModel information about types
    * @param logger for logging
    * @param edge only for logging
    */
-  public static Long calculateBinaryOperation(final Long lVal, final Long rVal,
-      final BinaryOperator binaryOperator, final CType resultType,
+  public static Long calculateBinaryOperation(Long lVal, Long rVal,
+      final CBinaryExpression binaryExpr,
       final MachineModel machineModel, final LogManager logger, @Nullable CFAEdge edge) {
+
+    final BinaryOperator binaryOperator = binaryExpr.getOperator();
+    final CType calculationType = binaryExpr.getCalculationType();
+
+    lVal = castCValue(lVal, calculationType, machineModel, logger, edge);
+    if (binaryOperator != BinaryOperator.SHIFT_LEFT && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
+      /* For SHIFT-operations we do not cast the second operator.
+       * We even do not need integer-promotion,
+       * because the maximum SHIFT of 64 is lower than MAX_CHAR.
+       *
+       * ISO-C99 (6.5.7 #3): Bitwise shift operators
+       * The integer promotions are performed on each of the operands.
+       * The type of the result is that of the promoted left operand.
+       * If the value of the right operand is negative or is greater than
+       * or equal to the width of the promoted left operand,
+       * the behavior is undefined.
+       */
+      rVal = castCValue(rVal, calculationType, machineModel, logger, edge);
+    }
+
     Long result;
     switch (binaryOperator) {
     case PLUS:
@@ -203,8 +223,8 @@ public class ExplicitExpressionValueVisitor
     case BINARY_OR:
     case BINARY_XOR: {
 
-      result = arithmeticOperation(lVal, rVal, binaryOperator, logger);
-      result = castCValue(result, resultType, machineModel, logger, edge);
+      result = arithmeticOperation(lVal, rVal, binaryOperator, calculationType, machineModel, logger);
+      result = castCValue(result, binaryExpr.getExpressionType(), machineModel, logger, edge);
 
       break;
     }
@@ -216,7 +236,7 @@ public class ExplicitExpressionValueVisitor
     case LESS_THAN:
     case LESS_EQUAL: {
 
-      final boolean tmp = booleanOperation(lVal, rVal, binaryOperator);
+      final boolean tmp = booleanOperation(lVal, rVal, binaryOperator, calculationType, machineModel);
       // return 1 if expression holds, 0 otherwise
       result = tmp ? 1L : 0L;
       // we do not cast here, because 0 and 1 should be small enough for every type.
@@ -232,7 +252,39 @@ public class ExplicitExpressionValueVisitor
   }
 
   private static long arithmeticOperation(final long l, final long r,
-      final BinaryOperator op, final LogManager logger) {
+      final BinaryOperator op, final CType calculationType,
+      final MachineModel machineModel, final LogManager logger) {
+
+    // special handling for UNSIGNED_LONGLONG (32 and 64bit), UNSIGNED_LONG (64bit)
+    // because Java only has SIGNED_LONGLONG
+    if (calculationType instanceof CSimpleType) {
+      final CSimpleType st = (CSimpleType) calculationType;
+      if (machineModel.getSizeof(st) * machineModel.getSizeofCharInBits() >= SIZE_OF_JAVA_LONG
+          && st.isUnsigned()) {
+        switch (op) {
+        case DIVIDE:
+          if (r == 0) {
+            logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
+            return 0;
+          }
+          return UnsignedLongs.divide(l, r);
+        case MODULO:
+          return UnsignedLongs.remainder(l, r);
+        case SHIFT_RIGHT:
+          /*
+           * from http://docs.oracle.com/javase/tutorial/java/nutsandbolts/op3.html
+           *
+           * The unsigned right shift operator ">>>" shifts a zero
+           * into the leftmost position, while the leftmost position
+           * after ">>" depends on sign extension.
+           */
+          return l >>> r;
+        default:
+          // fall-through, calculation is done correct as SINGED_LONG_LONG
+        }
+      }
+    }
+
     switch (op) {
     case PLUS:
       return l + r;
@@ -249,7 +301,18 @@ public class ExplicitExpressionValueVisitor
     case MULTIPLY:
       return l * r;
     case SHIFT_LEFT:
-      return l << r;
+      /* There is a difference in the SHIFT-operation in Java and C.
+       * In C a SHIFT is a normal SHIFT, in Java the rVal is used as (r%64).
+       *
+       * http://docs.oracle.com/javase/specs/jls/se7/html/jls-15.html#jls-15.19
+       *
+       * If the promoted type of the left-hand operand is long, then only the
+       * six lowest-order bits of the right-hand operand are used as the
+       * shift distance. It is as if the right-hand operand were subjected to
+       * a bitwise logical AND operator & (§15.22.1) with the mask value 0x3f.
+       * The shift distance actually used is therefore always in the range 0 to 63.
+       */
+      return (r >= SIZE_OF_JAVA_LONG) ? 0 : l << r;
     case SHIFT_RIGHT:
       return l >> r;
     case BINARY_AND:
@@ -264,7 +327,30 @@ public class ExplicitExpressionValueVisitor
     }
   }
 
-  private static boolean booleanOperation(final long l, final long r, final BinaryOperator op) {
+  private static boolean booleanOperation(final long l, final long r,
+      final BinaryOperator op, final CType calculationType,
+      final MachineModel machineModel) {
+
+    // special handling for UNSIGNED_LONGLONG (32 and 64bit), UNSIGNED_LONG (64bit)
+    // because Java only has SIGNED_LONGLONG
+    if (calculationType instanceof CSimpleType) {
+      final CSimpleType st = (CSimpleType) calculationType;
+      if (machineModel.getSizeof(st) * machineModel.getSizeofCharInBits() >= SIZE_OF_JAVA_LONG
+          && st.isUnsigned()) {
+        final int cmp = UnsignedLongs.compare(l, r);
+        switch (op) {
+        case GREATER_THAN:
+          return cmp > 0;
+        case GREATER_EQUAL:
+          return cmp >= 0;
+        case LESS_THAN:
+          return cmp < 0;
+        case LESS_EQUAL:
+          return cmp <= 0;
+        }
+      }
+    }
+
     switch (op) {
     case EQUALS:
       return (l == r);
@@ -924,19 +1010,19 @@ public class ExplicitExpressionValueVisitor
         final int numBytes = machineModel.getSizeof(st);
         final int size = bitPerByte * numBytes;
 
-        if ((size < 64) || (size == 64 && st.isSigned())
+        if ((size < SIZE_OF_JAVA_LONG) || (size == SIZE_OF_JAVA_LONG && st.isSigned())
             || (value < Long.MAX_VALUE / 2 && value > Long.MIN_VALUE / 2)) {
           // we can handle this with java-type "long"
-          // TODO otherwise switch to BigInteger
 
           final long maxValue = 1L << size; // 2^size
 
           long result = value;
 
-          if (size < 64) { // otherwise modulo is useless, because result would be 1
+          if (size < SIZE_OF_JAVA_LONG) { // otherwise modulo is useless, because result would be 1
             result = value % maxValue; // shrink to number of bits
 
-            if (st.isSigned()) {
+            if (st.isSigned() ||
+                (st.getType() == CBasicType.CHAR && !st.isUnsigned() && machineModel.isDefaultCharSigned())) {
               if (result > (maxValue / 2) - 1) {
                 result -= maxValue;
               } else if (result < -(maxValue / 2)) {
@@ -946,7 +1032,7 @@ public class ExplicitExpressionValueVisitor
           }
 
           if (result != value && loggedEdges.add(edge)) {
-            logger.logf(Level.WARNING,
+            logger.logf(Level.INFO,
                 "overflow in line %d: value %d is to big for type '%s', casting to %d.",
                 edge == null ? null : edge.getLineNumber(),
                 value, targetType, result);
@@ -954,22 +1040,23 @@ public class ExplicitExpressionValueVisitor
 
           if (st.isUnsigned() && value < 0) {
 
-            if (size < 64) {
-              result = maxValue + result; // value is negative!
+            if (size < SIZE_OF_JAVA_LONG) {
+              // value is negative, so adding maxValue makes it positive
+              result = maxValue + result;
 
               if (loggedEdges.add(edge)) {
-                logger.logf(Level.WARNING,
+                logger.logf(Level.INFO,
                     "overflow in line %d: target-type is '%s', value %d is changed to %d.",
                     edge == null ? null : edge.getLineNumber(),
                     targetType, value, result);
               }
 
             } else {
-              // java-type "long" is too small
+              // java-type "long" is too small for big types like UNSIGNED_LONGLONG,
+              // so we do nothing here and trust the analysis, that handles it later
               if (loggedEdges.add(edge)) {
-                logger.logf(Level.SEVERE,
-                    "overflow in line %d: value %s of c-type '%s' is too big "
-                        + "for java-type 'long', analysis may produce wrong results.",
+                logger.logf(Level.INFO,
+                    "overflow in line %d: value %s of c-type '%s' may be too big for java-type 'long'.",
                     edge == null ? null : edge.getLineNumber(),
                     value, targetType);
               }
@@ -978,11 +1065,12 @@ public class ExplicitExpressionValueVisitor
 
           return result;
 
-        } else { // java-type "long" is too small
+        } else {
+          // java-type "long" is too small for big types like UNSIGNED_LONGLONG,
+          // so we do nothing here and trust the analysis, that handles it later
           if (loggedEdges.add(edge)) {
-            logger.logf(Level.SEVERE,
-                "overflow in line %d: value %s of c-type '%s' is too big "
-                    + "for java-type 'long'\", analysis may produce wrong results.",
+            logger.logf(Level.INFO,
+                "overflow in line %d: value %s of c-type '%s' may be too big for java-type 'long'.",
                 edge == null ? null : edge.getLineNumber(),
                 value, targetType);
           }

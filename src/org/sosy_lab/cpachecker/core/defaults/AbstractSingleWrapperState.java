@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.Serializable;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -75,6 +77,12 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
     } else {
       return false;
     }
+  }
+
+  @Override
+  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+    checkState(isTarget());
+    return ((Targetable)wrappedState).getViolatedProperty();
   }
 
   @Override

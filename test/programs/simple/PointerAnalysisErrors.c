@@ -23,7 +23,7 @@ int main() {
 		*a = 5;
 	} else if (i == 3) {
 		//trigger INVALID FREE
-		int *ptr = 0;
+		int *ptr;
 		free(ptr);
 	}  else if (i == 4) {
 		// trigger DOUBLE_FREE

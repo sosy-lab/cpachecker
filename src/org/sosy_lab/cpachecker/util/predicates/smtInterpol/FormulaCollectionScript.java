@@ -164,7 +164,7 @@ class FormulaCollectionScript implements Script {
       FunctionSymbol func = ((ApplicationTerm)result).getFunction();
       if (!func.isIntern()
           && func.getDefinition() != null) {
-        if (func.getParameterCount() == 0) {
+        if (func.getParameterSorts().length == 0) {
           result = func.getDefinition();
         } else {
           // If we would accept this here,

@@ -178,7 +178,7 @@ class Mathsat5Model {
         break;
 
       case Integer:
-        lValue = Long.valueOf(lTermRepresentation);
+        lValue = new BigInteger(lTermRepresentation);
         break;
 
       case Bitvector:
@@ -212,15 +212,9 @@ class Mathsat5Model {
     long length = Long.valueOf(lengthValue);
     Object value;
     if (length < 64) {
-      try {
-        value = Long.valueOf(term);
-      } catch (NumberFormatException e) {
-        System.out.println();
-        throw e;
-      }
+      value = Long.valueOf(term);
     } else {
-      BigInteger i = new BigInteger(term);
-      value = i;
+      value = new BigInteger(term);
     }
 
     return value;

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
@@ -317,7 +318,7 @@ public class ARGStatistics implements Statistics {
       public void appendTo(Appendable out) throws IOException {
         // Write edges mixed with assigned values.
 
-        for (CFAEdge edge : targetPath.asEdgesList()) {
+        for (CFAEdge edge : from(targetPath.asEdgesList()).filter(notNull())) {
           out.append(edge.toString());
           out.append(System.lineSeparator());
           if (model != null) {
@@ -389,7 +390,12 @@ public class ARGStatistics implements Statistics {
 
     for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
       ARGState s = (ARGState)targetState;
-      counterexamples.put(s, probableCounterexample.get(s));
+      CounterexampleInfo cex = probableCounterexample.get(s);
+      if (cex == null) {
+        ARGPath path = ARGUtils.getOnePathTo(s);
+        cex = CounterexampleInfo.feasible(path, Model.empty());
+      }
+      counterexamples.put(s, cex);
     }
 
     return counterexamples;

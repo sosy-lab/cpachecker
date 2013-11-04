@@ -154,10 +154,15 @@ public class CFACreator {
   private Path exportCfaFile = Paths.get("cfa.dot");
 
   @Option(name="cfa.checkNullPointers",
-      description="while this option is activated, before each use of a"
-          + "PointerExpression, or a dereferenced field access the expression is"
+      description="while this option is activated, before each use of a "
+          + "PointerExpression, or a dereferenced field access the expression is "
           + "checked if it is 0")
   private boolean checkNullPointers = false;
+
+  @Option(name="cfa.expandFunctionPointerArrayAssignments",
+      description="When a function pointer array element is written with a variable as index, "
+          + "create a series of if-else edges with explicit indizes instead.")
+  private boolean expandFunctionPointerArrayAssignments = false;
 
   @Option(description="C or Java?")
   private Language language = Language.C;
@@ -357,6 +362,11 @@ public class CFACreator {
       if (checkNullPointers) {
         CFATransformations transformations = new CFATransformations(logger, config);
         transformations.detectNullPointers(cfa);
+      }
+
+      if (expandFunctionPointerArrayAssignments) {
+        ExpandFunctionPointerArrayAssignments transformer = new ExpandFunctionPointerArrayAssignments(logger, config);
+        transformer.replaceFunctionPointerArrayAssignments(cfa);
       }
 
       // add function pointer edges

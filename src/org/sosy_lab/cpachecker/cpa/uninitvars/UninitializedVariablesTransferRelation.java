@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -52,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -63,15 +61,15 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.types.Type;
-import org.sosy_lab.cpachecker.cpa.types.Type.TypeClass;
-import org.sosy_lab.cpachecker.cpa.types.TypesState;
 import org.sosy_lab.cpachecker.cpa.uninitvars.UninitializedVariablesState.ElementProperty;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -87,17 +85,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
   private boolean printWarnings;
 
-  private LogManager logger;
-
-  //needed for strengthen()
-  private String lastAdded = null;
-  //used to check if a warning message in strengthen() has been displayed if typesCPA is not present
-  private boolean typesWarningAlreadyDisplayed = false;
-
   public UninitializedVariablesTransferRelation(String printWarnings, LogManager logger) {
     globalVars = new HashSet<>();
     this.printWarnings = Boolean.parseBoolean(printWarnings);
-    this.logger = logger;
   }
 
   private AbstractState getAbstractSuccessor(AbstractState element,
@@ -208,8 +198,6 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       globalVars.add(varName);
     }
 
-    lastAdded = varName;
-
     CType type = decl.getType();
     CInitializer initializer = decl.getInitializer();
     // initializers in CIL are always constant, so no need to check if
@@ -221,6 +209,15 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       setUninitialized(element, varName);
     } else {
       setInitialized(element, varName);
+    }
+
+    if (isStructType(type)) {
+      //only need to do this for non-external structs: add a variable for each field of the struct
+      //and set it uninitialized (since it is only declared at this point); do this recursively for all
+      //fields that are structs themselves
+      handleStructDeclaration(element,
+                              (CCompositeType)type, varName, varName,
+                              decl.isGlobal());
     }
   }
 
@@ -357,6 +354,28 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     } else {
       throw new UnrecognizedCCodeException("unknown left hand side of an assignment", cfaEdge, op1);
     }
+
+    String leftName = op1.toASTString();
+    String rightName = op2.toASTString();
+
+    CType t1 = op1.getExpressionType().getCanonicalType();
+    CType t2 = op2.getExpressionType().getCanonicalType();
+
+    //only interested in structs being assigned to structs here
+    if (isStructType(t1) && isStructType(t2)) {
+
+      //only structs of the same type can be assigned to each other
+      assert t1.equals(t2);
+
+      //check all fields of the structures' type and set their status
+      initializeFields(element, cfaEdge, op2,
+                       (CCompositeType)t1, leftName, rightName, leftName, rightName);
+    }
+  }
+
+  private boolean isStructType(CType t) {
+    return t instanceof CCompositeType
+        && ((CCompositeType)t).getKind() == ComplexTypeKind.STRUCT;
   }
 
   private boolean isExpressionUninitialized(UninitializedVariablesState element,
@@ -464,97 +483,10 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   }
 
   @Override
-  /**
-   * strengthen() is only necessary when declaring field variables, so the underlying struct type
-   * is properly associated. This can only be done here because information about types is needed, which can
-   * only be provided by typesCPA.
-   */
   public Collection<? extends AbstractState> strengthen(AbstractState element,
                           List<AbstractState> otherElements, CFAEdge cfaEdge,
                           Precision precision) {
 
-    //only call for declarations. check for lastAdded prevents unnecessary repeated executions for the same statement
-    boolean typesCPAPresent = false;
-
-    if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge && lastAdded != null) {
-      CDeclarationEdge declEdge = (CDeclarationEdge)cfaEdge;
-
-      for (AbstractState other : otherElements) {
-
-        //only interested in the types here
-        if (other instanceof TypesState) {
-          typesCPAPresent = true;
-
-          //find type of the item last added to the list of variables
-          TypesState typeElem = (TypesState) other;
-          Type t = findType(typeElem, cfaEdge, lastAdded);
-
-          if (t != null) {
-            //only need to do this for non-external structs: add a variable for each field of the struct
-            //and set it uninitialized (since it is only declared at this point); do this recursively for all
-            //fields that are structs themselves
-            if (t.getTypeClass() == TypeClass.STRUCT) {
-
-              handleStructDeclaration((UninitializedVariablesState)element, typeElem,
-                                      (Type.CompositeType)t, lastAdded, lastAdded,
-                                      declEdge.getDeclaration().isGlobal());
-            }
-          }
-        }
-      }
-
-      if (!typesWarningAlreadyDisplayed && !typesCPAPresent && lastAdded != null) {
-        //set typesWarningAlreadyDisplayed so this message only comes up once
-        typesWarningAlreadyDisplayed = true;
-        logger.log(Level.INFO,
-        "TypesCPA not present - information about field references may be unreliable");
-      }
-
-      //set lastAdded to null to prevent unnecessary repeats
-      lastAdded = null;
-    }
-
-    //the following deals with structs being assigned to other structs
-    if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
-
-      CStatement exp = ((CStatementEdge)cfaEdge).getStatement();
-
-      if (exp instanceof CAssignment) {
-
-          CExpression op1 = ((CAssignment) exp).getLeftHandSide();
-          CRightHandSide op2 = ((CAssignment) exp).getRightHandSide();
-
-          String leftName = op1.toASTString();
-          String rightName = op2.toASTString();
-
-          for (AbstractState other : otherElements) {
-            //only interested in the types here
-            if (other instanceof TypesState) {
-              typesCPAPresent = true;
-
-              TypesState typeElem = (TypesState) other;
-
-              Type t1 = checkForFieldReferenceType(op1, typeElem, cfaEdge);
-              Type t2 = checkForFieldReferenceType(op2, typeElem, cfaEdge);
-
-              if (t1 != null && t2 != null) {
-
-                //only interested in structs being assigned to structs here
-                if (t1.getTypeClass() == TypeClass.STRUCT
-                    && t2.getTypeClass() == TypeClass.STRUCT) {
-
-                  //only structs of the same type can be assigned to each other
-                  assert t1.equals(t2);
-
-                  //check all fields of the structures' type and set their status
-                  initializeFields((UninitializedVariablesState)element, cfaEdge, op2, typeElem,
-                                   (Type.CompositeType)t1, leftName, rightName, leftName, rightName);
-                }
-              }
-            }
-          }
-      }
-    }
     return null;
   }
 
@@ -564,27 +496,26 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
    */
   private void initializeFields(UninitializedVariablesState element,
                                 CFAEdge cfaEdge, CRightHandSide exp,
-                                TypesState typeElem, Type.CompositeType structType,
+                                CCompositeType structType,
                                 String leftName, String rightName,
                                 String recursiveLeftName, String recursiveRightName) {
 
-    Set<String> members = structType.getMembers();
-
     //check all members
-    for (String member : members) {
-      Type t = structType.getMemberType(member);
+    for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
+      CType t = member.getType().getCanonicalType();
+      String name = member.getName();
       //for a field that is itself a struct, repeat the whole process
-      if (t != null && t.getTypeClass() == TypeClass.STRUCT) {
-        initializeFields(element, cfaEdge, exp, typeElem, (Type.CompositeType)t, member, member,
-                         recursiveLeftName + "." + member, recursiveRightName + "." + member);
+      if (isStructType(t)) {
+        initializeFields(element, cfaEdge, exp, (CCompositeType)t, name, name,
+                         recursiveLeftName + "." + name, recursiveRightName + "." + name);
       //else, check the initialization status of the assigned variable
       //and set the status of the assignee accordingly
       } else {
-        if (element.isUninitialized(recursiveRightName + "." + member)) {
+        if (element.isUninitialized(recursiveRightName + "." + name)) {
           if (printWarnings) {
-            addWarning(cfaEdge, recursiveRightName + "." + member, exp, element);
+            addWarning(cfaEdge, recursiveRightName + "." + name, exp, element);
           }
-          setUninitialized(element, recursiveLeftName + "." + member);
+          setUninitialized(element, recursiveLeftName + "." + name);
         }
       }
     }
@@ -594,8 +525,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
    * recursively sets all fields of a struct uninitialized, except if the field is itself a struct
    */
   private void handleStructDeclaration(UninitializedVariablesState element,
-                                       TypesState typeElem,
-                                       Type.CompositeType structType,
+                                       CCompositeType structType,
                                        String varName,
                                        String recursiveVarName,
                                        boolean isGlobalDeclaration) {
@@ -603,75 +533,20 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     //structs themselves are always considered initialized
     setInitialized(element, recursiveVarName);
 
-    Set<String> members = structType.getMembers();
-
-    for (String member : members) {
-      Type t = structType.getMemberType(member);
+    for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
+      CType t = member.getType().getCanonicalType();
+      String name = member.getName();
       //for a field that is itself a struct, repeat the whole process
-      if (t != null && t.getTypeClass() == TypeClass.STRUCT) {
-        handleStructDeclaration(element, typeElem, (Type.CompositeType)t, member,
-                                recursiveVarName + "." + member, isGlobalDeclaration);
+      if (isStructType(t)) {
+        handleStructDeclaration(element, (CCompositeType)t, name,
+                                recursiveVarName + "." + name, isGlobalDeclaration);
       } else {
         //set non structure fields uninitialized, since they have only just been declared
         if (isGlobalDeclaration) {
-          globalVars.add(recursiveVarName + "." + member);
+          globalVars.add(recursiveVarName + "." + name);
         }
-        setUninitialized(element, recursiveVarName + "." + member);
+        setUninitialized(element, recursiveVarName + "." + name);
       }
     }
   }
-
-  /**
-   * checks wether a given expression is a field reference;
-   * if yes, find the type of the referenced field, if no, try to determine the type of the variable
-   */
-  private Type checkForFieldReferenceType(CRightHandSide exp, TypesState typeElem, CFAEdge cfaEdge) {
-
-    String name = exp.toASTString();
-    Type t = null;
-
-    if (exp instanceof CFieldReference) {
-      String[] s = name.split("[.]");
-      t = findType(typeElem, cfaEdge, s[0]);
-      int i = 1;
-
-      //follow the field reference to its end
-      while (t != null && t.getTypeClass() == TypeClass.STRUCT && i < s.length) {
-        t = ((Type.CompositeType)t).getMemberType(s[i]);
-        i++;
-      }
-
-    //if exp is not a field reference, simply try to find the type of the associated variable name
-    } else {
-      t = findType(typeElem, cfaEdge, name);
-    }
-    return t;
-  }
-
-  /**
-   * checks all possible locations for type information of a given name
-   */
-  private Type findType(TypesState typeElem, CFAEdge cfaEdge, String varName) {
-    Type t = null;
-    //check type definitions
-    t = typeElem.getTypedef(varName);
-    //if this fails, check functions
-    if (t == null) {
-      t = typeElem.getFunction(varName);
-    }
-    //if this also fails, check variables for the global context
-    if (t == null) {
-      t = typeElem.getVariableType(null, varName);
-    }
-    try {
-      //if again there was no result, check local variables and function parameters
-      if (t == null) {
-        t = typeElem.getVariableType(cfaEdge.getSuccessor().getFunctionName(), varName);
-      }
-    } catch (IllegalArgumentException e) {
-      //if nothing at all can be found, just return null
-    }
-    return t;
-  }
-
 }

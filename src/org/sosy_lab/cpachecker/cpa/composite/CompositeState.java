@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
@@ -56,6 +58,21 @@ public class CompositeState implements AbstractWrapperState, Targetable, Partiti
       }
     }
     return false;
+  }
+
+  @Override
+  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+    checkState(isTarget());
+    // prefer a specific property over the default OTHER property
+    for (AbstractState element : states) {
+      if ((element instanceof Targetable) && ((Targetable)element).isTarget()) {
+        ViolatedProperty property = ((Targetable)element).getViolatedProperty();
+        if (property != ViolatedProperty.OTHER) {
+          return property;
+        }
+      }
+    }
+    return ViolatedProperty.OTHER;
   }
 
   @Override

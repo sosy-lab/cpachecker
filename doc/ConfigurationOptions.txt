@@ -266,13 +266,17 @@ cfa.callgraph.export = true
 # file name for call graph as .dot file
 cfa.callgraph.file = "functionCalls.dot"
 
-# while this option is activated, before each use of aPointerExpression, or a
-# dereferenced field access the expression ischecked if it is 0
+# while this option is activated, before each use of a PointerExpression, or
+# a dereferenced field access the expression is checked if it is 0
 cfa.checkNullPointers = false
 
 # Whether to have a single target node per function for all invalid null
 # pointer dereferences or to have separate nodes for each dereference
 cfa.checkNullPointers.singleTargetPerFunction = true
+
+# When a function pointer array element is written with a variable as index,
+# create a series of if-else edges with explicit indizes instead.
+cfa.expandFunctionPointerArrayAssignments = false
 
 # export CFA as .dot file
 cfa.export = true
@@ -289,6 +293,9 @@ cfa.initializeAllVariables = false
 
 # remove paths from CFA that cannot lead to a specification violation
 cfa.removeIrrelevantForSpecification = false
+
+# simplify simple const expressions like 1+2
+cfa.simplifyConstExpressions = false
 
 # simplify pointer expressions like s->f to (*s).f with this option the cfa
 # is simplified until at maximum one pointer is allowed for left- and
@@ -679,12 +686,20 @@ cpa.monitor.pathcomputationlimit = 0
 cpa.octagon.merge = "SEP"
   allowed values: [SEP, JOIN]
 
+# Setting this to true makes memory-allocation functions like malloc() always
+# return a valid pointer.
+cpa.pointer.memoryAllocationsAlwaysSucceed = false
+
 # which merge operator to use for PointerCPA?
 cpa.pointer.merge = "sep"
   allowed values: [sep, join]
 
 # print warnings during analysis when unsafe pointer operations are found
 cpa.pointer.printWarnings = true
+
+# which merge operator to use for InvariantCPA
+cpa.pointer2.merge = "JOIN"
+  allowed values: [JOIN, SEP]
 
 # which merge operator to use for PointerACPA
 cpa.pointerA.merge = "JOIN"
@@ -767,6 +782,19 @@ cpa.predicate.blk.useCache = true
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
 
+# Check whether all pointer dereferences are valid.
+cpa.predicate.checkValidDeref = false
+
+# Check whether all calls to free() are valid.
+cpa.predicate.checkValidFree = false
+
+# The default size in bytes for memory allocations when the value cannot be
+# determined.
+cpa.predicate.defaultAllocationSize = 4
+
+# The default length for arrays when the real length cannot be determined.
+cpa.predicate.defaultArrayLength = 20
+
 # Use deferred allocation heuristic that tracks void * variables until the
 # actual type of the allocation is figured out.
 cpa.predicate.deferUntypedAllocations = false
@@ -802,6 +830,9 @@ cpa.predicate.handlePointerAliasing = true
 # replaced.
 cpa.predicate.ignoreExtractConcat = true
 
+# Ignore variables that are not relevant for reachability properties.
+cpa.predicate.ignoreIrrelevantVariables = true
+
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 cpa.predicate.interpolationSolver = no default value
@@ -830,6 +861,9 @@ cpa.predicate.mathsat5.logfile = "mathsat5.%03d.smt2"
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
 
+# The maximum length for arrays (elements beyond this will be ignored).
+cpa.predicate.maxArrayLength = 20
+
 # Maximum size of allocations for which all structure fields are regarded
 # always essential, regardless of whether they were ever really used in code.
 cpa.predicate.maxPreFilledAllocationSize = 0
@@ -840,13 +874,21 @@ cpa.predicate.memoryAllocationFunctions = {
       "malloc", "__kmalloc", "kmalloc"
       }
 
+# Memory allocation functions of which all parameters but the first should be
+# ignored.
+cpa.predicate.memoryAllocationFunctionsWithSuperfluousParameters = {
+      "__kmalloc", "kmalloc", "kzalloc"}
+
 # Set of functions that non-deterministically provide new zeroed memory on
 # the heap, i.e. they can return either a valid pointer or zero.
-cpa.predicate.memoryAllocationFunctionsWithZeroing = {"kzalloc"}
+cpa.predicate.memoryAllocationFunctionsWithZeroing = {"kzalloc", "calloc"}
 
 # Setting this to true makes memoryAllocationFunctions always return a valid
 # pointer.
 cpa.predicate.memoryAllocationsAlwaysSucceed = false
+
+# Function that is used to free allocated memory.
+cpa.predicate.memoryFreeFunctionName = "free"
 
 # which merge operator to use for predicate cpa (usually ABE should be used)
 cpa.predicate.merge = "ABE"
@@ -1152,7 +1194,10 @@ pcc.useCores = 1
 reachedSet.export = true
 reachedSet.file = "reached.txt"
 
-# list of files with configurations to use
+# List of files with configurations to use. A filename can be suffixed with
+# :if-interrupted, :if-failed, and :if-terminated which means that this
+# configuration will only be used if the previous configuration ended with a
+# matching condition.
 restartAlgorithm.configFiles = no default value
 
 # comma-separated list of files with specifications that should be checked

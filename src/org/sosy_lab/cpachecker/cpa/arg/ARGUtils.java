@@ -34,15 +34,17 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -55,6 +57,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
 
 /**
@@ -216,7 +219,7 @@ public class ARGUtils {
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
   public static ARGPath getPathFromBranchingInformation(
-      ARGState root, Collection<? extends AbstractState> arg,
+      ARGState root, Set<? extends AbstractState> arg,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
 
     checkArgument(arg.contains(root));
@@ -245,13 +248,20 @@ public class ARGUtils {
         ARGState trueChild = null;
         ARGState falseChild = null;
 
+        CFANode loc = AbstractStates.extractLocation(currentElement);
+        if (!leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))) {
+          Set<ARGState> candidates = Sets.intersection(Sets.newHashSet(children), arg).immutableCopy();
+          if (candidates.size() != 1) {
+            throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
+          }
+          child = Iterables.getOnlyElement(candidates);
+          edge = currentElement.getEdgeToChild(child);
+          break;
+        }
+
         for (ARGState currentChild : children) {
           CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
-          if (!(currentEdge instanceof CAssumeEdge)) {
-            throw new IllegalArgumentException("ARG branches where there is no CAssumeEdge!");
-          }
-
-          if (((CAssumeEdge)currentEdge).getTruthAssumption()) {
+          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
             trueEdge = currentEdge;
             trueChild = currentChild;
           } else {
@@ -282,7 +292,13 @@ public class ARGUtils {
         break;
 
       default:
-        throw new IllegalArgumentException("ARG splits with more than two branches!");
+        Set<ARGState> candidates = Sets.intersection(Sets.newHashSet(children), arg).immutableCopy();
+        if (candidates.size() != 1) {
+          throw new IllegalArgumentException("ARG splits with more than two branches!");
+        }
+        child = Iterables.getOnlyElement(candidates);
+        edge = currentElement.getEdgeToChild(child);
+        break;
       }
 
       if (!arg.contains(child)) {
@@ -316,7 +332,7 @@ public class ARGUtils {
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
   public static ARGPath getPathFromBranchingInformation(
-      ARGState root, ARGState target, Collection<? extends AbstractState> arg,
+      ARGState root, ARGState target, Set<? extends AbstractState> arg,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
 
     checkArgument(arg.contains(target));
@@ -434,6 +450,8 @@ public class ARGUtils {
     sb.append("CONTROL AUTOMATON AssumptionAutomaton\n\n");
     sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
 
+    int multiEdgeCount = 0; // see below
+
     for (ARGState s : pPathStates) {
 
       CFANode loc = AbstractStates.extractLocation(s);
@@ -448,6 +466,41 @@ public class ARGUtils {
         if (pPathStates.contains(child)) {
           CFANode childLoc = AbstractStates.extractLocation(child);
           CFAEdge edge = loc.getEdgeTo(childLoc);
+          if (edge instanceof MultiEdge) {
+            // The successor state might have several incoming MultiEdges.
+            // In this case the state names like ARG<successor>_0 would occur
+            // several times.
+            // So we add this counter to the state names to make them unique.
+            multiEdgeCount++;
+
+            // Write out a long linear chain of pseudo-states
+            // because the AutomatonCPA also iterates through the MultiEdge.
+            List<CFAEdge> edges = ((MultiEdge)edge).getEdges();
+
+            // first, write edge entering the list
+            int i = 0;
+            sb.append("    MATCH \"");
+            escape(edges.get(i).getRawStatement(), sb);
+            sb.append("\" -> ");
+            sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
+            sb.append(";\n");
+
+            // inner part (without first and last edge)
+            for (; i < edges.size()-1; i++) {
+              sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
+              sb.append("    MATCH \"");
+              escape(edges.get(i).getRawStatement(), sb);
+              sb.append("\" -> ");
+              sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
+              sb.append(";\n");
+            }
+
+            // last edge connecting it with the real successor
+            edge = edges.get(i);
+            sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
+            // remainder is written by code below
+          }
+
           sb.append("    MATCH \"");
           escape(edge.getRawStatement(), sb);
           sb.append("\" -> ");
