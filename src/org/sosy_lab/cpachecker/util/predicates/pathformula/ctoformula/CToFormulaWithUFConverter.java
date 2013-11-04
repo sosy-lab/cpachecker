@@ -275,6 +275,16 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   Formula makeDereferece(CType type,
                          final Formula address,
                          final SSAMapBuilder ssa,
+                         final ErrorConditions errorConditions,
+                         final PointerTargetSetBuilder pts) {
+    errorConditions.addInvalidDerefCondition(fmgr.makeEqual(address, nullPointer));
+    return makeDerefereceWithoutError(type, address, ssa, errorConditions, pts);
+  }
+
+  private Formula makeDerefereceWithoutError(CType type,
+                         final Formula address,
+                         final SSAMapBuilder ssa,
+                         final ErrorConditions errorConditions,
                          final PointerTargetSetBuilder pts) {
     type = PointerTargetSet.simplifyType(type);
     final String ufName = getUFName(type);
@@ -356,6 +366,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                          final CFAEdge edge,
                          final SSAMapBuilder ssa,
                          final Constraints constraints,
+                         final ErrorConditions errorConditions,
                          final PointerTargetSetBuilder pts)
   throws UnrecognizedCCodeException {
     final CType baseType = PointerTargetSet.getBaseType(type);
@@ -373,6 +384,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         edge,
         ssa,
         constraints,
+        errorConditions,
         pts);
       constraints.addConstraint(initialization);
     }
@@ -386,6 +398,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                              final List<Pair<CCompositeType, String>> fields,
                              final SSAMapBuilder ssa,
                              final Constraints constraints,
+                             final ErrorConditions errorConditions,
                              final PointerTargetSetBuilder pts) throws UnrecognizedCCodeException {
     final CType baseType = PointerTargetSet.simplifyType(base.getType());
     if (baseType instanceof CArrayType) {
@@ -408,6 +421,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                 fields,
                                 ssa,
                                 constraints,
+                                errorConditions,
                                 pts);
         }
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
@@ -415,7 +429,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         }
       }
     } else {
-      constraints.addConstraint(fmgr.makeEqual(makeDereferece(baseType, address, ssa, pts),
+      // Make sure to not add invalid-deref constraints for this dereference
+      constraints.addConstraint(fmgr.makeEqual(makeDerefereceWithoutError(baseType, address, ssa, errorConditions, pts),
                                                makeVariable(base, ssa, pts)));
     }
   }
@@ -610,6 +625,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                 final @Nonnull CFAEdge edge,
                                 final @Nonnull SSAMapBuilder ssa,
                                 final @Nonnull Constraints constraints,
+                                final @Nonnull ErrorConditions errorConditions,
                                 final @Nonnull PointerTargetSetBuilder pts)
   throws UnrecognizedCCodeException {
     Preconditions.checkArgument(lvalue instanceof Formula || lvalue instanceof String, "Illegal left hand side");
@@ -663,7 +679,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                      rvalueIterator.next();
             if (rvalue instanceof Formula && rvalueType instanceof CArrayType &&
                 !(newRvalueType instanceof CArrayType) && !(newRvalueType instanceof CCompositeType)) {
-              newRvalue = makeDereferece(newRvalueType, (Formula) newRvalue, ssa, pts);
+              newRvalue = makeDereferece(newRvalueType, (Formula) newRvalue, ssa, errorConditions, pts);
             }
             result = bfmgr.and(result,
                                makeAssignment(lvalueElementType,
@@ -677,6 +693,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                               edge,
                                               ssa,
                                               constraints,
+                                              errorConditions,
                                               pts));
             offset += pts.getSize(lvalueArrayType.getType());
           }
@@ -744,7 +761,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                        rvalueIterator.next();
               if (rvalue instanceof Formula && rvalueType instanceof CCompositeType &&
                   !(newRvalueType instanceof CArrayType) && !(newRvalueType instanceof CCompositeType)) {
-                newRvalue = makeDereferece(newRvalueType, (Formula) newRvalue, ssa, pts);
+                newRvalue = makeDereferece(newRvalueType, (Formula) newRvalue, ssa, errorConditions, pts);
               }
               result = bfmgr.and(result,
                                  makeAssignment(newLvalueType,
@@ -758,6 +775,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                 edge,
                                                 ssa,
                                                 constraints,
+                                                errorConditions,
                                                 pts));
             } else if (rvalue instanceof List) {
               rvalueIterator.next();
@@ -881,8 +899,9 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                                final String function,
                                                                                final SSAMapBuilder ssa,
                                                                                final Constraints constraints,
+                                                                               final ErrorConditions errorConditions,
                                                                                final PointerTargetSetBuilder pts) {
-    return new ExpressionToFormulaWithUFVisitor(this, cfaEdge, function, ssa, constraints, pts);
+    return new ExpressionToFormulaWithUFVisitor(this, cfaEdge, function, ssa, constraints, errorConditions, pts);
   }
 
   private LvalueToPointerTargetPatternVisitor getLvalueToPointerTargetPatternVisitor(
@@ -901,6 +920,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                                           function,
                                                                                           ssa,
                                                                                           constraints,
+                                                                                          errorConditions,
                                                                                           pts);
     final LvalueToPointerTargetPatternVisitor lvalueVisitor = getLvalueToPointerTargetPatternVisitor(cfaEdge, pts);
     return new StatementToFormulaWithUFVisitor(delegate, lvalueVisitor, this, errorConditions, pts);

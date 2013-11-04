@@ -206,6 +206,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                           edge,
                           ssa,
                           constraints,
+                          errorConditions,
                           pts);
     }
   }
@@ -244,6 +245,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                           edge,
                           ssa,
                           constraints,
+                          errorConditions,
                           pts);
     }
   }
@@ -446,6 +448,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                           edge,
                           ssa,
                           constraints,
+                          errorConditions,
                           pts);
 
     addEssentialFields(lhsUsedFields, pts);
@@ -525,6 +528,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                  edge,
                                  ssa,
                                  constraints,
+                                 errorConditions,
                                  pts);
     } else {
       final PointerTargetPattern pattern = new PointerTargetPattern(lhs, 0, 0);
@@ -542,6 +546,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                         edge,
                                                         ssa,
                                                         constraints,
+                                                        errorConditions,
                                                         pts);
       conv.addPreFilledBase(lhs, type, false, true, constraints, pts);
       return result;
@@ -1066,6 +1071,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                  edge,
                                  ssa,
                                  constraints,
+                                 errorConditions,
                                  pts);
     } else {
       final String newBase = conv.makeAllocVariableName(functionName,
