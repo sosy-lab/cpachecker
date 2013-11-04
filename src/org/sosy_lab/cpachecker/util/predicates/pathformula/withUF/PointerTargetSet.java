@@ -588,7 +588,7 @@ public class PointerTargetSet implements Serializable {
       fields = fields.removeAndCopy(field);
     }
 
-    void setFields(PersistentSortedMap<CompositeField, Boolean> fields) {
+    private void setFields(PersistentSortedMap<CompositeField, Boolean> fields) {
       this.fields = fields;
     }
 
@@ -1230,16 +1230,34 @@ public class PointerTargetSet implements Serializable {
 
   // The following fields are modified in the derived class only
 
+  // The set of known memory objects.
+  // This includes allocated memory regions and global/local structs/arrays.
+  // The key of the map is the name of the base (without the BASE_PREFIX).
+  // There are also "fake" bases in the map for variables that have their address
+  // taken somewhere but are not yet tracked.
   protected /*final*/ PersistentSortedMap<String, CType> bases;
+
+  // The last added memory region (used to create the chain of inequalities between bases).
   protected /*final*/ String lastBase;
+
+  // The set of "shared" fields that are accessed directly via pointers,
+  // so they are represented with UFs instead of as variables.
   protected /*final*/ PersistentSortedMap<CompositeField, Boolean> fields;
 
   protected /*final*/ PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
 
+  // The complete set of tracked memory locations.
+  // The map key is the type of the memory location.
+  // This set of locations is used to restore the values of the memory-access UF
+  // when the SSA index is used (i.e, to create the *int@3(i) = *int@2(i) terms
+  // for all values of i from this map).
+  // This means that when a location is not present in this map,
+  // its value is not tracked and might get lost.
   protected /*final*/ PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
 
   private final FormulaType<?> pointerType;
 
+  // The counter that guarantees a unique name for each allocated memory region.
   private static int dynamicAllocationCounter = 0;
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
