@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -74,14 +74,15 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
     // compute explicit version of ART
     boolean sound = algorithm.run(reachedOrig);
 
-    if (!algorithm.reset())
+    if (!algorithm.reset()) {
       throw new CPAException("Reset in PruneUnrefinedARGAlgorithm did not work");
+    }
 
     // compute predicate version of ART
     sound = algorithm.run(reached);
 
     // compute all error locations that are reachable
-    Set<CFANode> locations = new HashSet<CFANode>();
+    Set<CFANode> locations = new HashSet<>();
     for (AbstractState e : reached) {
       ARGState artEle = (ARGState) e;
       LocationState le = AbstractStates.extractStateByType(artEle, LocationState.class);
@@ -90,7 +91,7 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
       }
     }
 
-    Deque<ARGState> leaves = new ArrayDeque<ARGState>();
+    Deque<ARGState> leaves = new ArrayDeque<>();
 
     // remove all error nodes from reachedOrig that are not reachable in reached
     for (AbstractState e : reachedOrig) {
@@ -98,8 +99,9 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
       LocationState le = AbstractStates.extractStateByType(artEle, LocationState.class);
       if (artEle.isTarget()) {
         System.out.print("Found target " + le.getLocationNode().getLineNumber());
-        if (artEle.isCovered())
+        if (artEle.isCovered()) {
           System.out.print(" COV");
+        }
         if (!locations.contains(le.getLocationNode())) {
           leaves.add(artEle);
           for (ARGState e2 : artEle.getCoveredByThis()) {
@@ -112,11 +114,11 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
         }
       }
     }
-    AbstractARGBasedRefiner.checkART(reachedOrig);
+    ARGUtils.checkARG(reachedOrig);
     while (!leaves.isEmpty()) {
       ARGState leaf = leaves.pop();
 
-      Collection<ARGState> parents = new ArrayList<ARGState>();
+      Collection<ARGState> parents = new ArrayList<>();
       parents.addAll(leaf.getParents());
 
       reachedOrig.remove(leaf);
@@ -128,7 +130,7 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
         }
       }
     }
-    AbstractARGBasedRefiner.checkART(reachedOrig);
+    ARGUtils.checkARG(reachedOrig);
 
     return sound;
   }

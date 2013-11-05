@@ -41,13 +41,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -60,7 +58,6 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithABM, P
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
-  private final PostProcessor postProcessor;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(FunctionPointerCPA.class);
@@ -75,13 +72,6 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithABM, P
     this.transferRelation = new FunctionPointerTransferRelation(pLogger, pConfig);
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     this.reducer = NoOpReducer.getInstance();
-
-    if(pCpa instanceof PostProcessor) {
-      postProcessor = (PostProcessor)pCpa;
-    } else {
-      postProcessor = null;
-    }
-
   }
 
   @Override

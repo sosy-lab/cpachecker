@@ -74,7 +74,7 @@ public class ARTToCTranslator {
     }
 
     public CompoundStatement(CompoundStatement pOuterBlock) {
-      statements = new ArrayList<Statement>();
+      statements = new ArrayList<>();
       outerBlock = pOuterBlock;
     }
 
@@ -168,9 +168,9 @@ public class ARTToCTranslator {
     }
   }
 
-  private final List<String> globalDefinitionsList = new ArrayList<String>();
-  private final Set<ARGState> discoveredElements = new HashSet<ARGState>();
-  private final Set<ARGState> mergeElements = new HashSet<ARGState>();
+  private final List<String> globalDefinitionsList = new ArrayList<>();
+  private final Set<ARGState> discoveredElements = new HashSet<>();
+  private final Set<ARGState> mergeElements = new HashSet<>();
   private FunctionBody mainFunctionBody;
   private static Collection<AbstractState> reached;
 
@@ -200,7 +200,7 @@ public class ARTToCTranslator {
 
   private void translate(ARGState rootElement) {
     // waitlist for the edges to be processed
-    Deque<ARTEdge> waitlist = new ArrayDeque<ARTEdge>(); //TODO: used to be sorted list and I don't know why yet ;-)
+    Deque<ARTEdge> waitlist = new ArrayDeque<>(); //TODO: used to be sorted list and I don't know why yet ;-)
 
     startMainFunction(rootElement);
     getRelevantChildrenOfElement(rootElement, waitlist, mainFunctionBody.getFunctionBody());
@@ -223,7 +223,7 @@ public class ARTToCTranslator {
     generateLabel(currentElement, currentBlock);
 
     // find the next elements to add to the waitlist
-    Set<ARGState> childrenOfElement = currentElement.getChildren();
+    Collection<ARGState> childrenOfElement = currentElement.getChildren();
 
     if (childrenOfElement.size() == 0) {
       // if there is no child of the element, maybe it was covered by other?
@@ -243,7 +243,7 @@ public class ARTToCTranslator {
       assert childrenOfElement.size() == 2 : "branches with more than two options not supported yet (was the program prepocessed with CIL?)"; //TODO: why not btw?
 
       //collect edges of condition branch
-      ArrayList<ARTEdge> result = new ArrayList<ARTEdge>(2);
+      ArrayList<ARTEdge> result = new ArrayList<>(2);
       int ind = 0;
       for (ARGState child : childrenOfElement) {
         CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
@@ -441,8 +441,8 @@ public class ARTToCTranslator {
     CFunctionEntryNode fn = lFunctionCallEdge.getSuccessor();
     List<CParameterDeclaration> formalParams = fn.getFunctionParameters();
 
-    List<Statement> actualParamAssignStatements = new ArrayList<Statement>();
-    List<Statement> formalParamAssignStatements = new ArrayList<Statement>();
+    List<Statement> actualParamAssignStatements = new ArrayList<>();
+    List<Statement> formalParamAssignStatements = new ArrayList<>();
 
     int i = 0;
     for (CParameterDeclaration formalParam : formalParams) {

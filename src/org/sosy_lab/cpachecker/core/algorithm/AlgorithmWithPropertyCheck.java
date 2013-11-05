@@ -71,4 +71,9 @@ public class AlgorithmWithPropertyCheck implements Algorithm, StatisticsProvider
     }
   }
 
+  @Override
+  public boolean reset() {
+    return analysis.reset();
+  }
+
 }

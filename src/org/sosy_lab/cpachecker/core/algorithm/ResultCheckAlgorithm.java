@@ -138,4 +138,9 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     }
     pStatsCollection.add(stats);
   }
+
+  @Override
+  public boolean reset() {
+    return analysisAlgorithm.reset();
+  }
 }

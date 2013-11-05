@@ -53,6 +53,10 @@ rootDirectory = "."
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
+# restarts the analysis on (spurious or not) counterexamples until the
+# waitlist is empty
+analysis.contiuneOnCounterexample = false
+
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
 
@@ -78,8 +82,15 @@ analysis.interprocedural = true
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
+# if enabled post processes (cosmetic changes) the reached set as specified
+# by the CPAs
+analysis.postProcessing = false
+
 # A String, denoting the programs to be analyzed
 analysis.programNames = no default value
+
+# prunes paths from ARG that were shown to be superfluous
+analysis.pruneUnrefinedARG = false
 
 # which reached set implementation to use?
 # NORMAL: just a simple set
@@ -159,17 +170,6 @@ analysis.useRefinement = false
 
 # do analysis and then check analysis result
 analysis.useResultCheckAlgorithm = false
-
-# Add a threshold to the automaton, after so many branches on a path the
-# automaton will be ignored (0 to disable)
-assumptions.automatonBranchingThreshold = 0
-
-# write collected assumptions as automaton to file
-assumptions.automatonFile = "AssumptionAutomaton.txt"
-
-# write collected assumptions to file
-assumptions.export = true
-assumptions.file = "assumptions.txt"
 
 # Size of the BDD cache in relation to the node table size (set to 0 to use
 # fixed BDD cache size).
@@ -252,10 +252,20 @@ cbmc.timelimit = 0
 # globally after the ARG has been unrolled completely.
 cegar.globalRefinement = false
 
+# do not refine after a reset of the CEGAR algorithm
+cegar.noRefinementInFirstRun = false
+
 # Which refinement algorithm to use? (give class name, required for CEGAR) If
 # the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
 # omitted.
 cegar.refiner = no default value
+
+# maximum count of attempted refinements
+cegar.stopRefiningCount = -1
+
+# threshold (in ms) after which the CEGAR algorithm gives up refining
+# (spurious) counterexamples
+cegar.stopRefiningThreshold = -1
 
 # Which functions should be interpreted as encoding assumptions
 cfa.assumeFunctions = {"__VERIFIER_assume"}
@@ -273,6 +283,9 @@ cfa.checkNullPointers = false
 # Whether to have a single target node per function for all invalid null
 # pointer dereferences or to have separate nodes for each dereference
 cfa.checkNullPointers.singleTargetPerFunction = true
+
+# determine loop structure with construction CFA
+cfa.determineLoopStructure = true
 
 # When a function pointer array element is written with a variable as index,
 # create a series of if-else edges with explicit indizes instead.
@@ -353,6 +366,12 @@ cpa.abm.blockHeuristic = FunctionAndLoopPartitioning.class
 # if enabled, the reached set cache is analysed for each cache miss to find
 # the cause of the miss.
 cpa.abm.gatherCacheMissStatistics = false
+
+# export final ART as C program
+cpa.arg.dumpARG = false
+
+# export final ART as .c file
+cpa.arg.dumpFile = "ARG.c"
 
 # export one variable assignment for error path to file, if one is found
 cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
@@ -753,6 +772,9 @@ cpa.predicate.blk.alwaysAfterThreshold = true
 
 # abstraction always and only on explicitly computed abstraction nodes.
 cpa.predicate.blk.alwaysAndOnlyAtExplicitNodes = false
+
+# force abstractions at end of program, regardless of threshold
+cpa.predicate.blk.alwaysAtEndOfProgram = false
 
 # force abstractions at each function calls/returns, regardless of threshold
 cpa.predicate.blk.alwaysAtFunctions = true

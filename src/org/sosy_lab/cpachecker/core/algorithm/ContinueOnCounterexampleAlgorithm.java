@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
@@ -101,7 +100,7 @@ public class ContinueOnCounterexampleAlgorithm implements Algorithm, StatisticsP
   private void removeErrorElement(ReachedSet reached, ARGState errorElement) {
     // remove re-added parent of errorElement to prevent computing
     // the same error element over and over
-    Set<ARGState> parents = errorElement.getParents();
+    Collection<ARGState> parents = errorElement.getParents();
     assert parents.size() == 1 : "error element that was merged";
 
     ARGState parent = Iterables.getOnlyElement(parents);
