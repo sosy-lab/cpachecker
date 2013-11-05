@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cpa.cpalien.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
@@ -57,6 +58,7 @@ public class SMGJoinTest {
   @Before
   public void setUp() {
     when(functionType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
+    when(functionType.getReturnType()).thenReturn(CNumericTypes.VOID);
     smg1 = new CLangSMG(MachineModel.LINUX64);
     smg2 = new CLangSMG(MachineModel.LINUX64);
   }
