@@ -27,6 +27,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -202,6 +203,79 @@ public class SMGExplicitCommunicator {
       } else {
         return super.visit(pUnaryExpression);
       }
+    }
+
+    @Override
+    public Long visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
+      Long result = super.visit(pE);
+      if (result != null) {
+        return result;
+      }
+
+      CExpression op1 = pE.getOperand1();
+      CExpression op2 = pE.getOperand2();
+
+      if (!(op1.getExpressionType().getCanonicalType() instanceof CPointerType)) {
+        return null;
+      }
+      if (!(op2.getExpressionType().getCanonicalType() instanceof CPointerType)) {
+        return null;
+      }
+
+      try {
+        SMGAddressValue op1Value = evaluateSMGAddressExpression(op1);
+        SMGAddressValue op2Value = evaluateSMGAddressExpression(op2);
+        if (op1Value.isUnknown() || op2Value.isUnknown()) {
+          return null;
+        }
+
+        if (op1Value.getOffset().isUnknown() || op2Value.getOffset().isUnknown()) {
+          return null;
+        }
+        long op1Offset = op1Value.getOffset().getAsLong();
+        long op2Offset = op2Value.getOffset().getAsLong();
+
+        switch (pE.getOperator()) {
+        case EQUALS:
+          return booleanAsLong(op1Value.getObject().equals(op2Value.getObject())
+                              && op1Offset == op2Offset);
+
+        case NOT_EQUALS:
+          return booleanAsLong(!(op1Value.getObject().equals(op2Value.getObject())
+                              && op1Offset == op2Offset));
+
+        case GREATER_EQUAL:
+        case GREATER_THAN:
+        case LESS_EQUAL:
+        case LESS_THAN:
+          if (!op1Value.getObject().equals(op2Value.getObject())) {
+            return null;
+          }
+          switch (pE.getOperator()) {
+          case GREATER_EQUAL:
+            return booleanAsLong(op1Offset >= op2Offset);
+          case GREATER_THAN:
+            return booleanAsLong(op1Offset > op2Offset);
+          case LESS_EQUAL:
+            return booleanAsLong(op1Offset <= op2Offset);
+          case LESS_THAN:
+            return booleanAsLong(op1Offset < op2Offset);
+          default:
+            throw new AssertionError();
+          }
+
+        default:
+          return null;
+        }
+      } catch (CPATransferException e) {
+        UnrecognizedCCodeException e2 = new UnrecognizedCCodeException("Could not symbolically evaluate expression", pE);
+        e2.initCause(e);
+        throw e2;
+      }
+    }
+
+    private long booleanAsLong(boolean b) {
+      return b ? 1L : 0L;
     }
 
     @Override
