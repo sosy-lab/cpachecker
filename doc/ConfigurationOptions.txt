@@ -538,6 +538,10 @@ cpa.cpalien.exportSMG.file = "smg-%s.dot"
 # interesting, every}
 cpa.cpalien.exportSMGwhen = "never"
 
+# with this option enabled, memory that is not freed before the end of main
+# is reported as memleak even if it is reachable from local variables in main
+cpa.cpalien.handleNonFreedMemoryInMainAsMemLeak = false
+
 # Sets how unknown functions are handled. One of: {strict, assume_safe}
 cpa.cpalien.handleUnknownFunctions = "strict"
 
