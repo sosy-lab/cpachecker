@@ -56,22 +56,21 @@ public class SMGJoinValuesTest {
     mapping2 = new SMGNodeMapping();
   }
 
-//  Test disabled until Join is not called correctly from isLessOrEqual (see SMGJoinValues)
-//  @Test
-//  public void joinValuesIdenticalTest() throws SMGInconsistentException {
-//    smg1.addValue(value1);
-//    smg2.addValue(value1);
-//
-//    SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, null, null, value1, value1);
-//    Assert.assertTrue(jv.isDefined());
-//    Assert.assertEquals(SMGJoinStatus.EQUAL, jv.getStatus());
-//    Assert.assertSame(smg1, jv.getInputSMG1());
-//    Assert.assertSame(smg2, jv.getInputSMG2());
-//    Assert.assertSame(smgDest, jv.getDestinationSMG());
-//    Assert.assertSame(null, jv.getMapping1());
-//    Assert.assertSame(null, jv.getMapping2());
-//    Assert.assertEquals(value1, jv.getValue());
-//  }
+  @Test
+  public void joinValuesIdenticalTest() throws SMGInconsistentException {
+    smg1.addValue(value1);
+    smg2.addValue(value1);
+
+    SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, null, null, value1, value1);
+    Assert.assertTrue(jv.isDefined());
+    Assert.assertEquals(SMGJoinStatus.EQUAL, jv.getStatus());
+    Assert.assertSame(smg1, jv.getInputSMG1());
+    Assert.assertSame(smg2, jv.getInputSMG2());
+    Assert.assertSame(smgDest, jv.getDestinationSMG());
+    Assert.assertSame(null, jv.getMapping1());
+    Assert.assertSame(null, jv.getMapping2());
+    Assert.assertEquals(value1, jv.getValue());
+  }
 
   @Test
   public void joinValuesAlreadyJoinedTest() throws SMGInconsistentException {
