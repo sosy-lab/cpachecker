@@ -524,6 +524,10 @@ cpa.conditions.path.length.limit = -1
 # maximum repetitions of any edge in a path (-1 for infinite)
 cpa.conditions.path.repetitions.limit = -1
 
+# with this option enabled, a check for unreachable memory occurs whenever a
+# function returns, and not only at the end of the main function
+cpa.cpalien.checkForMemLeaksAtEveryFrameDrop = true
+
 # If this Option is enabled, failure of mallocis simulated
 cpa.cpalien.enableMallocFail = true
 
