@@ -70,7 +70,7 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported1Test() throws SMGInconsistentException {
-    inconsistent_state.setRuntimeCheck(SMGRuntimeCheck.FULL);
+    SMGState.setRuntimeCheck(SMGRuntimeCheck.FULL);
     inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
@@ -81,7 +81,7 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported2Test() throws SMGInconsistentException {
-    inconsistent_state.setRuntimeCheck(SMGRuntimeCheck.FULL);
+    SMGState.setRuntimeCheck(SMGRuntimeCheck.FULL);
     inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
@@ -92,7 +92,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyInconsistentNotReportedTest() throws SMGInconsistentException {
-    inconsistent_state.setRuntimeCheck(SMGRuntimeCheck.NONE);
+    SMGState.setRuntimeCheck(SMGRuntimeCheck.NONE);
     inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
@@ -103,7 +103,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent1Test() throws SMGInconsistentException {
-    consistent_state.setRuntimeCheck(SMGRuntimeCheck.FULL);
+    SMGState.setRuntimeCheck(SMGRuntimeCheck.FULL);
     consistent_state.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
   /*
@@ -113,7 +113,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent2Test() throws SMGInconsistentException {
-    consistent_state.setRuntimeCheck(SMGRuntimeCheck.NONE);
+    SMGState.setRuntimeCheck(SMGRuntimeCheck.NONE);
     consistent_state.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
