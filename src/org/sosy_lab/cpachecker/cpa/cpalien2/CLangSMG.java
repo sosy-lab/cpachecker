@@ -195,7 +195,11 @@ public class CLangSMG extends SMG {
   public void addStackFrame(CFunctionDeclaration pFunctionDeclaration) {
     CLangStackFrame newFrame = new CLangStackFrame(pFunctionDeclaration, this.getMachineModel());
 
-    super.addObject(newFrame.getReturnObject());
+    // Return object is NULL for void functions
+    SMGObject returnObject = newFrame.getReturnObject();
+    if (returnObject != null) {
+      super.addObject(newFrame.getReturnObject());
+    }
     stack_objects.push(newFrame);
   }
 
