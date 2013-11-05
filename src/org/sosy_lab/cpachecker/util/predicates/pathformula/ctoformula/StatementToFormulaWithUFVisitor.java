@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import java.io.File;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -71,22 +71,25 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.DeferredAllocationPool;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.DeferredAllocationPool;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
@@ -97,13 +100,19 @@ import com.google.common.collect.Iterables;
 
 public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
 
+  private static final String CALLOC_FUNCTION = "calloc";
+
   public StatementToFormulaWithUFVisitor(final ExpressionToFormulaWithUFVisitor delegate,
-                                         final LvalueToPointerTargetPatternVisitor lvalueVisitor) {
+                                         final LvalueToPointerTargetPatternVisitor lvalueVisitor,
+                                         final CToFormulaWithUFConverter conv,
+                                         final ErrorConditions errorConditions,
+                                         final PointerTargetSetBuilder pts) {
     super(delegate);
     this.delegate = delegate;
     this.lvalueVisitor = lvalueVisitor;
-    this.conv = delegate.conv;
-    this.pts = delegate.pts;
+    this.conv = conv;
+    this.errorConditions = errorConditions;
+    this.pts = pts;
     this.isRelevantLhsVisitor = new IsRelevantLhsVisitor();
   }
 
@@ -162,7 +171,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           conv.logger.logf(Level.WARNING,
                            "Can't refine allocation type, but the sizes differ: %s : %d != %d",
                            type,
-                           typeSize +
+                           typeSize,
                            size);
           return type;
         }
@@ -197,6 +206,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                           edge,
                           ssa,
                           constraints,
+                          errorConditions,
                           pts);
     }
   }
@@ -217,9 +227,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final CIntegerLiteralExpression size = deferredAllocationPool.getSize() != null ?
                                              deferredAllocationPool.getSize() :
                                              new CIntegerLiteralExpression(null,
-                                                                           PointerTargetSet.CHAR,
-                                                                           BigInteger.valueOf(PointerTargetSet
-                                                                                            .DEFAULT_ALLOCATION_SIZE));
+                                                                           CNumericTypes.SIGNED_CHAR,
+                                                                           BigInteger.valueOf(conv.options.defaultAllocationSize()));
     conv.logger.logfOnce(Level.WARNING,
                          "The void * pointer %s to a deferred allocation escaped form tracking! " +
                            "Allocating array void[%d]. (in the following line(s):\n %s)",
@@ -230,12 +239,13 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       conv.makeAllocation(deferredAllocationPool.wasAllocationZeroing(),
                           new CArrayType(false,
                                          false,
-                                         PointerTargetSet.VOID,
+                                         CNumericTypes.VOID,
                                          size),
                           baseVariable,
                           edge,
                           ssa,
                           constraints,
+                          errorConditions,
                           pts);
     }
   }
@@ -250,7 +260,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     boolean passed = false;
     for (final Map.Entry<String, CType> usedPointer : rhsUsedDeferredAllocationPointers.entrySet()) {
       boolean handled = false;
-      if (!usedPointer.getValue().equals(PointerTargetSet.POINTER_TO_VOID)) {
+      if (!usedPointer.getValue().equals(CPointerType.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
         handled = true;
       } else if (rhs instanceof CExpression && ExpressionToFormulaWithUFVisitor.isSimpleTarget((CExpression) rhs)) {
@@ -259,7 +269,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                rhsUsedDeferredAllocationPointers.size() == 1 :
                "Wrong assumptions on deferred allocations tracking: rhs is not a single pointer";
         final CType lhsType = PointerTargetSet.simplifyType(lhs.getExpressionType());
-        if (lhsType.equals(PointerTargetSet.POINTER_TO_VOID) &&
+        if (lhsType.equals(CPointerType.POINTER_TO_VOID) &&
             ExpressionToFormulaWithUFVisitor.isSimpleTarget(lhs) &&
             lhsTarget instanceof String) {
           final Map.Entry<String, CType> lhsUsedPointer = !lhsUsedDeferredAllocationPointers.isEmpty() ?
@@ -285,7 +295,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       }
     }
     for (final Map.Entry<String, CType> usedPointer : lhsUsedDeferredAllocationPointers.entrySet()) {
-      if (!usedPointer.getValue().equals(PointerTargetSet.POINTER_TO_VOID)) {
+      if (!usedPointer.getValue().equals(CPointerType.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
       } else if (ExpressionToFormulaWithUFVisitor.isSimpleTarget(lhs)) {
         assert lhsTarget instanceof String &&
@@ -305,7 +315,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                  final Map<String, CType> usedDeferredAllocationPointers)
   throws UnrecognizedCCodeException {
     for (final Map.Entry<String, CType> usedPointer : usedDeferredAllocationPointers.entrySet()) {
-      if (!usedPointer.getValue().equals(PointerTargetSet.POINTER_TO_VOID)) {
+      if (!usedPointer.getValue().equals(CPointerType.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
       } else if (e instanceof CBinaryExpression) {
         final CBinaryExpression binaryExpression = (CBinaryExpression) e;
@@ -352,7 +362,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   throws UnrecognizedCCodeException {
     final CType lhsType = PointerTargetSet.simplifyType(lhs.getExpressionType());
     final CType rhsType = rhs != null ? PointerTargetSet.simplifyType(rhs.getExpressionType()) :
-                            PointerTargetSet.CHAR;
+                            CNumericTypes.SIGNED_CHAR;
 
     final ImmutableList<Pair<CCompositeType, String>> rhsUsedFields;
     final ImmutableMap<String, CType> rhsUsedDeferredAllocationPointers;
@@ -398,7 +408,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           if (!isAllocation) {
             if (ExpressionToFormulaWithUFVisitor.isRevealingType(lhsType)) {
               handleDeferredAllocationTypeRevelation(variable, lhsType);
-            } else if (lhsType.equals(PointerTargetSet.POINTER_TO_VOID) &&
+            } else if (lhsType.equals(CPointerType.POINTER_TO_VOID) &&
                        ExpressionToFormulaWithUFVisitor.isSimpleTarget(lhs) &&
                        lastTarget instanceof String) {
               if (pts.isDeferredAllocationPointer((String) lastTarget)) {
@@ -438,6 +448,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                           edge,
                           ssa,
                           constraints,
+                          errorConditions,
                           pts);
 
     addEssentialFields(lhsUsedFields, pts);
@@ -517,16 +528,15 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                  edge,
                                  ssa,
                                  constraints,
+                                 errorConditions,
                                  pts);
     } else {
       final PointerTargetPattern pattern = new PointerTargetPattern(lhs, 0, 0);
       final CType baseType = PointerTargetSet.getBaseType(type);
       final BooleanFormula result = conv.makeAssignment(type,
                                                         type,
-                                                        conv.makeConstant(Variable.create(
-                                                                            PointerTargetSet.getBaseName(lhs),
-                                                                            baseType),
-                                                                          ssa,
+                                                        conv.makeConstant(PointerTargetSet.getBaseName(lhs),
+                                                                          baseType,
                                                                           pts),
                                                         initializerList,
                                                         pattern,
@@ -536,6 +546,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                         edge,
                                                         ssa,
                                                         constraints,
+                                                        errorConditions,
                                                         pts);
       conv.addPreFilledBase(lhs, type, false, true, constraints, pts);
       return result;
@@ -562,8 +573,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   }
 
   private CInitializerList stringLiteralToInitializerList(final CStringLiteralExpression e,
-                                                          final CExpression lengthExpression) {
-    Integer length = lengthExpression.accept(pts.getEvaluatingVisitor());
+                                                          final CArrayType type) {
+    Integer length = PointerTargetSet.getArrayLength(type);
     final String s = e.getContentString();
     if (length == null) {
       length = s.length() + 1;
@@ -578,13 +589,13 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       initializers.add(new CInitializerExpression(
                              e.getFileLocation(),
                              new CCharLiteralExpression(e.getFileLocation(),
-                                                        PointerTargetSet.CHAR,
+                                                        CNumericTypes.SIGNED_CHAR,
                                                         s.charAt(i))));
     }
     if (zeroTerminated) {
       initializers.add(new CInitializerExpression(
                              e.getFileLocation(),
-                             new CCharLiteralExpression(e.getFileLocation(), PointerTargetSet.CHAR, '\0')));
+                             new CCharLiteralExpression(e.getFileLocation(), CNumericTypes.SIGNED_CHAR, '\0')));
     }
     return new CInitializerList(e.getFileLocation(), initializers);
   }
@@ -592,7 +603,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   public Object visitInitializer(CType type, CInitializer topInitializer, final boolean isAutomatic)
   throws UnrecognizedCCodeException {
     type = PointerTargetSet.simplifyType(type);
-    final Formula zero = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(PointerTargetSet.CHAR, pts), 0);
+    final Formula zero = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR, pts), 0);
     if (type instanceof CArrayType) {
       if (topInitializer instanceof CInitializerExpression &&
           ((CArrayType) type).getType() instanceof CSimpleType &&
@@ -600,16 +611,13 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           ((CInitializerExpression) topInitializer).getExpression() instanceof CStringLiteralExpression) {
         topInitializer = stringLiteralToInitializerList(
           (CStringLiteralExpression) ((CInitializerExpression) topInitializer).getExpression(),
-          ((CArrayType) type).getLength());
+          (CArrayType) type);
       }
       assert topInitializer instanceof CInitializerList : "Wrong array initializer";
       final CInitializerList initializerList = (CInitializerList) topInitializer;
       final CType elementType = PointerTargetSet.simplifyType(((CArrayType) type).getType());
-      final CExpression lengthExpression = ((CArrayType) type).getLength();
-      final Integer length;
-      if (lengthExpression != null) {
-        length = lengthExpression.accept(pts.getEvaluatingVisitor());
-      } else {
+      Integer length = PointerTargetSet.getArrayLength((CArrayType)type);
+      if (length == null) {
         length = initializerList.getInitializers().size();
       }
       if (length == null) {
@@ -643,10 +651,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           }
           final Object rhs = visitInitializer(elementType, designatedInitializer.getRightHandSide(), isAutomatic);
           if (designator instanceof CArrayRangeDesignator) {
-            final Integer floor = ((CArrayRangeDesignator) designator).getFloorExpression()
-                                                                      .accept(pts.getEvaluatingVisitor());
-            final Integer ceiling = ((CArrayRangeDesignator) designator).getFloorExpression()
-                                                                        .accept(pts.getEvaluatingVisitor());
+            final Integer floor = tryEvaluateExpression(((CArrayRangeDesignator) designator).getFloorExpression());
+            final Integer ceiling = tryEvaluateExpression(((CArrayRangeDesignator) designator).getFloorExpression());
             if (floor != null && ceiling != null) {
               for (int i = floor; i <= ceiling; i++) {
                 result.set(i, rhs);
@@ -656,8 +662,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
               throw new UnrecognizedCCodeException("Can't evaluate array range designator bounds", edge, designator);
             }
           } else if (designator instanceof CArrayDesignator) {
-            final Integer subscript = ((CArrayDesignator) designator).getSubscriptExpression()
-                                                                      .accept(pts.getEvaluatingVisitor());
+            final Integer subscript = tryEvaluateExpression(((CArrayDesignator) designator).getSubscriptExpression());
             if (subscript != null) {
               index = subscript;
               result.set(index, rhs);
@@ -788,6 +793,13 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     }
   }
 
+  private static Integer tryEvaluateExpression(CExpression e) {
+    if (e instanceof CIntegerLiteralExpression) {
+      return ((CIntegerLiteralExpression)e).getValue().intValue();
+    }
+    return null;
+  }
+
   private static boolean isSizeof(final CExpression e) {
     return e instanceof CUnaryExpression && ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF ||
            e instanceof CTypeIdExpression && ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF;
@@ -826,105 +838,27 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         final BooleanFormula condition = visitAssume(parameters.get(0), true);
         constraints.addConstraint(condition);
         return conv.makeFreshVariable(functionName, returnType, ssa, pts);
+
       } else if ((conv.options.isSuccessfulAllocFunctionName(functionName) ||
-                  conv.options.isSuccessfulZallocFunctionName(functionName)) &&
-                  parameters.size() >= 1) {
-        final CExpression parameter = parameters.get(0);
-        Integer size = null;
-        final CType newType;
-        if (isSizeof(parameter)) {
-          newType = getSizeofType(parameter);
-        } else if (isSizeofMultilple(parameter)) {
-          final CBinaryExpression product = (CBinaryExpression) parameter;
-          final CType operand1Type = getSizeofType(product.getOperand1());
-          final CType operand2Type = getSizeofType(product.getOperand2());
-          if (operand1Type != null) {
-            newType = new CArrayType(false, false, operand1Type, product.getOperand2());
-          } else if (operand2Type != null) {
-            newType = new CArrayType(false, false, operand2Type, product.getOperand1());
-          } else {
-            throw new UnrecognizedCCodeException("Can't determine type for internal memory allocation", edge, e);
-          }
-        } else {
-          size = parameter.accept(pts.getEvaluatingVisitor());
-          if (!conv.options.revealAllocationTypeFromLHS() && !conv.options.deferUntypedAllocations()) {
-            final CExpression length;
-            if (size == null) {
-              size = PointerTargetSet.DEFAULT_ALLOCATION_SIZE;
-              length = new CIntegerLiteralExpression(parameter.getFileLocation(),
-                                                     parameter.getExpressionType(),
-                                                     BigInteger.valueOf(size));
-            } else {
-              length = parameter;
-            }
-            newType = new CArrayType(false, false, PointerTargetSet.VOID, length);
-          } else {
-            newType = null;
-          }
-        }
-        if (newType != null) {
-          final CType newBaseType = PointerTargetSet.getBaseType(newType);
-          final String newBase = conv.makeAllocVariableName(functionName, newType, newBaseType);
-          return conv.makeAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
-                                     newType,
-                                     newBase,
-                                     edge,
-                                     ssa,
-                                     constraints,
-                                     pts);
-        } else {
-          final String newBase = conv.makeAllocVariableName(functionName,
-                                                                PointerTargetSet.VOID,
-                                                                PointerTargetSet.POINTER_TO_VOID);
-          pts.addTemporaryDeferredAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
-                                             size != null ? new CIntegerLiteralExpression(parameter.getFileLocation(),
-                                                                                          parameter.getExpressionType(),
-                                                                                          BigInteger.valueOf(size)) :
-                                                            null,
-                                             newBase);
-          return conv.makeConstant(PointerTargetSet.getBaseName(newBase), PointerTargetSet.POINTER_TO_VOID, ssa, pts);
-        }
+                  conv.options.isSuccessfulZallocFunctionName(functionName))) {
+        return handleSucessfulMemoryAllocation(functionName, e);
+
       } else if ((conv.options.isMemoryAllocationFunction(functionName) ||
-                  conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) &&
-                  parameters.size() >= 1) {
-        final String delegateFunctionName = !conv.options.isMemoryAllocationFunctionWithZeroing(functionName) ?
-                                              conv.options.getSuccessfulAllocFunctionName() :
-                                              conv.options.getSuccessfulZallocFunctionName();
-        final CExpression delegateFuncitonNameExpression = new CIdExpression(functionNameExpression.getFileLocation(),
-                                                                             functionNameExpression.getExpressionType(),
-                                                                             delegateFunctionName,
-                                                                             ((CIdExpression) functionNameExpression)
-                                                                               .getDeclaration());
-        final CFunctionCallExpression delegateCall =
-          new CFunctionCallExpression(e.getFileLocation(),
-                                      PointerTargetSet.POINTER_TO_VOID,
-                                      delegateFuncitonNameExpression,
-                                      parameters,
-                                      e.getDeclaration());
-        if (!conv.options.makeMemoryAllocationsAlwaysSucceed()) {
-          final Formula nondet = conv.makeFreshVariable(functionName,
-                                                        PointerTargetSet.POINTER_TO_VOID,
-                                                        ssa,
-                                                        pts);
-          final Formula zero = conv.fmgr.makeNumber(pts.getPointerType(), 0);
-          return conv.bfmgr.ifThenElse(conv.bfmgr.not(conv.fmgr.makeEqual(nondet, zero)), visit(delegateCall), zero);
-        } else {
-          return visit(delegateCall);
-        }
+                  conv.options.isMemoryAllocationFunctionWithZeroing(functionName))) {
+        return handleMemoryAllocation(e, (CIdExpression)functionNameExpression, functionName);
+
+      } else if (conv.options.isMemoryFreeFunction(functionName)) {
+        return handleMemoryFree(e, parameters);
+
       } else if (conv.options.isNondetFunction(functionName)) {
         return null; // Nondet
+
       } else if (conv.options.isExternModelFunction(functionName)) {
-        assert parameters.size() > 0 : "No external model given!";
-        // the parameter comes in C syntax (with ")
-        final String fileName = parameters.get(0).toASTString().replaceAll("\"", "");
-        final File modelFile = new File(fileName);
-        final BooleanFormula externalModel = loadExternalFormula(modelFile);
-        final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType, pts);
-        return conv.bfmgr.ifThenElse(externalModel,
-                                     conv.fmgr.makeNumber(returnFormulaType, 1),
-                                     conv.fmgr.makeNumber(returnFormulaType, 0));
+        return handleExternModelFunction(e, parameters);
+
       } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
         throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
+
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
         if (parameters.isEmpty()) {
           // function of arity 0
@@ -959,7 +893,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     // Now let's handle "normal" functions assumed to be pure
     if (parameters.isEmpty()) {
       // This is a function of arity 0 and we assume its constant.
-      return conv.makeConstant(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName, returnType, ssa, pts);
+      return conv.makeConstant(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName, returnType, pts);
     } else {
       final CFunctionDeclaration functionDeclaration = e.getDeclaration();
       if (functionDeclaration == null) {
@@ -1008,6 +942,178 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     }
   }
 
+  /**
+   * Handle memory allocation functions that may fail (i.e., return null)
+   * and that may or may not zero the memory.
+   */
+  private Formula handleMemoryAllocation(final CFunctionCallExpression e,
+      final CIdExpression functionNameExpression, final String functionName) throws UnrecognizedCCodeException {
+    final boolean isZeroing = conv.options.isMemoryAllocationFunctionWithZeroing(functionName);
+    List<CExpression> parameters = e.getParameterExpressions();
+
+    if (functionName.equals(CALLOC_FUNCTION) && parameters.size() == 2) {
+      CExpression param0 = parameters.get(0);
+      CExpression param1 = parameters.get(1);
+
+      // Build expression for param0 * param1 as new parameter.
+      CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(conv.machineModel, conv.logger);
+      CBinaryExpression multiplication = builder.buildBinaryExpression(
+          param0, param1, BinaryOperator.MULTIPLY);
+
+      // Try to evaluate the multiplication if possible.
+      Integer value0 = tryEvaluateExpression(param0);
+      Integer value1 = tryEvaluateExpression(param1);
+      if (value0 != null && value1 != null) {
+        long result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
+            value0.longValue(), value1.longValue(), multiplication,
+            conv.machineModel, conv.logger, edge);
+
+        CExpression newParam = new CIntegerLiteralExpression(param0.getFileLocation(),
+                                                 multiplication.getExpressionType(),
+                                                 BigInteger.valueOf(result));
+        parameters = Collections.singletonList(newParam);
+      } else {
+        parameters = Collections.<CExpression>singletonList(multiplication);
+      }
+
+    } else if (parameters.size() != 1) {
+      if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
+        parameters = Collections.singletonList(parameters.get(0));
+      } else {
+        throw new UnrecognizedCCodeException(
+            String.format("Memory allocation function %s() called with %d parameters instead of 1",
+                          functionName, parameters.size()), edge, e);
+      }
+    }
+
+    final String delegateFunctionName = !isZeroing ?
+                                          conv.options.getSuccessfulAllocFunctionName() :
+                                          conv.options.getSuccessfulZallocFunctionName();
+    final CExpression delegateFuncitonNameExpression = new CIdExpression(functionNameExpression.getFileLocation(),
+                                                                         functionNameExpression.getExpressionType(),
+                                                                         delegateFunctionName,
+                                                                         functionNameExpression.getDeclaration());
+    final CFunctionCallExpression delegateCall =
+      new CFunctionCallExpression(e.getFileLocation(),
+                                  CPointerType.POINTER_TO_VOID,
+                                  delegateFuncitonNameExpression,
+                                  parameters,
+                                  e.getDeclaration());
+    if (!conv.options.makeMemoryAllocationsAlwaysSucceed()) {
+      final Formula nondet = conv.makeFreshVariable(functionName,
+                                                    CPointerType.POINTER_TO_VOID,
+                                                    ssa,
+                                                    pts);
+      return conv.bfmgr.ifThenElse(conv.bfmgr.not(conv.fmgr.makeEqual(nondet, conv.nullPointer)),
+                                    visit(delegateCall),
+                                    conv.nullPointer);
+    } else {
+      return visit(delegateCall);
+    }
+  }
+
+  /**
+   * Handle memory allocation functions that cannot fail
+   * (i.e., do not return NULL) and do not zero the memory.
+   */
+  private Formula handleSucessfulMemoryAllocation(final String functionName,
+      final CFunctionCallExpression e) throws UnrecognizedCCodeException {
+    List<CExpression> parameters = e.getParameterExpressions();
+    if (parameters.size() != 1) {
+      if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
+        parameters = Collections.singletonList(parameters.get(0));
+      } else {
+        throw new UnrecognizedCCodeException(
+            String.format("Memory allocation function %s() called with %d parameters instead of 1",
+                          functionName, parameters.size()), edge, e);
+      }
+    }
+
+    final CExpression parameter = parameters.get(0);
+    Integer size = null;
+    final CType newType;
+    if (isSizeof(parameter)) {
+      newType = getSizeofType(parameter);
+    } else if (isSizeofMultilple(parameter)) {
+      final CBinaryExpression product = (CBinaryExpression) parameter;
+      final CType operand1Type = getSizeofType(product.getOperand1());
+      final CType operand2Type = getSizeofType(product.getOperand2());
+      if (operand1Type != null) {
+        newType = new CArrayType(false, false, operand1Type, product.getOperand2());
+      } else if (operand2Type != null) {
+        newType = new CArrayType(false, false, operand2Type, product.getOperand1());
+      } else {
+        throw new UnrecognizedCCodeException("Can't determine type for internal memory allocation", edge, e);
+      }
+    } else {
+      size = tryEvaluateExpression(parameter);
+      if (!conv.options.revealAllocationTypeFromLHS() && !conv.options.deferUntypedAllocations()) {
+        final CExpression length;
+        if (size == null) {
+          size = conv.options.defaultAllocationSize();
+          length = new CIntegerLiteralExpression(parameter.getFileLocation(),
+                                                 parameter.getExpressionType(),
+                                                 BigInteger.valueOf(size));
+        } else {
+          length = parameter;
+        }
+        newType = new CArrayType(false, false, CNumericTypes.VOID, length);
+      } else {
+        newType = null;
+      }
+    }
+    Formula address;
+    if (newType != null) {
+      final CType newBaseType = PointerTargetSet.getBaseType(newType);
+      final String newBase = conv.makeAllocVariableName(functionName, newType, newBaseType);
+      address =  conv.makeAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
+                                 newType,
+                                 newBase,
+                                 edge,
+                                 ssa,
+                                 constraints,
+                                 errorConditions,
+                                 pts);
+    } else {
+      final String newBase = conv.makeAllocVariableName(functionName,
+                                                            CNumericTypes.VOID,
+                                                            CPointerType.POINTER_TO_VOID);
+      pts.addTemporaryDeferredAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
+                                         size != null ? new CIntegerLiteralExpression(parameter.getFileLocation(),
+                                                                                      parameter.getExpressionType(),
+                                                                                      BigInteger.valueOf(size)) :
+                                                        null,
+                                         newBase);
+      address = conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID, pts);
+    }
+
+    constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(address), address));
+    return address;
+  }
+
+  /**
+   * Handle calls to free()
+   */
+  private Formula handleMemoryFree(final CFunctionCallExpression e,
+      final List<CExpression> parameters) throws UnrecognizedCCodeException {
+    if (parameters.size() != 1) {
+      throw new UnrecognizedCCodeException(
+          String.format("free() called with %d parameters", parameters.size()), edge, e);
+    }
+
+    final Formula operand = parameters.get(0).accept(delegate);
+    BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
+
+    for (String base : pts.getAllBases()) {
+      Formula baseF = conv.makeConstant(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID, pts);
+      validFree = conv.bfmgr.or(validFree,
+          conv.fmgr.makeEqual(operand, baseF)
+          );
+    }
+    errorConditions.addInvalidFreeCondition(conv.bfmgr.not(validFree));
+    return null; // free does not return anything, so nondet is ok
+  }
+
   public String getFuncitonName() {
     return function;
   }
@@ -1033,10 +1139,11 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   }
 
   @SuppressWarnings("hiding")
-  protected final CToFormulaWithUFConverter conv;
-  protected final PointerTargetSetBuilder pts;
+  private final CToFormulaWithUFConverter conv;
+  private final ErrorConditions errorConditions;
+  private final PointerTargetSetBuilder pts;
   @SuppressWarnings("hiding")
-  protected final ExpressionToFormulaWithUFVisitor delegate;
-  protected final LvalueToPointerTargetPatternVisitor lvalueVisitor;
-  protected final IsRelevantLhsVisitor isRelevantLhsVisitor;
+  private final ExpressionToFormulaWithUFVisitor delegate;
+  private final LvalueToPointerTargetPatternVisitor lvalueVisitor;
+  private final IsRelevantLhsVisitor isRelevantLhsVisitor;
 }

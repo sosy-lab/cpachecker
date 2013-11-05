@@ -42,13 +42,14 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import com.google.common.collect.ImmutableMap;
 
 public class AutomatonTest {
+  private static final String CPAS_POINTER_UNINITVARS = "cpa.location.LocationCPA, cpa.pointer.PointerCPA, cpa.uninitvars.UninitializedVariablesCPA";
   private static final String OUTPUT_FILE = "output/AutomatonExport.dot";
 
   // Specification Tests
   @Test
   public void CyclicInclusionTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.pointer.PointerCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
+        "CompositeCPA.cpas",              CPAS_POINTER_UNINITVARS,
         "specification",     "test/config/automata/tmpSpecification.spc",
         "log.consoleLevel",               "INFO",
         "analysis.stopAfterError",        "FALSE"
@@ -66,7 +67,7 @@ public class AutomatonTest {
   @Test
   public void IncludeSpecificationTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.pointer.PointerCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
+        "CompositeCPA.cpas",              CPAS_POINTER_UNINITVARS,
         "specification",     "test/config/automata/defaultSpecificationForTesting.spc",
         "log.consoleLevel",               "INFO",
         "analysis.stopAfterError",        "FALSE"
@@ -181,7 +182,7 @@ public class AutomatonTest {
   @Test
   public void uninitVarsTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA, cpa.uninitvars.UninitializedVariablesCPA",
         "cpa.automaton.inputFile",     "test/config/automata/UninitializedVariablesTestAutomaton.txt",
         "log.consoleLevel",               "FINER",
         "cpa.automaton.dotExportFile", OUTPUT_FILE,

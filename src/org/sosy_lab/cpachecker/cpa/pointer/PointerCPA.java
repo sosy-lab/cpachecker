@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -65,7 +66,7 @@ public class PointerCPA implements ConfigurableProgramAnalysis {
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
 
-  private PointerCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private PointerCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     config.inject(this);
     PointerDomain domain = new PointerDomain();
 
@@ -80,7 +81,7 @@ public class PointerCPA implements ConfigurableProgramAnalysis {
     abstractDomain = domain;
     mergeOperator = mergeOp;
     stopOperator = new StopSepOperator(domain);
-    transferRelation = new PointerTransferRelation(printWarnings, logger);
+    transferRelation = new PointerTransferRelation(printWarnings, config, logger, cfa.getMachineModel());
   }
 
   @Override

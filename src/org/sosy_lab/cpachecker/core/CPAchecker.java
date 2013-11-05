@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.ViolatedProperty;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -313,7 +315,11 @@ public class CPAchecker {
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean isComplete) {
-    if (from(reached).anyMatch(IS_TARGET_STATE)) {
+    for (AbstractState s : from(reached).filter(IS_TARGET_STATE)) {
+      ViolatedProperty property = ((Targetable)s).getViolatedProperty();
+      if (property != ViolatedProperty.OTHER) {
+        logger.log(Level.WARNING, "Found violation of property", property);
+      }
       return Result.UNSAFE;
     }
 

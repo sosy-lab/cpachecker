@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -111,6 +111,12 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   @Override
   public boolean isTarget() {
     return internalState.isTarget();
+  }
+
+  @Override
+  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+    checkState(isTarget());
+    return ViolatedProperty.OTHER;
   }
 
   @Override

@@ -21,32 +21,19 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.types;
+package org.sosy_lab.cpachecker.cpa.explicit2;
 
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 
-public class TypesCPA extends AbstractCPA {
-
-  public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(TypesCPA.class);
-  }
-
-  private TypesCPA() {
-    super("join", "sep", new TypesTransferRelation());
+public class ExplicitDomain implements AbstractDomain {
+  @Override
+  public boolean isLessOrEqual(AbstractState currentElement, AbstractState reachedState) {
+    return ((ExplicitState)currentElement).isLessOrEqual((ExplicitState)reachedState);
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
-    if (pNode instanceof CFunctionEntryNode) {
-      //remember the entry function definition node for later use
-      ((TypesTransferRelation)getTransferRelation()).setFunctionEntryNode((CFunctionEntryNode)pNode);
-    }
-    return new TypesState();
+  public AbstractState join(AbstractState currentElement, AbstractState reachedState) {
+    return ((ExplicitState)currentElement).join((ExplicitState)reachedState);
   }
 }

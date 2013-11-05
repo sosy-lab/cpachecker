@@ -33,4 +33,29 @@ public interface Targetable {
 
   public boolean isTarget();
 
+  /**
+   * Get an indication which property was violated.
+   * Should return {@link ViolatedProperty#OTHER} if unknown.
+   * @throws IllegalStateException if {@link #isTarget()} returns false
+   */
+  public ViolatedProperty getViolatedProperty() throws IllegalStateException;
+
+  public enum ViolatedProperty {
+    OTHER("other"),
+    VALID_DEREF("valid-deref"),
+    VALID_FREE("valid-free"),
+    VALID_MEMTRACK("valid-memtrack"),
+    ;
+
+    private final String propertyString;
+
+    private ViolatedProperty(String pPropertyString) {
+      propertyString = pPropertyString;
+    }
+
+    @Override
+    public String toString() {
+      return propertyString;
+    }
+  }
 }

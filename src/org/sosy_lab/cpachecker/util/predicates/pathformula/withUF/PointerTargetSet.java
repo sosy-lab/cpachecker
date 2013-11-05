@@ -23,17 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
+import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.VOID;
+
 import java.io.Serializable;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.SortedSet;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -47,13 +48,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
@@ -131,157 +131,45 @@ public class PointerTargetSet implements Serializable {
       return compositeType.hashCode() * 17 + fieldName.hashCode();
     }
 
-    private String compositeType;
-    private String fieldName;
+    private final String compositeType;
+    private final String fieldName;
   }
 
   /**
-   * This class is used to keep information about already performed memory allocations of unknown type, e.g.
-   *
-   *   <pre>
-   *   void *tmp_0 = malloc(size); // tmp_0 is a pointer variable, allocation type is unknown
-   *   ...
-   *   void *tmp_2 = tmp_0; // Now tmp_2 is also a pointer variable corresponding to the same allocation
-   *   struct s* ps = (struct s*)tmp_2; // Now the actual type of the allocation is revealed
-   *   </pre>
-   *
-   * <p>
-   * When the type of the allocation is revealed (by the context in which one of the pointer variables is used),
-   * the actual allocation occurs (pointer targets are added to the set).
-   * </p>
-   * <p>
-   * Several base variables can fall within the same pool in case of merging, e.g.:
-   *
-   *   <pre>
-   *   void *tmp_0;
-   *   if (condition) {
-   *     tmp_0 = malloc(size1); // Corresponds to a fake base variable __VERIFIER_successfull_alloc0
-   *   } else {
-   *     tmp_0 = malloc(size2); // Corresponds to another fake base variable __VERIFIER_successfull_alloc1
-   *   }
-   *   ... (struct s*) tmp_0 // Both base variables are allocated here as (struct s)
-   *                         // (but their addresses can be different!)
-   *   </pre>
+   * Return the length of an array if statically given, or null.
    */
-   public static class DeferredAllocationPool {
+  public static Integer getArrayLength(CArrayType t) {
 
-    private DeferredAllocationPool(final PersistentList<String> pointerVariables,
-                                   final boolean isZeroing,
-                                   final CIntegerLiteralExpression size,
-                                   final PersistentList<String> baseVariables) {
-      this.pointerVariables = pointerVariables;
-      this.isZeroing = isZeroing;
-      this.size = size;
-      this.baseVariables = baseVariables;
+    final CExpression arrayLength = t.getLength();
+    if (arrayLength instanceof CIntegerLiteralExpression) {
+      return ((CIntegerLiteralExpression)arrayLength).getValue().intValue();
     }
 
-    DeferredAllocationPool(final String pointerVariable,
-                           final boolean isZeroing,
-                           final CIntegerLiteralExpression size,
-                           final String baseVariable) {
-      this(PersistentList.of(pointerVariable), isZeroing, size, PersistentList.of(baseVariable));
-    }
-
-    private DeferredAllocationPool(final DeferredAllocationPool predecessor,
-                                   final PersistentList<String> pointerVariables) {
-      this(pointerVariables,
-           predecessor.isZeroing,
-           predecessor.size,
-           predecessor.baseVariables);
-    }
-
-    public PersistentList<String> getPointerVariables() {
-      return pointerVariables;
-    }
-
-    public PersistentList<String> getBaseVariables() {
-      return baseVariables;
-    }
-
-    public boolean wasAllocationZeroing() {
-      return isZeroing;
-    }
-
-    public CIntegerLiteralExpression getSize() {
-      return size;
-    }
-
-    DeferredAllocationPool addPointerVariable(final String pointerVariable) {
-      return new DeferredAllocationPool(this, this.pointerVariables.with(pointerVariable));
-    }
-
-    DeferredAllocationPool removePointerVariable(final String pointerVariable) {
-      return new DeferredAllocationPool(this, pointerVariables.without(pointerVariable));
-    }
-
-    DeferredAllocationPool mergeWith(final DeferredAllocationPool other) {
-      return new DeferredAllocationPool(mergePersistentLists(this.pointerVariables, other.pointerVariables),
-                                        this.isZeroing && other.isZeroing,
-                                        this.size != null && other.size != null ?
-                                          this.size.getValue().equals(other.size.getValue()) ? this.size : null :
-                                          this.size != null ? this.size : other.size,
-                                        mergePersistentLists(this.baseVariables, other.baseVariables));
-    }
-
-    @Override
-    public boolean equals(final Object other) {
-      if (this == other) {
-        return true;
-      }
-      if (!(other instanceof DeferredAllocationPool)) {
-        return false;
-      }
-      final DeferredAllocationPool otherPool = (DeferredAllocationPool) other;
-      if (pointerVariables.containsAll(otherPool.pointerVariables) &&
-          otherPool.pointerVariables.containsAll(pointerVariables)) {
-        return true;
-      } else {
-        return false;
-      }
-    }
-
-    @Override
-    public int hashCode() {
-      int result = 0;
-      for (final String s : pointerVariables) {
-        result += s.hashCode();
-      }
-      return result;
-    }
-
-    private final PersistentList<String> pointerVariables;
-    private final boolean isZeroing;
-    private final CIntegerLiteralExpression size;
-    private final PersistentList<String> baseVariables;
+    return null;
   }
 
   public static class CSizeofVisitor extends BaseSizeofVisitor
                                      implements CTypeVisitor<Integer, IllegalArgumentException> {
 
-    public CSizeofVisitor(final EvaluatingCExpressionVisitor evaluatingVisitor) {
-      super(evaluatingVisitor.getMachineModel());
-      this.evaluatingVisitor = evaluatingVisitor;
+    public CSizeofVisitor(final MachineModel machineModel,
+                           final FormulaEncodingWithUFOptions options) {
+      super(machineModel);
+      this.options = options;
     }
 
     @Override
     public Integer visit(final CArrayType t) throws IllegalArgumentException {
-
-      final CExpression arrayLength = t.getLength();
-      Integer length = null;
-
-      if (arrayLength != null) {
-        length = arrayLength.accept(evaluatingVisitor);
-      }
+      Integer length = getArrayLength(t);
 
       if (length == null) {
-        length = DEFAULT_ARRAY_LENGTH;
+        length = options.defaultArrayLength();
       }
 
       final int sizeOfType = t.getType().accept(this);
       return length * sizeOfType;
     }
 
-    private final EvaluatingCExpressionVisitor evaluatingVisitor;
+    private final FormulaEncodingWithUFOptions options;
   }
 
   /**
@@ -407,90 +295,19 @@ public class PointerTargetSet implements Serializable {
     return multiset.count(memberName);
   }
 
-  /**
-   * <p>
-   * Returns an {@link Iterable} of all possible {@link PointerTarget}s of the given type
-   * that either match the given {@link PointerTargetPattern} ({@code match == true}) or
-   * don't match it ({@code match == false}).
-   * </p>
-   * <p>
-   * The provided {@link Iterable} is intended only for iterating over the obtained (non-)matching targets.
-   * </p>
-   * @param type
-   * @param pattern
-   * @param match
-   * @param targets
-   * @return
-   */
-  private static Iterable<PointerTarget> getTargets(
-                                            final CType type,
-                                            final PointerTargetPattern pattern,
-                                            final boolean match,
-                                            final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
-    final List<PointerTarget> targetsForType = targets.get(typeToString(type));
-    final Iterator<PointerTarget> resultIterator = new Iterator<PointerTarget>() {
-
-      @Override
-      public boolean hasNext() {
-        if (last != null) {
-          return true;
-        }
-        while (iterator.hasNext()) {
-          last = iterator.next();
-          if (pattern.matches(last) == match) {
-            return true;
-          }
-        }
-        return false;
-      }
-
-      @Override
-      public PointerTarget next() {
-        PointerTarget result = last;
-        if (result != null) {
-          last = null;
-          return result;
-        }
-        while (iterator.hasNext()) {
-          result = iterator.next();
-          if (pattern.matches(result) == match) {
-            return result;
-          }
-        }
-        return null;
-      }
-
-      @Override
-      public void remove() {
-        throw new UnsupportedOperationException();
-      }
-
-      private Iterator<PointerTarget> iterator = targetsForType != null ? targetsForType.iterator() :
-                                                                          Collections.<PointerTarget>emptyList()
-                                                                                     .iterator();
-      private PointerTarget last = null;
-     };
-     return new Iterable<PointerTarget>() {
-      @Override
-      public Iterator<PointerTarget> iterator() {
-        return resultIterator;
-      }
-    };
-  }
-
   public Iterable<PointerTarget> getMatchingTargets(final CType type,
                                                     final PointerTargetPattern pattern) {
-    return getTargets(type, pattern, true, targets);
+    return from(getAllTargets(type)).filter(pattern);
   }
 
   public Iterable<PointerTarget> getSpuriousTargets(final CType type,
                                                     final PointerTargetPattern pattern) {
-    return getTargets(type, pattern, false, targets);
+    return from(getAllTargets(type)).filter(not(pattern));
   }
 
-  public Iterable<PointerTarget> getAllTargets(final CType type) {
-    final PersistentList<PointerTarget> result = targets.get(typeToString(type));
-    return result != null ? Collections.unmodifiableCollection(result) : Collections.<PointerTarget>emptyList();
+  public PersistentList<PointerTarget> getAllTargets(final CType type) {
+    return firstNonNull(targets.get(typeToString(type)),
+                        PersistentList.<PointerTarget>empty());
   }
 
   /**
@@ -504,8 +321,9 @@ public class PointerTargetSet implements Serializable {
   public final static class PointerTargetSetBuilder extends PointerTargetSet {
 
     private PointerTargetSetBuilder(final PointerTargetSet pointerTargetSet) {
-      super(pointerTargetSet.evaluatingVisitor,
+      super(pointerTargetSet.machineModel,
             pointerTargetSet.sizeofVisitor,
+            pointerTargetSet.options,
             pointerTargetSet.bases,
             pointerTargetSet.lastBase,
             pointerTargetSet.fields,
@@ -576,10 +394,8 @@ public class PointerTargetSet implements Serializable {
                            final int properOffset,
                            final int containerOffset) {
       final String type = typeToString(targetType);
-      PersistentList<PointerTarget> targetsForType = targets.get(type);
-      if (targetsForType == null) {
-        targetsForType = PersistentList.<PointerTarget>empty();
-      }
+      PersistentList<PointerTarget> targetsForType = firstNonNull(targets.get(type),
+                                                                  PersistentList.<PointerTarget>empty());
       targets = targets.putAndCopy(type, targetsForType.with(new PointerTarget(base,
                                                                                containerType,
                                                                                properOffset,
@@ -609,9 +425,11 @@ public class PointerTargetSet implements Serializable {
       assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
-        Integer length = arrayType.getLength() != null ? arrayType.getLength().accept(evaluatingVisitor) : null;
-        if (length == null || length > DEFAULT_ARRAY_LENGTH) {
-          length = DEFAULT_ARRAY_LENGTH;
+        Integer length = getArrayLength(arrayType);
+        if (length == null) {
+          length = options.defaultArrayLength();
+        } else if (length > options.maxArrayLength()) {
+          length = options.maxArrayLength();
         }
         int offset = 0;
         for (int i = 0; i < length; ++i) {
@@ -711,9 +529,11 @@ public class PointerTargetSet implements Serializable {
       assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type:" + cType;
       if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
-        Integer length = arrayType.getLength() != null ? arrayType.getLength().accept(evaluatingVisitor) : null;
-        if (length == null || length > DEFAULT_ARRAY_LENGTH) {
-          length = DEFAULT_ARRAY_LENGTH;
+        Integer length = getArrayLength(arrayType);
+        if (length == null) {
+          length = options.defaultArrayLength();
+        } else if (length > options.maxArrayLength()) {
+          length = options.maxArrayLength();
         }
         int offset = 0;
         for (int i = 0; i < length; ++i) {
@@ -768,7 +588,7 @@ public class PointerTargetSet implements Serializable {
       fields = fields.removeAndCopy(field);
     }
 
-    void setFields(PersistentSortedMap<CompositeField, Boolean> fields) {
+    private void setFields(PersistentSortedMap<CompositeField, Boolean> fields) {
       this.fields = fields;
     }
 
@@ -853,8 +673,9 @@ public class PointerTargetSet implements Serializable {
      * Returns an immutable PointerTargetSet with all the changes made to the builder.
      */
     public PointerTargetSet build() {
-      return new PointerTargetSet(evaluatingVisitor,
+      return new PointerTargetSet(machineModel,
                                   sizeofVisitor,
+                                  options,
                                   bases,
                                   lastBase,
                                   fields,
@@ -883,10 +704,6 @@ public class PointerTargetSet implements Serializable {
     return UNITED_BASE_FIELD_NAME_PREFIX + index;
   }
 
-  public EvaluatingCExpressionVisitor getEvaluatingVisitor() {
-    return evaluatingVisitor;
-  }
-
   public FormulaType<?> getPointerType() {
     return pointerType;
   }
@@ -907,37 +724,6 @@ public class PointerTargetSet implements Serializable {
     }
   }
 
-  /**
-   * Conjoins the given formula with constraints representing disjointness of the allocated shared objects.
-   *
-   */
-  public BooleanFormula forceDisjointnessConstraints(final BooleanFormula formula) {
-    BooleanFormula disjointnessFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
-    // In case we have deferred memory allocations, add the appropriate constraints
-    if (!deferredAllocations.isEmpty()) {
-      final Set<String> addedBaseVariables = new HashSet<>();
-      String lastBase = this.lastBase;
-      for (Map.Entry<String, DeferredAllocationPool> pointerVariableEntry : deferredAllocations.entrySet()) {
-        final DeferredAllocationPool deferredAllocationPool = pointerVariableEntry.getValue();
-        Integer size = deferredAllocationPool.getSize() != null ?
-                         deferredAllocationPool.getSize().getValue().intValue() : null;
-        if (size == null) {
-          size = DEFAULT_ALLOCATION_SIZE;
-        }
-        for (String baseVariable : deferredAllocationPool.getBaseVariables()) {
-          if (!addedBaseVariables.contains(baseVariable)) {
-            disjointnessFormula = formulaManager.makeAnd(disjointnessFormula,
-                                                         getNextBaseAddressInequality(baseVariable,
-                                                                                      lastBase));
-            lastBase = baseVariable;
-            addedBaseVariables.add(baseVariable);
-          }
-        }
-      }
-    }
-    return formulaManager.getBooleanFormulaManager().and(formula, disjointnessFormula);
-  }
-
   public boolean isActualBase(final String name) {
     return bases.containsKey(name) && !isFakeBaseType(bases.get(name));
   }
@@ -952,11 +738,16 @@ public class PointerTargetSet implements Serializable {
     return baseType != null && baseType.equals(type);
   }
 
+  public SortedSet<String> getAllBases() {
+    return bases.keySet();
+  }
+
   public static final PointerTargetSet emptyPointerTargetSet(final MachineModel machineModel,
+                                                             final FormulaEncodingWithUFOptions options,
                                                              final FormulaManagerView formulaManager) {
-    final EvaluatingCExpressionVisitor evaluatingVisitor = new EvaluatingCExpressionVisitor(machineModel);
-    return new PointerTargetSet(evaluatingVisitor,
-                                new CSizeofVisitor(evaluatingVisitor),
+    return new PointerTargetSet(machineModel,
+                                new CSizeofVisitor(machineModel, options),
+                                options,
                                 PathCopyingPersistentTreeMap.<String, CType>of(),
                                 null,
                                 PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
@@ -1041,10 +832,12 @@ public class PointerTargetSet implements Serializable {
                         mergeSortedMaps(other.targets, targets, PointerTargetSet.<PointerTarget>mergeOnConflict());
 
     final PointerTargetSetBuilder builder1 = new PointerTargetSetBuilder(emptyPointerTargetSet(
-                                                                               evaluatingVisitor.getMachineModel(),
+                                                                               machineModel,
+                                                                               options,
                                                                                formulaManager)),
                                   builder2 = new PointerTargetSetBuilder(emptyPointerTargetSet(
-                                                                               evaluatingVisitor.getMachineModel(),
+                                                                               machineModel,
+                                                                               options,
                                                                                formulaManager));
     if (reverseBases == reverseFields) {
       builder1.setFields(mergedFields.getFirst());
@@ -1125,8 +918,9 @@ public class PointerTargetSet implements Serializable {
                                                            PointerTargetSet.<PointerTarget>destructiveMergeOnConflict();
 
     final PointerTargetSet result  =
-      new PointerTargetSet(evaluatingVisitor,
+      new PointerTargetSet(machineModel,
                            sizeofVisitor,
+                           options,
                            mergedBases.getThird(),
                            lastBase,
                            mergedFields.getThird(),
@@ -1142,53 +936,6 @@ public class PointerTargetSet implements Serializable {
                      basesMergeFormula,
                      !reverseBases ? Pair.of(mergedBases.getFirst(), mergedBases.getSecond()) :
                                      Pair.of(mergedBases.getSecond(), mergedBases.getFirst()));
-  }
-
-  private static <T> PersistentList<T> mergePersistentLists(final PersistentList<T> list1,
-                                                            final PersistentList<T> list2) {
-    final int size1 = list1.size();
-    final ArrayList<T> arrayList1 = new ArrayList<>(size1);
-    for (final T element : list1) {
-      arrayList1.add(element);
-    }
-    final int size2 = list2.size();
-    final ArrayList<T> arrayList2 = new ArrayList<>(size2);
-    for (final T element : list2) {
-      arrayList2.add(element);
-    }
-    int sizeCommon = 0;
-    for (int i = 0;
-         i < arrayList1.size() && i < arrayList2.size() && arrayList1.get(i).equals(arrayList2.get(i));
-         i++) {
-      ++sizeCommon;
-    }
-    PersistentList<T> result;
-    final ArrayList<T> biggerArrayList, smallerArrayList;
-    final int biggerCommonStart, smallerCommonStart;
-    if (size1 > size2) {
-      result = list1;
-      biggerArrayList = arrayList1;
-      smallerArrayList = arrayList2;
-      biggerCommonStart = size1 - sizeCommon;
-      smallerCommonStart = size2 - sizeCommon;
-    } else {
-      result = list2;
-      biggerArrayList = arrayList2;
-      smallerArrayList = arrayList1;
-      biggerCommonStart = size2 - sizeCommon;
-      smallerCommonStart = size1 - sizeCommon;
-    }
-    final Set<T> fromBigger = new HashSet<>(2 * biggerCommonStart, 1.0f);
-    for (int i = 0; i < biggerCommonStart; i++) {
-      fromBigger.add(biggerArrayList.get(i));
-    }
-    for (int i = 0; i < smallerCommonStart; i++) {
-      final T target = smallerArrayList.get(i);
-      if (!fromBigger.contains(target)) {
-        result = result.with(target);
-      }
-    }
-    return result;
   }
 
   /**
@@ -1370,7 +1117,7 @@ public class PointerTargetSet implements Serializable {
     return new ConflictHandler<PersistentList<T>>() {
       @Override
       public PersistentList<T> resolveConflict(PersistentList<T> list1, PersistentList<T> list2) {
-        return mergePersistentLists(list1, list2);
+        return PersistentList.merge(list1, list2);
       }
     };
   }
@@ -1415,17 +1162,19 @@ public class PointerTargetSet implements Serializable {
     }
   }
 
-  private PointerTargetSet(final EvaluatingCExpressionVisitor evaluatingVisitor,
+  private PointerTargetSet(final MachineModel machineModel,
                            final CSizeofVisitor sizeofVisitor,
+                           final FormulaEncodingWithUFOptions options,
                            final PersistentSortedMap<String, CType> bases,
                            final String lastBase,
                            final PersistentSortedMap<CompositeField, Boolean> fields,
                            final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations,
                            final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
                            final FormulaManagerView formulaManager) {
-    this.evaluatingVisitor = evaluatingVisitor;
+    this.machineModel = machineModel;
     this.sizeofVisitor = sizeofVisitor;
 
+    this.options = options;
     this.formulaManager = formulaManager;
 
     this.bases = bases;
@@ -1436,7 +1185,6 @@ public class PointerTargetSet implements Serializable {
 
     this.targets = targets;
 
-    final MachineModel machineModel = this.evaluatingVisitor.getMachineModel();
     final int pointerSize = machineModel.getSizeofPtr();
     final int bitsPerByte = machineModel.getSizeofCharInBits();
     this.pointerType = this.formulaManager.getBitvectorFormulaManager()
@@ -1451,8 +1199,8 @@ public class PointerTargetSet implements Serializable {
   }
 
   private static final CType getFakeBaseType(int size) {
-    return simplifyType(new CArrayType(false, false, VOID, new CIntegerLiteralExpression(null,
-                                                                                        CHAR,
+    return simplifyType(new CArrayType(false, false, CNumericTypes.VOID, new CIntegerLiteralExpression(null,
+                                                                                        CNumericTypes.SIGNED_CHAR,
                                                                                         BigInteger.valueOf(size))));
   }
 
@@ -1462,7 +1210,8 @@ public class PointerTargetSet implements Serializable {
 
   private static final Joiner joiner = Joiner.on(" ");
 
-  protected final EvaluatingCExpressionVisitor evaluatingVisitor;
+  protected final FormulaEncodingWithUFOptions options;
+  protected final MachineModel machineModel;
   protected final CSizeofVisitor sizeofVisitor;
 
   protected final FormulaManagerView formulaManager;
@@ -1481,26 +1230,35 @@ public class PointerTargetSet implements Serializable {
 
   // The following fields are modified in the derived class only
 
+  // The set of known memory objects.
+  // This includes allocated memory regions and global/local structs/arrays.
+  // The key of the map is the name of the base (without the BASE_PREFIX).
+  // There are also "fake" bases in the map for variables that have their address
+  // taken somewhere but are not yet tracked.
   protected /*final*/ PersistentSortedMap<String, CType> bases;
+
+  // The last added memory region (used to create the chain of inequalities between bases).
   protected /*final*/ String lastBase;
+
+  // The set of "shared" fields that are accessed directly via pointers,
+  // so they are represented with UFs instead of as variables.
   protected /*final*/ PersistentSortedMap<CompositeField, Boolean> fields;
 
   protected /*final*/ PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
 
+  // The complete set of tracked memory locations.
+  // The map key is the type of the memory location.
+  // This set of locations is used to restore the values of the memory-access UF
+  // when the SSA index is used (i.e, to create the *int@3(i) = *int@2(i) terms
+  // for all values of i from this map).
+  // This means that when a location is not present in this map,
+  // its value is not tracked and might get lost.
   protected /*final*/ PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
 
-  protected final FormulaType<?> pointerType;
+  private final FormulaType<?> pointerType;
 
+  // The counter that guarantees a unique name for each allocated memory region.
   private static int dynamicAllocationCounter = 0;
-
-  public static final int DEFAULT_ARRAY_LENGTH = 20;
-  public static final int DEFAULT_ALLOCATION_SIZE = 4;
-
-  public static final CSimpleType CHAR =
-    new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-  public static final CType VOID =
-    new CSimpleType(false, false, CBasicType.VOID, false, false, false, false, false, false, false);
-  public static final CType POINTER_TO_VOID = new CPointerType(false, false, VOID);
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
@@ -1510,4 +1268,3 @@ public class PointerTargetSet implements Serializable {
 
   private static final long serialVersionUID = 2102505458322248624L;
 }
-

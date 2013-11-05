@@ -160,6 +160,39 @@ public enum MachineModel {
     return true;
   }
 
+  /**
+   * Determine whether a type is signed or unsigned.
+   * Contrary to {@link CSimpleType#isSigned()} and {@link CSimpleType#isUnsigned()}
+   * this method leaves no third option and should thus be preferred.
+   * For floating point types it returns true,
+   * for types where signedness makes no sense (bool, void) it returns false.
+   */
+  public boolean isSigned(CSimpleType t) {
+    // resolve UNSPECIFIED and INT to SIGNED INT etc.
+    t = t.getCanonicalType();
+
+    if (t.isSigned()) {
+      return true;
+    } else if (t.isUnsigned()) {
+      return false;
+    }
+
+    switch (t.getType()) {
+    case CHAR:
+      return isDefaultCharSigned();
+    case FLOAT:
+    case DOUBLE:
+      return true;
+    case INT:
+      throw new AssertionError("Canonical type of INT should always have sign modifier");
+    case UNSPECIFIED:
+      throw new AssertionError("Canonical type should never be UNSPECIFIED");
+    default:
+      // bool, void
+      return false;
+    }
+  }
+
   public int getSizeofCharInBits() {
     return mSizeofCharInBits;
   }

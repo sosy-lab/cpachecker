@@ -54,6 +54,15 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long> {
   }
 
   @Override
+  public Long extend(Long pNumber, int pExtensionBits, boolean pSigned) {
+    if (pSigned) {
+      return mk_sign_ext(z3context, pExtensionBits, pNumber);
+    } else {
+      return mk_zero_ext(z3context, pExtensionBits, pNumber);
+    }
+  }
+
+  @Override
   public Long makeBitvectorImpl(int pLength, long pI) {
     long sort = mk_bv_sort(z3context, pLength);
     return mk_int64(z3context, pI, sort);

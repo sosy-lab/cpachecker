@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -90,7 +91,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       case MINUS: {
         final PointerTargetPattern result = operand1.accept(this);
         if (result != null) {
-          final Integer offset = operand2.accept(pts.getEvaluatingVisitor());
+          final Integer offset = tryEvaluateExpression(operand2);
           final Integer oldOffset = result.getProperOffset();
           if (offset != null && oldOffset != null && offset < oldOffset) {
             result.setProperOffset(oldOffset - offset);
@@ -108,9 +109,9 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
         final Integer offset;
         if (result == null) {
           result = operand2.accept(pointerVisitor);
-          offset = operand1.accept(pts.getEvaluatingVisitor());
+          offset = tryEvaluateExpression(operand1);
         } else {
-          offset = operand2.accept(pts.getEvaluatingVisitor());
+          offset = tryEvaluateExpression(operand2);
         }
         if (result != null) {
           final Integer remaining = result.getRemainingOffset(pts);
@@ -196,7 +197,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
         elementType = ((CArrayType) containerType).getType();
       }
       result.shift(containerType);
-      final Integer index = e.getSubscriptExpression().accept(pts.getEvaluatingVisitor());
+      final Integer index = tryEvaluateExpression(e.getSubscriptExpression());
       if (index != null) {
         result.setProperOffset(index * pts.getSize(elementType));
       }
@@ -282,6 +283,13 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
     } else {
       throw new UnrecognizedCCodeException("Dereferencing non-pointer expression", cfaEdge, e);
     }
+  }
+
+  private Integer tryEvaluateExpression(CExpression e) {
+    if (e instanceof CIntegerLiteralExpression) {
+      return ((CIntegerLiteralExpression)e).getValue().intValue();
+    }
+    return null;
   }
 
   private final PointerTargetEvaluatingVisitor pointerVisitor;

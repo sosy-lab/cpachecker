@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CtoFormulaTypeUtils {
@@ -207,13 +206,5 @@ public class CtoFormulaTypeUtils {
   // Checks if there is some formula type to represent the C type
   public static boolean isRepresentableType(CType pType) {
     return pType.accept(representabilityCTypeVisitor);
-  }
-
-  public static boolean isSignedType(CType pType) {
-    if (pType instanceof CSimpleType) {
-      return !((CSimpleType)pType).isUnsigned();
-    }
-    // Default behaviour, structs for example
-    return false;
   }
 }

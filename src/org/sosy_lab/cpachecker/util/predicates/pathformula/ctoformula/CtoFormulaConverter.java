@@ -72,7 +72,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -98,6 +97,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -637,9 +637,11 @@ public class CtoFormulaConverter {
       // See Enums/Pointers as Integers
       if (fromCanBeHandledAsInt) {
         fromType = fromIsPointer ? machineModel.getPointerEquivalentSimpleType() : CNumericTypes.INT;
+        fromType = fromType.getCanonicalType();
       }
       if (toCanBeHandledAsInt) {
         toType = toIsPointer ? machineModel.getPointerEquivalentSimpleType() : CNumericTypes.INT;
+        toType = toType.getCanonicalType();
       }
     }
 
@@ -762,151 +764,16 @@ public class CtoFormulaConverter {
     if (sfrom > sto) {
       ret = fmgr.makeExtract(pFormula, sto * bitsPerByte - 1, 0);
     } else if (sfrom < sto) {
-      // Sign extend with ones when pfromType is signed and sign bit is set
-      BitvectorFormula extendBits;
+      boolean signed = machineModel.isSigned(pfromType);
       int bitsToExtend = (sto - sfrom) * bitsPerByte;
-      if (pfromType.isUnsigned()) {
-        extendBits = efmgr.makeBitvector(bitsToExtend, 0);
-      } else {
-        BitvectorFormula zeroes = efmgr.makeBitvector(bitsToExtend, 0);
-        BitvectorFormula ones = efmgr.makeBitvector(bitsToExtend, -1);
+      ret = fmgr.makeExtend(pFormula, bitsToExtend, signed);
 
-        // Formula if sign bit is set
-        Formula msb = fmgr.makeExtract(pFormula, sfrom * bitsPerByte - 1, sfrom * bitsPerByte - 1);
-        BooleanFormula zeroExtend = fmgr.makeEqual(msb, efmgr.makeBitvector(1, 0));
-
-
-        extendBits = bfmgr.ifThenElse(zeroExtend, zeroes, ones);
-      }
-
-      ret = fmgr.makeConcat(extendBits, pFormula);
     } else {
       ret = pFormula;
     }
 
     assert fmgr.getFormulaType(ret) == getFormulaTypeFromCType(ptoType);
     return ret;
-  }
-
-  /**
-   * Gets the Type of the given two, which C would implicitly cast to.
-   * @param pT1
-   * @param pT2
-   * @return
-   */
-  CType getImplicitCType(CType pT1, CType pT2) {
-    pT1 = pT1.getCanonicalType();
-    pT2 = pT2.getCanonicalType();
-
-    if (pT1 instanceof CEnumType) {
-      pT1 = CNumericTypes.INT.getCanonicalType();
-    }
-    if (pT2 instanceof CEnumType) {
-      pT2 = CNumericTypes.INT.getCanonicalType();
-    }
-
-    // UNDEFINED: What should happen when we have two pointer?
-    // For example when two pointers get multiplied or added
-    // This is always weird.
-    if (pT1 instanceof CSimpleType) {
-      CSimpleType s1 = (CSimpleType)pT1;
-      if (pT2 instanceof CSimpleType) {
-        CSimpleType s2 = (CSimpleType)pT2;
-        CSimpleType resolved = getImplicitSimpleCType(s1, s2);
-
-        if (!s1.equals(s2)) {
-          logger.logOnce(Level.FINEST, "Implicit Cast of", s1, "and", s2, "to", resolved);
-        }
-
-        return resolved;
-      } else if (pT2 instanceof CPointerType) {
-        return pT2;
-      }
-    } else if (pT1 instanceof CPointerType) {
-      if (pT2 instanceof CSimpleType) {
-        return pT1;
-      }
-    }
-
-    if (pT1 instanceof CPointerType && pT2 instanceof CFunctionType) {
-      if (((CPointerType)pT1).getType() instanceof CFunctionType) {
-        return pT1;
-      }
-    } else if (pT2 instanceof CPointerType && pT1 instanceof CPointerType) {
-      if (((CPointerType)pT2).getType() instanceof CFunctionType) {
-        return pT2;
-      }
-    }
-
-    if (pT1.equals(pT2)) {
-      return pT1;
-    }
-    if (pT1 instanceof CPointerType && pT2 instanceof CPointerType) {
-      // Two pointer types, probably a comparison,
-      // type does actually not matter.
-      return CPointerType.POINTER_TO_VOID;
-    }
-
-    int s1 = getSizeof(pT1);
-    int s2 = getSizeof(pT2);
-    CType res = pT1;
-    if (s1 > s2) {
-      res = pT1;
-    } else if (s2 > s1) {
-      res = pT2;
-    } else {
-      res = pT1;
-    }
-    logger.logfOnce(Level.WARNING, "Could not get implicit type of %s and %s, using %s", pT1, pT2, res);
-    return res;
-  }
-
-  private static int getConversionRank(CSimpleType t) {
-    // From https://www.securecoding.cert.org/confluence/display/seccode/INT02-C.+Understand+integer+conversion+rules
-    CBasicType type = t.getType();
-
-    assert type == CBasicType.UNSPECIFIED || type == CBasicType.INT || type == CBasicType.BOOL || type == CBasicType.CHAR;
-    // For all integer types T1, T2, and T3, if T1 has greater rank than T2 and T2 has greater rank than T3, then T1 has greater rank than T3.
-
-    // The rank of _Bool shall be less than the rank of all other standard integer types.
-    if (type == CBasicType.BOOL) {
-      return 10;
-    }
-
-    // The rank of char shall equal the rank of signed char and unsigned char.
-    if (type == CBasicType.CHAR) {
-      return 20;
-    }
-
-    // The rank of any unsigned integer type shall equal the rank of the corresponding signed integer type, if any.
-    // The rank of long long int shall be greater than the rank of long int, which shall be greater than the rank of int, which shall be greater than the rank of short int, which shall be greater than the rank of signed char.
-    if (type == CBasicType.INT || type == CBasicType.UNSPECIFIED) {
-      if (t.isShort()) {
-        return 30;
-      }
-
-      if (!t.isLong() && !t.isLongLong()) {
-        return 40;
-      }
-
-      if (t.isLong()) {
-        return 50;
-      }
-
-      if (t.isLongLong()) {
-        return 60;
-      }
-    }
-
-    // Notes: The following is not important, because we simplify all types.
-    // I did add them only for the sake of completeness.
-
-    // The rank of any standard integer type shall be greater than the rank of any extended integer type with the same width.
-    // The rank of any extended signed integer type relative to another extended signed integer type with the same precision is implementation-defined, but still subject to the other rules for determining the integer conversion rank.
-    // The rank of a signed integer type shall be greater than the rank of any signed integer type with less precision.
-    // No two signed integer types shall have the same rank, even if they have the same representation.
-    // The rank of any enumerated type shall equal the rank of the compatible integer type.
-    throw new IllegalArgumentException("Unknown type to rank: " + t.toString());
   }
 
   CType getPromotedCType(CType t) {
@@ -923,99 +790,17 @@ public class CtoFormulaConverter {
     return t;
   }
 
-  private CSimpleType getImplicitSimpleCType(CSimpleType pT1, CSimpleType pT2) {
-    // From http://msdn.microsoft.com/en-us/library/3t4w2bkb%28v=vs.80%29.aspx
-    // If either operand is of type long double, the other operand is converted to type long double.
-    CBasicType b1 = pT1.getType();
-    CBasicType b2 = pT2.getType();
-    if (pT1.isLong() && b1.equals(CBasicType.DOUBLE)) {
-      return pT1;
-    }
-
-    if (pT2.isLong() && b2.equals(CBasicType.DOUBLE)) {
-      return pT2;
-    }
-
-    // If the above condition is not met and either operand is of type double, the other operand is converted to type double.
-    if (b1.equals(CBasicType.DOUBLE)) {
-      return pT1;
-    }
-
-    if (b2.equals(CBasicType.DOUBLE)) {
-      return pT2;
-    }
-
-    // If the above two conditions are not met and either operand is of type float, the other operand is converted to type float.
-    if (b1.equals(CBasicType.FLOAT)) {
-      return pT1;
-    }
-
-    if (b2.equals(CBasicType.FLOAT)) {
-      return pT2;
-    }
-
-    // See https://www.securecoding.cert.org/confluence/display/seccode/INT02-C.+Understand+integer+conversion+rules
-    // See also http://stackoverflow.com/questions/50605/signed-to-unsigned-conversion-in-c-is-it-always-safe
-
-    // If both operands have the same type, no further conversion is needed.
-    if (pT1.getCanonicalType().equals(pT2.getCanonicalType())) {
-      return pT1;
-    }
-
-    int r1 = getConversionRank(pT1);
-    int r2 = getConversionRank(pT2);
-    // If both operands are of the same integer type (signed or unsigned), the operand with the type of lesser integer conversion rank is converted to the type of the operand with greater rank.
-    if (pT1.isUnsigned() == pT2.isUnsigned()) {
-      if (r1 >= r2) {
-        return pT1;
-      } else {
-        return pT2;
-      }
-    }
-
-    // If the operand that has unsigned integer type has rank greater than or equal to the rank of the type of the other operand, the operand with signed integer type is converted to the type of the operand with unsigned integer type.
-    if (pT1.isUnsigned() && r1 >= r2) {
-      return pT1;
-    }
-
-    if (pT2.isUnsigned() && r2 >= r1) {
-      return pT2;
-    }
-
-    // If the type of the operand with signed integer type can represent all of the values of the type of the operand with unsigned integer type,
-    // the operand with unsigned integer type is converted to the type of the operand with signed integer type.
-
-    int bitsPerByte = machineModel.getSizeofCharInBits();
-    int s1 = machineModel.getSizeof(pT1) * bitsPerByte;
-    int s2 = machineModel.getSizeof(pT2) * bitsPerByte;
-
-    // When pT1 is signed then it can represent - 2^(s1-1) to 2^(s1-1) - 1 and pT2 can represent 0 to 2^(s2) -1
-    if (!pT1.isUnsigned() && s1 > s2) {
-      return pT1;
-    }
-    if (!pT2.isUnsigned() && s2 > s1) {
-      return pT2;
-    }
-
-    // Otherwise, both operands are converted to the unsigned integer type corresponding to the type of the operand with signed integer type. Specific operations can add to or modify the semantics of the usual arithmetic operations.
-    if (pT1.isUnsigned()) {
-      return pT1;
-    } else {
-      assert pT2.isUnsigned();
-      return pT2;
-    }
-  }
-
 //  @Override
-  public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge)
+  public Pair<PathFormula, ErrorConditions> makeAnd(PathFormula oldFormula, CFAEdge edge)
       throws CPATransferException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
+    ErrorConditions errorConditions = new ErrorConditions(bfmgr);
 
     if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
 
       // in this case there's absolutely nothing to do, so take a shortcut
-      return oldFormula;
+      return Pair.of(oldFormula, errorConditions);
     }
 
     String function = (edge.getPredecessor() != null)
@@ -1032,12 +817,12 @@ public class CtoFormulaConverter {
     if (bfmgr.isTrue(edgeFormula) && (newSsa == oldFormula.getSsa())) {
       // formula is just "true" and SSAMap is identical
       // i.e. no writes to SSAMap, no branching and length should stay the same
-      return oldFormula;
+      return Pair.of(oldFormula, errorConditions);
     }
 
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-    return new PathFormula(newFormula, newSsa, newLength);
+    return Pair.of(new PathFormula(newFormula, newSsa, newLength), errorConditions);
   }
 
   /**

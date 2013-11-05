@@ -89,16 +89,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
         return conv.makeFreshVariable(func, expType, ssa);
 
       } else if (conv.options.isExternModelFunction(func)) {
-        assert (pexps.size()>0): "No external model given!";
-        // the parameter comes in C syntax (with ")
-        String filename = pexps.get(0).toASTString().replaceAll("\"", "");
-        File modelFile = new File(filename);
-        BooleanFormula externalModel = loadExternalFormula(modelFile);
-        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(fexp.getExpressionType());
-        Formula f = conv.bfmgr.ifThenElse(externalModel,
-            conv.fmgr.makeNumber(returnFormulaType, 1),
-            conv.fmgr.makeNumber(returnFormulaType, 0));
-        return f;
+        return handleExternModelFunction(fexp, pexps);
 
       } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(func)) {
         throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(func), edge, fexp);
@@ -163,6 +154,16 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
     }
   }
 
+  Formula handleExternModelFunction(CFunctionCallExpression fexp, List<CExpression> parameters) {
+    assert (parameters.size()>0): "No external model given!";
+    // the parameter comes in C syntax (with ")
+    String filename = parameters.get(0).toASTString().replaceAll("\"", "");
+    File modelFile = new File(filename);
+    BooleanFormula externalModel = loadExternalFormula(modelFile);
+    FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(fexp.getExpressionType());
+    return conv.ifTrueThenOneElseZero(returnFormulaType, externalModel);
+  }
+
   /**
    * Loads a formula from an external dimacs file and returns it as BooleanFormula object.
    * Each variable in the dimacs file will be associated with a program variable if a corresponding (name equality) variable is known.
@@ -171,7 +172,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
    * @param pModelFile File with the dimacs model.
    * @return BooleanFormula
    */
-  BooleanFormula loadExternalFormula(File pModelFile) {
+  private BooleanFormula loadExternalFormula(File pModelFile) {
     if (! pModelFile.getName().endsWith(".dimacs")) {
       throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
     }

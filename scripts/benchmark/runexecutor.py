@@ -450,6 +450,14 @@ class _OomEventThread(threading.Thread):
             if not self._finished.is_set():
                 logging.info('Killing process {0} due to out-of-memory event from kernel.'.format(self._process.pid))
                 _killSubprocess(self._process)
+                # Also kill all children of subprocesses directly.
+                with open(os.path.join(self._cgroup, 'tasks'), 'rt') as tasks:
+                    for task in tasks:
+                        try:
+                            os.kill(int(task), signal.SIGKILL)
+                        except OSError:
+                            # task already terminated between reading and killing
+                            pass
 
                 # We now need to increase the memory limit of this cgroup
                 # to give the process a chance to terminate
@@ -481,7 +489,15 @@ class _TimelimitThread(threading.Thread):
 
     def run(self):
         while not self.finished.is_set():
-            usedCpuTime = _readCpuTime(self.cgroupCpuacct)
+            read = False
+            while not read:
+                try:
+                    usedCpuTime = _readCpuTime(self.cgroupCpuacct)
+                    read = True
+                except ValueError:
+                    # Sometimes the kernel produces strange values with linebreaks in them
+                    time.sleep(1)
+                    pass
             remainingCpuTime = self.timelimit - usedCpuTime
             remainingWallTime = self.latestKillTime - time.time()
             logging.debug("TimelimitThread for process {0}: used cpu time: {1}, remaining cpu time: {2}, remaining wall time: {3}."
