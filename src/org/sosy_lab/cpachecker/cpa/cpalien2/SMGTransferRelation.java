@@ -180,8 +180,6 @@ public class SMGTransferRelation implements TransferRelation {
             "free",
             "memset",
             "calloc",
-            "__VERIFIER_nondet_bool",
-            "__VERIFIER_nondet_int"
         }));
 
     private void dumpSMGPlot(String name, SMGState currentState, String location) {
@@ -410,8 +408,14 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     public final boolean isABuiltIn(String functionName) {
-      return BUILTINS.contains(functionName);
+      return (BUILTINS.contains(functionName) || isNondetBuiltin(functionName));
     }
+
+    private static final String NONDET_PREFIX = "__VERIFIER_nondet_";
+    private boolean isNondetBuiltin(String pFunctionName) {
+      return pFunctionName.startsWith(NONDET_PREFIX) || pFunctionName.equals("nondet_int");
+    }
+
   }
 
   final private SMGBuiltins builtins = new SMGBuiltins();
@@ -1319,8 +1323,12 @@ public class SMGTransferRelation implements TransferRelation {
             possibleMallocFail = true;
             SMGEdgePointsTo callocEdge = builtins.evaluateCalloc(pIastFunctionCallExpression, getSmgState(), getCfaEdge());
             return createAddress(callocEdge);
-          case "__VERIFIER_nondet_bool":
-            return SMGUnknownValue.getInstance();
+          default:
+            if (builtins.isNondetBuiltin(functionName)) {
+              return SMGUnknownValue.getInstance();
+            } else {
+              throw new AssertionError("Unexpected function handled as a builtin: " + functionName);
+            }
           }
         } else {
           switch (handleUnknownFunctions) {
@@ -1361,10 +1369,13 @@ public class SMGTransferRelation implements TransferRelation {
           case "memset":
             SMGEdgePointsTo memsetTargetEdge = builtins.evaluateMemset(pIastFunctionCallExpression, getSmgState(), getCfaEdge());
             return createAddress(memsetTargetEdge);
-          case "__VERIFIER_nondet_bool":
-            return SMGUnknownValue.getInstance();
+          default:
+            if (builtins.isNondetBuiltin(functionName)) {
+              return SMGUnknownValue.getInstance();
+            } else {
+              throw new AssertionError("Unexpected function handled as a builtin: " + functionName);
+            }
           }
-          throw new AssertionError();
         } else {
           switch (handleUnknownFunctions) {
           case "strict":
