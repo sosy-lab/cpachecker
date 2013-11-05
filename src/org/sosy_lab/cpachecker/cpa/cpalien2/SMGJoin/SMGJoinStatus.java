@@ -28,5 +28,18 @@ public enum SMGJoinStatus {
   LEFT_ENTAIL,
   RIGHT_ENTAIL,
   INCOMPARABLE,
-  INCOMPLETE,
+  INCOMPLETE;
+
+  public static SMGJoinStatus updateStatus(SMGJoinStatus pStatus1, SMGJoinStatus pStatus2) {
+    if (pStatus1 == SMGJoinStatus.EQUAL) {
+      return pStatus2;
+    } else if (pStatus2 == SMGJoinStatus.EQUAL) {
+      return pStatus1;
+    } else if (pStatus1 == SMGJoinStatus.INCOMPARABLE ||
+               pStatus2 == SMGJoinStatus.INCOMPARABLE ||
+               pStatus1 != pStatus2) {
+      return SMGJoinStatus.INCOMPARABLE;
+    }
+    return pStatus1;
+  }
 }

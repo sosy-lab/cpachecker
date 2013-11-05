@@ -189,11 +189,11 @@ public class SMGJoinTest {
   }
 
   private void joinUpdateUnit(SMGJoinStatus firstOperand, SMGJoinStatus forLe, SMGJoinStatus forRe) {
-    Assert.assertEquals(firstOperand, SMGUpdateJoinStatus.updateStatus(firstOperand, SMGJoinStatus.EQUAL));
-    Assert.assertEquals(forLe, SMGUpdateJoinStatus.updateStatus(firstOperand, SMGJoinStatus.LEFT_ENTAIL));
-    Assert.assertEquals(forRe, SMGUpdateJoinStatus.updateStatus(firstOperand, SMGJoinStatus.RIGHT_ENTAIL));
+    Assert.assertEquals(firstOperand, SMGJoinStatus.updateStatus(firstOperand, SMGJoinStatus.EQUAL));
+    Assert.assertEquals(forLe, SMGJoinStatus.updateStatus(firstOperand, SMGJoinStatus.LEFT_ENTAIL));
+    Assert.assertEquals(forRe, SMGJoinStatus.updateStatus(firstOperand, SMGJoinStatus.RIGHT_ENTAIL));
     Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGUpdateJoinStatus.updateStatus(firstOperand, SMGJoinStatus.INCOMPARABLE));
+        SMGJoinStatus.updateStatus(firstOperand, SMGJoinStatus.INCOMPARABLE));
   }
 
   @Test
