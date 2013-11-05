@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGKnownSymValue;
@@ -47,7 +48,7 @@ import org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class SMGState implements AbstractQueryableState {
+public class SMGState implements AbstractQueryableState, Targetable {
   static private int id_counter = 0;
 
   private final CLangSMG heap;
@@ -62,6 +63,11 @@ public class SMGState implements AbstractQueryableState {
   private boolean invalidRead = false;
 
   private boolean invalidFree = false;
+
+  /*
+   * if a property is violated by this state, this member is set
+   */
+  private ViolatedProperty violatedProperty = null;
 
   /**
    * Constructor.
@@ -663,6 +669,7 @@ public class SMGState implements AbstractQueryableState {
         if (heap.hasMemoryLeaks()) {
           //TODO: Give more information
           this.logger.log(Level.SEVERE, "Memory leak found");
+          violatedProperty = ViolatedProperty.VALID_MEMTRACK;
           return true;
         }
         return false;
@@ -670,6 +677,7 @@ public class SMGState implements AbstractQueryableState {
         if (this.invalidWrite) {
           //TODO: Give more information
           this.logger.log(Level.SEVERE, "Invalid write found");
+          violatedProperty = ViolatedProperty.VALID_DEREF;
           return true;
         }
         return false;
@@ -677,6 +685,7 @@ public class SMGState implements AbstractQueryableState {
         if (this.invalidRead) {
           //TODO: Give more information
           this.logger.log(Level.SEVERE, "Invalid read found");
+          violatedProperty = ViolatedProperty.VALID_DEREF;
           return true;
         }
         return false;
@@ -684,6 +693,7 @@ public class SMGState implements AbstractQueryableState {
         if (this.invalidFree) {
           //TODO: Give more information
           this.logger.log(Level.SEVERE, "Invalid free found");
+          violatedProperty = ViolatedProperty.VALID_FREE;
           return true;
         }
         return false;
@@ -983,5 +993,15 @@ public class SMGState implements AbstractQueryableState {
 
   public void identifyNonEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
     heap.addNeqRelation(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
+  }
+
+  @Override
+  public boolean isTarget() {
+    return this.violatedProperty != null;
+  }
+
+  @Override
+  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+    return violatedProperty;
   }
 }
