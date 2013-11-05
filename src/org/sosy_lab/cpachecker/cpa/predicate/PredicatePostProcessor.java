@@ -48,7 +48,7 @@ public class PredicatePostProcessor implements PostProcessor {
   private void removeUnsatPaths(ReachedSet pReached) {
     //idea: non-abstraction elements from which a non-false abstraction element is not reachable can get removed
 
-    Deque<ARGState> leaves = new ArrayDeque<ARGState>();
+    Deque<ARGState> leaves = new ArrayDeque<>();
     for (AbstractState e : pReached) {
       ARGState artEle = (ARGState) e;
       if (artEle.getChildren().size() == 0 && (!AbstractStates.extractStateByType(artEle, PredicateAbstractState.class).isAbstractionState() || AbstractStates.extractStateByType(artEle, PredicateAbstractState.class).getAbstractionFormula().isFalse()) && !artEle.isTarget()) {
@@ -61,7 +61,7 @@ public class PredicatePostProcessor implements PostProcessor {
 
       assert (!AbstractStates.extractStateByType(leaf, PredicateAbstractState.class).isAbstractionState() || AbstractStates.extractStateByType(leaf, PredicateAbstractState.class).getAbstractionFormula().isFalse());
 
-      Collection<ARGState> parents = new ArrayList<ARGState>();
+      Collection<ARGState> parents = new ArrayList<>();
       parents.addAll(leaf.getParents());
 
       pReached.remove(leaf);

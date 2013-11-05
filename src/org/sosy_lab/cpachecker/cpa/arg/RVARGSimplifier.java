@@ -63,16 +63,16 @@ public class RVARGSimplifier implements PostProcessor {
   }
 
   public void removeMonitorTransitions(ARGState artRoot, ReachedSet pReached) {
-    Deque<ARGState> waitlist = new ArrayDeque<ARGState>();
-    Set<ARGState> seen = new HashSet<ARGState>();
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    Set<ARGState> seen = new HashSet<>();
     waitlist.add(artRoot);
 
     while(!waitlist.isEmpty()) {
       ARGState currentElement = waitlist.pop();
 
-      Collection<ARGState> toProcess = new ArrayList<ARGState>();
+      Collection<ARGState> toProcess = new ArrayList<>();
 
-      Collection<ARGState> children = new ArrayList<ARGState>();
+      Collection<ARGState> children = new ArrayList<>();
       children.addAll(currentElement.getChildren());
       for(ARGState child : children) {
         toProcess.addAll(removeMonitorComponent(child, pReached)); //may alter currentElement.getChildren()
@@ -94,13 +94,13 @@ public class RVARGSimplifier implements PostProcessor {
     }
 
     //find reachable non-monitor elements
-    Deque<ARGState> waitlist = new ArrayDeque<ARGState>();
-    Set<ARGState> seen = new HashSet<ARGState>();
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    Set<ARGState> seen = new HashSet<>();
     waitlist.add(pRootElement);
     seen.add(pRootElement);
 
-    List<ARGState> newChildren = new ArrayList<ARGState>();
-    List<ARGState> toDelete = new ArrayList<ARGState>();
+    List<ARGState> newChildren = new ArrayList<>();
+    List<ARGState> toDelete = new ArrayList<>();
 
 
     while(!waitlist.isEmpty()) {

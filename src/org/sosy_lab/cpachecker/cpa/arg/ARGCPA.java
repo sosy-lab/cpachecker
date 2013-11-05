@@ -55,8 +55,8 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -128,7 +128,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     } else {
       innerPostProcessor = null;
     }
-    postProcessors = new ArrayList<PostProcessor>();
+    postProcessors = new ArrayList<>();
     postProcessors.add(new RVARGSimplifier(config, this));
     postProcessors.add(new ARGDumper(config, this));
 

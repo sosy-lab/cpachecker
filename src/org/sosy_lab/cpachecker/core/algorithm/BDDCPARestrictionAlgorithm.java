@@ -370,6 +370,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
     return "Counterexample-Check Algorithm";
   }
 
+  @Override
   public boolean reset() {
     return false;
   }
