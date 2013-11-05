@@ -36,8 +36,8 @@ public class SMGEdgeHasValue extends SMGEdge {
   final private CType type;
   final private int offset;
 
-  final private CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-  final private CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
+  static final private CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
+  static final private CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
 
   public SMGEdgeHasValue(CType pType, int pOffset, SMGObject pObject, int pValue) {
     super(pValue, pObject);
