@@ -138,13 +138,13 @@ public class ARGToCTranslator {
     }
   }
 
-  private static class ARTEdge {
+  private static class ARGEdge {
     private final ARGState parent;
     private final ARGState child;
     private final CFAEdge cfaEdge;
     private final CompoundStatement currentBlock;
 
-    public ARTEdge(ARGState pParent, ARGState pChild, CFAEdge pCfaEdge, CompoundStatement pCurrentBlock) {
+    public ARGEdge(ARGState pParent, ARGState pChild, CFAEdge pCfaEdge, CompoundStatement pCurrentBlock) {
       parent = pParent;
       child = pChild;
       cfaEdge = pCfaEdge;
@@ -176,11 +176,11 @@ public class ARGToCTranslator {
 
   private ARGToCTranslator() { }
 
-  public static String translateARG(ARGState artRoot, ReachedSet pReached) {
+  public static String translateARG(ARGState argRoot, ReachedSet pReached) {
     reached = pReached.asCollection();
     ARGToCTranslator translator = new ARGToCTranslator();
 
-    translator.translate(artRoot);
+    translator.translate(argRoot);
 
     return translator.generateCCode();
   }
@@ -200,13 +200,13 @@ public class ARGToCTranslator {
 
   private void translate(ARGState rootElement) {
     // waitlist for the edges to be processed
-    Deque<ARTEdge> waitlist = new ArrayDeque<>(); //TODO: used to be sorted list and I don't know why yet ;-)
+    Deque<ARGEdge> waitlist = new ArrayDeque<>(); //TODO: used to be sorted list and I don't know why yet ;-)
 
     startMainFunction(rootElement);
     getRelevantChildrenOfElement(rootElement, waitlist, mainFunctionBody.getFunctionBody());
 
     while (!waitlist.isEmpty()) {
-      ARTEdge nextEdge = waitlist.pop();
+      ARGEdge nextEdge = waitlist.pop();
       handleEdge(nextEdge, waitlist);
     }
   }
@@ -217,7 +217,7 @@ public class ARGToCTranslator {
     mainFunctionBody = new FunctionBody(lFunctionHeader, new CompoundStatement());
   }
 
-  private void getRelevantChildrenOfElement(ARGState currentElement, Deque<ARTEdge> waitlist, CompoundStatement currentBlock) {
+  private void getRelevantChildrenOfElement(ARGState currentElement, Deque<ARGEdge> waitlist, CompoundStatement currentBlock) {
     discoveredElements.add(currentElement);
     // generate label for element and add to current block if needed
     generateLabel(currentElement, currentBlock);
@@ -234,7 +234,7 @@ public class ARGToCTranslator {
         currentBlock.addStatement(new SimpleStatement("return 1;"));
       }
     } else if (childrenOfElement.size() == 1) {
-      // get the next ART element, create a new edge using the same stack and add it to the waitlist
+      // get the next ARG element, create a new edge using the same stack and add it to the waitlist
       ARGState child = Iterables.getOnlyElement(childrenOfElement);
       CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
       pushToWaitlist(waitlist, currentElement, child, edgeToChild, currentBlock);
@@ -243,11 +243,11 @@ public class ARGToCTranslator {
       assert childrenOfElement.size() == 2 : "branches with more than two options not supported yet (was the program prepocessed with CIL?)"; //TODO: why not btw?
 
       //collect edges of condition branch
-      ArrayList<ARTEdge> result = new ArrayList<>(2);
+      ArrayList<ARGEdge> result = new ArrayList<>(2);
       int ind = 0;
       for (ARGState child : childrenOfElement) {
         CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
-        assert edgeToChild instanceof CAssumeEdge : "something wrong: branch in ART without condition: " + edgeToChild;
+        assert edgeToChild instanceof CAssumeEdge : "something wrong: branch in ARG without condition: " + edgeToChild;
         CAssumeEdge assumeEdge = (CAssumeEdge)edgeToChild;
         boolean truthAssumption = assumeEdge.getTruthAssumption();
 
@@ -273,20 +273,20 @@ public class ARGToCTranslator {
 
         // create a new block starting with this condition
         CompoundStatement newBlock = addIfStatement(currentBlock, cond);
-        result.add(new ARTEdge(currentElement, child, edgeToChild, newBlock));
+        result.add(new ARGEdge(currentElement, child, edgeToChild, newBlock));
       }
 
       //add edges in reversed order to waitlist
       for(int i = result.size()-1; i >= 0; i--) {
-        ARTEdge e = result.get(i);
+        ARGEdge e = result.get(i);
         pushToWaitlist(waitlist, e.getParentElement(), e.getChildElement(), e.getCfaEdge(), e.getCurrentBlock());
       }
     }
   }
 
-  private void pushToWaitlist(Deque<ARTEdge> pWaitlist, ARGState pCurrentElement, ARGState pChild, CFAEdge pEdgeToChild, CompoundStatement pCurrentBlock) {
+  private void pushToWaitlist(Deque<ARGEdge> pWaitlist, ARGState pCurrentElement, ARGState pChild, CFAEdge pEdgeToChild, CompoundStatement pCurrentBlock) {
     assert (!pChild.isDestroyed());
-    pWaitlist.push(new ARTEdge(pCurrentElement, pChild, pEdgeToChild, pCurrentBlock));
+    pWaitlist.push(new ARGEdge(pCurrentElement, pChild, pEdgeToChild, pCurrentBlock));
   }
 
   private CompoundStatement addIfStatement(CompoundStatement block, String conditionCode) {
@@ -303,7 +303,7 @@ public class ARGToCTranslator {
     }
   }
 
-  private void handleEdge(ARTEdge nextEdge, Deque<ARTEdge> waitlist) {
+  private void handleEdge(ARGEdge nextEdge, Deque<ARGEdge> waitlist) {
     ARGState parentElement = nextEdge.getParentElement();
     ARGState childElement = nextEdge.getChildElement();
     CFAEdge edge = nextEdge.getCfaEdge();
