@@ -32,6 +32,8 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
 /**
@@ -66,7 +68,12 @@ final public class CLangStackFrame {
   public CLangStackFrame(CFunctionDeclaration pDeclaration, MachineModel pMachineModel) {
     stack_function = pDeclaration;
 
-    int return_value_size = pMachineModel.getSizeof(pDeclaration.getType());
+    CType returnType = pDeclaration.getType().getReturnType();
+    if (returnType == null) {
+      // use a plain int as return type for void functions
+      returnType = CNumericTypes.INT;
+    }
+    int return_value_size = pMachineModel.getSizeof(returnType);
     returnValueObject = new SMGObject(return_value_size, CLangStackFrame.RETVAL_LABEL);
   }
 
