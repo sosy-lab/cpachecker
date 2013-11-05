@@ -560,7 +560,6 @@ public class CFACreator {
     if (!determineLoopStructure) {
       return Optional.absent();
     }
-    Optional<ImmutableMultimap<String, Loop>> loopStructure;
     try {
       ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
       for (String functionName : cfa.getAllFunctionNames()) {
