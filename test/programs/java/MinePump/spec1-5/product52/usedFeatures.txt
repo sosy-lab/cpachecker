@@ -1,5 +1,0 @@
-base
-highWaterSensor
-lowWaterSensor
-stopCommand
-startCommand
