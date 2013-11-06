@@ -61,6 +61,7 @@ public class SignCPA implements ConfigurableProgramAnalysis {
     logger = pLogger;
     domain = new SignDomain();
     transfer = new SignTransferRelation(logger);
+    // TODO SEP, JOIN for merge, stop should be configurable
     merge = new MergeJoinOperator(domain);
     stop = new StopJoinOperator(domain);
   }

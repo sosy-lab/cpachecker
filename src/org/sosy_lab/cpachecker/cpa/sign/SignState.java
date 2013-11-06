@@ -34,10 +34,15 @@ import com.google.common.collect.Sets;
 
 public class SignState implements AbstractState {
 
+  //
   public static enum SIGN {
     PLUS, MINUS, ZERO;
   }
 
+  // TODO I assumed and indeed prefer we have just a single map,
+  // possibly a multimap so you may have more than one sign assumption per variable but this will complicate the transfer relation
+  // another possibility is that we adapt our SIGN enumeration to also contain PLUS0, MINUS0, ALL and thus have a single value
+  // ALL may also mean that the variable does not occur in the map
   private Set<Map<String, SIGN>> possibleSigns;
 
   public SignState(Set<Map<String, SIGN>> pPossibleSigns) {
@@ -49,11 +54,13 @@ public class SignState implements AbstractState {
       return this;
     }
     Set<Map<String, SIGN>> resultSetOfPossStates;
+    // TODO does it terminate for loops?, I assumed one combines the content of the different maps
     resultSetOfPossStates = Sets.union(possibleSigns, pToJoin.possibleSigns);
     return new SignState(resultSetOfPossStates);
   }
 
   public boolean isSubsetOf(SignState pSuperset) {
+    // TODO in principal it is sufficient if for every variable all sign assumptions are considered in pSuperset
     if(pSuperset == this) {
       return true;
     }
