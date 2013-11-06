@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.pcc.strategy;
+package org.sosy_lab.cpachecker.pcc.strategy.parallel;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.abm.ABMCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.NoTargetStateChecker;
+import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -283,13 +284,13 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
   @Override
   protected void prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
     try {
-      stats.preparationTimer.start();
+      stats.getPreparationTimer().start();
       if (!(pReadProof instanceof ARGState[] || ((ARGState[]) pReadProof).length < 1)) {
         throw new InvalidConfigurationException("Proof Strategy requires ARG.");
       }
       args = (ARGState[]) pReadProof;
     } finally {
-      stats.preparationTimer.stop();
+      stats.getPreparationTimer().stop();
     }
   }
 
