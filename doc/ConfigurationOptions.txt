@@ -776,6 +776,10 @@ cpa.predicate.blk.alwaysAtLoops = true
 # effect if threshold = 0)
 cpa.predicate.blk.functions = false
 
+# abstractions at CFA nodes with more than one incoming edge if threshold has
+# been reached (no effect if threshold = 0)
+cpa.predicate.blk.join = false
+
 # abstractions at loop heads if threshold has been reached (no effect if
 # threshold = 0)
 cpa.predicate.blk.loops = false
