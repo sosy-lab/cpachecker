@@ -58,8 +58,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -201,9 +201,10 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   @Override
-  public void postProcess(ReachedSet pReached) {
-    if (getWrappedCpa() instanceof PostProcessor)
+  public void postProcess(ReachedSet pReached) throws InterruptedException {
+    if (getWrappedCpa() instanceof PostProcessor) {
       ((PostProcessor) getWrappedCpa()).postProcess(pReached);
+    }
   }
 
   @Override

@@ -35,6 +35,7 @@ import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -47,14 +48,16 @@ public class RVARGSimplifier implements PostProcessor {
   private final static String MONITOR_STATE_NAME = "Monitor";
 
   private final ARGCPA cpa;
+  private final ShutdownNotifier shutdownNotifier;
 
-  public RVARGSimplifier(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
+  public RVARGSimplifier(Configuration config, ARGCPA cpa, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     this.cpa = cpa;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
-  public void postProcess(ReachedSet pReached) {
+  public void postProcess(ReachedSet pReached) throws InterruptedException {
     ARGState artRoot = (ARGState) pReached.getFirstState();
     AbstractState lastElement = pReached.getLastState();
     if (!AbstractStates.isTargetState(lastElement)) {
@@ -62,7 +65,7 @@ public class RVARGSimplifier implements PostProcessor {
     }
   }
 
-  public void removeMonitorTransitions(ARGState artRoot, ReachedSet pReached) {
+  public void removeMonitorTransitions(ARGState artRoot, ReachedSet pReached) throws InterruptedException {
     Deque<ARGState> waitlist = new ArrayDeque<>();
     Set<ARGState> seen = new HashSet<>();
     waitlist.add(artRoot);
@@ -78,6 +81,8 @@ public class RVARGSimplifier implements PostProcessor {
         toProcess.addAll(removeMonitorComponent(child, pReached)); //may alter currentElement.getChildren()
       }
 
+      shutdownNotifier.shutdownIfNecessary();
+
       for(ARGState child : toProcess) {
         if(!seen.contains(child)) {
           waitlist.add(child);
@@ -87,7 +92,7 @@ public class RVARGSimplifier implements PostProcessor {
     }
   }
 
-  private Collection<ARGState> removeMonitorComponent(ARGState pRootElement, ReachedSet pReached) {
+  private Collection<ARGState> removeMonitorComponent(ARGState pRootElement, ReachedSet pReached) throws InterruptedException {
     AutomatonState automatonElement = AbstractStates.extractStateByType(pRootElement, AutomatonState.class);
     if(!automatonElement.getInternalStateName().equals(MONITOR_STATE_NAME)) {
       return Collections.singleton(pRootElement);
@@ -104,6 +109,7 @@ public class RVARGSimplifier implements PostProcessor {
 
 
     while(!waitlist.isEmpty()) {
+      shutdownNotifier.shutdownIfNecessary();
       ARGState currentElement = waitlist.pop();
 
       AutomatonState currentAutomatonElement = AbstractStates.extractStateByType(currentElement, AutomatonState.class);
@@ -131,11 +137,15 @@ public class RVARGSimplifier implements PostProcessor {
       return newChildren;
     }
 
+    shutdownNotifier.shutdownIfNecessary();
+
     for(ARGState newChild : newChildren) {
       for(ARGState rootParents : pRootElement.getParents()) {
         newChild.addParent(rootParents);
       }
     }
+
+    shutdownNotifier.shutdownIfNecessary();
 
     for(ARGState e : toDelete) {
       pReached.remove(e);

@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -37,15 +38,21 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class PredicatePostProcessor implements PostProcessor {
 
+  private final ShutdownNotifier shutdownNotifier;
+
+  public PredicatePostProcessor(ShutdownNotifier pShutdownNotifier) {
+    shutdownNotifier = pShutdownNotifier;
+  }
+
   @Override
-  public void postProcess(ReachedSet pReached) {
+  public void postProcess(ReachedSet pReached) throws InterruptedException {
     AbstractState lastElement = pReached.getLastState();
     if (!AbstractStates.isTargetState(lastElement)) {
       removeUnsatPaths(pReached);
     }
   }
 
-  private void removeUnsatPaths(ReachedSet pReached) {
+  private void removeUnsatPaths(ReachedSet pReached) throws InterruptedException {
     //idea: non-abstraction elements from which a non-false abstraction element is not reachable can get removed
 
     Deque<ARGState> leaves = new ArrayDeque<>();
@@ -57,6 +64,7 @@ public class PredicatePostProcessor implements PostProcessor {
     }
 
     while (!leaves.isEmpty()) {
+      shutdownNotifier.shutdownIfNecessary();
       ARGState leaf = leaves.pop();
 
       assert (!AbstractStates.extractStateByType(leaf, PredicateAbstractState.class).isAbstractionState() || AbstractStates.extractStateByType(leaf, PredicateAbstractState.class).getAbstractionFormula().isFalse());

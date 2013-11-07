@@ -162,7 +162,7 @@ public class CoreComponentsFactory {
       }
 
       if (pruneUnrefinedARG) {
-        algorithm = new PruneUnrefinedARGAlgorithm(algorithm, cpa, logger, reachedSetFactory, cfa);
+        algorithm = new PruneUnrefinedARGAlgorithm(algorithm, cpa, logger, reachedSetFactory, shutdownNotifier, cfa);
       }
 
       if (useBMC) {
@@ -193,7 +193,7 @@ public class CoreComponentsFactory {
         algorithm =
             new AlgorithmWithPropertyCheck(algorithm, logger, (PropertyCheckerCPA) cpa);
       }
-      
+
       if (usePostProcessing) {
         algorithm = new PostProcessingAlgorithm(algorithm, cpa, config, logger);
       }

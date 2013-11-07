@@ -31,6 +31,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
  */
 public interface PostProcessor {
 
-  public void postProcess(ReachedSet pReached);
+  public void postProcess(ReachedSet pReached) throws InterruptedException;
 
 }

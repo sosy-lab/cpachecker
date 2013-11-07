@@ -212,7 +212,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
 
-    postProcessor = new PredicatePostProcessor();
+    postProcessor = new PredicatePostProcessor(shutdownNotifier);
   }
 
 
@@ -308,7 +308,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public void postProcess(ReachedSet pReached) {
+  public void postProcess(ReachedSet pReached) throws InterruptedException {
     postProcessor.postProcess(pReached);
   }
 

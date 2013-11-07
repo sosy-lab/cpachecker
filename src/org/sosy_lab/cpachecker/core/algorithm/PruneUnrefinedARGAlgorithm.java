@@ -34,6 +34,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -54,11 +55,13 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
   private final ReachedSetFactory reachedSetFactory;
   private final CFA cfa;
   private final ConfigurableProgramAnalysis cpa;
+  private final ShutdownNotifier shutdownNotifier;
 
-  public PruneUnrefinedARGAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, LogManager pLogger, ReachedSetFactory pReachedSetFactory, CFA pCfa) {
+  public PruneUnrefinedARGAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, LogManager pLogger, ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA pCfa) {
     algorithm = pAlgorithm;
     logger = pLogger;
     reachedSetFactory = pReachedSetFactory;
+    shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
     cpa = pCpa;
   }

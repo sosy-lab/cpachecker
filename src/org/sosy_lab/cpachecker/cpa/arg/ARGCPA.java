@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -83,7 +84,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   private final Map<ARGState, CounterexampleInfo> counterexamples = new WeakHashMap<>();
 
-  private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     super(cpa);
 
     this.logger = logger;
@@ -129,7 +130,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
       innerPostProcessor = null;
     }
     postProcessors = new ArrayList<>();
-    postProcessors.add(new RVARGSimplifier(config, this));
+    postProcessors.add(new RVARGSimplifier(config, this,pShutdownNotifier));
     postProcessors.add(new ARGDumper(config, this));
 
   }
@@ -228,7 +229,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
 
   @Override
-  public void postProcess(ReachedSet pReached) {
+  public void postProcess(ReachedSet pReached) throws InterruptedException {
     if (innerPostProcessor != null) {
       innerPostProcessor.postProcess(pReached);
     }
