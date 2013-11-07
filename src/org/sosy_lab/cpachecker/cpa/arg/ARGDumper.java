@@ -36,13 +36,13 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.cwriter.ARTToCTranslator;
+import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 
 
 @Options(prefix="cpa.arg")
 public class ARGDumper implements PostProcessor {
   @Option(name="dumpARG", description="export final ART as C program")
-  private boolean dumpART = false;
+  private boolean dumpARG = false;
 
   @Option(name="dumpFile", description="export final ART as .c file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -57,18 +57,18 @@ public class ARGDumper implements PostProcessor {
 
   @Override
   public void postProcess(ReachedSet pReached) {
-    if (dumpART) {
+    if (dumpARG) {
       Timer t = new Timer();
       t.start();
       //generate source code out of given ART / ReachedSet
       ARGState artRoot = (ARGState) pReached.getFirstState();
       try {
-        Files.writeFile(dumpFile, ARTToCTranslator.translateART(artRoot, pReached));
+        Files.writeFile(dumpFile, ARGToCTranslator.translateARG(artRoot, pReached));
         t.stop();
-        System.out.println("ARTToC translation took " + t);
+        System.out.println("ARGToC translation took " + t);
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e,
-            "Could not dump ART to file");
+            "Could not dump ARG to file");
       }
     }
   }
