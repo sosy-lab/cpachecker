@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
+package org.sosy_lab.cpachecker.cpa.cpalien2.SMGJoin;
 
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.*;
@@ -37,12 +37,12 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
-import org.sosy_lab.cpachecker.cpa.cpalien.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.cpalien2.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMGValueFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
