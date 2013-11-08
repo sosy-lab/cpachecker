@@ -1282,7 +1282,7 @@ public class SMGTransferRelation implements TransferRelation {
         } else {
           switch (handleUnknownFunctions) {
           case "strict":
-            throw new CPATransferException("Unknown function may be unsafe. See the cpa.cpalien.handleUnknownFunction option.");
+            throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.cpalien.handleUnknownFunction option.");
           case "assume_safe":
             return SMGUnknownValue.getInstance();
           }
