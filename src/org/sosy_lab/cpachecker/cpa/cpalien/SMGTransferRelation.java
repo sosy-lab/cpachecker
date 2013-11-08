@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien2;
+package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -100,7 +100,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGExpressionEvaluator.LValueAssignmentVisitor;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.LValueAssignmentVisitor;
 import org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit2.SMGExplicitCommunicator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;

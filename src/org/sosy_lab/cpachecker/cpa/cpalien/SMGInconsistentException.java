@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien2;
+package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 

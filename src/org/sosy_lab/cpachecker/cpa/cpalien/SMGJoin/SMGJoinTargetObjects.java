@@ -21,12 +21,12 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien2.SMGJoin;
+package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMG;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 
 final class SMGJoinTargetObjects {
   private SMGJoinStatus status;

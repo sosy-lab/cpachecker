@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien2.SMGJoin;
+package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -30,10 +30,10 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.cpalien2.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.cpalien2.CLangStackFrame;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.cpalien.CLangStackFrame;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 
 final public class SMGJoin {
   static public void performChecks(boolean pOn) {

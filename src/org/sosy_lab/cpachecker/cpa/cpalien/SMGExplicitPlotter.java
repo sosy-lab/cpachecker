@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien2;
+package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,7 +31,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState.MemoryLocation;
 
