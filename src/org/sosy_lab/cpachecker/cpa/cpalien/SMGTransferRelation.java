@@ -744,8 +744,13 @@ public class SMGTransferRelation implements TransferRelation {
         }
 
       } else {
-        logger.log(Level.FINEST, ">>> Handling statement: non-builtin function call");
-        newState = new SMGState(pState);
+        switch (handleUnknownFunctions) {
+        case "strict":
+          throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.cpalien.handleUnknownFunction option.");
+        case "assume_safe":
+          newState = new SMGState(pState);
+        }
+        throw new AssertionError();
       }
     } else {
       newState = new SMGState(pState);
@@ -1329,7 +1334,7 @@ public class SMGTransferRelation implements TransferRelation {
           switch (handleUnknownFunctions) {
           case "strict":
             throw new CPATransferException(
-                "Unknown function may be unsafe. See the cpa.cpalien.handleUnknownFunction option.");
+                "Unknown function '" + functionName + "' may be unsafe. See the cpa.cpalien.handleUnknownFunction option.");
           case "assume_safe":
             return SMGUnknownValue.getInstance();
           }
