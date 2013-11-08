@@ -74,6 +74,12 @@ public class CPAlienCPA implements ConfigurableProgramAnalysis {
   @Option(name="runtimeCheck", description = "Sets the level of runtime checking: NONE, HALF, FULL")
   private SMGRuntimeCheck runtimeCheck = SMGRuntimeCheck.NONE;
 
+  @Option(name="memoryErrors", description = "Determines if memory errors are target states")
+  private boolean memoryErrors = true;
+
+  @Option(name="unknownOnUndefined", description = "Emit messages when we encounter non-target undefined behavior")
+  private boolean unknownOnUndefined = true;
+
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
@@ -92,6 +98,9 @@ public class CPAlienCPA implements ConfigurableProgramAnalysis {
     mergeOperator = MergeSepOperator.getInstance();
     stopOperator = new StopSepOperator(abstractDomain);
     transferRelation = new SMGTransferRelation(config, logger, machineModel);
+
+    SMGState.setTargetMemoryErrors(memoryErrors);
+    SMGState.setUnknownOnUndefined(unknownOnUndefined);
   }
 
   public MachineModel getMachineModel() {
