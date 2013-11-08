@@ -149,6 +149,7 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
 
     @Override
     public void run() {// TODO how to integrate shutdown notifier in here, unprotected access to stats
+      // ExecutorService one possibility
       StopOperator stop = cpa.getStopOperator();
       Collection<? extends AbstractState> successors;
       for (int i=start;i<start+numElem;i++) {
