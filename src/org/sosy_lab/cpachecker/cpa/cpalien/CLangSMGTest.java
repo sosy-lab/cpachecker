@@ -47,6 +47,7 @@ import com.google.common.collect.ImmutableList;
 public class CLangSMGTest {
 
   private CType mockType = mock(CType.class);
+  private CType returnType = mock(CType.class);
   private CFunctionType functionType = mock(CFunctionType.class);
   private CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
   private CLangStackFrame sf;
