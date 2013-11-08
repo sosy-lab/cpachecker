@@ -113,9 +113,12 @@ final class SMGJoinValues {
     inputSMG2 = pSMG2;
     destSMG = pDestSMG;
 
-    if (SMGJoinValues.joinValuesIdentical(this, pValue1, pValue2)) {
-      return;
-    }
+//    TODO: Currently, this happens even when we join different SMGs, which have identical sbymbolic values,
+//          but are not really identical. We might need to relabel the values before the full join
+//          to ensure the values are disjunct
+//    if (SMGJoinValues.joinValuesIdentical(this, pValue1, pValue2)) {
+//      return;
+//    }
 
     if (SMGJoinValues.joinValuesAlreadyJoined(this, pValue1, pValue2)) {
       return;
