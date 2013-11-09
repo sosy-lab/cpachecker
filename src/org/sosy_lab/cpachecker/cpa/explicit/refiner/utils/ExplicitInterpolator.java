@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -128,7 +129,7 @@ public class ExplicitInterpolator {
     }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
-    ExplicitState initialState      = new ExplicitState(PathCopyingPersistentTreeMap.copyOf(inputInterpolant));
+    ExplicitState initialState      = new ExplicitState(MemoryLocation.transform(PathCopyingPersistentTreeMap.copyOf(inputInterpolant)));
     ExplicitState initialSuccessor  = getInitialSuccessor(initialState, errorPath.get(offset));
     if (initialSuccessor == null) {
       return null;
