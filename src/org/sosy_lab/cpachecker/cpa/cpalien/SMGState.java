@@ -43,8 +43,8 @@ import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoinStatus;
-import org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState;
-import org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class SMGState implements AbstractQueryableState {
