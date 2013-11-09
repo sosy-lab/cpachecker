@@ -103,8 +103,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGState;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGState;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.Memory;
 import org.sosy_lab.cpachecker.cpa.pointer.Pointer;
@@ -893,8 +893,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       super(pAssignableState, pTruthValue);
       checkNotNull(pSmgState);
-      expressionEvaluator = new SMGExplicitCommunicator(pAssignableState, functionName,
-          pSmgState, machineModel, logger, edge);
+      expressionEvaluator = null;/*new SMGExplicitCommunicator(pAssignableState, functionName,
+          pSmgState, machineModel, logger, edge);*/
       smgState = pSmgState;
     }
 
@@ -1176,10 +1176,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       throw new UnrecognizedCCodeException("Bulit in function free has no parameter", edge, functionCall);
     }
 
-    SMGExplicitCommunicator cc = new SMGExplicitCommunicator(pNewElement, functionName, pSmgState,
-        machineModel, logger, edge);
+    SMGExplicitCommunicator cc = null;/*new SMGExplicitCommunicator(pNewElement, functionName, pSmgState,
+        machineModel, logger, edge);*/
 
-    SMGAddressValue address;
+    SMGAddressValue address;/*
     try {
       address = cc.evaluateSMGAddressExpression(pointerExp);
     } catch (CPATransferException e) {
@@ -1193,7 +1193,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     pNewElement.forgetValuesWithIdentifier(address.getObject().getLabel());
-
+*/
     return pNewElement;
   }
 
@@ -1283,8 +1283,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   private Long resolveValue(SMGState pSmgState, CExpression rValue)
       throws UnrecognizedCCodeException {
 
-    SMGExplicitCommunicator cc = new SMGExplicitCommunicator(oldState, functionName,
-        pSmgState, machineModel, logger, edge);
+    SMGExplicitCommunicator cc = null;/*new SMGExplicitCommunicator(oldState, functionName,
+        pSmgState, machineModel, logger, edge)*/;
 
     return cc.evaluateExpression(rValue);
   }
@@ -1292,8 +1292,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   private MemoryLocation resolveMemoryLocation(SMGState pSmgState, CExpression lValue)
       throws UnrecognizedCCodeException {
 
-    SMGExplicitCommunicator cc =
-        new SMGExplicitCommunicator(oldState, functionName, pSmgState, machineModel, logger, edge);
+    SMGExplicitCommunicator cc =null; /*
+        new SMGExplicitCommunicator(oldState, functionName, pSmgState, machineModel, logger, edge);*/
 
     return cc.evaluateLeftHandSide(lValue);
   }
