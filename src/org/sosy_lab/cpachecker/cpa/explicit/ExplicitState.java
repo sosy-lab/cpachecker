@@ -119,7 +119,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param variableName the name of the variable to be removed
    */
   public void forget(String variableName) {
-    constantsMap = constantsMap.removeAndCopy(MemoryLocation.valueOf(variableName));
+    forget(MemoryLocation.valueOf(variableName));
   }
 
   /**
@@ -164,7 +164,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @return the value associated with the given variable
    */
   public Long getValueFor(String variableName) {
-    return checkNotNull(constantsMap.get(MemoryLocation.valueOf(variableName)));
+    return getValueFor(MemoryLocation.valueOf(variableName));
   }
 
   /**
@@ -185,7 +185,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @return true, if the variable is contained, else false
    */
   public boolean contains(String variableName) {
-    return constantsMap.containsKey(MemoryLocation.valueOf(variableName));
+    return contains(MemoryLocation.valueOf(variableName));
   }
 
   /**
