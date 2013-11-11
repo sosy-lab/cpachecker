@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -838,13 +839,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     final SSAMapBuilder ssa = oldFormula.getSsa().builder();
     final Constraints constraints = new Constraints(bfmgr);
     final PointerTargetSetBuilder pts = oldFormula.getPointerTargetSet().builder();
-    final StatementToFormulaWithUFVisitor statementVisitor = getStatementToFormulaWithUFVisitor(edge,
-                                                                                                function,
-                                                                                                ssa,
-                                                                                                constraints,
-                                                                                                pts);
 
-    BooleanFormula edgeFormula = createFormulaForEdge(edge, statementVisitor);
+    BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints, pts);
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
 
     final SSAMap newSsa = ssa.build();
@@ -1108,8 +1104,29 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   private BooleanFormula createFormulaForEdge(final CFAEdge edge,
-                                              final StatementToFormulaWithUFVisitor statementVisitor)
-  throws CPATransferException {
+      final String function, final SSAMapBuilder ssa, final Constraints constraints,
+      final PointerTargetSetBuilder pts) throws CPATransferException {
+
+    if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
+      List<BooleanFormula> multiEdgeFormulas = new ArrayList<>(((MultiEdge)edge).getEdges().size());
+
+      // unroll the MultiEdge
+      for (CFAEdge singleEdge : (MultiEdge)edge) {
+        if (singleEdge instanceof BlankEdge) {
+          continue;
+        }
+        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, constraints, pts));
+      }
+
+      // Big conjunction at the end is better than creating a new conjunction
+      // after each edge for some SMT solvers.
+      return bfmgr.and(multiEdgeFormulas);
+    }
+
+    // A new visitor for each edge produces correct log and error messages.
+    final StatementToFormulaWithUFVisitor statementVisitor =
+        getStatementToFormulaWithUFVisitor(edge, function, ssa, constraints, pts);
+
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       final CStatementEdge statementEdge = (CStatementEdge) edge;
@@ -1143,17 +1160,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       // get the expression from the summary edge
       final CFunctionSummaryEdge summaryEdge = ((CFunctionReturnEdge) edge).getSummaryEdge();
       return makeExitFunction(summaryEdge, statementVisitor);
-    }
-
-    case MultiEdge: {
-      BooleanFormula multiEdgeFormula = bfmgr.makeBoolean(true);
-      for (CFAEdge singleEdge : (MultiEdge)edge) {
-        if (singleEdge instanceof BlankEdge) {
-          continue;
-        }
-        multiEdgeFormula = bfmgr.and(multiEdgeFormula, createFormulaForEdge(singleEdge, statementVisitor));
-      }
-      return multiEdgeFormula;
     }
 
     default:
