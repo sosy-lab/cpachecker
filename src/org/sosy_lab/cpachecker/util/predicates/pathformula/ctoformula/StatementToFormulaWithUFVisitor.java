@@ -224,7 +224,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                          "The void * pointer %s to a deferred allocation escaped form tracking! " +
                            "Allocating array void[%d]. (in the following line(s):\n %s)",
                          pointerVariable,
-                         deferredAllocationPool.getSize(),
+                         size.getValue(),
                          edge.toString());
     for (final String baseVariable : deferredAllocationPool.getBaseVariables()) {
       conv.makeAllocation(deferredAllocationPool.wasAllocationZeroing(),
