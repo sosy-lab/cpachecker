@@ -150,7 +150,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         if (typeSize != size) {
           conv.logger.logf(Level.WARNING,
                            "Array size of the revealed type differs form the allocation size: %s : %d != %d",
-                           type.toString(),
+                           type,
                            typeSize,
                            size);
         }
@@ -161,7 +161,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         if (n == 0 || remainder != 0) {
           conv.logger.logf(Level.WARNING,
                            "Can't refine allocation type, but the sizes differ: %s : %d != %d",
-                           type.toString(),
+                           type,
                            typeSize +
                            size);
           return type;
@@ -207,7 +207,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                            (!isReturn ? "Assignment to the" : "Destroying the") +
                              " void * pointer  %s produces garbage! (in the following line(s):\n %s)",
                            pointerVariable,
-                           edge.toString());
+                           edge);
     }
   }
 
@@ -225,7 +225,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                            "Allocating array void[%d]. (in the following line(s):\n %s)",
                          pointerVariable,
                          size.getValue(),
-                         edge.toString());
+                         edge);
     for (final String baseVariable : deferredAllocationPool.getBaseVariables()) {
       conv.makeAllocation(deferredAllocationPool.wasAllocationZeroing(),
                           new CArrayType(false,
