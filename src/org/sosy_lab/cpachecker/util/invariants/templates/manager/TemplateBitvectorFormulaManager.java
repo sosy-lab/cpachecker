@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.templates.manager;
 
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.util.invariants.templates.NonTemplate;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateNumber;
@@ -222,6 +224,15 @@ public class TemplateBitvectorFormulaManager implements BitvectorFormulaManager 
     return T;
   }
 
+  @Override
+  public BitvectorFormula makeBitvector(int pLength, BigInteger pI) {
+    return makeBitvector(pLength, pI.longValue());
+  }
+
+  @Override
+  public BitvectorFormula makeBitvector(int pLength, String pI) {
+    return makeBitvector(pLength, Long.parseLong(pI));
+  }
 
   @Override
   public BitvectorFormula makeVariable(int pLength, String pVar) {

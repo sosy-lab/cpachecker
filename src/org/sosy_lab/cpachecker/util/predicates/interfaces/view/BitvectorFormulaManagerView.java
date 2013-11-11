@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -43,6 +45,16 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
     return bmgr.not(equal(pNumber1, pNumber2));
   }
   public BitvectorFormula makeBitvector(FormulaType<BitvectorFormula> pType, long pI) {
+    BitvectorType t = (BitvectorType)pType;
+    return makeBitvector(t.getSize(), pI);
+  }
+
+  public BitvectorFormula makeBitvector(FormulaType<BitvectorFormula> pType, BigInteger pI) {
+    BitvectorType t = (BitvectorType)pType;
+    return makeBitvector(t.getSize(), pI);
+  }
+
+  public BitvectorFormula makeBitvector(FormulaType<BitvectorFormula> pType, String pI) {
     BitvectorType t = (BitvectorType)pType;
     return makeBitvector(t.getSize(), pI);
   }
@@ -212,6 +224,16 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, long pI) {
+    return wrapInView(manager.makeBitvector(pLength, pI));
+  }
+
+  @Override
+  public BitvectorFormula makeBitvector(int pLength, BigInteger pI) {
+    return wrapInView(manager.makeBitvector(pLength, pI));
+  }
+
+  @Override
+  public BitvectorFormula makeBitvector(int pLength, String pI) {
     return wrapInView(manager.makeBitvector(pLength, pI));
   }
 

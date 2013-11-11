@@ -170,55 +170,6 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     return result;
   }
 
-//  @Override
-//  public Formula visit(final CCharLiteralExpression e) throws UnrecognizedCCodeException {
-//    // we just take the byte value
-//    FormulaType<?> t = conv.getFormulaTypeFromCType(e.getExpressionType(), pts);
-//    return conv.fmgr.makeNumber(t, e.getCharacter());
-//  }
-//
-//  @Override
-//  public Formula visit(final CIntegerLiteralExpression e) throws UnrecognizedCCodeException {
-//    FormulaType<?> t = conv.getFormulaTypeFromCType(e.getExpressionType(), pts);
-//    return conv.fmgr.makeNumber(t, e.getValue().longValue());
-//  }
-//
-//  @Override
-//  public Formula visit(final CFloatLiteralExpression e) throws UnrecognizedCCodeException {
-//    FormulaType<?> t = conv.getFormulaTypeFromCType(e.getExpressionType(), pts);
-//    final BigDecimal value = e.getValue();
-//    if (value.scale() <= 0) {
-//      // actually an integral number
-//      return conv.fmgr.makeNumber(t, convertBigDecimalToLong(value, e));
-//    } else {
-//      // represent x.y by xy / (10^z) where z is the number of digits in y
-//      // (the "scale" of a BigDecimal)
-//      final BigDecimal multipliedValue = value.movePointRight(value.scale()); // this is "xy"
-//      final long numerator = convertBigDecimalToLong(multipliedValue, e);
-//      final BigDecimal denominatorDecimal = BigDecimal.ONE.scaleByPowerOfTen(value.scale()); // this is "10^z"
-//      final long denominator = convertBigDecimalToLong(denominatorDecimal, e);
-//
-//      assert denominator > 0;
-//
-//      return conv.fmgr.makeDivide(conv.fmgr.makeNumber(t, numerator),
-//                                  conv.fmgr.makeNumber(t, denominator),
-//                                  true);
-//    }
-//  }
-//
-//  private static long convertBigDecimalToLong(final BigDecimal d, final CFloatLiteralExpression e)
-//  throws NumberFormatException {
-//    try {
-//      return d.longValueExact();
-//    } catch (ArithmeticException exn) {
-//      final NumberFormatException nfe = new NumberFormatException("Cannot represent floating point literal " +
-//                                                                  e.toASTString() + " as fraction because " +
-//                                                                  d + " cannot be represented as a long");
-//      nfe.initCause(exn);
-//      throw nfe;
-//    }
-//  }
-
   @Override
   public Formula visit(final CIdExpression e) throws UnrecognizedCCodeException {
     Variable variable = e.accept(baseVisitor);

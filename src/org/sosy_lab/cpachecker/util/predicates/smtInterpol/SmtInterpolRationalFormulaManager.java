@@ -26,6 +26,9 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.isNumber;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
@@ -67,9 +70,27 @@ class SmtInterpolRationalFormulaManager extends AbstractRationalFormulaManager<T
   @Override
   protected Term makeNumberImpl(long i) {
     if (useIntegers) {
-      return env.numeral(Long.toString(i));
+      return env.numeral(BigInteger.valueOf(i));
     } else {
-      return env.decimal(Long.toString(i));
+      return env.decimal(BigDecimal.valueOf(i));
+    }
+  }
+
+  @Override
+  protected Term makeNumberImpl(BigInteger pI) {
+    if (useIntegers) {
+      return env.numeral(pI);
+    } else {
+      return env.decimal(new BigDecimal(pI));
+    }
+  }
+
+  @Override
+  protected Term makeNumberImpl(String pI) {
+    if (useIntegers) {
+      return env.numeral(pI);
+    } else {
+      return env.decimal(pI);
     }
   }
 

@@ -23,12 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+import java.math.BigInteger;
+
 
 /**
  * This interface represents the Rational-Theory
  */
 public interface RationalFormulaManager {
   public RationalFormula makeNumber(long pI);
+  public RationalFormula makeNumber(BigInteger pI);
+  public RationalFormula makeNumber(String pI);
 
   public RationalFormula makeVariable(String pVar);
 
