@@ -87,7 +87,7 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
       // enum constant
       if (((CEnumerator)expr.getDeclaration()).hasValue()) {
         long v = ((CEnumerator)expr.getDeclaration()).getValue();
-        new CIntegerLiteralExpression(expr.getFileLocation(),
+        return new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(v));
       }
     }
@@ -101,7 +101,7 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
       if (init instanceof CExpression) {
         Long v = getValue((CExpression)init);
         if (v != null) {
-          new CIntegerLiteralExpression(expr.getFileLocation(),
+          return new CIntegerLiteralExpression(expr.getFileLocation(),
               expr.getExpressionType(), BigInteger.valueOf(v));
         }
       }
