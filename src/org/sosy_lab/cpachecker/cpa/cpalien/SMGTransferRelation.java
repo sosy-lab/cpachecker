@@ -548,8 +548,7 @@ public class SMGTransferRelation implements TransferRelation {
       returnExp = CNumericTypes.ZERO; // this is the default in C
     }
 
-    logger.log(Level.FINEST, "Handling return Statement: ",
-        returnExp.toASTString());
+    logger.log(Level.FINEST, "Handling return Statement: ", returnExp);
 
     CType expType = expressionEvaluator.getRealExpressionType(returnExp);
     SMGObject tmpFieldMemory = smgState.getFunctionReturnObject();
@@ -628,7 +627,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
 
-    logger.log(Level.FINEST, "Handling function call: " + functionEntryNode.getFunctionName());
+    logger.log(Level.FINEST, "Handling function call: ", functionEntryNode.getFunctionName());
 
     SMGState newState = new SMGState(smgState);
 
@@ -779,7 +778,7 @@ public class SMGTransferRelation implements TransferRelation {
       CRightHandSide rValue) throws CPATransferException {
 
     SMGState newState;
-    logger.log(Level.FINEST, "Handling assignment:", lValue.toASTString(), "=", rValue.toASTString());
+    logger.log(Level.FINEST, "Handling assignment:", lValue, "=", rValue);
 
     LValueAssignmentVisitor visitor = expressionEvaluator.getLValueAssignmentVisitor(cfaEdge, state);
 
@@ -936,7 +935,7 @@ public class SMGTransferRelation implements TransferRelation {
   }
 
   private SMGState handleVariableDeclaration(SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
-    logger.log(Level.FINEST, "Handling variable declaration:", pVarDecl.toASTString());
+    logger.log(Level.FINEST, "Handling variable declaration:", pVarDecl);
 
     String varName = pVarDecl.getName();
     CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
