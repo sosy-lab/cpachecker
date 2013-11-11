@@ -32,8 +32,8 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState;
-import org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;

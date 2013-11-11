@@ -101,8 +101,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.LValueAssignmentVisitor;
-import org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState;
-import org.sosy_lab.cpachecker.cpa.explicit2.SMGExplicitCommunicator;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.explicit.SMGExplicitCommunicator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
