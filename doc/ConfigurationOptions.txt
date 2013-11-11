@@ -270,6 +270,10 @@ cfa.callgraph.file = "functionCalls.dot"
 # dereferenced field access the expression ischecked if it is 0
 cfa.checkNullPointers = false
 
+# Whether to have a single target node per function for all invalid null
+# pointer dereferences or to have separate nodes for each dereference
+cfa.checkNullPointers.singleTargetPerFunction = true
+
 # export CFA as .dot file
 cfa.export = true
 

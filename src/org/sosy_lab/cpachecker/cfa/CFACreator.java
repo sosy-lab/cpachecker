@@ -355,7 +355,8 @@ public class CFACreator {
       CFASimplifier.simplifyCFA(cfa);
 
       if (checkNullPointers) {
-        CFATransformations.detectNullPointers(cfa, logger);
+        CFATransformations transformations = new CFATransformations(logger, config);
+        transformations.detectNullPointers(cfa);
       }
 
       // add function pointer edges
