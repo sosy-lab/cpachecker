@@ -39,9 +39,12 @@ import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
@@ -370,6 +373,54 @@ public class CFAUtils {
   }
 
   /**
+   * This Visitor searches for backwards edges in the CFA, if some backwards edges
+   * were found can be obtained by calling the method hasBackwardsEdges()
+   */
+  static class FindBackwardsEdgesVisitor extends DefaultCFAVisitor {
+
+    private boolean hasBackwardsEdges = false;
+
+    @Override
+    public TraversalProcess visitNode(CFANode pNode) {
+
+      if (pNode.getNumLeavingEdges() == 0) {
+        return TraversalProcess.CONTINUE;
+      } else if (pNode.getNumLeavingEdges() == 1
+                 && pNode.getLeavingEdge(0).getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId()) {
+
+        hasBackwardsEdges = true;
+        return TraversalProcess.ABORT;
+      } else if (pNode.getNumLeavingEdges() == 2
+                 && (pNode.getLeavingEdge(0).getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId() ||
+                 pNode.getLeavingEdge(1).getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId())) {
+        hasBackwardsEdges = true;
+        return TraversalProcess.ABORT;
+      } else if (pNode.getNumLeavingEdges() > 2) {
+        throw new CFAGenerationRuntimeException("forgotten case in traversing cfa with more than 2 leaving edges");
+      } else {
+        return TraversalProcess.CONTINUE;
+      }
+    }
+
+    public boolean hasBackwardsEdges() {
+      return hasBackwardsEdges;
+    }
+  }
+
+  /**
+   * Searches for backwards edges from a given starting node
+   * @param actNode The node where the search is started
+   * @return indicates if a backwards edge was found
+   */
+  private static boolean hasBackWardsEdges(CFANode rootNode) {
+    FindBackwardsEdgesVisitor visitor = new FindBackwardsEdgesVisitor();
+
+    CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(rootNode, visitor);
+
+    return visitor.hasBackwardsEdges();
+  }
+
+  /**
    * Find all loops inside a given set of CFA nodes.
    * The nodes in the given set may not be connected
    * with any nodes outside of this set.
@@ -381,6 +432,13 @@ public class CFAUtils {
    * @throws ParserException
    */
   public static Collection<Loop> findLoops(SortedSet<CFANode> nodes, Language language) throws ParserException {
+
+    // if there are no backwards directed edges, there are no loops, so we do
+    // not need to search for them
+    if (!hasBackWardsEdges((CFANode)(nodes.toArray()[1]))) {
+      return new ArrayList<>();
+    }
+
     nodes = new TreeSet<>(nodes); // copy nodes because we change it
 
     // We need to store some information per pair of CFANodes.
