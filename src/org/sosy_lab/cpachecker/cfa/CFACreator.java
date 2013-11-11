@@ -677,7 +677,7 @@ public class CFACreator {
     // write CFA to file
     if (exportCfa) {
       try (Writer w = Files.newBufferedWriter(exportCfaFile, Charset.defaultCharset())) {
-        DOTBuilder.generateDOT(w, cfa.getAllFunctionHeads(), cfa.getMainFunction());
+        DOTBuilder.generateDOT(w, cfa);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
           "Could not write CFA to dot file");
