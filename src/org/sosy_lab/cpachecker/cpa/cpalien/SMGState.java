@@ -59,7 +59,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
   private SMGState predecessor;
   private final int id;
 
-  private SMGRuntimeCheck runtimeCheckLevel;
+  private static SMGRuntimeCheck runtimeCheckLevel = SMGRuntimeCheck.NONE;
 
   //TODO These flags are not enough, they should contain more about the nature of the error.
   private boolean invalidWrite = false;
@@ -114,7 +114,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
     logger = pLogger;
     predecessor = null;
     id = id_counter++;
-    runtimeCheckLevel = SMGRuntimeCheck.NONE;
   }
 
   /**
@@ -130,7 +129,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
     heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
     predecessor = pOriginalState.predecessor;
-    runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
     id = id_counter++;
   }
 
@@ -143,22 +141,8 @@ public class SMGState implements AbstractQueryableState, Targetable {
    * {@link SMGRuntimeCheck.HALF} or {@link SMGRuntimeCheck.FULL}
    * @throws SMGInconsistentException
    */
-  final public void setRuntimeCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
+  static final public void setRuntimeCheck(SMGRuntimeCheck pLevel) {
     runtimeCheckLevel = pLevel;
-
-    if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.FULL)) {
-      SMGJoin.performChecks(true);
-    } else {
-      SMGJoin.performChecks(false);
-    }
-
-    if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.HALF)) {
-      CLangSMG.setPerformChecks(true, logger);
-    }
-    else {
-      CLangSMG.setPerformChecks(false, logger);
-    }
-    this.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   /**
@@ -280,7 +264,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
    * @throws SMGInconsistentException
    */
   final public void performConsistencyCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
-    if (this.runtimeCheckLevel.isFinerOrEqualThan(pLevel)) {
+    if (SMGState.runtimeCheckLevel.isFinerOrEqualThan(pLevel)) {
       if ( ! CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap) ) {
         throw new SMGInconsistentException("SMG was found inconsistent during a check");
       }
