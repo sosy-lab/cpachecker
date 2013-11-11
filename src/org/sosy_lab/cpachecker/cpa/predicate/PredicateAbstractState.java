@@ -177,7 +177,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  static PredicateAbstractState mkAbstractionState(BooleanFormulaManager bfmgr,
+  public static PredicateAbstractState mkAbstractionState(BooleanFormulaManager bfmgr,
       PathFormula pF, AbstractionFormula pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations,
       @Nullable ViolatedProperty pViolatedProperty) {

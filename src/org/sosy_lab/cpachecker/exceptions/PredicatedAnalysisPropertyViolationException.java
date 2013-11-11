@@ -21,21 +21,31 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm;
+package org.sosy_lab.cpachecker.exceptions;
 
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public interface Algorithm {
+/**
+ * Exception if states in predicated analysis are created which violate property to be checked
+ */
+public class PredicatedAnalysisPropertyViolationException extends CPAException{
 
-  /**
-   * Run the algorithm on the given set of abstract states and the given waitlist.
-   *
-   * @param reachedSet Input.
-   * @return False if the analysis was unsound (this is not the analysis result!).
-   * @throws CPAException
-   * @throws InterruptedException
-   */
-  public boolean run(ReachedSet reachedSet) throws CPAException, InterruptedException, PredicatedAnalysisPropertyViolationException;
+  private static final long serialVersionUID = 6723698516455641373L;
+
+  private final AbstractState failureElem;
+
+  public PredicatedAnalysisPropertyViolationException(String pMsg, AbstractState failureCause) {
+    super(pMsg);
+    failureElem = failureCause;
+  }
+
+  public PredicatedAnalysisPropertyViolationException(String msg, Throwable cause, AbstractState failureCause) {
+    super(msg, cause);
+    failureElem = failureCause;
+  }
+
+  public AbstractState getFailureCause(){
+    return failureElem;
+  }
+
 }

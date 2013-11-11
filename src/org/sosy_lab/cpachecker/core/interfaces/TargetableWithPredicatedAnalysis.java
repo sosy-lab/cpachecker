@@ -21,21 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm;
+package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 
-public interface Algorithm {
+
+public interface TargetableWithPredicatedAnalysis extends Targetable{
 
   /**
-   * Run the algorithm on the given set of abstract states and the given waitlist.
    *
-   * @param reachedSet Input.
-   * @return False if the analysis was unsound (this is not the analysis result!).
-   * @throws CPAException
-   * @throws InterruptedException
+   * @return uninstantiated formula describing by formula why it is a target state, e.g. because x>0, false if it is called and it is not a target state
    */
-  public boolean run(ReachedSet reachedSet) throws CPAException, InterruptedException, PredicatedAnalysisPropertyViolationException;
+  public BooleanFormula getErrorCondition(BooleanFormulaManager bfmgr);
+
 }
