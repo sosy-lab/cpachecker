@@ -594,7 +594,6 @@ public class SMGExpressionEvaluator {
     @Override
     public SMGAddressValue visit(CBinaryExpression binaryExp) throws CPATransferException {
 
-      BinaryOperator binaryOperator = binaryExp.getOperator();
       CExpression lVarInBinaryExp = binaryExp.getOperand1();
       CExpression rVarInBinaryExp = binaryExp.getOperand2();
       CType lVarInBinaryExpType = getRealExpressionType(lVarInBinaryExp);
@@ -605,7 +604,7 @@ public class SMGExpressionEvaluator {
 
       CExpression address = null;
       CExpression pointerOffset = null;
-      CType addressType = null;
+      CPointerType addressType = null;
 
       if (lVarIsAddress == rVarIsAddress) {
         return SMGUnknownValue.getInstance(); // If both or neither are Addresses,
@@ -613,73 +612,21 @@ public class SMGExpressionEvaluator {
       } else if (lVarIsAddress) {
         address = lVarInBinaryExp;
         pointerOffset = rVarInBinaryExp;
-        addressType = lVarInBinaryExpType;
+        addressType = (CPointerType) lVarInBinaryExpType;
       } else if (rVarIsAddress) {
         address = rVarInBinaryExp;
         pointerOffset = lVarInBinaryExp;
-        addressType = rVarInBinaryExpType;
+        addressType = (CPointerType) rVarInBinaryExpType;
       } else {
         // TODO throw Exception, no Pointer
         return SMGUnknownValue.getInstance();
       }
 
-      switch (binaryOperator) {
-      case PLUS:
-      case MINUS: {
+      CType typeOfPointer = addressType.getType().getCanonicalType();
 
-        SMGSymbolicValue addressVal = address.accept(this);
-
-        if (!(addressVal instanceof SMGAddressValue)) { return SMGUnknownValue.getInstance(); }
-
-        SMGAddressValue addressValue = (SMGAddressValue) addressVal;
-
-        ExplicitValueVisitor v = new ExplicitValueVisitor(smgState, cfaEdge);
-
-        SMGExplicitValue offsetValue = pointerOffset.accept(v);
-
-        if (addressValue.isUnknown() || offsetValue.isUnknown()) { return addressValue; }
-
-        SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, addressType));
-
-        SMGExplicitValue pointerOffsetValue = offsetValue.multiply(typeSize);
-
-        SMGObject target = addressValue.getObject();
-
-        SMGExplicitValue addressOffset = addressValue.getOffset();
-
-        switch (binaryOperator) {
-        case PLUS:
-          return createAddress(smgState, target, addressOffset.add(pointerOffsetValue));
-        case MINUS:
-          if (lVarIsAddress) {
-            return createAddress(smgState, target, addressOffset.subtract(pointerOffsetValue));
-          } else {
-            return createAddress(smgState, target, pointerOffsetValue.subtract(addressOffset));
-          }
-        default:
-          throw new AssertionError();
-        }
-      }
-
-      case EQUALS:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL:
-        throw new UnrecognizedCCodeException("Misinterpreted the expression type of " + binaryExp + " as pointer type",
-            cfaEdge, binaryExp);
-      case DIVIDE:
-      case MULTIPLY:
-      case SHIFT_LEFT:
-      case MODULO:
-      case SHIFT_RIGHT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-      default:
-        return SMGUnknownValue.getInstance();
-      }
+      return handlePointerArithmetic(getSmgState(), getCfaEdge(),
+          address, pointerOffset, typeOfPointer, lVarIsAddress,
+          binaryExp);
     }
 
     @Override
@@ -690,6 +637,81 @@ public class SMGExpressionEvaluator {
     @Override
     public SMGAddressValue visit(CFieldReference exp) throws CPATransferException {
       return getAddressFromSymbolicValue(smgState, super.visit(exp));
+    }
+
+    @Override
+    public SMGAddressValue visit(CCastExpression pCast) throws CPATransferException {
+      // TODO Maybe cast values to pointer to null Object with offset as explicit value
+      // for pointer arithmetic substraction ((void *) 4) - ((void *) 3)?
+      return getAddressFromSymbolicValue(smgState, super.visit(pCast));
+    }
+  }
+
+  private SMGAddressValue handlePointerArithmetic(SMGState smgState,
+      CFAEdge cfaEdge, CExpression address, CExpression pointerOffset,
+      CType typeOfPointer, boolean lVarIsAddress,
+      CBinaryExpression binaryExp) throws CPATransferException {
+
+    BinaryOperator binaryOperator = binaryExp.getOperator();
+
+    switch (binaryOperator) {
+    case PLUS:
+    case MINUS: {
+
+      SMGAddressValue addressValue = evaluateAddress(smgState, cfaEdge, address);
+
+      SMGExplicitValue offsetValue = evaluateExplicitValue(smgState, cfaEdge, pointerOffset);
+
+      if (addressValue.isUnknown() || offsetValue.isUnknown()) {
+        return SMGUnknownValue.getInstance();
+      }
+
+      SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, typeOfPointer));
+
+      SMGExplicitValue pointerOffsetValue = offsetValue.multiply(typeSize);
+
+      SMGObject target = addressValue.getObject();
+
+      SMGExplicitValue addressOffset = addressValue.getOffset();
+
+      switch (binaryOperator) {
+      case PLUS:
+        return createAddress(smgState, target, addressOffset.add(pointerOffsetValue));
+      case MINUS:
+        if (lVarIsAddress) {
+          return createAddress(smgState, target, addressOffset.subtract(pointerOffsetValue));
+        } else {
+          // TODO throw Exception, is invalid expression
+          return SMGUnknownValue.getInstance();
+        }
+      default:
+        throw new AssertionError();
+      }
+    }
+
+    case EQUALS:
+    case NOT_EQUALS:
+    case GREATER_THAN:
+    case GREATER_EQUAL:
+    case LESS_THAN:
+    case LESS_EQUAL:
+      throw new UnrecognizedCCodeException("Misinterpreted the expression type of " + binaryExp + " as pointer type",
+          cfaEdge, binaryExp);
+    case DIVIDE:
+    case MULTIPLY:
+    case MODULO:
+    case SHIFT_LEFT:
+    case SHIFT_RIGHT:
+    case BINARY_AND:
+    case BINARY_OR:
+    case BINARY_XOR:
+      throw new UnrecognizedCCodeException("The operands of binary Expression "
+          + binaryExp.toASTString() + " must have arithmetic types. "
+          + address.toASTString() + " has a non arithmetic type",
+          cfaEdge, binaryExp);
+
+    default:
+      return SMGUnknownValue.getInstance();
     }
   }
 
@@ -812,28 +834,13 @@ public class SMGExpressionEvaluator {
 
     @Override
     public SMGAddress visit(CUnaryExpression unaryExpression) throws CPATransferException {
-
-      UnaryOperator unaryOperator = unaryExpression.getOperator();
-
-      switch (unaryOperator) {
-
-      case SIZEOF:
-        throw new UnrecognizedCCodeException("Misinterpreted the expression type of " + unaryExpression
-            + " as array type", getCfaEdge(), unaryExpression);
-      case MINUS:
-      case NOT:
-      case TILDE:
-      case AMPER:
-      default:
-        // Can't evaluate these ArrayExpressions
-        return SMGAddress.UNKNOWN;
-      }
+      throw new AssertionError("The result of any unary expression " +
+          "cannot be an array type.");
     }
 
     @Override
     public SMGAddress visit(CBinaryExpression binaryExp) throws CPATransferException {
 
-      BinaryOperator binaryOperator = binaryExp.getOperator();
       CExpression lVarInBinaryExp = binaryExp.getOperand1();
       CExpression rVarInBinaryExp = binaryExp.getOperand2();
       CType lVarInBinaryExpType = getRealExpressionType(lVarInBinaryExp);
@@ -862,61 +869,11 @@ public class SMGExpressionEvaluator {
         return SMGAddress.UNKNOWN;
       }
 
-      switch (binaryOperator) {
-      case PLUS:
-      case MINUS: {
-
-        SMGAddress addressVal = address.accept(this);
-
-        if (addressVal.isUnknown()) { return addressVal; }
-
-        ExplicitValueVisitor v = new ExplicitValueVisitor(getSmgState(), getCfaEdge());
-
-        SMGExplicitValue offsetValue = arrayOffset.accept(v);
-
-        if (offsetValue.isUnknown()) { return SMGAddress.UNKNOWN; }
-
-        SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(getCfaEdge(), addressType));
-
-        SMGExplicitValue arrayOffsetValue = offsetValue.multiply(typeSize);
-
-        SMGObject target = addressVal.getObject();
-
-        SMGExplicitValue addressOffset = addressVal.getOffset();
-
-        switch (binaryOperator) {
-        case PLUS:
-          return SMGAddress.valueOf(target, addressOffset.add(addressOffset));
-        case MINUS:
-          if (lVarIsAddress) {
-            return SMGAddress.valueOf(target, addressOffset.subtract(arrayOffsetValue));
-          } else {
-            return SMGAddress.valueOf(target, arrayOffsetValue.subtract(addressOffset));
-          }
-        default:
-          throw new AssertionError();
-        }
-      }
-
-      case EQUALS:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL:
-        throw new UnrecognizedCCodeException("Misinterpreted the expression type of "
-            + binaryExp + " as pointer type", getCfaEdge(), binaryExp);
-      case DIVIDE:
-      case MULTIPLY:
-      case SHIFT_LEFT:
-      case MODULO:
-      case SHIFT_RIGHT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-      default:
-        return SMGAddress.UNKNOWN;
-      }
+      // a = &a[0]
+      SMGAddressValue result =
+          handlePointerArithmetic(getSmgState(), getCfaEdge(),
+              address, arrayOffset, addressType, lVarIsAddress, binaryExp);
+      return result.getAddress();
     }
 
     @Override
