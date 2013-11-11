@@ -89,17 +89,24 @@ public class SMGEdgeHasValue extends SMGEdge {
       throw new IllegalArgumentException("Call of overlapsWith() on Has-Value edges pair not originating from the same object");
     }
 
-    int myStart = offset;
     int otStart = other.getOffset();
 
-    int myEnd = myStart + pModel.getSizeof(type);
     int otEnd = otStart + pModel.getSizeof(other.getType());
 
-    if (myStart < otStart) {
-      return (myEnd > otStart);
+    return overlapsWith(otStart, otEnd, pModel);
+  }
 
-    } else if ( otStart < myStart ) {
-      return (otEnd > myStart);
+  public boolean overlapsWith(int pOtStart, int pOtEnd, MachineModel pModel) {
+
+    int myStart = offset;
+
+    int myEnd = myStart + pModel.getSizeof(type);
+
+    if (myStart < pOtStart) {
+      return (myEnd > pOtStart);
+
+    } else if (pOtStart < myStart) {
+      return (pOtEnd > myStart);
     }
 
     // Start offsets are equal, always overlap
