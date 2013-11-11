@@ -105,12 +105,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
   }
 
   DeferredAllocationPool mergeWith(final DeferredAllocationPool other) {
-    return new DeferredAllocationPool(PointerTargetSet.mergePersistentLists(this.pointerVariables, other.pointerVariables),
+    return new DeferredAllocationPool(PersistentList.merge(this.pointerVariables, other.pointerVariables),
                                       this.isZeroing && other.isZeroing,
                                       this.size != null && other.size != null ?
                                         this.size.getValue().equals(other.size.getValue()) ? this.size : null :
                                         this.size != null ? this.size : other.size,
-                                      PointerTargetSet.mergePersistentLists(this.baseVariables, other.baseVariables));
+                                      PersistentList.merge(this.baseVariables, other.baseVariables));
   }
 
   @Override
