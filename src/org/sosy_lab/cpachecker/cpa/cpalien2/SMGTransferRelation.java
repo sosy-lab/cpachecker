@@ -482,7 +482,7 @@ public class SMGTransferRelation implements TransferRelation {
       // to the return site of the caller function
       successor = handleExitFromFunction(smgState, returnEdge);
       String funcName = returnEdge.getPredecessor().getFunctionName();
-      if (funcName.equals("main") && checkForMemLeaksAtEveryFrameDrop) {
+      if (funcName.equals("main") || checkForMemLeaksAtEveryFrameDrop) {
         // Ugly, but I do not know how to do better
         // TODO: Handle leaks at any program exit point (abort, etc.)
         successor.dropStackFrame(funcName);
