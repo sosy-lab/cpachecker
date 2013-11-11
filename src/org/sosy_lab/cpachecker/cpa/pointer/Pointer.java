@@ -184,6 +184,18 @@ public class Pointer implements Cloneable {
     }
   }
 
+  public Pointer withOffset(long shift, Memory memory) {
+    Pointer result = this.clone();
+    result.addOffset(shift, false, memory);
+    return result;
+  }
+
+  public Pointer withUnknownOffset(Memory memory) {
+    Pointer result = this.clone();
+    result.addUnknownOffset(false, memory);
+    return result;
+  }
+
   public int getNumberOfTargets() {
     return targets.size();
   }
