@@ -794,6 +794,7 @@ public class CtoFormulaConverter {
    * @param pT2
    * @return
    */
+  @Deprecated
   CType getImplicitCType(CType pT1, CType pT2) {
     pT1 = pT1.getCanonicalType();
     pT2 = pT2.getCanonicalType();
