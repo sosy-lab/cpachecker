@@ -231,7 +231,7 @@ class RunExecutor():
                 timelimitThread.start()
 
             if MEMLIMIT in rlimits:
-                oomThread = _OomEventThread(cgroups[MEMORY], p)
+                oomThread = _OomEventThread(cgroups[MEMORY], p, rlimits[MEMLIMIT])
                 oomThread.start()
         
             logging.debug("waiting for: pid:{0}".format(p.pid))
@@ -413,11 +413,13 @@ class _OomEventThread(threading.Thread):
     https://www.kernel.org/doc/Documentation/cgroups/memory.txt
     https://access.redhat.com/site/documentation//en-US/Red_Hat_Enterprise_Linux/6/html/Resource_Management_Guide/sec-memory.html#ex-OOM-control-notifications
     """
-    def __init__(self, cgroup, process):
+    def __init__(self, cgroup, process, memlimit):
         super(_OomEventThread, self).__init__()
         daemon = True
         self._finished = threading.Event()
         self._process = process
+        self._memlimit = memlimit
+        self._cgroup = cgroup
 
         ofd = os.open(os.path.join(cgroup, 'memory.oom_control'), os.O_WRONLY)
         try:
@@ -446,6 +448,17 @@ class _OomEventThread(threading.Thread):
             if not self._finished.is_set():
                 logging.info('Killing process {0} due to out-of-memory event from kernel.'.format(self._process.pid))
                 _killSubprocess(self._process)
+
+                # We now need to increase the memory limit of this cgroup
+                # to give the process a chance to terminate
+                # 10MB ought to be enough
+                writeFile(str((self._memlimit + 10) * _BYTE_FACTOR * _BYTE_FACTOR),
+                          self._cgroup, 'memory.memsw.limit_in_bytes')
+
+                time.sleep(0.1)
+                if self._process.poll() is None:
+                    logging.warn('Killing process {0} had no effect.'.format(self._process.pid))
+
         finally:
             os.close(self._efd)
 
@@ -491,10 +504,6 @@ def _killSubprocess(process):
     '''
     try:
         os.killpg(process.pid, signal.SIGKILL)
-        time.sleep(0.1)
-        if process.poll() is None:
-            logging.warn('Killing process {0} had no effect.'.format(process.pid))
-            # TODO os.wait4() will never return, how to terminate script?
     except OSError: # process itself returned and exited before killing
         pass
 
