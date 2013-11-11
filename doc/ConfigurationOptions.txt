@@ -782,6 +782,12 @@ cpa.predicate.blk.useCache = true
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
 
+# Check whether all pointer dereferences are valid.
+cpa.predicate.checkValidDeref = false
+
+# Check whether all calls to free() are valid.
+cpa.predicate.checkValidFree = false
+
 # The default size in bytes for memory allocations when the value cannot be
 # determined.
 cpa.predicate.defaultAllocationSize = 4

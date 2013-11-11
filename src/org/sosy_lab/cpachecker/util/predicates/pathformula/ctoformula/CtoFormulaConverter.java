@@ -791,7 +791,7 @@ public class CtoFormulaConverter {
   }
 
 //  @Override
-  public Pair<? extends PathFormula, ErrorConditions> makeAnd(PathFormula oldFormula, CFAEdge edge)
+  public Pair<PathFormula, ErrorConditions> makeAnd(PathFormula oldFormula, CFAEdge edge)
       throws CPATransferException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula

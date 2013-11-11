@@ -163,7 +163,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
     return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-        newAbstractionFormula, abstractionLocations);
+        newAbstractionFormula, abstractionLocations, element.getViolatedProperty());
   }
 
   private void extractInvariants() throws CPAException {
