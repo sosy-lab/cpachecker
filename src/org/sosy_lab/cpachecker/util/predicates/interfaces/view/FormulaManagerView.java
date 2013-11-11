@@ -484,6 +484,8 @@ public class FormulaManagerView {
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeExtract(T pFormula, int pMsb, int pLsb) {
+    checkArgument(pLsb >= 0);
+    checkArgument(pMsb >= pLsb);
     Class<T> clazz = getInterface(pFormula);
     Formula t;
     if (clazz==BooleanFormula.class) {

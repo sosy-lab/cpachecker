@@ -1505,8 +1505,17 @@ public class CtoFormulaConverter {
     }
 
     int fieldSize = getSizeof(fExp.getExpressionType()) * bitsPerByte;
+
+    // Crude hack for unions with zero-sized array fields produced by LDV
+    // (ldv-consumption/32_7a_cilled_true_linux-3.8-rc1-32_7a-fs--ceph--ceph.ko-ldv_main7_sequence_infinite_withcheck_stateful.cil.out.c)
+    if (fieldSize == 0 && structType.getKind() == ComplexTypeKind.UNION) {
+      fieldSize = getSizeof(fieldRef.getExpressionType());
+    }
+
     int lsb = offset;
     int msb = offset + fieldSize - 1;
+    assert(lsb >= 0);
+    assert(msb >= lsb);
     Pair<Integer, Integer> msb_Lsb = Pair.of(msb, lsb);
     return msb_Lsb;
   }
