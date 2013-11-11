@@ -67,7 +67,7 @@ class SMGJoinTargetObjects {
   }
 
   private static boolean checkObjectMatch(SMGJoinTargetObjects pJto, SMGObject pObj1, SMGObject pObj2) {
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(pJto.status, pJto.inputSMG1, pJto.inputSMG1, pJto.mapping1, pJto.mapping2, pObj1, pObj2);
+    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(pJto.status, pJto.inputSMG1, pJto.inputSMG2, pJto.mapping1, pJto.mapping2, pObj1, pObj2);
     if (! mo.isDefined()) {
       pJto.defined = false;
       pJto.recoverable = true;
