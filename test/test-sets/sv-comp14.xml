@@ -2,7 +2,7 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="900" memlimit="15000" cpuCores="4">
   <option name="-disable-java-assertions"/>
-  <option name="-heap">12000M</option>
+  <option name="-heap">13000M</option>
   <option name="-noout"/>
 
   <sourcefiles name="Simple">
@@ -45,7 +45,10 @@
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
   </sourcefiles>
 
-  <rundefinition name="-sv-comp14">
+  <rundefinition name="sv-comp14">
     <option name="-sv-comp14"/>
+  </rundefinition>
+  <rundefinition name="sv-comp14WithUF">
+    <option name="-sv-comp14WithUF"/>
   </rundefinition>
 </benchmark>
