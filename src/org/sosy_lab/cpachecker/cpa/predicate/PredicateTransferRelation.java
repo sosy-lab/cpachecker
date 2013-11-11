@@ -160,6 +160,7 @@ public class PredicateTransferRelation implements TransferRelation {
       List<PredicateAbstractState> newStates = new ArrayList<>(2);
 
       if (checkValidDeref && !bfmgr.isFalse(invalidDerefCondition)) {
+        logger.log(Level.ALL, "Adding invalid-deref condition", invalidDerefCondition);
         PathFormula targetPathFormula = pathFormulaManager.makeAnd(edgeResult.getFirst(), invalidDerefCondition);
         newStates.addAll(createState(element, targetPathFormula, loc, doAbstraction,
             ViolatedProperty.VALID_DEREF));
@@ -169,6 +170,7 @@ public class PredicateTransferRelation implements TransferRelation {
       }
 
       if (checkValidFree && !bfmgr.isFalse(invalidFreeCondition)) {
+        logger.log(Level.ALL, "Adding invalid-free condition", invalidFreeCondition);
         PathFormula targetPathFormula = pathFormulaManager.makeAnd(edgeResult.getFirst(), invalidFreeCondition);
         newStates.addAll(createState(element, targetPathFormula, loc, doAbstraction,
             ViolatedProperty.VALID_FREE));
