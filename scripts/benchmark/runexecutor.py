@@ -491,6 +491,7 @@ def _killSubprocess(process):
     '''
     try:
         os.killpg(process.pid, signal.SIGKILL)
+        time.sleep(0.1)
         if process.poll() is None:
             logging.warn('Killing process {0} had no effect.'.format(process.pid))
             # TODO os.wait4() will never return, how to terminate script?
