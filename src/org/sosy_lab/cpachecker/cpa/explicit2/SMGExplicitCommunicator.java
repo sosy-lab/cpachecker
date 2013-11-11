@@ -39,15 +39,15 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGExpressionEvaluator;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGExpressionEvaluator.LValueAssignmentVisitor;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGState;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.LValueAssignmentVisitor;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGState;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -322,7 +322,7 @@ public class SMGExplicitCommunicator {
       if(value == null || value.isUnknown()) {
         return null;
       } else {
-        return smgState.resolveMemLoc(value, getFunctionName());
+        return null/*smgState.resolveMemLoc(value, getFunctionName())*/;
       }
     }
   }
