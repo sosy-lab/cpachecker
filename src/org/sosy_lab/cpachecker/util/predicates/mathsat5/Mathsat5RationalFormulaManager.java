@@ -43,15 +43,21 @@ class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManager<Long
   private final Mathsat5FunctionType<RationalFormula> modUfDecl;
   private final Mathsat5FunctionFormulaManager functionManager;
 
+  private final Mathsat5FormulaCreator creator;
+  private final long mathsatEnv;
+
+  private final boolean useIntegers;
+
   public Mathsat5RationalFormulaManager(
       Mathsat5FormulaCreator pCreator,
-      Mathsat5FunctionFormulaManager functionManager) {
-    super(
-        pCreator);
+      Mathsat5FunctionFormulaManager functionManager,
+      boolean pUseIntegers) {
+    super(pCreator);
 
     this.creator = pCreator;
     this.mathsatEnv = creator.getEnv();
     this.functionManager = functionManager;
+    this.useIntegers = pUseIntegers;
     FormulaType<RationalFormula> formulaType = getFormulaType();
     multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
     divUfDecl = functionManager.createFunction(DivUfName, formulaType, formulaType, formulaType);
@@ -65,14 +71,6 @@ class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManager<Long
 
   private boolean isUf(Mathsat5FunctionType<RationalFormula> funcDecl, Long pBits) {
     return functionManager.isUninterpretedFunctionCall(funcDecl, pBits);
-  }
-
-  private Mathsat5FormulaCreator creator;
-  private long mathsatEnv;
-
-  public static Mathsat5RationalFormulaManager create(Mathsat5FormulaCreator creator, Mathsat5FunctionFormulaManager functionManager) {
-
-    return new Mathsat5RationalFormulaManager(creator, functionManager);
   }
 
   @Override
@@ -126,6 +124,10 @@ class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManager<Long
       }
       String[] frac = n.split("/");
       if (frac.length == 1) {
+        if (useIntegers) {
+          // cannot multiply with term 1/n because the result will have type rat instead of int
+          return makeUf(divUfDecl, t1, t2);
+        }
         n = "1/" + n;
       } else {
         assert (frac.length == 2);
