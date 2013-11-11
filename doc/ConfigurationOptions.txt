@@ -1163,6 +1163,14 @@ limits.time.cpu = -1
 # for infinite)
 limits.time.wall = -1
 
+# Whether to check for memory safety properties (this can be specified by
+# passing an appropriate .prp file to the -spec parameter).
+memorysafety.check = false
+
+# When checking for memory safety properties, use this configuration file
+# instead of the current one.
+memorysafety.config = no default value
+
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
