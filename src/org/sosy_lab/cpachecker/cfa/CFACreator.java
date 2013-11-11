@@ -140,7 +140,7 @@ public class CFACreator {
       description="export individual CFAs for function as .dot files")
   private boolean exportCfaPerFunction = true;
 
-  @Option(name="analysis.exportFunctionCalls",
+  @Option(name="cfa.exportFunctionCalls",
       description="dump a simple call-graph")
   private boolean exportFunctionCalls = true;
 
