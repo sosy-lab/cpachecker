@@ -695,8 +695,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       if (pathElement.getChildren().size() > 1) {
         if (pathElement.getChildren().size() > 2) {
           // can't create branching formula
-          logger.log(Level.WARNING, "ARG branching with more than two outgoing edges");
-          return bfmgr.makeBoolean(true);
+          if (from(pathElement.getChildren()).anyMatch(AbstractStates.IS_TARGET_STATE)) {
+            // We expect this situation of one of the children is a target state created by PredicateCPA.
+            continue;
+          } else {
+            logger.log(Level.WARNING, "ARG branching with more than two outgoing edges");
+            return bfmgr.makeBoolean(true);
+          }
         }
 
         FluentIterable<CFAEdge> outgoingEdges = from(pathElement.getChildren()).transform(
