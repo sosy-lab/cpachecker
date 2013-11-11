@@ -86,10 +86,10 @@ public class SMGState implements AbstractQueryableState, Targetable {
 
   private void issueMemoryError(String pMessage, boolean pUndefinedBehavior) {
     if (targetMemoryErrors) {
-      logger.log(Level.SEVERE, pMessage);
+      logger.log(Level.WARNING, pMessage);
     } else if (pUndefinedBehavior) {
-      logger.log(Level.SEVERE, pMessage );
-      logger.log(Level.SEVERE, "Non-target undefined behavior detected. The verification result is unreliable.");
+      logger.log(Level.WARNING, pMessage );
+      logger.log(Level.WARNING, "Non-target undefined behavior detected. The verification result is unreliable.");
     }
   }
 
