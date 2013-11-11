@@ -286,12 +286,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   boolean isRelevantField(final CCompositeType compositeType, final String fieldName, final PointerTargetSetBuilder pts) {
     return !variableClassification.isPresent() ||
+           !options.ignoreIrrelevantVariables() ||
            pts.getSize(compositeType) <= options.maxPreFilledAllocationSize() ||
            variableClassification.get().getRelevantFields().containsEntry(compositeType, fieldName);
   }
 
   boolean isRelevantVariable(final String function, final String name) {
     return !variableClassification.isPresent() ||
+           !options.ignoreIrrelevantVariables() ||
            variableClassification.get().getRelevantVariables().containsEntry(function, name);
   }
 

@@ -830,6 +830,9 @@ cpa.predicate.handlePointerAliasing = true
 # replaced.
 cpa.predicate.ignoreExtractConcat = true
 
+# Ignore variables that are not relevant for reachability properties.
+cpa.predicate.ignoreIrrelevantVariables = true
+
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 cpa.predicate.interpolationSolver = no default value
