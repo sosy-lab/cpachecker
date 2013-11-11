@@ -246,6 +246,14 @@ public class CFATransformations {
         // We do not want cases like sizeof(*p)
         return null;
       }
+      if (e.getOperator() == UnaryOperator.AMPER) {
+        if (e.getOperand() instanceof CFieldReference
+            && ((CFieldReference)e.getOperand()).isPointerDereference()) {
+          // &(s->f)
+          // ignore this dereference and visit "s"
+          return ((CFieldReference)e.getOperand()).getFieldOwner().accept(this);
+        }
+      }
       return e.getOperand().accept(this);
     }
 
