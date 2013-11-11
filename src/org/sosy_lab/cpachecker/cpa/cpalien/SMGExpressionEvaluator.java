@@ -441,6 +441,17 @@ public class SMGExpressionEvaluator {
 
   }
 
+  /**
+   * This class evaluates expressions that evaluate to a
+   * pointer type. The type of every expression visited by this
+   * visitor has to be a {@link CPointerType }. The result
+   * of this evaluation is a {@link SMGAddressValue}.
+   * The object and the offset of the result represent
+   * the address this pointer points to. The value represents
+   * the value of the address itself. Note that the offset of
+   * pointer addresses that point to the null object represent
+   * also the explicit value of the pointer.
+   */
   class PointerVisitor extends ExpressionValueVisitor
       implements CRightHandSideVisitor<SMGSymbolicValue, CPATransferException> {
 
