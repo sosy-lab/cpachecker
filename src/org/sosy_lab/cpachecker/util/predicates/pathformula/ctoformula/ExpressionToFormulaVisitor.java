@@ -414,13 +414,8 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
       return visitDefault(exp);
 
     case SIZEOF:
-      if (exp.getOperand() instanceof CIdExpression) {
-        CType lCType =
-            ((CIdExpression) exp.getOperand()).getExpressionType();
-        return handleSizeof(exp, lCType);
-      } else {
-        return visitDefault(exp);
-      }
+      CType lCType = exp.getOperand().getExpressionType();
+      return handleSizeof(exp, lCType);
 
     default:
       throw new UnrecognizedCCodeException("Unknown unary operator", edge, exp);
