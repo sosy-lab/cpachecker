@@ -140,6 +140,10 @@ public class CFACreator {
       description="export individual CFAs for function as .dot files")
   private boolean exportCfaPerFunction = true;
 
+  @Option(name="analysis.exportFunctionCalls",
+      description="dump a simple call-graph")
+  private boolean exportFunctionCalls = true;
+
   @Option(name="cfa.file",
       description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -695,6 +699,18 @@ public class CFACreator {
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
           "Could not write CFA to dot and json file");
+        // continue with analysis
+      }
+    }
+
+    if (exportFunctionCalls) {
+      Path outdir = exportCfaFile.getParent();
+      try (Writer w = Files.newBufferedWriter(
+          outdir.resolve("functionCalls.dot"), Charset.defaultCharset())) {
+        FunctionCallDumper.dump(w, cfa);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e,
+            "Could not write functionCalls to dot file");
         // continue with analysis
       }
     }
