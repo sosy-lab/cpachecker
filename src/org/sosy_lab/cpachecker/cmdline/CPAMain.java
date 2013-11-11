@@ -223,6 +223,11 @@ public class CPAMain {
       config = Configuration.builder()
                             .loadFromFile(options.memsafetyConfig)
                             .setOptions(cmdLineOptions)
+                            .clearOption("memorysafety.check")
+                            .clearOption("memorysafety.config")
+                            .clearOption("output.disable")
+                            .clearOption("output.path")
+                            .clearOption("rootDirectory")
                             .build();
     }
 
