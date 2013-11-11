@@ -90,6 +90,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.FormulaEncodingWithUFOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
@@ -103,14 +104,18 @@ import com.google.common.collect.ImmutableSet;
 
 public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
-  public CToFormulaWithUFConverter(final FormulaEncodingOptions options,
+  @SuppressWarnings("hiding") // same instance with narrower type
+  final FormulaEncodingWithUFOptions options;
+
+  public CToFormulaWithUFConverter(final FormulaEncodingWithUFOptions pOptions,
                                    final FormulaManagerView formulaManagerView,
                                    final @Nonnull CFA cfa,
                                    final LogManager logger)
   throws InvalidConfigurationException {
-    super(options, formulaManagerView, cfa.getMachineModel(), logger);
+    super(pOptions, formulaManagerView, cfa.getMachineModel(), logger);
     variableClassification = cfa.getVarClassification();
 //    rfmgr = formulaManagerView.getRationalFormulaManager();
+    options = pOptions;
   }
 
   public static String getUFName(final CType type) {
