@@ -48,6 +48,9 @@ import org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class SMGState implements AbstractQueryableState {
+  static boolean targetMemoryErrors = true;
+  static boolean unknownOnUndefined = true;
+
   static private int id_counter = 0;
 
   private final CLangSMG heap;
@@ -60,8 +63,37 @@ public class SMGState implements AbstractQueryableState {
   //TODO These flags are not enough, they should contain more about the nature of the error.
   private boolean invalidWrite = false;
   private boolean invalidRead = false;
-
   private boolean invalidFree = false;
+
+  private void issueMemoryLeakMessage() {
+    issueMemoryError("Memory leak found", false);
+  }
+  private void issueInvalidReadMessage() {
+    issueMemoryError("Invalid read found", true);
+  }
+  private void issueInvalidWriteMessage() {
+    issueMemoryError("Invalid write found", true);
+  }
+  private void issueInvalidFreeMessage() {
+    issueMemoryError("Invalid free found", true);
+  }
+
+  private void issueMemoryError(String pMessage, boolean pUndefinedBehavior) {
+    if (targetMemoryErrors) {
+      logger.log(Level.SEVERE, pMessage);
+    } else if (unknownOnUndefined) {
+      logger.log(Level.SEVERE, pMessage );
+      logger.log(Level.SEVERE, "Non-target undefined behavior detected. The verification result is unreliable.");
+    }
+  }
+
+  static public void setTargetMemoryErrors(boolean pV) {
+    targetMemoryErrors = pV;
+  }
+
+  static public void setUnknownOnUndefined(boolean pV) {
+    unknownOnUndefined = pV;
+  }
 
   /**
    * Constructor.
@@ -662,28 +694,28 @@ public class SMGState implements AbstractQueryableState {
       case "has-leaks":
         if (heap.hasMemoryLeaks()) {
           //TODO: Give more information
-          this.logger.log(Level.SEVERE, "Memory leak found");
+          issueMemoryLeakMessage();
           return true;
         }
         return false;
       case "has-invalid-writes":
         if (this.invalidWrite) {
           //TODO: Give more information
-          this.logger.log(Level.SEVERE, "Invalid write found");
+          issueInvalidWriteMessage();
           return true;
         }
         return false;
       case "has-invalid-reads":
         if (this.invalidRead) {
           //TODO: Give more information
-          this.logger.log(Level.SEVERE, "Invalid read found");
+          issueInvalidReadMessage();
           return true;
         }
         return false;
       case "has-invalid-frees":
         if (this.invalidFree) {
           //TODO: Give more information
-          this.logger.log(Level.SEVERE, "Invalid free found");
+          issueInvalidFreeMessage();
           return true;
         }
         return false;
