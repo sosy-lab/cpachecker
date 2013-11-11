@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -39,9 +40,11 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   protected final ImmutableList<PrecisionAdjustment> precisionAdjustments;
   protected final ImmutableList<StateProjectionFunction> stateProjectionFunctions;
   protected final ImmutableList<PrecisionProjectionFunction> precisionProjectionFunctions;
+  protected final boolean inPredicatedAnalysis;
 
-  public CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments) {
+  public CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments, boolean inPredicatedAnalysis) {
     this.precisionAdjustments = precisionAdjustments;
+    this.inPredicatedAnalysis = inPredicatedAnalysis;
 
     ImmutableList.Builder<StateProjectionFunction> stateProjectionFunctions = ImmutableList.builder();
     ImmutableList.Builder<PrecisionProjectionFunction> precisionProjectionFunctions = ImmutableList.builder();
@@ -93,6 +96,9 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     CompositePrecision prec = (CompositePrecision) pPrecision;
     assert (comp.getWrappedStates().size() == prec.getPrecisions().size());
     int dim = comp.getWrappedStates().size();
+
+    if (inPredicatedAnalysis && comp.isTarget()) { throw new PredicatedAnalysisPropertyViolationException(
+        "Property violated during successor computation", null); }
 
     ImmutableList.Builder<AbstractState> outElements = ImmutableList.builder();
     ImmutableList.Builder<Precision> outPrecisions = ImmutableList.builder();

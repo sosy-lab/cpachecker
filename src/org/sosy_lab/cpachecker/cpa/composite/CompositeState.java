@@ -33,11 +33,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public class CompositeState implements AbstractWrapperState, Targetable, Partitionable, Serializable {
+public class CompositeState implements AbstractWrapperState, TargetableWithPredicatedAnalysis, Partitionable, Serializable {
   private static final long serialVersionUID = -5143296331663510680L;
   private final ImmutableList<AbstractState> states;
   private transient Object partitionKey; // lazily initialized
@@ -150,5 +153,19 @@ public class CompositeState implements AbstractWrapperState, Targetable, Partiti
     public String toString() {
       return "[" + Joiner.on(", ").skipNulls().join(keys) + "]";
     }
+  }
+
+  @Override
+  public BooleanFormula getErrorCondition(BooleanFormulaManager bfmgr) {
+    if (isTarget()) {
+      BooleanFormula f = bfmgr.makeBoolean(false);
+      for (AbstractState state : states) {
+        if (state instanceof TargetableWithPredicatedAnalysis) {
+          f = bfmgr.or(f, ((TargetableWithPredicatedAnalysis) state).getErrorCondition(bfmgr));
+        }
+      }
+      return f;
+    }
+    return bfmgr.makeBoolean(false);
   }
 }
