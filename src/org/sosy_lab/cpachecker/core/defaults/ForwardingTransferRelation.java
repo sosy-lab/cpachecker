@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.forwarding;
+package org.sosy_lab.cpachecker.core.defaults;
 
 import java.util.Collection;
 import java.util.Collections;
