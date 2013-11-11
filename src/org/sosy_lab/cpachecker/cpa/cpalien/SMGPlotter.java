@@ -130,7 +130,11 @@ public final class SMGPlotter {
 
     HashMap<String, SMGObject> to_print = new HashMap<>();
     to_print.putAll(pStackFrame.getVariables());
-    to_print.put(CLangStackFrame.RETVAL_LABEL, pStackFrame.getReturnObject());
+
+    SMGObject returnObject = pStackFrame.getReturnObject();
+    if (returnObject != null) {
+      to_print.put(CLangStackFrame.RETVAL_LABEL, returnObject);
+    }
 
     pSb.append(newLineWithOffset(smgScopeFrameAsDot(to_print, String.valueOf(pIndex))));
 

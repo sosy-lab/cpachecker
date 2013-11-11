@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien2;
 
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Mockito.*;
-
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -36,23 +34,23 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.collect.ImmutableList;
 
 
 public class CLangStackFrameTest {
-  private CFunctionType functionType = mock(CFunctionType.class);
+  private CType returnType = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
+  private CFunctionType functionType = new CFunctionType(false, false, returnType, new ArrayList<CType>(), false);
   private CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
   private CLangStackFrame sf;
 
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() throws Exception {
-    when(functionType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
-    when(functionType.getReturnType()).thenReturn(CNumericTypes.VOID);
 
     sf = new CLangStackFrame(functionDeclaration, MachineModel.LINUX64);
   }

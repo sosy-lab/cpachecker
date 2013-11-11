@@ -536,7 +536,11 @@ public class SMGTransferRelation implements TransferRelation {
     CType expType = expressionEvaluator.getRealExpressionType(returnExp);
     SMGObject tmpFieldMemory = smgState.getFunctionReturnObject();
 
-    return handleAssignmentToField(smgState, returnEdge, tmpFieldMemory, 0, expType, returnExp);
+    if (tmpFieldMemory != null) {
+      return handleAssignmentToField(smgState, returnEdge, tmpFieldMemory, 0, expType, returnExp);
+    }
+
+    return smgState;
   }
 
   private SMGState handleFunctionReturn(SMGState smgState,
