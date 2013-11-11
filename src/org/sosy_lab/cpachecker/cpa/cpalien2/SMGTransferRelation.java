@@ -119,6 +119,9 @@ public class SMGTransferRelation implements TransferRelation {
   @Option(description = "with this option enabled, a check for unreachable memory occurs whenever a function returns, and not only at the end of the main function")
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
 
+  @Option(description = "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main")
+  private boolean handleNonFreedMemoryInMainAsMemLeak = false;
+
   @Option(name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped. One of: {never, leaf, interesting, every}")
   private String exportSMG = "never";
 
@@ -469,7 +472,10 @@ public class SMGTransferRelation implements TransferRelation {
     case FunctionReturnEdge:
       CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) cfaEdge;
       successor = handleFunctionReturn(smgState, functionReturnEdge);
-      successor.dropStackFrame(functionReturnEdge.getPredecessor().getFunctionName());
+      successor.dropStackFrame();
+      if (checkForMemLeaksAtEveryFrameDrop) {
+        successor.pruneUnreachable();
+      }
       plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
 
@@ -481,11 +487,17 @@ public class SMGTransferRelation implements TransferRelation {
       // last node of its CFA, where return edge is from that last node
       // to the return site of the caller function
       successor = handleExitFromFunction(smgState, returnEdge);
-      String funcName = returnEdge.getPredecessor().getFunctionName();
-      if (funcName.equals("main") || checkForMemLeaksAtEveryFrameDrop) {
+
+      // if this is the entry function, there is no FunctionReturnEdge
+      // so we have to check for memleaks here
+      if (returnEdge.getSuccessor().getNumLeavingEdges() == 0) {
         // Ugly, but I do not know how to do better
         // TODO: Handle leaks at any program exit point (abort, etc.)
-        successor.dropStackFrame(funcName);
+
+        if (handleNonFreedMemoryInMainAsMemLeak) {
+          successor.dropStackFrame();
+        }
+        successor.pruneUnreachable();
       }
       plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
@@ -555,7 +567,8 @@ public class SMGTransferRelation implements TransferRelation {
     //TODO A method in the SMG to get Variables from a Stack above the current Stack.
     SMGState tmpState = new SMGState(smgState);
 
-    tmpState.dropStackFrame(functionReturnEdge.getPredecessor().getFunctionName());
+    tmpState.dropStackFrame();
+    tmpState.pruneUnreachable(); // TODO necessary?
 
     if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
 
