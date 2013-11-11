@@ -55,6 +55,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
 
 /**
@@ -216,7 +217,7 @@ public class ARGUtils {
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
   public static ARGPath getPathFromBranchingInformation(
-      ARGState root, Collection<? extends AbstractState> arg,
+      ARGState root, Set<? extends AbstractState> arg,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
 
     checkArgument(arg.contains(root));
@@ -245,12 +246,19 @@ public class ARGUtils {
         ARGState trueChild = null;
         ARGState falseChild = null;
 
-        for (ARGState currentChild : children) {
-          CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
-          if (!(currentEdge instanceof AssumeEdge)) {
+        CFANode loc = AbstractStates.extractLocation(currentElement);
+        if (!leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))) {
+          Set<ARGState> candidates = Sets.intersection(Sets.newHashSet(children), arg).immutableCopy();
+          if (candidates.size() != 1) {
             throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
           }
+          child = Iterables.getOnlyElement(candidates);
+          edge = currentElement.getEdgeToChild(child);
+          break;
+        }
 
+        for (ARGState currentChild : children) {
+          CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
           if (((AssumeEdge)currentEdge).getTruthAssumption()) {
             trueEdge = currentEdge;
             trueChild = currentChild;
@@ -316,7 +324,7 @@ public class ARGUtils {
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
   public static ARGPath getPathFromBranchingInformation(
-      ARGState root, ARGState target, Collection<? extends AbstractState> arg,
+      ARGState root, ARGState target, Set<? extends AbstractState> arg,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
 
     checkArgument(arg.contains(target));
