@@ -335,6 +335,10 @@ public class CFACreator {
       // SECOND, do those post-processings that change the CFA by adding/removing nodes/edges
       stats.processingTime.start();
 
+      // remove all edges which don't have any effect on the program
+      CFASimplifier.simplifyCFA(cfa);
+
+      // add function pointer edges
       if (language == Language.C && fptrCallEdges) {
         CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, config, logger);
         fptrResolver.resolveFunctionPointers();
