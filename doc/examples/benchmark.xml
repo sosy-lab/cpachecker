@@ -119,7 +119,7 @@
 
     <sourcefiles name="drivers">
       <includesfile>../../test/programs/benchmarks/DeviceDrivers64.set</includesfile>
-      <option name="--64"/>
+      <option name="-64"/>
     </sourcefiles>
   </rundefinition>
 
