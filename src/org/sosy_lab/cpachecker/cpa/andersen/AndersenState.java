@@ -33,9 +33,6 @@ import org.sosy_lab.cpachecker.cpa.andersen.util.SimpleConstraint;
 
 public class AndersenState implements AbstractState, Cloneable {
 
-  // ------- global constraint system -------
-  private static final ConstraintSystem globalConstraintSystem = new ConstraintSystem();
-
   // ------- local constraint system -------
   private final ConstraintSystem localConstraintSystem;
 
@@ -55,7 +52,6 @@ public class AndersenState implements AbstractState, Cloneable {
   AndersenState addConstraint(BaseConstraint constr) {
     AndersenState result = new AndersenState(localConstraintSystem);
     result.localConstraintSystem.addConstraint(constr);
-    globalConstraintSystem.addConstraint(constr);
     return result;
   }
 
@@ -67,7 +63,6 @@ public class AndersenState implements AbstractState, Cloneable {
   AndersenState addConstraint(SimpleConstraint constr) {
     AndersenState result = new AndersenState(localConstraintSystem);
     result.localConstraintSystem.addConstraint(constr);
-    globalConstraintSystem.addConstraint(constr);
     return result;
   }
 
@@ -79,7 +74,6 @@ public class AndersenState implements AbstractState, Cloneable {
   AndersenState addConstraint(ComplexConstraint constr) {
     AndersenState result = new AndersenState(localConstraintSystem);
     result.localConstraintSystem.addConstraint(constr);
-    globalConstraintSystem.addConstraint(constr);
     return result;
   }
 
@@ -90,15 +84,6 @@ public class AndersenState implements AbstractState, Cloneable {
    */
   public Map<String, String[]> getLocalPointsToSets() {
     return localConstraintSystem.getPointsToSets();
-  }
-
-  /**
-   * Computes and returns the points-to sets for the global constraint system.
-   *
-   * @return points-to sets for the global constraint system.
-   */
-  public static Map<String, String[]> getGlobalPointsToSets() {
-    return globalConstraintSystem.getPointsToSets();
   }
 
   @Override
