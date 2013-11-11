@@ -2,7 +2,7 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="900" memlimit="15000" cpuCores="4">
   <option name="-disable-java-assertions"/>
-  <option name="-heap">13000M</option>
+  <option name="-heap">10000M</option>
   <option name="-spec">${sourcefile_path}/ALL.prp</option>
   <requiredfiles>../programs/benchmarks/*/ALL.prp</requiredfiles>
 
