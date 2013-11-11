@@ -307,6 +307,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
               final Formula offset = conv.fmgr.makeNumber(conv.pointerType,
                                                           pts.getOffset(compositeType, fieldName));
               lastTarget = addressExpression = conv.fmgr.makePlus(base, offset);
+              addEqualBaseAdressConstraint(base, addressExpression);
             }
           }
 
