@@ -112,7 +112,7 @@ class SMGJoinFields {
 
     for (int i = 0; i < origNull.length(); i++) {
       if (origNull.get(i) && (! newNull.get(i))) {
-        return SMGUpdateJoinStatus.updateStatus(pCurStatus, pNewStatus);
+        return SMGJoinStatus.updateStatus(pCurStatus, pNewStatus);
       }
     }
 
