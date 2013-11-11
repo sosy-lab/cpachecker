@@ -34,6 +34,7 @@ public class CNumericTypes {
 
   // type constants
   public final static CSimpleType CHAR          = new CSimpleType(false, false, CBasicType.CHAR, false, false, false, false, false, false, false);
+  public static final CSimpleType SIGNED_CHAR   = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
   public final static CSimpleType INT           = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
   public final static CSimpleType SIGNED_INT    = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
   public final static CSimpleType SHORT_INT     = new CSimpleType(false, false, CBasicType.INT, false, true, false, false, false, false, false);

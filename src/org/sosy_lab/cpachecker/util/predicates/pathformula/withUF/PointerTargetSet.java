@@ -49,14 +49,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
@@ -1470,7 +1468,7 @@ public class PointerTargetSet implements Serializable {
 
   private static final CType getFakeBaseType(int size) {
     return simplifyType(new CArrayType(false, false, CNumericTypes.VOID, new CIntegerLiteralExpression(null,
-                                                                                        CHAR,
+                                                                                        CNumericTypes.SIGNED_CHAR,
                                                                                         BigInteger.valueOf(size))));
   }
 
@@ -1511,9 +1509,6 @@ public class PointerTargetSet implements Serializable {
   protected final FormulaType<?> pointerType;
 
   private static int dynamicAllocationCounter = 0;
-
-  public static final CSimpleType CHAR =
-    new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
