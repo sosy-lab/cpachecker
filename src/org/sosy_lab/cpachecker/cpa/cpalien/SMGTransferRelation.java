@@ -613,33 +613,29 @@ public class SMGTransferRelation implements TransferRelation {
     SMGRightHandSideEvaluator.AssumeVisitorNG visitor = expressionEvaluator.getAssumeVisitorNG(cfaEdge, smgState);
     SMGSymbolicValue value = expression.accept(visitor);
 
-    if (value.isUnknown()) {
-
-      //TODO Refactor
-      SMGExplicitValue explicitValue = expressionEvaluator.evaluateExplicitValue(smgState, cfaEdge, expression);
-
-      if (explicitValue.isUnknown()) {
-        SMGState newState = null;
-        if (visitor.assumeEq() && truthValue) {
-          newState = new SMGState(smgState);
-          newState.identifyEqualValues(visitor.knownVal1, visitor.knownVal2);
-        } else if (visitor.assumeNeq() && truthValue) {
-          newState = new SMGState(smgState);
-          newState.identifyNonEqualValues(visitor.knownVal1, visitor.knownVal2);
-        } else {
-          newState = smgState;
-        }
-        return newState;
-      } else if ((truthValue && explicitValue.equals(SMGKnownExpValue.ONE))
-          || (!truthValue && explicitValue.equals(SMGKnownExpValue.ZERO))) {
+    if (! value.isUnknown()) {
+      if ((truthValue && value.equals(SMGKnownSymValue.TRUE)) ||
+          (!truthValue && value.equals(SMGKnownSymValue.FALSE))) {
         return smgState;
       } else {
         // This signals that there are no new States reachable from this State i. e. the
         // Assumption does not hold.
         return null;
       }
-    } else if ((truthValue && value.equals(SMGKnownSymValue.TRUE))
-        || (!truthValue && value.equals(SMGKnownSymValue.FALSE))) {
+    }
+
+    SMGExplicitValue explicitValue = expressionEvaluator.evaluateExplicitValue(smgState, cfaEdge, expression);
+
+    if (explicitValue.isUnknown()) {
+      SMGState newState = new SMGState(smgState);
+      if (visitor.impliesEqOn(truthValue)) {
+        newState.identifyEqualValues(visitor.knownVal1, visitor.knownVal2);
+      } else if (visitor.impliesNeqOn(truthValue)) {
+        newState.identifyNonEqualValues(visitor.knownVal1, visitor.knownVal2);
+      }
+      return newState;
+    } else if ((truthValue && explicitValue.equals(SMGKnownExpValue.ONE))
+        || (!truthValue && explicitValue.equals(SMGKnownExpValue.ZERO))) {
       return smgState;
     } else {
       // This signals that there are no new States reachable from this State i. e. the
@@ -744,7 +740,7 @@ public class SMGTransferRelation implements TransferRelation {
       value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
 
       if (newValueIsNeqZero(newState, cfaEdge, rValue)) {
-        newState.setUnequal(value.getAsInt(), 0);
+        newState.identifyEqualValues((SMGKnownSymValue)value, SMGKnownSymValue.ZERO);
       }
     }
 
@@ -1255,20 +1251,11 @@ public class SMGTransferRelation implements TransferRelation {
       private final SMGState smgState;
       private SMGKnownSymValue knownVal1;
       private SMGKnownSymValue knownVal2;
-      private boolean assumeEq = false;
-      private boolean assumeNeq = false;
+      private BinaryRelationEvaluator relation = null;
 
       public AssumeVisitorNG(CFAEdge pEdge, SMGState pSmgState) {
         super(pEdge, pSmgState);
         smgState = getSmgState();
-      }
-
-      public boolean assumeNeq() {
-        return assumeNeq;
-      }
-
-      public boolean assumeEq() {
-        return assumeEq;
       }
 
       @Override
@@ -1304,36 +1291,47 @@ public class SMGTransferRelation implements TransferRelation {
 
         private boolean isTrue = false;
         private boolean isFalse = false;
-        private boolean canAssumeEq = false;
-        private boolean canAssumeNeq = false;
+
+        private boolean impliesEqWhenTrue = false;
+        private boolean impliesNeqWhenTrue = false;
+        private boolean impliesEqWhenFalse = false;
+        private boolean impliesNeqWhenFalse = false;
 
         public BinaryRelationEvaluator(BinaryOperator pOp, SMGSymbolicValue pV1, SMGSymbolicValue pV2) {
           int v1 = pV1.getAsInt();
           int v2 = pV2.getAsInt();
 
+          boolean areEqual = (v1 == v2);
+          boolean areNonEqual = (smgState.isUnequal(v1, v2));
+
           switch (pOp) {
           case NOT_EQUALS:
-            isTrue = smgState.isUnequal(v1, v2);
-            isFalse = (v1 == v2);
-            canAssumeNeq = true;
+            isTrue = areNonEqual;
+            isFalse = areEqual;
+            impliesEqWhenFalse = true;
+            impliesNeqWhenTrue = true;
             break;
           case EQUALS:
-            isTrue = (v1 == v2);
-            isFalse = smgState.isUnequal(v1, v2);
-            canAssumeEq = true;
+            isTrue = areEqual;
+            isFalse = areNonEqual;
+            impliesEqWhenTrue = true;
+            impliesNeqWhenFalse = true;
             break;
           case LESS_EQUAL:
           case GREATER_EQUAL:
             if (v1 == v2) {
               isTrue = true;
+              impliesEqWhenTrue = true;
+              impliesNeqWhenFalse = true;
             } else {
+              impliesNeqWhenFalse = true;
               compareAsAddresses();
             }
             break;
           case GREATER_THAN:
           case LESS_THAN:
             compareAsAddresses();
-            canAssumeNeq = true;
+            impliesNeqWhenTrue = true;
             break;
           default:
             throw new AssertionError("Binary Relation with non-relational operator: " + pOp.toString());
@@ -1342,7 +1340,6 @@ public class SMGTransferRelation implements TransferRelation {
 
         private void compareAsAddresses() {
           // TODO Auto-generated method stub
-
         }
 
         public boolean isTrue() {
@@ -1353,27 +1350,40 @@ public class SMGTransferRelation implements TransferRelation {
           return isFalse;
         }
 
-        public boolean canAssumeEq() {
-          return canAssumeEq;
+        public boolean impliesEq(boolean pTruth) {
+          return pTruth ? impliesEqWhenTrue : impliesEqWhenFalse;
         }
 
-        public boolean canAssumeNeq() {
-          return canAssumeNeq;
+        public boolean impliesNeq(boolean pTruth) {
+          return pTruth ? impliesNeqWhenTrue : impliesNeqWhenFalse;
         }
       }
 
       private SMGSymbolicValue evaluateBinaryAssumption(BinaryOperator pOp, SMGKnownSymValue v1, SMGKnownSymValue v2) {
-        BinaryRelationEvaluator relation = new BinaryRelationEvaluator(pOp, v1, v2);
+        relation = new BinaryRelationEvaluator(pOp, v1, v2);
         if (relation.isFalse()) {
           return SMGKnownSymValue.FALSE;
         } else if (relation.isTrue()) { return SMGKnownSymValue.TRUE; }
 
-        assumeEq = relation.canAssumeEq();
-        assumeNeq = relation.canAssumeNeq();
         knownVal1 = v1;
         knownVal2 = v2;
 
         return SMGUnknownValue.getInstance();
+      }
+
+      public boolean impliesEqOn(boolean pTruth) {
+        if (relation == null) {
+          return false;
+        }
+        return relation.impliesEq(pTruth);
+      }
+
+      public boolean impliesNeqOn(boolean pTruth) {
+        if (relation == null) {
+          return false;
+        }
+        return relation.impliesNeq(pTruth);
+
       }
     }
 
