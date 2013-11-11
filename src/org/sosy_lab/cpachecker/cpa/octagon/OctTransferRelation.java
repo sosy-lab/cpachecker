@@ -257,7 +257,7 @@ class OctTransferRelation implements TransferRelation {
       String nameOfParam = paramNames.get(i);
       String formalParamName = getvarName(nameOfParam, calledFunctionName);
 
-      declareVariable(octagonElement, formalParamName);
+      octagonElement.declareVariable(formalParamName);
 
       if (arg instanceof CIdExpression) {
         CIdExpression idExp = (CIdExpression) arg;
@@ -748,7 +748,8 @@ class OctTransferRelation implements TransferRelation {
     if (newElem1.isEmpty()) {
       return null;
     } else {
-      return assignConstant(pElement, pVariableName, pI);
+      pElement.assignConstant(pVariableName, pI);
+      return pElement;
     }
 
   }
@@ -766,8 +767,7 @@ class OctTransferRelation implements TransferRelation {
     }
   }
 
-  private OctState handleDeclaration(OctState pElement,
-      CDeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
+  private OctState handleDeclaration(OctState pElement, CDeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
 
     if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
       CVariableDeclaration decl = (CVariableDeclaration)declarationEdge.getDeclaration();
@@ -781,6 +781,7 @@ class OctTransferRelation implements TransferRelation {
       if (decl.getType() instanceof CPointerType) {
         return pElement;
       }
+
       // if this is a global variable, add to the list of global variables
       if (decl.isGlobal()) {
         globalVars.add(varName);
@@ -803,34 +804,25 @@ class OctTransferRelation implements TransferRelation {
         }
 
         String variableName = getvarName(varName, declarationEdge.getPredecessor().getFunctionName());
-        declareVariable(pElement, variableName);
+        pElement.declareVariable(variableName);
 
         if (v != null) {
-          return assignConstant(pElement, variableName, v.longValue());
+          pElement.assignConstant(variableName, v.longValue());
+          return pElement;
         }
       } else {
         String variableName = getvarName(varName, declarationEdge.getPredecessor().getFunctionName());
-        return declareVariable(pElement, variableName);
+        pElement.declareVariable(variableName);
+        return pElement;
       }
     }
+
     assert (false);
     return null;
   }
 
-  private OctState declareVariable(OctState pElement, String pVariableName) {
-    pElement.declareVariable(pVariableName);
-    return pElement;
-  }
 
-  private OctState assignConstant(OctState pElement, String pVarName,
-      long pLongValue) {
-    pElement.assignConstant(pVarName, pLongValue);
-    return pElement;
-  }
-
-  private OctState handleStatement(OctState pElement,
-      CStatement expression, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException {
+  private OctState handleStatement(OctState pElement, CStatement expression, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
     // expression is a binary operation, e.g. a = b;
     if (expression instanceof CAssignment) {
       return handleAssignment(pElement, (CAssignment)expression, cfaEdge);
@@ -974,7 +966,8 @@ class OctTransferRelation implements TransferRelation {
     // a = -b or similar
     Long value = getExpressionValue(pElement, unaryExp, functionName, cfaEdge);
     if (value != null) {
-      return assignConstant(pElement, assignedVar, value);
+      pElement.assignConstant(assignedVar, value);
+      return pElement;
     } else {
       String rVarName = unaryOperand.toASTString();
       return assignVariable(pElement, assignedVar, rVarName, -1);
@@ -1032,7 +1025,8 @@ class OctTransferRelation implements TransferRelation {
         default:
           throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
         }
-        return assignConstant(pElement, assignedVar, value);
+        pElement.assignConstant(assignedVar, value);
+        return pElement;
       }
 
       int lVarCoef = 0;
@@ -1155,7 +1149,8 @@ class OctTransferRelation implements TransferRelation {
           // negate
           result = 1 - result;
         }
-        return assignConstant(pElement, assignedVar, result);
+        pElement.assignConstant(assignedVar, result);
+        return pElement;
       }
       //      break;
 
@@ -1245,7 +1240,8 @@ class OctTransferRelation implements TransferRelation {
 
     String assignedVar = getvarName(lParam, functionName);
     if (val != null) {
-      return assignConstant(pElement, assignedVar, val);
+      pElement.assignConstant(assignedVar, val);
+      return pElement;
     } else {
       return forget(pElement, assignedVar);
     }
