@@ -36,7 +36,6 @@ import java.util.Set;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -76,12 +75,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     constantsMap = PathCopyingPersistentTreeMap.of();
   }
 
-  public ExplicitState(PersistentSortedMap<String, Long> constantsMap) {
-    this.constantsMap = MemoryLocation.transform(constantsMap);
-  }
-
-  // TODO Remove unnecessary parameter just to change Erasure
-  public ExplicitState(PersistentMap<MemoryLocation, Long> pConstantsMap, String changeSignature) {
+  public ExplicitState(PersistentMap<MemoryLocation, Long> pConstantsMap) {
     this.constantsMap = pConstantsMap;
   }
 
@@ -246,7 +240,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     if (newConstantsMap.size() == reachedState.constantsMap.size()) {
       return reachedState;
     } else {
-      return new ExplicitState(newConstantsMap, "");
+      return new ExplicitState(newConstantsMap);
     }
   }
 
@@ -278,7 +272,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
   @Override
   public ExplicitState clone() {
-    return new ExplicitState(PathCopyingPersistentTreeMap.copyOf(constantsMap), "");
+    return new ExplicitState(PathCopyingPersistentTreeMap.copyOf(constantsMap));
   }
 
   @Override
