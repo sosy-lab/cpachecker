@@ -189,6 +189,26 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       return "Proof Checking Strategy Statistics";
     }
 
+    public Timer getPreparationTimer(){
+      return preparationTimer;
+    }
+
+    public Timer getStopTimer(){
+      return stopTimer;
+    }
+
+    public Timer getTransferTimer(){
+      return transferTimer;
+    }
+
+    public Timer getPropertyCheckingTimer(){
+      return propertyCheckingTimer;
+    }
+
+    public void increaseIteration(){
+      countIterations++;
+    }
+
     @Override
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
