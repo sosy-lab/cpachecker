@@ -363,10 +363,12 @@ class ASTConverter {
       CExpression condition = convertExpressionWithoutSideEffects(e.getLogicalConditionExpression());
       Number value = simplifyAndEvaluateExpression(condition).getSecond();
 
-      if (value != null && value.longValue() == 0) {
-        return convertExpressionWithSideEffects(e.getNegativeResultExpression());
-      } else {
-        return convertExpressionWithSideEffects(e.getPositiveResultExpression());
+      if (value != null) {
+        if (value.longValue() == 0) {
+          return convertExpressionWithSideEffects(e.getNegativeResultExpression());
+        } else {
+          return convertExpressionWithSideEffects(e.getPositiveResultExpression());
+        }
       }
     }
 
