@@ -876,7 +876,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     } else if (arrayExpressionType instanceof CArrayType) {
 
-      ArrayMemoryVisitor visitor = new ArrayMemoryVisitor(cfaEdge, smgState);
+      ArrayVisitor visitor = new ArrayVisitor(cfaEdge, smgState);
 
       return arrayExpression.accept(visitor);
     } else {
@@ -1919,13 +1919,13 @@ public class SMGTransferRelation implements TransferRelation {
     return createAddress(pSmgState.getPointerFromValue(address));
   }
 
-  private class ArrayMemoryVisitor extends DefaultCExpressionVisitor<SMGAddress, CPATransferException>
+  private class ArrayVisitor extends DefaultCExpressionVisitor<SMGAddress, CPATransferException>
       implements CRightHandSideVisitor<SMGAddress, CPATransferException> {
 
     private final CFAEdge cfaEdge;
     private final SMGState smgState;
 
-    public ArrayMemoryVisitor(CFAEdge pEdge, SMGState pSmgState) {
+    public ArrayVisitor(CFAEdge pEdge, SMGState pSmgState) {
       cfaEdge = pEdge;
       smgState = pSmgState;
     }
@@ -2653,7 +2653,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     protected SMGSymbolicValue dereferenceArray(CRightHandSide exp, CType derefType) throws CPATransferException {
 
-      ArrayMemoryVisitor v = new ArrayMemoryVisitor(cfaEdge, smgState);
+      ArrayVisitor v = new ArrayVisitor(cfaEdge, smgState);
 
       SMGAddress address = exp.accept(v);
 
