@@ -1238,7 +1238,7 @@ public class PointerTargetSet implements Serializable {
 
   protected /*final*/ PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
 
-  protected final FormulaType<?> pointerType;
+  private final FormulaType<?> pointerType;
 
   private static int dynamicAllocationCounter = 0;
 
