@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -115,6 +116,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.explicit")
 public class ExplicitTransferRelation extends ForwardingTransferRelation<ExplicitState, ExplicitPrecision> {
@@ -170,11 +173,18 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
   private final MachineModel machineModel;
   private final LogManager logger;
+  private final Multimap<String, String> addressedVariables;
 
-  public ExplicitTransferRelation(Configuration config, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
+  public ExplicitTransferRelation(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
     config.inject(this);
-    machineModel = pMachineModel;
+    machineModel = pCfa.getMachineModel();
     logger = pLogger;
+
+    if (pCfa.getVarClassification().isPresent()) {
+      addressedVariables = pCfa.getVarClassification().get().getAddressedVariables();
+    } else {
+      addressedVariables = ImmutableMultimap.of();
+    }
   }
 
   @Override
@@ -438,6 +448,13 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       memoryLocation = MemoryLocation.valueOf(varName,0);
     }else {
       memoryLocation = MemoryLocation.valueOf(functionName, varName, 0);
+    }
+
+    if (addressedVariables.containsEntry(decl.isGlobal() ? null : functionName,
+                                         varName)
+        && decl.getType() instanceof CType
+        && ((CType)decl.getType()).getCanonicalType() instanceof CPointerType) {
+      ExplicitState.addToBlacklist(memoryLocation);
     }
 
     if (init instanceof AInitializerExpression) {

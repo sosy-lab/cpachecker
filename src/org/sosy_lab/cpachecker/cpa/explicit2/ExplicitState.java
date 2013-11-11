@@ -56,6 +56,12 @@ import com.google.common.primitives.Longs;
 public class ExplicitState implements AbstractQueryableState, FormulaReportingState, Serializable {
   private static final long serialVersionUID = -3152134511524554357L;
 
+  private static final Set<MemoryLocation> blacklist = new HashSet<>();
+
+  static void addToBlacklist(MemoryLocation var) {
+    blacklist.add(checkNotNull(var));
+  }
+
   /**
    * the map that keeps the name of variables and their constant values
    */
@@ -86,6 +92,9 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param value value to be assigned.
    */
   void assignConstant(String variableName, Long value) {
+    if (blacklist.contains(MemoryLocation.valueOf(variableName))) {
+      return;
+    }
     constantsMap = constantsMap.putAndCopy(
         MemoryLocation.valueOf(variableName), checkNotNull(value));
   }
@@ -97,6 +106,9 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param value value to be assigned.
    */
   void assignConstant(MemoryLocation pMemoryLocation, Long value) {
+    if (blacklist.contains(pMemoryLocation)) {
+      return;
+    }
     constantsMap = constantsMap.putAndCopy(
         pMemoryLocation, checkNotNull(value));
   }
