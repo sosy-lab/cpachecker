@@ -91,6 +91,17 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   }
 
   /**
+   * This method removes a variable and its value from the underlying map.
+   *
+   * @param variableName the name of the variable to be removed
+   */
+  public void forgetAllWithPrefix(String prefix) {
+    for (String variableName : subMapWithPrefix(constantsMap, prefix).keySet()) {
+      forget(variableName);
+    }
+  }
+
+  /**
    * This method removes all variables and their respective values from the underlying map.
    *
    * @param variableNames the names of the variables to be removed
@@ -107,9 +118,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param functionName the name of the function that is about to be left
    */
   void dropFrame(String functionName) {
-    for (String variableName : subMapWithPrefix(constantsMap, functionName + "::").keySet()) {
-      forget(variableName);
-    }
+    forgetAllWithPrefix(functionName + "::");
   }
 
   /**
