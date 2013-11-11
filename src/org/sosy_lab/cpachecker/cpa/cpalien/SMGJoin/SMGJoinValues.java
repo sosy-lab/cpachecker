@@ -37,6 +37,7 @@ final class SMGJoinValues {
   private SMGNodeMapping mapping2;
   private boolean defined = false;
 
+  @SuppressWarnings("unused")
   private static boolean joinValuesIdentical(SMGJoinValues pJV, Integer pV1, Integer pV2) {
     if (pV1 == pV2) {
       pJV.value = pV1;
