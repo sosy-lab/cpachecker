@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -333,13 +336,81 @@ public class SMGState implements AbstractQueryableState {
       }
     }
 
-    // TODO: Nullified blocks coverage interpretation
+    if(isCoveredByNullifiedBlocks(edge)) {
+      return 0;
+    }
+
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
     return null;
   }
 
   private void setInvalidRead() {
     this.invalidRead  = true;
+  }
+
+  private boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {
+
+    //TODO better Algorithm and Refactor
+
+    MachineModel maModel = heap.getMachineModel();
+
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    filter.filterByObject(pEdge.getObject());
+
+    Set<SMGEdgeHasValue> objectEdges = getHVEdges(filter);
+
+    Set<SMGEdgeHasValue> overlappingEdges = new HashSet<>();
+
+    for (SMGEdgeHasValue edge : objectEdges) {
+      if (edge.overlapsWith(pEdge, maModel)) {
+        overlappingEdges.add(edge);
+      }
+    }
+
+    if(overlappingEdges.size() == 0) {
+      return false;
+    }
+
+    ArrayList<Integer> offsets = new ArrayList<>(overlappingEdges.size());
+
+    for( SMGEdgeHasValue edge : overlappingEdges) {
+      if(edge.getValue() != 0) {
+        return false;
+      }
+
+      int offset = edge.getOffset();
+
+      offsets.add(offset);
+    }
+
+   Collections.sort(offsets);
+
+    for (SMGEdgeHasValue edge : overlappingEdges) {
+      int offset = edge.getOffset();
+      int index = offsets.indexOf(offset);
+
+      //  edge does not cover beginning with 0
+      if(index == 0 && offset > pEdge.getOffset()) {
+        return false;
+      }
+
+      if (index + 1 >= offsets.size()) {
+        // edge does not cover end with null
+        if (offset + heap.getMachineModel().getSizeof(edge.getType()) <  pEdge.getOffset() + pEdge.getSizeInBytes(maModel)) {
+          return false;
+        }
+      } else {
+        int sizeOfBytes = edge.getSizeInBytes(maModel);
+
+        // edge does not cover to next overlapping edge
+        if (offsets.get(index + 1) > offset + sizeOfBytes) {
+          return false;
+        }
+      }
+
+    }
+
+    return true;
   }
 
   /**
