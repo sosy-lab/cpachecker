@@ -282,6 +282,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                          final ErrorConditions errorConditions,
                          final PointerTargetSetBuilder pts) {
     errorConditions.addInvalidDerefCondition(fmgr.makeEqual(address, nullPointer));
+    errorConditions.addInvalidDerefCondition(fmgr.makeLessThan(address, makeBaseAddressOfTerm(address), false));
     return makeDerefereceWithoutError(type, address, ssa, errorConditions, pts);
   }
 
