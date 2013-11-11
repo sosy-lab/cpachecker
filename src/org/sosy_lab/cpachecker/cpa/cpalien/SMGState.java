@@ -538,7 +538,11 @@ public class SMGState implements AbstractQueryableState {
     return new_edge;
   }
 
-  private void setInvalidWrite() {
+  /**
+   * Marks that an invalid write operation was performed on this smgState.
+   *
+   */
+  public void setInvalidWrite() {
     this.invalidWrite = true;
   }
 
