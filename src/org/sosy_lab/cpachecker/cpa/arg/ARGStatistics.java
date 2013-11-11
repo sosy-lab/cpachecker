@@ -418,18 +418,6 @@ public class ARGStatistics implements Statistics {
     return targetPath;
   }
 
-
-  private Map<ARGState, CounterexampleInfo> extractCounterexamplesFromReachedSet(ReachedSet reached) {
-    Map<ARGState, CounterexampleInfo> result = new HashMap<>();
-
-    for (AbstractState targetState : from(reached).filter(IS_TARGET_STATE)) {
-      ARGPath path = ARGUtils.getOnePathTo((ARGState)targetState);
-      CounterexampleInfo cex = CounterexampleInfo.feasible(path, Model.empty());
-      result.put((ARGState)targetState, cex);
-    }
-    return result;
-  }
-
   private void writeErrorPathFile(Path file, int cexIndex, Object content) {
     if (file != null) {
       // fill in index in file name
