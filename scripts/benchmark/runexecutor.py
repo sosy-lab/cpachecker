@@ -450,6 +450,14 @@ class _OomEventThread(threading.Thread):
             if not self._finished.is_set():
                 logging.info('Killing process {0} due to out-of-memory event from kernel.'.format(self._process.pid))
                 _killSubprocess(self._process)
+                # Also kill all children of subprocesses directly.
+                with open(os.path.join(self._cgroup, 'tasks'), 'rt') as tasks:
+                    for task in tasks:
+                        try:
+                            os.kill(int(task), signal.SIGKILL)
+                        except OSError:
+                            # task already terminated between reading and killing
+                            pass
 
                 # We now need to increase the memory limit of this cgroup
                 # to give the process a chance to terminate
