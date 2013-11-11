@@ -331,7 +331,10 @@ public class CFATransformations {
   private static void handleEdge(CFAEdge edge, MutableCFA cfa, CBinaryExpressionBuilder builder) {
     List<CExpression> expList = new ArrayList<>();
     if (edge instanceof CReturnStatementEdge) {
-      expList = ((CReturnStatementEdge)edge).getExpression().accept(new ContainsPointerVisitor());
+      CExpression returnExp = ((CReturnStatementEdge)edge).getExpression();
+      if (returnExp != null) {
+        expList = returnExp.accept(new ContainsPointerVisitor());
+      }
     } else if (edge instanceof CStatementEdge) {
       CStatement stmt = ((CStatementEdge)edge).getStatement();
       if (stmt instanceof CFunctionCallStatement) {
