@@ -25,9 +25,10 @@ package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 
-class SMGJoinTargetObjects {
+final class SMGJoinTargetObjects {
   private SMGJoinStatus status;
   private boolean defined = false;
   private boolean recoverable = false;

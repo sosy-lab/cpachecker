@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
 
-class SMGJoinValues {
+final class SMGJoinValues {
   private SMGJoinStatus status;
   private SMG inputSMG1;
   private SMG inputSMG2;
