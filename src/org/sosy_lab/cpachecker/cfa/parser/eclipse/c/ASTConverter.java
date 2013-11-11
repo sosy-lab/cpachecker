@@ -52,6 +52,7 @@ import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
 import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
+import org.eclipse.cdt.core.dom.ast.IASTForStatement;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
@@ -931,7 +932,12 @@ class ASTConverter {
       CLeftHandSide lhsPost = (CLeftHandSide) operand;
       CExpressionAssignmentStatement result = new CExpressionAssignmentStatement(fileLoc, lhsPost, postExp);
 
+      if (e.getParent() instanceof IASTForStatement) {
+        return result;
+      }
+
       CExpression tmp = createInitializedTemporaryVariable(fileLoc, lhsPost.getExpressionType(), lhsPost);
+      System.out.println(result.toASTString());
       preSideAssignments.add(result);
 
       return tmp;
