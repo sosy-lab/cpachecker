@@ -636,9 +636,11 @@ public class CtoFormulaConverter {
       // See Enums/Pointers as Integers
       if (fromCanBeHandledAsInt) {
         fromType = fromIsPointer ? machineModel.getPointerEquivalentSimpleType() : CNumericTypes.INT;
+        fromType = fromType.getCanonicalType();
       }
       if (toCanBeHandledAsInt) {
         toType = toIsPointer ? machineModel.getPointerEquivalentSimpleType() : CNumericTypes.INT;
+        toType = toType.getCanonicalType();
       }
     }
 
@@ -761,24 +763,10 @@ public class CtoFormulaConverter {
     if (sfrom > sto) {
       ret = fmgr.makeExtract(pFormula, sto * bitsPerByte - 1, 0);
     } else if (sfrom < sto) {
-      // Sign extend with ones when pfromType is signed and sign bit is set
-      BitvectorFormula extendBits;
+      boolean signed = machineModel.isSigned(pfromType);
       int bitsToExtend = (sto - sfrom) * bitsPerByte;
-      if (!machineModel.isSigned(pfromType)) {
-        extendBits = efmgr.makeBitvector(bitsToExtend, 0);
-      } else {
-        BitvectorFormula zeroes = efmgr.makeBitvector(bitsToExtend, 0);
-        BitvectorFormula ones = efmgr.makeBitvector(bitsToExtend, -1);
+      ret = fmgr.makeExtend(pFormula, bitsToExtend, signed);
 
-        // Formula if sign bit is set
-        Formula msb = fmgr.makeExtract(pFormula, sfrom * bitsPerByte - 1, sfrom * bitsPerByte - 1);
-        BooleanFormula zeroExtend = fmgr.makeEqual(msb, efmgr.makeBitvector(1, 0));
-
-
-        extendBits = bfmgr.ifThenElse(zeroExtend, zeroes, ones);
-      }
-
-      ret = fmgr.makeConcat(extendBits, pFormula);
     } else {
       ret = pFormula;
     }
