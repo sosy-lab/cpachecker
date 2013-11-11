@@ -515,8 +515,14 @@ public class CFAUtils {
 
         CFANode currentNode = nodes.last();
         final int current = arrayIndexForNode.apply(currentNode);
-        // Now merge current into all its successors
 
+        // Mark this node as a loop head
+        if (edges[current][current] == null) {
+          edges[current][current] = new Edge();
+        }
+        handleLoop(currentNode, current, edges, loops);
+
+        // Now merge current into all its successors
         mergeNodeIntoSuccessors(currentNode, current, nodesArray, edges, loops);
         nodes.remove(currentNode);
         changed = true;
