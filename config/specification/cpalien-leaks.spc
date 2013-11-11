@@ -7,7 +7,6 @@ CONTROL AUTOMATON CPAlienLeaks
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  MATCH LABEL [ERROR] -> ERROR;
   CHECK(CPAlien, "has-invalid-writes") -> ERROR;
   CHECK(CPAlien, "has-invalid-reads") -> ERROR;
   CHECK(CPAlien, "has-invalid-frees") -> ERROR;
