@@ -213,6 +213,14 @@ class RunExecutor():
                                  env=runningEnv, cwd=runningDir,
                                  preexec_fn=preSubprocess)
 
+        except OSError as e:
+            logging.critical("OSError {0} while starting {1}: {2}. "
+                             + "Assure that the directory containing the tool to be benchmarked is included "
+                             + "in the PATH environment variable or an alias is set."
+                             .format(e.errno, args[0], e.strerror))
+            return (0, 0, 0)
+
+        try:
             with self.SUB_PROCESSES_LOCK:
                 self.SUB_PROCESSES.add(p)
 
@@ -225,7 +233,7 @@ class RunExecutor():
             if MEMLIMIT in rlimits:
                 oomThread = _OomEventThread(cgroups[MEMORY], p)
                 oomThread.start()
-
+        
             logging.debug("waiting for: pid:{0}".format(p.pid))
             pid, returnvalue, ru_child = os.wait4(p.pid, 0)
             logging.debug("waiting finished: pid:{0}, retVal:{1}".format(pid, returnvalue))
@@ -233,9 +241,7 @@ class RunExecutor():
         except OSError as e:
             returnvalue = 0
             ru_child = None
-            logging.critical("I caught an OSError({0}): {1}.".format(e.errno, e.strerror) \
-                             + "Assure that the directory containing the tool to be benchmarked is included " \
-                             + "in the PATH environment variable or an alias is set.")
+            logging.critical("OSError {0} while waiting for termination of {1} ({2}): {3}.".format(e.errno, args[0], p.pid, e.strerror))
 
         finally:
             with self.SUB_PROCESSES_LOCK:
@@ -485,8 +491,9 @@ def _killSubprocess(process):
     '''
     try:
         os.killpg(process.pid, signal.SIGKILL)
-        if process.poll is None:
+        if process.poll() is None:
             logging.warn('Killing process {0} had no effect.'.format(process.pid))
+            # TODO os.wait4() will never return, how to terminate script?
     except OSError: # process itself returned and exited before killing
         pass
 
@@ -567,6 +574,8 @@ def _addTaskToCgroup(cgroup, pid):
 def _killAllTasksInCgroup(cgroup):
     if cgroup:
         tasksFile = os.path.join(cgroup, 'tasks')
+        # TODO size is always 0
+        # TODO prevent endless loop by having maximum loop iterations
         while os.path.getsize(tasksFile) > 0:
             with open(tasksFile, 'rt') as tasks:
                 for task in tasks:
