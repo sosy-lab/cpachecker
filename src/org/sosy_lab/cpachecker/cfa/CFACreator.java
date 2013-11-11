@@ -348,7 +348,7 @@ public class CFACreator {
       stats.processingTime.start();
 
       // remove all edges which don't have any effect on the program
-      CFATransformations.simplifyCFA(cfa);
+      CFASimplifier.simplifyCFA(cfa);
 
       if (checkNullPointers) {
         CFATransformations.detectNullPointers(cfa, logger);
