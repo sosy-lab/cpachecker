@@ -116,6 +116,9 @@ public class SMGTransferRelation implements TransferRelation {
   @FileOption(Type.OUTPUT_FILE)
   private File exportSMGFilePattern = new File("smg-%s.dot");
 
+  @Option(description = "with this option enabled, a check for unreachable memory occurs whenever a function returns, and not only at the end of the main function")
+  private boolean checkForMemLeaksAtEveryFrameDrop = true;
+
   @Option(name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped. One of: {never, leaf, interesting, every}")
   private String exportSMG = "never";
 
@@ -484,7 +487,7 @@ public class SMGTransferRelation implements TransferRelation {
       // to the return site of the caller function
       successor = handleExitFromFunction(smgState, returnEdge);
       String funcName = returnEdge.getPredecessor().getFunctionName();
-      if (funcName.equals("main")) {
+      if (funcName.equals("main") || checkForMemLeaksAtEveryFrameDrop) {
         // Ugly, but I do not know how to do better
         // TODO: Handle leaks at any program exit point (abort, etc.)
         successor.dropStackFrame(funcName);
@@ -966,7 +969,7 @@ public class SMGTransferRelation implements TransferRelation {
     if (newInitializer != null) {
       logger.log(Level.FINEST, "Handling variable declaration: handling initializer");
 
-      return handleInitializer(pState, pEdge, pObject, 0, cType, newInitializer);
+      return handleInitializer(pState, pVarDecl, pEdge, pObject, 0, cType, newInitializer);
     } else if (pVarDecl.isGlobal()) {
 
       // Global variables without initializer are nullified in C
@@ -976,7 +979,7 @@ public class SMGTransferRelation implements TransferRelation {
     return pState;
   }
 
-  private SMGState handleInitializer(SMGState pNewState, CFAEdge pEdge,
+  private SMGState handleInitializer(SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge,
       SMGObject pNewObject, int pOffset, CType pLValueType, CInitializer pInitializer)
       throws UnrecognizedCCodeException, CPATransferException {
 
@@ -987,7 +990,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     } else if (pInitializer instanceof CInitializerList) {
 
-      return handleInitializerList(pNewState, pEdge,
+      return handleInitializerList(pNewState, pVarDecl, pEdge,
           pNewObject, pOffset, pLValueType, ((CInitializerList) pInitializer));
     } else if (pInitializer instanceof CDesignatedInitializer) {
       // TODO handle CDesignatedInitializer
@@ -998,7 +1001,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
   }
 
-  private SMGState handleInitializerList(SMGState pNewState, CFAEdge pEdge,
+  private SMGState handleInitializerList(SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge,
       SMGObject pNewObject, int pOffset, CType pLValueType, CInitializerList pNewInitializer)
       throws UnrecognizedCCodeException, CPATransferException {
 
@@ -1007,12 +1010,12 @@ public class SMGTransferRelation implements TransferRelation {
     if (realCType instanceof CArrayType) {
 
       CArrayType arrayType = (CArrayType) realCType;
-      return handleInitializerList(pNewState, pEdge,
+      return handleInitializerList(pNewState, pVarDecl, pEdge,
           pNewObject, pOffset, arrayType, pNewInitializer);
     } else if (realCType instanceof CCompositeType) {
 
       CCompositeType structType = (CCompositeType) realCType;
-      return handleInitializerList(pNewState, pEdge,
+      return handleInitializerList(pNewState, pVarDecl, pEdge,
           pNewObject, pOffset, structType, pNewInitializer);
     }
 
@@ -1025,7 +1028,7 @@ public class SMGTransferRelation implements TransferRelation {
   }
 
   private SMGState handleInitializerList(
-      SMGState pNewState, CFAEdge pEdge,
+      SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge,
       SMGObject pNewObject, int pOffset, CCompositeType pLValueType,
       CInitializerList pNewInitializer)
       throws UnrecognizedCCodeException, CPATransferException {
@@ -1048,20 +1051,34 @@ public class SMGTransferRelation implements TransferRelation {
 
       CType memberType = memberTypes.get(listCounter).getType();
 
-      pNewState = handleInitializer(pNewState, pEdge, pNewObject, offset, memberType, initializer);
+      pNewState = handleInitializer(pNewState, pVarDecl, pEdge, pNewObject, offset, memberType, initializer);
 
       offset = offset + expressionEvaluator.getSizeof(pEdge, memberType);
 
       listCounter++;
     }
 
-    //TODO initialize the rest to 0
+    if(pVarDecl.isGlobal()) {
+      int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType);
+
+      if(offset < sizeOfType ) {
+
+        //TODO MockType
+        CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
+        CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
+
+        CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(null, dummyInt, BigInteger.valueOf(sizeOfType - offset));
+        CArrayType type = new CArrayType(false, false, dummyChar, arrayLen);
+
+        pNewState.writeValue(pNewObject, offset, type, SMGKnownSymValue.ZERO);
+      }
+    }
 
     return pNewState;
   }
 
   private SMGState handleInitializerList(
-      SMGState pNewState, CFAEdge pEdge,
+      SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge,
       SMGObject pNewObject, int pOffset, CArrayType pLValueType,
       CInitializerList pNewInitializer)
       throws UnrecognizedCCodeException, CPATransferException {
@@ -1070,16 +1087,37 @@ public class SMGTransferRelation implements TransferRelation {
 
     CType elementType = pLValueType.getType();
 
-    int sizeOfType = expressionEvaluator.getSizeof(pEdge, elementType);
+    int sizeOfElementType = expressionEvaluator.getSizeof(pEdge, elementType);
 
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
 
-      int offset = pOffset + listCounter * sizeOfType;
+      int offset = pOffset + listCounter * sizeOfElementType;
 
-      pNewState = handleInitializer(pNewState, pEdge,
+      pNewState = handleInitializer(pNewState, pVarDecl, pEdge,
           pNewObject, offset, pLValueType.getType(), initializer);
 
       listCounter++;
+    }
+
+    if (pVarDecl.isGlobal()) {
+
+      int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType);
+
+      int offset = pOffset + listCounter * sizeOfElementType;
+      if (offset < sizeOfType) {
+
+        //TODO MockType
+        CSimpleType dummyChar =
+            new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
+        CSimpleType dummyInt =
+            new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
+
+        CIntegerLiteralExpression arrayLen =
+            new CIntegerLiteralExpression(null, dummyInt, BigInteger.valueOf(sizeOfType - offset));
+        CArrayType type = new CArrayType(false, false, dummyChar, arrayLen);
+
+        pNewState.writeValue(pNewObject, offset, type, SMGKnownSymValue.ZERO);
+      }
     }
 
     return pNewState;
@@ -1202,7 +1240,7 @@ public class SMGTransferRelation implements TransferRelation {
       super(pLogger, pMachineModel);
     }
 
-    public SMGRightHandSideEvaluator.AssumeVisitorNG getAssumeVisitorNG(
+    public org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGRightHandSideEvaluator.AssumeVisitorNG getAssumeVisitorNG(
         CFAEdge pCfaEdge, SMGState pSmgState) {
       return new AssumeVisitorNG(pCfaEdge, pSmgState);
     }
@@ -1300,9 +1338,9 @@ public class SMGTransferRelation implements TransferRelation {
 
     private class PointerAddressVisitor extends SMGExpressionEvaluator.PointerVisitor {
 
-    public PointerAddressVisitor(CFAEdge pEdge, SMGState pSmgState) {
+   public PointerAddressVisitor(CFAEdge pEdge, SMGState pSmgState) {
       super(pEdge, pSmgState);
-    }
+   }
 
     @Override
       public SMGAddressValue visit(CFunctionCallExpression pIastFunctionCallExpression)
@@ -1533,19 +1571,19 @@ public class SMGTransferRelation implements TransferRelation {
     //}
 
     @Override
-    protected SMGExpressionEvaluator.PointerVisitor getPointerVisitor(
+    protected org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.PointerVisitor getPointerVisitor(
         CFAEdge pCfaEdge, SMGState pNewState) {
       return new PointerAddressVisitor(pCfaEdge, pNewState);
     }
 
     @Override
-    protected SMGExpressionEvaluator.ExpressionValueVisitor getExpressionValueVisitor(
+    protected org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.ExpressionValueVisitor getExpressionValueVisitor(
         CFAEdge pCfaEdge, SMGState pNewState) {
       return new ExpressionValueVisitor(pCfaEdge, pNewState);
     }
 
     @Override
-    public SMGExpressionEvaluator.LValueAssignmentVisitor getLValueAssignmentVisitor(
+    public org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.LValueAssignmentVisitor getLValueAssignmentVisitor(
         CFAEdge pCfaEdge, SMGState pNewState) {
       return new LValueAssignmentVisitor(pCfaEdge, pNewState);
     }
@@ -1937,7 +1975,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     public boolean isMissingAssumption() {
       return truthAssumption != null && missingCExpressionInformation != null;
-	}
+  }
 
     @SuppressWarnings("unused")
     public MissingInformation(CExpression pMissingCLeftMemoryLocation,
