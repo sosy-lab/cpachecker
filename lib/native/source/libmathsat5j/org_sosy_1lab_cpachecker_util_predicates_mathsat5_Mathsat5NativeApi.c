@@ -743,6 +743,20 @@ TERM_RETURN
 
 make_term_bv_binary(comp)
 
+DEFINE_FUNC(jterm, 1make_1bv_1sext) WITH_THREE_ARGS(jenv, int, jterm)
+ENV_ARG(1)
+SIMPLE_ARG(int, 2)
+TERM_ARG(3)
+CALL3(msat_term, make_bv_sext)
+TERM_RETURN
+
+DEFINE_FUNC(jterm, 1make_1bv_1zext) WITH_THREE_ARGS(jenv, int, jterm)
+ENV_ARG(1)
+SIMPLE_ARG(int, 2)
+TERM_ARG(3)
+CALL3(msat_term, make_bv_zext)
+TERM_RETURN
+
 DEFINE_FUNC(jterm, 1make_1term) WITH_THREE_ARGS(jenv, jdecl, jtermArray)
 ENV_ARG(1)
 DECL_ARG(2)
