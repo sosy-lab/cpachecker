@@ -399,12 +399,14 @@ class _OomEventThread(threading.Thread):
     """
     Thread that kills the process when they run out of memory.
     Usually the kernel would do this by itself,
-    but we experienced big problems when letting the kernel kill the process,
-    because it kills just one of the many processes and threads in the cgroup.
-    So we disable this, and instead let the kernel notify us via an event
-    when the cgroup ran out of memory.
+    but sometimes the process still hangs because it does not even have
+    enough memory left to get killed
+    (the memory limit also effects some kernel-internal memory related to our process).
+    So we disable the kernel-side killing,
+    and instead let the kernel notify us via an event when the cgroup ran out of memory.
+    Then we kill the process ourselves and increase the memory limit a little bit.
     
-    This works by opening an "event file descriptor" with eventfd,
+    The notification works by opening an "event file descriptor" with eventfd,
     and telling the kernel to notify us about OOMs by writing the event file
     descriptor and an file descriptor of the memory.oom_control file
     to cgroup.event_control.
@@ -454,10 +456,6 @@ class _OomEventThread(threading.Thread):
                 # 10MB ought to be enough
                 writeFile(str((self._memlimit + 10) * _BYTE_FACTOR * _BYTE_FACTOR),
                           self._cgroup, 'memory.memsw.limit_in_bytes')
-
-                time.sleep(0.1)
-                if self._process.poll() is None:
-                    logging.warn('Killing process {0} had no effect.'.format(self._process.pid))
 
         finally:
             os.close(self._efd)
