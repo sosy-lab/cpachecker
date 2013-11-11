@@ -257,6 +257,12 @@ cegar.globalRefinement = false
 # omitted.
 cegar.refiner = no default value
 
+# dump a simple call graph
+cfa.callgraph.export = true
+
+# file name for call graph as .dot file
+cfa.callgraph.file = "functionCalls.dot"
+
 # while this option is activated, before each use of aPointerExpression, or a
 # dereferenced field access the expression ischecked if it is 0
 cfa.checkNullPointers = false
