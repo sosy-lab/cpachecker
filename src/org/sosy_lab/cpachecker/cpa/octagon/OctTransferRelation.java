@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -51,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -815,9 +817,12 @@ class OctTransferRelation implements TransferRelation {
         pElement.declareVariable(variableName);
         return pElement;
       }
+    } else if (declarationEdge.getDeclaration() instanceof CTypeDeclaration
+               || declarationEdge.getDeclaration() instanceof CFunctionDeclaration) {
+      return pElement;
     }
 
-    assert (false);
+    assert (false) : declarationEdge.getDeclaration() + " (" + declarationEdge.getDeclaration().getClass() + ")";
     return null;
   }
 
@@ -826,19 +831,20 @@ class OctTransferRelation implements TransferRelation {
     // expression is a binary operation, e.g. a = b;
     if (expression instanceof CAssignment) {
       return handleAssignment(pElement, (CAssignment)expression, cfaEdge);
-    }
-    // external function call
-    else if (expression instanceof CFunctionCallStatement) {
+
+      // external function call
+    } else if (expression instanceof CFunctionCallStatement) {
       // do nothing
-    }
-    // there is such a case
-    else if (expression instanceof CExpressionStatement) {
+      return pElement;
+
+      // there is such a case
+    } else if (expression instanceof CExpressionStatement) {
       // do nothing
+      return pElement;
+
     } else {
       throw new UnrecognizedCCodeException("unknown statement", cfaEdge, expression);
     }
-    assert (false);
-    return null;
   }
 
   private OctState handleAssignment(OctState pElement,
