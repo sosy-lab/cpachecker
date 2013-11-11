@@ -112,7 +112,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
-  private final MachineModel machineModel;
   private final CtoFormulaConverter converter;
   private final LogManager logger;
 
@@ -140,8 +139,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       pLogger.log(Level.WARNING, "Ignoring option cpa.predicate.pointerAnalysisWithUFs because cpa.predicate.handlePointerAliasing is disabled, possibly imprecise analysis!");
       pointerAnalysisWithUFs = false;
     }
-
-    machineModel = pMachineModel;
 
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
@@ -214,10 +211,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     if (!pointerAnalysisWithUFs) {
       return new PathFormula(bfmgr.makeBoolean(true), SSAMap.emptySSAMap(), 0);
     } else {
-      return new PathFormulaWithUF(bfmgr.makeBoolean(true),
-                                   SSAMap.emptySSAMap(),
-                                   PointerTargetSet.emptyPointerTargetSet(machineModel, fmgr),
-                                   0);
+      return ((CToFormulaWithUFConverter)converter).makeEmptyPathFormula();
     }
   }
 
