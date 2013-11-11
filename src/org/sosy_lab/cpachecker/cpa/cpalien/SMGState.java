@@ -290,6 +290,21 @@ public class SMGState implements AbstractQueryableState {
   }
 
   /**
+   * Checks, if a symbolic value is an address.
+   *
+   * Constant.
+   *
+   * @param pValue A value for which to return the Points-To edge
+   * @return True, if the smg contains a {@link SMGEdgePointsTo} edge
+   * with {@link pValue} as source, false otherwise.
+   *
+   */
+  public boolean isPointer(Integer pValue) {
+
+    return heap.isPointer(pValue);
+  }
+
+  /**
    * Read Value in field (object, type) of an Object.
    *
    * @param pObject SMGObject representing the memory the field belongs to.
