@@ -118,4 +118,12 @@ public interface BitvectorFormulaManager {
 
   public BitvectorFormula concat(BitvectorFormula number, BitvectorFormula append);
   public BitvectorFormula extract(BitvectorFormula number, int msb, int lsb);
+
+  /**
+   * Extend a bitvector to the left (add most significant bits).
+   * @param number The bitvector to extend.
+   * @param extensionBits How many bits to add.
+   * @param signed Whether the extension should depend on the sign bit.
+   */
+  public BitvectorFormula extend(BitvectorFormula number, int extensionBits, boolean signed);
 }

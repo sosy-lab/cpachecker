@@ -277,4 +277,10 @@ public class TemplateBitvectorFormulaManager implements BitvectorFormulaManager 
   public BitvectorFormula extract(BitvectorFormula pNumber, int pMsb, int pLsb) {
     return new NonTemplate(getType(pNumber).withSize(pMsb - pLsb));
   }
+
+  @Override
+  public BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {
+    BitvectorType t = getType(pNumber);
+    return new NonTemplate(t.withSize(t.getSize() + pExtensionBits));
+  }
 }
