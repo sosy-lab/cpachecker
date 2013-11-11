@@ -874,6 +874,11 @@ cpa.predicate.memoryAllocationFunctions = {
       "malloc", "__kmalloc", "kmalloc"
       }
 
+# Memory allocation functions of which all parameters but the first should be
+# ignored.
+cpa.predicate.memoryAllocationFunctionsWithSuperfluousParameters = {
+      "__kmalloc", "kmalloc", "kzalloc"}
+
 # Set of functions that non-deterministically provide new zeroed memory on
 # the heap, i.e. they can return either a valid pointer or zero.
 cpa.predicate.memoryAllocationFunctionsWithZeroing = {"kzalloc"}
