@@ -567,7 +567,9 @@ public class SMGExpressionEvaluator {
 
       SMGAddress addressOfField = getAddressOfField(smgState, cfaEdge, lValue);
 
-      if (addressOfField.isUnknown()) { return SMGUnknownValue.getInstance(); }
+      if (addressOfField.isUnknown()) {
+        return SMGUnknownValue.getInstance();
+      }
 
       return createAddress(smgState, addressOfField.getObject(), addressOfField.getOffset());
     }
@@ -586,25 +588,7 @@ public class SMGExpressionEvaluator {
     @Override
     public SMGAddressValue visit(CPointerExpression pointerExpression) throws CPATransferException {
 
-      CExpression operand = pointerExpression.getOperand();
-      CType operandType = getRealExpressionType(operand);
-      CType expType = getRealExpressionType(pointerExpression);
-
-      if (operandType instanceof CPointerType) {
-
-        SMGSymbolicValue address = dereferencePointer(operand, expType);
-        return getAddressFromSymbolicValue(smgState, address);
-
-      } else if (operandType instanceof CArrayType) {
-
-        SMGSymbolicValue address = dereferenceArray(operand, expType);
-        return getAddressFromSymbolicValue(smgState, address);
-
-      } else {
-        throw new UnrecognizedCCodeException("Misinterpreted the expression type of "
-            + operand.toASTString()
-            + " as pointer type", cfaEdge, pointerExpression);
-      }
+      return getAddressFromSymbolicValue(smgState, super.visit(pointerExpression));
     }
 
     @Override
@@ -742,14 +726,39 @@ public class SMGExpressionEvaluator {
     return createAddress(pNewState, pAddress.getObject(), pAddress.getOffset());
   }
 
+  /**
+   * Is given a symbolic Value, looks into the smg to determine if the symbolic
+   * value represents a pointer, and transforms it into a {@link SMGAddressValue}
+   * containing the symbolic value that represents the pointer as well as the
+   * address the pointer is pointing to.
+   *
+   * Because all values in C represent an
+   * address, and can e cast to a pointer, the method returns a instance of
+   * {@link SMGUnknownValue} if the symbolic value does not represent a pointer
+   * in the smg.
+   *
+   *
+   *
+   * @param pSmgState This contains the SMG.
+   * @param pAddressValue the symbolic value that may represent a pointer in the smg
+   * @return The address, otherwise unknown
+   * @throws SMGInconsistentException thrown if the symbolic address is misinterpreted as a pointer.
+   */
   SMGAddressValue getAddressFromSymbolicValue(SMGState pSmgState,
       SMGSymbolicValue pAddressValue) throws SMGInconsistentException {
 
-    if (pAddressValue instanceof SMGAddressValue) { return (SMGAddressValue) pAddressValue; }
+    if (pAddressValue instanceof SMGAddressValue) {
+      return (SMGAddressValue) pAddressValue;
+    }
 
-    if (pAddressValue.isUnknown()) { return SMGUnknownValue.getInstance(); }
+    if (pAddressValue.isUnknown()) {
+      return SMGUnknownValue.getInstance();
+    }
 
-    //TODO isPointer(symbolicValue)
+    if(!pSmgState.isPointer(pAddressValue.getAsInt())) {
+      return SMGUnknownValue.getInstance();
+    }
+
     SMGEdgePointsTo edge = pSmgState.getPointerFromValue(pAddressValue.getAsInt());
 
     return createAddress(edge);
@@ -1191,7 +1200,6 @@ public class SMGExpressionEvaluator {
       CExpression operand = pointerExpression.getOperand();
       CType operandType = getRealExpressionType(operand);
       CType expType = getRealExpressionType(pointerExpression);
-
 
       if (operandType instanceof CPointerType) {
         return dereferencePointer(operand, expType);
