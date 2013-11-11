@@ -23,17 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
+import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.VOID;
 
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -416,90 +417,19 @@ public class PointerTargetSet implements Serializable {
     return multiset.count(memberName);
   }
 
-  /**
-   * <p>
-   * Returns an {@link Iterable} of all possible {@link PointerTarget}s of the given type
-   * that either match the given {@link PointerTargetPattern} ({@code match == true}) or
-   * don't match it ({@code match == false}).
-   * </p>
-   * <p>
-   * The provided {@link Iterable} is intended only for iterating over the obtained (non-)matching targets.
-   * </p>
-   * @param type
-   * @param pattern
-   * @param match
-   * @param targets
-   * @return
-   */
-  private static Iterable<PointerTarget> getTargets(
-                                            final CType type,
-                                            final PointerTargetPattern pattern,
-                                            final boolean match,
-                                            final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
-    final List<PointerTarget> targetsForType = targets.get(typeToString(type));
-    final Iterator<PointerTarget> resultIterator = new Iterator<PointerTarget>() {
-
-      @Override
-      public boolean hasNext() {
-        if (last != null) {
-          return true;
-        }
-        while (iterator.hasNext()) {
-          last = iterator.next();
-          if (pattern.matches(last) == match) {
-            return true;
-          }
-        }
-        return false;
-      }
-
-      @Override
-      public PointerTarget next() {
-        PointerTarget result = last;
-        if (result != null) {
-          last = null;
-          return result;
-        }
-        while (iterator.hasNext()) {
-          result = iterator.next();
-          if (pattern.matches(result) == match) {
-            return result;
-          }
-        }
-        return null;
-      }
-
-      @Override
-      public void remove() {
-        throw new UnsupportedOperationException();
-      }
-
-      private Iterator<PointerTarget> iterator = targetsForType != null ? targetsForType.iterator() :
-                                                                          Collections.<PointerTarget>emptyList()
-                                                                                     .iterator();
-      private PointerTarget last = null;
-     };
-     return new Iterable<PointerTarget>() {
-      @Override
-      public Iterator<PointerTarget> iterator() {
-        return resultIterator;
-      }
-    };
-  }
-
   public Iterable<PointerTarget> getMatchingTargets(final CType type,
                                                     final PointerTargetPattern pattern) {
-    return getTargets(type, pattern, true, targets);
+    return from(getAllTargets(type)).filter(pattern);
   }
 
   public Iterable<PointerTarget> getSpuriousTargets(final CType type,
                                                     final PointerTargetPattern pattern) {
-    return getTargets(type, pattern, false, targets);
+    return from(getAllTargets(type)).filter(not(pattern));
   }
 
-  public Iterable<PointerTarget> getAllTargets(final CType type) {
-    final PersistentList<PointerTarget> result = targets.get(typeToString(type));
-    return result != null ? Collections.unmodifiableCollection(result) : Collections.<PointerTarget>emptyList();
+  public PersistentList<PointerTarget> getAllTargets(final CType type) {
+    return firstNonNull(targets.get(typeToString(type)),
+                        PersistentList.<PointerTarget>empty());
   }
 
   /**
@@ -586,10 +516,8 @@ public class PointerTargetSet implements Serializable {
                            final int properOffset,
                            final int containerOffset) {
       final String type = typeToString(targetType);
-      PersistentList<PointerTarget> targetsForType = targets.get(type);
-      if (targetsForType == null) {
-        targetsForType = PersistentList.<PointerTarget>empty();
-      }
+      PersistentList<PointerTarget> targetsForType = firstNonNull(targets.get(type),
+                                                                  PersistentList.<PointerTarget>empty());
       targets = targets.putAndCopy(type, targetsForType.with(new PointerTarget(base,
                                                                                containerType,
                                                                                properOffset,
@@ -1518,4 +1446,3 @@ public class PointerTargetSet implements Serializable {
 
   private static final long serialVersionUID = 2102505458322248624L;
 }
-

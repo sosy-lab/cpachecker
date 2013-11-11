@@ -31,7 +31,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 
-public class PointerTargetPattern implements Serializable {
+import com.google.common.base.Predicate;
+
+public class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
   /**
    * Constructor for matching any possible target
@@ -183,6 +185,12 @@ public class PointerTargetPattern implements Serializable {
       }
     }
     return true;
+  }
+
+  @Override
+  @Deprecated // call matches(), it has a better name
+  public boolean apply(PointerTarget pInput) {
+    return matches(pInput);
   }
 
   public boolean isExact() {
