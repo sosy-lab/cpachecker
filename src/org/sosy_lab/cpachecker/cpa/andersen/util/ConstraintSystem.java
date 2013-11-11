@@ -523,4 +523,12 @@ public class ConstraintSystem {
     return sb.toString();
   }
 
+  public ConstraintSystem join(ConstraintSystem pLocalConstraintSystem) {
+    ConstraintSystem result = new ConstraintSystem(this);
+    result.baseConstraints.addAll(pLocalConstraintSystem.baseConstraints);
+    result.simpleConstraints.addAll(pLocalConstraintSystem.simpleConstraints);
+    result.complexConstraints.addAll(pLocalConstraintSystem.complexConstraints);
+    return result;
+  }
+
 }

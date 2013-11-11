@@ -106,4 +106,20 @@ public class AndersenState implements AbstractState {
   public String toString() {
     return this.localConstraintSystem.toString();
   }
+
+  public boolean isLessOrEqual(AndersenState pReachedState) {
+    return this == pReachedState || (this.localConstraintSystem.getBaseConstraints().containsAll(pReachedState.localConstraintSystem.getBaseConstraints())
+        && this.localConstraintSystem.getSimpleConstraints().containsAll(pReachedState.localConstraintSystem.getSimpleConstraints())
+        && this.localConstraintSystem.getComplexConstraints().containsAll(pReachedState.localConstraintSystem.getComplexConstraints()));
+  }
+
+  public AndersenState join(AndersenState pReachedState) {
+    if (isLessOrEqual(pReachedState)) {
+      return pReachedState;
+    }
+    if (pReachedState.isLessOrEqual(this)) {
+      return this;
+    }
+    return new AndersenState(this.localConstraintSystem.join(pReachedState.localConstraintSystem));
+  }
 }
