@@ -895,7 +895,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                                           constraints,
                                                                                           pts);
     final LvalueToPointerTargetPatternVisitor lvalueVisitor = getLvalueToPointerTargetPatternVisitor(cfaEdge, pts);
-    return new StatementToFormulaWithUFVisitor(delegate, lvalueVisitor);
+    return new StatementToFormulaWithUFVisitor(delegate, lvalueVisitor, this, pts);
   }
 
   protected BooleanFormula makeReturn(final CExpression resultExpression,
