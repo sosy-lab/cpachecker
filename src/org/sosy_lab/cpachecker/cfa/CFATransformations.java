@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -241,6 +242,10 @@ public class CFATransformations {
 
     @Override
     public Void visit(CUnaryExpression e) {
+      if (e.getOperator() == UnaryOperator.SIZEOF) {
+        // We do not want cases like sizeof(*p)
+        return null;
+      }
       return e.getOperand().accept(this);
     }
 
