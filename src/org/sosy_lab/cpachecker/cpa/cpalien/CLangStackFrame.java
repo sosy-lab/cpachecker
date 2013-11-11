@@ -32,7 +32,9 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
@@ -68,8 +70,8 @@ final public class CLangStackFrame {
   public CLangStackFrame(CFunctionDeclaration pDeclaration, MachineModel pMachineModel) {
     stack_function = pDeclaration;
 
-    CType returnType = pDeclaration.getType().getReturnType();
-    if (returnType == null) {
+    CType returnType = pDeclaration.getType().getReturnType().getCanonicalType();
+    if (returnType instanceof CSimpleType && ((CSimpleType) returnType).getType() == CBasicType.VOID) {
       // use a plain int as return type for void functions
       returnType = CNumericTypes.INT;
     }
