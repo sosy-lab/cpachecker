@@ -23,9 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
-
+/**
+ * Instances of implementing classes represent identifiers that can represent
+ * pointers or can be pointed to.
+ */
 public interface Location extends Comparable<Location> {
 
+  /**
+   * Gets a textual representation of the identifier.
+   *
+   * @return a textual representation of the identifier.
+   */
   String getId();
 
 }
