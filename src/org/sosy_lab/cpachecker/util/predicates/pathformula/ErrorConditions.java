@@ -43,7 +43,7 @@ public class ErrorConditions {
   }
 
   public void addInvalidDerefCondition(BooleanFormula pCo) {
-    invalidFree = bfmgr.or(invalidFree, pCo);
+    invalidDeref = bfmgr.or(invalidDeref, pCo);
   }
 
   public void addInvalidFreeCondition(BooleanFormula pCo) {
