@@ -880,9 +880,12 @@ public class SMGState implements AbstractQueryableState, Targetable {
    * @param functionName
    * @throws SMGInconsistentException
    */
-  public void dropStackFrame(String functionName) throws SMGInconsistentException {
+  public void dropStackFrame() throws SMGInconsistentException {
     this.heap.dropStackFrame();
     this.performConsistencyCheck(SMGRuntimeCheck.FULL);
+  }
+
+  public void pruneUnreachable() throws SMGInconsistentException {
     this.heap.pruneUnreachable();
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
