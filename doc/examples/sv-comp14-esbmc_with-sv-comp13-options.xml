@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+
+<benchmark tool="esbmc" timelimit="900" memlimit="15000">
+
+  <!-- global options -->
+  <option name="-D_Bool=int"/>
+  <option name="--no-unwinding-assertions"/>
+  <option name="--partial-loops"/>
+  <option name="--64"/>
+  <option name="--no-assertions"/>
+  <option name="--64"/>
+  <option name="--unwind">6</option>
+
+
+  <rundefinition name="MemorySafety">
+    <option name="--memory-leak-check"/>
+    
+    <sourcefiles name="MemorySafety">
+        <includesfile>../../../../sv-benchmarks-trunk/c/MemorySafety.set</includesfile>
+        <!-- for testing only: 
+        <include>../../../../sv-benchmarks-trunk/c/memsafety/test-0232_false-valid-memtrack.i</include>
+        -->
+    </sourcefiles>
+  </rundefinition>
+
+
+  <rundefinition name="Normal">
+
+    <option name="--no-pointer-check"/>
+    <option name="--no-bounds-check"/>
+    <option name="--no-div-by-zero-check"/>
+    <option name="--error-label">ERROR</option>
+
+    <sourcefiles name="BitVectors">
+        <includesfile>../../../../sv-benchmarks-trunk/c/BitVectors.set</includesfile>
+    </sourcefiles>
+    <sourcefiles name="Concurrency">
+        <includesfile>../../../../sv-benchmarks-trunk/c/Concurrency.set</includesfile>
+    </sourcefiles>
+    <sourcefiles name="ControlFlowInteger">
+        <includesfile>../../../../sv-benchmarks-trunk/c/ControlFlowInteger.set</includesfile>
+    </sourcefiles>
+    <sourcefiles name="DeviceDrivers64">
+        <includesfile>../../../../sv-benchmarks-trunk/c/DeviceDrivers64.set</includesfile>
+    </sourcefiles>
+    <sourcefiles name="HeapManipulation">
+        <includesfile>../../../../sv-benchmarks-trunk/c/HeapManipulation.set</includesfile>
+    </sourcefiles>
+    <sourcefiles name="Loops">
+        <includesfile>../../../../sv-benchmarks-trunk/c/Loops.set</includesfile>
+    </sourcefiles>
+    <sourcefiles name="ProductLines">
+        <includesfile>../../../../sv-benchmarks-trunk/c/ProductLines.set</includesfile>
+    </sourcefiles>
+    <sourcefiles name="Recursive">
+        <includesfile>../../../../sv-benchmarks-trunk/c/Recursive.set</includesfile>
+    </sourcefiles>
+    <sourcefiles name="Sequentialized">
+        <includesfile>../../../../sv-benchmarks-trunk/c/Sequentialized.set</includesfile>
+    </sourcefiles>
+    <sourcefiles name="Simple">
+        <includesfile>../../../../sv-benchmarks-trunk/c/Simple.set</includesfile>
+    </sourcefiles>
+    <sourcefiles name="Stateful">
+        <includesfile>../../../../sv-benchmarks-trunk/c/Stateful.set</includesfile>
+    </sourcefiles>
+  </rundefinition>
+
+</benchmark>
+
+
+
