@@ -56,11 +56,11 @@ public class ConstraintSystem {
     return Collections.unmodifiableSet(complexConstraints);
   }
 
-  public boolean isChanged() {
+  private boolean isChanged() {
     return changed;
   }
 
-  public void setChanged(boolean changed) {
+  private void setChanged(boolean changed) {
     this.changed = changed;
   }
 
@@ -108,28 +108,28 @@ public class ConstraintSystem {
   /**
    * Add a (new) {@link BaseConstraint} to this element.
    *
-   * @param constr {@link BaseConstraint} that should be added.
+   * @param pConstr {@link BaseConstraint} that should be added.
    */
-  public void addConstraint(BaseConstraint constr) {
-    setChanged(baseConstraints.add(constr));
+  public void addConstraint(BaseConstraint pConstr) {
+    setChanged(baseConstraints.add(pConstr));
   }
 
   /**
    * Add a (new) {@link SimpleConstraint} to this element.
    *
-   * @param constr {@link SimpleConstraint} that should be added.
+   * @param pConstr {@link SimpleConstraint} that should be added.
    */
-  public void addConstraint(SimpleConstraint constr) {
-    setChanged(simpleConstraints.add(constr));
+  public void addConstraint(SimpleConstraint pConstr) {
+    setChanged(simpleConstraints.add(pConstr));
   }
 
   /**
    * Add a (new) {@link ComplexConstraint} to this element.
    *
-   * @param constr {@link ComplexConstraint} that should be added.
+   * @param pConstr {@link ComplexConstraint} that should be added.
    */
-  public void addConstraint(ComplexConstraint constr) {
-    setChanged(complexConstraints.add(constr));
+  public void addConstraint(ComplexConstraint pConstr) {
+    setChanged(complexConstraints.add(pConstr));
   }
 
   /**
