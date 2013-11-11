@@ -149,6 +149,12 @@ public class CFACreator {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaFile = Paths.get("cfa.dot");
 
+  @Option(name="cfa.checkNullPointers",
+      description="while this option is activated, before each use of a"
+          + "PointerExpression, or a dereferenced field access the expression is"
+          + "checked if it is 0")
+  private boolean checkNullPointers = false;
+
   @Option(description="C or Java?")
   private Language language = Language.C;
 
@@ -342,7 +348,11 @@ public class CFACreator {
       stats.processingTime.start();
 
       // remove all edges which don't have any effect on the program
-      CFASimplifier.simplifyCFA(cfa);
+      CFATransformations.simplifyCFA(cfa);
+
+      if (checkNullPointers) {
+        CFATransformations.detectNullPointers(cfa, logger);
+      }
 
       // add function pointer edges
       if (language == Language.C && fptrCallEdges) {
