@@ -366,6 +366,19 @@ public class CLangSMG extends SMG {
   /**
    * Constant.
    *
+   * Checks whether given object is on the heap.
+   *
+   * @param object SMGObject to be checked.
+   * @return True, if the given object is referenced in the set of heap objects, false otherwise.
+   *
+   */
+  public boolean isHeapObject(SMGObject object) {
+    return heap_objects.contains(object);
+  }
+
+  /**
+   * Constant.
+   *
    * @return Unmodifiable map from variable names to global objects.
    */
   public Map<String, SMGObject> getGlobalObjects() {
