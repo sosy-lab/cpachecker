@@ -31,33 +31,38 @@ import java.util.List;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
 /******************************************************************+
@@ -68,7 +73,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
  */
 public class CFATransformations {
 
-  public static void detectNullPointers(MutableCFA cfa, LogManager logger) {
+  public static void detectNullPointers(MutableCFA cfa, LogManager logger) throws CParserException {
 
     CBinaryExpressionBuilder binBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
     Collection<CFANode> allNodes = cfa.getAllNodes();
@@ -91,7 +96,7 @@ public class CFATransformations {
     }
   }
 
-  private static void handleEdge(CFAEdge edge, MutableCFA cfa, CBinaryExpressionBuilder builder) {
+  private static void handleEdge(CFAEdge edge, MutableCFA cfa, CBinaryExpressionBuilder builder) throws CParserException {
     ContainsPointerVisitor visitor = new ContainsPointerVisitor();
     if (edge instanceof CReturnStatementEdge) {
       CExpression returnExp = ((CReturnStatementEdge)edge).getExpression();
@@ -102,13 +107,23 @@ public class CFATransformations {
       CStatement stmt = ((CStatementEdge)edge).getStatement();
       if (stmt instanceof CFunctionCallStatement) {
         ((CFunctionCallStatement)stmt).getFunctionCallExpression().accept(visitor);
-      } else if (stmt instanceof CFunctionCallAssignmentStatement) {
-        ((CFunctionCallAssignmentStatement)stmt).getFunctionCallExpression().accept(visitor);
       } else if (stmt instanceof CExpressionStatement) {
         ((CExpressionStatement)stmt).getExpression().accept(visitor);
-      } else if (stmt instanceof CExpressionAssignmentStatement) {
-        ((CExpressionAssignmentStatement)stmt).getRightHandSide().accept(visitor);
-        ((CExpressionAssignmentStatement)stmt).getLeftHandSide().accept(visitor);
+      } else if (stmt instanceof CAssignment) {
+        ((CAssignment)stmt).getRightHandSide().accept(visitor);
+        ((CAssignment)stmt).getLeftHandSide().accept(visitor);
+      }
+    } else if (edge instanceof CDeclarationEdge) {
+      CDeclaration decl = ((CDeclarationEdge)edge).getDeclaration();
+      if (!decl.isGlobal() && decl instanceof CVariableDeclaration) {
+        try {
+          for (CAssignment assignment : CInitializers.convertToAssignments((CVariableDeclaration)decl, edge)) {
+            // left-hand side can be ignored (it is the currently declared variable
+            assignment.getRightHandSide().accept(visitor);
+          }
+        } catch (UnrecognizedCCodeException e) {
+          throw new CParserException(e);
+        }
       }
     }
 
@@ -174,6 +189,10 @@ public class CFATransformations {
     case StatementEdge:
       return new CStatementEdge(edge.getRawStatement(), ((CStatementEdge)edge).getStatement(),
                                 edge.getLineNumber(), predecessor, successor);
+    case DeclarationEdge:
+      return new CDeclarationEdge(edge.getRawStatement(), edge.getLineNumber(),
+                                  predecessor, successor,
+                                  ((CDeclarationEdge)edge).getDeclaration());
     }
     throw new CFAGenerationRuntimeException("more edge types valid than expected, more work to do here");
   }
@@ -189,6 +208,10 @@ public class CFATransformations {
 
     @Override
     public Void visit(CFunctionCallExpression pIastFunctionCallExpression) {
+      pIastFunctionCallExpression.getFunctionNameExpression().accept(this);
+      for (CExpression param : pIastFunctionCallExpression.getParameterExpressions()) {
+        param.accept(this);
+      }
       return null;
     }
 
