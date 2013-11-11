@@ -937,7 +937,8 @@ class ASTConverter {
       CLeftHandSide lhsPost = (CLeftHandSide) operand;
       CExpressionAssignmentStatement result = new CExpressionAssignmentStatement(fileLoc, lhsPost, postExp);
 
-      if (e.getParent() instanceof IASTForStatement) {
+      if (e.getParent() instanceof IASTForStatement
+          && e.getPropertyInParent() == IASTForStatement.ITERATION) {
         return result;
       }
 
