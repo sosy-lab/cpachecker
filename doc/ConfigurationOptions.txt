@@ -686,6 +686,10 @@ cpa.monitor.pathcomputationlimit = 0
 cpa.octagon.merge = "SEP"
   allowed values: [SEP, JOIN]
 
+# Setting this to true makes memory-allocation functions like malloc() always
+# return a valid pointer.
+cpa.pointer.memoryAllocationsAlwaysSucceed = false
+
 # which merge operator to use for PointerCPA?
 cpa.pointer.merge = "sep"
   allowed values: [sep, join]
