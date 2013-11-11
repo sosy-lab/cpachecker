@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -80,6 +81,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -98,6 +100,8 @@ import com.google.common.collect.Iterables;
 
 
 public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
+
+  private static final String CALLOC_FUNCTION = "calloc";
 
   public StatementToFormulaWithUFVisitor(final ExpressionToFormulaWithUFVisitor delegate,
                                          final LvalueToPointerTargetPatternVisitor lvalueVisitor,
@@ -942,8 +946,35 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
    */
   private Formula handleMemoryAllocation(final CFunctionCallExpression e,
       final CIdExpression functionNameExpression, final String functionName) throws UnrecognizedCCodeException {
+    final boolean isZeroing = conv.options.isMemoryAllocationFunctionWithZeroing(functionName);
     List<CExpression> parameters = e.getParameterExpressions();
-    if (parameters.size() != 1) {
+
+    if (functionName.equals(CALLOC_FUNCTION) && parameters.size() == 2) {
+      CExpression param0 = parameters.get(0);
+      CExpression param1 = parameters.get(1);
+
+      // Build expression for param0 * param1 as new parameter.
+      CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(conv.machineModel, conv.logger);
+      CBinaryExpression multiplication = builder.buildBinaryExpression(
+          param0, param1, BinaryOperator.MULTIPLY);
+
+      // Try to evaluate the multiplication if possible.
+      Integer value0 = tryEvaluateExpression(param0);
+      Integer value1 = tryEvaluateExpression(param1);
+      if (value0 != null && value1 != null) {
+        long result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
+            value0.longValue(), value1.longValue(), multiplication,
+            conv.machineModel, conv.logger, edge);
+
+        CExpression newParam = new CIntegerLiteralExpression(param0.getFileLocation(),
+                                                 multiplication.getExpressionType(),
+                                                 BigInteger.valueOf(result));
+        parameters = Collections.singletonList(newParam);
+      } else {
+        parameters = Collections.<CExpression>singletonList(multiplication);
+      }
+
+    } else if (parameters.size() != 1) {
       if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
         parameters = Collections.singletonList(parameters.get(0));
       } else {
@@ -953,7 +984,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       }
     }
 
-    final String delegateFunctionName = !conv.options.isMemoryAllocationFunctionWithZeroing(functionName) ?
+    final String delegateFunctionName = !isZeroing ?
                                           conv.options.getSuccessfulAllocFunctionName() :
                                           conv.options.getSuccessfulZallocFunctionName();
     final CExpression delegateFuncitonNameExpression = new CIdExpression(functionNameExpression.getFileLocation(),
