@@ -937,7 +937,6 @@ class ASTConverter {
       }
 
       CExpression tmp = createInitializedTemporaryVariable(fileLoc, lhsPost.getExpressionType(), lhsPost);
-      System.out.println(result.toASTString());
       preSideAssignments.add(result);
 
       return tmp;
