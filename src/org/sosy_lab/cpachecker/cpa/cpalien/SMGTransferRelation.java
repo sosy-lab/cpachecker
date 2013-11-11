@@ -289,13 +289,15 @@ public class SMGTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("Can't simulate memset", cfaEdge, functionCall);
       }
 
-      //TODO Mock Type char
-      CType charType = new CSimpleType(false, false, CBasicType.CHAR, false, false, false, false, false, false, false);
-
-      //TODO effective memset
-      //  memset() copies ch into the first count characters of buffer
-      for (int c = 0; c < count; c++) {
-        writeValue(currentState, bufferMemory, offset + c, charType, ch, cfaEdge);
+      if (ch.equals(SMGKnownSymValue.ZERO)) {
+        // Create one large edge
+        writeValue(currentState, bufferMemory, offset, count, ch, cfaEdge);
+      } else {
+        // We need to create many edges, one for each character written
+        // memset() copies ch into the first count characters of buffer
+        for (int c = 0; c < count; c++) {
+          writeValue(currentState, bufferMemory, offset + c, AnonymousTypes.dummyChar, ch, cfaEdge);
+        }
       }
 
       return pointer;
@@ -848,6 +850,12 @@ public class SMGTransferRelation implements TransferRelation {
       pNewState.copy(source, pMemoryOfField,
           structOffset, structSize, pFieldOffset);
     }
+  }
+  private void writeValue(SMGState pNewState, SMGObject pMemoryOfField, int pFieldOffset, long pSizeType,
+      SMGSymbolicValue pValue, CFAEdge pEdge) throws UnrecognizedCCodeException, SMGInconsistentException {
+    CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(null, AnonymousTypes.dummyInt, BigInteger.valueOf(pSizeType));
+    CType anonymousType = new CArrayType(false, false, AnonymousTypes.dummyChar, arrayLen);
+    writeValue(pNewState, pMemoryOfField, pFieldOffset, anonymousType, pValue, pEdge);
   }
 
   private void writeValue(SMGState pNewState, SMGObject pMemoryOfField, int pFieldOffset, CType pRValueType,
