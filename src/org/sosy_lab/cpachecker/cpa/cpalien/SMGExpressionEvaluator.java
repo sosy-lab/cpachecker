@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien2;
+package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -63,15 +63,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGField;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGKnownAddVal;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGField;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownAddVal;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -1642,4 +1642,6 @@ public class SMGExpressionEvaluator {
 
   public MachineModel getMachineModel() {
     return machineModel;
+  }
+}
 

@@ -21,19 +21,19 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien2.SMGJoin;
+package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMG;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGObject;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
 
 import com.google.common.collect.Iterables;
 

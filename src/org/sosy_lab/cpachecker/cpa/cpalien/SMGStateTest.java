@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien2;
+package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.*;
@@ -35,8 +35,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGUnknownValue;
 
 
 public class SMGStateTest {

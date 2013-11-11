@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien2;
+package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,12 +37,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGTransferRelation.SMGSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGJoin.SMGJoin;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGJoin.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoin;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit2.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;

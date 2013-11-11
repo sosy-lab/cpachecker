@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien2.SMGJoin;
+package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 
 import java.util.ArrayList;
 import java.util.Set;

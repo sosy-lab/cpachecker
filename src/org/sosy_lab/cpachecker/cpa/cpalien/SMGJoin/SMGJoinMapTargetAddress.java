@@ -21,14 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien2.SMGJoin;
+package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMG;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGObject;
-import org.sosy_lab.cpachecker.cpa.cpalien2.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
 
 final class SMGJoinMapTargetAddress {
   private SMG smg;
