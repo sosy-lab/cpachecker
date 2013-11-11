@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.sosy_lab.common.log.LogManager;
@@ -65,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 
@@ -80,9 +82,8 @@ public class CFATransformations {
 
     CBinaryExpressionBuilder binBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
     Collection<CFANode> allNodes = cfa.getAllNodes();
-    List<CFANode> copiedNodes = new LinkedList<>(allNodes);
 
-    for (CFANode node : copiedNodes) {
+    for (CFANode node : ImmutableList.copyOf(allNodes)) {
       switch (node.getNumLeavingEdges()) {
       case 0:
         break;
@@ -90,8 +91,14 @@ public class CFATransformations {
         handleEdge(node.getLeavingEdge(0), cfa, binBuilder);
         break;
       case 2:
-        handleEdge(node.getLeavingEdge(0), cfa, binBuilder);
-        handleEdge(node.getLeavingEdge(1), cfa, binBuilder);
+        if (node.getLeavingEdge(0) instanceof AssumeEdge
+            && node.getLeavingEdge(1) instanceof AssumeEdge) {
+          // handle only one edge, both contain the same expression
+          handleEdge(node.getLeavingEdge(0), cfa, binBuilder);
+        } else {
+          handleEdge(node.getLeavingEdge(0), cfa, binBuilder);
+          handleEdge(node.getLeavingEdge(1), cfa, binBuilder);
+        }
         break;
       default:
         throw new CFAGenerationRuntimeException("Too much leaving Edges on CFANode");
@@ -128,6 +135,8 @@ public class CFATransformations {
           throw new CParserException(e);
         }
       }
+    } else if (edge instanceof CAssumeEdge) {
+      ((CAssumeEdge)edge).getExpression().accept(visitor);
     }
 
     for (CExpression exp : Lists.reverse(visitor.dereferencedExpressions)) {
@@ -138,11 +147,17 @@ public class CFATransformations {
   private static CFAEdge insertNullPointerCheck(CFAEdge edge, CExpression exp, MutableCFA cfa, CBinaryExpressionBuilder binBuilder) {
     CFANode predecessor = edge.getPredecessor();
     CFANode successor = edge.getSuccessor();
-    predecessor.removeLeavingEdge(edge);
-    successor.removeEnteringEdge(edge);
+    CFACreationUtils.removeEdgeFromNodes(edge);
 
     CFANode trueNode = new CFANode(edge.getLineNumber(), predecessor.getFunctionName());
     CFANode falseNode = new CFANode(edge.getLineNumber(), predecessor.getFunctionName());
+
+    for (CFAEdge otherEdge : leavingEdges(predecessor).toList()) {
+      CFAEdge newEdge = createOldEdgeWithNewNodes(falseNode, otherEdge.getSuccessor(), otherEdge);
+      CFACreationUtils.removeEdgeFromNodes(otherEdge);
+      CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
+    }
+
     CBinaryExpression assumeExpression = binBuilder.buildBinaryExpression(exp, new CIntegerLiteralExpression(exp.getFileLocation(), CNumericTypes.INT,BigInteger.valueOf(0)), BinaryOperator.EQUALS);
     AssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(),
                                          edge.getLineNumber(),
