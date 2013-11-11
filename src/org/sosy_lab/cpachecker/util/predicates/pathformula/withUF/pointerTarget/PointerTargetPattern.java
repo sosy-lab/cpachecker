@@ -99,6 +99,7 @@ public class PointerTargetPattern implements Serializable {
 
   public Integer getRemainingOffset(PointerTargetSetBuilder pts) {
     assert !matchRange : "Contradiction in target pattern: remaining offset";
+    assert containerType != null;
     if (containerOffset != null && properOffset != null) {
       return pts.getSize(containerType) - properOffset;
     } else {
