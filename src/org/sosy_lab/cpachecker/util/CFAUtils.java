@@ -381,15 +381,25 @@ public class CFAUtils {
    * @throws ParserException
    */
   public static Collection<Loop> findLoops(SortedSet<CFANode> nodes, Language language) throws ParserException {
-    final int min = nodes.first().getNodeNumber();
-    final int max = nodes.last().getNodeNumber();
-    final int size = max + 1 - min;
-
     nodes = new TreeSet<>(nodes); // copy nodes because we change it
 
+    // We need to store some information per pair of CFANodes.
+    // We could use Map<Pair<CFANode, CFANode>> but it would be very memory
+    // inefficient. Instead we use some arrays.
+    // We use the reverse post-order id of each node as the array index for that node,
+    // because this id is unique, without gaps, and its minimum is 0.
+    // It's important to not use the node number because it has large gaps.
+    final Function<CFANode, Integer> arrayIndexForNode = new Function<CFANode, Integer>() {
+        @Override
+        public Integer apply(CFANode n) {
+          return n.getReversePostorderId();
+        }
+      };
+    // this is the size of the arrays
+    int size = nodes.size();
+
     // all nodes of the graph
-    // Fields may be null, iff there is no node with this number.
-    // forall i : nodes[i].getNodeNumber() == i + min
+    // forall i : arrayIndexForNode.apply(nodes[i]) == i
     final CFANode[] nodesArray = new CFANode[size];
 
     // all edges of the graph
@@ -401,13 +411,13 @@ public class CFAUtils {
 
     // FIRST step: initialize arrays
     for (CFANode n : nodes) {
-      int i = n.getNodeNumber() - min;
-      assert nodesArray[i] == null;
+      int i = arrayIndexForNode.apply(n);
+      assert nodesArray[i] == null : "reverse post-order id is not unique";
       nodesArray[i] = n;
 
       for (CFAEdge edge : leavingEdges(n)) {
         CFANode succ = edge.getSuccessor();
-        int j = succ.getNodeNumber() - min;
+        int j = arrayIndexForNode.apply(succ);
         edges[i][j] = new Edge();
 
         if (i == j) {
@@ -424,11 +434,11 @@ public class CFAUtils {
       // this strategy may eliminate real loop heads too early so that the
       // algorithm would propose another node of the loop has loop head
       // (which is counter-intuitive to the user)
-      changed = identifyLoops(false, nodes, min, nodesArray, edges, loops);
+      changed = identifyLoops(false, nodes, arrayIndexForNode, nodesArray, edges, loops);
 
       if (!changed && !nodes.isEmpty()) {
         // but if we have to, try and use this strategy
-        changed = identifyLoops(true, nodes, min, nodesArray, edges, loops);
+        changed = identifyLoops(true, nodes, arrayIndexForNode, nodesArray, edges, loops);
       }
 
       if (!changed && !nodes.isEmpty()) {
@@ -437,7 +447,7 @@ public class CFAUtils {
         // This is imprecise, but not wrong.
 
         CFANode currentNode = nodes.last();
-        final int current = currentNode.getNodeNumber() - min;
+        final int current = arrayIndexForNode.apply(currentNode);
         // Now merge current into all its successors
 
         mergeNodeIntoSuccessors(currentNode, current, nodesArray, edges, loops);
@@ -504,7 +514,8 @@ public class CFAUtils {
     return loops;
   }
 
-  private static boolean identifyLoops(boolean reverseMerge, SortedSet<CFANode> nodes, final int offset,
+  private static boolean identifyLoops(boolean reverseMerge, SortedSet<CFANode> nodes,
+      final Function<CFANode, Integer> arrayIndexForNode,
       final CFANode[] nodesArray, final Edge[][] edges, List<Loop> loops) {
 
     boolean changed = false;
@@ -513,7 +524,7 @@ public class CFAUtils {
       Iterator<CFANode> it = nodes.iterator();
       while (it.hasNext()) {
         final CFANode currentNode = it.next();
-        final int current = currentNode.getNodeNumber() - offset;
+        final int current = arrayIndexForNode.apply(currentNode);
 
         // find edges of current
         final int predecessor = findSingleIncomingEdgeOfNode(current, edges);
