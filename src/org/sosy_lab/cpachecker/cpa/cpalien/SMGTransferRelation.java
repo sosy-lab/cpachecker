@@ -1118,11 +1118,6 @@ public class SMGTransferRelation implements TransferRelation {
     pNewState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue);
   }
 
-  private void copy(SMGState pNewState, SMGObject pMemoryOfField, SMGObject pObject) {
-
-
-  }
-
   boolean isStructOrUnionType(CType rValueType) {
 
     if (rValueType instanceof CElaboratedType) {
