@@ -917,6 +917,23 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         } else {
           return visit(delegateCall);
         }
+
+      } else if (conv.options.isMemoryFreeFunction(functionName)
+          && parameters.size() == 1) {
+
+        final Formula operand = parameters.get(0).accept(delegate);
+        final Formula zero = conv.fmgr.makeNumber(pts.getPointerType(), 0);
+        BooleanFormula validFree = conv.fmgr.makeEqual(operand, zero);
+
+        for (String base : pts.getAllBases()) {
+          Formula baseF = conv.makeConstant(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID, ssa, pts);
+          validFree = conv.bfmgr.or(validFree,
+              conv.fmgr.makeEqual(operand, baseF)
+              );
+        }
+        errorConditions.addInvalidFreeCondition(conv.bfmgr.not(validFree));
+        return null; // free does not return anything, so nondet is ok
+
       } else if (conv.options.isNondetFunction(functionName)) {
         return null; // Nondet
       } else if (conv.options.isExternModelFunction(functionName)) {

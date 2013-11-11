@@ -64,6 +64,9 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
   @Option(description = "The maximum length for arrays (elements beyond this will be ignored).")
   private int maxArrayLength = 20;
 
+  @Option(description = "Function that is used to free allocated memory.")
+  private String memoryFreeFunctionName = "free";
+
   public FormulaEncodingWithUFOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
     config.inject(this, FormulaEncodingWithUFOptions.class);
@@ -111,5 +114,9 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
 
   public int maxArrayLength() {
     return maxArrayLength;
+  }
+
+  public boolean isMemoryFreeFunction(final String name) {
+    return memoryFreeFunctionName.equals(name);
   }
 }

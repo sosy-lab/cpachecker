@@ -879,6 +879,9 @@ cpa.predicate.memoryAllocationFunctionsWithZeroing = {"kzalloc"}
 # pointer.
 cpa.predicate.memoryAllocationsAlwaysSucceed = false
 
+# Function that is used to free allocated memory.
+cpa.predicate.memoryFreeFunctionName = "free"
+
 # which merge operator to use for predicate cpa (usually ABE should be used)
 cpa.predicate.merge = "ABE"
   allowed values: [SEP, ABE]
