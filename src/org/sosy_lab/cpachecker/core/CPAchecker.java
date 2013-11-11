@@ -108,6 +108,9 @@ public class CPAchecker {
       description="use CBMC as an external tool from CPAchecker")
   private boolean runCBMCasExternalTool = false;
 
+  @Option(description="Do not report unknown if analysis terminated, report true (UNSOUND!).")
+  private boolean unknownAsTrue = false;
+
   private final LogManager logger;
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
@@ -205,6 +208,9 @@ public class CPAchecker {
       boolean isComplete = runAlgorithm(algorithm, reached, stats);
 
       result = analyzeResult(reached, isComplete);
+      if (unknownAsTrue && result == Result.UNKNOWN) {
+        result = Result.SAFE;
+      }
 
     } catch (IOException e) {
       logger.logUserException(Level.SEVERE, e, "Could not read file");

@@ -123,6 +123,9 @@ analysis.traversal.useReversePostorder = false
 # analysis.traversal.useReversePostorder and will soon get removed.
 analysis.traversal.useTopsort = false
 
+# Do not report unknown if analysis terminated, report true (UNSOUND!).
+analysis.unknownAsTrue = false
+
 # use adjustable conditions algorithm
 analysis.useAdjustableConditions = false
 
