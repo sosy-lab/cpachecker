@@ -167,6 +167,19 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
              "Wrong assumptions on deferred allocations tracking: unknown pointer encountered";
       usedDeferredAllocationPointers.put((String) lastTarget, resultType);
     }
+
+    if (operand instanceof CPointerExpression
+        && !(resultType instanceof CFunctionType)) {
+      // Heuristic:
+      // When there is (t)*p, we treat it like *((*t)p)
+      // This means the UF for type t get's used instead of the UF for actual type of p.
+      final CExpression pointer = ((CPointerExpression)operand).getOperand();
+
+      lastTarget = pointer.accept(this);
+      return conv.isCompositeType(resultType) ? (Formula) lastTarget :
+             conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
+    }
+
     return result;
   }
 
