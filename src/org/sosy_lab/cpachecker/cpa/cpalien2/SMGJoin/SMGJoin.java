@@ -64,9 +64,8 @@ final public class SMGJoin {
       mapping2.map(globalInSMG2, finalObject);
     }
 
-    // TODO: Check the ordering
-    Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.iterator();
-    Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.iterator();
+    Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.descendingIterator();
+    Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.descendingIterator();
 
     while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ){
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
