@@ -151,19 +151,19 @@ public class CFATransformations {
                                            predecessor, falseNode,
                                            assumeExpression,
                                            false);
-    predecessor.addLeavingEdge(trueEdge);
-    predecessor.addLeavingEdge(falseEdge);
-    trueNode.addEnteringEdge(trueEdge);
-    falseNode.addEnteringEdge(falseEdge);
+
+    CFACreationUtils.addEdgeUnconditionallyToCFA(trueEdge);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(falseEdge);
 
     CFAEdge newEdge = createOldEdgeWithNewNodes(falseNode, successor, edge);
-    falseNode.addLeavingEdge(newEdge);
-    successor.addEnteringEdge(newEdge);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
 
     CFANode endNode = new CFANode(edge.getLineNumber(), predecessor.getFunctionName());
     BlankEdge endEdge = new BlankEdge("null-deref", edge.getLineNumber(), trueNode, endNode, "null-deref");
-    trueNode.addLeavingEdge(endEdge);
-    endNode.addEnteringEdge(endEdge);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(endEdge);
+
+    BlankEdge loopEdge = new BlankEdge("", edge.getLineNumber(), endNode, endNode, "");
+    CFACreationUtils.addEdgeUnconditionallyToCFA(loopEdge);
 
     cfa.addNode(trueNode);
     cfa.addNode(falseNode);
