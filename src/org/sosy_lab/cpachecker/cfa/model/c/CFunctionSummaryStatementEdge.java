@@ -23,20 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class CFunctionSummaryStatementEdge extends CStatementEdge {
-  protected String functionName;
-  protected CFunctionCall fcall;
+  private final String functionName;
+  private final CFunctionCall fcall;
 
   public CFunctionSummaryStatementEdge(String pRawStatement,
       CStatement pStatement, int pLineNumber, CFANode pPredecessor,
       CFANode pSuccessor, CFunctionCall fcall, String functionName) {
     super(pRawStatement, pStatement, pLineNumber, pPredecessor, pSuccessor);
-    this.functionName = functionName;
-    this.fcall = fcall;
+    this.functionName = checkNotNull(functionName);
+    this.fcall = checkNotNull(fcall);
   }
 
   public String getFunctionName() {
