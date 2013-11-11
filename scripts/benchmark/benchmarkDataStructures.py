@@ -205,6 +205,8 @@ class Benchmark:
         baseDir = os.path.dirname(self.benchmarkFile)
         for requiredFilesTag in rootTag.findall('requiredfiles'):
             requiredFiles = Util.expandFileNamePattern(requiredFilesTag.text, baseDir)
+            if not requiredFiles:
+                logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(requiredFilesTag.text))
             self._requiredFiles.extend(requiredFiles)
 
         # get requirements
