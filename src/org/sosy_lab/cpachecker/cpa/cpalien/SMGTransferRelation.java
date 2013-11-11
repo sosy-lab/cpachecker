@@ -690,11 +690,15 @@ public class SMGTransferRelation implements TransferRelation {
 
     if (explicitValue.isUnknown()) {
       SMGState newState = new SMGState(smgState);
+      /*
+      Changing the state here breaks strengthen of ExplicitCPA
+      which acceses newState instead of oldState.
       if (visitor.impliesEqOn(truthValue)) {
         newState.identifyEqualValues(visitor.knownVal1, visitor.knownVal2);
       } else if (visitor.impliesNeqOn(truthValue)) {
         newState.identifyNonEqualValues(visitor.knownVal1, visitor.knownVal2);
       }
+      */
       return newState;
     } else if ((truthValue && explicitValue.equals(SMGKnownExpValue.ONE))
         || (!truthValue && explicitValue.equals(SMGKnownExpValue.ZERO))) {
@@ -1397,7 +1401,9 @@ public class SMGTransferRelation implements TransferRelation {
 
       @SuppressWarnings("hiding")
       private final SMGState smgState;
+      @SuppressWarnings("unused")
       private SMGKnownSymValue knownVal1;
+      @SuppressWarnings("unused")
       private SMGKnownSymValue knownVal2;
       private BinaryRelationEvaluator relation = null;
 
@@ -1518,6 +1524,7 @@ public class SMGTransferRelation implements TransferRelation {
         return SMGUnknownValue.getInstance();
       }
 
+      @SuppressWarnings("unused")
       public boolean impliesEqOn(boolean pTruth) {
         if (relation == null) {
           return false;
@@ -1525,6 +1532,7 @@ public class SMGTransferRelation implements TransferRelation {
         return relation.impliesEq(pTruth);
       }
 
+      @SuppressWarnings("unused")
       public boolean impliesNeqOn(boolean pTruth) {
         if (relation == null) {
           return false;
