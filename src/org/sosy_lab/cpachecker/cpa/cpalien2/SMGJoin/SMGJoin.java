@@ -152,21 +152,6 @@ final public class SMGJoin {
   }
 }
 
-class SMGUpdateJoinStatus {
-  public static SMGJoinStatus updateStatus(SMGJoinStatus pStatus1, SMGJoinStatus pStatus2) {
-    if (pStatus1 == SMGJoinStatus.EQUAL) {
-      return pStatus2;
-    } else if (pStatus2 == SMGJoinStatus.EQUAL) {
-      return pStatus1;
-    } else if (pStatus1 == SMGJoinStatus.INCOMPARABLE ||
-               pStatus2 == SMGJoinStatus.INCOMPARABLE ||
-               pStatus1 != pStatus2) {
-      return SMGJoinStatus.INCOMPARABLE;
-    }
-    return pStatus1;
-  }
-}
-
 class SMGNodeMapping {
   final private Map<SMGObject, SMGObject> object_map = new HashMap<>();
   final private Map<Integer, Integer> value_map = new HashMap<>();
