@@ -1160,7 +1160,10 @@ pcc.useCores = 1
 reachedSet.export = true
 reachedSet.file = "reached.txt"
 
-# list of files with configurations to use
+# List of files with configurations to use. A filename can be suffixed with
+# :if-interrupted, :if-failed, and :if-terminated which means that this
+# configuration will only be used if the previous configuration ended with a
+# matching condition.
 restartAlgorithm.configFiles = no default value
 
 # comma-separated list of files with specifications that should be checked
