@@ -66,7 +66,7 @@ final public class CLangStackFrame {
   public CLangStackFrame(CFunctionDeclaration pDeclaration, MachineModel pMachineModel) {
     stack_function = pDeclaration;
 
-    int return_value_size = pMachineModel.getSizeof(pDeclaration.getType());
+    int return_value_size = pMachineModel.getSizeof(pDeclaration.getType().getReturnType());
     returnValueObject = new SMGObject(return_value_size, CLangStackFrame.RETVAL_LABEL);
   }
 
