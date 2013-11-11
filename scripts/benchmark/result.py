@@ -44,10 +44,12 @@ PROP_SUBSTRINGS ={'_false-valid-deref':   STR_PROP_DEREF,
 assert all('_false' in k for k in PROP_SUBSTRINGS.keys())
 
 FALSE_SUBSTRINGS={'_unsafe':               STR_FALSE, # deprecated, maybe removed soon
+                  '.false.':               STR_FALSE,
                   '_false':                STR_FALSE
                   }
 
 TRUE_SUBSTRINGS ={'_safe':                 STR_TRUE, # deprecated, maybe removed soon
+                  '.true.':                STR_TRUE,
                   '_true':                 STR_TRUE
                   }
 
