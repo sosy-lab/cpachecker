@@ -30,13 +30,18 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
 
@@ -74,6 +79,35 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
     }
     // TODO CharLiteralExpression
     return null;
+  }
+
+  @Override
+  public CExpression visit(CIdExpression expr) {
+    if (expr.getDeclaration() instanceof CEnumerator) {
+      // enum constant
+      if (((CEnumerator)expr.getDeclaration()).hasValue()) {
+        long v = ((CEnumerator)expr.getDeclaration()).getValue();
+        new CIntegerLiteralExpression(expr.getFileLocation(),
+            expr.getExpressionType(), BigInteger.valueOf(v));
+      }
+    }
+
+    if (!(expr.getExpressionType() instanceof CProblemType)
+        && expr.getExpressionType().isConst()
+        && expr.getDeclaration() instanceof CVariableDeclaration) {
+      // const variable, inline initializer
+
+      CInitializer init = ((CVariableDeclaration)expr.getDeclaration()).getInitializer();
+      if (init instanceof CExpression) {
+        Long v = getValue((CExpression)init);
+        if (v != null) {
+          new CIntegerLiteralExpression(expr.getFileLocation(),
+              expr.getExpressionType(), BigInteger.valueOf(v));
+        }
+      }
+    }
+
+    return visitDefault(expr);
   }
 
   @Override
