@@ -22,7 +22,8 @@ CPAchecker web page:
   http://cpachecker.sosy-lab.org
 """
 
-from __future__ import absolute_import, unicode_literals
+# prepare for Python 3
+from __future__ import absolute_import, print_function, unicode_literals
 
 from . import util
 
