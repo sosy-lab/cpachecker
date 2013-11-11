@@ -41,4 +41,9 @@ public class Union extends AbstractLocation {
     return false;
   }
 
+  @Override
+  public String toString() {
+    return "union " + getId();
+  }
+
 }
