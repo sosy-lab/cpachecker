@@ -622,8 +622,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final CType lvalueElementType = PointerTargetSet.simplifyType(lvalueArrayType.getType());
       if (!(rvalueType instanceof CArrayType) ||
           PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType()).equals(lvalueElementType)) {
-        Integer length = lvalueArrayType.getLength() != null ?
-                           lvalueArrayType.getLength().accept(pts.getEvaluatingVisitor()) : null;
+        Integer length = PointerTargetSet.getArrayLength(lvalueArrayType);
         if (length == null) {
           if (rvalue instanceof List && ((List<?>) rvalue).size() <= options.maxArrayLength()) {
             length = ((List<?>) rvalue).size();
