@@ -107,7 +107,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
@@ -338,8 +337,7 @@ public class VariableClassification {
   }
 
   private void collectLoopCondVars() {
-    for (String key : loopStructure.keySet()) {
-      ImmutableCollection<Loop> localLoops = loopStructure.get(key);
+    for (Collection<Loop> localLoops : loopStructure.asMap().values()) {
       for (Loop l : localLoops) {
         // Get all variables that are used in exit-conditions
         for (CFAEdge e : l.getOutgoingEdges()) {

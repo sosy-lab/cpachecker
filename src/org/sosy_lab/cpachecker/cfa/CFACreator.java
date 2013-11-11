@@ -398,8 +398,10 @@ public class CFACreator {
       }
 
       // Get information about variables, needed for some analysis.
-      final Optional<VariableClassification> varClassification =
-          Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()));
+      final Optional<VariableClassification> varClassification
+          = loopStructure.isPresent()
+          ? Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()))
+          : Optional.<VariableClassification>absent();
 
       stats.processingTime.stop();
 
