@@ -51,8 +51,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -61,11 +59,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -77,8 +73,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -102,10 +99,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.base.Joiner;
@@ -313,6 +310,8 @@ public class VariableClassification {
           w.append(intAddVars.toString());
           w.append("\n\nALL\n\n");
           w.append(allVars.toString());
+          w.append("\n\nUNUSED FIELDS\n\n");
+          w.append(unusedFields.toString());
         } catch (IOException e) {
           logger.logUserException(Level.WARNING, e, "Could not write variable classification to file");
         }
@@ -756,9 +755,23 @@ public class VariableClassification {
     }
 
     final CInitializer initializer = vdecl.getInitializer();
-    final CFANode pre = edge.getPredecessor();
-    final CType type = vdecl.getType().getCanonicalType();
-    handleInitializer(edge, initializer, pre, type, null);
+    List<CExpressionAssignmentStatement> l;
+
+    try {
+      l = CInitializers.convertToAssignments(vdecl, edge);
+    } catch (UnrecognizedCCodeException should_not_happen) {
+      throw new AssertionError(should_not_happen);
+    }
+
+    for (CExpressionAssignmentStatement init:l) {
+      final CExpression rhs = init.getRightHandSide();
+      rhs.accept(rightVariablesCollectingVisitor);
+      rhs.accept(rightFieldsCollectingVisitor);
+
+      final CLeftHandSide lhs = init.getLeftHandSide();
+      lhs.accept(leftVariablesCollectingVisitor);
+      lhs.accept(leftFieldsCollectingVisitor);
+    }
 
     if ((initializer == null) || !(initializer instanceof CInitializerExpression)) { return; }
 
@@ -767,60 +780,6 @@ public class VariableClassification {
 
     handleExpression(edge, exp, varName, function);
   }
-
-
-  private void handleInitializer(final CDeclarationEdge edge,
-                                 final CInitializer initializer,
-                                 final CFANode pre,
-                                 final CType pType,
-                                 final CType pParentType) {
-
-    if (initializer == null) {
-      return;
-    }
-
-    if (initializer instanceof CInitializerList) {
-
-      if (pType instanceof CCompositeType) {
-        final List<CInitializer> iList = ((CInitializerList) initializer).getInitializers();
-        final List<CCompositeTypeMemberDeclaration> tList = ((CCompositeType) pType).getMembers();
-        assert tList.size() >= iList.size();
-
-        for (int i = 0; i < iList.size(); i++) {
-          handleInitializer(
-            edge, iList.get(i), pre, tList.get(i).getType().getCanonicalType(), pType);
-        }
-      }
-
-    } else if (initializer instanceof CDesignatedInitializer) {
-      final CDesignatedInitializer di = (CDesignatedInitializer) initializer;
-      final List<CDesignator> ldi = di.getDesignators();
-
-      for (final CDesignator d : ldi) {
-        if (d instanceof CFieldDesignator) {
-          assert pParentType != null;
-          leftFields.put(canonizeCompositeType((CCompositeType) pParentType), ((CFieldDesignator) d).getFieldName());
-        } else if (d instanceof CArrayDesignator || d instanceof CArrayRangeDesignator) {
-          // ignore
-        } else {
-          throw new AssertionError("Unhandled CDesignator: " + d + "  " + d.getClass());
-        }
-      }
-
-      final CInitializer rhs = di.getRightHandSide();
-      if (rhs instanceof CInitializerExpression) {
-        ((CInitializerExpression) rhs).getExpression().accept(rightFieldsCollectingVisitor);
-      } else {
-        throw new AssertionError("Unhandled assignment: " + edge.getRawStatement());
-      }
-
-    } else if (initializer instanceof CInitializerExpression) {
-      ((CInitializerExpression) initializer).getExpression().accept(rightFieldsCollectingVisitor);
-    } else {
-      throw new AssertionError("Unhandled CInitializer: " + initializer + "  " + initializer.getClass());
-    }
-  }
-
 
   /** This function handles normal assignments of vars. */
   private void handleAssignment(final CFAEdge edge, final CAssignment assignment) {
