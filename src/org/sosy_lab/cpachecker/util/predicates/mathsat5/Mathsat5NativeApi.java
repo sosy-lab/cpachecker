@@ -305,6 +305,7 @@ class Mathsat5NativeApi {
   public static native long msat_from_smtlib2(long e, String data);
   public static native String msat_to_smtlib1(long e, long t);
   public static native String msat_to_smtlib2(long e, long t);
+  public static native String msat_to_smtlib2_term(long e, long t);
   public static native String msat_named_list_to_smtlib2(long e, NamedTermsWrapper w);
   public static native NamedTermsWrapper msat_named_list_from_smtlib2(long e, String s);
 

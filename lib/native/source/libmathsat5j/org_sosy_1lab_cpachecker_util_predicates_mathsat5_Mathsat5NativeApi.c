@@ -565,6 +565,11 @@ TYPE_ARG(2)
 CALL2(int, type_equals)
 BOOLEAN_RETURN
 
+DEFINE_FUNC(string, 1type_1repr) WITH_ONE_ARG(jtype)
+TYPE_ARG(1)
+CALL1(char *, type_repr)
+PLAIN_STRING_RETURN
+
 /*
  * msat_decl msat_declare_function(msat_env e, const char *name, msat_type type);
  */
@@ -901,6 +906,11 @@ DECL_ARG(1)
 CALL1(char *, decl_get_name)
 PLAIN_STRING_RETURN
 
+DEFINE_FUNC(string, 1decl_1repr) WITH_ONE_ARG(jdecl)
+DECL_ARG(1)
+CALL1(char *, decl_repr)
+PLAIN_STRING_RETURN
+
 
 DEFINE_FUNC(string, 1term_1repr) WITH_ONE_ARG(jterm)
 TERM_ARG(1)
@@ -929,6 +939,7 @@ make_term_from_string(from_smtlib1, 1from_1smtlib1)
 make_term_from_string(from_smtlib2, 1from_1smtlib2)
 term_to_string(to_smtlib1, 1to_1smtlib1)
 term_to_string(to_smtlib2, 1to_1smtlib2)
+term_to_string(to_smtlib2_term, 1to_1smtlib2_term)
 
 
 DEFINE_FUNC(jfailureCode, 1push_1backtrack_1point) WITH_ONE_ARG(jenv)
@@ -1113,7 +1124,7 @@ DEFINE_FUNC(long, 1set_1termination_1test) WITH_TWO_ARGS(jenv, object)
 // we need it to prevent a memory leak.
 // This may be called only after the environment with this termination test has been destroyed.
 DEFINE_FUNC(void, 1free_1termination_1test) WITH_ONE_ARG(long)
-  struct msat_callback_info *helper = (struct msat_callback_info *)arg1;
+  struct msat_callback_info *helper = (struct msat_callback_info *)(long)arg1;
   if (helper == NULL) {
     throwException(jenv, "java/lang/NullPointerTest", "Argument to msat_free_termination_test may not be null");
     return;
