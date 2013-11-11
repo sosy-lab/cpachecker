@@ -38,11 +38,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -247,11 +247,11 @@ public class ARGUtils {
 
         for (ARGState currentChild : children) {
           CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
-          if (!(currentEdge instanceof CAssumeEdge)) {
-            throw new IllegalArgumentException("ARG branches where there is no CAssumeEdge!");
+          if (!(currentEdge instanceof AssumeEdge)) {
+            throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
           }
 
-          if (((CAssumeEdge)currentEdge).getTruthAssumption()) {
+          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
             trueEdge = currentEdge;
             trueChild = currentChild;
           } else {
