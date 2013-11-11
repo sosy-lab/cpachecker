@@ -88,7 +88,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.DeferredAllocationPool;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
@@ -532,10 +531,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       final CType baseType = PointerTargetSet.getBaseType(type);
       final BooleanFormula result = conv.makeAssignment(type,
                                                         type,
-                                                        conv.makeConstant(Variable.create(
-                                                                            PointerTargetSet.getBaseName(lhs),
-                                                                            baseType),
-                                                                          ssa,
+                                                        conv.makeConstant(PointerTargetSet.getBaseName(lhs),
+                                                                          baseType,
                                                                           pts),
                                                         initializerList,
                                                         pattern,
@@ -891,7 +888,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     // Now let's handle "normal" functions assumed to be pure
     if (parameters.isEmpty()) {
       // This is a function of arity 0 and we assume its constant.
-      return conv.makeConstant(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName, returnType, ssa, pts);
+      return conv.makeConstant(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName, returnType, pts);
     } else {
       final CFunctionDeclaration functionDeclaration = e.getDeclaration();
       if (functionDeclaration == null) {
@@ -1080,7 +1077,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                                                       BigInteger.valueOf(size)) :
                                                         null,
                                          newBase);
-      return conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID, ssa, pts);
+      return conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID, pts);
     }
   }
 
@@ -1098,7 +1095,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
 
     for (String base : pts.getAllBases()) {
-      Formula baseF = conv.makeConstant(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID, ssa, pts);
+      Formula baseF = conv.makeConstant(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID, pts);
       validFree = conv.bfmgr.or(validFree,
           conv.fmgr.makeEqual(operand, baseF)
           );
