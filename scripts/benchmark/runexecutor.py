@@ -481,7 +481,15 @@ class _TimelimitThread(threading.Thread):
 
     def run(self):
         while not self.finished.is_set():
-            usedCpuTime = _readCpuTime(self.cgroupCpuacct)
+            read = False
+            while not read:
+                try:
+                    usedCpuTime = _readCpuTime(self.cgroupCpuacct)
+                    read = True
+                except ValueError:
+                    # Sometimes the kernel produces strange values with linebreaks in them
+                    time.sleep(1)
+                    pass
             remainingCpuTime = self.timelimit - usedCpuTime
             remainingWallTime = self.latestKillTime - time.time()
             logging.debug("TimelimitThread for process {0}: used cpu time: {1}, remaining cpu time: {2}, remaining wall time: {3}."
