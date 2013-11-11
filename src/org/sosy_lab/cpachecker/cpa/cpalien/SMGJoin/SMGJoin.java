@@ -23,21 +23,107 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 
+import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.cpa.cpalien.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.cpalien.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 
-enum SMGJoinStatus {
-  EQUAL,
-  LEFT_ENTAIL,
-  RIGHT_ENTAIL,
-  INCOMPARABLE,
-  INCOMPLETE,
-}
+final public class SMGJoin {
+  private boolean defined = false;
+  private SMGJoinStatus status = SMGJoinStatus.EQUAL;
+  private final CLangSMG smg;
 
-public class SMGJoin {
+  public SMGJoin(CLangSMG pSMG1, CLangSMG pSMG2) {
+    CLangSMG opSMG1 = new CLangSMG(pSMG1);
+    CLangSMG opSMG2 = new CLangSMG(pSMG2);
+    smg = new CLangSMG(opSMG1.getMachineModel());
 
+    SMGNodeMapping mapping1 = new SMGNodeMapping();
+    SMGNodeMapping mapping2 = new SMGNodeMapping();
+
+    Map<String, SMGObject> globals_in_smg1 = opSMG1.getGlobalObjects();
+    ArrayDeque<CLangStackFrame> stack_in_smg1 = opSMG1.getStackFrames();
+    Map<String, SMGObject> globals_in_smg2 = opSMG2.getGlobalObjects();
+    ArrayDeque<CLangStackFrame> stack_in_smg2 = opSMG2.getStackFrames();
+
+    for (String globalVar : globals_in_smg1.keySet()) {
+      SMGObject globalInSMG1 = globals_in_smg1.get(globalVar);
+      SMGObject globalInSMG2 = globals_in_smg2.get(globalVar);
+      SMGObject finalObject = new SMGObject(globalInSMG1);
+      smg.addGlobalObject(finalObject);
+      mapping1.map(globalInSMG1, finalObject);
+      mapping2.map(globalInSMG2, finalObject);
+    }
+
+    // TODO: Check the ordering
+    Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.iterator();
+    Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.iterator();
+
+    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ){
+      CLangStackFrame frameInSMG1 = smg1stackIterator.next();
+      CLangStackFrame frameInSMG2 = smg2stackIterator.next();
+      smg.addStackFrame(frameInSMG1.getFunctionDeclaration());
+
+      for (String localVar : frameInSMG1.getVariables().keySet()) {
+        SMGObject localInSMG1 = frameInSMG1.getVariable(localVar);
+        SMGObject localInSMG2 = frameInSMG2.getVariable(localVar);
+        SMGObject finalObject = new SMGObject(localInSMG1);
+        smg.addStackObject(finalObject);
+        mapping1.map(localInSMG1, finalObject);
+        mapping2.map(localInSMG2, finalObject);
+      }
+    }
+
+    for (String globalVar : globals_in_smg1.keySet()) {
+      SMGObject globalInSMG1 = globals_in_smg1.get(globalVar);
+      SMGObject globalInSMG2 = globals_in_smg2.get(globalVar);
+      SMGObject destinationGlobal = mapping1.get(globalInSMG1);
+      SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, globalInSMG1, globalInSMG2, destinationGlobal);
+      if (! jss.isDefined()) {
+        return;
+      }
+      status = jss.getStatus();
+    }
+
+    smg1stackIterator = stack_in_smg1.iterator();
+    smg2stackIterator = stack_in_smg2.iterator();
+
+    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ){
+      CLangStackFrame frameInSMG1 = smg1stackIterator.next();
+      CLangStackFrame frameInSMG2 = smg2stackIterator.next();
+
+      for (String localVar : frameInSMG1.getVariables().keySet()) {
+        SMGObject localInSMG1 = frameInSMG1.getVariable(localVar);
+        SMGObject localInSMG2 = frameInSMG2.getVariable(localVar);
+        SMGObject destinationLocal = mapping1.get(localInSMG1);
+        SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, localInSMG1, localInSMG2, destinationLocal);
+        if (! jss.isDefined()) {
+          return;
+        }
+        status = jss.getStatus();
+      }
+    }
+
+
+
+    defined = true;
+  }
+
+  public boolean isDefined() {
+    return defined;
+  }
+
+  public SMGJoinStatus getStatus() {
+    return status;
+  }
+
+  public CLangSMG getJointSMG() {
+    return smg;
+  }
 }
 
 class SMGUpdateJoinStatus {
