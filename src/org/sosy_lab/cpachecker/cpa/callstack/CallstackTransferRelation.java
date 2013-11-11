@@ -36,11 +36,13 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -61,6 +63,9 @@ public class CallstackTransferRelation implements TransferRelation {
   @Option(description = "Skip recursion if it happens only by going via a function pointer (this is unsound)." +
       " Imprecise function pointer tracking often lead to false recursions.")
   private boolean skipFunctionPointerRecursion = false;
+
+  @Option(description = "Skip recursion if it happens only by going via a void function (this is unsound).")
+  private boolean skipVoidRecursion = false;
 
   private final LogManagerWithoutDuplicates logger;
 
@@ -155,6 +160,9 @@ public class CallstackTransferRelation implements TransferRelation {
     if (skipFunctionPointerRecursion && hasFunctionPointerRecursion(element, callEdge)) {
       return true;
     }
+    if (skipVoidRecursion && hasVoidRecursion(element, callEdge)) {
+      return true;
+    }
     return false;
   }
 
@@ -190,6 +198,31 @@ public class CallstackTransferRelation implements TransferRelation {
 
       FunctionCallEdge callEdge = findOutgoingCallEdge(element.getCallNode());
       if (callEdge.getRawStatement().startsWith("pointer call(")) {
+        return true;
+      }
+
+      e = e.getPreviousState();
+    }
+    throw new AssertionError();
+  }
+
+  private boolean hasVoidRecursion(final CallstackState element,
+      final FunctionCallEdge pCallEdge) {
+    if (pCallEdge.getSummaryEdge().getExpression() instanceof AFunctionCallStatement) {
+      return true;
+    }
+
+    final String functionName = pCallEdge.getSuccessor().getFunctionName();
+    CallstackState e = element;
+    while (e != null) {
+      if (e.getCurrentFunction().equals(functionName)) {
+        // reached the previous stack frame of the same function,
+        // and no function pointer so far
+        return false;
+      }
+
+      FunctionSummaryEdge summaryEdge = element.getCallNode().getLeavingSummaryEdge();
+      if (summaryEdge.getExpression() instanceof AFunctionCallStatement) {
         return true;
       }
 

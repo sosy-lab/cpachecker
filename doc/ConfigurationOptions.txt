@@ -435,6 +435,10 @@ cpa.callstack.skipFunctionPointerRecursion = false
 # same as for functions without bodies)
 cpa.callstack.skipRecursion = false
 
+# Skip recursion if it happens only by going via a void function (this is
+# unsound).
+cpa.callstack.skipVoidRecursion = false
+
 # which composite merge operator to use (plain or agree)
 # Both delegate to the component cpas, but agree only allows merging if all
 # cpas agree on this. This is probably what you want.
