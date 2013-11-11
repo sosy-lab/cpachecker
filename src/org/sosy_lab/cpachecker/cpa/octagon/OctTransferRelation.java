@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.cdt.internal.core.dom.parser.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -207,7 +209,7 @@ class OctTransferRelation implements TransferRelation {
 
         String assignedVarName = getvarName(varName, callerFunctionName);
 
-        assignVariable(element, assignedVarName, returnVarName, 1);
+        element.assignVariable(assignedVarName, returnVarName, 1);
       } else {
         throw new UnrecognizedCCodeException("on function return", summaryEdge, op1);
       }
@@ -266,7 +268,7 @@ class OctTransferRelation implements TransferRelation {
         String nameOfArg = idExp.getName();
         String actualParamName = getvarName(nameOfArg, callerFunctionName);
 
-        assignVariable(octagonElement, formalParamName, actualParamName, 1);
+        octagonElement.assignVariable(formalParamName, actualParamName, 1);
       }
 
       else if (arg instanceof CLiteralExpression) {
@@ -703,7 +705,8 @@ class OctTransferRelation implements TransferRelation {
     if (newElem1.isEmpty()) {
       return null;
     } else {
-      return assignVariable(pElement, pLeftVariableName, pRightVariableName, 1);
+      pElement.assignVariable(pLeftVariableName, pRightVariableName, 1);
+      return pElement;
     }
   }
 
@@ -976,7 +979,8 @@ class OctTransferRelation implements TransferRelation {
       return pElement;
     } else {
       String rVarName = unaryOperand.toASTString();
-      return assignVariable(pElement, assignedVar, rVarName, -1);
+      pElement.assignVariable(assignedVar, rVarName, -1);
+      return pElement;
     }
 
     //TODO ?
@@ -1134,7 +1138,8 @@ class OctTransferRelation implements TransferRelation {
         }
       }
 
-      return assignmentOfBinaryExp(pElement, assignedVar, getvarName(lVarName, functionName), lVarCoef, getvarName(rVarName, functionName), rVarCoef, constVal);
+      pElement.assignmentOfBinaryExp(assignedVar, getvarName(lVarName, functionName), lVarCoef, getvarName(rVarName, functionName), rVarCoef, constVal);
+      return pElement;
 
     case EQUALS:
     case NOT_EQUALS:
@@ -1204,14 +1209,6 @@ class OctTransferRelation implements TransferRelation {
     }
   }
 
-  private OctState assignmentOfBinaryExp(OctState pElement,
-      String pAssignedVar, String pLeftVarName, int pLeftVarCoef,
-      String pRightVarName, int pRightVarCoef, int pConstVal) {
-    pElement.assignmentOfBinaryExp(pAssignedVar, pLeftVarName, pLeftVarCoef,
-        pRightVarName, pRightVarCoef, pConstVal);
-    return pElement;
-  }
-
   private OctState handleAssignmentOfVariable(OctState pElement,
       String lParam, CExpression op2, String functionName, int coef) {
     String rParam = op2.toASTString();
@@ -1219,7 +1216,8 @@ class OctTransferRelation implements TransferRelation {
     String leftVarName = getvarName(lParam, functionName);
     String rightVarName = getvarName(rParam, functionName);
 
-    return assignVariable(pElement, leftVarName, rightVarName, coef);
+    pElement.assignVariable(leftVarName, rightVarName, coef);
+    return pElement;
   }
 
 //  private OctState handleAssignmentOfReturnVariable(OctState pElement,
@@ -1230,11 +1228,6 @@ class OctTransferRelation implements TransferRelation {
 //    return assignVariable(pElement, leftVarName, tempVarName, coef);
 //  }
 
-  private OctState assignVariable(OctState pElement, String pLeftVarName,
-      String pRightVarName, int coef) {
-    pElement.assignVariable(pLeftVarName, pRightVarName, coef);
-    return pElement;
-  }
 
   private OctState handleAssignmentOfLiteral(OctState pElement,
       String lParam, CLiteralExpression op2, String functionName, CFAEdge edge)
