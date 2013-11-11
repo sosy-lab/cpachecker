@@ -157,6 +157,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -406,7 +407,7 @@ class ASTConverter {
    * If the initializer is 'null', no initializer will be created.
    */
   private CIdExpression createInitializedTemporaryVariable(
-      final FileLocation loc, final CType type, @Nullable CExpression initializer) {
+      final FileLocation loc, final CType pType, @Nullable CExpression initializer) {
     String name = "__CPAchecker_TMP_";
     int i = 0;
     while (scope.variableNameInUse(name + i, name + i)) {
@@ -418,6 +419,10 @@ class ASTConverter {
     if (initializer != null) {
       initExp = new CInitializerExpression(loc, initializer);
     }
+
+    // If there is no initializer, the variable cannot be const.
+    // TODO: consider always adding a const modifier if there is an initializer
+    CType type = (initializer == null) ? CTypes.withoutConst(pType) : pType;
 
     CVariableDeclaration decl = new CVariableDeclaration(loc,
                                                false,
