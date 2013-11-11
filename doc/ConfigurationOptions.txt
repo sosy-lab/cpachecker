@@ -661,7 +661,7 @@ cpa.pointer.merge = "sep"
 cpa.pointer.printWarnings = true
 
 # which merge operator to use for PointerACPA
-cpa.pointerA.merge = "SEP"
+cpa.pointerA.merge = "JOIN"
   allowed values: [SEP, JOIN]
 
 # which stop operator to use for PointerACPA
