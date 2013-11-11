@@ -1493,7 +1493,7 @@ public class PointerTargetSet implements Serializable {
 
   private static int dynamicAllocationCounter = 0;
 
-  public static final int DEFAULT_ARRAY_LENGTH = 16;
+  public static final int DEFAULT_ARRAY_LENGTH = 20;
   public static final int DEFAULT_ALLOCATION_SIZE = 4;
 
   public static final CSimpleType CHAR =
