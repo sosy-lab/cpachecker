@@ -60,30 +60,30 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 @Options(prefix = "cpa.pointerA")
 public class AndersenTransferRelation implements TransferRelation {
 
-  public AndersenTransferRelation(Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
+  public AndersenTransferRelation(Configuration pConfig) throws InvalidConfigurationException {
+    pConfig.inject(this);
   }
 
   @Override
-  public Collection<AbstractState> getAbstractSuccessors(AbstractState element, Precision pPrecision,
-      CFAEdge cfaEdge)
+  public Collection<AbstractState> getAbstractSuccessors(AbstractState pElement, Precision pPrecision,
+      CFAEdge pCfaEdge)
       throws CPATransferException {
 
     AbstractState successor = null;
-    AndersenState andersenState = (AndersenState) element;
+    AndersenState andersenState = (AndersenState) pElement;
 
     // check the type of the edge
-    switch (cfaEdge.getEdgeType()) {
+    switch (pCfaEdge.getEdgeType()) {
 
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge:
-      CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
-      successor = handleStatement(andersenState, statementEdge.getStatement(), cfaEdge);
+      CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
+      successor = handleStatement(andersenState, statementEdge.getStatement(), pCfaEdge);
       break;
 
     // edge is a declaration edge, e.g. int a;
     case DeclarationEdge:
-      CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
+      CDeclarationEdge declarationEdge = (CDeclarationEdge) pCfaEdge;
       successor = handleDeclaration(andersenState, declarationEdge);
       break;
 
@@ -95,9 +95,8 @@ public class AndersenTransferRelation implements TransferRelation {
     case BlankEdge:
       successor = andersenState.clone();
       break;
-
     default:
-      printWarning(cfaEdge);
+      printWarning(pCfaEdge);
     }
 
     if (successor == null) {
@@ -108,39 +107,39 @@ public class AndersenTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements,
-      CFAEdge cfaEdge, Precision precision)
+  public Collection<? extends AbstractState> strengthen(AbstractState pElement, List<AbstractState> pElements,
+      CFAEdge pCfaEdge, Precision pPrecision)
       throws UnrecognizedCCodeException {
 
     return null;
   }
 
-  private AndersenState handleStatement(AndersenState element, CStatement expression, CFAEdge cfaEdge)
+  private AndersenState handleStatement(AndersenState pElement, CStatement pExpression, CFAEdge pCfaEdge)
       throws UnrecognizedCCodeException {
 
     // e.g. a = b;
-    if (expression instanceof CAssignment) {
-      return handleAssignment(element, (CAssignment) expression, cfaEdge);
-    } else if (expression instanceof CFunctionCallStatement) {
-      return element.clone();
-    } else if (expression instanceof CExpressionStatement) {
-      return element.clone();
+    if (pExpression instanceof CAssignment) {
+      return handleAssignment(pElement, (CAssignment) pExpression, pCfaEdge);
+    } else if (pExpression instanceof CFunctionCallStatement) {
+      return pElement.clone();
+    } else if (pExpression instanceof CExpressionStatement) {
+      return pElement.clone();
     } else {
-      throw new UnrecognizedCCodeException("unknown statement", cfaEdge, expression);
+      throw new UnrecognizedCCodeException("unknown statement", pCfaEdge, pExpression);
     }
   }
 
-  private AndersenState handleAssignment(AndersenState element, CAssignment assignExpression, CFAEdge cfaEdge)
+  private AndersenState handleAssignment(AndersenState pElement, CAssignment pAssignExpression, CFAEdge pCfaEdge)
       throws UnrecognizedCCodeException {
 
-    CExpression op1 = assignExpression.getLeftHandSide();
-    CRightHandSide op2 = assignExpression.getRightHandSide();
+    CExpression op1 = pAssignExpression.getLeftHandSide();
+    CRightHandSide op2 = pAssignExpression.getRightHandSide();
 
     if (op1 instanceof CIdExpression) {
 
       // a = ...
 
-      return handleAssignmentTo(op1.toASTString(), op2, element, cfaEdge);
+      return handleAssignmentTo(op1.toASTString(), op2, pElement, pCfaEdge);
 
     } else if (op1 instanceof CPointerExpression
         && op2 instanceof CIdExpression) {
@@ -151,105 +150,95 @@ public class AndersenTransferRelation implements TransferRelation {
 
       if (op1 instanceof CIdExpression) {
 
-        AndersenState succ = element.clone();
-        succ.addConstraint(new ComplexConstraint(op2.toASTString(), op1.toASTString(), false));
-        return succ;
+        return pElement.addConstraint(new ComplexConstraint(op2.toASTString(), op1.toASTString(), false));
 
       } else {
-        throw new UnrecognizedCCodeException("not supported", cfaEdge, op2);
+        throw new UnrecognizedCCodeException("not supported", pCfaEdge, op2);
       }
 
     } else {
-      throw new UnrecognizedCCodeException("not supported", cfaEdge, op1);
+      throw new UnrecognizedCCodeException("not supported", pCfaEdge, op1);
     }
   }
 
   /**
    * Handles an assignement of the form <code>op1 = ...</code> to a given variable <code>op1</code>.
    *
-   * @param op1
+   * @param pOp1
    *        Name of the lefthandside variable in the assignement <code>op1 = ...</code>.
-   * @param op2
+   * @param pOp2
    *        Righthandside of the assignement.
-   * @param element
+   * @param pElement
    *        Predecessor of this assignement's AndersonElement.
-   * @param cfaEdge
+   * @param pCfaEdge
   *          Corresponding edge of the CFA.
    * @return <code>element</code>'s successor.
    *
    * @throws UnrecognizedCCodeException
    */
-  private AndersenState handleAssignmentTo(String op1, CRightHandSide op2, AndersenState element, CFAEdge cfaEdge)
+  private AndersenState handleAssignmentTo(String pOp1, CRightHandSide pOp2, AndersenState pElement, CFAEdge pCfaEdge)
       throws UnrecognizedCCodeException {
 
     // unpack cast if necessary
-    while (op2 instanceof CCastExpression) {
-      op2 = ((CCastExpression) op2).getOperand();
+    while (pOp2 instanceof CCastExpression) {
+      pOp2 = ((CCastExpression) pOp2).getOperand();
     }
 
-    if (op2 instanceof CIdExpression) {
+    if (pOp2 instanceof CIdExpression) {
 
       // a = b; simple constraint
 
-      AndersenState succ = element.clone();
-      succ.addConstraint(new SimpleConstraint(op2.toASTString(), op1));
-      return succ;
+      return pElement.addConstraint(new SimpleConstraint(pOp2.toASTString(), pOp1));
 
-    } else if (op2 instanceof CUnaryExpression && ((CUnaryExpression) op2).getOperator() == UnaryOperator.AMPER) {
+    } else if (pOp2 instanceof CUnaryExpression && ((CUnaryExpression) pOp2).getOperator() == UnaryOperator.AMPER) {
 
       // a = &b; base constraint
 
-      op2 = ((CUnaryExpression) op2).getOperand();
+      pOp2 = ((CUnaryExpression) pOp2).getOperand();
 
-      if (op2 instanceof CIdExpression) {
+      if (pOp2 instanceof CIdExpression) {
 
-        AndersenState succ = element.clone();
-        succ.addConstraint(new BaseConstraint(op2.toASTString(), op1));
-        return succ;
+        return pElement.addConstraint(new BaseConstraint(pOp2.toASTString(), pOp1));
 
       } else {
-        throw new UnrecognizedCCodeException("not supported", cfaEdge, op2);
+        throw new UnrecognizedCCodeException("not supported", pCfaEdge, pOp2);
       }
 
-    } else if (op2 instanceof CPointerExpression) {
+    } else if (pOp2 instanceof CPointerExpression) {
 
       // a = *b; complex constraint
 
-      op2 = ((CPointerExpression) op2).getOperand();
+      pOp2 = ((CPointerExpression) pOp2).getOperand();
 
-      if (op2 instanceof CIdExpression) {
+      if (pOp2 instanceof CIdExpression) {
 
-        AndersenState succ = element.clone();
-        succ.addConstraint(new ComplexConstraint(op2.toASTString(), op1, true));
-        return succ;
+        return pElement.addConstraint(new ComplexConstraint(pOp2.toASTString(), pOp1, true));
 
       } else {
-        throw new UnrecognizedCCodeException("not supported", cfaEdge, op2);
+        throw new UnrecognizedCCodeException("not supported", pCfaEdge, pOp2);
       }
 
-    } else if (op2 instanceof CFunctionCallExpression
-        && "malloc".equals(((CFunctionCallExpression) op2).getFunctionNameExpression().toASTString())) {
+    } else if (pOp2 instanceof CFunctionCallExpression
+        && "malloc".equals(((CFunctionCallExpression) pOp2).getFunctionNameExpression().toASTString())) {
 
-      AndersenState succ = element.clone();
-      succ.addConstraint(new BaseConstraint("malloc-" + cfaEdge.getLineNumber(), op1));
-      return succ;
+      return pElement.addConstraint(new BaseConstraint("malloc-" + pCfaEdge.getLineNumber(), pOp1));
 
     }
 
     // not implemented, or not interessing
-    printWarning(cfaEdge);
-    return element.clone();
+    printWarning(pCfaEdge);
+    return pElement.clone();
   }
 
-  private AndersenState handleDeclaration(AndersenState element, CDeclarationEdge declarationEdge)
+  private AndersenState handleDeclaration(AndersenState pElement, CDeclarationEdge pDeclarationEdge)
       throws UnrecognizedCCodeException {
 
-    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(pDeclarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
       // nothing interesting to see here, please move along
-      return element.clone();
+      return pElement;
     }
 
-    CVariableDeclaration decl = (CVariableDeclaration) declarationEdge.getDeclaration();
+    CVariableDeclaration decl = (CVariableDeclaration) pDeclarationEdge.getDeclaration();
 
     // get the variable name in the declarator
     String varName = decl.getName();
@@ -260,21 +249,21 @@ public class AndersenTransferRelation implements TransferRelation {
 
       CRightHandSide exp = ((CInitializerExpression) init).getExpression();
 
-      return handleAssignmentTo(varName, exp, element, declarationEdge);
+      return handleAssignmentTo(varName, exp, pElement, pDeclarationEdge);
     }
 
-    return element.clone();
+    return pElement.clone();
   }
 
   /**
    * Prints a warning to System.err that the statement corresponding to the given
    * <code>cfaEdge</code> was not handled.
    */
-  private void printWarning(CFAEdge cfaEdge) {
+  private void printWarning(CFAEdge pCfaEdge) {
 
     StackTraceElement[] trace = Thread.currentThread().getStackTrace();
 
-    System.err.println("Warning! CFA Edge \"" + cfaEdge.getRawStatement() + "\" (line: " + cfaEdge.getLineNumber()
+    System.err.println("Warning! CFA Edge \"" + pCfaEdge.getRawStatement() + "\" (line: " + pCfaEdge.getLineNumber()
         + ") not handled. [Method: " + trace[2].toString() + ']');
   }
 }
