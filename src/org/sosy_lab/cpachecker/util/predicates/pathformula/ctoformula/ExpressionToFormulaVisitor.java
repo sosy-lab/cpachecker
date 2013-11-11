@@ -334,6 +334,11 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
       return conv.fmgr.makeNumber(t, convertBigDecimalToBigInteger(val, fExp));
 
     } else {
+      if (t.isBitvectorType()) {
+        // not representible
+        return conv.makeConstant("__float_constant__" + val, fExp.getExpressionType(), ssa);
+      }
+
       // represent x.y by xy / (10^z) where z is the number of digits in y
       // (the "scale" of a BigDecimal)
 
