@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
+import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.VOID;
+
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -52,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -1466,7 +1469,7 @@ public class PointerTargetSet implements Serializable {
   }
 
   private static final CType getFakeBaseType(int size) {
-    return simplifyType(new CArrayType(false, false, VOID, new CIntegerLiteralExpression(null,
+    return simplifyType(new CArrayType(false, false, CNumericTypes.VOID, new CIntegerLiteralExpression(null,
                                                                                         CHAR,
                                                                                         BigInteger.valueOf(size))));
   }
@@ -1511,9 +1514,6 @@ public class PointerTargetSet implements Serializable {
 
   public static final CSimpleType CHAR =
     new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-  public static final CType VOID =
-    new CSimpleType(false, false, CBasicType.VOID, false, false, false, false, false, false, false);
-  public static final CType POINTER_TO_VOID = new CPointerType(false, false, VOID);
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
