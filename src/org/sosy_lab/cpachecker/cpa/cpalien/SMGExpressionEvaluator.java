@@ -512,22 +512,22 @@ public class SMGExpressionEvaluator {
       }
     }
 
-    private SMGAddressValue handleAmper(CExpression lValue) throws CPATransferException {
-      if (lValue instanceof CIdExpression) {
+    private SMGAddressValue handleAmper(CExpression amperOperand) throws CPATransferException {
+      if (amperOperand instanceof CIdExpression) {
         // &a
-        return createAddressOfVariable((CIdExpression) lValue);
-      } else if (lValue instanceof CPointerExpression) {
+        return createAddressOfVariable((CIdExpression) amperOperand);
+      } else if (amperOperand instanceof CPointerExpression) {
         // &(*(a))
 
-        return getAddressFromSymbolicValue(smgState,
-            ((CPointerExpression) lValue).getOperand().accept(this));
+        CExpression rValue = ((CPointerExpression) amperOperand).getOperand();
 
-      } else if (lValue instanceof CFieldReference) {
+        return evaluateAddress(smgState, cfaEdge, rValue);
+      } else if (amperOperand instanceof CFieldReference) {
         // &(a.b)
-        return createAddressOfField((CFieldReference) lValue);
-      } else if (lValue instanceof CArraySubscriptExpression) {
+        return createAddressOfField((CFieldReference) amperOperand);
+      } else if (amperOperand instanceof CArraySubscriptExpression) {
         // &a[b]
-        return createAddressOfArraySubscript((CArraySubscriptExpression) lValue);
+        return createAddressOfArraySubscript((CArraySubscriptExpression) amperOperand);
       } else {
         return SMGUnknownValue.getInstance();
       }
