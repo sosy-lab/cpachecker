@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -175,13 +176,28 @@ public class SMGExpressionEvaluator {
   }
 
   public SMGSymbolicValue readValue(SMGState pSmgState, SMGObject pObject,
-      SMGExplicitValue pOffset, CType pType, CFAEdge pEdge) throws SMGInconsistentException {
+      SMGExplicitValue pOffset, CType pType, CFAEdge pEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
 
     if (pOffset.isUnknown() || pObject == null) {
       return SMGUnknownValue.getInstance();
     }
 
-    Integer value = pSmgState.readValue(pObject, pOffset.getAsInt(), pType);
+    int fieldOffset = pOffset.getAsInt();
+
+    boolean doesNotFitIntoObject = fieldOffset < 0
+        || fieldOffset + getSizeof(pEdge, pType) > pObject.getSizeInBytes();
+
+    if (doesNotFitIntoObject) {
+      // Field does not fit size of declared Memory
+      logger.log(Level.WARNING, "Field " + "(" + fieldOffset + ", " + pType.toASTString("") + ")" +
+          " does not fit object " + pObject.toString() + ".\n Line: " + pEdge.getLineNumber());
+
+      // TODO Modifying read state, ugly ...
+      pSmgState.setInvalidRead();
+      return SMGUnknownValue.getInstance();
+    }
+
+    Integer value = pSmgState.readValue(pObject, fieldOffset, pType);
 
     if (value == null) {
       return SMGUnknownValue.getInstance();

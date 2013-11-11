@@ -344,7 +344,7 @@ public class SMGState implements AbstractQueryableState {
     return null;
   }
 
-  private void setInvalidRead() {
+  public void setInvalidRead() {
     this.invalidRead  = true;
   }
 
