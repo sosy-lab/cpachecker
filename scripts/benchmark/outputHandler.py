@@ -40,12 +40,12 @@ COLOR_RED = "\033[31;1m{0}\033[m"
 COLOR_ORANGE = "\033[33;1m{0}\033[m"
 COLOR_MAGENTA = "\033[35;1m{0}\033[m"
 COLOR_DEFAULT = "{0}"
-COLOR_DIC = {result.RESULT_CORRECT_SAFE:   COLOR_GREEN,
-             result.RESULT_CORRECT_UNSAFE: COLOR_GREEN,
+COLOR_DIC = {result.RESULT_CORRECT_TRUE:   COLOR_GREEN,
+             result.RESULT_CORRECT_FALSE:  COLOR_GREEN,
              result.RESULT_UNKNOWN:        COLOR_ORANGE,
              result.RESULT_ERROR:          COLOR_MAGENTA,
-             result.RESULT_WRONG_UNSAFE:   COLOR_RED,
-             result.RESULT_WRONG_SAFE:     COLOR_RED,
+             result.RESULT_WRONG_FALSE:    COLOR_RED,
+             result.RESULT_WRONG_TRUE:     COLOR_RED,
              result.CATEGORY_UNKNOWN:      COLOR_DEFAULT,
              result.RESULT_CORRECT_PROP_DEREF:    COLOR_GREEN,
              result.RESULT_CORRECT_PROP_FREE:     COLOR_GREEN,
@@ -610,12 +610,12 @@ class Statistics:
 
     def printToTerminal(self):
         Util.printOut('\n'.join(['\nStatistics:' + str(self.counter).rjust(13) + ' Files',
-                 '    correct:        ' + str(self.dic[result.RESULT_CORRECT_SAFE] + \
-                                              self.dic[result.RESULT_CORRECT_UNSAFE]).rjust(4),
+                 '    correct:        ' + str(self.dic[result.RESULT_CORRECT_TRUE] + \
+                                              self.dic[result.RESULT_CORRECT_FALSE]).rjust(4),
                  '    unknown:        ' + str(self.dic[result.RESULT_UNKNOWN] + \
                                               self.dic[result.RESULT_ERROR]).rjust(4),
-                 '    false positives:' + str(self.dic[result.RESULT_WRONG_UNSAFE]).rjust(4) + \
-                 '        (file is safe, result is unsafe)',
-                 '    false negatives:' + str(self.dic[result.RESULT_WRONG_SAFE]).rjust(4) + \
-                 '        (file is unsafe, result is safe)',
+                 '    false positives:' + str(self.dic[result.RESULT_WRONG_FALSE]).rjust(4) + \
+                 '        (file is true, result is false)',
+                 '    false negatives:' + str(self.dic[result.RESULT_WRONG_TRUE]).rjust(4) + \
+                 '        (file is false, result is true)',
                  '']))

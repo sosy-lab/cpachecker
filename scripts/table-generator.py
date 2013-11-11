@@ -677,18 +677,18 @@ def getTableHead(runSetResults, commonFileNamePrefix):
 
 
 def getStats(rows):
-    countUnsafe = len([row for row in rows if result.fileIsUnsafe(row.fileName)])
-    countSafe = len([row for row in rows if result.fileIsSafe(row.fileName)])
-    maxScore = result.SCORE_CORRECT_UNSAFE * countUnsafe + result.SCORE_CORRECT_SAFE * countSafe
+    countFalse = len([row for row in rows if result.fileIsFalse(row.fileName)])
+    countTrue = len([row for row in rows if result.fileIsTrue(row.fileName)])
+    maxScore = result.SCORE_CORRECT_FALSE * countFalse + result.SCORE_CORRECT_TRUE * countTrue
 
     stats = [getStatsOfRunSet(runResults) for runResults in rowsToColumns(rows)] # column-wise
     rowsForStats = list(map(Util.flatten, zip(*stats))) # row-wise
 
     return [tempita.bunch(default=None, title='total files', content=rowsForStats[0]),
-            tempita.bunch(default=None, title='correct results', description='(no bug exists + result is SAFE) OR (bug exists + result is UNSAFE)', content=rowsForStats[1]),
-            tempita.bunch(default=None, title='false negatives', description='bug exists + result is SAFE', content=rowsForStats[2]),
-            tempita.bunch(default=None, title='false positives', description='no bug exists + result is UNSAFE', content=rowsForStats[3]),
-            tempita.bunch(default=None, title='score ({0} files, max score: {1})'.format(len(rows), maxScore), id='score', description='{0} safe files, {1} unsafe files'.format(countSafe, countUnsafe), content=rowsForStats[4])
+            tempita.bunch(default=None, title='correct results', description='(no bug exists + result is TRUE) OR (bug exists + result is FALSE)', content=rowsForStats[1]),
+            tempita.bunch(default=None, title='false negatives', description='bug exists + result is TRUE', content=rowsForStats[2]),
+            tempita.bunch(default=None, title='false positives', description='no bug exists + result is FALSE', content=rowsForStats[3]),
+            tempita.bunch(default=None, title='score ({0} files, max score: {1})'.format(len(rows), maxScore), id='score', description='{0} true files, {1} false files'.format(countTrue, countFalse), content=rowsForStats[4])
             ]
 
 def getStatsOfRunSet(runResults):
@@ -698,7 +698,7 @@ def getStatsOfRunSet(runResults):
     """
 
     # convert:
-    # [['SAFE', 0,1], ['UNSAFE', 0,2]] -->  [['SAFE', 'UNSAFE'], [0,1, 0,2]]
+    # [['TRUE', 0,1], ['FALSE', 0,2]] -->  [['TRUE', 'FALSE'], [0,1, 0,2]]
     # in python2 this is a list, in python3 this is the iterator of the list
     # this works, because we iterate over the list some lines below
     listsOfValues = zip(*[runResult.values for runResult in runResults])
@@ -709,39 +709,39 @@ def getStatsOfRunSet(runResults):
     # collect some statistics
     sumRow = []
     correctRow = []
-    wrongSafeRow = []
-    wrongUnsafeRow = []
+    wrongTrueRow = []
+    wrongFalseRow = []
     scoreRow = []
 
     for column, values in zip(columns, listsOfValues):
         if column.title == 'status':
-            countCorrectSafe, countCorrectUnsafe, countWrongSafe, countWrongUnsafe = getCategoryCount(statusList)
+            countCorrectTrue, countCorrectFalse, countWrongTrue, countWrongFalse = getCategoryCount(statusList)
 
             sum     = StatValue(len(statusList))
-            correct = StatValue(countCorrectSafe + countCorrectUnsafe)
+            correct = StatValue(countCorrectTrue + countCorrectFalse)
             score   = StatValue(
-                                result.SCORE_CORRECT_SAFE   * countCorrectSafe + \
-                                result.SCORE_CORRECT_UNSAFE * countCorrectUnsafe + \
-                                result.SCORE_WRONG_SAFE     * countWrongSafe + \
-                                result.SCORE_WRONG_UNSAFE   * countWrongUnsafe,
+                                result.SCORE_CORRECT_TRUE   * countCorrectTrue + \
+                                result.SCORE_CORRECT_FALSE * countCorrectFalse + \
+                                result.SCORE_WRONG_TRUE     * countWrongTrue + \
+                                result.SCORE_WRONG_FALSE   * countWrongFalse,
                                 )
-            wrongSafe   = StatValue(countWrongSafe)
-            wrongUnsafe = StatValue(countWrongUnsafe)
+            wrongTrue   = StatValue(countWrongTrue)
+            wrongFalse = StatValue(countWrongFalse)
 
         else:
-            sum, correct, wrongSafe, wrongUnsafe = getStatsOfNumberColumn(values, statusList, column.title)
+            sum, correct, wrongTrue, wrongFalse = getStatsOfNumberColumn(values, statusList, column.title)
             score = ''
 
-        if (sum.sum, correct.sum, wrongSafe.sum, wrongUnsafe.sum) == (0,0,0,0):
-            (sum, correct, wrongSafe, wrongUnsafe) = (None, None, None, None)
+        if (sum.sum, correct.sum, wrongTrue.sum, wrongFalse.sum) == (0,0,0,0):
+            (sum, correct, wrongTrue, wrongFalse) = (None, None, None, None)
 
         sumRow.append(sum)
         correctRow.append(correct)
-        wrongSafeRow.append(wrongSafe)
-        wrongUnsafeRow.append(wrongUnsafe)
+        wrongTrueRow.append(wrongTrue)
+        wrongFalseRow.append(wrongFalse)
         scoreRow.append(score)
 
-    return (sumRow, correctRow, wrongSafeRow, wrongUnsafeRow, scoreRow)
+    return (sumRow, correctRow, wrongTrueRow, wrongFalseRow, scoreRow)
 
 
 class StatValue:
@@ -774,10 +774,10 @@ def getCategoryCount(categoryList):
     for category in categoryList:
         counts[category] += 1
 
-    return (counts[result.RESULT_CORRECT_SAFE],
-            counts[result.RESULT_CORRECT_UNSAFE],
-            counts[result.RESULT_WRONG_SAFE],
-            counts[result.RESULT_WRONG_UNSAFE])
+    return (counts[result.RESULT_CORRECT_TRUE],
+            counts[result.RESULT_CORRECT_FALSE],
+            counts[result.RESULT_WRONG_TRUE],
+            counts[result.RESULT_WRONG_FALSE])
 
 
 def getStatsOfNumberColumn(values, categoryList, columnTitle):
@@ -797,8 +797,8 @@ def getStatsOfNumberColumn(values, categoryList, columnTitle):
 
     return (StatValue.fromList(valueList),
             StatValue.fromList(valuesPerCategory['correct_tmp']),
-            StatValue.fromList(valuesPerCategory[result.RESULT_WRONG_SAFE]),
-            StatValue.fromList(valuesPerCategory[result.RESULT_WRONG_UNSAFE]),
+            StatValue.fromList(valuesPerCategory[result.RESULT_WRONG_TRUE]),
+            StatValue.fromList(valuesPerCategory[result.RESULT_WRONG_FALSE]),
             )
 
 
@@ -807,10 +807,10 @@ def getCounts(rows): # for options.dumpCounts
 
     for runResults in rowsToColumns(rows):
         statusList = [runResult.category for runResult in runResults]
-        correctSafe, correctUnsafe, wrongSafe, wrongUnsafe = getCategoryCount(statusList)
+        correctTrue, correctFalse, wrongTrue, wrongFalse = getCategoryCount(statusList)
 
-        correct = correctSafe + correctUnsafe
-        wrong = wrongSafe + wrongUnsafe
+        correct = correctTrue + correctFalse
+        wrong = wrongTrue + wrongFalse
         unknown = len(statusList) - correct - wrong
 
         countsList.append((correct, wrong, unknown))
