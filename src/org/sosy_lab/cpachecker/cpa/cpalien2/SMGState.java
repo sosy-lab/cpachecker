@@ -668,7 +668,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
       case "has-leaks":
         if (heap.hasMemoryLeaks()) {
           //TODO: Give more information
-          this.logger.log(Level.SEVERE, "Memory leak found");
+          this.logger.log(Level.WARNING, "Memory leak found");
           violatedProperty = ViolatedProperty.VALID_MEMTRACK;
           return true;
         }
@@ -676,7 +676,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
       case "has-invalid-writes":
         if (this.invalidWrite) {
           //TODO: Give more information
-          this.logger.log(Level.SEVERE, "Invalid write found");
+          this.logger.log(Level.WARNING, "Invalid write found");
           violatedProperty = ViolatedProperty.VALID_DEREF;
           return true;
         }
@@ -684,7 +684,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
       case "has-invalid-reads":
         if (this.invalidRead) {
           //TODO: Give more information
-          this.logger.log(Level.SEVERE, "Invalid read found");
+          this.logger.log(Level.WARNING, "Invalid read found");
           violatedProperty = ViolatedProperty.VALID_DEREF;
           return true;
         }
@@ -692,7 +692,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
       case "has-invalid-frees":
         if (this.invalidFree) {
           //TODO: Give more information
-          this.logger.log(Level.SEVERE, "Invalid free found");
+          this.logger.log(Level.WARNING, "Invalid free found");
           violatedProperty = ViolatedProperty.VALID_FREE;
           return true;
         }
