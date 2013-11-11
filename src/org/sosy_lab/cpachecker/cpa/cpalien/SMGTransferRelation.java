@@ -833,6 +833,34 @@ public class SMGTransferRelation implements TransferRelation {
     return rValue.accept(new IsNotZeroVisitor(newState, cfaEdge));
   }
 
+  private SMGState handleVariableDeclaration(SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
+    logger.log(Level.FINEST, "Handling variable declaration:", pVarDecl.toASTString());
+
+    String varName = pVarDecl.getName();
+    CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
+
+    SMGObject newObject;
+
+    if (pVarDecl.isGlobal()) {
+      newObject = pState.addGlobalVariable(cType, varName);
+    } else {
+      newObject = pState.getObjectForVisibleVariable(varName);
+
+      /*
+       *  The variable is not null if we seen the declaration already, for example in loops. Invalid
+       *  occurrences (variable really declared twice) should be caught for us by the parser. If we
+       *  already processed the declaration, we do nothing.
+       */
+      if (newObject == null) {
+        newObject = pState.addLocalVariable(cType, varName);
+      }
+    }
+
+    pState = handleInitializerForDeclaration(pState, newObject, pVarDecl, pEdge);
+
+    return pState;
+  }
+
   private SMGState handleInitializerForDeclaration(SMGState pState, SMGObject pObject, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
     CInitializer newInitializer = pVarDecl.getInitializer();
     CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
@@ -957,34 +985,6 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     return pNewState;
-  }
-
-  private SMGState handleVariableDeclaration(SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
-    logger.log(Level.FINEST, "Handling variable declaration:", pVarDecl.toASTString());
-
-    String varName = pVarDecl.getName();
-    CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
-
-    SMGObject newObject;
-
-    if (pVarDecl.isGlobal()) {
-      newObject = pState.addGlobalVariable(cType, varName);
-    } else {
-      newObject = pState.getObjectForVisibleVariable(varName);
-
-      /*
-       *  The variable is not null if we seen the declaration already, for example in loops. Invalid
-       *  occurrences (variable really declared twice) should be caught for us by the parser. If we
-       *  already processed the declaration, we do nothing.
-       */
-      if (newObject == null) {
-        newObject = pState.addLocalVariable(cType, varName);
-      }
-    }
-
-    pState = handleInitializerForDeclaration(pState, newObject, pVarDecl, pEdge);
-
-    return pState;
   }
 
   private SMGState handleDeclaration(SMGState smgState, CDeclarationEdge edge) throws CPATransferException {
@@ -1123,11 +1123,6 @@ public class SMGTransferRelation implements TransferRelation {
 
       public LValueAssignmentVisitor(CFAEdge pEdge, SMGState pSmgState) {
         super(pEdge, pSmgState);
-      }
-
-      @Override
-      protected SMGAddress visitDefault(CExpression pExp) throws CPATransferException {
-        return SMGAddress.UNKNOWN;
       }
 
       @Override
