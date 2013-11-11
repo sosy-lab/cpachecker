@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
 
@@ -51,7 +52,9 @@ public class SMGJoinFieldsTest {
   final private CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
   final private CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
   final private CIntegerLiteralExpression arrayLen4 = new CIntegerLiteralExpression(null, dummyInt, BigInteger.valueOf(4));
+  final private CIntegerLiteralExpression arrayLen8 = new CIntegerLiteralExpression(null, dummyInt, BigInteger.valueOf(8));
   private final CType mockType4b = new CArrayType(false, false, dummyChar, arrayLen4);
+  private final CType mockType8b = new CArrayType(false, false, dummyChar, arrayLen8);
 
   private SMG smg1;
   private SMG smg2;
@@ -305,5 +308,157 @@ public class SMGJoinFieldsTest {
     Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
         SMGJoinFields.joinFieldsRelaxStatus(smg08, smg26,
             SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
+  }
+
+  @Test(expected=IllegalArgumentException.class)
+  public void differentSizeCheckTest(){
+    SMGObject obj1 = new SMGObject(8, "Object 1");
+    SMGObject obj2 = new SMGObject(12, "Object 2");
+    SMG smg1 = new SMG(MachineModel.LINUX64);
+    SMG smg2 = new SMG(MachineModel.LINUX64);
+    smg1.addObject(obj1);
+    smg2.addObject(obj2);
+
+    @SuppressWarnings("unused")
+    SMGJoinFields jf = new SMGJoinFields(smg1, smg2, obj1, obj2);
+  }
+
+  @Test
+  public void consistencyCheckTest() throws SMGInconsistentException {
+    SMG smg1 = new SMG(MachineModel.LINUX64);
+    SMG smg2 = new SMG(MachineModel.LINUX32);
+
+    SMGObject obj1 = new SMGObject(32, "Object 1");
+    SMGObject obj2 = new SMGObject(32, "Object 2");
+    Integer value1 = SMGValueFactory.getNewValue();
+    Integer value2 = SMGValueFactory.getNewValue();
+
+    smg1.addObject(obj1);
+    smg2.addObject(obj2);
+    smg1.addValue(value1);
+    smg2.addValue(value2);
+
+    SMGEdgeHasValue hvAt0in1 = new SMGEdgeHasValue(mockType4b, 0, obj1, value1);
+    SMGEdgeHasValue hvAt0in2 = new SMGEdgeHasValue(mockType4b, 0, obj2, value2);
+    smg1.addHasValueEdge(hvAt0in1);
+    smg2.addHasValueEdge(hvAt0in2);
+    SMGJoinFields.checkResultConsistency(smg1, smg2, obj1, obj2);
+
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 4, obj1, smg1.getNullValue()));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 4, obj2, smg2.getNullValue()));
+    SMGJoinFields.checkResultConsistency(smg1, smg2, obj1, obj2);
+
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 8, obj1, smg1.getNullValue()));
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 12, obj1, smg1.getNullValue()));
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 8, obj1, smg1.getNullValue()));
+
+    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 8, obj2, smg2.getNullValue()));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 12, obj2, smg2.getNullValue()));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 8, obj2, smg2.getNullValue()));
+
+    SMGJoinFields.checkResultConsistency(smg1, smg2, obj1, obj2);
+
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 16, obj1, value1));
+    smg1.addPointsToEdge(new SMGEdgePointsTo(value1, obj1, 0));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 16, obj2, smg2.getNullValue()));
+    SMGJoinFields.checkResultConsistency(smg1, smg2, obj1, obj2);
+  }
+
+  @Test(expected=SMGInconsistentException.class)
+  public void consistencyCheckNegativeTest1() throws SMGInconsistentException {
+    SMG smg1 = new SMG(MachineModel.LINUX64);
+    SMG smg2 = new SMG(MachineModel.LINUX32);
+
+    SMGObject obj1 = new SMGObject(32, "Object 1");
+    SMGObject obj2 = new SMGObject(32, "Object 2");
+    Integer value1 = SMGValueFactory.getNewValue();
+
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value1));
+    SMGJoinFields.checkResultConsistency(smg1, smg2, obj1, obj2);
+  }
+
+  @Test(expected=SMGInconsistentException.class)
+  public void consistencyCheckNegativeTest2() throws SMGInconsistentException {
+    SMG smg1 = new SMG(MachineModel.LINUX64);
+    SMG smg2 = new SMG(MachineModel.LINUX32);
+
+    SMGObject obj1 = new SMGObject(32, "Object 1");
+    SMGObject obj2 = new SMGObject(32, "Object 2");
+
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, smg1.getNullValue()));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 0, obj2, smg2.getNullValue()));
+    SMGJoinFields.checkResultConsistency(smg1, smg2, obj1, obj2);
+  }
+
+  @Test(expected=SMGInconsistentException.class)
+  public void consistencyCheckNegativeTest3() throws SMGInconsistentException {
+    SMG smg1 = new SMG(MachineModel.LINUX64);
+    SMG smg2 = new SMG(MachineModel.LINUX32);
+
+    SMGObject obj1 = new SMGObject(32, "Object 1");
+    SMGObject obj2 = new SMGObject(32, "Object 2");
+
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, smg1.getNullValue()));
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 4, obj1, smg1.getNullValue()));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 0, obj2, smg2.getNullValue()));
+    SMGJoinFields.checkResultConsistency(smg1, smg2, obj1, obj2);
+  }
+
+  @Test(expected=SMGInconsistentException.class)
+  public void consistencyCheckNegativeTest4() throws SMGInconsistentException {
+    SMG smg1 = new SMG(MachineModel.LINUX64);
+    SMG smg2 = new SMG(MachineModel.LINUX32);
+
+    SMGObject obj1 = new SMGObject(32, "Object 1");
+    SMGObject obj2 = new SMGObject(32, "Object 2");
+
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, smg1.getNullValue()));
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 4, obj1, smg1.getNullValue()));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 0, obj2, smg2.getNullValue()));
+
+    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 8, obj2, smg2.getNullValue()));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 12, obj2, smg2.getNullValue()));
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 8, obj1, smg1.getNullValue()));
+    SMGJoinFields.checkResultConsistency(smg1, smg2, obj1, obj2);
+  }
+
+  @Test(expected=SMGInconsistentException.class)
+  public void consistencyCheckNegativeTest5() throws SMGInconsistentException {
+    SMG smg1 = new SMG(MachineModel.LINUX64);
+    SMG smg2 = new SMG(MachineModel.LINUX32);
+
+    SMGObject obj1 = new SMGObject(32, "Object 1");
+    SMGObject obj2 = new SMGObject(32, "Object 2");
+
+    Integer value2 = SMGValueFactory.getNewValue();
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, smg1.getNullValue()));
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 4, obj1, value2));
+    SMGJoinFields.checkResultConsistency(smg1, smg2, obj1, obj2);
+  }
+
+  @Test(expected=IllegalArgumentException.class)
+  public void nonMemberObjectTest1(){
+    SMG smg1 = new SMG(MachineModel.LINUX64);
+    SMG smg2 = new SMG(MachineModel.LINUX32);
+
+    SMGObject obj1 = new SMGObject(32, "Object 1");
+    SMGObject obj2 = new SMGObject(32, "Object 2");
+    smg2.addObject(obj2);
+
+    @SuppressWarnings("unused")
+    SMGJoinFields jf = new SMGJoinFields(smg1, smg2, obj1, obj2);
+  }
+
+  @Test(expected=IllegalArgumentException.class)
+  public void nonMemberObjectTest2(){
+    SMG smg1 = new SMG(MachineModel.LINUX64);
+    SMG smg2 = new SMG(MachineModel.LINUX32);
+
+    SMGObject obj1 = new SMGObject(32, "Object 1");
+    SMGObject obj2 = new SMGObject(32, "Object 2");
+    smg1.addObject(obj1);
+
+    @SuppressWarnings("unused")
+    SMGJoinFields jf = new SMGJoinFields(smg1, smg2, obj1, obj2);
   }
 }

@@ -26,12 +26,18 @@ package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 
 import com.google.common.collect.Iterables;
 
 
 final public class SMGJoinSubSMGs {
+  static private boolean performChecks = false;
+  static public void performChecks(boolean pValue) {
+    performChecks = pValue;
+  }
+
   private SMGJoinStatus status;
   private boolean defined = false;
 
@@ -45,12 +51,17 @@ final public class SMGJoinSubSMGs {
   public SMGJoinSubSMGs(SMGJoinStatus initialStatus,
                         SMG pSMG1, SMG pSMG2, SMG pDestSMG,
                         SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                        SMGObject pObj1, SMGObject pObj2, SMGObject pNewObject){
+                        SMGObject pObj1, SMGObject pObj2, SMGObject pNewObject) throws SMGInconsistentException{
 
     SMGJoinFields joinFields = new SMGJoinFields(pSMG1, pSMG2, pObj1, pObj2);
 
     inputSMG1 = joinFields.getSMG1();
     inputSMG2 = joinFields.getSMG2();
+
+    if (SMGJoinSubSMGs.performChecks) {
+      SMGJoinFields.checkResultConsistency(inputSMG1, inputSMG2, pObj1, pObj2);
+    }
+
     destSMG = pDestSMG;
     status = SMGUpdateJoinStatus.updateStatus(initialStatus, joinFields.getStatus());
     mapping1 = pMapping1;

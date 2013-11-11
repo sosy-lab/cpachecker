@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
 
@@ -56,7 +57,7 @@ public class SMGJoinValuesTest {
   }
 
   @Test
-  public void joinValuesIdenticalTest() {
+  public void joinValuesIdenticalTest() throws SMGInconsistentException {
     smg1.addValue(value1);
     smg2.addValue(value1);
 
@@ -72,7 +73,7 @@ public class SMGJoinValuesTest {
   }
 
   @Test
-  public void joinValuesAlreadyJoinedTest() {
+  public void joinValuesAlreadyJoinedTest() throws SMGInconsistentException {
     smg1.addValue(value1);
     smg2.addValue(value2);
     smgDest.addValue(value3);
@@ -92,7 +93,7 @@ public class SMGJoinValuesTest {
   }
 
   @Test
-  public void joinValuesNonPointers() {
+  public void joinValuesNonPointers() throws SMGInconsistentException {
     smg1.addValue(value1);
     smg2.addValue(value2);
     smgDest.addValue(value3);
@@ -124,7 +125,7 @@ public class SMGJoinValuesTest {
   }
 
   @Test
-  public void joinValuesSinglePointer() {
+  public void joinValuesSinglePointer() throws SMGInconsistentException {
     smg1.addValue(value1);
     smg2.addValue(value2);
     smgDest.addValue(value3);

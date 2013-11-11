@@ -100,6 +100,13 @@ public class SMGState implements AbstractQueryableState {
    */
   final public void setRuntimeCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
     runtimeCheckLevel = pLevel;
+
+    if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.FULL)) {
+      SMGJoin.performChecks(true);
+    } else {
+      SMGJoin.performChecks(false);
+    }
+
     if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.HALF)) {
       CLangSMG.setPerformChecks(true, logger);
     }
@@ -468,8 +475,9 @@ public class SMGState implements AbstractQueryableState {
    *
    * @param reachedState already reached state, that may cover this state already.
    * @return True, if this state is covered by the given state, false otherwise.
+   * @throws SMGInconsistentException
    */
-  public boolean isLessOrEqual(SMGState reachedState) {
+  public boolean isLessOrEqual(SMGState reachedState) throws SMGInconsistentException {
     SMGJoin join = new SMGJoin(reachedState.heap, this.heap);
     if (join.isDefined() &&
         (join.getStatus() == SMGJoinStatus.LEFT_ENTAIL || join.getStatus() == SMGJoinStatus.EQUAL)){

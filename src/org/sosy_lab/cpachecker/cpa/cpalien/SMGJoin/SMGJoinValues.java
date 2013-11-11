@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
 
 class SMGJoinValues {
@@ -77,7 +78,7 @@ class SMGJoinValues {
     return ((! pJV.inputSMG1.isPointer(pV1)) || (! pJV.inputSMG2.isPointer(pV2)));
   }
 
-  private static boolean joinValuesPointers(SMGJoinValues pJV, Integer pV1, Integer pV2) {
+  private static boolean joinValuesPointers(SMGJoinValues pJV, Integer pV1, Integer pV2) throws SMGInconsistentException {
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(pJV.status,
                                                         pJV.inputSMG1, pJV.inputSMG2, pJV.destSMG,
                                                         pJV.mapping1, pJV.mapping2,
@@ -104,7 +105,7 @@ class SMGJoinValues {
   public SMGJoinValues(SMGJoinStatus pStatus,
                         SMG pSMG1, SMG pSMG2, SMG pDestSMG,
                         SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                        Integer pValue1, Integer pValue2) {
+                        Integer pValue1, Integer pValue2) throws SMGInconsistentException {
     mapping1 = pMapping1;
     mapping2 = pMapping2;
     status = pStatus;

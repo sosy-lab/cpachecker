@@ -81,7 +81,7 @@ class SMGJoinTargetObjects {
   public SMGJoinTargetObjects(SMGJoinStatus pStatus,
                               SMG pSMG1, SMG pSMG2, SMG pDestSMG,
                               SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                              Integer pAddress1, Integer pAddress2) {
+                              Integer pAddress1, Integer pAddress2) throws SMGInconsistentException {
 
     inputSMG1 = pSMG1;
     inputSMG2 = pSMG2;
