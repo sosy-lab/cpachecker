@@ -39,6 +39,7 @@ import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -68,7 +69,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -94,6 +95,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetS
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.PointerTargetPattern;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -101,11 +103,12 @@ import com.google.common.collect.ImmutableSet;
 public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   public CToFormulaWithUFConverter(final FormulaEncodingOptions options,
-                            final FormulaManagerView formulaManagerView,
-                            final MachineModel machineModel,
-                            final LogManager logger)
+                                   final FormulaManagerView formulaManagerView,
+                                   final @Nonnull CFA cfa,
+                                   final LogManager logger)
   throws InvalidConfigurationException {
-    super(options, formulaManagerView, machineModel, logger);
+    super(options, formulaManagerView, cfa.getMachineModel(), logger);
+    variableClassification = cfa.getVarClassification();
 //    rfmgr = formulaManagerView.getRationalFormulaManager();
   }
 
@@ -263,13 +266,36 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return ffmgr.createFuncAndCall(ufName, index, returnType, ImmutableList.of(address));
   }
 
-  static void addAllFields(final CType type, final PointerTargetSetBuilder pts) {
+  boolean isUsedField(final CCompositeType compositeType, final String fieldName, final PointerTargetSetBuilder pts) {
+    return !variableClassification.isPresent() ||
+           pts.getSize(compositeType) <= options.maxPreFilledAllocationSize() ||
+           variableClassification.get().getUsedFields().containsEntry(compositeType, fieldName);
+  }
+
+  boolean isUsedVariable(final CType type, final String function, final String name) {
+    return !variableClassification.isPresent() ||
+           type instanceof CArrayType ||
+           type instanceof CCompositeType ||
+           RETURN_VARIABLE_NAME.equals(name) ||
+           variableClassification.get().getUsedVariables().containsEntry(function, name);
+  }
+
+  boolean isUsedVariable(final CType type, final String qualifiedName) {
+    final int position = qualifiedName.indexOf(SCOPE_SEPARATOR);
+    return isUsedVariable(type,
+                          position >= 0 ? qualifiedName.substring(0, position) : null,
+                          position >= 0 ? qualifiedName.substring(position + SCOPE_SEPARATOR.length()) : qualifiedName);
+  }
+
+  void addAllFields(final CType type, final PointerTargetSetBuilder pts) {
     if (type instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) type;
       for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        pts.addField(compositeType, memberDeclaration.getName());
-        final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
-        addAllFields(memberType, pts);
+        if (isUsedField(compositeType, memberDeclaration.getName(), pts)) {
+          pts.addField(compositeType, memberDeclaration.getName());
+          final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
+          addAllFields(memberType, pts);
+        }
       }
     } else if (type instanceof CArrayType) {
       final CType elementType = PointerTargetSet.simplifyType(((CArrayType) type).getType());
@@ -343,7 +369,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
         final Variable newBase = Variable.create(base.getName() + FIELD_NAME_SEPARATOR + memberName,
                                                  memberType);
-        if (hasIndex(newBase.getName(), newBase.getType(), ssa)) {
+        if (hasIndex(newBase.getName(), newBase.getType(), ssa) &&
+            isUsedField(compositeType, memberName, pts)) {
           fields.add(Pair.of(compositeType, memberName));
           addSharingConstraints(cfaEdge,
                                 fmgr.makePlus(address, fmgr.makeNumber(pts.getPointerType(), offset)),
@@ -660,12 +687,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
             final CType newLvalueType = PointerTargetSet.simplifyType(memberDeclaration.getType());
             // Optimizing away the assignments from uninitialized fields
             if (lvalue instanceof String || // Assignment is pure i.e. surely not big, let's just add it
-                newLvalueType instanceof CCompositeType || // That's not a simple assignment, check the nested composite
-                !(rvalueType instanceof CCompositeType) || // We're not assigning from a composite, nothing to check
-                rvalue instanceof List || // It's initialization, need to assign anyway
-                pts.tracksField(lvalueCompositeType, memberName) || // The field is essential for shared variables
-                rvalue instanceof String && // The field of a pure structure was used somewhere (i.e. has SSA index)
-                hasIndex(rvalue + FIELD_NAME_SEPARATOR + memberName, newLvalueType, ssa)) {
+                isUsedField(lvalueCompositeType, memberName, pts) &&
+                // That's not a simple assignment, check the nested composite
+                (newLvalueType instanceof CCompositeType ||
+                 !(rvalueType instanceof CCompositeType) || // We're not assigning from a composite, nothing to check
+                 rvalue instanceof List || // It's initialization, need to assign anyway
+                 pts.tracksField(lvalueCompositeType, memberName) || // The field is essential for shared variables
+                 rvalue instanceof String && // The field of a pure structure was used somewhere (i.e. has SSA index)
+                 hasIndex(rvalue + FIELD_NAME_SEPARATOR + memberName, newLvalueType, ssa))) {
               final CType newRvalueType = rvalueType instanceof CCompositeType ? newLvalueType : rvalueType;
               final Formula offsetFormula = fmgr.makeNumber(pts.getPointerType(), offset);
               final Object newLvalue = lvalue instanceof Formula ?
@@ -795,7 +824,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     if (oldFormula instanceof PathFormulaWithUF) {
       return makeAnd((PathFormulaWithUF) oldFormula, edge);
     } else {
-      throw new CPATransferException("CToFormulaWithUF converter requires PathFormulaIWhtUF");
+      throw new CPATransferException("CToFormulaWithUF converter requires PathFormulaWithUF");
     }
   }
 
@@ -925,9 +954,18 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     // makeFreshIndex(variableName, declaration.getType(), ssa); // TODO: Make sure about
                                                                  // correctness of SSA indices without this trick!
 
+    CType declarationType = PointerTargetSet.simplifyType(declaration.getType());
+
+    if (!isUsedVariable(declarationType,
+                        declarationEdge.getPredecessor().getFunctionName(),
+                        declaration.getName())) {
+      // The variable is unused
+      logDebug("Ignoring declaration of unused variable", declarationEdge);
+      return bfmgr.makeBoolean(true);
+    }
+
     // if there is an initializer associated to this variable,
     // take it into account
-    CType declarationType = PointerTargetSet.simplifyType(declaration.getType());
     final CInitializer initializer = declaration.getInitializer();
     // Fixing unsized array declarations
     if (declarationType instanceof CArrayType && ((CArrayType) declarationType).getLength() == null) {
@@ -1130,11 +1168,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
 //  private final RationalFormulaManagerView rfmgr;
+  private final Optional<VariableClassification> variableClassification;
 
   @SuppressWarnings("hiding")
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of("printf", "printk");
-
-  private static final String RETURN_VARIABLE_NAME = "__retval__";
 
   public static final String UF_NAME_PREFIX = "*";
 
@@ -1143,6 +1180,15 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   public static final String FRESH_INDEX_SEPARATOR = "#";
 
   static final String SSA_INDEX_SEPARATOR =  FormulaManagerView.makeName("", 0).substring(0, 1);
+
+  static final String SCOPE_SEPARATOR = CtoFormulaConverter.scoped("", "");
+
+  private static final String RETURN_VARIABLE_NAME;
+
+  static {
+    final String scopedReturnVariable = CtoFormulaConverter.getReturnVarName("");
+    RETURN_VARIABLE_NAME = scopedReturnVariable.substring(SCOPE_SEPARATOR.length());
+  }
 
   private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
 }

@@ -41,6 +41,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -120,6 +121,18 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, MachineModel pMachineModel)
           throws InvalidConfigurationException {
+    this(pFmgr, config, pLogger, null, pMachineModel);
+  }
+
+  public PathFormulaManagerImpl(FormulaManagerView pFmgr,
+      Configuration config, LogManager pLogger, CFA pCFA)
+          throws InvalidConfigurationException {
+    this(pFmgr, config, pLogger, pCFA, pCFA.getMachineModel());
+  }
+
+  public PathFormulaManagerImpl(FormulaManagerView pFmgr,
+      Configuration config, LogManager pLogger, CFA pCfa, MachineModel pMachineModel)
+          throws InvalidConfigurationException {
     config.inject(this, PathFormulaManagerImpl.class);
 
     if (pointerAnalysisWithUFs && !handlePointerAliasing) {
@@ -134,7 +147,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     ffmgr = fmgr.getFunctionFormulaManager();
     logger = pLogger;
 
-    converter = createConverter(pFmgr, config, pLogger, pMachineModel);
+    converter = createConverter(pFmgr, config, pLogger, pMachineModel, pCfa);
 
     if (!pointerAnalysisWithUFs) {
       NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
@@ -144,11 +157,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   private CtoFormulaConverter createConverter(FormulaManagerView pFmgr, Configuration config, LogManager pLogger,
-      MachineModel pMachineModel) throws InvalidConfigurationException {
+      MachineModel pMachineModel, CFA pCFA) throws InvalidConfigurationException {
     final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
     if (handlePointerAliasing) {
       if (pointerAnalysisWithUFs) {
-        return new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, pLogger);
+        assert pCFA != null : "Pointer analysis with UF requires CFA for VariableClassification";
+        return new CToFormulaWithUFConverter(options, pFmgr, pCFA, pLogger);
       } else {
         return new PointerAliasHandling(options, config, pFmgr, pMachineModel, pLogger);
       }
