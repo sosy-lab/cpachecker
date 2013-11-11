@@ -748,7 +748,28 @@ public class SMGState implements AbstractQueryableState {
    * @return true, if the symbolic values are known to be not equal, false, if it is unknown.
    */
   public boolean isUnequal(int value1, int value2) {
-    // TODO Auto-generated method stub
+    // TODO Neq Relation for more precise comparison
+
+    if (isPointer(value1) && isPointer(value2)) {
+
+      if (value1 != value2) {
+        /* This is just a safety check,
+        equal pointers should have equal symbolic values.*/
+        SMGEdgePointsTo edge1;
+        SMGEdgePointsTo edge2;
+        try {
+          edge1 = getPointerFromValue(value1);
+          edge2 = getPointerFromValue(value2);
+        } catch (SMGInconsistentException e) {
+          throw new AssertionError(e.getMessage());
+        }
+
+        return edge1.getObject() != edge2.getObject() || edge1.getOffset() != edge2.getOffset();
+      } else {
+        return false;
+      }
+    }
+
     return false;
   }
 
