@@ -157,9 +157,9 @@ public final class SMGPlotter {
         key = "node1";
       }
 
-      nodes.add("<" + key + "> " + obj.toString());
-      objectIndex.put(obj, "struct" + pStructId + ":" + key);
-     }
+      nodes.add("<item_" + key + "> " + obj.toString());
+      objectIndex.put(obj, "struct" + pStructId + ":item_" + key);
+    }
     sb.append(Joiner.on(" | ").join(nodes));
     sb.append("\"];\n");
     return sb.toString();
@@ -191,7 +191,7 @@ public final class SMGPlotter {
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    return "value_" + pEdge.getValue() + " -> " + convertToValidDot(objectIndex.get(pEdge.getObject())) + "[label=\"+" + pEdge.getOffset() + "b\"];";
+    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()) + "[label=\"+" + pEdge.getOffset() + "b\"];";
   }
 
   private String smgObjectAsDot(SMGObject pObject, boolean pValidity) {
