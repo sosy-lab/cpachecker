@@ -40,10 +40,12 @@ import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -86,6 +88,15 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     logger = pLogger;
   }
 
+
+  @Override
+  protected SignState handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
+      throws CPATransferException {
+    // TODO implement as well as other ForwardingTransferRelation methods that throw new AssertionError(NOT_IMPLEMENTED)
+    // e.g. if does not change state like assume statement return getState();
+    return null;
+  }
+
   @Override
   protected SignState handleDeclarationEdge(ADeclarationEdge pCfaEdge, IADeclaration pDecl) throws CPATransferException {
     if(!(pDecl instanceof AVariableDeclaration)) {
@@ -98,6 +109,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       return handleDeclaration(scopedId, ((AInitializerExpression)init).getExpression(), VISITOR);
     }
     // default sign is zero
+    // TODO since it is C, we better assume it may have any value here
     return handleDeclaration(scopedId, ((AInitializerExpression)init).getExpression(), ZERO);
   }
 
