@@ -31,9 +31,11 @@ import org.sosy_lab.cpachecker.cpa.andersen.util.ComplexConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.ConstraintSystem;
 import org.sosy_lab.cpachecker.cpa.andersen.util.SimpleConstraint;
 
-public class AndersenState implements AbstractState, Cloneable {
+public class AndersenState implements AbstractState {
 
-  // ------- local constraint system -------
+  /**
+   * The local constraint system.
+   */
   private final ConstraintSystem localConstraintSystem;
 
   public AndersenState() {
@@ -41,40 +43,37 @@ public class AndersenState implements AbstractState, Cloneable {
   }
 
   public AndersenState(ConstraintSystem pLocalConstraintSystem) {
-    this.localConstraintSystem = pLocalConstraintSystem == null ? new ConstraintSystem() : pLocalConstraintSystem.clone();
+    this.localConstraintSystem = pLocalConstraintSystem == null ? new ConstraintSystem() : pLocalConstraintSystem;
   }
 
   /**
-   * Add a (new) {@link BaseConstraint} to this element.
+   * Adds a (new) {@link BaseConstraint} returns the result.
+   * This instance is not modified by the operation.
    *
    * @param pConstr {@link BaseConstraint} that should be added.
    */
   AndersenState addConstraint(BaseConstraint pConstr) {
-    AndersenState result = new AndersenState(localConstraintSystem);
-    result.localConstraintSystem.addConstraint(pConstr);
-    return result;
+    return new AndersenState(this.localConstraintSystem.addConstraint(pConstr));
   }
 
   /**
-   * Add a (new) {@link SimpleConstraint} to this element.
+   * Adds a (new) {@link SimpleConstraint} and returns the result.
+   * This instance is not modified by the operation.
    *
    * @param pConstr {@link SimpleConstraint} that should be added.
    */
   AndersenState addConstraint(SimpleConstraint pConstr) {
-    AndersenState result = new AndersenState(localConstraintSystem);
-    result.localConstraintSystem.addConstraint(pConstr);
-    return result;
+    return new AndersenState(this.localConstraintSystem.addConstraint(pConstr));
   }
 
   /**
-   * Add a (new) {@link ComplexConstraint} to this element.
+   * Adds a (new) {@link ComplexConstraint} and returns the result.
+   * This instance is not modified by the operation.
    *
    * @param pConstr {@link ComplexConstraint} that should be added.
    */
   AndersenState addConstraint(ComplexConstraint pConstr) {
-    AndersenState result = new AndersenState(localConstraintSystem);
-    result.localConstraintSystem.addConstraint(pConstr);
-    return result;
+    return new AndersenState(this.localConstraintSystem.addConstraint(pConstr));
   }
 
   /**
@@ -83,7 +82,7 @@ public class AndersenState implements AbstractState, Cloneable {
    * @return points-to sets for the local constraint system.
    */
   public Map<String, String[]> getLocalPointsToSets() {
-    return localConstraintSystem.getPointsToSets();
+    return this.localConstraintSystem.getPointsToSets();
   }
 
   @Override
@@ -99,65 +98,12 @@ public class AndersenState implements AbstractState, Cloneable {
   }
 
   @Override
-  public AndersenState clone() {
-    return new AndersenState(localConstraintSystem);
-  }
-
-  @Override
   public int hashCode() {
-    return this.localConstraintSystem == null ? 0 : this.localConstraintSystem.hashCode();
+    return this.localConstraintSystem.hashCode();
   }
 
   @Override
   public String toString() {
-
-    StringBuilder sb = new StringBuilder();
-    sb.append('[').append('\n');
-
-    for (BaseConstraint bc : this.localConstraintSystem.getBaseConstraints()) {
-      sb.append('{').append(bc.getSubVar()).append("} \u2286 ");
-      sb.append(bc.getSuperVar()).append('\n');
-    }
-
-    for (SimpleConstraint bc : this.localConstraintSystem.getSimpleConstraints()) {
-      sb.append(bc.getSubVar()).append(" \u2286 ");
-      sb.append(bc.getSuperVar()).append('\n');
-    }
-
-    for (ComplexConstraint bc : this.localConstraintSystem.getComplexConstraints()) {
-      sb.append(bc.getSubVar()).append(" \u2286 ");
-      sb.append(bc.getSuperVar()).append('\n');
-    }
-
-    int size = this.localConstraintSystem.getBaseConstraints().size()
-        + this.localConstraintSystem.getSimpleConstraints().size()
-        + this.localConstraintSystem.getComplexConstraints().size();
-
-    sb.append("] size->  ").append(size);
-
-    // points-to sets
-    sb.append('\n');
-    sb.append('[').append('\n');
-
-    Map<String, String[]> ptSet = getLocalPointsToSets();
-    for (String key : ptSet.keySet()) {
-
-      sb.append(key).append(" -> {");
-      String[] vals = ptSet.get(key);
-
-      for (String val : vals) {
-        sb.append(val).append(',');
-      }
-
-      if (vals.length > 0) {
-        sb.setLength(sb.length() - 1);
-      }
-
-      sb.append('}').append('\n');
-    }
-
-    sb.append(']').append('\n');
-
-    return sb.toString();
+    return this.localConstraintSystem.toString();
   }
 }

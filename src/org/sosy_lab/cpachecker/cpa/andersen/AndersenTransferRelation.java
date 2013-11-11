@@ -93,11 +93,11 @@ public class AndersenTransferRelation implements TransferRelation {
 
     // this is an assumption, e.g. if (a == b)
     case AssumeEdge:
-      successor = andersenState.clone();
+      successor = andersenState;
       break;
 
     case BlankEdge:
-      successor = andersenState.clone();
+      successor = andersenState;
       break;
     case MultiEdge:
       successor = andersenState;
@@ -137,9 +137,9 @@ public class AndersenTransferRelation implements TransferRelation {
     if (pExpression instanceof CAssignment) {
       return handleAssignment(pElement, (CAssignment) pExpression, pCfaEdge);
     } else if (pExpression instanceof CFunctionCallStatement) {
-      return pElement.clone();
+      return pElement;
     } else if (pExpression instanceof CExpressionStatement) {
-      return pElement.clone();
+      return pElement;
     } else {
       throw new UnrecognizedCCodeException("unknown statement", pCfaEdge, pExpression);
     }
@@ -243,7 +243,7 @@ public class AndersenTransferRelation implements TransferRelation {
 
     // not implemented, or not interessing
     printWarning(pCfaEdge);
-    return pElement.clone();
+    return pElement;
   }
 
   private AndersenState handleDeclaration(AndersenState pElement, CDeclarationEdge pDeclarationEdge)
@@ -268,7 +268,7 @@ public class AndersenTransferRelation implements TransferRelation {
       return handleAssignmentTo(varName, exp, pElement, pDeclarationEdge);
     }
 
-    return pElement.clone();
+    return pElement;
   }
 
   /**
