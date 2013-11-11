@@ -24,7 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 /**
  * This class evaluates expressions using {@link SMGState}.
@@ -42,4 +51,53 @@ public class SMGExpressionEvaluator {
     machineModel = pMachineModel;
   }
 
+  public int getSizeof(CFAEdge edge, CType pType) throws UnrecognizedCCodeException {
+
+    try {
+      return machineModel.getSizeof(pType);
+    } catch (IllegalArgumentException e) {
+      logger.logDebugException(e);
+      throw new UnrecognizedCCodeException("Could not resolve type.", edge);
+    }
+  }
+
+  boolean isStructOrUnionType(CType rValueType) {
+
+    if (rValueType instanceof CElaboratedType) {
+      CElaboratedType type = (CElaboratedType) rValueType;
+      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
+    }
+
+    if (rValueType instanceof CCompositeType) {
+      CCompositeType type = (CCompositeType) rValueType;
+      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
+    }
+
+    return false;
+  }
+
+  public CType getRealExpressionType(CType type) {
+
+    while (type instanceof CTypedefType) {
+      type = ((CTypedefType) type).getRealType();
+    }
+
+    return type;
+  }
+
+  public CType getRealExpressionType(CSimpleDeclaration decl) {
+    return getRealExpressionType(decl.getType());
+  }
+
+  public CType getRealExpressionType(CRightHandSide exp) {
+    return getRealExpressionType(exp.getExpressionType());
+  }
+
+  public LogManager getLogger() {
+    return logger;
+  }
+
+  public MachineModel getMachineModel() {
+    return machineModel;
+  }
 }

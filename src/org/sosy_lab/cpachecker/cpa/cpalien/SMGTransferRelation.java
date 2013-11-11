@@ -94,7 +94,6 @@ import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -105,7 +104,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -510,20 +508,10 @@ public class SMGTransferRelation implements TransferRelation {
     logger.log(Level.FINEST, "Handling return Statement: ",
         returnExp.toASTString());
 
-    CType expType = getRealExpressionType(returnExp);
+    CType expType = expressionEvaluator.getRealExpressionType(returnExp);
     SMGObject tmpFieldMemory = smgState.getFunctionReturnObject();
 
     return handleAssignmentToField(smgState, returnEdge, tmpFieldMemory, 0, expType, returnExp);
-  }
-
-  private int getSizeof(CFAEdge edge,  CType pType) throws UnrecognizedCCodeException {
-
-    try {
-     return machineModel.getSizeof(pType);
-    } catch (IllegalArgumentException e) {
-      logger.logDebugException(e);
-        throw new UnrecognizedCCodeException( "Could not resolve type.", edge);
-    }
   }
 
   private SMGState handleFunctionReturn(SMGState smgState,
@@ -550,9 +538,9 @@ public class SMGTransferRelation implements TransferRelation {
 
       CExpression lValue = ((CFunctionCallAssignmentStatement) exprOnSummary).getLeftHandSide();
 
-      CType lValueType = getRealExpressionType(lValue);
+      CType lValueType = expressionEvaluator.getRealExpressionType(lValue);
 
-      CType rValueType = getRealExpressionType(((CFunctionCallAssignmentStatement) exprOnSummary).getRightHandSide());
+      CType rValueType = expressionEvaluator.getRealExpressionType(((CFunctionCallAssignmentStatement) exprOnSummary).getRightHandSide());
 
       SMGSymbolicValue rValue = getFunctionReturnValue(newState, rValueType);
 
@@ -613,7 +601,7 @@ public class SMGTransferRelation implements TransferRelation {
       CExpression exp = arguments.get(i);
 
       String varName = paramDecl.get(i).getName();
-      CType cType = getRealExpressionType(paramDecl.get(i));
+      CType cType = expressionEvaluator.getRealExpressionType(paramDecl.get(i));
 
       SMGObject newObject = newState.addLocalVariable(cType, varName);
 
@@ -733,7 +721,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     SMGAddress addressOfField = lValue.accept(visitor);
 
-    CType fieldType = getRealExpressionType(lValue);
+    CType fieldType = expressionEvaluator.getRealExpressionType(lValue);
 
     if (addressOfField.isUnknown()) {
       //TODO: Really? I would say that when we do not know where to write a value, we are in trouble
@@ -823,7 +811,7 @@ public class SMGTransferRelation implements TransferRelation {
         throws CPATransferException {
       logger.log(Level.FINEST, ">>> Handling statement: assignment to field reference");
 
-      CType ownerType = getRealExpressionType(fieldReference.getFieldOwner());
+      CType ownerType = expressionEvaluator.getRealExpressionType(fieldReference.getFieldOwner());
 
       SMGField field = getField(cfaEdge, ownerType, fieldReference.getFieldName());
 
@@ -868,7 +856,7 @@ public class SMGTransferRelation implements TransferRelation {
       return SMGAddress.UNKNOWN;
     }
 
-    SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, exp.getExpressionType()));
+    SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(expressionEvaluator.getSizeof(cfaEdge, exp.getExpressionType()));
 
     SMGExplicitValue subscriptOffset = subscriptValue.multiply(typeSize);
 
@@ -878,7 +866,7 @@ public class SMGTransferRelation implements TransferRelation {
   private SMGAddress evaluateArrayExpression(SMGState smgState, CFAEdge cfaEdge,
       CExpression arrayExpression) throws CPATransferException {
 
-    CType arrayExpressionType = getRealExpressionType(arrayExpression);
+    CType arrayExpressionType = expressionEvaluator.getRealExpressionType(arrayExpression);
 
     if (arrayExpressionType instanceof CPointerType) {
 
@@ -903,7 +891,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     CExpression fieldOwner = fieldReference.getFieldOwner();
 
-    CType ownerType = getRealExpressionType(fieldOwner);
+    CType ownerType = expressionEvaluator.getRealExpressionType(fieldOwner);
 
     SMGAddress fieldAddress;
 
@@ -937,7 +925,7 @@ public class SMGTransferRelation implements TransferRelation {
      }
 
      // type of a of (a.b).c
-     CType typeOfFieldOwnerOwner = getRealExpressionType(ownerFieldReference.getFieldOwner());
+     CType typeOfFieldOwnerOwner = expressionEvaluator.getRealExpressionType(ownerFieldReference.getFieldOwner());
 
      String fieldName = ownerFieldReference.getFieldName();
 
@@ -1018,7 +1006,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       CType type = ((CPointerType) ownerType).getType();
 
-      type = getRealExpressionType(type);
+      type = expressionEvaluator.getRealExpressionType(type);
 
       return getField(edge, type, fieldName);
     }
@@ -1037,10 +1025,10 @@ public class SMGTransferRelation implements TransferRelation {
       if (memberName.equals(fieldName)) {
 
       return new SMGField(SMGKnownExpValue.valueOf(offset),
-          getRealExpressionType(typeMember.getType())); }
+          expressionEvaluator.getRealExpressionType(typeMember.getType())); }
 
       if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
-        offset = offset + getSizeof(pEdge, getRealExpressionType(typeMember.getType()));
+        offset = offset + expressionEvaluator.getSizeof(pEdge, expressionEvaluator.getRealExpressionType(typeMember.getType()));
       }
     }
 
@@ -1058,7 +1046,7 @@ public class SMGTransferRelation implements TransferRelation {
       SMGObject memoryOfField, int fieldOffset, CType pFieldType, CRightHandSide rValue)
       throws CPATransferException {
 
-    CType rValueType = getRealExpressionType(rValue);
+    CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
 
     SMGSymbolicValue value = evaluateExpressionValue(readState, cfaEdge, rValue);
 
@@ -1078,13 +1066,13 @@ public class SMGTransferRelation implements TransferRelation {
       SMGObject memoryOfField, int fieldOffset, CType pFieldType, SMGSymbolicValue value, CType rValueType)
       throws UnrecognizedCCodeException, SMGInconsistentException {
 
-    if (memoryOfField.getSizeInBytes() < getSizeof(cfaEdge, rValueType)) {
-      logger.log(Level.WARNING, "Attempting to write " + getSizeof(cfaEdge, rValueType) +
+    if (memoryOfField.getSizeInBytes() < expressionEvaluator.getSizeof(cfaEdge, rValueType)) {
+      logger.log(Level.WARNING, "Attempting to write " + expressionEvaluator.getSizeof(cfaEdge, rValueType) +
           " bytes into a field with size " + memoryOfField.getSizeInBytes() + "bytes.\n" +
           "Line " + cfaEdge.getLineNumber() + ": " + cfaEdge.getRawStatement());
     }
 
-    if (isStructOrUnionType(rValueType)) {
+    if (expressionEvaluator.isStructOrUnionType(rValueType)) {
       assignStruct(newState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
     } else {
       writeValue(newState, memoryOfField, fieldOffset, rValueType, value);
@@ -1101,7 +1089,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       SMGObject source = structAddress.getObject();
       int structOffset = structAddress.getOffset().getAsInt();
-      int structSize = structOffset + getSizeof(pCfaEdge, pRValueType);
+      int structSize = structOffset + expressionEvaluator.getSizeof(pCfaEdge, pRValueType);
       pNewState.copy(source, pMemoryOfField,
           structOffset, structSize, pFieldOffset);
     }
@@ -1117,21 +1105,6 @@ public class SMGTransferRelation implements TransferRelation {
     pNewState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue);
   }
 
-  boolean isStructOrUnionType(CType rValueType) {
-
-    if (rValueType instanceof CElaboratedType) {
-      CElaboratedType type = (CElaboratedType) rValueType;
-      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
-    }
-
-    if (rValueType instanceof CCompositeType) {
-      CCompositeType type = (CCompositeType) rValueType;
-      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
-    }
-
-    return false;
-  }
-
   private SMGState handleAssignmentToField(SMGState state, CFAEdge cfaEdge,
       SMGObject memoryOfField, int fieldOffset, CType pFieldType, CRightHandSide rValue)
       throws CPATransferException {
@@ -1145,7 +1118,7 @@ public class SMGTransferRelation implements TransferRelation {
     if (possibleMallocFail) {
       possibleMallocFail = false;
       SMGState otherState = new SMGState(state);
-      CType rValueType = getRealExpressionType(rValue);
+      CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
       writeValue(otherState, memoryOfField, fieldOffset, rValueType, SMGKnownSymValue.ZERO);
       mallocFailState = otherState;
     }
@@ -1171,11 +1144,11 @@ public class SMGTransferRelation implements TransferRelation {
   private SMGSymbolicValue evaluateExpressionValue(SMGState smgState, CFAEdge cfaEdge,
       CRightHandSide rValue) throws CPATransferException {
 
-    CType expressionType = getRealExpressionType(rValue);
+    CType expressionType = expressionEvaluator.getRealExpressionType(rValue);
 
     if (expressionType instanceof CPointerType
         || expressionType instanceof CArrayType
-        || isStructOrUnionType(expressionType)) {
+        || expressionEvaluator.isStructOrUnionType(expressionType)) {
 
       return evaluateAddress(smgState, cfaEdge, rValue);
     } else {
@@ -1204,7 +1177,7 @@ public class SMGTransferRelation implements TransferRelation {
 
   private SMGState handleInitializerForDeclaration(SMGState pState, SMGObject pObject, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
     CInitializer newInitializer = pVarDecl.getInitializer();
-    CType cType = getRealExpressionType(pVarDecl);
+    CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
 
     if (newInitializer != null) {
       logger.log(Level.FINEST, "Handling variable declaration: handling initializer");
@@ -1293,7 +1266,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       pNewState = handleInitializer(pNewState, pEdge, pNewObject, offset, memberType, initializer);
 
-      offset = offset + getSizeof(pEdge, memberType);
+      offset = offset + expressionEvaluator.getSizeof(pEdge, memberType);
 
       listCounter++;
     }
@@ -1313,7 +1286,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     CType elementType = pLValueType.getType();
 
-    int sizeOfType = getSizeof(pEdge, elementType);
+    int sizeOfType = expressionEvaluator.getSizeof(pEdge, elementType);
 
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
 
@@ -1332,7 +1305,7 @@ public class SMGTransferRelation implements TransferRelation {
     logger.log(Level.FINEST, "Handling variable declaration:", pVarDecl.toASTString());
 
     String varName = pVarDecl.getName();
-    CType cType = getRealExpressionType(pVarDecl);
+    CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
 
     SMGObject newObject;
 
@@ -1367,23 +1340,6 @@ public class SMGTransferRelation implements TransferRelation {
     }
     //TODO: Handle other declarations?
     return newState;
-  }
-
-  private CType getRealExpressionType(CSimpleDeclaration decl) {
-    return getRealExpressionType(decl.getType());
-  }
-
-  private CType getRealExpressionType(CType type) {
-
-    while (type instanceof CTypedefType) {
-      type = ((CTypedefType) type).getRealType();
-    }
-
-    return type;
-  }
-
-  private CType getRealExpressionType(CRightHandSide exp) {
-    return getRealExpressionType(exp.getExpressionType());
   }
 
   /**
@@ -1538,12 +1494,12 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public SMGAddressValue visit(CIdExpression exp) throws CPATransferException {
 
-      CType c = getRealExpressionType(exp);
+      CType c = expressionEvaluator.getRealExpressionType(exp);
 
       if (c instanceof CArrayType) {
         // a == &a[0];
         return createAddressOfVariable(exp);
-      } else if (isStructOrUnionType(c)) {
+      } else if (expressionEvaluator.isStructOrUnionType(c)) {
         // We use this temporary address to copy the values of the struct or union
         return createAddressOfVariable(exp);
       }
@@ -1618,7 +1574,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       SMGExplicitValue arrayOffset = arrayAddress.getOffset();
 
-      int typeSize = getSizeof(cfaEdge, getRealExpressionType(lValue));
+      int typeSize = expressionEvaluator.getSizeof(cfaEdge, expressionEvaluator.getRealExpressionType(lValue));
 
       SMGExplicitValue sizeOfType = SMGKnownExpValue.valueOf(typeSize);
 
@@ -1630,7 +1586,7 @@ public class SMGTransferRelation implements TransferRelation {
     private SMGAddressValue createAddressOfField(CFieldReference lValue) throws CPATransferException {
 
       SMGAddress addressOfField = getAddressOfField(smgState, cfaEdge, lValue);
-      SMGField field = getField(cfaEdge, getRealExpressionType(lValue.getFieldOwner()), lValue.getFieldName());
+      SMGField field = getField(cfaEdge, expressionEvaluator.getRealExpressionType(lValue.getFieldOwner()), lValue.getFieldName());
 
       if (field.isUnknown() || addressOfField.isUnknown()) {
         return SMGUnknownValue.getInstance();
@@ -1656,8 +1612,8 @@ public class SMGTransferRelation implements TransferRelation {
     public SMGAddressValue visit(CPointerExpression pointerExpression) throws  CPATransferException {
 
       CExpression operand = pointerExpression.getOperand();
-      CType operandType = getRealExpressionType(operand);
-      CType expType = getRealExpressionType(pointerExpression);
+      CType operandType = expressionEvaluator.getRealExpressionType(operand);
+      CType expType = expressionEvaluator.getRealExpressionType(pointerExpression);
 
       if (operandType instanceof CPointerType) {
 
@@ -1682,8 +1638,8 @@ public class SMGTransferRelation implements TransferRelation {
       BinaryOperator binaryOperator = binaryExp.getOperator();
       CExpression lVarInBinaryExp = binaryExp.getOperand1();
       CExpression rVarInBinaryExp = binaryExp.getOperand2();
-      CType lVarInBinaryExpType = getRealExpressionType(lVarInBinaryExp);
-      CType rVarInBinaryExpType = getRealExpressionType(rVarInBinaryExp);
+      CType lVarInBinaryExpType = expressionEvaluator.getRealExpressionType(lVarInBinaryExp);
+      CType rVarInBinaryExpType = expressionEvaluator.getRealExpressionType(rVarInBinaryExp);
 
       boolean lVarIsAddress = lVarInBinaryExpType instanceof CPointerType;
       boolean rVarIsAddress = rVarInBinaryExpType instanceof CPointerType;
@@ -1728,7 +1684,7 @@ public class SMGTransferRelation implements TransferRelation {
           return addressValue;
         }
 
-        SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, addressType));
+        SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(expressionEvaluator.getSizeof(cfaEdge, addressType));
 
         SMGExplicitValue pointerOffsetValue = offsetValue.multiply(typeSize);
 
@@ -1914,7 +1870,7 @@ public class SMGTransferRelation implements TransferRelation {
     public SMGAddress visit(CPointerExpression pointerExpression) throws CPATransferException {
 
       CExpression operand = pointerExpression.getOperand();
-      CType operandType = getRealExpressionType(operand);
+      CType operandType = expressionEvaluator.getRealExpressionType(operand);
 
       boolean operandIsPointer = operandType instanceof CPointerType;
 
@@ -1941,8 +1897,8 @@ public class SMGTransferRelation implements TransferRelation {
       BinaryOperator binaryOperator = binaryExp.getOperator();
       CExpression lVarInBinaryExp = binaryExp.getOperand1();
       CExpression rVarInBinaryExp = binaryExp.getOperand2();
-      CType lVarInBinaryExpType = getRealExpressionType(lVarInBinaryExp);
-      CType rVarInBinaryExpType = getRealExpressionType(rVarInBinaryExp);
+      CType lVarInBinaryExpType = expressionEvaluator.getRealExpressionType(lVarInBinaryExp);
+      CType rVarInBinaryExpType = expressionEvaluator.getRealExpressionType(rVarInBinaryExp);
 
       boolean lVarIsAddress = lVarInBinaryExpType instanceof CArrayType;
       boolean rVarIsAddress = rVarInBinaryExpType instanceof CArrayType;
@@ -1985,7 +1941,7 @@ public class SMGTransferRelation implements TransferRelation {
           return SMGAddress.UNKNOWN;
         }
 
-        SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, addressType));
+        SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(expressionEvaluator.getSizeof(cfaEdge, addressType));
 
         SMGExplicitValue arrayOffsetValue = offsetValue.multiply(typeSize);
 
@@ -2047,9 +2003,9 @@ public class SMGTransferRelation implements TransferRelation {
 
       SMGExplicitValue offsetValue = offsetVal;
 
-      CType arrayType = getRealExpressionType(exp.getArrayExpression());
+      CType arrayType = expressionEvaluator.getRealExpressionType(exp.getArrayExpression());
 
-      SMGKnownExpValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, arrayType));
+      SMGKnownExpValue typeSize = SMGKnownExpValue.valueOf(expressionEvaluator.getSizeof(cfaEdge, arrayType));
 
       SMGExplicitValue arrayOffsetValue = offsetValue.multiply(typeSize);
 
@@ -2076,7 +2032,7 @@ public class SMGTransferRelation implements TransferRelation {
     public SMGAddress visit(CFieldReference fieldReference) throws CPATransferException {
 
       SMGAddress addressOfField = getAddressOfField(smgState, cfaEdge, fieldReference);
-      SMGField field = getField(cfaEdge, getRealExpressionType(fieldReference.getFieldOwner()), fieldReference.getFieldName());
+      SMGField field = getField(cfaEdge, expressionEvaluator.getRealExpressionType(fieldReference.getFieldOwner()), fieldReference.getFieldName());
 
       return addressOfField.add(field.getOffset());
     }
@@ -2286,7 +2242,7 @@ public class SMGTransferRelation implements TransferRelation {
         return SMGUnknownValue.getInstance();
       }
 
-      SMGSymbolicValue value = readValue(smgState, address.getObject(), address.getOffset(), getRealExpressionType(exp));
+      SMGSymbolicValue value = readValue(smgState, address.getObject(), address.getOffset(), expressionEvaluator.getRealExpressionType(exp));
 
       return value;
     }
@@ -2314,7 +2270,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       SMGAddress addressOfField = getAddressOfField(smgState, cfaEdge, fieldReference);
 
-      SMGField field = getField(cfaEdge, getRealExpressionType(fieldReference.getFieldOwner()), fieldReference.getFieldName());
+      SMGField field = getField(cfaEdge, expressionEvaluator.getRealExpressionType(fieldReference.getFieldOwner()), fieldReference.getFieldName());
 
       if (addressOfField.isUnknown() || field.isUnknown()) {
         return SMGUnknownValue.getInstance();
@@ -2352,7 +2308,7 @@ public class SMGTransferRelation implements TransferRelation {
 
         SMGObject variableObject = smgState.getObjectForVisibleVariable(idExpression.getName());
 
-        return readValue(smgState, variableObject, SMGKnownExpValue.ZERO, getRealExpressionType(idExpression));
+        return readValue(smgState, variableObject, SMGKnownExpValue.ZERO, expressionEvaluator.getRealExpressionType(idExpression));
       }
 
       return SMGUnknownValue.getInstance();
@@ -2375,7 +2331,7 @@ public class SMGTransferRelation implements TransferRelation {
         return value.equals(SMGKnownSymValue.ZERO) ? value : SMGUnknownValue.getInstance();
 
       case SIZEOF:
-        int size = getSizeof(cfaEdge, getRealExpressionType(unaryOperand));
+        int size = expressionEvaluator.getSizeof(cfaEdge, expressionEvaluator.getRealExpressionType(unaryOperand));
         return (size == 0) ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
 
       case NOT:
@@ -2392,8 +2348,8 @@ public class SMGTransferRelation implements TransferRelation {
     public SMGSymbolicValue visit(CPointerExpression pointerExpression) throws CPATransferException {
 
       CExpression operand = pointerExpression.getOperand();
-      CType operandType = getRealExpressionType(operand);
-      CType expType = getRealExpressionType(pointerExpression);
+      CType operandType = expressionEvaluator.getRealExpressionType(operand);
+      CType expType = expressionEvaluator.getRealExpressionType(pointerExpression);
 
 
       if (operandType instanceof CPointerType) {
@@ -2406,7 +2362,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     private SMGSymbolicValue handleNot(CExpression pUnaryOperand) throws CPATransferException {
-      CType unaryOperandType = getRealExpressionType(pUnaryOperand);
+      CType unaryOperandType = expressionEvaluator.getRealExpressionType(pUnaryOperand);
 
       SMGSymbolicValue value;
 
@@ -2433,7 +2389,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       switch (typeOperator) {
       case SIZEOF:
-        return getSizeof(cfaEdge, type) == 0 ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
+        return expressionEvaluator.getSizeof(cfaEdge, type) == 0 ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
       default:
         return SMGUnknownValue.getInstance();
         //TODO Investigate the other Operators.
@@ -2826,7 +2782,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       case SIZEOF:
 
-        int size = getSizeof(cfaEdge, getRealExpressionType(unaryOperand));
+        int size = expressionEvaluator.getSizeof(cfaEdge, expressionEvaluator.getRealExpressionType(unaryOperand));
         return SMGKnownExpValue.valueOf(size);
       case TILDE:
       default:
@@ -2864,7 +2820,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       switch (typeOperator) {
       case SIZEOF:
-        return SMGKnownExpValue.valueOf(getSizeof(cfaEdge, type));
+        return SMGKnownExpValue.valueOf(expressionEvaluator.getSizeof(cfaEdge, type));
       default:
         return SMGUnknownValue.getInstance();
         //TODO Investigate the other Operators.
