@@ -46,7 +46,6 @@ public class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implemen
     msat_set_option_checked(cfg, "interpolation", "true");
     msat_set_option_checked(cfg, "model_generation", "true");
     msat_set_option_checked(cfg, "theory.bv.eager", "false");
-    msat_set_option_checked(cfg, "theory.eq_propagation", "false");
 
     return cfg;
   }
