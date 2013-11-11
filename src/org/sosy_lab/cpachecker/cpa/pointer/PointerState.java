@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -982,6 +984,12 @@ public class PointerState implements AbstractQueryableState, Memory,
   @Override
   public boolean isTarget() {
     return this.error;
+  }
+
+  @Override
+  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+    checkState(isTarget());
+    return ViolatedProperty.OTHER;
   }
 
   @Override

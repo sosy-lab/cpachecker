@@ -180,5 +180,10 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     public boolean isTarget() {
       return true;
     }
+
+    @Override
+    public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+      return ViolatedProperty.OTHER;
+    }
   }
 }
