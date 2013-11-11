@@ -1062,10 +1062,11 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         newType = null;
       }
     }
+    Formula address;
     if (newType != null) {
       final CType newBaseType = PointerTargetSet.getBaseType(newType);
       final String newBase = conv.makeAllocVariableName(functionName, newType, newBaseType);
-      return conv.makeAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
+      address =  conv.makeAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                  newType,
                                  newBase,
                                  edge,
@@ -1083,8 +1084,11 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                                                       BigInteger.valueOf(size)) :
                                                         null,
                                          newBase);
-      return conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID, pts);
+      address = conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID, pts);
     }
+
+    constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(address), address));
+    return address;
   }
 
   /**
