@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien;
+package org.sosy_lab.cpachecker.cpa.cpalien2;
 
 import java.io.File;
 import java.io.IOException;
@@ -147,6 +147,12 @@ public final class SMGPlotter {
     ArrayList<String> nodes = new ArrayList<>();
     for (String key : pNamespace.keySet()) {
       SMGObject obj = pNamespace.get(key);
+
+      if (key.equals("node")) {
+        // escape Node1
+        key = "node1";
+      }
+
       nodes.add("<" + key + "> " + obj.toString());
       objectIndex.put(obj, "struct" + pStructId + ":" + key);
      }

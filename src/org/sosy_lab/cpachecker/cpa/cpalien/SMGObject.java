@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien;
+package org.sosy_lab.cpachecker.cpa.cpalien2;
 
 
 public class SMGObject {
@@ -49,6 +49,19 @@ public class SMGObject {
 
   public String getLabel() {
     return label;
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    // Note that Objects are not
+    // equal because there fields are equal.
+    // Objects can belong to different StackFrames.
+    return super.equals(pObj);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
   }
 
   public int getSizeInBytes() {

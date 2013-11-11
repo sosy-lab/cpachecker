@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
+package org.sosy_lab.cpachecker.cpa.cpalien2.SMGJoin;
 
 import java.math.BigInteger;
 import java.util.HashSet;
@@ -36,13 +36,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMG;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMGValueFactory;
 
 import com.google.common.collect.Iterables;
 

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien;
+package org.sosy_lab.cpachecker.cpa.cpalien2;
 
 import java.util.ArrayList;
 import java.util.BitSet;

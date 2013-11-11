@@ -21,16 +21,16 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
+package org.sosy_lab.cpachecker.cpa.cpalien2.SMGJoin;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMG;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.cpalien2.SMGObject;
 
 import com.google.common.collect.Iterators;
 

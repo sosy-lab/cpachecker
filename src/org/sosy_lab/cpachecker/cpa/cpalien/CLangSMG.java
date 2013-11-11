@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.cpalien;
+package org.sosy_lab.cpachecker.cpa.cpalien2;
 
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -31,6 +31,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -119,6 +121,7 @@ public class CLangSMG extends SMG {
 
     heap_objects.addAll(pHeap.heap_objects);
     global_objects.putAll(pHeap.global_objects);
+    has_leaks = pHeap.has_leaks;
   }
 
   /**
@@ -290,6 +293,7 @@ public class CLangSMG extends SMG {
 
       }
     }
+
     Set<Integer> stray_values = new HashSet<>(Sets.difference(this.getValues(), seen_values));
     for (Integer stray_value : stray_values) {
       if (stray_value != this.getNullValue()) {
@@ -410,6 +414,20 @@ public class CLangSMG extends SMG {
    */
   public SMGObject getFunctionReturnObject() {
     return stack_objects.peek().getReturnObject();
+  }
+
+  @Nullable
+  public String getFunctionName(SMGObject pObject) {
+
+    ArrayDeque<CLangStackFrame> stack_objects = this.stack_objects.clone();
+
+    for (CLangStackFrame cLangStack : stack_objects) {
+      if (cLangStack.getAllObjects().contains(pObject)) {
+        return cLangStack.getFunctionDeclaration().getName();
+      }
+    }
+
+    return null;
   }
 
   @Override
