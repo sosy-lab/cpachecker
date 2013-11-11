@@ -538,15 +538,19 @@ public class SMGExpressionEvaluator {
 
       CExpression arrayExpression = lValue.getArrayExpression();
 
-      SMGAddress arrayAddress = evaluateArrayExpression(smgState, cfaEdge, arrayExpression);
+      SMGAddressValue arrayAddress = evaluateAddress(smgState, cfaEdge, arrayExpression);
 
-      if (arrayAddress.isUnknown()) { return SMGUnknownValue.getInstance(); }
+      if (arrayAddress.isUnknown()) {
+        return SMGUnknownValue.getInstance();
+      }
 
       CExpression subscriptExpr = lValue.getSubscriptExpression();
 
       SMGExplicitValue subscriptValue = evaluateExplicitValue(smgState, cfaEdge, subscriptExpr);
 
-      if (subscriptValue.isUnknown()) { return SMGUnknownValue.getInstance(); }
+      if (subscriptValue.isUnknown()) {
+        return SMGUnknownValue.getInstance();
+      }
 
       SMGExplicitValue arrayOffset = arrayAddress.getOffset();
 
@@ -1079,12 +1083,13 @@ public class SMGExpressionEvaluator {
     @Override
     public SMGSymbolicValue visit(CArraySubscriptExpression exp) throws CPATransferException {
 
-      SMGAddress address = evaluateArraySubscriptExpression(smgState, cfaEdge, exp);
+      SMGAddress address = evaluateArraySubscriptAddress(smgState, cfaEdge, exp);
 
-      if (address.isUnknown()) { return SMGUnknownValue.getInstance(); }
+      if (address.isUnknown()) {
+        return SMGUnknownValue.getInstance();
+      }
 
-      SMGSymbolicValue value =
-          readValue(smgState, address.getObject(), address.getOffset(), getRealExpressionType(exp), cfaEdge);
+      SMGSymbolicValue value = readValue(smgState, address.getObject(), address.getOffset(), getRealExpressionType(exp), cfaEdge);
 
       return value;
     }
@@ -1636,50 +1641,6 @@ public class SMGExpressionEvaluator {
     public SMGExplicitValue visit(CFunctionCallExpression pIastFunctionCallExpression)
         throws UnrecognizedCCodeException {
       return SMGUnknownValue.getInstance();
-    }
-  }
-
-  SMGAddress evaluateArraySubscriptExpression(SMGState smgState, CFAEdge cfaEdge,
-      CArraySubscriptExpression exp) throws CPATransferException {
-
-    SMGAddress arrayMemoryAndOffset =
-        evaluateArrayExpression(smgState, cfaEdge, exp.getArrayExpression());
-
-    if (arrayMemoryAndOffset.isUnknown()) {
-      return arrayMemoryAndOffset;
-    }
-
-    SMGExplicitValue subscriptValue = evaluateExplicitValue(smgState, cfaEdge, exp.getSubscriptExpression());
-
-    if (subscriptValue.isUnknown()) {
-      return SMGAddress.UNKNOWN;
-    }
-
-    SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, exp.getExpressionType()));
-
-    SMGExplicitValue subscriptOffset = subscriptValue.multiply(typeSize);
-
-    return arrayMemoryAndOffset.add(subscriptOffset);
-  }
-
-  private SMGAddress evaluateArrayExpression(SMGState smgState, CFAEdge cfaEdge,
-      CExpression arrayExpression) throws CPATransferException {
-
-    CType arrayExpressionType = getRealExpressionType(arrayExpression);
-
-    if (arrayExpressionType instanceof CPointerType) {
-
-      SMGAddressValue address = evaluateAddress(smgState, cfaEdge, arrayExpression);
-
-      return address.getAddress();
-
-    } else if (arrayExpressionType instanceof CArrayType) {
-
-      ArrayVisitor visitor = getArrayVisitor(cfaEdge, smgState);
-
-      return arrayExpression.accept(visitor);
-    } else {
-      return SMGAddress.UNKNOWN;
     }
   }
 
