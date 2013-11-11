@@ -874,7 +874,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     } else {
       conv.logger.logfOnce(Level.WARNING,
                            "Ignoring function call through function pointer %s",
-                           e.toString());
+                           e);
       functionName = "<func>{" +
                      CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(functionNameExpression),
                                                 function) +
@@ -886,8 +886,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     if (resultType instanceof CCompositeType ||
         PointerTargetSet.containsArray(resultType)) {
       conv.logger.logf(Level.WARNING,
-                      "Pure functions returning composites are currently unsupported. Assuming nondet: (" +
-                 e.toASTString() + ").");
+                      "Pure function %s returning a composite is treated as nondet.", e);
       return null;
     }
 
@@ -898,10 +897,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     } else {
       final CFunctionDeclaration functionDeclaration = e.getDeclaration();
       if (functionDeclaration == null) {
-        // This should not happen
-        conv.logger.logf(Level.WARNING,
-                         "Cant get declaration of function. Ignoring the call (%s).",
-                         e.toASTString());
+        if (functionNameExpression instanceof CIdExpression) {
+          // This happens only if there are undeclared functions.
+          conv.logger.logfOnce(Level.WARNING, "Cannot get declaration of function %s, ignoring calls to it.", functionNameExpression);
+        }
         return null; // Nondet
       }
 
