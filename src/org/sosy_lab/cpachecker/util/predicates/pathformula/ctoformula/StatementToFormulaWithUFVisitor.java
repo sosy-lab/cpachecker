@@ -104,7 +104,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     this.lvalueVisitor = lvalueVisitor;
     this.conv = delegate.conv;
     this.pts = delegate.pts;
-    this.isEssentialLhsVisitor = new IsEssentialLhsVisitor();
+    this.isRelevantLhsVisitor = new IsRelevantLhsVisitor();
   }
 
   @Override
@@ -439,7 +439,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     return result;
   }
 
-  class IsEssentialLhsVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
+  class IsRelevantLhsVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
 
     @Override
     public Boolean visit(final CArraySubscriptExpression e) {
@@ -463,12 +463,12 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         fieldOwnerType = ((CPointerType) fieldOwnerType).getType();
       }
       assert fieldOwnerType instanceof CCompositeType : "Field owner should have composite type";
-      return conv.isUsedField((CCompositeType) fieldOwnerType, e.getFieldName(), pts);
+      return conv.isRelevantField((CCompositeType) fieldOwnerType, e.getFieldName(), pts);
     }
 
     @Override
     public Boolean visit(final CIdExpression e) {
-      return conv.isUsedVariable(e.getDeclaration().getQualifiedName());
+      return conv.isRelevantVariable(e.getDeclaration().getQualifiedName());
     }
 
     @Override
@@ -487,7 +487,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     final CLeftHandSide lhs = e.getLeftHandSide();
 
     // Optimization for unused variables and fields
-    if (lhs.accept(isEssentialLhsVisitor)) {
+    if (lhs.accept(isRelevantLhsVisitor)) {
       return handleAssignment(lhs, e.getRightHandSide());
     } else {
       return conv.bfmgr.makeBoolean(true);
@@ -1003,7 +1003,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   public void declareSharedBase(final CDeclaration declaration, final boolean shareImmediately) {
     if (shareImmediately) {
       conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), false, false, constraints, pts);
-    } else {
+    } else if (conv.isAddressedVariable(declaration.getQualifiedName())) {
       constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(), declaration.getType()));
     }
   }
@@ -1011,7 +1011,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   public void declareSharedBase(final CParameterDeclaration declaration, final boolean shareImmediately) {
     if (shareImmediately) {
       conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), false, false, constraints, pts);
-    } else {
+    } else if (conv.isAddressedVariable(declaration.getQualifiedName())) {
       constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(), declaration.getType()));
     }
   }
@@ -1026,5 +1026,5 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   @SuppressWarnings("hiding")
   protected final ExpressionToFormulaWithUFVisitor delegate;
   protected final LvalueToPointerTargetPatternVisitor lvalueVisitor;
-  protected final IsEssentialLhsVisitor isEssentialLhsVisitor;
+  protected final IsRelevantLhsVisitor isRelevantLhsVisitor;
 }

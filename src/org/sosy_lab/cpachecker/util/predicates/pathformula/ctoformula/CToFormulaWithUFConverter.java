@@ -267,29 +267,43 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return ffmgr.createFuncAndCall(ufName, index, returnType, ImmutableList.of(address));
   }
 
-  boolean isUsedField(final CCompositeType compositeType, final String fieldName, final PointerTargetSetBuilder pts) {
+  boolean isRelevantField(final CCompositeType compositeType, final String fieldName, final PointerTargetSetBuilder pts) {
     return !variableClassification.isPresent() ||
            pts.getSize(compositeType) <= options.maxPreFilledAllocationSize() ||
-           variableClassification.get().getUsedFields().containsEntry(compositeType, fieldName);
+           variableClassification.get().getRelevantFields().containsEntry(compositeType, fieldName);
   }
 
-  boolean isUsedVariable(final String function, final String name) {
+  boolean isRelevantVariable(final String function, final String name) {
     return !variableClassification.isPresent() ||
-           RETURN_VARIABLE_NAME.equals(name) ||
-           variableClassification.get().getUsedVariables().containsEntry(function, name);
+           variableClassification.get().getRelevantVariables().containsEntry(function, name);
   }
 
-  boolean isUsedVariable(final String qualifiedName) {
+  boolean isAddressedVariable(final String function, final String name) {
+    return !variableClassification.isPresent() ||
+           variableClassification.get().getAddressedVariables().containsEntry(function, name);
+  }
+
+  private static Pair<String, String> parseQualifiedName(final String qualifiedName) {
     final int position = qualifiedName.indexOf(SCOPE_SEPARATOR);
-    return isUsedVariable(position >= 0 ? qualifiedName.substring(0, position) : null,
-                          position >= 0 ? qualifiedName.substring(position + SCOPE_SEPARATOR.length()) : qualifiedName);
+    return Pair.of(position >= 0 ? qualifiedName.substring(0, position) : null,
+                   position >= 0 ? qualifiedName.substring(position + SCOPE_SEPARATOR.length()) : qualifiedName);
+  }
+
+  boolean isRelevantVariable(final String qualifiedName) {
+    final Pair<String, String> parsedName = parseQualifiedName(qualifiedName);
+    return isRelevantVariable(parsedName.getFirst(), parsedName.getSecond());
+  }
+
+  boolean isAddressedVariable(final String qualifiedName) {
+    final Pair<String, String> parsedName = parseQualifiedName(qualifiedName);
+    return isAddressedVariable(parsedName.getFirst(), parsedName.getSecond());
   }
 
   void addAllFields(final CType type, final PointerTargetSetBuilder pts) {
     if (type instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) type;
       for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        if (isUsedField(compositeType, memberDeclaration.getName(), pts)) {
+        if (isRelevantField(compositeType, memberDeclaration.getName(), pts)) {
           pts.addField(compositeType, memberDeclaration.getName());
           final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
           addAllFields(memberType, pts);
@@ -368,7 +382,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         final Variable newBase = Variable.create(base.getName() + FIELD_NAME_SEPARATOR + memberName,
                                                  memberType);
         if (hasIndex(newBase.getName(), newBase.getType(), ssa) &&
-            isUsedField(compositeType, memberName, pts)) {
+            isRelevantField(compositeType, memberName, pts)) {
           fields.add(Pair.of(compositeType, memberName));
           addSharingConstraints(cfaEdge,
                                 fmgr.makePlus(address, fmgr.makeNumber(pts.getPointerType(), offset)),
@@ -685,7 +699,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
             final CType newLvalueType = PointerTargetSet.simplifyType(memberDeclaration.getType());
             // Optimizing away the assignments from uninitialized fields
             if (lvalue instanceof String || // Assignment is pure i.e. surely not big, let's just add it
-                isUsedField(lvalueCompositeType, memberName, pts) &&
+                isRelevantField(lvalueCompositeType, memberName, pts) &&
                 // That's not a simple assignment, check the nested composite
                 (newLvalueType instanceof CCompositeType ||
                  !(rvalueType instanceof CCompositeType) || // We're not assigning from a composite, nothing to check
@@ -942,7 +956,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     CType declarationType = PointerTargetSet.simplifyType(declaration.getType());
 
-    if (!isUsedVariable(declaration.getQualifiedName())) {
+    if (!isRelevantVariable(declaration.getQualifiedName()) &&
+        !isAddressedVariable(declaration.getQualifiedName())) {
       // The variable is unused
       logDebug("Ignoring declaration of unused variable", declarationEdge);
       return bfmgr.makeBoolean(true);
@@ -993,8 +1008,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                              lhs,
                                              ((CInitializerExpression) initializer).getExpression());
         result = assignment.accept(statementVisitor);
-      } else {
+      } else if (isRelevantVariable(declaration.getQualifiedName())) {
         result = statementVisitor.handleAssignment(lhs, null);
+      } else {
+        result = bfmgr.makeBoolean(true);
       }
       statementVisitor.declareSharedBase(declaration, PointerTargetSet.containsArray(declarationType));
       return result;
