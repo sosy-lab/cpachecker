@@ -450,6 +450,8 @@ public class ARGUtils {
     sb.append("CONTROL AUTOMATON AssumptionAutomaton\n\n");
     sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
 
+    int multiEdgeCount = 0; // see below
+
     for (ARGState s : pPathStates) {
 
       CFANode loc = AbstractStates.extractLocation(s);
@@ -465,6 +467,12 @@ public class ARGUtils {
           CFANode childLoc = AbstractStates.extractLocation(child);
           CFAEdge edge = loc.getEdgeTo(childLoc);
           if (edge instanceof MultiEdge) {
+            // The successor state might have several incoming MultiEdges.
+            // In this case the state names like ARG<successor>_0 would occur
+            // several times.
+            // So we add this counter to the state names to make them unique.
+            multiEdgeCount++;
+
             // Write out a long linear chain of pseudo-states
             // because the AutomatonCPA also iterates through the MultiEdge.
             List<CFAEdge> edges = ((MultiEdge)edge).getEdges();
@@ -474,22 +482,22 @@ public class ARGUtils {
             sb.append("    MATCH \"");
             escape(edges.get(i).getRawStatement(), sb);
             sb.append("\" -> ");
-            sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1));
+            sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
             sb.append(";\n");
 
-            // inner part
+            // inner part (without first and last edge)
             for (; i < edges.size()-1; i++) {
-              sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + " :\n");
+              sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
               sb.append("    MATCH \"");
               escape(edges.get(i).getRawStatement(), sb);
               sb.append("\" -> ");
-              sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1));
+              sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
               sb.append(";\n");
             }
 
             // last edge connecting it with the real successor
             edge = edges.get(i);
-            sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + " :\n");
+            sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
             // remainder is written by code below
           }
 
