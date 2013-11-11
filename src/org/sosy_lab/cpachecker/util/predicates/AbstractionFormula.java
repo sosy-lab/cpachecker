@@ -68,7 +68,7 @@ public class AbstractionFormula implements Serializable {
   private static int nextId = 0;
   private final int id = nextId++;
   private final BooleanFormulaManager mgr;
-  private final Set<Integer> idsOfStoredAbstractionReused;
+  private final ImmutableSet<Integer> idsOfStoredAbstractionReused;
 
   public AbstractionFormula(
       FormulaManagerView mgr,
@@ -80,7 +80,7 @@ public class AbstractionFormula implements Serializable {
     this.formula = checkNotNull(pFormula);
     this.instantiatedFormula = checkNotNull(pInstantiatedFormula);
     this.blockFormula = checkNotNull(pBlockFormula);
-    this.idsOfStoredAbstractionReused = checkNotNull(pIdOfStoredAbstractionReused);
+    this.idsOfStoredAbstractionReused = ImmutableSet.copyOf(pIdOfStoredAbstractionReused);
   }
 
   public boolean isReusedFromStoredAbstraction() {
@@ -122,7 +122,7 @@ public class AbstractionFormula implements Serializable {
   }
 
   public ImmutableSet<Integer> getIdsOfStoredAbstractionReused() {
-    return ImmutableSet.copyOf(idsOfStoredAbstractionReused);
+    return idsOfStoredAbstractionReused;
   }
 
   @Override
