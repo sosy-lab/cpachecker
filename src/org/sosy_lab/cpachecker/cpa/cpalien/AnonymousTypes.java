@@ -24,10 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 
 public class AnonymousTypes {
-  static final CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-  static final CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
+  static final public CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
+  static final public CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
+  static final public CSimpleType dummyVoid = new CSimpleType(false, false, CBasicType.VOID, false, false, false, false, false, false, false);
+  static final public CPointerType dummyPointer = new CPointerType(false, false, dummyVoid);
 }
