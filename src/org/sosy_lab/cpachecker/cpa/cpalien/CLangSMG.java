@@ -444,6 +444,11 @@ public class CLangSMG extends SMG {
       CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
     }
   }
+
+  final public void removeHeapObjectAndEdges(SMGObject pObject) {
+    this.heap_objects.remove(pObject);
+    this.removeObjectAndEdges(pObject);
+  }
 }
 
 class CLangSMGConsistencyVerifier {
