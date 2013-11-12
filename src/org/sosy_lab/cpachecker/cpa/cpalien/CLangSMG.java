@@ -342,7 +342,7 @@ public class CLangSMG extends SMG {
    *
    * TODO: [SCOPES] Test for getting visible local object hiding other local object
    */
-  public SMGObject getObjectForVisibleVariable(String pVariableName) {
+  public SMGRegion getObjectForVisibleVariable(String pVariableName) {
     // Look in the local frame
     if (stack_objects.size() != 0) {
       if (stack_objects.peek().containsVariable(pVariableName)) {
