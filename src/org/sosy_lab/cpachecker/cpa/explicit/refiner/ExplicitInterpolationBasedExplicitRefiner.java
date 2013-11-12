@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
@@ -51,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -94,18 +94,19 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private int numberOfInterpolations        = 0;
   private Timer timerInterpolation          = new Timer();
 
-  private final MachineModel machineModel;
+  private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
   protected ExplicitInterpolationBasedExplicitRefiner(Configuration config,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
-      final MachineModel pMachineModel)
+      final CFA pCfa)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.machineModel = pMachineModel;
-    this.logger = pLogger;
-    this.shutdownNotifier = pShutdownNotifier;
+
+    logger           = pLogger;
+    cfa              = pCfa;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   protected Multimap<CFANode, String> determinePrecisionIncrement(ARGPath errorPath)
@@ -116,7 +117,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
         AssignmentsInPathConditionState.class);
 
-    ExplicitInterpolator interpolator     = new ExplicitInterpolator(logger, shutdownNotifier, machineModel);
+    ExplicitInterpolator interpolator     = new ExplicitInterpolator(logger, shutdownNotifier, cfa);
     Map<String, Long> currentInterpolant  = new HashMap<>();
     Multimap<CFANode, String> increment   = HashMultimap.create();
 

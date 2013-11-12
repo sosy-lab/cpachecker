@@ -97,23 +97,26 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     totalPrecTime.start();
     try {
-      if (pElement instanceof ComputeAbstractionState) {
-        ComputeAbstractionState element = (ComputeAbstractionState)pElement;
+      PredicateAbstractState element = (PredicateAbstractState)pElement;
+
+      if (element instanceof ComputeAbstractionState) {
         PredicatePrecision precision = (PredicatePrecision)pPrecision;
 
-        pElement = computeAbstraction(element, precision);
+        element = computeAbstraction((ComputeAbstractionState)element, precision);
       }
+
+      Action action = element.isTarget() ? Action.BREAK : Action.CONTINUE;
+      return Triple.<AbstractState, Precision, Action>of(element, pPrecision, action);
 
     } finally {
       totalPrecTime.stop();
     }
-    return Triple.of(pElement, pPrecision, Action.CONTINUE);
   }
 
   /**
    * Compute an abstraction.
    */
-  private AbstractState computeAbstraction(
+  private PredicateAbstractState computeAbstraction(
       ComputeAbstractionState element,
       PredicatePrecision precision) throws CPAException, InterruptedException {
 
@@ -144,7 +147,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     computingAbstractionTime.start();
     try {
 	    newAbstraction = formulaManager.buildAbstraction(
-	        element.getReuseStateId(), loc, abstractionFormula, pathFormula, preds);
+	        element.getPositionInReuseGraph(), loc, abstractionFormula, pathFormula, preds);
 	    newAbstractionFormula = newAbstraction.getFirst();
     } finally {
       computingAbstractionTime.stop();
@@ -168,7 +171,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
     return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-        newAbstractionFormula, abstractionLocations, newAbstraction.getSecond());
+        newAbstractionFormula, abstractionLocations, element.getViolatedProperty(), newAbstraction.getSecond());
   }
 
   private void extractInvariants() throws CPAException {

@@ -75,6 +75,9 @@ public class PredicateMergeOperator implements MergeOperator {
       if (!elem1.getAbstractionFormula().equals(elem2.getAbstractionFormula())) {
         merged = elem2;
 
+      } else if (elem1.getViolatedProperty() != elem2.getViolatedProperty()) {
+        merged = elem2;
+
       } else {
         totalMergeTime.start();
         assert elem1.getAbstractionLocationsOnPath().equals(elem2.getAbstractionLocationsOnPath());
@@ -86,8 +89,8 @@ public class PredicateMergeOperator implements MergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
-        merged = mkNonAbstractionStateWithNewPathFormula(pathFormula, elem1,
-            Sets.union(elem1.getReuseStateId(), elem2.getReuseStateId()));
+        merged = mkNonAbstractionStateWithNewPathFormula(pathFormula, elem1.getViolatedProperty(), elem1,
+            Sets.union(elem1.getPositionInReuseGraph(), elem2.getPositionInReuseGraph()));
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

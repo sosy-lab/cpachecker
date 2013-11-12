@@ -63,7 +63,7 @@ final class SMGJoinSubSMGs {
     }
 
     destSMG = pDestSMG;
-    status = SMGUpdateJoinStatus.updateStatus(initialStatus, joinFields.getStatus());
+    status = SMGJoinStatus.updateStatus(initialStatus, joinFields.getStatus());
     mapping1 = pMapping1;
     mapping2 = pMapping2;
 

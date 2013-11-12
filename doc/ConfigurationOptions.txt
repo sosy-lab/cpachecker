@@ -123,6 +123,9 @@ analysis.traversal.useReversePostorder = false
 # analysis.traversal.useReversePostorder and will soon get removed.
 analysis.traversal.useTopsort = false
 
+# Do not report unknown if analysis terminated, report true (UNSOUND!).
+analysis.unknownAsTrue = false
+
 # use adjustable conditions algorithm
 analysis.useAdjustableConditions = false
 
@@ -257,6 +260,27 @@ cegar.globalRefinement = false
 # omitted.
 cegar.refiner = no default value
 
+# Which functions should be interpreted as encoding assumptions
+cfa.assumeFunctions = {"__VERIFIER_assume"}
+
+# dump a simple call graph
+cfa.callgraph.export = true
+
+# file name for call graph as .dot file
+cfa.callgraph.file = "functionCalls.dot"
+
+# while this option is activated, before each use of a PointerExpression, or
+# a dereferenced field access the expression is checked if it is 0
+cfa.checkNullPointers = false
+
+# Whether to have a single target node per function for all invalid null
+# pointer dereferences or to have separate nodes for each dereference
+cfa.checkNullPointers.singleTargetPerFunction = true
+
+# When a function pointer array element is written with a variable as index,
+# create a series of if-else edges with explicit indizes instead.
+cfa.expandFunctionPointerArrayAssignments = false
+
 # export CFA as .dot file
 cfa.export = true
 
@@ -272,6 +296,9 @@ cfa.initializeAllVariables = false
 
 # remove paths from CFA that cannot lead to a specification violation
 cfa.removeIrrelevantForSpecification = false
+
+# simplify simple const expressions like 1+2
+cfa.simplifyConstExpressions = false
 
 # simplify pointer expressions like s->f to (*s).f with this option the cfa
 # is simplified until at maximum one pointer is allowed for left- and
@@ -424,11 +451,20 @@ cpa.bdd.trackIntEqual = true
 # depth of recursion bound
 cpa.callstack.depth = 0
 
+# Skip recursion if it happens only by going via a function pointer (this is
+# unsound). Imprecise function pointer tracking often lead to false
+# recursions.
+cpa.callstack.skipFunctionPointerRecursion = false
+
 # Skip recursion. Treat function call as a statement (the same as for
 # functions without bodies)
 # Skip recursion (this is unsound). Treat function call as a statement (the
 # same as for functions without bodies)
 cpa.callstack.skipRecursion = false
+
+# Skip recursion if it happens only by going via a void function (this is
+# unsound).
+cpa.callstack.skipVoidRecursion = false
 
 # which composite merge operator to use (plain or agree)
 # Both delegate to the component cpas, but agree only allows merging if all
@@ -491,6 +527,10 @@ cpa.conditions.path.length.limit = -1
 # maximum repetitions of any edge in a path (-1 for infinite)
 cpa.conditions.path.repetitions.limit = -1
 
+# with this option enabled, a check for unreachable memory occurs whenever a
+# function returns, and not only at the end of the main function
+cpa.cpalien.checkForMemLeaksAtEveryFrameDrop = true
+
 # If this Option is enabled, failure of mallocis simulated
 cpa.cpalien.enableMallocFail = true
 
@@ -501,12 +541,22 @@ cpa.cpalien.exportSMG.file = "smg-%s.dot"
 # interesting, every}
 cpa.cpalien.exportSMGwhen = "never"
 
+# with this option enabled, memory that is not freed before the end of main
+# is reported as memleak even if it is reachable from local variables in main
+cpa.cpalien.handleNonFreedMemoryInMainAsMemLeak = false
+
 # Sets how unknown functions are handled. One of: {strict, assume_safe}
 cpa.cpalien.handleUnknownFunctions = "strict"
+
+# Determines if memory errors are target states
+cpa.cpalien.memoryErrors = true
 
 # Sets the level of runtime checking: NONE, HALF, FULL
 cpa.cpalien.runtimeCheck = NONE
   enum:     [FORCED, NONE, HALF, FULL]
+
+# Emit messages when we encounter non-target undefined behavior
+cpa.cpalien.unknownOnUndefined = true
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
@@ -653,12 +703,20 @@ cpa.monitor.pathcomputationlimit = 0
 cpa.octagon.merge = "SEP"
   allowed values: [SEP, JOIN]
 
+# Setting this to true makes memory-allocation functions like malloc() always
+# return a valid pointer.
+cpa.pointer.memoryAllocationsAlwaysSucceed = false
+
 # which merge operator to use for PointerCPA?
 cpa.pointer.merge = "sep"
   allowed values: [sep, join]
 
 # print warnings during analysis when unsafe pointer operations are found
 cpa.pointer.printWarnings = true
+
+# which merge operator to use for InvariantCPA
+cpa.pointer2.merge = "JOIN"
+  allowed values: [JOIN, SEP]
 
 # which merge operator to use for PointerACPA
 cpa.pointerA.merge = "JOIN"
@@ -730,6 +788,10 @@ cpa.predicate.blk.alwaysAtLoops = true
 # effect if threshold = 0)
 cpa.predicate.blk.functions = false
 
+# abstractions at CFA nodes with more than one incoming edge if threshold has
+# been reached (no effect if threshold = 0)
+cpa.predicate.blk.join = false
+
 # abstractions at loop heads if threshold has been reached (no effect if
 # threshold = 0)
 cpa.predicate.blk.loops = false
@@ -743,6 +805,19 @@ cpa.predicate.blk.useCache = true
 
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
+
+# Check whether all pointer dereferences are valid.
+cpa.predicate.checkValidDeref = false
+
+# Check whether all calls to free() are valid.
+cpa.predicate.checkValidFree = false
+
+# The default size in bytes for memory allocations when the value cannot be
+# determined.
+cpa.predicate.defaultAllocationSize = 4
+
+# The default length for arrays when the real length cannot be determined.
+cpa.predicate.defaultArrayLength = 20
 
 # Use deferred allocation heuristic that tracks void * variables until the
 # actual type of the allocation is figured out.
@@ -779,6 +854,9 @@ cpa.predicate.handlePointerAliasing = true
 # replaced.
 cpa.predicate.ignoreExtractConcat = true
 
+# Ignore variables that are not relevant for reachability properties.
+cpa.predicate.ignoreIrrelevantVariables = true
+
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 cpa.predicate.interpolationSolver = no default value
@@ -807,6 +885,9 @@ cpa.predicate.mathsat5.logfile = "mathsat5.%03d.smt2"
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
 
+# The maximum length for arrays (elements beyond this will be ignored).
+cpa.predicate.maxArrayLength = 20
+
 # Maximum size of allocations for which all structure fields are regarded
 # always essential, regardless of whether they were ever really used in code.
 cpa.predicate.maxPreFilledAllocationSize = 0
@@ -817,13 +898,21 @@ cpa.predicate.memoryAllocationFunctions = {
       "malloc", "__kmalloc", "kmalloc"
       }
 
+# Memory allocation functions of which all parameters but the first should be
+# ignored.
+cpa.predicate.memoryAllocationFunctionsWithSuperfluousParameters = {
+      "__kmalloc", "kmalloc", "kzalloc"}
+
 # Set of functions that non-deterministically provide new zeroed memory on
 # the heap, i.e. they can return either a valid pointer or zero.
-cpa.predicate.memoryAllocationFunctionsWithZeroing = {"kzalloc"}
+cpa.predicate.memoryAllocationFunctionsWithZeroing = {"kzalloc", "calloc"}
 
 # Setting this to true makes memoryAllocationFunctions always return a valid
 # pointer.
 cpa.predicate.memoryAllocationsAlwaysSucceed = false
+
+# Function that is used to free allocated memory.
+cpa.predicate.memoryFreeFunctionName = "free"
 
 # which merge operator to use for predicate cpa (usually ABE should be used)
 cpa.predicate.merge = "ABE"
@@ -1094,6 +1183,14 @@ limits.time.cpu = -1
 # for infinite)
 limits.time.wall = -1
 
+# Whether to check for memory safety properties (this can be specified by
+# passing an appropriate .prp file to the -spec parameter).
+memorysafety.check = false
+
+# When checking for memory safety properties, use this configuration file
+# instead of the current one.
+memorysafety.config = no default value
+
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
@@ -1129,7 +1226,10 @@ pcc.useCores = 1
 reachedSet.export = true
 reachedSet.file = "reached.txt"
 
-# list of files with configurations to use
+# List of files with configurations to use. A filename can be suffixed with
+# :if-interrupted, :if-failed, and :if-terminated which means that this
+# configuration will only be used if the previous configuration ended with a
+# matching condition.
 restartAlgorithm.configFiles = no default value
 
 # comma-separated list of files with specifications that should be checked

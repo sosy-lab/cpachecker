@@ -416,5 +416,9 @@ public class PredicateAbstractionReuse implements StatisticsProvider {
     return false;
   }
 
+  public boolean hasNonAbstractionStatesIncluded() {
+    return stat.numOfNoAbstractionStates > 0;
+  }
+
 
 }

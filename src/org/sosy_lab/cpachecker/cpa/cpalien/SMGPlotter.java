@@ -130,7 +130,11 @@ public final class SMGPlotter {
 
     HashMap<String, SMGObject> to_print = new HashMap<>();
     to_print.putAll(pStackFrame.getVariables());
-    to_print.put(CLangStackFrame.RETVAL_LABEL, pStackFrame.getReturnObject());
+
+    SMGObject returnObject = pStackFrame.getReturnObject();
+    if (returnObject != null) {
+      to_print.put(CLangStackFrame.RETVAL_LABEL, returnObject);
+    }
 
     pSb.append(newLineWithOffset(smgScopeFrameAsDot(to_print, String.valueOf(pIndex))));
 
@@ -147,9 +151,15 @@ public final class SMGPlotter {
     ArrayList<String> nodes = new ArrayList<>();
     for (String key : pNamespace.keySet()) {
       SMGObject obj = pNamespace.get(key);
-      nodes.add("<" + key + "> " + obj.toString());
-      objectIndex.put(obj, "struct" + pStructId + ":" + key);
-     }
+
+      if (key.equals("node")) {
+        // escape Node1
+        key = "node1";
+      }
+
+      nodes.add("<item_" + key + "> " + obj.toString());
+      objectIndex.put(obj, "struct" + pStructId + ":item_" + key);
+    }
     sb.append(Joiner.on(" | ").join(nodes));
     sb.append("\"];\n");
     return sb.toString();
@@ -181,7 +191,7 @@ public final class SMGPlotter {
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    return "value_" + pEdge.getValue() + " -> " + convertToValidDot(objectIndex.get(pEdge.getObject())) + "[label=\"+" + pEdge.getOffset() + "b\"];";
+    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()) + "[label=\"+" + pEdge.getOffset() + "b\"];";
   }
 
   private String smgObjectAsDot(SMGObject pObject, boolean pValidity) {

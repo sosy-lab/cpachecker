@@ -130,6 +130,7 @@ final class SMGJoinMatchObjects {
       return;
     }
 
+    status = pStatus;
     defined = true;
   }
 

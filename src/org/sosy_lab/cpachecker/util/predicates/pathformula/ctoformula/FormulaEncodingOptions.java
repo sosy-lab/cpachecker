@@ -73,36 +73,12 @@ public class FormulaEncodingOptions {
       "malloc", "__kmalloc", "kmalloc"
       );
 
-
-  @Option(description = "The function used to model successful heap object allocation. " +
-                        "This is only used, when pointer analysis with UFs is enabled.")
-  private String successfulAllocFunctionName = "__VERIFIER_successful_alloc";
-
-  @Option(description = "The function used to model successful heap object allocation with zeroing. " +
-                        "This is only used, when pointer analysis with UFs is enabled.")
-  private String successfulZallocFunctionName = "__VERIFIER_successful_zalloc";
-
   @Option(description = "Set of functions that non-deterministically provide new zeroed memory on the heap, " +
                         "i.e. they can return either a valid pointer or zero.")
-  private Set<String> memoryAllocationFunctionsWithZeroing = ImmutableSet.of("kzalloc");
-
-  @Option(description = "Setting this to true makes memoryAllocationFunctions always return a valid pointer.")
-  private boolean memoryAllocationsAlwaysSucceed = false;
-
-  @Option(description = "Enable the option to allow detecting the allocation type by type " +
-                        "of the LHS of the assignment, e.g. char *arr = malloc(size) is detected as char[size]")
-  private boolean revealAllocationTypeFromLhs = false;
-
-  @Option(description = "Use deferred allocation heuristic that tracks void * variables until the actual type " +
-                        "of the allocation is figured out.")
-  private boolean deferUntypedAllocations = false;
-
-  @Option(description = "Maximum size of allocations for which all structure fields are regarded always essential, " +
-                        "regardless of whether they were ever really used in code.")
-  private int maxPreFilledAllocationSize = 0;
+  private Set<String> memoryAllocationFunctionsWithZeroing = ImmutableSet.of("kzalloc", "calloc");
 
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
+    config.inject(this, FormulaEncodingOptions.class);
   }
 
   public boolean handleFieldAccess() {
@@ -126,39 +102,7 @@ public class FormulaEncodingOptions {
     return function.equals(externModelFunctionName);
   }
 
-  public boolean isSuccessfulAllocFunctionName(final String name) {
-    return successfulAllocFunctionName.equals(name);
-  }
-
-  public boolean isSuccessfulZallocFunctionName(final String name) {
-    return successfulZallocFunctionName.equals(name);
-  }
-
-  public String getSuccessfulAllocFunctionName() {
-    return successfulAllocFunctionName;
-  }
-
-  public String getSuccessfulZallocFunctionName() {
-    return successfulZallocFunctionName;
-  }
-
   public boolean isMemoryAllocationFunctionWithZeroing(final String name) {
     return memoryAllocationFunctionsWithZeroing.contains(name);
-  }
-
-  public boolean makeMemoryAllocationsAlwaysSucceed() {
-    return memoryAllocationsAlwaysSucceed;
-  }
-
-  public boolean revealAllocationTypeFromLHS() {
-    return revealAllocationTypeFromLhs;
-  }
-
-  public boolean deferUntypedAllocations() {
-    return deferUntypedAllocations;
-  }
-
-  public int maxPreFilledAllocationSize() {
-    return maxPreFilledAllocationSize;
   }
 }

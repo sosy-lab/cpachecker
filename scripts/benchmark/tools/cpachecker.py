@@ -6,6 +6,7 @@ import subprocess
 import sys
 import string
 import os
+import re
 import benchmark.result as result
 
 sys.dont_write_bytecode = True # prevent creation of .pyc files
@@ -137,6 +138,7 @@ class Tool(benchmark.tools.template.BaseTool):
         else:
             status = ''
 
+        property = None
         for line in output.splitlines():
             if 'java.lang.OutOfMemoryError' in line:
                 status = 'OUT OF JAVA MEMORY'
@@ -162,12 +164,17 @@ class Tool(benchmark.tools.template.BaseTool):
                 elif 'Parsing failed' in line:
                     status = 'ERROR (parsing failed)'
 
+            elif line.startswith('Found violation of property '):
+                property = re.match('Found violation of property ([^ ]*) .*', line).group(1)
+
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
                 if line.startswith('SAFE'):
                     newStatus = result.STR_TRUE
                 elif line.startswith('UNSAFE'):
                     newStatus = result.STR_FALSE
+                    if property:
+                        newStatus = newStatus + '(' + property + ')'
                 else:
                     newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
                 if newStatus:

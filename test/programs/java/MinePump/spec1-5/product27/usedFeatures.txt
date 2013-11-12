@@ -1,4 +1,0 @@
-base
-lowWaterSensor
-methaneQuery
-stopCommand

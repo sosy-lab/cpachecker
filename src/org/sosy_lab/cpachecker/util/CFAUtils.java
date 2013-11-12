@@ -479,7 +479,9 @@ public class CFAUtils {
     // FIRST step: initialize arrays
     for (CFANode n : nodes) {
       int i = arrayIndexForNode.apply(n);
-      assert nodesArray[i] == null : "reverse post-order id is not unique";
+      assert nodesArray[i] == null : "reverse post-order id is not unique, "
+          + i + " occurs twice in function " + n.getFunctionName()
+          + " at " + n + " and " + nodesArray[i];
       nodesArray[i] = n;
 
       for (CFAEdge edge : leavingEdges(n)) {
@@ -515,8 +517,14 @@ public class CFAUtils {
 
         CFANode currentNode = nodes.last();
         final int current = arrayIndexForNode.apply(currentNode);
-        // Now merge current into all its successors
 
+        // Mark this node as a loop head
+        if (edges[current][current] == null) {
+          edges[current][current] = new Edge();
+        }
+        handleLoop(currentNode, current, edges, loops);
+
+        // Now merge current into all its successors
         mergeNodeIntoSuccessors(currentNode, current, nodesArray, edges, loops);
         nodes.remove(currentNode);
         changed = true;

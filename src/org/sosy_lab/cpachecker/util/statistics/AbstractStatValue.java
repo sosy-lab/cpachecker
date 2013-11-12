@@ -23,19 +23,30 @@
  */
 package org.sosy_lab.cpachecker.util.statistics;
 
+import com.google.common.base.Optional;
+
 
 public abstract class AbstractStatValue {
 
-  private final String title;
+  private final Optional<String> title;
   private StatKind mainStatisticKind;
 
   public AbstractStatValue(StatKind pMainStatisticKind, String pTitle) {
-    this.title = pTitle;
+    this.title = Optional.of(pTitle);
+    this.mainStatisticKind = pMainStatisticKind;
+  }
+
+  public AbstractStatValue(StatKind pMainStatisticKind) {
+    this.title = Optional.absent();
     this.mainStatisticKind = pMainStatisticKind;
   }
 
   public String getTitle() {
-    return title;
+    return title.get();
+  }
+
+  public boolean hasTitle()  {
+    return title.isPresent();
   }
 
   /**

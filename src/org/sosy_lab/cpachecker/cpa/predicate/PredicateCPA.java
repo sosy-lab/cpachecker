@@ -189,7 +189,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
         pathFormulaManager.makeEmptyPathFormula(),
         predicateManager.makeTrueAbstractionFormula(null),
         PathCopyingPersistentTreeMap.<CFANode, Integer>of(),
-        rootReuseIds);
+        null, 
+		rootReuseIds);
     domain = new PredicateAbstractDomain(this);
 
     if (mergeType.equals("SEP")) {

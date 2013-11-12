@@ -112,7 +112,7 @@ class SMGJoinFields {
 
     for (int i = 0; i < origNull.length(); i++) {
       if (origNull.get(i) && (! newNull.get(i))) {
-        return SMGUpdateJoinStatus.updateStatus(pCurStatus, pNewStatus);
+        return SMGJoinStatus.updateStatus(pCurStatus, pNewStatus);
       }
     }
 
@@ -150,7 +150,7 @@ class SMGJoinFields {
         int max = edge.getOffset() + edge.getSizeInBytes(pSMG1.getMachineModel());
 
         if (newNullBytes.get(min) && newNullBytes.nextClearBit(min) >= max ) {
-          retset.add(new SMGEdgeHasValue(edge.getSizeInBytes(pSMG1.getMachineModel()), edge.getOffset(), pObj1, pSMG1.getNullValue()));
+          retset.add(new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj1, pSMG1.getNullValue()));
         }
       }
     }

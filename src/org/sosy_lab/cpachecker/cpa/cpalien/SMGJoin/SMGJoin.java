@@ -25,8 +25,10 @@ package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.cpalien.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.CLangStackFrame;
@@ -55,25 +57,44 @@ final public class SMGJoin {
     Map<String, SMGObject> globals_in_smg2 = opSMG2.getGlobalObjects();
     ArrayDeque<CLangStackFrame> stack_in_smg2 = opSMG2.getStackFrames();
 
-    for (String globalVar : globals_in_smg1.keySet()) {
+    Set<String> globalVars = new HashSet<>();
+    globalVars.addAll(globals_in_smg1.keySet());
+    globalVars.addAll(globals_in_smg2.keySet());
+
+    for (String globalVar : globalVars) {
       SMGObject globalInSMG1 = globals_in_smg1.get(globalVar);
       SMGObject globalInSMG2 = globals_in_smg2.get(globalVar);
+      if (globalInSMG1 == null || globalInSMG2 == null) {
+        // This weird situation happens with function static variables, which are created
+        // as globals when a declaration is met. So if one path goes through function and other
+        // does not, then one SMG will have that global and the other one won't.
+        // TODO: We could actually just add that object, as that should not influence the result of
+        // the join. For now, we will treat this situation as unjoinable.
+        return;
+      }
       SMGObject finalObject = new SMGObject(globalInSMG1);
       smg.addGlobalObject(finalObject);
       mapping1.map(globalInSMG1, finalObject);
       mapping2.map(globalInSMG2, finalObject);
     }
 
-    // TODO: Check the ordering
-    Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.iterator();
-    Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.iterator();
+    Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.descendingIterator();
+    Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.descendingIterator();
 
     while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ){
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
       CLangStackFrame frameInSMG2 = smg2stackIterator.next();
+
       smg.addStackFrame(frameInSMG1.getFunctionDeclaration());
 
-      for (String localVar : frameInSMG1.getVariables().keySet()) {
+      Set<String> localVars = new HashSet<>();
+      localVars.addAll(frameInSMG1.getVariables().keySet());
+      localVars.addAll(frameInSMG2.getVariables().keySet());
+
+      for (String localVar : localVars) {
+        if ((!frameInSMG1.containsVariable(localVar)) || (!frameInSMG2.containsVariable(localVar))) {
+          return;
+        }
         SMGObject localInSMG1 = frameInSMG1.getVariable(localVar);
         SMGObject localInSMG2 = frameInSMG2.getVariable(localVar);
         SMGObject finalObject = new SMGObject(localInSMG1);
@@ -128,21 +149,6 @@ final public class SMGJoin {
 
   public CLangSMG getJointSMG() {
     return smg;
-  }
-}
-
-class SMGUpdateJoinStatus {
-  public static SMGJoinStatus updateStatus(SMGJoinStatus pStatus1, SMGJoinStatus pStatus2) {
-    if (pStatus1 == SMGJoinStatus.EQUAL) {
-      return pStatus2;
-    } else if (pStatus2 == SMGJoinStatus.EQUAL) {
-      return pStatus1;
-    } else if (pStatus1 == SMGJoinStatus.INCOMPARABLE ||
-               pStatus2 == SMGJoinStatus.INCOMPARABLE ||
-               pStatus1 != pStatus2) {
-      return SMGJoinStatus.INCOMPARABLE;
-    }
-    return pStatus1;
   }
 }
 

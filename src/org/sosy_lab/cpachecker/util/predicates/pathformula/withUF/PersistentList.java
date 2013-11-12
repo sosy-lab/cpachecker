@@ -26,8 +26,11 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.AbstractSequentialList;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.ListIterator;
+import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -330,6 +333,53 @@ public class PersistentList<T> extends AbstractSequentialList<T> {
   @Override
   public ListIterator<T> listIterator(final int index) {
     throw new UnsupportedOperationException();
+  }
+
+  public static <T> PersistentList<T> merge(final PersistentList<T> list1,
+                                            final PersistentList<T> list2) {
+    final int size1 = list1.size();
+    final ArrayList<T> arrayList1 = new ArrayList<>(size1);
+    for (final T element : list1) {
+      arrayList1.add(element);
+    }
+    final int size2 = list2.size();
+    final ArrayList<T> arrayList2 = new ArrayList<>(size2);
+    for (final T element : list2) {
+      arrayList2.add(element);
+    }
+    int sizeCommon = 0;
+    for (int i = 0;
+         i < arrayList1.size() && i < arrayList2.size() && arrayList1.get(i).equals(arrayList2.get(i));
+         i++) {
+      ++sizeCommon;
+    }
+    PersistentList<T> result;
+    final ArrayList<T> biggerArrayList, smallerArrayList;
+    final int biggerCommonStart, smallerCommonStart;
+    if (size1 > size2) {
+      result = list1;
+      biggerArrayList = arrayList1;
+      smallerArrayList = arrayList2;
+      biggerCommonStart = size1 - sizeCommon;
+      smallerCommonStart = size2 - sizeCommon;
+    } else {
+      result = list2;
+      biggerArrayList = arrayList2;
+      smallerArrayList = arrayList1;
+      biggerCommonStart = size2 - sizeCommon;
+      smallerCommonStart = size1 - sizeCommon;
+    }
+    final Set<T> fromBigger = new HashSet<>(2 * biggerCommonStart, 1.0f);
+    for (int i = 0; i < biggerCommonStart; i++) {
+      fromBigger.add(biggerArrayList.get(i));
+    }
+    for (int i = 0; i < smallerCommonStart; i++) {
+      final T target = smallerArrayList.get(i);
+      if (!fromBigger.contains(target)) {
+        result = result.with(target);
+      }
+    }
+    return result;
   }
 
   private final T head;

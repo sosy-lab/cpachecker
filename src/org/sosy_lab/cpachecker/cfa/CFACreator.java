@@ -30,8 +30,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -43,6 +41,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
@@ -140,10 +139,30 @@ public class CFACreator {
       description="export individual CFAs for function as .dot files")
   private boolean exportCfaPerFunction = true;
 
+  @Option(name="cfa.callgraph.export",
+      description="dump a simple call graph")
+  private boolean exportFunctionCalls = true;
+
+  @Option(name="cfa.callgraph.file",
+      description="file name for call graph as .dot file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path exportFunctionCallsFile = Paths.get("functionCalls.dot");
+
   @Option(name="cfa.file",
       description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaFile = Paths.get("cfa.dot");
+
+  @Option(name="cfa.checkNullPointers",
+      description="while this option is activated, before each use of a "
+          + "PointerExpression, or a dereferenced field access the expression is "
+          + "checked if it is 0")
+  private boolean checkNullPointers = false;
+
+  @Option(name="cfa.expandFunctionPointerArrayAssignments",
+      description="When a function pointer array element is written with a variable as index, "
+          + "create a series of if-else edges with explicit indizes instead.")
+  private boolean expandFunctionPointerArrayAssignments = false;
 
   @Option(description="C or Java?")
   private Language language = Language.C;
@@ -340,6 +359,16 @@ public class CFACreator {
       // remove all edges which don't have any effect on the program
       CFASimplifier.simplifyCFA(cfa);
 
+      if (checkNullPointers) {
+        CFATransformations transformations = new CFATransformations(logger, config);
+        transformations.detectNullPointers(cfa);
+      }
+
+      if (expandFunctionPointerArrayAssignments) {
+        ExpandFunctionPointerArrayAssignments transformer = new ExpandFunctionPointerArrayAssignments(logger, config);
+        transformer.replaceFunctionPointerArrayAssignments(cfa);
+      }
+
       // add function pointer edges
       if (language == Language.C && fptrCallEdges) {
         CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, config, logger);
@@ -418,7 +447,8 @@ public class CFACreator {
       assert CFACheck.check(mainFunction, null);
       stats.checkTime.stop();
 
-      if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
+      if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
+          || ((exportFunctionCallsFile != null) && exportFunctionCalls)) {
         exportCFAAsync(immutableCFA);
       }
 
@@ -677,8 +707,8 @@ public class CFACreator {
     stats.exportTime.start();
 
     // write CFA to file
-    if (exportCfa) {
-      try (Writer w = Files.newBufferedWriter(exportCfaFile, Charset.defaultCharset())) {
+    if (exportCfa && exportCfaFile != null) {
+      try (Writer w = Files.openOutputFile(exportCfaFile)) {
         DOTBuilder.generateDOT(w, cfa);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
@@ -688,13 +718,23 @@ public class CFACreator {
     }
 
     // write the CFA to files (one file per function + some metainfo)
-    if (exportCfaPerFunction) {
+    if (exportCfaPerFunction && exportCfaFile != null) {
       try {
         Path outdir = exportCfaFile.getParent();
         DOTBuilder2.writeReport(cfa, outdir);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
           "Could not write CFA to dot and json file");
+        // continue with analysis
+      }
+    }
+
+    if (exportFunctionCalls && exportFunctionCallsFile != null) {
+      try (Writer w = Files.openOutputFile(exportFunctionCallsFile)) {
+        FunctionCallDumper.dump(w, cfa);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e,
+            "Could not write functionCalls to dot file");
         // continue with analysis
       }
     }

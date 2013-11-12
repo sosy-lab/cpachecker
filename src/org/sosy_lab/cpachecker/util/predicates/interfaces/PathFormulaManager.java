@@ -27,10 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
@@ -55,6 +57,7 @@ public interface PathFormulaManager {
   PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula);
 
   PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge) throws CPATransferException;
+  Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula oldFormula, CFAEdge edge) throws CPATransferException;
 
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
 

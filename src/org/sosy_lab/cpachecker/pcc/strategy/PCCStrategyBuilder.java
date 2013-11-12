@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 public class PCCStrategyBuilder {
 
   private static final String STRATEGY_CLASS_PREFIX = "org.sosy_lab.cpachecker.pcc.strategy";
+  private static final String PARALLEL_STRATEGY_CLASS_PREFIX = "org.sosy_lab.cpachecker.pcc.strategy.parallel";
 
   public static PCCStrategy buildStrategy(String pPccStrategy, Configuration pConfig, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier, ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
@@ -50,8 +51,12 @@ public class PCCStrategyBuilder {
     try {
       pccStrategyClass = Classes.forName(pPccStrategy, STRATEGY_CLASS_PREFIX);
     } catch (ClassNotFoundException e) {
-      throw new InvalidConfigurationException(
-          "Class for pcc checker  " + pPccStrategy + " is unknown.", e);
+      try {
+        pccStrategyClass = Classes.forName(pPccStrategy, PARALLEL_STRATEGY_CLASS_PREFIX);
+      } catch (ClassNotFoundException e1) {
+        throw new InvalidConfigurationException(
+            "Class for pcc checker  " + pPccStrategy + " is unknown.", e1);
+      }
     }
 
     if (!PCCStrategy.class.isAssignableFrom(pccStrategyClass)) { throw new InvalidConfigurationException(

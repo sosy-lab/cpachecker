@@ -69,6 +69,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 import com.google.common.base.Joiner;
@@ -87,6 +89,7 @@ public class PredicateAbstractionManager {
     public int numAbstractionReusesTrueSkipped = 0;
     public int numComputedAbstractions = 0; // total abstraction computations
     public int numAbstractionReuseNoImplication = 0;
+    public StatInt abstractionReuseCandidates = new StatInt(StatKind.AVG);
 
     public int numSymbolicAbstractions = 0; // precision completely empty, no computation
     public int numSatCheckAbstractions = 0; // precision was {false}, only sat check
@@ -259,7 +262,13 @@ public class PredicateAbstractionManager {
     BooleanFormula f = bfmgr.and(absFormula, symbFormula);
     final SSAMap ssa = pathFormula.getSsa();
 
+    Set<Integer> nextReuseBasedOn = Collections.emptySet();
+
     ImmutableSet<AbstractionPredicate> predicates = getRelevantPredicates(pPredicates, f, ssa);
+
+    if (predReuses.size() == 0) {
+      logger.log(Level.INFO, "No base for reuse at ", location.getNodeNumber());
+    }
 
     // Try to reuse stored abstractions
     if (abstractionReuseEnabled
@@ -272,10 +281,6 @@ public class PredicateAbstractionManager {
         Deque<Pair<Integer, Integer>> tryReuseBasedOnPredecessors = new ArrayDeque<>();
         for (Integer id: predReuses) {
           tryReuseBasedOnPredecessors.add(Pair.of(id, 0));
-        }
-
-        if (tryReuseBasedOnPredecessors.isEmpty()) {
-          tryReuseBasedOnPredecessors.add(Pair.of(abstractionStorage.getRootAbstractionId(), 0));
         }
 
         while (!tryReuseBasedOnPredecessors.isEmpty()) {
@@ -297,17 +302,16 @@ public class PredicateAbstractionManager {
 
           if (bfmgr.isTrue(an.getFormula())) {
             stats.numAbstractionReusesTrueSkipped++;
+            nextReuseBasedOn = Collections.singleton(an.getId());
             continue;
           }
 
           //logger.log(Level.WARNING, "Filtered candidates", "location", location.getNodeNumber(), "abstraction", tryBasedOnAbstractionId, ":", candidateAbstractions);
 
 
-          Set<Integer> reuseIds = Sets.newTreeSet();
           BooleanFormula reuseFormula = bfmgr.makeBoolean(true);
           reuseFormula = bfmgr.and(reuseFormula, an.getFormula());
           abstractionStorage.markAbstractionBeingReused(an.getId());
-          reuseIds.add(an.getId());
           BooleanFormula instantiatedReuseFormula = fmgr.instantiate(reuseFormula, ssa);
 
           stats.abstractionReuseImplicationTime.start();
@@ -320,8 +324,11 @@ public class PredicateAbstractionManager {
             logger.log(Level.FINE, "Reusing abstraction", an.getId());
             stats.numAbstractionReuses++;
             Region reuseFormulaRegion = buildRegionFromFormula(reuseFormula);
+
+            nextReuseBasedOn = Collections.singleton(an.getId());
+
             return Pair.of(new AbstractionFormula(fmgr, reuseFormulaRegion, reuseFormula,
-                instantiatedReuseFormula, pathFormula), reuseIds);
+                instantiatedReuseFormula, pathFormula), nextReuseBasedOn);
           } else {
             stats.numAbstractionReuseNoImplication++;
           }
@@ -337,7 +344,7 @@ public class PredicateAbstractionManager {
     if (pPredicates.isEmpty()) {
       logger.log(Level.FINEST, "Abstraction", stats.numCallsAbstraction, "with empty precision is true");
       stats.numSymbolicAbstractions++;
-      return Pair.of(makeTrueAbstractionFormula(pathFormula), noAbstractionReuse);
+      return Pair.of(makeTrueAbstractionFormula(pathFormula), nextReuseBasedOn);
     }
 
     // caching
@@ -358,7 +365,7 @@ public class PredicateAbstractionManager {
         logger.log(Level.FINEST, "Abstraction", stats.numCallsAbstraction, "was cached");
         logger.log(Level.ALL, "Abstraction result is", result);
         stats.numCallsAbstractionCached++;
-        return Pair.of(result, noAbstractionReuse);
+        return Pair.of(result, nextReuseBasedOn);
       }
 
       boolean unsatisfiable = unsatisfiabilityCache.contains(symbFormula)
@@ -369,7 +376,7 @@ public class PredicateAbstractionManager {
         stats.numCallsAbstractionCached++;
         return Pair.of(new AbstractionFormula(fmgr, rmgr.makeFalse(),
             bfmgr.makeBoolean(false), bfmgr.makeBoolean(false),
-            pathFormula), noAbstractionReuse);
+            pathFormula), nextReuseBasedOn);
       }
     }
 
@@ -484,7 +491,7 @@ public class PredicateAbstractionManager {
       fmgr.dumpFormulaToFile(result.asInstantiatedFormula(), dumpFile);
     }
 
-    return Pair.of(result, noAbstractionReuse);
+    return Pair.of(result, nextReuseBasedOn);
   }
 
   public AbstractionFormula buildAbstraction(

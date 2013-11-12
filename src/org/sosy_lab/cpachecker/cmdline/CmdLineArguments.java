@@ -32,10 +32,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -47,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 /**
@@ -320,7 +323,7 @@ class CmdLineArguments {
    * Handle a command line argument with one value that may appear several times.
    */
   private static boolean handleMultipleArgument1(final String arg, final String option, final String currentArg,
-      final Iterator<String> args, final Map<String, String> properties)
+      final Iterator<String> args, final Map<String, String> options)
       throws InvalidCmdlineArgumentException {
     if (currentArg.equals(arg)) {
       if (args.hasNext()) {
@@ -345,10 +348,25 @@ class CmdLineArguments {
             if (java.nio.file.Files.exists(propertyFile)) {
               PropertyFileParser parser = new PropertyFileParser(propertyFile.toFile());
               parser.parse();
-              putIfNotExistent(properties, "analysis.entryFunction", parser.entryFunction);
+              putIfNotExistent(options, "analysis.entryFunction", parser.entryFunction);
 
               // set the file from where to read the specification automaton
-              newValue = parser.propertyType.automatonFileName;
+              Set<PropertyType> properties = parser.properties;
+              assert !properties.isEmpty();
+
+              if (properties.equals(EnumSet.of(PropertyType.VALID_DEREF,
+                                               PropertyType.VALID_FREE,
+                                               PropertyType.VALID_MEMTRACK))) {
+                putIfNotExistent(options, "memorysafety.check", "true");
+
+              } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY))) {
+                // no change needed
+
+              } else {
+                System.err.println("Checking for the properties " + properties + " is currently not supported by CPAchecker.");
+                System.exit(0);
+              }
+              newValue = null;
             }
 
             else {
@@ -358,13 +376,15 @@ class CmdLineArguments {
           }
         }
 
-        String value = properties.get(option);
-        if (value != null) {
-          value = value + "," + newValue;
-        } else {
-          value = newValue;
+        if (newValue != null) {
+          String value = options.get(option);
+          if (value != null) {
+            value = value + "," + newValue;
+          } else {
+            value = newValue;
+          }
+          options.put(option, value);
         }
-        properties.put(option, value);
 
       } else {
         throw new InvalidCmdlineArgumentException(currentArg + " argument missing.");
@@ -419,7 +439,7 @@ class CmdLineArguments {
     private final File propertyFile;
 
     private String entryFunction;
-    private PropertyType propertyType;
+    private final EnumSet<PropertyType> properties = EnumSet.noneOf(PropertyType.class);
 
     private static final Pattern PROPERTY_PATTERN =
         Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
@@ -431,40 +451,57 @@ class CmdLineArguments {
     private void parse() throws InvalidCmdlineArgumentException {
       String rawProperty = null;
       try (BufferedReader br = java.nio.file.Files.newBufferedReader(propertyFile.toPath(), Charset.defaultCharset())) {
-        rawProperty = br.readLine();
-      }
-      catch (IOException e) {
-        throw new InvalidCmdlineArgumentException("The given property file could not be read!");
+        while ((rawProperty = br.readLine()) != null) {
+          if (!rawProperty.isEmpty()) {
+            properties.add(parsePropertyLine(rawProperty));
+          }
+        }
+      } catch (IOException e) {
+        throw new InvalidCmdlineArgumentException("The given property file could not be read: " + e.getMessage());
       }
 
+      if (properties.isEmpty()) {
+        throw new InvalidCmdlineArgumentException("Property file does not specify any property to verify.");
+      }
+    }
+
+    private PropertyType parsePropertyLine(String rawProperty) throws InvalidCmdlineArgumentException {
       Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
 
-      if(rawProperty == null || !matcher.matches() || matcher.groupCount() != 2) {
-        throw new InvalidCmdlineArgumentException("The given property is not well-formed!");
+      if (rawProperty == null || !matcher.matches() || matcher.groupCount() != 2) {
+        throw new InvalidCmdlineArgumentException(String.format(
+            "The given property '%s' is not well-formed!", rawProperty));
       }
 
-      entryFunction = matcher.group(1);
-
-      if(matcher.group(2).equals(PropertyType.REACHABILITY.property)) {
-        propertyType = PropertyType.REACHABILITY;
-      } else {
-        throw new InvalidCmdlineArgumentException("The property given in the property file is not yet supported.");
+      if (entryFunction == null) {
+        entryFunction = matcher.group(1);
+      } else if (!entryFunction.equals(matcher.group(1))) {
+        throw new InvalidCmdlineArgumentException(String.format(
+            "Property file specifies two different entry functions %s and %s.", entryFunction, matcher.group(1)));
       }
+
+      PropertyType property = PropertyType.AVAILABLE_PROPERTIES.get(matcher.group(2));
+      if (property == null) {
+        throw new InvalidCmdlineArgumentException(String.format(
+            "The property '%s' given in the property file is not supported.", matcher.group(2)));
+      }
+      return property;
     }
+  }
 
-    private enum PropertyType {
-      REACHABILITY    ("G ! label(ERROR)", "config/specification/sv-comp.spc"),
-      VALID_FREE      ("G valid-free",      null),
-      VALID_DEREF     ("G valid-deref",     null),
-      VALID_MEMTRACK  ("G valid-memtrack",  null);
+  private enum PropertyType {
+    REACHABILITY,
+    VALID_FREE,
+    VALID_DEREF,
+    VALID_MEMTRACK,
+    ;
 
-      private final String property;
-      private final String automatonFileName;
+    private static ImmutableMap<String, PropertyType> AVAILABLE_PROPERTIES = ImmutableMap.of(
+        "G ! label(ERROR)", PropertyType.REACHABILITY,
+        "G valid-free",     PropertyType.VALID_FREE,
+        "G valid-deref",    PropertyType.VALID_DEREF,
+        "G valid-memtrack", PropertyType.VALID_MEMTRACK
+        );
 
-      PropertyType (String pProperty, String pAutomatonFileName) {
-        property          = pProperty;
-        automatonFileName = pAutomatonFileName;
-      }
-    }
   }
 }

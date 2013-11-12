@@ -35,6 +35,10 @@ public class StatInt extends AbstractStatValue {
     super(pMainStatisticKind, pTitle);
   }
 
+  public StatInt(StatKind pMainStatisticKind) {
+    super(pMainStatisticKind);
+  }
+
   public void setNextValue(int newValue) {
     valueSum += newValue;
     valueCount += 1;

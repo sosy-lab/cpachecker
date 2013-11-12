@@ -23,18 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.types;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -170,6 +160,39 @@ public enum MachineModel {
     return true;
   }
 
+  /**
+   * Determine whether a type is signed or unsigned.
+   * Contrary to {@link CSimpleType#isSigned()} and {@link CSimpleType#isUnsigned()}
+   * this method leaves no third option and should thus be preferred.
+   * For floating point types it returns true,
+   * for types where signedness makes no sense (bool, void) it returns false.
+   */
+  public boolean isSigned(CSimpleType t) {
+    // resolve UNSPECIFIED and INT to SIGNED INT etc.
+    t = t.getCanonicalType();
+
+    if (t.isSigned()) {
+      return true;
+    } else if (t.isUnsigned()) {
+      return false;
+    }
+
+    switch (t.getType()) {
+    case CHAR:
+      return isDefaultCharSigned();
+    case FLOAT:
+    case DOUBLE:
+      return true;
+    case INT:
+      throw new AssertionError("Canonical type of INT should always have sign modifier");
+    case UNSPECIFIED:
+      throw new AssertionError("Canonical type should never be UNSPECIFIED");
+    default:
+      // bool, void
+      return false;
+    }
+  }
+
   public int getSizeofCharInBits() {
     return mSizeofCharInBits;
   }
@@ -256,23 +279,12 @@ public enum MachineModel {
 
     @Override
     public Integer visit(CArrayType pArrayType) throws IllegalArgumentException {
-      // TODO: This has to be checked (Example: Char pathbuf[1 + 1];)
       // TODO: Take possible padding into account
-
-      // [CPAlien] TODO: Implement an option for different treating of arrays: some CPAs
-      // treat sizeof array as pointer, and therefore the following code was commented out.
-      // CPAlien uses arrays in the real way, so we now need the option. I guess the proper
-      // behavior should be default, and the treat-array-as-pointer should be optional.
 
       CExpression arrayLength = pArrayType.getLength();
 
-      Integer length = null;
-
-      if (arrayLength != null) {
-        length = arrayLength.accept(new ArrayLengthVisitor());
-      }
-
-      if (length != null) {
+      if (arrayLength instanceof CIntegerLiteralExpression) {
+        int length = ((CIntegerLiteralExpression)arrayLength).getValue().intValue();
 
         Integer sizeOfType = model.getSizeof(pArrayType.getType());
 
@@ -281,9 +293,8 @@ public enum MachineModel {
         }
       }
 
-      // We do not support arrays with variable length, so treat them as pointer.
+      // Treat arrays with variable length as pointer.
       return model.getSizeofPtr();
-      //return getSizeofInt();
     }
 
     @Override
@@ -368,184 +379,6 @@ public enum MachineModel {
     @Override
     public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
       return pTypedefType.getRealType().accept(this);
-    }
-
-    @SuppressWarnings("unused")
-    private class ArrayLengthVisitor extends DefaultCExpressionVisitor<Integer, IllegalArgumentException> {
-
-      @Override
-      protected Integer visitDefault(CExpression pExp) {
-        return null;
-      }
-
-      @Override
-      public Integer visit(CIntegerLiteralExpression exp) throws IllegalArgumentException {
-        return (int) exp.asLong();
-      }
-
-      @Override
-      public Integer visit(CBinaryExpression pE) throws IllegalArgumentException {
-        BinaryOperator binaryOperator = pE.getOperator();
-        CExpression lVarInBinaryExp = pE.getOperand1();
-        CExpression rVarInBinaryExp = pE.getOperand2();
-
-        switch (binaryOperator) {
-        case PLUS:
-        case MINUS:
-        case DIVIDE:
-        case MULTIPLY:
-        case SHIFT_LEFT:
-        case BINARY_AND:
-        case BINARY_OR:
-        case BINARY_XOR: {
-          Integer lVal = lVarInBinaryExp.accept(this);
-          if (lVal == null) { return null; }
-
-          Integer rVal = rVarInBinaryExp.accept(this);
-          if (rVal == null) { return null; }
-
-          switch (binaryOperator) {
-          case PLUS:
-            return lVal + rVal;
-
-          case MINUS:
-            return lVal - rVal;
-
-          case DIVIDE:
-            // TODO maybe we should signal a division by zero error?
-            if (rVal == 0) { return null; }
-
-            return lVal / rVal;
-
-          case MULTIPLY:
-            return lVal * rVal;
-
-          case SHIFT_LEFT:
-            return lVal << rVal;
-
-          case BINARY_AND:
-            return lVal & rVal;
-
-          case BINARY_OR:
-            return lVal | rVal;
-
-          case BINARY_XOR:
-            return lVal ^ rVal;
-
-          default:
-            return null;
-          }
-        }
-
-        case EQUALS:
-        case NOT_EQUALS:
-        case GREATER_THAN:
-        case GREATER_EQUAL:
-        case LESS_THAN:
-        case LESS_EQUAL: {
-
-          Integer lVal = lVarInBinaryExp.accept(this);
-          if (lVal == null) { return null; }
-
-          Integer rVal = rVarInBinaryExp.accept(this);
-          if (rVal == null) { return null; }
-
-          boolean result;
-          switch (binaryOperator) {
-          case EQUALS:
-            result = (lVal.equals(rVal));
-            break;
-          case NOT_EQUALS:
-            result = !(lVal.equals(rVal));
-            break;
-          case GREATER_THAN:
-            result = (lVal > rVal);
-            break;
-          case GREATER_EQUAL:
-            result = (lVal >= rVal);
-            break;
-          case LESS_THAN:
-            result = (lVal < rVal);
-            break;
-          case LESS_EQUAL:
-            result = (lVal <= rVal);
-            break;
-
-          default:
-            return null;
-          }
-
-          // return 1 if expression holds, 0 otherwise
-          return result ? 1 : 0;
-        }
-
-        case MODULO:
-        case SHIFT_RIGHT:
-        default:
-          // TODO check which cases can be handled
-          return null;
-        }
-      }
-
-      @Override
-      public Integer visit(CUnaryExpression unaryExpression) throws IllegalArgumentException {
-        UnaryOperator unaryOperator = unaryExpression.getOperator();
-        CExpression unaryOperand = unaryExpression.getOperand();
-
-        Integer value = null;
-
-        switch (unaryOperator) {
-        case MINUS:
-          value = unaryOperand.accept(this);
-          return (value != null) ? -value : null;
-
-        case NOT:
-          value = unaryOperand.accept(this);
-
-          if (value == null) {
-            return null;
-          } else {
-            return value == 0 ? 1 : 0;
-          }
-
-        case SIZEOF:
-          return model.getSizeof(unaryOperand.getExpressionType());
-        case TILDE:
-        default:
-          return null;
-        }
-      }
-
-      @Override
-      public Integer visit(CPointerExpression pointerExpression) throws IllegalArgumentException {
-        // TODO check on validity
-        return null;
-      }
-
-      @Override
-      public Integer visit(CTypeIdExpression typeIdExp) throws IllegalArgumentException {
-
-        TypeIdOperator typeOperator = typeIdExp.getOperator();
-        CType type = typeIdExp.getType();
-
-        switch (typeOperator) {
-        case SIZEOF:
-          return model.getSizeof(type);
-        default:
-          return null;
-          //TODO Investigate the other Operators.
-        }
-      }
-
-      @Override
-      public Integer visit(CCastExpression pE) throws IllegalArgumentException {
-        return pE.getOperand().accept(this);
-      }
-
-      @Override
-      public Integer visit(CComplexCastExpression pE) throws IllegalArgumentException {
-        return pE.getOperand().accept(this);
-      }
     }
   }
 

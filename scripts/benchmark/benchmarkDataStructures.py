@@ -205,6 +205,8 @@ class Benchmark:
         baseDir = os.path.dirname(self.benchmarkFile)
         for requiredFilesTag in rootTag.findall('requiredfiles'):
             requiredFiles = Util.expandFileNamePattern(requiredFilesTag.text, baseDir)
+            if not requiredFiles:
+                logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(requiredFilesTag.text))
             self._requiredFiles.extend(requiredFiles)
 
         # get requirements
@@ -392,6 +394,23 @@ class RunSet:
             excludedFilesList = self.expandFileNamePattern(excludedFiles.text, baseDir)
             for excludedFile in excludedFilesList:
                 sourcefiles = Util.removeAll(sourcefiles, excludedFile)
+
+        for excludesFilesFile in sourcefilesTag.findall("excludesfile"):
+            for file in self.expandFileNamePattern(excludesFilesFile.text, baseDir):
+                # read files from list
+                fileWithList = open(file, 'rt')
+                for line in fileWithList:
+
+                    # strip() removes 'newline' behind the line
+                    line = line.strip()
+
+                    # ignore comments and empty lines
+                    if not Util.isComment(line):
+                        excludedFilesList = self.expandFileNamePattern(line, os.path.dirname(file))
+                        for excludedFile in excludedFilesList:
+                            sourcefiles = Util.removeAll(sourcefiles, excludedFile)
+
+                fileWithList.close()
 
         return sourcefiles
 

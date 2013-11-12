@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Mockito.*;
-
+import java.util.ArrayList;
 import java.util.Set;
 
 import org.junit.Assert;
@@ -34,8 +32,10 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.cpalien.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
@@ -47,8 +47,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 public class SMGJoinTest {
-  private CFunctionType functionType = mock(CFunctionType.class);
-  private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
+  private CType returnType = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
+  private CFunctionType functionType = new CFunctionType(false, false, returnType, new ArrayList<CType>(), false);
+  private CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
 
   private CLangSMG smg1;
   private CLangSMG smg2;
@@ -56,7 +57,6 @@ public class SMGJoinTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
-    when(functionType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
     smg1 = new CLangSMG(MachineModel.LINUX64);
     smg2 = new CLangSMG(MachineModel.LINUX64);
   }
@@ -189,11 +189,11 @@ public class SMGJoinTest {
   }
 
   private void joinUpdateUnit(SMGJoinStatus firstOperand, SMGJoinStatus forLe, SMGJoinStatus forRe) {
-    Assert.assertEquals(firstOperand, SMGUpdateJoinStatus.updateStatus(firstOperand, SMGJoinStatus.EQUAL));
-    Assert.assertEquals(forLe, SMGUpdateJoinStatus.updateStatus(firstOperand, SMGJoinStatus.LEFT_ENTAIL));
-    Assert.assertEquals(forRe, SMGUpdateJoinStatus.updateStatus(firstOperand, SMGJoinStatus.RIGHT_ENTAIL));
+    Assert.assertEquals(firstOperand, SMGJoinStatus.updateStatus(firstOperand, SMGJoinStatus.EQUAL));
+    Assert.assertEquals(forLe, SMGJoinStatus.updateStatus(firstOperand, SMGJoinStatus.LEFT_ENTAIL));
+    Assert.assertEquals(forRe, SMGJoinStatus.updateStatus(firstOperand, SMGJoinStatus.RIGHT_ENTAIL));
     Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGUpdateJoinStatus.updateStatus(firstOperand, SMGJoinStatus.INCOMPARABLE));
+        SMGJoinStatus.updateStatus(firstOperand, SMGJoinStatus.INCOMPARABLE));
   }
 
   @Test

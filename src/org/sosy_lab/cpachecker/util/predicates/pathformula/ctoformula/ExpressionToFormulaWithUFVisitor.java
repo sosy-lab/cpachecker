@@ -31,6 +31,8 @@ import java.util.Map;
 import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -48,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
@@ -63,14 +66,47 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
                                           final String function,
                                           final SSAMapBuilder ssa,
                                           final Constraints constraints,
+                                          final ErrorConditions errorConditions,
                                           final PointerTargetSetBuilder pts) {
 
     super(cToFormulaConverter, cfaEdge, function, ssa, constraints);
 
     this.conv = cToFormulaConverter;
+    this.errorConditions = errorConditions;
     this.pts = pts;
 
     this.baseVisitor = new BaseVisitor(conv, cfaEdge, pts);
+  }
+
+  private void addEqualBaseAdressConstraint(Formula p1, Formula p2) {
+    constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(p1),
+                                                  conv.makeBaseAddressOfTerm(p2)));
+  }
+  @Override
+  public Formula visit(CBinaryExpression pExp) throws UnrecognizedCCodeException {
+    if (pExp.getOperator() != BinaryOperator.PLUS
+        && pExp.getOperator() != BinaryOperator.MINUS) {
+      return super.visit(pExp);
+    }
+
+    // potentially pointer arithmetic
+    CType t1 = PointerTargetSet.simplifyType(pExp.getOperand1().getExpressionType());
+    CType t2 = PointerTargetSet.simplifyType(pExp.getOperand2().getExpressionType());
+
+    final Formula result = super.visit(pExp);
+    final Object savedLastTarget = lastTarget;
+    if (t1 instanceof CPointerType) {
+      if (!(t2 instanceof CPointerType)) {
+        Formula operand1 = pExp.getOperand1().accept(this);
+        addEqualBaseAdressConstraint(result, operand1);
+      }
+    } else if (t2 instanceof CPointerType) {
+      Formula operand2 = pExp.getOperand1().accept(this);
+      addEqualBaseAdressConstraint(result, operand2);
+    }
+    lastTarget = savedLastTarget;
+
+    return result;
   }
 
   @Override
@@ -78,14 +114,16 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     final Formula base = e.getArrayExpression().accept(this);
     final CExpression subscript = e.getSubscriptExpression();
     final CType subscriptType = PointerTargetSet.simplifyType(subscript.getExpressionType());
-    final Formula index = conv.makeCast(subscriptType, PointerTargetSet.POINTER_TO_VOID, subscript.accept(this), edge);
+    final Formula index = conv.makeCast(subscriptType, CPointerType.POINTER_TO_VOID, subscript.accept(this), edge);
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     final int size = pts.getSize(resultType);
-    final Formula coeff = conv.fmgr.makeNumber(pts.getPointerType(), size);
+    final Formula coeff = conv.fmgr.makeNumber(conv.pointerType, size);
     final Formula offset = conv.fmgr.makeMultiply(coeff, index);
-    lastTarget = conv.fmgr.makePlus(base, offset);
-    return conv.isCompositeType(resultType) ? (Formula) lastTarget :
-           conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
+    final Formula address = conv.fmgr.makePlus(base, offset);
+    lastTarget = address;
+    addEqualBaseAdressConstraint(base, address);
+    return conv.isCompositeType(resultType) ? address :
+           conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
   }
 
   static CFieldReference eliminateArrow(final CFieldReference e, final CFAEdge edge)
@@ -119,7 +157,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
       final String variableName = variable.getName();
       lastTarget = variableName;
       if (pts.isDeferredAllocationPointer(variableName)) {
-        usedDeferredAllocationPointers.put(variableName, PointerTargetSet.POINTER_TO_VOID);
+        usedDeferredAllocationPointers.put(variableName, CPointerType.POINTER_TO_VOID);
       }
       return conv.makeVariable(variable, ssa, pts);
     } else {
@@ -128,11 +166,13 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         final Formula base = e.getFieldOwner().accept(this);
         final String fieldName = e.getFieldName();
         usedFields.add(Pair.of((CCompositeType) fieldOwnerType, fieldName));
-        final Formula offset = conv.fmgr.makeNumber(pts.getPointerType(),
+        final Formula offset = conv.fmgr.makeNumber(conv.pointerType,
                                                     pts.getOffset((CCompositeType) fieldOwnerType, fieldName));
-        lastTarget = conv.fmgr.makePlus(base, offset);
-        return conv.isCompositeType(resultType) ? (Formula) lastTarget :
-               conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
+        final Formula address = conv.fmgr.makePlus(base, offset);
+        lastTarget = address;
+        addEqualBaseAdressConstraint(base, address);
+        return conv.isCompositeType(resultType) ? address :
+               conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
       } else {
         throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
       }
@@ -151,7 +191,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
 
   static boolean isRevealingType(final CType type) {
     return (type instanceof CPointerType || type instanceof CArrayType) &&
-           !type.equals(PointerTargetSet.POINTER_TO_VOID);
+           !type.equals(CPointerType.POINTER_TO_VOID);
   }
 
   @Override
@@ -163,10 +203,24 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         lastTarget instanceof String &&
         pts.isDeferredAllocationPointer(((String) lastTarget))) {
       assert usedDeferredAllocationPointers.containsKey(lastTarget) &&
-             usedDeferredAllocationPointers.get(lastTarget).equals(PointerTargetSet.POINTER_TO_VOID) :
+             usedDeferredAllocationPointers.get(lastTarget).equals(CPointerType.POINTER_TO_VOID) :
              "Wrong assumptions on deferred allocations tracking: unknown pointer encountered";
       usedDeferredAllocationPointers.put((String) lastTarget, resultType);
     }
+
+    if (operand instanceof CPointerExpression
+        && !(resultType instanceof CFunctionType)) {
+      // Heuristic:
+      // When there is (t)*p, we treat it like *((*t)p)
+      // This means the UF for type t get's used instead of the UF for actual type of p.
+      final CExpression pointer = ((CPointerExpression)operand).getOperand();
+
+      final Formula address = pointer.accept(this);
+      lastTarget = address;
+      return conv.isCompositeType(resultType) ? address :
+             conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
+    }
+
     return result;
   }
 
@@ -179,20 +233,20 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         final String variableName = variable.getName();
         lastTarget = variableName;
         if (pts.isDeferredAllocationPointer(variableName)) {
-          usedDeferredAllocationPointers.put(variableName, PointerTargetSet.POINTER_TO_VOID);
+          usedDeferredAllocationPointers.put(variableName, CPointerType.POINTER_TO_VOID);
         }
         return conv.makeVariable(variable, ssa, pts);
       } else {
-        return conv.makeConstant(variable, ssa, pts);
+        return conv.makeConstant(variable, pts);
       }
     } else {
       variable = conv.scopedIfNecessary(e, ssa, function);
-      lastTarget = conv.makeConstant(Variable.create(PointerTargetSet.getBaseName(variable.getName()),
-                                                     PointerTargetSet.getBaseType(resultType)),
-                                     ssa,
-                                     pts);
-      return conv.isCompositeType(resultType) ? (Formula) lastTarget :
-             conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
+      final Formula address = conv.makeConstant(PointerTargetSet.getBaseName(variable.getName()),
+                                                PointerTargetSet.getBaseType(resultType),
+                                                pts);
+      lastTarget = address;
+      return conv.isCompositeType(resultType) ? address :
+             conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
     }
   }
 
@@ -233,7 +287,35 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         final Variable baseVariable = operand.accept(baseVisitor);
         if (baseVariable == null) {
           final int oldUsedFieldsSize = usedFields.size();
-          Formula addressExpression = operand.accept(this);
+          Formula addressExpression = null;
+
+          if (operand instanceof CFieldReference) {
+            // for &(s->f) and &((*s).f) do special case because the pointer is
+            // not actually dereferenced and thus we don't want to add error conditions
+            // for invalid-deref
+            CFieldReference field = (CFieldReference)operand;
+            CExpression fieldOwner = field.getFieldOwner();
+            boolean isDeref = field.isPointerDereference();
+            if (!isDeref && fieldOwner instanceof CPointerExpression) {
+              fieldOwner = ((CPointerExpression)fieldOwner).getOperand();
+              isDeref = true;
+            }
+            if (isDeref) {
+              final Formula base = fieldOwner.accept(this);
+              final String fieldName = field.getFieldName();
+              final CPointerType pointerType = (CPointerType)PointerTargetSet.simplifyType(fieldOwner.getExpressionType());
+              final CCompositeType compositeType = (CCompositeType)PointerTargetSet.simplifyType(pointerType.getType());
+              usedFields.add(Pair.of(compositeType, fieldName));
+              final Formula offset = conv.fmgr.makeNumber(conv.pointerType,
+                                                          pts.getOffset(compositeType, fieldName));
+              lastTarget = addressExpression = conv.fmgr.makePlus(base, offset);
+              addEqualBaseAdressConstraint(base, addressExpression);
+            }
+          }
+
+          if (addressExpression == null) {
+            addressExpression = operand.accept(this);
+          }
           for (int i = oldUsedFieldsSize; i < usedFields.size(); i++) {
             addressedFields.add(usedFields.get(i));
           }
@@ -249,13 +331,14 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
           final Variable newBaseVariable = oldBaseVariable.withType(
             PointerTargetSet.getBaseType(oldBaseVariable.getType()));
           final Formula baseAddress = conv.makeConstant(
-            newBaseVariable.withName(PointerTargetSet.getBaseName(oldBaseVariable.getName())), ssa, pts);
+            newBaseVariable.withName(PointerTargetSet.getBaseName(oldBaseVariable.getName())), pts);
           conv.addSharingConstraints(edge,
                                      baseAddress,
                                      oldBaseVariable,
                                      initializedFields,
                                      ssa,
                                      constraints,
+                                     errorConditions,
                                      pts);
           if (ssa.getIndex(oldBaseVariable.getName()) != CToFormulaWithUFConverter.VARIABLE_UNSET) {
             ssa.deleteVariable(oldBaseVariable.getName());
@@ -283,9 +366,10 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     final CExpression operand = e.getOperand();
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     if (!(resultType instanceof CFunctionType)) {
-      lastTarget = operand.accept(this);
-      return conv.isCompositeType(resultType) ? (Formula) lastTarget :
-             conv.makeDereferece(resultType, (Formula) lastTarget, ssa, pts);
+      final Formula address = operand.accept(this);
+      lastTarget = address;
+      return conv.isCompositeType(resultType) ? address :
+             conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
     } else {
       lastTarget = null;
       return operand.accept(this);
@@ -448,15 +532,16 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
   }
 
   @SuppressWarnings("hiding")
-  protected final CToFormulaWithUFConverter conv;
-  protected final PointerTargetSetBuilder pts;
+  private final CToFormulaWithUFConverter conv;
+  private final ErrorConditions errorConditions;
+  private final PointerTargetSetBuilder pts;
 
-  protected final BaseVisitor baseVisitor;
+  private final BaseVisitor baseVisitor;
 
-  protected Object lastTarget;
-  protected final List<Pair<String, CType>> sharedBases = new ArrayList<>();
-  protected final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>();
-  protected final List<Pair<CCompositeType, String>> addressedFields = new ArrayList<>();
-  protected final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();
-  protected final Map<String, CType> usedDeferredAllocationPointers = new HashMap<>();
+  private Object lastTarget;
+  private final List<Pair<String, CType>> sharedBases = new ArrayList<>();
+  private final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>();
+  private final List<Pair<CCompositeType, String>> addressedFields = new ArrayList<>();
+  private final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();
+  private final Map<String, CType> usedDeferredAllocationPointers = new HashMap<>();
 }

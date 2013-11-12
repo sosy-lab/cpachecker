@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Objects.firstNonNull;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,7 +36,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.ViolatedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
@@ -55,9 +60,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Optional;
@@ -78,6 +85,12 @@ public class PredicateTransferRelation implements TransferRelation {
   @Option(description = "check satisfiability when a target state has been found (should be true)")
   private boolean targetStateSatCheck = true;
 
+  @Option(description = "Check whether all pointer dereferences are valid.")
+  private boolean checkValidDeref = false;
+
+  @Option(description = "Check whether all calls to free() are valid.")
+  private boolean checkValidFree = false;
+
   // statistics
   final Timer postTimer = new Timer();
   final Timer satCheckTimer = new Timer();
@@ -93,7 +106,7 @@ public class PredicateTransferRelation implements TransferRelation {
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
-  private final PredicateAbstractionReuse abstractionStorage;
+  private final PredicateAbstractionReuse abstractionReuse;
 
   private final BlockOperator blk;
 
@@ -111,7 +124,7 @@ public class PredicateTransferRelation implements TransferRelation {
     fmgr = pCpa.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     blk = pBlk;
-    abstractionStorage = pStorage;
+    abstractionReuse = pStorage;
   }
 
   @Override
@@ -129,57 +142,104 @@ public class PredicateTransferRelation implements TransferRelation {
       if (element.getAbstractionFormula().isFalse()) { return Collections.emptySet(); }
 
       // calculate strongest post
-      PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
+      Pair<PathFormula, ErrorConditions> edgeResult = convertEdgeToPathFormula(element.getPathFormula(), edge);
+      PathFormula pathFormula = edgeResult.getFirst();
+      ErrorConditions conditions = edgeResult.getSecond();
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
       // determine the successor state in the reuse-ARG
-      Optional<Integer> getPostLocationId = Optional.of(edge.getSuccessor().getNodeNumber());
       Set<Integer> reuseCandidateStateId = Collections.emptySet();
-      if (element.getReuseStateId().size() > 1) {
-        throw new IllegalStateException("States with multiple abstraction reuses not yet supported!");
-      } else if (element.getReuseStateId().size() == 1) {
-        int lastAbstractionIdReused = element.getReuseStateId().iterator().next();
-        reuseCandidateStateId = abstractionStorage.getSuccessorStateIds(lastAbstractionIdReused, getPostLocationId);
-        if (reuseCandidateStateId.size() > 1) {
-          Iterator<Integer> it = reuseCandidateStateId.iterator();
-          Integer first = it.next();
-          Integer second = it.next();
-          if (abstractionStorage.isCoveredBy(first, second)
-              && !abstractionStorage.wasAbstractionReused(second)) {
-            reuseCandidateStateId.clear();
-            reuseCandidateStateId.add(second);
-          } else if (abstractionStorage.isCoveredBy(second, first)
-              && !abstractionStorage.wasAbstractionReused(first)) {
-            reuseCandidateStateId.clear();
-            reuseCandidateStateId.add(first);
-          } else if (!abstractionStorage.wasAbstractionReused(second)) {
-            reuseCandidateStateId.clear();
-            reuseCandidateStateId.add(second);
-          } else if (!abstractionStorage.wasAbstractionReused(first)) {
-            reuseCandidateStateId.clear();
-            reuseCandidateStateId.add(first);
-          } else {
-            throw new IllegalStateException(String.format("There should be only one successor abstraction for reuse! (%d, %s)", lastAbstractionIdReused, getPostLocationId));
+      Optional<Integer> getPostLocationId = Optional.of(edge.getSuccessor().getNodeNumber());
+      if (abstractionReuse.hasNonAbstractionStatesIncluded()) {
+        if (element.getPositionInReuseGraph().size() > 1) {
+          throw new IllegalStateException("States with multiple abstraction reuses not yet supported!");
+        } else if (element.getPositionInReuseGraph().size() == 1) {
+          int lastAbstractionIdReused = element.getPositionInReuseGraph().iterator().next();
+          reuseCandidateStateId = abstractionReuse.getSuccessorStateIds(lastAbstractionIdReused, getPostLocationId);
+          if (reuseCandidateStateId.size() > 1) {
+            Iterator<Integer> it = reuseCandidateStateId.iterator();
+            Integer first = it.next();
+            Integer second = it.next();
+            if (abstractionReuse.isCoveredBy(first, second)
+                && !abstractionReuse.wasAbstractionReused(second)) {
+              reuseCandidateStateId.clear();
+              reuseCandidateStateId.add(second);
+            } else if (abstractionReuse.isCoveredBy(second, first)
+                && !abstractionReuse.wasAbstractionReused(first)) {
+              reuseCandidateStateId.clear();
+              reuseCandidateStateId.add(first);
+            } else if (!abstractionReuse.wasAbstractionReused(second)) {
+              reuseCandidateStateId.clear();
+              reuseCandidateStateId.add(second);
+            } else if (!abstractionReuse.wasAbstractionReused(first)) {
+              reuseCandidateStateId.clear();
+              reuseCandidateStateId.add(first);
+            } else {
+              throw new IllegalStateException(String.format("There should be only one successor abstraction for reuse! (%d, %s)", lastAbstractionIdReused, getPostLocationId));
+            }
           }
         }
+      } else {
+        reuseCandidateStateId = element.getPositionInReuseGraph();
       }
 
-      logger.log(Level.FINEST, "Transfer reuse @", getPostLocationId, element.getReuseStateId(), reuseCandidateStateId);
+      logger.log(Level.FINEST, "Transfer reuse @", getPostLocationId, element.getPositionInReuseGraph(), reuseCandidateStateId);
 
       // check whether to do abstraction
       boolean doAbstraction = blk.isBlockEnd(edge, pathFormula);
 
-      if (doAbstraction) {
-        return Collections.singleton(
-            new PredicateAbstractState.ComputeAbstractionState(
-                pathFormula, element.getAbstractionFormula(), loc,
-                element.getAbstractionLocationsOnPath(),
-                reuseCandidateStateId));
-      } else {
-        return handleNonAbstractionFormulaLocation(pathFormula, element, reuseCandidateStateId);
+      if (!checkValidDeref && !checkValidFree) {
+        return createState(element, pathFormula, loc, doAbstraction, null, reuseCandidateStateId);
       }
+
+      BooleanFormula invalidDerefCondition = conditions.getInvalidDerefCondition();
+      BooleanFormula invalidFreeCondition = conditions.getInvalidFreeCondition();
+
+      if (bfmgr.isTrue(invalidDerefCondition)) {
+        return createState(element, pathFormula, loc, doAbstraction, ViolatedProperty.VALID_DEREF, reuseCandidateStateId);
+      }
+      if (bfmgr.isTrue(invalidFreeCondition)) {
+        return createState(element, pathFormula, loc, doAbstraction, ViolatedProperty.VALID_FREE, reuseCandidateStateId);
+      }
+
+      List<PredicateAbstractState> newStates = new ArrayList<>(2);
+
+      if (checkValidDeref && !bfmgr.isFalse(invalidDerefCondition)) {
+        logger.log(Level.ALL, "Adding invalid-deref condition", invalidDerefCondition);
+        PathFormula targetPathFormula = pathFormulaManager.makeAnd(edgeResult.getFirst(), invalidDerefCondition);
+        newStates.addAll(createState(element, targetPathFormula, loc, doAbstraction,
+            ViolatedProperty.VALID_DEREF, reuseCandidateStateId));
+
+        pathFormula = pathFormulaManager.makeAnd(pathFormula,
+            bfmgr.not(invalidDerefCondition));
+      }
+
+      if (checkValidFree && !bfmgr.isFalse(invalidFreeCondition)) {
+        logger.log(Level.ALL, "Adding invalid-free condition", invalidFreeCondition);
+        PathFormula targetPathFormula = pathFormulaManager.makeAnd(edgeResult.getFirst(), invalidFreeCondition);
+        newStates.addAll(createState(element, targetPathFormula, loc, doAbstraction,
+            ViolatedProperty.VALID_FREE, reuseCandidateStateId));
+
+        pathFormula = pathFormulaManager.makeAnd(pathFormula,
+            bfmgr.not(invalidFreeCondition));
+      }
+
+      newStates.addAll(createState(element, pathFormula, loc, doAbstraction, null, reuseCandidateStateId));
+      return newStates;
     } finally {
       postTimer.stop();
+    }
+  }
+
+  private Collection<? extends PredicateAbstractState> createState(PredicateAbstractState oldState, PathFormula pathFormula,
+      CFANode loc, boolean doAbstraction, @Nullable ViolatedProperty pViolatedProperty, Set<Integer> pReuseStateId) throws InterruptedException {
+    if (doAbstraction) {
+      return Collections.singleton(
+          new PredicateAbstractState.ComputeAbstractionState(
+              pathFormula, oldState.getAbstractionFormula(), loc,
+              oldState.getAbstractionLocationsOnPath(), pViolatedProperty, pReuseStateId));
+    } else {
+      return handleNonAbstractionFormulaLocation(pathFormula, pViolatedProperty, oldState, pReuseStateId);
     }
   }
 
@@ -190,7 +250,8 @@ public class PredicateTransferRelation implements TransferRelation {
    * @throws InterruptedException
    */
   private Collection<PredicateAbstractState> handleNonAbstractionFormulaLocation(
-      PathFormula pathFormula, PredicateAbstractState oldState,
+      PathFormula pathFormula, @Nullable ViolatedProperty pViolatedProperty,
+      PredicateAbstractState oldState,
       Set<Integer> pReuseCandidateStateId) throws InterruptedException {
     boolean satCheck = (satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize);
 
@@ -213,7 +274,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
     // create the new abstract state for non-abstraction location
     return Collections.singleton(
-        mkNonAbstractionStateWithNewPathFormula(pathFormula, oldState, pReuseCandidateStateId));
+        mkNonAbstractionStateWithNewPathFormula(pathFormula, pViolatedProperty, oldState, pReuseCandidateStateId));
   }
 
   /**
@@ -227,11 +288,11 @@ public class PredicateTransferRelation implements TransferRelation {
    * @return  The new pathFormula.
    * @throws UnrecognizedCFAEdgeException
    */
-  public PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException {
+  private Pair<PathFormula, ErrorConditions> convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException {
     pathFormulaTimer.start();
     try {
       // compute new pathFormula with the operation on the edge
-      return pathFormulaManager.makeAnd(pathFormula, edge);
+      return pathFormulaManager.makeAndWithErrorConditions(pathFormula, edge);
     } finally {
       pathFormulaTimer.stop();
     }
@@ -289,7 +350,7 @@ public class PredicateTransferRelation implements TransferRelation {
         new CAssumeEdge(pAssumeElement.getExpression().toASTString(), pNode.getLineNumber(), pNode, pNode,
             pAssumeElement.getExpression(), true);
 
-    PathFormula pf = convertEdgeToPathFormula(pElement.getPathFormula(), lEdge);
+    PathFormula pf = convertEdgeToPathFormula(pElement.getPathFormula(), lEdge).getFirst();
 
     return replacePathFormula(pElement, pf);
   }
@@ -319,10 +380,11 @@ public class PredicateTransferRelation implements TransferRelation {
       return new ComputeAbstractionState(newPathFormula,
           oldElement.getAbstractionFormula(), loc,
           oldElement.getAbstractionLocationsOnPath(),
-          oldElement.getReuseStateId());
+          oldElement.getViolatedProperty(),
+		  oldElement.getPositionInReuseGraph());
     } else {
       assert !oldElement.isAbstractionState();
-      return mkNonAbstractionStateWithNewPathFormula(newPathFormula, oldElement, oldElement.getReuseStateId());
+      return mkNonAbstractionStateWithNewPathFormula(newPathFormula, oldElement.getViolatedProperty(), oldElement, oldElement.getPositionInReuseGraph());
     }
   }
 
@@ -355,7 +417,7 @@ public class PredicateTransferRelation implements TransferRelation {
       abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
       return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-          abs, abstractionLocations, pElement.getReuseStateId());
+          abs, abstractionLocations, pElement.getViolatedProperty(), pElement.getPositionInReuseGraph());
     }
   }
 
@@ -370,9 +432,9 @@ public class PredicateTransferRelation implements TransferRelation {
 
     if (pSuccessors.isEmpty()) {
       satCheckTimer.start();
-      PathFormula pFormula = convertEdgeToPathFormula(pathFormula, pCfaEdge);
+      PathFormula pFormula = convertEdgeToPathFormula(pathFormula, pCfaEdge).getFirst();
       Collection<? extends AbstractState> foundSuccessors =
-          handleNonAbstractionFormulaLocation(pFormula, predicateElement, Collections.<Integer>emptySet());
+          handleNonAbstractionFormulaLocation(pFormula, predicateElement.getViolatedProperty(), predicateElement, Collections.<Integer>emptySet());
       //if we found successors, they all have to be unsat
       for (AbstractState e : foundSuccessors) {
         PredicateAbstractState successor = (PredicateAbstractState) e;
@@ -388,7 +450,7 @@ public class PredicateTransferRelation implements TransferRelation {
       PredicateAbstractState successor = (PredicateAbstractState) e;
 
       if (successor.isAbstractionState()) {
-        pathFormula = convertEdgeToPathFormula(pathFormula, pCfaEdge);
+        pathFormula = convertEdgeToPathFormula(pathFormula, pCfaEdge).getFirst();
         // check abstraction
         abstractionCheckTimer.start();
         if (!formulaManager.checkCoverage(predicateElement.getAbstractionFormula(), pathFormula,
@@ -405,7 +467,7 @@ public class PredicateTransferRelation implements TransferRelation {
         abstractionCheckTimer.stop();
 
         // compute path formula
-        PathFormula computedPathFormula = convertEdgeToPathFormula(pathFormula, pCfaEdge);
+        PathFormula computedPathFormula = convertEdgeToPathFormula(pathFormula, pCfaEdge).getFirst();
         PathFormula mergeWithPathFormula = computedPathFormulae.get(successor);
         if (mergeWithPathFormula != null) {
           computedPathFormulae.put(successor, pathFormulaManager.makeOr(mergeWithPathFormula, computedPathFormula));

@@ -30,6 +30,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,11 +38,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -50,11 +54,13 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
@@ -63,6 +69,8 @@ import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * This class takes several CFAs (each for a single function) and combines them
@@ -74,6 +82,10 @@ public class CFASecondPassBuilder {
   @Option(name="analysis.summaryEdges",
       description="create summary call statement edges")
   private boolean summaryEdges = false;
+
+  @Option(name="cfa.assumeFunctions",
+      description="Which functions should be interpreted as encoding assumptions")
+  private Set<String> assumeFunctions = ImmutableSet.of("__VERIFIER_assume");
 
   protected final MutableCFA cfa;
   protected final Language language;
@@ -127,6 +139,8 @@ public class CFASecondPassBuilder {
 
             if (shouldCreateCallEdges(call)) {
               createCallAndReturnEdges(statementEdge, call);
+            } else {
+              replaceBuiltinFunction(statementEdge, call);
             }
           }
         }
@@ -290,5 +304,46 @@ public class CFASecondPassBuilder {
     int actualParameters = parameters.size();
 
     return (functionType.takesVarArgs() && declaredParameters <= actualParameters) || (declaredParameters == actualParameters);
+  }
+
+  private void replaceBuiltinFunction(AStatementEdge edge, AFunctionCall call) {
+    if (!(edge instanceof CStatementEdge)) {
+      return;
+    }
+
+    AFunctionCallExpression f = call.getFunctionCallExpression();
+    if (f.getDeclaration() == null) {
+      return;
+    }
+    String name = f.getDeclaration().getName();
+
+    if (!assumeFunctions.contains(name)) {
+      return;
+    }
+
+    if (f.getParameterExpressions().size() != 1) {
+      logger.logf(Level.WARNING, "Ignoring call to %s with illegal number of parameters (%s).",
+          name, f.getParameterExpressions().size());
+      return;
+    }
+
+    if (call instanceof AFunctionCallAssignmentStatement) {
+      logger.logf(Level.WARNING, "Ignoring non-void call to %s.", name);
+      return;
+    }
+
+    CExpression assumeExp = (CExpression)f.getParameterExpressions().get(0);
+
+    AssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(), edge.getLineNumber(),
+        edge.getPredecessor(), edge.getSuccessor(), assumeExp, true);
+
+    CFANode elseNode = new CFANode(edge.getLineNumber(), edge.getPredecessor().getFunctionName());
+    AssumeEdge falseEdge = new CAssumeEdge(edge.getRawStatement(), edge.getLineNumber(),
+        edge.getPredecessor(), elseNode, assumeExp, false);
+
+    CFACreationUtils.removeEdgeFromNodes(edge);
+    cfa.addNode(elseNode);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(trueEdge);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(falseEdge);
   }
 }

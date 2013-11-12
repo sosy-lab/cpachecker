@@ -42,8 +42,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CToFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.PointerAliasHandling;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.FormulaEncodingWithUFOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
@@ -111,7 +112,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
-  private final MachineModel machineModel;
   private final CtoFormulaConverter converter;
   private final LogManager logger;
 
@@ -140,8 +140,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       pointerAnalysisWithUFs = false;
     }
 
-    machineModel = pMachineModel;
-
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     ffmgr = fmgr.getFunctionFormulaManager();
@@ -158,26 +156,29 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private CtoFormulaConverter createConverter(FormulaManagerView pFmgr, Configuration config, LogManager pLogger,
       MachineModel pMachineModel, CFA pCFA) throws InvalidConfigurationException {
-    final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
     if (handlePointerAliasing) {
       if (pointerAnalysisWithUFs) {
         assert pCFA != null : "Pointer analysis with UF requires CFA for VariableClassification";
+        final FormulaEncodingWithUFOptions options = new FormulaEncodingWithUFOptions(config);
         return new CToFormulaWithUFConverter(options, pFmgr, pCFA, pLogger);
       } else {
+        final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
         return new PointerAliasHandling(options, config, pFmgr, pMachineModel, pLogger);
       }
     } else {
+      final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       return new CtoFormulaConverter(options, pFmgr, pMachineModel, pLogger);
     }
   }
 
   @Override
-  public PathFormula makeAnd(final PathFormula pOldFormula,
+  public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula,
                              final CFAEdge pEdge) throws CPATransferException {
-    PathFormula result = converter.makeAnd(pOldFormula, pEdge);
+    Pair<PathFormula, ErrorConditions> result = converter.makeAnd(pOldFormula, pEdge);
 
     if (useNondetFlags) {
-      SSAMapBuilder ssa = result.getSsa().builder();
+      PathFormula pf = result.getFirst();
+      SSAMapBuilder ssa = pf.getSsa().builder();
 
       int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
       int lFlagIndex = ssa.getIndex(NONDET_FLAG_VARIABLE);
@@ -187,7 +188,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           lFlagIndex = 1; // ssa indices start with 2, so next flag that is generated also uses index 2
         }
 
-        BooleanFormula edgeFormula = result.getFormula();
+        BooleanFormula edgeFormula = pf.getFormula();
 
         for (int lIndex = lFlagIndex + 1; lIndex <= lNondetIndex; lIndex++) {
           Formula nondetVar = fmgr.makeVariable(NONDET_FORMULA_TYPE, NONDET_FLAG_VARIABLE, lIndex);
@@ -199,7 +200,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         //setSsaIndex(ssa, Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
         ssa.setIndex(NONDET_FLAG_VARIABLE, NONDET_TYPE, lNondetIndex);
 
-        result = new PathFormula(edgeFormula, ssa.build(), result.getLength());
+        result = Pair.of(new PathFormula(edgeFormula, ssa.build(), pf.getLength()),
+                         result.getSecond());
       }
     }
 
@@ -207,14 +209,16 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
+    return makeAndWithErrorConditions(pOldFormula, pEdge).getFirst();
+  }
+
+  @Override
   public PathFormula makeEmptyPathFormula() {
     if (!pointerAnalysisWithUFs) {
       return new PathFormula(bfmgr.makeBoolean(true), SSAMap.emptySSAMap(), 0);
     } else {
-      return new PathFormulaWithUF(bfmgr.makeBoolean(true),
-                                   SSAMap.emptySSAMap(),
-                                   PointerTargetSet.emptyPointerTargetSet(machineModel, fmgr),
-                                   0);
+      return ((CToFormulaWithUFConverter)converter).makeEmptyPathFormula();
     }
   }
 
@@ -691,8 +695,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       if (pathElement.getChildren().size() > 1) {
         if (pathElement.getChildren().size() > 2) {
           // can't create branching formula
-          logger.log(Level.WARNING, "ARG branching with more than two outgoing edges");
-          return bfmgr.makeBoolean(true);
+          if (from(pathElement.getChildren()).anyMatch(AbstractStates.IS_TARGET_STATE)) {
+            // We expect this situation of one of the children is a target state created by PredicateCPA.
+            continue;
+          } else {
+            logger.log(Level.WARNING, "ARG branching with more than two outgoing edges");
+            return bfmgr.makeBoolean(true);
+          }
         }
 
         FluentIterable<CFAEdge> outgoingEdges = from(pathElement.getChildren()).transform(
@@ -702,15 +711,20 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                 return pathElement.getEdgeToChild(child);
               }
         });
-        if (!outgoingEdges.allMatch(Predicates.instanceOf(CAssumeEdge.class))) {
-          logger.log(Level.WARNING, "ARG branching without CAssumeEdge");
-          return  bfmgr.makeBoolean(true);
+        if (!outgoingEdges.allMatch(Predicates.instanceOf(AssumeEdge.class))) {
+          if (from(pathElement.getChildren()).anyMatch(AbstractStates.IS_TARGET_STATE)) {
+            // We expect this situation of one of the children is a target state created by PredicateCPA.
+            continue;
+          } else {
+            logger.log(Level.WARNING, "ARG branching without AssumeEdge");
+            return bfmgr.makeBoolean(true);
+          }
         }
 
-        CAssumeEdge edge = null;
+        AssumeEdge edge = null;
         for (CFAEdge currentEdge : outgoingEdges) {
-          if (((CAssumeEdge)currentEdge).getTruthAssumption()) {
-            edge = (CAssumeEdge)currentEdge;
+          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
+            edge = (AssumeEdge)currentEdge;
             break;
           }
         }

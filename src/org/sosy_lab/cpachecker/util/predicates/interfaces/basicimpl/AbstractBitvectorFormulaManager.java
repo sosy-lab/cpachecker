@@ -438,6 +438,15 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
 
 
   @Override
+  public final BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {
+    TFormulaInfo param = extractInfo(pNumber);
+
+    return wrap(extend(param, pExtensionBits, pSigned));
+  }
+  protected abstract TFormulaInfo extend(TFormulaInfo pNumber, int pExtensionBits, boolean pSigned) ;
+
+
+  @Override
   public int getLength(BitvectorFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return getLength(param);

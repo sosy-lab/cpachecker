@@ -484,6 +484,8 @@ public class FormulaManagerView {
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeExtract(T pFormula, int pMsb, int pLsb) {
+    checkArgument(pLsb >= 0);
+    checkArgument(pMsb >= pLsb);
     Class<T> clazz = getInterface(pFormula);
     Formula t;
     if (clazz==BooleanFormula.class) {
@@ -527,6 +529,24 @@ public class FormulaManagerView {
       }
     }
     return conc;
+  }
+
+  @SuppressWarnings("unchecked")
+  public <T extends Formula> T makeExtend(T pFormula, int pExtensionBits, boolean pSigned) {
+    checkArgument(pExtensionBits >= 0);
+    Class<T> clazz = getInterface(pFormula);
+    Formula t;
+    if (clazz==BooleanFormula.class) {
+      throw new IllegalArgumentException();
+    } else if (clazz == RationalFormula.class) {
+      throw new IllegalArgumentException();
+    } else if (clazz == BitvectorFormula.class) {
+      t = bitvectorFormulaManager.extend((BitvectorFormula)pFormula, pExtensionBits, pSigned);
+    } else {
+      throw new IllegalArgumentException("Not supported interface");
+    }
+
+    return (T) t;
   }
 
   public  <T extends Formula> BooleanFormula makeEqual(T pLhs, T pRhs) {

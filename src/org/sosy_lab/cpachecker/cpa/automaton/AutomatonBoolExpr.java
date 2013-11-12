@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
@@ -213,10 +214,12 @@ interface AutomatonBoolExpr extends AutomatonExpression {
               Object result = aqe.evaluateProperty(modifiedQueryString);
               if (result instanceof Boolean) {
                 if (((Boolean)result).booleanValue()) {
-                  String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
-                  modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
-                  aqe.toString() + "\"";
-                  pArgs.getLogger().log(Level.FINER, message);
+                  if (pArgs.getLogger().wouldBeLogged(Level.FINER)) {
+                    String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
+                    modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
+                    aqe.toString() + "\"";
+                    pArgs.getLogger().log(Level.FINER, message);
+                  }
                   return CONST_TRUE;
                 }
               }
@@ -249,6 +252,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
         return new ResultValue<>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.CPAQuery");
       }
 
+      LogManager logger = pArgs.getLogger();
       for (AbstractState ae : pArgs.getAbstractStates()) {
         if (ae instanceof AbstractQueryableState) {
           AbstractQueryableState aqe = (AbstractQueryableState) ae;
@@ -257,27 +261,31 @@ interface AutomatonBoolExpr extends AutomatonExpression {
               Object result = aqe.evaluateProperty(modifiedQueryString);
               if (result instanceof Boolean) {
                 if (((Boolean)result).booleanValue()) {
-                  String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
-                  modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
-                  aqe.toString() + "\"";
-                  pArgs.getLogger().log(Level.FINER, message);
+                  if (logger.wouldBeLogged(Level.FINER)) {
+                    String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
+                    modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
+                    aqe.toString() + "\"";
+                    logger.log(Level.FINER, message);
+                  }
                   return CONST_TRUE;
                 } else {
-                  String message = "CPA-Check failed: ModifiedCheckString: \"" +
-                  modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
-                  aqe.toString() + "\"";
-                  pArgs.getLogger().log(Level.FINER, message);
+                  if (logger.wouldBeLogged(Level.FINER)) {
+                    String message = "CPA-Check failed: ModifiedCheckString: \"" +
+                    modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
+                    aqe.toString() + "\"";
+                    logger.log(Level.FINER, message);
+                  }
                   return CONST_FALSE;
                 }
               } else {
-                pArgs.getLogger().log(Level.WARNING,
+                logger.log(Level.WARNING,
                     "Automaton got a non-Boolean value during Query of the "
                     + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
                     ". Assuming FALSE.");
                 return CONST_FALSE;
               }
             } catch (InvalidQueryException e) {
-              pArgs.getLogger().logException(Level.WARNING, e,
+              logger.logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
                   + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription());
               return CONST_FALSE;

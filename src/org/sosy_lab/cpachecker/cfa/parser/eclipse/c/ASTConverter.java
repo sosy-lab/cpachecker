@@ -52,6 +52,7 @@ import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
 import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
+import org.eclipse.cdt.core.dom.ast.IASTForStatement;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
@@ -136,6 +137,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
+import org.sosy_lab.cpachecker.cfa.simplification.NonRecursiveExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -156,20 +158,30 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
-@Options
+@Options(prefix="cfa")
 class ASTConverter {
 
-  @Option(name="cfa.simplifyPointerExpressions",
+  @Option(
       description="simplify pointer expressions like s->f to (*s).f with this option " +
         "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide")
   private boolean simplifyPointerExpressions = false;
 
-  private final boolean simplifyConstExpressions;
+  @Option(name="simplifyConstExpressions",
+      description="simplify simple const expressions like 1+2")
+  private boolean alwaysSimplifyConstExpressions = false;
+
+  // This is neccessary because in certain situations we always need to simplify
+  // expressions, regardless of the configuration above.
+  // Probably the configuration option can go away and we always simplify expressions.
+  private boolean simplifyConstExpressions = false;
+
   private final ExpressionSimplificationVisitor expressionSimplificator;
+  private final NonRecursiveExpressionSimplificationVisitor nonRecursiveExpressionSimplificator;
   private final CBinaryExpressionBuilder binExprBuilder;
 
   private final LogManager logger;
@@ -204,6 +216,7 @@ class ASTConverter {
     simplifyConstExpressions = pSimplifyConstExpressions;
 
     expressionSimplificator = new ExpressionSimplificationVisitor(pMachineModel, pLogger);
+    nonRecursiveExpressionSimplificator = new NonRecursiveExpressionSimplificationVisitor(pMachineModel, pLogger);
     binExprBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
   }
 
@@ -307,6 +320,15 @@ class ASTConverter {
   }
 
   protected CAstNode convertExpressionWithSideEffects(IASTExpression e) {
+    CAstNode converted = convertExpressionWithSideEffectsNotSimplified(e);
+    if (!alwaysSimplifyConstExpressions || !(converted instanceof CExpression)) {
+      return converted;
+    }
+
+    return ((CExpression)converted).accept(nonRecursiveExpressionSimplificator);
+  }
+
+  private CAstNode convertExpressionWithSideEffectsNotSimplified(IASTExpression e) {
     assert !(e instanceof CExpression);
 
     if (e == null) {
@@ -361,10 +383,12 @@ class ASTConverter {
       CExpression condition = convertExpressionWithoutSideEffects(e.getLogicalConditionExpression());
       Number value = simplifyAndEvaluateExpression(condition).getSecond();
 
-      if (value != null && value.longValue() == 0) {
-        return convertExpressionWithSideEffects(e.getNegativeResultExpression());
-      } else {
-        return convertExpressionWithSideEffects(e.getPositiveResultExpression());
+      if (value != null) {
+        if (value.longValue() == 0) {
+          return convertExpressionWithSideEffects(e.getNegativeResultExpression());
+        } else {
+          return convertExpressionWithSideEffects(e.getPositiveResultExpression());
+        }
       }
     }
 
@@ -405,7 +429,7 @@ class ASTConverter {
    * If the initializer is 'null', no initializer will be created.
    */
   private CIdExpression createInitializedTemporaryVariable(
-      final FileLocation loc, final CType type, @Nullable CExpression initializer) {
+      final FileLocation loc, final CType pType, @Nullable CExpression initializer) {
     String name = "__CPAchecker_TMP_";
     int i = 0;
     while (scope.variableNameInUse(name + i, name + i)) {
@@ -417,6 +441,10 @@ class ASTConverter {
     if (initializer != null) {
       initExp = new CInitializerExpression(loc, initializer);
     }
+
+    // If there is no initializer, the variable cannot be const.
+    // TODO: consider always adding a const modifier if there is an initializer
+    CType type = (initializer == null) ? CTypes.withoutConst(pType) : pType;
 
     CVariableDeclaration decl = new CVariableDeclaration(loc,
                                                false,
@@ -931,11 +959,25 @@ class ASTConverter {
       CLeftHandSide lhsPost = (CLeftHandSide) operand;
       CExpressionAssignmentStatement result = new CExpressionAssignmentStatement(fileLoc, lhsPost, postExp);
 
+      if (e.getParent() instanceof IASTForStatement
+          && e.getPropertyInParent() == IASTForStatement.ITERATION) {
+        return result;
+      }
+
       CExpression tmp = createInitializedTemporaryVariable(fileLoc, lhsPost.getExpressionType(), lhsPost);
       preSideAssignments.add(result);
 
       return tmp;
 
+    case IASTUnaryExpression.op_not:
+      // Eclipse CDT produces pointer type if operand is a pointer.
+      // C §6.5.3.3 (5) says it is always type int.
+      if (!(type.getCanonicalType() instanceof CSimpleType)) {
+        logger.log(Level.FINER, "Replacing type", type, " by int for negation expression", e);
+      }
+      type = CNumericTypes.INT;
+
+      //$FALL-THROUGH$
     default:
       return new CUnaryExpression(fileLoc, type, operand, ASTOperatorConverter.convertUnaryOperator(e));
     }

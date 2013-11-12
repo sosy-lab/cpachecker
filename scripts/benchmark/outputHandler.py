@@ -613,11 +613,19 @@ class Statistics:
 
     def printToTerminal(self):
         Util.printOut('\n'.join(['\nStatistics:' + str(self.counter).rjust(13) + ' Files',
-                 '    correct:        ' + str(self.dic[result.RESULT_CORRECT_TRUE] + \
-                                              self.dic[result.RESULT_CORRECT_FALSE]).rjust(4),
+                 '    correct:        ' + str(self.dic[result.RESULT_CORRECT_TRUE] +
+                                              self.dic[result.RESULT_CORRECT_FALSE] +
+                                              self.dic[result.RESULT_CORRECT_PROP_DEREF] +
+                                              self.dic[result.RESULT_CORRECT_PROP_FREE] +
+                                              self.dic[result.RESULT_CORRECT_PROP_MEMTRACK]
+                                              ).rjust(4),
                  '    unknown:        ' + str(self.dic[result.RESULT_UNKNOWN] + \
                                               self.dic[result.RESULT_ERROR]).rjust(4),
-                 '    false positives:' + str(self.dic[result.RESULT_WRONG_FALSE]).rjust(4) + \
+                 '    false positives:' + str(self.dic[result.RESULT_WRONG_FALSE] +
+                                              self.dic[result.RESULT_WRONG_PROP_DEREF] +
+                                              self.dic[result.RESULT_WRONG_PROP_FREE] +
+                                              self.dic[result.RESULT_WRONG_PROP_MEMTRACK]
+                                              ).rjust(4) + \
                  '        (file is true, result is false)',
                  '    false negatives:' + str(self.dic[result.RESULT_WRONG_TRUE]).rjust(4) + \
                  '        (file is false, result is true)',

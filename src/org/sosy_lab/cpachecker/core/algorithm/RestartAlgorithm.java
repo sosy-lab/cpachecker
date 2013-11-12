@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -65,10 +64,15 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
 
 @Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
+
+  private static final Splitter CONFIG_FILE_CONDITION_SPLITTER = Splitter.on(':').trimResults().limit(2);
 
   private static class RestartAlgorithmStatistics implements Statistics {
 
@@ -134,8 +138,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  @Option(required=true, description = "list of files with configurations to use")
-  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  @Option(required=true, description = "List of files with configurations to use. "
+      + "A filename can be suffixed with :if-interrupted, :if-failed, and :if-terminated "
+      + "which means that this configuration will only be used if the previous configuration ended with a matching condition.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<File> configFiles;
 
   private final LogManager logger;
@@ -174,15 +180,22 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     CFANode mainFunction = AbstractStates.extractLocation(pReached.getFirstState());
     assert mainFunction != null : "Location information needed";
 
-    Iterator<File> configFilesIterator = configFiles.iterator();
+    PeekingIterator<File> configFilesIterator = Iterators.peekingIterator(configFiles.iterator());
 
     while (configFilesIterator.hasNext()) {
       stats.totalTime.start();
       @Nullable ConfigurableProgramAnalysis currentCpa = null;
       ReachedSet currentReached;
       ShutdownNotifier singleShutdownNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+
+      boolean lastAnalysisInterrupted = false;
+      boolean lastAnalysisFailed = false;
+      boolean lastAnalysisTerminated = false;
+
       try {
         File singleConfigFileName = configFilesIterator.next();
+        // extract first part out of file name
+        singleConfigFileName = new File(CONFIG_FILE_CONDITION_SPLITTER.split(singleConfigFileName.toString()).iterator().next());
 
         try {
           Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg = createNextAlgorithm(singleConfigFileName, mainFunction, singleShutdownNotifier);
@@ -228,13 +241,17 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
             // sound analysis and completely finished, terminate
             return true;
           }
+          lastAnalysisTerminated = true;
+
         } catch (CPAException e) {
+          lastAnalysisFailed = true;
           if (configFilesIterator.hasNext()) {
             logger.logUserException(Level.WARNING, e, "Analysis not completed");
           } else {
             throw e;
           }
         } catch (InterruptedException e) {
+          lastAnalysisInterrupted = true;
           shutdownNotifier.shutdownIfNecessary(); // check if we should also stop
           logger.logUserException(Level.WARNING, e, "Analysis " + stats.noOfAlgorithmsUsed + " stopped");
         }
@@ -244,6 +261,39 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       shutdownNotifier.shutdownIfNecessary();
+
+      if (configFilesIterator.hasNext()) {
+        // Check if the next config file has a condition,
+        // and if it has a condition, check if it maches.
+        boolean foundConfig;
+        do {
+          foundConfig = true;
+          String nextConfigFile = configFilesIterator.peek().toString();
+          List<String> parts = CONFIG_FILE_CONDITION_SPLITTER.splitToList(nextConfigFile);
+          if (parts.size() == 2) {
+            String condition = parts.get(1);
+            switch (condition) {
+            case "if-interrupted":
+              foundConfig = lastAnalysisInterrupted;
+              break;
+            case "if-failed":
+              foundConfig = lastAnalysisFailed;
+              break;
+            case "if-terminated":
+              foundConfig = lastAnalysisTerminated;
+              break;
+            default:
+              logger.logf(Level.WARNING, "Ignoring invalid restart condition '%s'.", condition);
+              foundConfig = true;
+            }
+            if (!foundConfig) {
+              logger.logf(Level.INFO, "Ignoring restart configuration '%s' because condition %s did not match.", parts.get(0), condition);
+              configFilesIterator.next();
+              stats.noOfAlgorithmsUsed++;
+            }
+          }
+        } while (!foundConfig && configFilesIterator.hasNext());
+      }
 
       if (configFilesIterator.hasNext()) {
         stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
