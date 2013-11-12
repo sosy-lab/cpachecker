@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -40,8 +41,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
@@ -56,6 +60,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
 
   static private int id_counter = 0;
 
+  private final Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues = new HashMap<>();
   private final CLangSMG heap;
   private final LogManager logger;
   private SMGState predecessor;
@@ -132,6 +137,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     logger = pOriginalState.logger;
     predecessor = pOriginalState.predecessor;
     id = id_counter++;
+    explicitValues.putAll(pOriginalState.explicitValues);
   }
 
   /**
@@ -889,6 +895,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
 
   public void pruneUnreachable() throws SMGInconsistentException {
     this.heap.pruneUnreachable();
+    //TODO: Explicit values pruning
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
@@ -1013,5 +1020,20 @@ public class SMGState implements AbstractQueryableState, Targetable {
   @Override
   public ViolatedProperty getViolatedProperty() throws IllegalStateException {
     return violatedProperty;
+  }
+
+  public void putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
+    explicitValues.put(pKey, pValue);
+  }
+
+  public void clearExplicit(SMGKnownSymValue pKey) {
+    explicitValues.remove(pKey);
+  }
+
+  public SMGExplicitValue getExplicit(SMGKnownSymValue pKey) {
+    if (explicitValues.containsKey(pKey)) {
+      return explicitValues.get(pKey);
+    }
+    return SMGUnknownValue.getInstance();
   }
 }
