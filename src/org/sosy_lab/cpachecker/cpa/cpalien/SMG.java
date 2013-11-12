@@ -37,6 +37,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 
 public class SMG {
   final private HashSet<SMGObject> objects = new HashSet<>();
@@ -51,7 +52,7 @@ public class SMG {
   /**
    * A special object representing NULL
    */
-  final private static SMGObject nullObject = new SMGObject();
+  final private static SMGObject nullObject = SMGObject.getNullObject();
 
   /**
    * An address of the special object representing null
@@ -491,7 +492,7 @@ public class SMG {
    * 0 otherwise.
    */
   public BitSet getNullBytesForObject(SMGObject pObj) {
-    BitSet bs = new BitSet(pObj.getSizeInBytes());
+    BitSet bs = new BitSet(pObj.getSize());
     bs.clear();
     SMGEdgeHasValueFilter objectFilter = new SMGEdgeHasValueFilter();
     objectFilter.filterByObject(pObj);
@@ -630,7 +631,7 @@ final class SMGConsistencyVerifier {
     }
 
     // Verify that the size of the NULL object is zero
-    if (pSmg.getNullObject().getSizeInBytes() != 0) {
+    if (pSmg.getNullObject().getSize() != 0) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object does not have zero size");
       return false;
     }
@@ -678,7 +679,7 @@ final class SMGConsistencyVerifier {
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject);
 
     for (SMGEdgeHasValue hvEdge : pSmg.getHVEdges(filter)) {
-      if ((hvEdge.getOffset() + hvEdge.getSizeInBytes(pSmg.getMachineModel())) > pObject.getSizeInBytes()) {
+      if ((hvEdge.getOffset() + hvEdge.getSizeInBytes(pSmg.getMachineModel())) > pObject.getSize()) {
         pLogger.log(Level.SEVERE, "SMG inconistent: field exceedes boundary of the object");
         pLogger.log(Level.SEVERE, "Object: ", pObject);
         pLogger.log(Level.SEVERE, "Field: ", hvEdge);
@@ -765,7 +766,7 @@ final class SMGConsistencyVerifier {
         return false;
       }
 
-      if (obj.getSizeInBytes() < 0) {
+      if (obj.getSize() < 0) {
         pLogger.log(Level.SEVERE, "SMG inconsistent: object with size lower than 0");
         return false;
       }

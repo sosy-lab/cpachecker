@@ -36,8 +36,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 
 public class SMGJoinMatchObjectsTest {
@@ -50,10 +51,10 @@ public class SMGJoinMatchObjectsTest {
   private SMG smg1;
   private SMG smg2;
 
-  final private SMGObject srcObj1 = new SMGObject(8, "Source object 1");
-  final private SMGObject destObj1 = new SMGObject(8, "Destination object 1");
-  final private SMGObject srcObj2 = new SMGObject(8, "Source object 2");
-  final private SMGObject destObj2 = new SMGObject(8, "Destination object 2");
+  final private SMGObject srcObj1 = new SMGRegion(8, "Source object 1");
+  final private SMGObject destObj1 = new SMGRegion(8, "Destination object 1");
+  final private SMGObject srcObj2 = new SMGRegion(8, "Source object 2");
+  final private SMGObject destObj2 = new SMGRegion(8, "Destination object 2");
 
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
@@ -117,7 +118,7 @@ public class SMGJoinMatchObjectsTest {
 
   @Test
   public void inconsistentObjectsTest() {
-    SMGObject diffSizeObject = new SMGObject(16, "Object with different size");
+    SMGObject diffSizeObject = new SMGRegion(16, "Object with different size");
     smg1.addObject(srcObj1);
     smg2.addObject(diffSizeObject);
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL,  smg1, smg2, mapping1, mapping2, srcObj1, diffSizeObject);

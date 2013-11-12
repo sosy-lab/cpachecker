@@ -32,6 +32,8 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 
@@ -153,7 +155,7 @@ public final class SMGExplicitPlotter {
   }
 
   @Nullable
-  private String smgScopeFrameAsDot(Map<String, SMGObject> pNamespace, String pStructId, String pFunctionName) {
+  private String smgScopeFrameAsDot(Map<String, SMGRegion> pNamespace, String pStructId, String pFunctionName) {
     StringBuilder sb = new StringBuilder();
     sb.append("struct" + pStructId + "[shape=record,label=\" ");
 

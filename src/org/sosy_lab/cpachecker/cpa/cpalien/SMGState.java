@@ -44,6 +44,8 @@ import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -170,7 +172,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
    */
   public SMGObject addGlobalVariable(CType pType, String pVarName) throws SMGInconsistentException {
     int size = heap.getMachineModel().getSizeof(pType);
-    SMGObject new_object = new SMGObject(size, pVarName);
+    SMGRegion new_object = new SMGRegion(size, pVarName);
 
     heap.addGlobalObject(new_object);
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -191,7 +193,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
    */
   public SMGObject addLocalVariable(CType pType, String pVarName) throws SMGInconsistentException {
     int size = heap.getMachineModel().getSizeof(pType);
-    SMGObject new_object = new SMGObject(size, pVarName);
+    SMGRegion new_object = new SMGRegion(size, pVarName);
 
     heap.addStackObject(new_object);
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -729,7 +731,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
 
   }
 
-  public void addGlobalObject(SMGObject newObject) {
+  public void addGlobalObject(SMGRegion newObject) {
     heap.addGlobalObject(newObject);
   }
 
@@ -746,7 +748,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
   }
 
   public SMGEdgePointsTo addNewHeapAllocation(int pSize, String pLabel) throws SMGInconsistentException {
-    SMGObject new_object = new SMGObject(pSize, pLabel);
+    SMGRegion new_object = new SMGRegion(pSize, pLabel);
     int new_value = SMGValueFactory.getNewValue();
     SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
     heap.addHeapObject(new_object);
@@ -891,17 +893,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
   }
 
   /**
-   * Creates a new SMGObject representing Memory.
-   *
-   * @param size the size in Bytes of the newly created SMGObject.
-   * @param label a label representing this SMGObject as a String.
-   * @return A newly created SMGObject representing Memory.
-   */
-  public SMGObject createObject(int size, String label) {
-    return new SMGObject(size, label);
-  }
-
-  /**
    *  Signals an invalid free call.
    */
   public void setInvalidFree() {
@@ -945,11 +936,11 @@ public class SMGState implements AbstractQueryableState, Targetable {
 
     int copyRange = pSourceRangeSize - pSourceRangeOffset;
 
-    assert pSource.getSizeInBytes() >= pSourceRangeSize;
+    assert pSource.getSize() >= pSourceRangeSize;
     assert pSourceRangeOffset >= 0;
     assert pTargetRangeOffset >= 0;
     assert copyRange >= 0;
-    assert copyRange <= pTarget.getSizeInBytes();
+    assert copyRange <= pTarget.getSize();
 
     // If copy range is 0, do nothing
     if(copyRange == 0) {

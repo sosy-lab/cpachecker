@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+
 
 public class SMGEdgePointsTo extends SMGEdge {
   final private int offset;

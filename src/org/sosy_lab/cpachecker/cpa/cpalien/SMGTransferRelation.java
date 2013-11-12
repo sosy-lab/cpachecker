@@ -101,6 +101,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.LValueAssignmentVisitor;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.SMGExplicitCommunicator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -854,9 +855,9 @@ public class SMGTransferRelation implements TransferRelation {
       SMGObject memoryOfField, int fieldOffset, CType pFieldType, SMGSymbolicValue value, CType rValueType)
       throws UnrecognizedCCodeException, SMGInconsistentException {
 
-    if (memoryOfField.getSizeInBytes() < expressionEvaluator.getSizeof(cfaEdge, rValueType)) {
+    if (memoryOfField.getSize() < expressionEvaluator.getSizeof(cfaEdge, rValueType)) {
       logger.log(Level.WARNING, "Attempting to write " + expressionEvaluator.getSizeof(cfaEdge, rValueType) +
-          " bytes into a field with size " + memoryOfField.getSizeInBytes() + "bytes.\n" +
+          " bytes into a field with size " + memoryOfField.getSize() + "bytes.\n" +
           "Line " + cfaEdge.getLineNumber() + ": " + cfaEdge.getRawStatement());
     }
 
@@ -893,7 +894,7 @@ public class SMGTransferRelation implements TransferRelation {
       SMGSymbolicValue pValue, CFAEdge pEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
 
     boolean doesNotFitIntoObject = pFieldOffset < 0
-        || pFieldOffset + expressionEvaluator.getSizeof(pEdge, pRValueType) > pMemoryOfField.getSizeInBytes();
+        || pFieldOffset + expressionEvaluator.getSizeof(pEdge, pRValueType) > pMemoryOfField.getSize();
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory

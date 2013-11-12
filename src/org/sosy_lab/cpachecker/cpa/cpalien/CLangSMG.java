@@ -37,6 +37,8 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 import com.google.common.collect.Sets;
 
@@ -63,7 +65,7 @@ public class CLangSMG extends SMG {
   /**
    * A container for global objects
    */
-  final private HashMap<String, SMGObject> global_objects = new HashMap<>();
+  final private HashMap<String, SMGRegion> global_objects = new HashMap<>();
 
   /**
    * A flag signifying the edge leading to this state caused memory to be leaked
@@ -153,7 +155,7 @@ public class CLangSMG extends SMG {
 
    * @param pObject Object to add
    */
-  public void addGlobalObject(SMGObject pObject) {
+  public void addGlobalObject(SMGRegion pObject) {
     if (CLangSMG.performChecks() && this.global_objects.values().contains(pObject)) {
       throw new IllegalArgumentException("Global object already in the SMG: [" + pObject + "]");
     }
@@ -180,7 +182,7 @@ public class CLangSMG extends SMG {
    *
    * TODO: Shall we need an extension for putting objects to upper frames?
    */
-  public void addStackObject(SMGObject pObject) {
+  public void addStackObject(SMGRegion pObject) {
     super.addObject(pObject);
     stack_objects.peek().addStackVariable(pObject.getLabel(), pObject);
   }
@@ -394,7 +396,7 @@ public class CLangSMG extends SMG {
    *
    * @return Unmodifiable map from variable names to global objects.
    */
-  public Map<String, SMGObject> getGlobalObjects() {
+  public Map<String, SMGRegion> getGlobalObjects() {
     return Collections.unmodifiableMap(global_objects);
   }
 
@@ -468,7 +470,7 @@ class CLangSMGConsistencyVerifier {
    * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyDisjunctHeapAndGlobal(LogManager pLogger, CLangSMG pSmg) {
-    Map<String, SMGObject> globals = pSmg.getGlobalObjects();
+    Map<String, SMGRegion> globals = pSmg.getGlobalObjects();
     Set<SMGObject> heap = pSmg.getHeapObjects();
 
     boolean toReturn = Collections.disjoint(globals.values(), heap);
@@ -519,7 +521,7 @@ class CLangSMGConsistencyVerifier {
     for (CLangStackFrame frame: stack_frames) {
       stack.addAll(frame.getAllObjects());
     }
-    Map<String, SMGObject> globals = pSmg.getGlobalObjects();
+    Map<String, SMGRegion> globals = pSmg.getGlobalObjects();
 
     boolean toReturn = Collections.disjoint(stack, globals.values());
 

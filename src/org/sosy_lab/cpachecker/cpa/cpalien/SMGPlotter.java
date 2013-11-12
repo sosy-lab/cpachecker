@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -128,10 +130,10 @@ public final class SMGPlotter {
     pSb.append(newLineWithOffset("fontcolor=blue;"));
     pSb.append(newLineWithOffset("label=\"#" + pIndex + ": " + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
 
-    HashMap<String, SMGObject> to_print = new HashMap<>();
+    HashMap<String, SMGRegion> to_print = new HashMap<>();
     to_print.putAll(pStackFrame.getVariables());
 
-    SMGObject returnObject = pStackFrame.getReturnObject();
+    SMGRegion returnObject = pStackFrame.getReturnObject();
     if (returnObject != null) {
       to_print.put(CLangStackFrame.RETVAL_LABEL, returnObject);
     }
@@ -143,7 +145,7 @@ public final class SMGPlotter {
 
   }
 
-  private String smgScopeFrameAsDot(Map<String, SMGObject> pNamespace, String pStructId) {
+  private String smgScopeFrameAsDot(Map<String, SMGRegion> pNamespace, String pStructId) {
     StringBuilder sb = new StringBuilder();
     sb.append("struct" + pStructId + "[shape=record,label=\" ");
 

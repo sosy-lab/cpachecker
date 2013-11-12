@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 
 public class SMGStateTest {
@@ -54,8 +55,8 @@ public class SMGStateTest {
     inconsistent_state = new SMGState(logger, MachineModel.LINUX64);
     SMGEdgePointsTo pt = inconsistent_state.addNewHeapAllocation(8, "label");
 
-    consistent_state.addGlobalObject(pt.getObject());
-    inconsistent_state.addGlobalObject(pt.getObject());
+    consistent_state.addGlobalObject((SMGRegion)pt.getObject());
+    inconsistent_state.addGlobalObject((SMGRegion)pt.getObject());
 
     when(mockType16b.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(16));
     when(mockType8b.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(8));

@@ -30,7 +30,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 
 import com.google.common.collect.Iterators;
 
@@ -70,7 +70,7 @@ final class SMGJoinMatchObjects {
 
   final private static boolean checkConsistentObjects(SMGObject pObj1, SMGObject pObj2,
                                                       SMG pSMG1, SMG pSMG2) {
-    if ((pObj1.getSizeInBytes() != pObj2.getSizeInBytes()) ||
+    if ((pObj1.getSize() != pObj2.getSize()) ||
         (pSMG1.isObjectValid(pObj1) != pSMG2.isObjectValid(pObj2))) {
       return true;
     }

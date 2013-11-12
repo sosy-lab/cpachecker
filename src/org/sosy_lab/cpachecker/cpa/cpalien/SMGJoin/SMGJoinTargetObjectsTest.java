@@ -30,8 +30,9 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 
 public class SMGJoinTargetObjectsTest {
@@ -42,15 +43,15 @@ public class SMGJoinTargetObjectsTest {
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
 
-  final private SMGObject obj1 = new SMGObject(8, "ze label");
+  final private SMGObject obj1 = new SMGRegion(8, "ze label");
   final private Integer value1 = SMGValueFactory.getNewValue();
   final private SMGEdgePointsTo pt1 = new SMGEdgePointsTo(value1, obj1, 0);
 
-  final private SMGObject obj2 = new SMGObject(8, "ze label");
+  final private SMGObject obj2 = new SMGRegion(8, "ze label");
   final private Integer value2 = SMGValueFactory.getNewValue();
   final private SMGEdgePointsTo pt2 = new SMGEdgePointsTo(value2, obj2, 0);
 
-  final private SMGObject destObj = new SMGObject(8, "destination");
+  final private SMGObject destObj = new SMGRegion(8, "destination");
 
   @Before
   public void setUp() {
@@ -75,7 +76,7 @@ public class SMGJoinTargetObjectsTest {
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2);
     Assert.assertSame(jto.getMapping1().get(obj1), jto.getMapping2().get(obj2));
     Assert.assertNotSame(jto.getMapping1().get(obj1), obj1);
-    Assert.assertTrue(jto.getMapping1().get(obj1).propertiesEqual(obj1));
+    Assert.assertTrue(((SMGRegion)jto.getMapping1().get(obj1)).propertiesEqual((SMGRegion)obj1));
   }
 
   @Test(expected=UnsupportedOperationException.class)

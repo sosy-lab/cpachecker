@@ -35,6 +35,8 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 
 public class SMGEdgeHasValueTest {
@@ -51,7 +53,7 @@ public class SMGEdgeHasValueTest {
 
   @Test
   public void testSMGEdgeHasValue() {
-    SMGObject obj = new SMGObject(8, "object");
+    SMGObject obj = new SMGRegion(8, "object");
     Integer val = Integer.valueOf(666);
     SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 4, obj, val);
 
@@ -63,8 +65,8 @@ public class SMGEdgeHasValueTest {
 
   @Test
   public void testIsConsistentWith() {
-    SMGObject obj1 = new SMGObject(8, "object");
-    SMGObject obj2 = new SMGObject(8, "different object");
+    SMGObject obj1 = new SMGRegion(8, "object");
+    SMGObject obj2 = new SMGRegion(8, "different object");
     Integer val1 = Integer.valueOf(666);
     Integer val2 = Integer.valueOf(777);
 
@@ -82,7 +84,7 @@ public class SMGEdgeHasValueTest {
 
   @Test
   public void testOverlapsWith() {
-    SMGObject object = new SMGObject(12, "object");
+    SMGObject object = new SMGRegion(12, "object");
     Integer value = Integer.valueOf(666);
 
     SMGEdgeHasValue at0 = new SMGEdgeHasValue(mockType, 0, object, value);
@@ -113,8 +115,8 @@ public class SMGEdgeHasValueTest {
 
   @Test
   public void testIsCompatibleField() {
-    SMGObject object1 = new SMGObject(12, "object-1");
-    SMGObject object2 = new SMGObject(12, "object-2");
+    SMGObject object1 = new SMGRegion(12, "object-1");
+    SMGObject object2 = new SMGRegion(12, "object-2");
     Integer value = Integer.valueOf(666);
 
     SMGEdgeHasValue obj1_at0 = new SMGEdgeHasValue(mockType, 0, object1, value);
@@ -139,8 +141,8 @@ public class SMGEdgeHasValueTest {
 
   @Test
   public void testIsCompatibleFieldOnSameObject() {
-    SMGObject object1 = new SMGObject(12, "object-1");
-    SMGObject object2 = new SMGObject(12, "object-2");
+    SMGObject object1 = new SMGRegion(12, "object-1");
+    SMGObject object2 = new SMGRegion(12, "object-2");
     Integer value = Integer.valueOf(666);
 
     SMGEdgeHasValue obj1_at0 = new SMGEdgeHasValue(mockType, 0, object1, value);
@@ -165,8 +167,8 @@ public class SMGEdgeHasValueTest {
 
   @Test(expected=IllegalArgumentException.class)
   public void testIllegalOverlapsWith() {
-    SMGObject object1 = new SMGObject(12, "object1");
-    SMGObject object2 = new SMGObject(12, "object2");
+    SMGObject object1 = new SMGRegion(12, "object1");
+    SMGObject object2 = new SMGRegion(12, "object2");
     Integer value = Integer.valueOf(666);
 
     SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType, 0, object1, value);
@@ -177,8 +179,8 @@ public class SMGEdgeHasValueTest {
 
   @Test
   public void testFilterOnObject() {
-    SMGObject object1 = new SMGObject(8, "object1");
-    SMGObject object2 = new SMGObject(8, "Object2");
+    SMGObject object1 = new SMGRegion(8, "object1");
+    SMGObject object2 = new SMGRegion(8, "Object2");
 
     Integer value1 = Integer.valueOf(1);
     Integer value2 = Integer.valueOf(2);
@@ -216,8 +218,8 @@ public class SMGEdgeHasValueTest {
 
   @Test
   public void testFilterAtOffset() {
-    SMGObject object1 = new SMGObject(8, "object1");
-    SMGObject object2 = new SMGObject(8, "Object2");
+    SMGObject object1 = new SMGRegion(8, "object1");
+    SMGObject object2 = new SMGRegion(8, "Object2");
 
     Integer value1 = Integer.valueOf(1);
     Integer value2 = Integer.valueOf(2);
@@ -250,8 +252,8 @@ public class SMGEdgeHasValueTest {
 
   @Test
   public void testFilterOnValue() {
-    SMGObject object1 = new SMGObject(8, "object1");
-    SMGObject object2 = new SMGObject(8, "Object2");
+    SMGObject object1 = new SMGRegion(8, "object1");
+    SMGObject object2 = new SMGRegion(8, "Object2");
 
     Integer value1 = Integer.valueOf(1);
     Integer value2 = Integer.valueOf(2);

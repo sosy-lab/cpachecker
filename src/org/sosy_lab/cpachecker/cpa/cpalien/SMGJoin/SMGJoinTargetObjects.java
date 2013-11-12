@@ -26,7 +26,8 @@ package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 final class SMGJoinTargetObjects {
   private SMGJoinStatus status;
@@ -109,7 +110,12 @@ final class SMGJoinTargetObjects {
       return;
     }
 
-    SMGObject newObject = new SMGObject(target1);
+    SMGObject newObject;
+    if (target1.isAbstract()) {
+      throw new UnsupportedOperationException("Cannot join abstract objects yet");
+    } else {
+      newObject = new SMGRegion((SMGRegion)target1);
+    }
     destSMG.addObject(newObject);
 
     if (mapping1.containsKey(target1)) {

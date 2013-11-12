@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -172,7 +173,7 @@ public class SMGExpressionEvaluator {
     int fieldOffset = pOffset.getAsInt();
 
     boolean doesNotFitIntoObject = fieldOffset < 0
-        || fieldOffset + getSizeof(pEdge, pType) > pObject.getSizeInBytes();
+        || fieldOffset + getSizeof(pEdge, pType) > pObject.getSize();
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory

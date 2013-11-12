@@ -28,7 +28,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 
 
 final public class SMGJoinSubSMGsForAbstraction {

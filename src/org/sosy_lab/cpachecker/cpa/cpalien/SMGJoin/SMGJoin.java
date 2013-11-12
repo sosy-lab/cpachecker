@@ -33,7 +33,8 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.cpalien.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 final public class SMGJoin {
   static public void performChecks(boolean pOn) {
@@ -52,9 +53,9 @@ final public class SMGJoin {
     SMGNodeMapping mapping1 = new SMGNodeMapping();
     SMGNodeMapping mapping2 = new SMGNodeMapping();
 
-    Map<String, SMGObject> globals_in_smg1 = opSMG1.getGlobalObjects();
+    Map<String, SMGRegion> globals_in_smg1 = opSMG1.getGlobalObjects();
     ArrayDeque<CLangStackFrame> stack_in_smg1 = opSMG1.getStackFrames();
-    Map<String, SMGObject> globals_in_smg2 = opSMG2.getGlobalObjects();
+    Map<String, SMGRegion> globals_in_smg2 = opSMG2.getGlobalObjects();
     ArrayDeque<CLangStackFrame> stack_in_smg2 = opSMG2.getStackFrames();
 
     Set<String> globalVars = new HashSet<>();
@@ -62,8 +63,8 @@ final public class SMGJoin {
     globalVars.addAll(globals_in_smg2.keySet());
 
     for (String globalVar : globalVars) {
-      SMGObject globalInSMG1 = globals_in_smg1.get(globalVar);
-      SMGObject globalInSMG2 = globals_in_smg2.get(globalVar);
+      SMGRegion globalInSMG1 = globals_in_smg1.get(globalVar);
+      SMGRegion globalInSMG2 = globals_in_smg2.get(globalVar);
       if (globalInSMG1 == null || globalInSMG2 == null) {
         // This weird situation happens with function static variables, which are created
         // as globals when a declaration is met. So if one path goes through function and other
@@ -72,7 +73,7 @@ final public class SMGJoin {
         // the join. For now, we will treat this situation as unjoinable.
         return;
       }
-      SMGObject finalObject = new SMGObject(globalInSMG1);
+      SMGRegion finalObject = new SMGRegion(globalInSMG1);
       smg.addGlobalObject(finalObject);
       mapping1.map(globalInSMG1, finalObject);
       mapping2.map(globalInSMG2, finalObject);
@@ -95,9 +96,9 @@ final public class SMGJoin {
         if ((!frameInSMG1.containsVariable(localVar)) || (!frameInSMG2.containsVariable(localVar))) {
           return;
         }
-        SMGObject localInSMG1 = frameInSMG1.getVariable(localVar);
-        SMGObject localInSMG2 = frameInSMG2.getVariable(localVar);
-        SMGObject finalObject = new SMGObject(localInSMG1);
+        SMGRegion localInSMG1 = frameInSMG1.getVariable(localVar);
+        SMGRegion localInSMG2 = frameInSMG2.getVariable(localVar);
+        SMGRegion finalObject = new SMGRegion(localInSMG1);
         smg.addStackObject(finalObject);
         mapping1.map(localInSMG1, finalObject);
         mapping2.map(localInSMG2, finalObject);

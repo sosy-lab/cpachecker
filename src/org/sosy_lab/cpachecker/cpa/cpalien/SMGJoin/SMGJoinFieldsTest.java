@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 import com.google.common.collect.Iterables;
 
@@ -70,8 +70,8 @@ public class SMGJoinFieldsTest {
 
   @Test
   public void getHVSetWithoutNullValuesOnObjectTest() {
-    SMGObject obj1 = new SMGObject(8, "1");
-    SMGObject obj2 = new SMGObject(8, "1");
+    SMGRegion obj1 = new SMGRegion(8, "1");
+    SMGRegion obj2 = new SMGRegion(8, "1");
 
     SMGEdgeHasValue obj1hv1at0 = new SMGEdgeHasValue(mockType4b, 0, obj1, value1);
     SMGEdgeHasValue obj1hv0at4 = new SMGEdgeHasValue(mockType4b, 4, obj1, smg1.getNullValue());
@@ -96,8 +96,8 @@ public class SMGJoinFieldsTest {
 
   @Test
   public void getHVSetOfMissingNullValuesTest() {
-    SMGObject obj1 = new SMGObject(8, "1");
-    SMGObject obj2 = new SMGObject(8, "2");
+    SMGRegion obj1 = new SMGRegion(8, "1");
+    SMGRegion obj2 = new SMGRegion(8, "2");
 
     smg1.addObject(obj1);
     smg2.addObject(obj2);
@@ -127,7 +127,7 @@ public class SMGJoinFieldsTest {
 
   @Test
   public void getHVSetOfCommonNullValuesTest() {
-    SMGObject obj1 = new SMGObject(22, "1");
+    SMGRegion obj1 = new SMGRegion(22, "1");
 
     SMGEdgeHasValue smg1at4 = new SMGEdgeHasValue(mockType4b, 4, obj1, smg1.getNullValue());
     SMGEdgeHasValue smg2at8 = new SMGEdgeHasValue(mockType4b, 8, obj1, smg2.getNullValue());
@@ -160,8 +160,8 @@ public class SMGJoinFieldsTest {
 
   @Test
   public void getCompatibleHVEdgeSetTest() {
-    SMGObject obj = new SMGObject(32, "Object");
-    SMGObject differentObject = new SMGObject(16, "Different object");
+    SMGRegion obj = new SMGRegion(32, "Object");
+    SMGRegion differentObject = new SMGRegion(16, "Different object");
 
     smg1.addObject(obj);
     smg2.addObject(obj);
@@ -211,7 +211,7 @@ public class SMGJoinFieldsTest {
     values.add(value1);
     values.add(value2);
 
-    SMGObject object = new SMGObject(16, "Object");
+    SMGRegion object = new SMGRegion(16, "Object");
     SMGEdgeHasValue smg1_4bFrom0ToV1 = new SMGEdgeHasValue(mockType4b, 0, object, value1);
     SMGEdgeHasValue smg1_4bFrom2ToV2 = new SMGEdgeHasValue(mockType4b, 2, object, value2);
     SMGEdgeHasValue smg1_4bFrom4ToNull = new SMGEdgeHasValue(mockType4b, 4, object, smg1.getNullValue());
@@ -255,8 +255,8 @@ public class SMGJoinFieldsTest {
 
   @Test
   public void mergeNonNullAplliedTest() {
-    SMGObject obj1 = new SMGObject(8, "Object 1");
-    SMGObject obj2 = new SMGObject(8, "Object 2");
+    SMGRegion obj1 = new SMGRegion(8, "Object 1");
+    SMGRegion obj2 = new SMGRegion(8, "Object 2");
     smg1.addObject(obj1);
     smg2.addObject(obj2);
 
@@ -279,7 +279,7 @@ public class SMGJoinFieldsTest {
 
   @Test
   public void joinFieldsRelaxStatusTest() {
-    SMGObject object = new SMGObject(8, "Object");
+    SMGRegion object = new SMGRegion(8, "Object");
     smg1.addObject(object);
 
     SMG smg04 = new SMG(smg1);
@@ -336,8 +336,8 @@ public class SMGJoinFieldsTest {
 
   @Test(expected=IllegalArgumentException.class)
   public void differentSizeCheckTest(){
-    SMGObject obj1 = new SMGObject(8, "Object 1");
-    SMGObject obj2 = new SMGObject(12, "Object 2");
+    SMGRegion obj1 = new SMGRegion(8, "Object 1");
+    SMGRegion obj2 = new SMGRegion(12, "Object 2");
     SMG smg1 = new SMG(MachineModel.LINUX64);
     SMG smg2 = new SMG(MachineModel.LINUX64);
     smg1.addObject(obj1);
@@ -352,8 +352,8 @@ public class SMGJoinFieldsTest {
     SMG smg1 = new SMG(MachineModel.LINUX64);
     SMG smg2 = new SMG(MachineModel.LINUX32);
 
-    SMGObject obj1 = new SMGObject(32, "Object 1");
-    SMGObject obj2 = new SMGObject(32, "Object 2");
+    SMGRegion obj1 = new SMGRegion(32, "Object 1");
+    SMGRegion obj2 = new SMGRegion(32, "Object 2");
     Integer value1 = SMGValueFactory.getNewValue();
     Integer value2 = SMGValueFactory.getNewValue();
 
@@ -393,8 +393,8 @@ public class SMGJoinFieldsTest {
     SMG smg1 = new SMG(MachineModel.LINUX64);
     SMG smg2 = new SMG(MachineModel.LINUX32);
 
-    SMGObject obj1 = new SMGObject(32, "Object 1");
-    SMGObject obj2 = new SMGObject(32, "Object 2");
+    SMGRegion obj1 = new SMGRegion(32, "Object 1");
+    SMGRegion obj2 = new SMGRegion(32, "Object 2");
     Integer value1 = SMGValueFactory.getNewValue();
 
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value1));
@@ -406,8 +406,8 @@ public class SMGJoinFieldsTest {
     SMG smg1 = new SMG(MachineModel.LINUX64);
     SMG smg2 = new SMG(MachineModel.LINUX32);
 
-    SMGObject obj1 = new SMGObject(32, "Object 1");
-    SMGObject obj2 = new SMGObject(32, "Object 2");
+    SMGRegion obj1 = new SMGRegion(32, "Object 1");
+    SMGRegion obj2 = new SMGRegion(32, "Object 2");
 
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, smg1.getNullValue()));
     smg2.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 0, obj2, smg2.getNullValue()));
@@ -419,8 +419,8 @@ public class SMGJoinFieldsTest {
     SMG smg1 = new SMG(MachineModel.LINUX64);
     SMG smg2 = new SMG(MachineModel.LINUX32);
 
-    SMGObject obj1 = new SMGObject(32, "Object 1");
-    SMGObject obj2 = new SMGObject(32, "Object 2");
+    SMGRegion obj1 = new SMGRegion(32, "Object 1");
+    SMGRegion obj2 = new SMGRegion(32, "Object 2");
 
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, smg1.getNullValue()));
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 4, obj1, smg1.getNullValue()));
@@ -433,8 +433,8 @@ public class SMGJoinFieldsTest {
     SMG smg1 = new SMG(MachineModel.LINUX64);
     SMG smg2 = new SMG(MachineModel.LINUX32);
 
-    SMGObject obj1 = new SMGObject(32, "Object 1");
-    SMGObject obj2 = new SMGObject(32, "Object 2");
+    SMGRegion obj1 = new SMGRegion(32, "Object 1");
+    SMGRegion obj2 = new SMGRegion(32, "Object 2");
 
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, smg1.getNullValue()));
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 4, obj1, smg1.getNullValue()));
@@ -451,8 +451,8 @@ public class SMGJoinFieldsTest {
     SMG smg1 = new SMG(MachineModel.LINUX64);
     SMG smg2 = new SMG(MachineModel.LINUX32);
 
-    SMGObject obj1 = new SMGObject(32, "Object 1");
-    SMGObject obj2 = new SMGObject(32, "Object 2");
+    SMGRegion obj1 = new SMGRegion(32, "Object 1");
+    SMGRegion obj2 = new SMGRegion(32, "Object 2");
 
     Integer value2 = SMGValueFactory.getNewValue();
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, smg1.getNullValue()));
@@ -465,9 +465,9 @@ public class SMGJoinFieldsTest {
     SMG smg1 = new SMG(MachineModel.LINUX64);
     SMG smg2 = new SMG(MachineModel.LINUX32);
 
-    SMGObject obj1 = new SMGObject(32, "Object 1");
-    SMGObject obj2 = new SMGObject(32, "Object 2");
-    SMGObject obj3 = new SMGObject(32, "Object 3");
+    SMGRegion obj1 = new SMGRegion(32, "Object 1");
+    SMGRegion obj2 = new SMGRegion(32, "Object 2");
+    SMGRegion obj3 = new SMGRegion(32, "Object 3");
 
     Integer value1 = SMGValueFactory.getNewValue();
     Integer value2 = SMGValueFactory.getNewValue();
@@ -483,8 +483,8 @@ public class SMGJoinFieldsTest {
     SMG smg1 = new SMG(MachineModel.LINUX64);
     SMG smg2 = new SMG(MachineModel.LINUX32);
 
-    SMGObject obj1 = new SMGObject(32, "Object 1");
-    SMGObject obj2 = new SMGObject(32, "Object 2");
+    SMGRegion obj1 = new SMGRegion(32, "Object 1");
+    SMGRegion obj2 = new SMGRegion(32, "Object 2");
     smg2.addObject(obj2);
 
     @SuppressWarnings("unused")
@@ -496,8 +496,8 @@ public class SMGJoinFieldsTest {
     SMG smg1 = new SMG(MachineModel.LINUX64);
     SMG smg2 = new SMG(MachineModel.LINUX32);
 
-    SMGObject obj1 = new SMGObject(32, "Object 1");
-    SMGObject obj2 = new SMGObject(32, "Object 2");
+    SMGRegion obj1 = new SMGRegion(32, "Object 1");
+    SMGRegion obj2 = new SMGRegion(32, "Object 2");
     smg1.addObject(obj1);
 
     @SuppressWarnings("unused")
