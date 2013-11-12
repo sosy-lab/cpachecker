@@ -983,10 +983,10 @@ public class SMGState implements AbstractQueryableState, Targetable {
       }
     }
 
-    performConsistencyCheck(runtimeCheckLevel);
+    performConsistencyCheck(SMGRuntimeCheck.FULL);
     //TODO Why do I do this here?
     heap.pruneUnreachable();
-    performConsistencyCheck(runtimeCheckLevel);
+    performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   /**
