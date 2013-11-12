@@ -145,7 +145,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  static class ComputeAbstractionState extends PredicateAbstractState {
+  public static class ComputeAbstractionState extends PredicateAbstractState {
 
     private static final long serialVersionUID = -3961784113582993743L;
     private transient final CFANode location;

@@ -97,7 +97,7 @@ public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisio
 
   public ComponentAwareExplicitPrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments, Configuration config, CFA cfa)
       throws InvalidConfigurationException {
-    super(precisionAdjustments,false);
+    super(precisionAdjustments,false,null);
 
     config.inject(this);
 
