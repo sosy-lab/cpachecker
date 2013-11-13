@@ -604,15 +604,6 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     return pOp1 instanceof CExpression && pOp2 instanceof CExpression;
   }
 
-  private ExplicitState handleAssignmentToVariable(
-      String assignedVar, final Type lType, IARightHandSide exp, ExplicitExpressionValueVisitor visitor)
-      throws UnrecognizedCCodeException {
-
-    MemoryLocation memLoc = MemoryLocation.valueOf(assignedVar);
-
-    return handleAssignmentToVariable(memLoc, lType, exp, visitor);
-  }
-
   /** This method analyses the expression with the visitor and assigns the value to lParam.
    * The method returns a new state, that contains (a copy of) the old state and the new assignment. */
   private ExplicitState handleAssignmentToVariable(

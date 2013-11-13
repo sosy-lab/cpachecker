@@ -169,7 +169,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
     public MemoryLocation visit(CArraySubscriptExpression pIastArraySubscriptExpression)
         throws UnrecognizedCCodeException {
 
-      CLeftHandSide arrayExpression = (CLeftHandSide) pIastArraySubscriptExpression.getArrayExpression();
+      CExpression arrayExpression = pIastArraySubscriptExpression.getArrayExpression();
 
       CType arrayExpressionType = arrayExpression.getExpressionType().getCanonicalType();
 
