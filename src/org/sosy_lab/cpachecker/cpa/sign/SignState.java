@@ -23,52 +23,68 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
-import java.util.Map;
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Sets;
 
 
 
 public class SignState implements AbstractState {
 
-  //
-  public static enum SIGN {
-    PLUS, MINUS, ZERO;
+  private SignMap signMap;
+
+  public SignMap getSignMap() {
+    return signMap;
   }
 
-  // TODO I assumed and indeed prefer we have just a single map,
-  // possibly a multimap so you may have more than one sign assumption per variable but this will complicate the transfer relation
-  // another possibility is that we adapt our SIGN enumeration to also contain PLUS0, MINUS0, ALL and thus have a single value
-  // ALL may also mean that the variable does not occur in the map
-  private Set<Map<String, SIGN>> possibleSigns;
+  public final static SignState TOP = new SignState(ImmutableMap.<String, SIGN>of());
 
-  public SignState(Set<Map<String, SIGN>> pPossibleSigns) {
-    possibleSigns = pPossibleSigns;
+  public SignState(ImmutableMap<String, SIGN> pPossibleSigns) {
+    signMap = new SignMap(pPossibleSigns);
   }
 
   public SignState union(SignState pToJoin) {
     if(pToJoin == this) {
       return this;
     }
-    Set<Map<String, SIGN>> resultSetOfPossStates;
-    // TODO does it terminate for loops?, I assumed one combines the content of the different maps
-    resultSetOfPossStates = Sets.union(possibleSigns, pToJoin.possibleSigns);
-    return new SignState(resultSetOfPossStates);
+    SignState result = SignState.TOP;
+    for(String varIdent : Sets.union(signMap.keySet(), pToJoin.signMap.keySet())) {
+      result = result.assignSignToVariable(varIdent,
+          signMap.getSignForVariable(varIdent).combineWith(pToJoin.signMap.getSignForVariable(varIdent))); // TODO performance
+    }
+    return result;
   }
 
   public boolean isSubsetOf(SignState pSuperset) {
-    // TODO in principal it is sufficient if for every variable all sign assumptions are considered in pSuperset
     if(pSuperset == this) {
       return true;
     }
-    return pSuperset.possibleSigns.containsAll(possibleSigns);
+    // is subset if for every variable all sign assumptions are considered in pSuperset
+    for(String varIdent : Sets.union(signMap.keySet(), pSuperset.signMap.keySet())) {
+      if(!signMap.getSignForVariable(varIdent).isSubsetOf(pSuperset.signMap.getSignForVariable(varIdent))) {
+        return false;
+      }
+    }
+    return true;
   }
 
-  public Set<Map<String, SIGN>> getPossibleSigns() {
-    return possibleSigns;
+  public SignState assignSignToVariable(String pVarIdent, SIGN sign) {
+    Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
+    if(!sign.isAll()) {
+      mapBuilder.put(pVarIdent, sign);
+    }
+    for(String varIdent : signMap.keySet()) {
+      if(!varIdent.equals(pVarIdent)) {
+        mapBuilder.put(varIdent, signMap.getSignForVariable(varIdent));
+      }
+    }
+    return new SignState(mapBuilder.build());
+  }
+
+  public SignState removeSignAssumptionOfVariable(String pVarIdent) {
+    return assignSignToVariable(pVarIdent, SIGN.ALL);
   }
 
   @Override
@@ -76,18 +92,27 @@ public class SignState implements AbstractState {
     StringBuilder builder = new StringBuilder();
     String delim = ", ";
     builder.append("[");
-    for(Map<String, SIGN> varMap : possibleSigns) {
-      builder.append("{");
-      String loopDelim = "";
-      for(String key : varMap.keySet()) {
-        builder.append(loopDelim);
-        builder.append(key + "->" + varMap.get(key));
-        loopDelim = delim;
-      }
-      builder.append("}");
+    String loopDelim = "";
+    for(String key : signMap.keySet()) {
+      builder.append(loopDelim);
+      builder.append(key + "->" + signMap.getSignForVariable(key));
+      loopDelim = delim;
     }
     builder.append("]");
     return builder.toString();
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if(!(pObj instanceof SignState)) {
+      return false;
+    }
+    return ((SignState)pObj).getSignMap().equals(this.getSignMap());
+  }
+
+  @Override
+  public int hashCode() {
+    return signMap.hashCode();
   }
 
 }

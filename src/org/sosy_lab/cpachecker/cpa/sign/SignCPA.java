@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
-import java.util.HashSet;
-import java.util.Map;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -42,7 +39,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.sign.SignState.SIGN;
 
 
 public class SignCPA implements ConfigurableProgramAnalysis {
@@ -97,7 +93,7 @@ public class SignCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return new SignState(new HashSet<Map<String, SIGN>>());
+    return SignState.TOP;
   }
 
   @Override
