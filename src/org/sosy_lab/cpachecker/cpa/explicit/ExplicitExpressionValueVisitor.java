@@ -144,11 +144,11 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
     return null;
   }
 
-  public boolean canBeEvaluated(CLeftHandSide lValue) throws UnrecognizedCCodeException {
+  public boolean canBeEvaluated(CExpression lValue) throws UnrecognizedCCodeException {
     return lValue.accept(new MemoryLocationEvaluator(this)) != null;
   }
 
-  public MemoryLocation evaluateMemoryLocation(CLeftHandSide lValue) throws UnrecognizedCCodeException {
+  public MemoryLocation evaluateMemoryLocation(CExpression lValue) throws UnrecognizedCCodeException {
     return lValue.accept(new MemoryLocationEvaluator(this));
   }
 

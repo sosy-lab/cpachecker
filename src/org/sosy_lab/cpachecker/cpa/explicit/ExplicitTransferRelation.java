@@ -819,7 +819,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     protected MemoryLocation getMemoryLocation(CExpression pLValue) throws UnrecognizedCCodeException {
       ExplicitExpressionValueVisitor v = getVisitor();
       assert pLValue instanceof CLeftHandSide;
-      return checkNotNull(v.evaluateMemoryLocation((CLeftHandSide) pLValue));
+      return checkNotNull(v.evaluateMemoryLocation(pLValue));
     }
 
     protected boolean isAssignable(JExpression expression) {
@@ -852,7 +852,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       if (expression instanceof CFieldReference || expression instanceof CArraySubscriptExpression) {
         ExplicitExpressionValueVisitor evv = getVisitor();
-        return evv.canBeEvaluated((CLeftHandSide) expression);
+        return evv.canBeEvaluated(expression);
       }
 
       return false;
