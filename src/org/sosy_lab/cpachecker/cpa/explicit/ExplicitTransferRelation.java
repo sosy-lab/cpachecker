@@ -68,9 +68,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
@@ -106,9 +104,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGState;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.Memory;
-import org.sosy_lab.cpachecker.cpa.pointer.Pointer;
-import org.sosy_lab.cpachecker.cpa.pointer.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -134,13 +129,6 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   private final Set<String> globalVariables = new HashSet<>();
 
   private final Set<String> javaNonStaticVariables = new HashSet<>();
-
-  private String missingInformationLeftVariable = null;
-  private Type missingInformationLeftVariableType = null;
-  private String missingInformationLeftPointer  = null;
-  private Type missingInformationLeftPointerType  = null;
-
-  private IARightHandSide missingInformationRightExpression = null;
 
   /**
    * name for the special variable used as container for return values of functions
@@ -571,13 +559,6 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       if (op1 instanceof CCastExpression) {
         op1 = ((CCastExpression)op1).getOperand();
       }
-
-
-      if (op1 instanceof AIdExpression) {
-        missingInformationLeftPointer = ((AIdExpression)op1).getName();
-        missingInformationLeftPointerType = ((AIdExpression)op1).getExpressionType();
-        missingInformationRightExpression = op2;
-      }
     }
 
     else if (op1 instanceof CFieldReference) {
@@ -648,7 +629,6 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     if (visitor.hasMissingPointer()) {
-      missingInformationRightExpression = exp;
       assert value == null;
     }
 
@@ -918,47 +898,6 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
   }
 
-  private class PointerExpressionValueVisitor extends ExplicitExpressionValueVisitor {
-    private final PointerState pointerState;
-
-    public PointerExpressionValueVisitor(PointerState pPointerState) {
-      super(state, functionName, machineModel, logger, edge);
-      pointerState = pPointerState;
-    }
-
-    @Override
-    public Long visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-        return super.visit(unaryExpression);
-    }
-
-  @Override
-  public Long visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
-
-    // Cil produces code like
-    // __cil_tmp8 = *((int *)__cil_tmp7);
-    // so remove cast
-    CExpression operand = pointerExpression.getOperand();
-    if (operand instanceof CCastExpression) {
-      operand = ((CCastExpression)operand).getOperand();
-    }
-
-    if (operand instanceof CIdExpression) {
-      String rightVar = derefPointerToVariable(pointerState, ((CIdExpression)operand).getName());
-      if (rightVar != null) {
-        rightVar = getScopedVariableName(rightVar, functionName);
-
-        if (state.contains(rightVar)) {
-          return state.getValueFor(rightVar);
-        }
-      }
-    } else {
-      throw new UnrecognizedCCodeException("Pointer dereference of something that is not a variable", edge, pointerExpression);
-    }
-
-    return null;
-  }
-}
-
   private class  FieldAccessExpressionValueVisitor extends ExplicitExpressionValueVisitor {
     private final RTTState jortState;
 
@@ -1114,10 +1053,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     Collection<? extends AbstractState> retVal = null;
 
     for (AbstractState ae : elements) {
-      if (ae instanceof PointerState) {
-        retVal = strengthen((PointerState)ae);
-        break;
-      } else if (ae instanceof RTTState) {
+      if (ae instanceof RTTState) {
         retVal =  strengthen((RTTState)ae);
         break;
       } else if(ae instanceof SMGState) {
@@ -1469,55 +1405,6 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     } else {
       return methodName + "::" + decl.getName();
     }
-  }
-
-  private Collection<? extends AbstractState> strengthen(PointerState pointerElement)
-    throws UnrecognizedCCodeException {
-    try {
-      if (missingInformationRightExpression != null) {
-        ExplicitExpressionValueVisitor v = new PointerExpressionValueVisitor(pointerElement);
-
-        if (missingInformationLeftVariable != null) { // TODO always null? there is no write-access.
-          ExplicitState newElement = handleAssignmentToVariable(
-              missingInformationLeftVariable, missingInformationLeftVariableType,
-              missingInformationRightExpression, v);
-
-          return Collections.singleton(newElement);
-        } else if (missingInformationLeftPointer != null) {
-          String leftVar = derefPointerToVariable(pointerElement, missingInformationLeftPointer);
-          if (leftVar != null) {
-            leftVar = getScopedVariableName(leftVar, functionName);
-            ExplicitState newElement = handleAssignmentToVariable(leftVar,
-                missingInformationLeftPointerType, missingInformationRightExpression, v);
-
-            return Collections.singleton(newElement);
-          }
-        }
-      }
-      return null;
-    }
-
-    finally {
-      missingInformationLeftVariable = null;
-      missingInformationLeftVariableType = null;
-      missingInformationLeftPointer = null;
-      missingInformationLeftPointerType = null;
-      missingInformationRightExpression = null;
-    }
-  }
-
-  private String derefPointerToVariable(PointerState pointerElement, String pointer) {
-    Pointer p = pointerElement.lookupPointer(pointer);
-    if (p != null && p.getNumberOfTargets() == 1) {
-      Memory.PointerTarget target = p.getFirstTarget();
-      if (target instanceof Memory.Variable) {
-        return ((Memory.Variable)target).getVarName();
-      } else if (target instanceof Memory.StackArrayCell) {
-        return ((Memory.StackArrayCell)target).getVarName();
-      }
-    }
-
-    return null;
   }
 
   /**

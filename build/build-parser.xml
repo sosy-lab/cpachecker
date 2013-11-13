@@ -12,14 +12,20 @@
     <property name="skeleton.source" value="skeleton.nested"/>
     <property name="parser.source" value="parser.cup"/>
 
+    <path id="JFlex.classpath">
+        <fileset dir="${dir.lib}" includes="jflex.jar java-cup.jar"/>
+    </path>
+
     <taskdef name="jflex"
         classname="JFlex.anttask.JFlexTask"
-        classpath="${dir.lib}/jflex.jar"
+        classpathref="JFlex.classpath"
     />
     <taskdef name="cup"
         classname="java_cup.anttask.CUPTask"
         classpath="${dir.lib}/java-cup.jar"
     />
+
+    <echoproperties/>
 
     <target name="echos">
         <echo>${dir.base}</echo>

@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.eclipse.cdt.internal.core.dom.parser.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -67,13 +66,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
-import org.sosy_lab.cpachecker.cpa.pointer.PointerState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 /**
  * Handles transfer relation for Octagon abstract domain library.
@@ -1288,33 +1284,6 @@ class OctTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> strengthen(AbstractState element,
       List<AbstractState> otherElements, CFAEdge cfaEdge,
       Precision precision) {
-
-    assert element instanceof OctState;
-    OctState octagonElement = (OctState)element;
-
-    for (AbstractState ae : otherElements) {
-      if (ae instanceof PointerState) {
-        return strengthen(octagonElement, (PointerState)ae, cfaEdge, precision);
-      } else if (ae instanceof AssumptionStorageState) {
-        return strengthen(octagonElement, (AssumptionStorageState)ae, cfaEdge, precision);
-      }
-    }
-    return null;
-
-
-  }
-
-  private Collection<? extends AbstractState> strengthen(
-      OctState pOctagonElement, AssumptionStorageState pAe,
-      CFAEdge pCfaEdge, Precision pPrecision) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  private Collection<? extends AbstractState> strengthen(
-      OctState pOctagonElement, PointerState pAe, CFAEdge pCfaEdge,
-      Precision pPrecision) {
-    // TODO Auto-generated method stub
     return null;
   }
 }

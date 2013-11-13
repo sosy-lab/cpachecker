@@ -1,2 +1,0 @@
-
-ASSERT ! CHECK(PointerAnalysis, "DOUBLE_FREE") ;

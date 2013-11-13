@@ -79,7 +79,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.pointer.PointerState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -799,20 +798,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements,
       CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
-    assert element instanceof IntervalAnalysisState;
-    IntervalAnalysisState intervalElement = (IntervalAnalysisState)element;
-
-    for (AbstractState elem : elements) {
-      if (elem instanceof PointerState) {
-        return strengthen(intervalElement, (PointerState)elem, cfaEdge, precision);
-      }
-    }
-
-    return null;
-  }
-
-  private Collection<? extends AbstractState> strengthen(IntervalAnalysisState intervalElement,
-      PointerState pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
     return null;
   }
 
