@@ -37,6 +37,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 
 public class SMG {
@@ -494,9 +495,7 @@ public class SMG {
   public BitSet getNullBytesForObject(SMGObject pObj) {
     BitSet bs = new BitSet(pObj.getSize());
     bs.clear();
-    SMGEdgeHasValueFilter objectFilter = new SMGEdgeHasValueFilter();
-    objectFilter.filterByObject(pObj);
-    objectFilter.filterHavingValue(getNullValue());
+    SMGEdgeHasValueFilter objectFilter = SMGEdgeHasValueFilter.objectFilter(pObj).filterHavingValue(getNullValue());
 
     for (SMGEdgeHasValue edge : getHVEdges(objectFilter)) {
       bs.set(edge.getOffset(), edge.getOffset() + edge.getSizeInBytes(machine_model));
@@ -528,6 +527,21 @@ public class SMG {
    */
   public SMGEdgePointsTo getPointer(Integer value) {
     return this.pt_edges.get(value);
+  }
+
+  public boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {
+    return isCoveredByNullifiedBlocks(pEdge.getObject(), pEdge.getOffset(), pEdge.getSizeInBytes(machine_model));
+  }
+
+  public boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, CType pType ) {
+    return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getSizeof(pType));
+  }
+
+  private boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, int size) {
+    BitSet objectNullBytes = getNullBytesForObject(pObject);
+    int expectedMinClear = pOffset + size;
+
+    return (objectNullBytes.nextClearBit(pOffset) >= expectedMinClear);
   }
 
   public void mergeValues(int pV1, int pV2) {
