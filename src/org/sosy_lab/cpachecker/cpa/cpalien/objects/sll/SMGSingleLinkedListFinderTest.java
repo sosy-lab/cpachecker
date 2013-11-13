@@ -49,11 +49,20 @@ public class SMGSingleLinkedListFinderTest {
     SMGAbstractionCandidate candidate = Iterables.getOnlyElement(candidates);
     Assert.assertTrue(candidate instanceof SMGSingleLinkedListCandidate);
     SMGSingleLinkedListCandidate sllCandidate = (SMGSingleLinkedListCandidate)candidate;
-    // TODO: This should be fixed to be 5, but we currently cannot infer the presence of a pointer
-    // by the presence of overlapping nullified edge on the last node, so we discover just first
-    Assert.assertEquals(4, sllCandidate.getLength());
+    Assert.assertEquals(5, sllCandidate.getLength());
     Assert.assertEquals(8, sllCandidate.getOffset());
     SMGRegion expectedStart = (SMGRegion) smg.getPointer(root.getValue()).getObject();
     Assert.assertSame(expectedStart, sllCandidate.getStart());
+  }
+
+  @Test
+  public void nullifiedPointerInferenceTest() {
+    CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
+
+    TestHelpers.createGlobalList(smg, 2, 16, 8);
+
+    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder();
+    Set<SMGAbstractionCandidate> candidates = finder.traverse(smg);
+    Assert.assertEquals(1, candidates.size());
   }
 }

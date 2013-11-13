@@ -83,9 +83,6 @@ public class SMGAbstractionManagerTest {
     SMGObject segment = pt.getObject();
     Assert.assertTrue(segment.isAbstract());
     Set<SMGObject> heap = afterAbstraction.getHeapObjects();
-    // TODO: 3 heap objects: NULL, segment, and the last one
-    // We are still not able to abstract the last one, because we are unable to infer it has
-    // a possible pointer
-    Assert.assertEquals(3, heap.size());
+    Assert.assertEquals(2, heap.size());
   }
 }
