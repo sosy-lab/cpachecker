@@ -41,10 +41,10 @@ import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 
 @Options(prefix="cpa.arg")
 public class ARGDumper implements PostProcessor {
-  @Option(name="dumpARG", description="export final ART as C program")
+  @Option(name="dumpARG", description="export final ARG as C program")
   private boolean dumpARG = false;
 
-  @Option(name="dumpFile", description="export final ART as .c file")
+  @Option(name="dumpFile", description="export final ARG as .c file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File dumpFile = new File("ARG.c");
 
