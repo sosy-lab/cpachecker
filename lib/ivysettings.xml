@@ -8,6 +8,6 @@
             <ivy pattern="${ivy.repo.url}/[organisation]/[module]/ivy-[revision].xml" />
             <artifact pattern="${ivy.repo.url}/[organisation]/[module]/[artifact]-[revision](-[classifier]).[ext]" />
         </url>
-      </resolvers>
-      <caches lockStrategy="artifact-lock"/>
+    </resolvers>
+    <caches lockStrategy="artifact-lock" defaultCacheDir="${ivy.cache.dir}"/>
 </ivysettings>
