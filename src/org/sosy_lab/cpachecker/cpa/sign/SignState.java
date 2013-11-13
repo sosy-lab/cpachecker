@@ -46,8 +46,11 @@ public class SignState implements AbstractState {
   }
 
   public SignState union(SignState pToJoin) {
-    if(pToJoin == this) {
+    if(pToJoin.equals(this)) {
       return this;
+    }
+    if(this.equals(TOP) || pToJoin.equals(TOP)) {
+      return TOP;
     }
     SignState result = SignState.TOP;
     for(String varIdent : Sets.union(signMap.keySet(), pToJoin.signMap.keySet())) {
@@ -58,7 +61,7 @@ public class SignState implements AbstractState {
   }
 
   public boolean isSubsetOf(SignState pSuperset) {
-    if(pSuperset == this) {
+    if(pSuperset.equals(this) || pSuperset.equals(TOP)) {
       return true;
     }
     // is subset if for every variable all sign assumptions are considered in pSuperset
