@@ -104,15 +104,10 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
       boolean mergeSep = true;
       boolean simplePrec = true;
-      boolean explicitCPA2 = false;
 
       PredicateAbstractionManager abmgr = null;
 
       for (ConfigurableProgramAnalysis sp : cpas) {
-        if (sp instanceof org.sosy_lab.cpachecker.cpa.explicit2.ExplicitCPA) {
-          explicitCPA2 = true;
-        }
-
         if(sp instanceof org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA){
           abmgr = ((org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA)sp).getPredicateManager();
         }
@@ -165,19 +160,11 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
       PrecisionAdjustment compositePrecisionAdjustment;
       if (options.precAdjust.equals("COMPONENT")) {
-        if (explicitCPA2) {
-          compositePrecisionAdjustment = new org.sosy_lab.cpachecker.cpa.explicit2.ComponentAwareExplicitPrecisionAdjustment(
-              precisionAdjustments.build(),
-              getConfiguration(),
-              cfa
-              );
-        } else {
-          compositePrecisionAdjustment = new ComponentAwareExplicitPrecisionAdjustment(
-              precisionAdjustments.build(),
-              getConfiguration(),
-              cfa
-              );
-        }
+        compositePrecisionAdjustment = new ComponentAwareExplicitPrecisionAdjustment(
+            precisionAdjustments.build(),
+            getConfiguration(),
+            cfa
+            );
       }
 
       else {
