@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -156,12 +157,13 @@ public class CompositeState implements AbstractWrapperState, TargetableWithPredi
   }
 
   @Override
-  public BooleanFormula getErrorCondition(BooleanFormulaManager bfmgr) {
+  public BooleanFormula getErrorCondition(FormulaManagerView fmgr) {
+    BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
     if (isTarget()) {
       BooleanFormula f = bfmgr.makeBoolean(false);
       for (AbstractState state : states) {
         if (state instanceof TargetableWithPredicatedAnalysis) {
-          f = bfmgr.or(f, ((TargetableWithPredicatedAnalysis) state).getErrorCondition(bfmgr));
+          f = fmgr.makeOr(f, ((TargetableWithPredicatedAnalysis) state).getErrorCondition(fmgr));
         }
       }
       return f;

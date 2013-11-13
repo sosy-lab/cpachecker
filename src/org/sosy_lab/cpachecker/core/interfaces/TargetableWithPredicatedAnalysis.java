@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
 public interface TargetableWithPredicatedAnalysis extends Targetable{
@@ -33,6 +33,6 @@ public interface TargetableWithPredicatedAnalysis extends Targetable{
    *
    * @return uninstantiated formula describing by formula why it is a target state, e.g. because x>0, false if it is called and it is not a target state
    */
-  public BooleanFormula getErrorCondition(BooleanFormulaManager bfmgr);
+  public BooleanFormula getErrorCondition(FormulaManagerView fmgr);
 
 }

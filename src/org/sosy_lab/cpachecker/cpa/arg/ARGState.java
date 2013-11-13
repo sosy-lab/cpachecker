@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
 import com.google.common.primitives.Ints;
@@ -395,11 +395,11 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   @Override
-  public BooleanFormula getErrorCondition(BooleanFormulaManager pBfmgr) {
+  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
     if (isTarget() && super.getWrappedState() instanceof TargetableWithPredicatedAnalysis) {
-      return ((TargetableWithPredicatedAnalysis) super.getWrappedState()).getErrorCondition(pBfmgr);
+      return ((TargetableWithPredicatedAnalysis) super.getWrappedState()).getErrorCondition(pFmgr);
     } else {
-      return pBfmgr.makeBoolean(false);
+      return pFmgr.getBooleanFormulaManager().makeBoolean(false);
     }
   }
 }

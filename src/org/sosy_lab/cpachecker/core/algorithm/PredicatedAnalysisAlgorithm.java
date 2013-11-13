@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.collect.HashMultimap;
@@ -160,10 +160,10 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
       PathFormulaManager pfm = predCPA.getPathFormulaManager();
       PredicateAbstractionManager pam = predCPA.getPredicateManager();
-      BooleanFormulaManagerView bfm = predCPA.getFormulaManager().getBooleanFormulaManager();
+      FormulaManagerView fm = predCPA.getFormulaManager();
 
       // create path to fake node
-      PathFormula pf = pfm.makeAnd(errorPred.getPathFormula(), ((TargetableWithPredicatedAnalysis)cpa).getErrorCondition(bfm));
+      PathFormula pf = pfm.makeAnd(errorPred.getPathFormula(), ((TargetableWithPredicatedAnalysis)cpa).getErrorCondition(fm));
 
       // build abstraction which is needed for refinement, set to true, we do not know better
       AbstractionFormula abf = pam.makeTrueAbstractionFormula(pf);
@@ -175,7 +175,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
       // create fake predicate state
       PredicateAbstractState fakePred =
-          PredicateAbstractState.mkAbstractionState(bfm, pf, abf,
+          PredicateAbstractState.mkAbstractionState(fm.getBooleanFormulaManager(), pf, abf,
               abstractionLocations, errorPred.getViolatedProperty());
 
       // build composite state
