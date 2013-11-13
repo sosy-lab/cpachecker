@@ -60,7 +60,7 @@ public class ARGDumper implements PostProcessor {
     if (dumpARG) {
       Timer t = new Timer();
       t.start();
-      //generate source code out of given ART / ReachedSet
+      //generate source code out of given ARG / ReachedSet
       ARGState artRoot = (ARGState) pReached.getFirstState();
       try {
         Files.writeFile(dumpFile, ARGToCTranslator.translateARG(artRoot, pReached));
