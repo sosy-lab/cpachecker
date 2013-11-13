@@ -33,15 +33,15 @@ import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 
 public final class TestHelpers {
-  static public final Integer createList(CLangSMG pSmg, int pLength) {
+  static public final Integer createList(CLangSMG pSmg, int pLength, int pSize, int pOffset) {
     Integer value = null;
     for (int i = 0; i < pLength; i++) {
-      SMGObject node = new SMGRegion(16, "list node" + i);
+      SMGObject node = new SMGRegion(pSize, "list_node" + i);
       SMGEdgeHasValue hv;
       if (value == null) {
-        hv = new SMGEdgeHasValue(16, 0, node, 0);
+        hv = new SMGEdgeHasValue(pSize, 0, node, 0);
       } else {
-        hv = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, 8, node, value);
+        hv = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, pOffset, node, value);
       }
       value = SMGValueFactory.getNewValue();
       SMGEdgePointsTo pt = new SMGEdgePointsTo(value, node, 0);
@@ -52,5 +52,16 @@ public final class TestHelpers {
     }
     return value;
   }
+
+  static public final SMGEdgeHasValue createGlobalList(CLangSMG pSmg, int pLength, int pSize, int pOffset) {
+    Integer value = TestHelpers.createList(pSmg, pLength, pSize, pOffset);
+    SMGRegion globalVar = new SMGRegion(8, "pointer");
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, 0, globalVar, value);
+    pSmg.addGlobalObject(globalVar);
+    pSmg.addHasValueEdge(hv);
+
+    return hv;
+  }
+
   private TestHelpers(){}
 }

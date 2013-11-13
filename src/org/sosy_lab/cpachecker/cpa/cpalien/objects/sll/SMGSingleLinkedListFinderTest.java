@@ -28,7 +28,6 @@ import java.util.Set;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.cpalien.AnonymousTypes;
 import org.sosy_lab.cpachecker.cpa.cpalien.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
@@ -42,11 +41,7 @@ public class SMGSingleLinkedListFinderTest {
   public void simpleListTest() {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
 
-    Integer value = TestHelpers.createList(smg, 5);
-    SMGRegion globalVar = new SMGRegion(8, "pointer");
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, 0, globalVar, value);
-    smg.addGlobalObject(globalVar);
-    smg.addHasValueEdge(hv);
+    SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 5, 16, 8);
 
     SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder();
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg);
@@ -58,7 +53,7 @@ public class SMGSingleLinkedListFinderTest {
     // by the presence of overlapping nullified edge on the last node, so we discover just first
     Assert.assertEquals(4, sllCandidate.getLength());
     Assert.assertEquals(8, sllCandidate.getOffset());
-    SMGRegion expectedStart = (SMGRegion) smg.getPointer(value).getObject();
+    SMGRegion expectedStart = (SMGRegion) smg.getPointer(root.getValue()).getObject();
     Assert.assertSame(expectedStart, sllCandidate.getStart());
   }
 }

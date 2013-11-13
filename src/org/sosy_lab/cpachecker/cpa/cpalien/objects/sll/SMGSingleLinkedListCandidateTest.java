@@ -76,15 +76,16 @@ public class SMGSingleLinkedListCandidateTest {
   @Test
   public void executeOnSimpleList() {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
-    Integer value = TestHelpers.createList(smg, 5);
 
-    SMGRegion globalVar = new SMGRegion(8, "pointer");
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, 8, globalVar, value);
-    smg.addGlobalObject(globalVar);
-    smg.addHasValueEdge(hv);
+    int NODE_SIZE = 8;
+    int SEGMENT_LENGTH = 4;
+    int OFFSET = 0;
+
+    SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, SEGMENT_LENGTH + 1, NODE_SIZE, OFFSET);
+    Integer value = root.getValue();
 
     SMGObject startObject = smg.getPointer(value).getObject();
-    SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, 8, 4);
+    SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, OFFSET, SEGMENT_LENGTH);
 
     CLangSMG abstractedSmg = candidate.execute(smg);
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
@@ -93,24 +94,24 @@ public class SMGSingleLinkedListCandidateTest {
     Assert.assertTrue(pointedObject instanceof SMGSingleLinkedList);
     Assert.assertTrue(pointedObject.isAbstract());
     SMGSingleLinkedList segment = (SMGSingleLinkedList)pointedObject;
-    Assert.assertEquals(16, segment.getSize());
-    Assert.assertEquals(4, segment.getLength());
-    Assert.assertEquals(8, segment.getOffset());
+    Assert.assertEquals(NODE_SIZE, segment.getSize());
+    Assert.assertEquals(SEGMENT_LENGTH, segment.getLength());
+    Assert.assertEquals(OFFSET, segment.getOffset());
     Set<SMGEdgeHasValue> outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(segment));
     Assert.assertEquals(1, outboundEdges.size());
     SMGEdgeHasValue onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
-    Assert.assertEquals(8, onlyOutboundEdge.getOffset());
+    Assert.assertEquals(OFFSET, onlyOutboundEdge.getOffset());
     Assert.assertSame(AnonymousTypes.dummyPointer, onlyOutboundEdge.getType());
 
     SMGObject stopper = abstractedSmg.getPointer(onlyOutboundEdge.getValue()).getObject();
     Assert.assertTrue(stopper instanceof SMGRegion);
     SMGRegion stopperRegion = (SMGRegion)stopper;
-    Assert.assertEquals(16, stopperRegion.getSize());
+    Assert.assertEquals(NODE_SIZE, stopperRegion.getSize());
     outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(stopperRegion));
     Assert.assertEquals(1, outboundEdges.size());
     onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
     Assert.assertEquals(0, onlyOutboundEdge.getValue());
     Assert.assertEquals(0, onlyOutboundEdge.getOffset());
-    Assert.assertEquals(16, onlyOutboundEdge.getSizeInBytes(abstractedSmg.getMachineModel()));
+    Assert.assertEquals(NODE_SIZE, onlyOutboundEdge.getSizeInBytes(abstractedSmg.getMachineModel()));
   }
 }
