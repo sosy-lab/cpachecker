@@ -41,10 +41,14 @@ import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   private CLangSMG smg;
   private Map<SMGObject, Map<Integer, SMGSingleLinkedListCandidate>> candidates = new HashMap<>();
+  private Map<Integer, Integer> inboundPointers = new HashMap<>();
 
   @Override
   public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg) {
     smg = pSmg;
+
+    buildInboundPointers();
+
     for (SMGObject object : smg.getHeapObjects()) {
       startTraversal(object);
     }
@@ -58,6 +62,12 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       }
     }
     return Collections.unmodifiableSet(returnSet);
+  }
+
+  private void buildInboundPointers() {
+    for (Integer pointer : smg.getPTEdges().keySet()) {
+      inboundPointers.put(pointer, smg.getHVEdges(new SMGEdgeHasValueFilter().filterHavingValue(pointer)).size());
+    }
   }
 
   private void startTraversal(SMGObject pObject) {
@@ -80,6 +90,10 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     SMGObject object = pt.getObject();
     if (! candidates.containsKey(object)) {
       startTraversal(object);
+    }
+
+    if (inboundPointers.get(pValue) > 1) {
+      return;
     }
 
     Map<Integer, SMGSingleLinkedListCandidate> objectCandidates = candidates.get(object);
