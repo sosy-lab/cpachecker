@@ -61,9 +61,9 @@ public class ARGDumper implements PostProcessor {
       Timer t = new Timer();
       t.start();
       //generate source code out of given ARG / ReachedSet
-      ARGState artRoot = (ARGState) pReached.getFirstState();
+      ARGState argRoot = (ARGState) pReached.getFirstState();
       try {
-        Files.writeFile(dumpFile, ARGToCTranslator.translateARG(artRoot, pReached));
+        Files.writeFile(dumpFile, ARGToCTranslator.translateARG(argRoot, pReached));
         t.stop();
         System.out.println("ARGToC translation took " + t);
       } catch (IOException e) {
