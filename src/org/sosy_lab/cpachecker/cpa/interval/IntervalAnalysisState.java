@@ -26,9 +26,21 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-public class IntervalAnalysisState implements AbstractState {
+public class IntervalAnalysisState implements AbstractState, TargetableWithPredicatedAnalysis {
+
+  private static IntervalTargetChecker targetChecker;
+
+  static void init(Configuration config) throws InvalidConfigurationException{
+    targetChecker = new IntervalTargetChecker(config);
+  }
+
   /**
    * the intervals of the element
    */
@@ -297,5 +309,23 @@ public class IntervalAnalysisState implements AbstractState {
     }
 
     return sb.append("] size->  ").append(intervals.size()).toString();
+  }
+
+  @Override
+  public boolean isTarget() {
+   return targetChecker == null? false: targetChecker.isTarget(this);
+  }
+
+  @Override
+  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+    if(isTarget()){
+      return ViolatedProperty.OTHER;
+    }
+    return null;
+  }
+
+  @Override
+  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
+    return targetChecker== null? pFmgr.getBooleanFormulaManager().makeBoolean(false):targetChecker.getErrorCondition(this, pFmgr);
   }
 }

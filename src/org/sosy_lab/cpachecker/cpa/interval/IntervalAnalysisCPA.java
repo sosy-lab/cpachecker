@@ -106,6 +106,8 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis {
     transferRelation    = new IntervalAnalysisTransferRelation(config);
 
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+
+    IntervalAnalysisState.init(config);
   }
 
   /* (non-Javadoc)
