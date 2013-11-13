@@ -194,19 +194,36 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
 
     newReferences.putAll(referenceCounts);
 
+    boolean changed = false;
+    int newRefCount;
+    Interval mergedInterval;
+
     for (String variableName : reachedState.intervals.keySet()) {
       if (intervals.containsKey(variableName)) {
         // update the interval
-        newIntervals.put(variableName, getInterval(variableName).union(reachedState.getInterval(variableName)));
+        mergedInterval = getInterval(variableName).union(reachedState.getInterval(variableName));
+        if (mergedInterval != reachedState.getInterval(variableName)) {
+          changed = true;
+        }
+        newIntervals.put(variableName,mergedInterval);
 
         // update the references
-        newReferences.put(variableName, Math.max(getReferenceCount(variableName), reachedState.getReferenceCount(variableName)));
+        newRefCount = Math.max(getReferenceCount(variableName), reachedState.getReferenceCount(variableName));
+        if (newRefCount > reachedState.getReferenceCount(variableName)) {
+          changed = true;
+        }
+        newReferences.put(variableName, newRefCount);
       } else {
         newReferences.put(variableName, reachedState.getReferenceCount(variableName));
+        changed = true;
       }
     }
 
-    return new IntervalAnalysisState(newIntervals, newReferences, previousState);
+    if (changed) {
+      return new IntervalAnalysisState(newIntervals, newReferences, previousState);
+    } else {
+      return reachedState;
+    }
   }
 
   /**
