@@ -100,7 +100,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
             + "Add cpa.composite.inPredicatedAnalysis=true to your configuration options.");
     }
 
-    if (((ARGCPA) cpa).getMergeOperator() instanceof ARGMergeJoinPredicatedAnalysis) { throw new InvalidConfigurationException(
+    if (!(((ARGCPA) cpa).getMergeOperator() instanceof ARGMergeJoinPredicatedAnalysis)) { throw new InvalidConfigurationException(
         "ARG CPA must use merge operator for predicated analysis."
             + "Add cpa.arg.merge=JOINPREDANALYSIS to your configuration options."); }
   }
