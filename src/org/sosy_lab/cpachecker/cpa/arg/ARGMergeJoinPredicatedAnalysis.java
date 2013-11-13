@@ -71,8 +71,8 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator{
     ARGState mergedElement = new ARGState(retElement, null);
 
     // now replace argElement2 by mergedElement in ARG
-    argElement2.replaceInARGWith(mergedElement);
     deleteChildren(argElement2);
+    argElement2.replaceInARGWith(mergedElement);
 
     if (mergedElement.isTarget()) { throw new PredicatedAnalysisPropertyViolationException(
         "Property violated during merge", mergedElement); }
@@ -96,7 +96,7 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator{
         child = current.getChildren().iterator().next();
         // relink or delete child if it is not connected by another parent
         if (child.getParents().size() == 1) {
-          if (child.getCoveredByThis().size() == 0) {
+          if (child.getCoveredByThis().size() != 0) {
             // relink child in ARG to parent of first covered element
             covered = child.getCoveredByThis().iterator().next();
             // remove coverage relation
