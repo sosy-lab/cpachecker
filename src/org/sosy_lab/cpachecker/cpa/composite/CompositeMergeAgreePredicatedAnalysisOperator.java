@@ -112,6 +112,8 @@ public class CompositeMergeAgreePredicatedAnalysisOperator implements MergeOpera
         // CEGAR in predicated analysis may take several rounds in case of loops, or maybe it may even fail (I do not know yet)
         // in future try to find a way to encode other paths also
         mergedStates.add(absReachedState);
+        precIter.next();
+        stopIter.next();
         continue;
       }
 
