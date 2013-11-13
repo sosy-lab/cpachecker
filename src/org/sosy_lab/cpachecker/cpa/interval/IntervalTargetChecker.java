@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-@Options
+@Options(prefix="cpa.interval")
 public class IntervalTargetChecker {
 
   @Option(name = "varName",
