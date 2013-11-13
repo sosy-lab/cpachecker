@@ -41,7 +41,7 @@ public class SMGSingleLinkedListFinderTest {
   public void simpleListTest() {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
 
-    SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 5, 16, 8);
+    SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 5, 16, 8, "pointer");
 
     SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder();
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg);
@@ -59,7 +59,7 @@ public class SMGSingleLinkedListFinderTest {
   public void nullifiedPointerInferenceTest() {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
 
-    TestHelpers.createGlobalList(smg, 2, 16, 8);
+    TestHelpers.createGlobalList(smg, 2, 16, 8, "pointer");
 
     SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder();
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg);

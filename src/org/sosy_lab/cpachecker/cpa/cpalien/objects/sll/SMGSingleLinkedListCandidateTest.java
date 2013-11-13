@@ -81,7 +81,7 @@ public class SMGSingleLinkedListCandidateTest {
     int SEGMENT_LENGTH = 4;
     int OFFSET = 0;
 
-    SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, SEGMENT_LENGTH + 1, NODE_SIZE, OFFSET);
+    SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, SEGMENT_LENGTH + 1, NODE_SIZE, OFFSET, "pointer");
     Integer value = root.getValue();
 
     SMGObject startObject = smg.getPointer(value).getObject();
@@ -118,7 +118,7 @@ public class SMGSingleLinkedListCandidateTest {
   @Test
   public void executeOnNullTerminatedList() {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
-    SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 2, 16, 8);
+    SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 2, 16, 8, "pointer");
 
     Integer value = root.getValue();
     SMGObject startObject = smg.getPointer(value).getObject();
