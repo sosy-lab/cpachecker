@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -1208,21 +1209,132 @@ public class SMGTransferRelation implements TransferRelation {
      * Visitor that derives further information from an assume edge
      */
     @SuppressWarnings("unused")
-    private class AssigningValueVisitor {
+    private class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferException> {
 
       private SMGState assignableState;
       private boolean truthValue = false;
+      private CFAEdge edge;
 
-      public AssigningValueVisitor(SMGState pSMGState, boolean pTruthvalue) {
+      public AssigningValueVisitor(SMGState pSMGState, boolean pTruthvalue, CFAEdge pEdge) {
         assignableState = pSMGState;
         truthValue = pTruthvalue;
+        edge = pEdge;
+      }
+
+      @Override
+      protected Void visitDefault(CExpression pExp) throws CPATransferException {
+        return null;
+      }
+
+      @Override
+      public Void visit(CPointerExpression pointerExpression) throws CPATransferException {
+        deriveFurtherInformation(pointerExpression);
+        return null;
+      }
+
+      @Override
+      public Void visit(CIdExpression pExp) throws CPATransferException {
+        deriveFurtherInformation(pExp);
+        return null;
+      }
+
+      @Override
+      public Void visit(CArraySubscriptExpression pExp) throws CPATransferException {
+        deriveFurtherInformation(pExp);
+        return null;
+      }
+
+      @Override
+      public Void visit(CFieldReference pExp) throws CPATransferException {
+        deriveFurtherInformation(pExp);
+        return null;
+      }
+
+      @Override
+      public Void visit(CCastExpression pE) throws CPATransferException {
+        // TODO cast reinterpretations
+        return pE.getOperand().accept(this);
+      }
+
+      @Override
+      public Void visit(CCharLiteralExpression pE) throws CPATransferException {
+
+        assert false;
+        return null;
+      }
+
+      @Override
+      public Void visit(CFloatLiteralExpression pE) throws CPATransferException {
+
+        assert false;
+        return null;
+      }
+
+      @Override
+      public Void visit(CIntegerLiteralExpression pE) throws CPATransferException {
+
+        assert false;
+        return null;
+      }
+
+      @Override
+      public Void visit(CUnaryExpression pE) throws CPATransferException {
+
+        UnaryOperator op = pE.getOperator();
+
+        CExpression operand = pE.getOperand();
+
+        switch (op) {
+        case AMPER:
+          assert false : "In this case, the assume should be able to be calculated";
+          return null;
+        case MINUS:
+        case PLUS:
+        case TILDE:
+          // don't change the truth value
+          return operand.accept(this);
+        case NOT:
+          truthValue = !truthValue;
+          return operand.accept(this);
+        case SIZEOF:
+          assert false : "At the moment, this cae should be able to be calculated";
+
+        }
+
+        return null;
+      }
+
+      private void deriveFurtherInformation(CLeftHandSide lValue) throws CPATransferException {
+
+        if(truthValue == true) {
+          return; // no further explicit Information can be derived
+        }
+
+        SMGExpressionEvaluator.LValueAssignmentVisitor visitor = getLValueAssignmentVisitor(edge, assignableState);
+
+        SMGAddress addressOfField = lValue.accept(visitor);
+
+        if(addressOfField.isUnknown()) {
+          return;
+        }
+
+        // If this value is known, the assumption can be evaluated, therefor it should be unknown
+        assert evaluateExplicitValue(assignableState, edge, lValue).isUnknown();
+
+        SMGSymbolicValue value = evaluateExpressionValue(assignableState, edge, lValue);
+
+        // This symbolic value should have been added when evaluating the assume
+        assert !value.isUnknown();
+
+        assignableState.putExplicit((SMGKnownSymValue)value, SMGKnownExpValue.ZERO);
+
       }
 
       private CExpression unwrap(CExpression expression) {
         // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
 
         if (expression instanceof CUnaryExpression) {
-          CUnaryExpression exp = (CUnaryExpression)expression;
+          CUnaryExpression exp = (CUnaryExpression) expression;
           if (exp.getOperator() == UnaryOperator.NOT) { // TODO why only C-UnaryOperator?
             expression = exp.getOperand();
             truthValue = !truthValue;
@@ -1232,7 +1344,7 @@ public class SMGTransferRelation implements TransferRelation {
         }
 
         if (expression instanceof CCastExpression) {
-          CCastExpression exp = (CCastExpression)expression;
+          CCastExpression exp = (CCastExpression) expression;
           expression = exp.getOperand();
 
           expression = unwrap(expression);
