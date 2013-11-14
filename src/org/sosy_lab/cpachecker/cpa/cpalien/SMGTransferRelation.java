@@ -295,6 +295,10 @@ public class SMGTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("Can't simulate memset", cfaEdge, functionCall);
       }
 
+      SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
+
+      SMGExplicitValue expValue = expEvaluator.evaluateExplicitValue(currentState, cfaEdge, chExpr);
+
       if (ch.equals(SMGKnownSymValue.ZERO)) {
         // Create one large edge
         writeValue(currentState, bufferMemory, offset, count, ch, cfaEdge);
@@ -304,10 +308,6 @@ public class SMGTransferRelation implements TransferRelation {
         for (int c = 0; c < count; c++) {
           writeValue(currentState, bufferMemory, offset + c, AnonymousTypes.dummyChar, ch, cfaEdge);
         }
-
-        SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
-
-        SMGExplicitValue expValue = expEvaluator.evaluateExplicitValue(currentState, cfaEdge, chExpr);
 
         if (!expValue.isUnknown()) {
           currentState.putExplicit((SMGKnownSymValue) ch, (SMGKnownExpValue) expValue);
@@ -846,11 +846,11 @@ public class SMGTransferRelation implements TransferRelation {
       }
     }
 
-    assignFieldToState(newState, cfaEdge, memoryOfField, fieldOffset, pFieldType, value, rValueType);
-
     SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
 
     SMGExplicitValue expValue = expEvaluator.evaluateExplicitValue(newState, cfaEdge, rValue);
+
+    assignFieldToState(newState, cfaEdge, memoryOfField, fieldOffset, pFieldType, value, rValueType);
 
     if (!expValue.isUnknown()) {
       newState.putExplicit((SMGKnownSymValue) value, (SMGKnownExpValue) expValue);
