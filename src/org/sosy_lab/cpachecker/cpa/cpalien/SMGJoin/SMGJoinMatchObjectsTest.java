@@ -23,16 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 
-import java.math.BigInteger;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.cpalien.AnonymousTypes;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
@@ -46,10 +40,7 @@ import org.sosy_lab.cpachecker.cpa.cpalien.objects.sll.SMGSingleLinkedList;
 
 public class SMGJoinMatchObjectsTest {
 
-  final private CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
-  final private CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-  final private CIntegerLiteralExpression arrayLen2 = new CIntegerLiteralExpression(null, dummyInt, BigInteger.valueOf(2));
-  private final CType mockType2b = new CArrayType(false, false, dummyChar, arrayLen2);
+  static private final CType mockType2b = AnonymousTypes.createTypeWithLength(2);
 
   private SMG smg1;
   private SMG smg2;

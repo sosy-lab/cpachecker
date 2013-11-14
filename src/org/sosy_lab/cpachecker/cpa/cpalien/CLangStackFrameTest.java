@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -34,10 +33,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
@@ -45,16 +41,16 @@ import com.google.common.collect.ImmutableList;
 
 
 public class CLangStackFrameTest {
-  private CType returnType = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
-  private CFunctionType functionType = new CFunctionType(false, false, returnType, new ArrayList<CType>(), false);
-  private CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
+  static private final CFunctionType functionType = AnonymousTypes.createSimpleFunctionType(AnonymousTypes.dummyInt);
+  static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
+  static private final MachineModel usedMachineModel = MachineModel.LINUX64;
   private CLangStackFrame sf;
 
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() throws Exception {
 
-    sf = new CLangStackFrame(functionDeclaration, MachineModel.LINUX64);
+    sf = new CLangStackFrame(functionDeclaration, usedMachineModel);
   }
 
   @Test
@@ -107,7 +103,7 @@ public class CLangStackFrameTest {
   @Test
   public void CLangFrameReturnValueTest() {
     SMGObject retval = sf.getReturnObject();
-    Assert.assertEquals(4, retval.getSize());
+    Assert.assertEquals(usedMachineModel.getSizeof(AnonymousTypes.dummyInt), retval.getSize());
   }
 
   @Test(expected=IllegalArgumentException.class)

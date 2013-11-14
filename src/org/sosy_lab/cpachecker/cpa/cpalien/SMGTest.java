@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
 import java.util.BitSet;
 import java.util.HashSet;
@@ -36,7 +35,6 @@ import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
@@ -45,7 +43,7 @@ public class SMGTest {
   private LogManager logger = mock(LogManager.class);
 
   private SMG smg;
-  CType mockType = mock(CType.class);
+  CType mockType = AnonymousTypes.createTypeWithLength(4);
 
   SMGObject obj1 = new SMGRegion(8, "object-1");
   SMGObject obj2 = new SMGRegion(8, "object-2");
@@ -82,8 +80,6 @@ public class SMGTest {
 
     smg.addHasValueEdge(hv2has2at0);
     smg.addHasValueEdge(hv2has1at4);
-
-    when(mockType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
   }
 
   @Test

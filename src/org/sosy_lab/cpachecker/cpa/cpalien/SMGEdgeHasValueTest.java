@@ -23,33 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Mockito.*;
-
 import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 
 public class SMGEdgeHasValueTest {
 
-  CType mockType = mock(CType.class);
-  CType mockType12b = mock(CType.class);
-
-  @SuppressWarnings("unchecked")
-  @Before
-  public void setUp() {
-    when(mockType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
-    when(mockType12b.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(12));
-  }
+  CType mockType = AnonymousTypes.createTypeWithLength(4);
+  CType mockType12b = AnonymousTypes.createTypeWithLength(12);
 
   @Test
   public void testSMGEdgeHasValue() {

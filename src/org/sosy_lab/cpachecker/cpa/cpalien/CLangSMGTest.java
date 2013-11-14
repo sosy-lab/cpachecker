@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
 
@@ -38,28 +36,20 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 import com.google.common.collect.ImmutableList;
 
 public class CLangSMGTest {
-
-  private CType mockType = mock(CType.class);
-  private CType returnType = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
-  private CFunctionType functionType = new CFunctionType(false, false, returnType, new ArrayList<CType>(), false);
-  private CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
+  static private final CFunctionType functionType = AnonymousTypes.createSimpleFunctionType(AnonymousTypes.dummyInt);
+  static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
   private CLangStackFrame sf;
 
-  private LogManager logger = mock(LogManager.class);
-  private CIdExpression id_expression = new CIdExpression(null, null, "label", null);
-
-  // TODO: Test for 32bit model too
+  static private final LogManager logger = mock(LogManager.class);
+  static private final CIdExpression id_expression = new CIdExpression(null, null, "label", null);
 
   private static CLangSMG getNewCLangSMG64() {
     return new CLangSMG(MachineModel.LINUX64);
@@ -68,7 +58,6 @@ public class CLangSMGTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
-    when(mockType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
     sf = new CLangStackFrame(functionDeclaration, MachineModel.LINUX64);
     CLangSMG.setPerformChecks(true, logger);
   }
@@ -88,7 +77,7 @@ public class CLangSMGTest {
     Integer val2 = Integer.valueOf(2);
 
     SMGEdgePointsTo pt = new SMGEdgePointsTo(val1, obj1, 0);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, obj2, val2.intValue());
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(AnonymousTypes.dummyInt, 0, obj2, val2.intValue());
 
     smg.addValue(val1.intValue());
     smg.addValue(val2.intValue());

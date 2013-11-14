@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 
-import java.util.ArrayList;
 import java.util.Set;
 
 import org.junit.Assert;
@@ -32,10 +31,8 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.cpalien.AnonymousTypes;
 import org.sosy_lab.cpachecker.cpa.cpalien.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
@@ -48,9 +45,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 public class SMGJoinTest {
-  private CType returnType = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
-  private CFunctionType functionType = new CFunctionType(false, false, returnType, new ArrayList<CType>(), false);
-  private CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
+  static private final CFunctionType functionType = AnonymousTypes.createSimpleFunctionType(AnonymousTypes.dummyInt);
+  static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
 
   private CLangSMG smg1;
   private CLangSMG smg2;

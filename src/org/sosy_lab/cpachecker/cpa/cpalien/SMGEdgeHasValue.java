@@ -23,11 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import java.math.BigInteger;
-
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 
@@ -43,8 +39,7 @@ public class SMGEdgeHasValue extends SMGEdge {
 
   public SMGEdgeHasValue(int pSizeInBytes, int pOffset, SMGObject pObject, int pValue) {
     super(pValue, pObject);
-    CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(null, AnonymousTypes.dummyInt, BigInteger.valueOf(pSizeInBytes));
-    type = new CArrayType(false, false, AnonymousTypes.dummyChar, arrayLen);
+    type = AnonymousTypes.createTypeWithLength(pSizeInBytes);
     offset = pOffset;
   }
 

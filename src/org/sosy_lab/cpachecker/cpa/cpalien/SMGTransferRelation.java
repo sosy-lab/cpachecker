@@ -90,12 +90,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -368,14 +366,7 @@ public class SMGTransferRelation implements TransferRelation {
       String allocation_label = "Calloc_ID" + SMGValueFactory.getNewValue() + "_Line:" + functionCall.getFileLocation().getStartingLineNumber();
       SMGEdgePointsTo new_pointer = currentState.addNewHeapAllocation(num * size, allocation_label);
 
-
-      //TODO Create mock types
-      CSimpleType charType = new CSimpleType(false, false, CBasicType.CHAR,
-          false, false, false, false, false, false, false);
-      CType newType = new CArrayType(false, false, charType,
-          new CIntegerLiteralExpression(null, null, BigInteger.valueOf(size)));
-
-      currentState.writeValue(new_pointer.getObject(), 0, newType, SMGKnownSymValue.ZERO);
+      currentState.writeValue(new_pointer.getObject(), 0, AnonymousTypes.createTypeWithLength(size), SMGKnownSymValue.ZERO);
 
       possibleMallocFail = true;
       return new_pointer;
@@ -900,9 +891,7 @@ public class SMGTransferRelation implements TransferRelation {
   }
   private void writeValue(SMGState pNewState, SMGObject pMemoryOfField, int pFieldOffset, long pSizeType,
       SMGSymbolicValue pValue, CFAEdge pEdge) throws UnrecognizedCCodeException, SMGInconsistentException {
-    CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(null, AnonymousTypes.dummyInt, BigInteger.valueOf(pSizeType));
-    CType anonymousType = new CArrayType(false, false, AnonymousTypes.dummyChar, arrayLen);
-    writeValue(pNewState, pMemoryOfField, pFieldOffset, anonymousType, pValue, pEdge);
+    writeValue(pNewState, pMemoryOfField, pFieldOffset, AnonymousTypes.createTypeWithLength(pSizeType), pValue, pEdge);
   }
 
   private void writeValue(SMGState pNewState, SMGObject pMemoryOfField, int pFieldOffset, CType pRValueType,
@@ -1094,15 +1083,7 @@ public class SMGTransferRelation implements TransferRelation {
       int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType);
 
       if(offset < sizeOfType ) {
-
-        //TODO MockType
-        CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-        CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
-
-        CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(null, dummyInt, BigInteger.valueOf(sizeOfType - offset));
-        CArrayType type = new CArrayType(false, false, dummyChar, arrayLen);
-
-        pNewState.writeValue(pNewObject, offset, type, SMGKnownSymValue.ZERO);
+        pNewState.writeValue(pNewObject, offset, AnonymousTypes.createTypeWithLength(sizeOfType), SMGKnownSymValue.ZERO);
       }
     }
 
@@ -1137,18 +1118,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       int offset = pOffset + listCounter * sizeOfElementType;
       if (offset < sizeOfType) {
-
-        //TODO MockType
-        CSimpleType dummyChar =
-            new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-        CSimpleType dummyInt =
-            new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
-
-        CIntegerLiteralExpression arrayLen =
-            new CIntegerLiteralExpression(null, dummyInt, BigInteger.valueOf(sizeOfType - offset));
-        CArrayType type = new CArrayType(false, false, dummyChar, arrayLen);
-
-        pNewState.writeValue(pNewObject, offset, type, SMGKnownSymValue.ZERO);
+        pNewState.writeValue(pNewObject, offset, AnonymousTypes.createTypeWithLength(sizeOfType-offset), SMGKnownSymValue.ZERO);
       }
     }
 

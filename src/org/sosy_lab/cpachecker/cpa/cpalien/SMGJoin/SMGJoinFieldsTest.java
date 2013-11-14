@@ -23,19 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 
-import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.cpalien.AnonymousTypes;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
@@ -48,13 +44,8 @@ import com.google.common.collect.Iterables;
 
 
 public class SMGJoinFieldsTest {
-
-  final private CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
-  final private CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-  final private CIntegerLiteralExpression arrayLen4 = new CIntegerLiteralExpression(null, dummyInt, BigInteger.valueOf(4));
-  final private CIntegerLiteralExpression arrayLen8 = new CIntegerLiteralExpression(null, dummyInt, BigInteger.valueOf(8));
-  private final CType mockType4b = new CArrayType(false, false, dummyChar, arrayLen4);
-  private final CType mockType8b = new CArrayType(false, false, dummyChar, arrayLen8);
+  static private final CType mockType4b = AnonymousTypes.createTypeWithLength(4);
+  static private final CType mockType8b = AnonymousTypes.createTypeWithLength(8);
 
   private SMG smg1;
   private SMG smg2;
