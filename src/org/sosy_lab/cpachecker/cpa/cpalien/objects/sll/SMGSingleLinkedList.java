@@ -35,7 +35,7 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
   //TODO: Binding is likely to be more complicated later
   private int bindingOffset;
 
-  SMGSingleLinkedList(SMGRegion pPrototype, int pOffset, int pLength) {
+  public SMGSingleLinkedList(SMGRegion pPrototype, int pOffset, int pLength) {
     super(pPrototype.getSize(), "SLL");
     bindingOffset = pOffset;
     length = pLength;
@@ -63,5 +63,18 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
   @Override
   public void accept(SMGObjectVisitor visitor) {
     visitor.visit(this);
+  }
+
+  @Override
+  public boolean matchGenericShape(SMGAbstractObject pOther) {
+    return pOther instanceof SMGSingleLinkedList;
+  }
+
+  @Override
+  public boolean matchSpecificShape(SMGAbstractObject pOther) {
+    if (!matchGenericShape(pOther)) {
+      return false;
+    }
+    return bindingOffset == ((SMGSingleLinkedList)pOther).bindingOffset;
   }
 }

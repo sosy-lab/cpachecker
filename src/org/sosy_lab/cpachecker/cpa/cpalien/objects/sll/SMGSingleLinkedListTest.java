@@ -41,4 +41,33 @@ public class SMGSingleLinkedListTest {
     Assert.assertEquals(2, sll.getOffset());
   }
 
+  @Test
+  public void matchGenericShapeTest() {
+    SMGRegion prototype = new SMGRegion(16, "prototype");
+    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(prototype, 0, 4);
+    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(prototype, 0, 7);
+    SMGSingleLinkedList sll3 = new SMGSingleLinkedList(prototype, 8, 4);
+
+    DummyAbstraction dummy = new DummyAbstraction(prototype);
+
+    Assert.assertFalse(sll1.matchGenericShape(dummy));
+    Assert.assertTrue(sll1.matchGenericShape(sll2));
+    Assert.assertTrue(sll2.matchGenericShape(sll3));
+    Assert.assertTrue(sll1.matchGenericShape(sll3));
+  }
+
+  @Test
+  public void matchSpecificShapeTest() {
+    SMGRegion prototype = new SMGRegion(16, "prototype");
+    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(prototype, 0, 4);
+    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(prototype, 0, 7);
+    SMGSingleLinkedList sll3 = new SMGSingleLinkedList(prototype, 8, 4);
+
+    DummyAbstraction dummy = new DummyAbstraction(prototype);
+
+    Assert.assertFalse(sll1.matchSpecificShape(dummy));
+    Assert.assertTrue(sll1.matchSpecificShape(sll2));
+    Assert.assertFalse(sll2.matchSpecificShape(sll3));
+    Assert.assertFalse(sll1.matchSpecificShape(sll3));
+  }
 }

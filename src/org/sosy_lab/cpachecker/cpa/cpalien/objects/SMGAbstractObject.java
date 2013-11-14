@@ -26,4 +26,7 @@ package org.sosy_lab.cpachecker.cpa.cpalien.objects;
 
 public interface SMGAbstractObject {
 
+  public boolean matchGenericShape(SMGAbstractObject pOther);
+  public boolean matchSpecificShape(SMGAbstractObject pOther);
+
 }

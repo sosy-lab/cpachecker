@@ -30,6 +30,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 
 import com.google.common.collect.Iterators;
@@ -103,6 +104,21 @@ final class SMGJoinMatchObjects {
     return false;
   }
 
+  private static boolean checkMatchingAbstractions(SMGObject pObj1, SMGObject pObj2) {
+    if (pObj1.isAbstract() && pObj2.isAbstract()) {
+      SMGAbstractObject pAbstract1 = (SMGAbstractObject)pObj1;
+      SMGAbstractObject pAbstract2 = (SMGAbstractObject)pObj2;
+
+      if (pAbstract1.matchGenericShape(pAbstract2)) {
+        if (! pAbstract1.matchSpecificShape(pAbstract2)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
   public SMGJoinMatchObjects(SMGJoinStatus pStatus, SMG pSMG1, SMG pSMG2,
                              SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
                              SMGObject pObj1, SMGObject pObj2){
@@ -123,6 +139,10 @@ final class SMGJoinMatchObjects {
     }
 
     if (SMGJoinMatchObjects.checkConsistentObjects(pObj1, pObj2, pSMG1, pSMG2)) {
+      return;
+    }
+
+    if (SMGJoinMatchObjects.checkMatchingAbstractions(pObj1, pObj2)) {
       return;
     }
 

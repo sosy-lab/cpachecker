@@ -34,11 +34,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.cpalien.AnonymousTypes;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.sll.SMGSingleLinkedList;
 
 
 public class SMGJoinMatchObjectsTest {
@@ -178,6 +181,37 @@ public class SMGJoinMatchObjectsTest {
 
     mapping2.map(hvMatching2.getValue(), SMGValueFactory.getNewValue());
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
+    Assert.assertFalse(mo.isDefined());
+  }
+
+  @Test
+  public void abstractionMatchTest() {
+    SMGRegion prototype = new SMGRegion(16, "prototype");
+    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(prototype, 8, 7);
+    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(prototype, 0, 7);
+
+    SMGRegion globalVar = new SMGRegion(8, "pointer");
+    Integer addressOfSegment = SMGValueFactory.getNewValue();
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, 0, globalVar, addressOfSegment);
+    SMGEdgePointsTo pt1 = new SMGEdgePointsTo(addressOfSegment, sll1, 0);
+    SMGEdgePointsTo pt2 = new SMGEdgePointsTo(addressOfSegment, sll2, 0);
+
+    smg1.addObject(globalVar);
+    smg2.addObject(globalVar);
+
+    smg1.addValue(addressOfSegment);
+    smg2.addValue(addressOfSegment);
+
+    smg1.addHasValueEdge(hv);
+    smg2.addHasValueEdge(hv);
+
+    smg1.addObject(sll1);
+    smg2.addObject(sll2);
+
+    smg1.addPointsToEdge(pt1);
+    smg2.addPointsToEdge(pt2);
+
+    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll1, sll2);
     Assert.assertFalse(mo.isDefined());
   }
 }
