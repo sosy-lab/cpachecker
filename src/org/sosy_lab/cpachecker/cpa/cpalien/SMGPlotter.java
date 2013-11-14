@@ -126,7 +126,7 @@ public final class SMGPlotter {
   static private int nulls = 0;
   private int offset = 0;
 
-  private SMGPlotter() {} /* utility class */
+  public SMGPlotter() {} /* utility class */
 
   static public String convertToValidDot(String original) {
     return original.replaceAll("[:]", "_");
