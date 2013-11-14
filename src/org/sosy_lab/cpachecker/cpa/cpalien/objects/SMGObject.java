@@ -63,4 +63,8 @@ public class SMGObject {
 
     throw new UnsupportedOperationException("isAbstract() called on SMGObject instance, not on a subclass");
   }
+
+  public void accept(SMGObjectVisitor visitor) {
+    throw new UnsupportedOperationException("accept() called on SMGObject instance not on a subclass");
+  }
 }

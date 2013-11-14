@@ -66,4 +66,9 @@ public final class SMGRegion extends SMGObject {
   public boolean isAbstract() {
     return false;
   }
+
+  @Override
+  public void accept(SMGObjectVisitor visitor) {
+    visitor.visit(this);
+  }
 }

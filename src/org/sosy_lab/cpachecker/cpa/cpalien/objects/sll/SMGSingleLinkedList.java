@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.cpalien.objects.sll;
 
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObjectVisitor;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 
@@ -59,5 +60,8 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
     return "SLL(size=" + getSize() + ", bindingOffset=" + bindingOffset + ", len=" + length +")";
   }
 
-
+  @Override
+  public void accept(SMGObjectVisitor visitor) {
+    visitor.visit(this);
+  }
 }

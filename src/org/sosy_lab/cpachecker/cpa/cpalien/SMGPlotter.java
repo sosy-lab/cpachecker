@@ -33,11 +33,84 @@ import java.util.Set;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObjectVisitor;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.sll.SMGSingleLinkedList;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
+final class SMGObjectNode {
+  private final String name;
+  private final String definition;
+  static private int counter = 0;
+
+  public SMGObjectNode(String pType, String pDefinition) {
+    name = "node_" + pType + "_" + counter++;
+    definition = pDefinition;
+  }
+
+  public SMGObjectNode(String pName) {
+    name = pName;
+    definition = null;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public String getDefinition() {
+    return name + "[" + definition + "];";
+  }
+}
+
+class SMGNodeDotVisitor implements SMGObjectVisitor {
+  final private CLangSMG smg;
+  private SMGObjectNode node = null;
+
+  public SMGNodeDotVisitor(CLangSMG pSmg) {
+    smg = pSmg;
+  }
+
+  private String defaultDefinition(String pColor, String pShape, String pStyle, SMGObject pObject) {
+    return "color=" + pColor + ", shape=" + pShape + ", style=" + pStyle + ", label =\"" + pObject.toString() + "\"";
+  }
+
+  @Override
+  public void visit(SMGRegion pRegion) {
+    String shape = "rectangle";
+    String color;
+    String style;
+    if (smg.isObjectValid(pRegion)) {
+      color="black"; style="solid";
+    } else {
+      color="red"; style="dotted";
+    }
+
+    node = new SMGObjectNode("region", defaultDefinition(color, shape, style, pRegion));
+  }
+
+  @Override
+  public void visit(SMGSingleLinkedList pSll) {
+    String shape = "rectangle";
+    String color = "blue";
+    String style = "dashed";
+    node = new SMGObjectNode("sll", defaultDefinition(color, shape, style, pSll));
+  }
+
+  @Override
+  public void visit (SMGObject pObject) {
+    if (pObject.notNull()) {
+      pObject.accept(this);
+    } else {
+      node = new SMGObjectNode("NULL");
+    }
+  }
+
+  public SMGObjectNode getNode() {
+    return node;
+  }
+}
 
 public final class SMGPlotter {
   static final public void debuggingPlot(CLangSMG pSmg, String pId) throws IOException {
@@ -49,13 +122,13 @@ public final class SMGPlotter {
     Files.writeFile(outputFile, plotter.smgAsDot(pSmg, pId, "debug plot"));
   }
 
-  private final HashMap <SMGObject, String> objectIndex = new HashMap<>();
+  private final HashMap <SMGObject, SMGObjectNode> objectIndex = new HashMap<>();
   static private int nulls = 0;
   private int offset = 0;
 
   public SMGPlotter() {} /* utility class */
 
-  private String convertToValidDot(String original) {
+  static public String convertToValidDot(String original) {
     return original.replaceAll("[:]", "_");
   }
 
@@ -68,11 +141,16 @@ public final class SMGPlotter {
 
     addStackSubgraph(smg, sb);
 
+    SMGNodeDotVisitor visitor = new SMGNodeDotVisitor(smg);
+
     for (SMGObject heapObject : smg.getHeapObjects()) {
-      if (heapObject.notNull()) {
-        sb.append(newLineWithOffset(smgObjectAsDot(heapObject, smg.isObjectValid(heapObject))));
+      if (! objectIndex.containsKey(heapObject)) {
+        visitor.visit(heapObject);
+        objectIndex.put(heapObject, visitor.getNode());
       }
-      objectIndex.put(heapObject, convertToValidDot(heapObject.getLabel()));
+      if (heapObject.notNull()) {
+        sb.append(newLineWithOffset(objectIndex.get(heapObject).getDefinition()));
+      }
     }
 
     addGlobalObjectSubgraph(smg, sb);
@@ -160,7 +238,7 @@ public final class SMGPlotter {
       }
 
       nodes.add("<item_" + key + "> " + obj.toString());
-      objectIndex.put(obj, "struct" + pStructId + ":item_" + key);
+      objectIndex.put(obj, new SMGObjectNode("struct" + pStructId + ":item_" + key));
     }
     sb.append(Joiner.on(" | ").join(nodes));
     sb.append("\"];\n");
@@ -186,25 +264,14 @@ public final class SMGPlotter {
   private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge) {
     if (pEdge.getValue() == 0) {
       String newNull = newNullLabel();
-      return newNull + "[shape=plaintext, label=\"NULL\"];" + objectIndex.get(pEdge.getObject()) + " -> " + newNull + "[label=\"[" + pEdge.getOffset() + "]\"];";
+      return newNull + "[shape=plaintext, label=\"NULL\"];" + objectIndex.get(pEdge.getObject()).getName() + " -> " + newNull + "[label=\"[" + pEdge.getOffset() + "]\"];";
     } else {
-      return objectIndex.get(pEdge.getObject()) + " -> value_" + pEdge.getValue() + "[label=\"[" + pEdge.getOffset() + "]\"];";
+      return objectIndex.get(pEdge.getObject()).getName() + " -> value_" + pEdge.getValue() + "[label=\"[" + pEdge.getOffset() + "]\"];";
     }
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()) + "[label=\"+" + pEdge.getOffset() + "b\"];";
-  }
-
-  private String smgObjectAsDot(SMGObject pObject, boolean pValidity) {
-    String shape;
-    String color;
-    if (pValidity) {
-      shape="rectangle"; color="black";
-    } else {
-      shape="doubleoctagon"; color="red";
-    }
-    return this.convertToValidDot(pObject.getLabel()) + " [ color=" + color + ", shape=" + shape + ", label = \"" + pObject.toString() + "\"];";
+    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "b\"];";
   }
 
   private static String smgValueAsDot(int value) {
