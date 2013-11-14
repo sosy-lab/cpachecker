@@ -578,35 +578,31 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
           return newElement;
         }
 
-        // if this is a global variable, add it to the list of global variables
-        if (decl.isGlobal()) {
-          globalVars.add(decl.getName());
+        String varName;
 
-          Interval interval;
+      // if this is a global variable, add it to the list of global variables
+      if (decl.isGlobal()) {
+        globalVars.add(decl.getName());
+        varName = constructVariableName(decl.getName(), "");
+      } else {
+        varName = constructVariableName(decl.getName(), declarationEdge.getPredecessor().getFunctionName());
+      }
 
-          CInitializer init = decl.getInitializer();
+      Interval interval;
 
-          // global variables may be initialized explicitly on the spot ...
-          if (init instanceof CInitializerExpression) {
-            CExpression exp = ((CInitializerExpression)init).getExpression();
+      CInitializer init = decl.getInitializer();
 
-            interval = evaluateInterval(element, exp, "", declarationEdge);
-          } else {
-            interval = new Interval(0L);
-          }
+      // variable may be initialized explicitly on the spot ...
+      if (init instanceof CInitializerExpression) {
+        CExpression exp = ((CInitializerExpression) init).getExpression();
 
-          String varName = constructVariableName(decl.getName(), "");
+        interval = evaluateInterval(element, exp, "", declarationEdge);
+      } else {
+        interval = new Interval(0L);
+      }
 
-          newElement.addInterval(varName, interval, this.threshold);
-        }
+      newElement.addInterval(varName, interval, this.threshold);
 
-        // non-global variables are initialized with an unbound interval
-        else {
-          String varName = constructVariableName(decl.getName(), declarationEdge.getPredecessor().getFunctionName());
-
-          newElement.addInterval(varName, Interval.createUnboundInterval(), this.threshold);
-          //newElement.addInterval(varName, new Interval(0L), this.threshold);
-        }
     }
 
     return newElement;
