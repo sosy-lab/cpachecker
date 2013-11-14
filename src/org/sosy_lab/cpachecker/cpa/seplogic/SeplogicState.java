@@ -168,4 +168,9 @@ public class SeplogicState implements AbstractState, Cloneable, Targetable {
   public boolean isTarget() {
     return causeForError != null;
   }
+
+  @Override
+  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+    return null;
+  }
 }

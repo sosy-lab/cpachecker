@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -64,8 +65,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.seplogic.SeplogicState.SeplogicQueryUnsuccessful;
 import org.sosy_lab.cpachecker.cpa.seplogic.interfaces.Handle;
 import org.sosy_lab.cpachecker.cpa.seplogic.interfaces.PartingstarInterface;
-import org.sosy_lab.cpachecker.cpa.types.Type;
-import org.sosy_lab.cpachecker.cpa.types.TypesState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -330,15 +329,6 @@ public class SeplogicTransferRelation implements TransferRelation {
 
       if (unaryExpression.getOperator() == UnaryOperator.NOT) {
         return handleAssume(element, unaryExpression.getOperand(), !isTrueBranch, assumeEdge);
-
-      } else if (unaryExpression.getOperator() == UnaryOperator.STAR) {
-        // if (*var)
-        String varName = expression.toASTString();
-
-        if (!isTrueBranch) { return element; }
-        a1 = makeVarArg(varName, element);
-        a2 = makeIntegerConstant(0);
-        isTrueBranch = !isTrueBranch;
       } else {
         throw new UnrecognizedCCodeException("not expected in CIL", assumeEdge,
             expression);
@@ -352,6 +342,14 @@ public class SeplogicTransferRelation implements TransferRelation {
     } else if (expression instanceof CCastExpression) {
       return handleAssume(element, ((CCastExpression) expression).getOperand(), isTrueBranch,
           assumeEdge);
+    } else if (expression instanceof CPointerExpression) {
+      // if (*var)
+      String varName = expression.toASTString();
+
+      if (!isTrueBranch) { return element; }
+      a1 = makeVarArg(varName, element);
+      a2 = makeIntegerConstant(0);
+      isTrueBranch = !isTrueBranch;
     } else {
       throw new UnrecognizedCCodeException("unsupported", assumeEdge);
     }
@@ -527,7 +525,7 @@ public class SeplogicTransferRelation implements TransferRelation {
       // ignore
       return element;
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression.asStatement());
+      throw new UnrecognizedCCodeException("Unrecognized", cfaEdge);
     }
 
   }
@@ -557,7 +555,7 @@ public class SeplogicTransferRelation implements TransferRelation {
       return handleAssignmentStatement(element, (CAssignment) expression, cfaEdge);
 
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+      throw new UnrecognizedCCodeException(expression.toASTString(), cfaEdge);
     }
   }
 
@@ -598,33 +596,24 @@ public class SeplogicTransferRelation implements TransferRelation {
       leftDereference = false;
       leftVarName = ((CIdExpression) leftExpression).getName();
 
-    } else if (leftExpression instanceof CUnaryExpression) {
+    } else if (leftExpression instanceof CPointerExpression) {
+      // *a
+      CPointerExpression ptrExpression = (CPointerExpression)leftExpression;
+      leftDereference = true;
 
-      CUnaryExpression unaryExpression = (CUnaryExpression) leftExpression;
-      if (unaryExpression.getOperator() == UnaryOperator.STAR) {
-        // *a
-        leftDereference = true;
+      leftExpression = ptrExpression.getOperand();
 
-        leftExpression = unaryExpression.getOperand();
-
-        boolean leftCast = false;
-        if (leftExpression instanceof CCastExpression) {
-          leftCast = true;
-          leftExpression = ((CCastExpression) leftExpression).getOperand();
-        }
-
-        if (!(leftExpression instanceof CIdExpression)) {
-          // not a variable at left hand side
-          throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
-              leftExpression);
-        }
-
-        leftVarName = leftExpression.toASTString();
-
-      } else {
-        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
-            unaryExpression);
+      if (leftExpression instanceof CCastExpression) {
+        leftExpression = ((CCastExpression) leftExpression).getOperand();
       }
+
+      if (!(leftExpression instanceof CIdExpression)) {
+        // not a variable at left hand side
+        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
+            leftExpression);
+      }
+
+      leftVarName = leftExpression.toASTString();
     } else {
       // TODO fields, arrays
       throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
@@ -734,7 +723,7 @@ public class SeplogicTransferRelation implements TransferRelation {
         String rightName = ((CIdExpression) op1).getName();
 
         if (!(typeOfOperator == BinaryOperator.PLUS
-        || typeOfOperator == BinaryOperator.MINUS)) { throw new UnrecognizedCCodeException(cfaEdge, binExpression); }
+        || typeOfOperator == BinaryOperator.MINUS)) { throw new UnrecognizedCCodeException(binExpression.toASTString(), cfaEdge); }
 
         if (op2 instanceof CLiteralExpression) {
           long offset = ((CIntegerLiteralExpression) op2).asLong();
@@ -813,36 +802,35 @@ public class SeplogicTransferRelation implements TransferRelation {
 
       } else if (op == UnaryOperator.MINUS) {
         throw new UnrecognizedCCodeException("unsupported", cfaEdge, expression);
-      } else if (op == UnaryOperator.STAR) {
-        // a = *b
-
-        expression = unaryExpression.getOperand();
-
-        if (expression instanceof CCastExpression) {
-          expression = ((CCastExpression) expression).getOperand();
-        }
-
-        if (!(expression instanceof CIdExpression)) {
-          // not a variable at left hand side
-          throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
-              expression);
-        }
-
-        if (leftDereference) {
-          throw new UnrecognizedCCodeException("unsupported", cfaEdge,
-              expression);
-        } else {
-          Handle rhsArg = makeFreshExistential();
-          fPre = makePointsTo(makeVarArg(expression.toASTString(), element), rhsArg);
-          fPost = psInterface.makeStar(fPre, psInterface.makeEq(psInterface.makeVar(psInterface.loadString(RETVAR)), rhsArg));
-          sVarName = leftVarName;
-        }
-
       } else {
         throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
             unaryExpression);
       }
+    } else if (expression instanceof CPointerExpression) {
+      // a = *b
 
+      CPointerExpression ptrExpression = (CPointerExpression) expression;
+      expression = ptrExpression.getOperand();
+
+      if (expression instanceof CCastExpression) {
+        expression = ((CCastExpression) expression).getOperand();
+      }
+
+      if (!(expression instanceof CIdExpression)) {
+        // not a variable at left hand side
+        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
+            expression);
+      }
+
+      if (leftDereference) {
+        throw new UnrecognizedCCodeException("unsupported", cfaEdge,
+            expression);
+      } else {
+        Handle rhsArg = makeFreshExistential();
+        fPre = makePointsTo(makeVarArg(expression.toASTString(), element), rhsArg);
+        fPost = psInterface.makeStar(fPre, psInterface.makeEq(psInterface.makeVar(psInterface.loadString(RETVAR)), rhsArg));
+        sVarName = leftVarName;
+      }
     } else if (expression instanceof CIdExpression) {
       // a = b
       String rightName = ((CIdExpression) expression).getName();
@@ -931,73 +919,6 @@ public class SeplogicTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> strengthen(
       AbstractState element, List<AbstractState> elements, CFAEdge cfaEdge,
       Precision precision) throws CPATransferException {
-
-    if (!(element instanceof SeplogicState)) { return null; }
-
-    SeplogicState seplogicElement = (SeplogicState) element;
-
-    for (AbstractState ae : elements) {
-      try {
-        if (ae instanceof TypesState) {
-          strengthen(seplogicElement, (TypesState) ae, cfaEdge, precision);
-        }
-
-      } catch (UnrecognizedCCodeException e) {
-        throw new CPATransferException(e.getMessage());
-      }
-    }
     return null;
   }
-
-  /**
-   * strengthen called for TypesCPA
-   */
-  private void strengthen(SeplogicState seplogicElement,
-      TypesState typesElement, CFAEdge cfaEdge, Precision precision)
-      throws UnrecognizedCCodeException {
-
-    /* XXX fill
-      if (missing.typeInformationPointer == null) {
-        return;
-      }
-
-      // pointer variable declaration
-      String functionName = cfaEdge.getSuccessor().getFunctionName();
-      if (missing.typeInformationEdge instanceof GlobalDeclarationEdge) {
-        functionName = null;
-      }
-
-      String varName = missing.typeInformationName;
-      Type type = typesElement.getVariableType(functionName, varName);
-
-      setSizeOfTarget(missing.typeInformationPointer, type);
-      */
-  }
-
-  /**
-   * checks all possible locations for type information of a given name
-   */
-  private Type findType(TypesState typeElem, CFAEdge cfaEdge, String varName) {
-    Type t = null;
-    //check type definitions
-    t = typeElem.getTypedef(varName);
-    //if this fails, check functions
-    if (t == null) {
-      t = typeElem.getFunction(varName);
-    }
-    //if this also fails, check variables for the global context
-    if (t == null) {
-      t = typeElem.getVariableType(null, varName);
-    }
-    try {
-      //if again there was no result, check local variables and function parameters
-      if (t == null) {
-        t = typeElem.getVariableType(cfaEdge.getSuccessor().getFunctionName(), varName);
-      }
-    } catch (IllegalArgumentException e) {
-      //if nothing at all can be found, just return null
-    }
-    return t;
-  }
-
 }
