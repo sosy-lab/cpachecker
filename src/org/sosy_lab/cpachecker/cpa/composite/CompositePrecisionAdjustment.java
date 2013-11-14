@@ -24,17 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -105,7 +102,9 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     int dim = comp.getWrappedStates().size();
 
     if (inPredicatedAnalysis && comp.isTarget()) {
-      comp = checkFeasibilityAndAdaptPredicateStateIfNecessary(comp);
+      // strengthening of PredicateCPA already proved if path is infeasible and removed infeasible element
+      // thus path is feasible here
+      throw new PredicatedAnalysisPropertyViolationException("Property violated during successor computation", null);
     }
 
     ImmutableList.Builder<AbstractState> outElements = ImmutableList.builder();
@@ -139,33 +138,6 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     Precision outPrecision     = modified ? new CompositePrecision(outPrecisions.build()) : pPrecision;
 
     return Triple.of(outElement, outPrecision, action);
-  }
-
-  private CompositeState checkFeasibilityAndAdaptPredicateStateIfNecessary(CompositeState currentState)
-      throws PredicatedAnalysisPropertyViolationException, InterruptedException {
-    PredicateAbstractState predState = AbstractStates.extractStateByType(currentState, PredicateAbstractState.class);
-    CFANode node = AbstractStates.extractLocation(currentState);
-
-    // check if state is infeasible
-    if (abmgr.unsat(predState.getAbstractionFormula(), predState.getPathFormula())) {
-      // force predicate state to compute abstraction
-      ImmutableList.Builder<AbstractState> outElements = ImmutableList.builder();
-
-      for (AbstractState wrappedState : currentState.getWrappedStates()) {
-        if (wrappedState instanceof PredicateAbstractState) {
-          outElements.add(new PredicateAbstractState.ComputeAbstractionState(predState.getPathFormula(), predState
-              .getAbstractionFormula(), node, predState.getAbstractionLocationsOnPath(), predState
-              .getViolatedProperty()));
-        } else {
-          outElements.add(wrappedState);
-        }
-      }
-
-      return new CompositeState(outElements.build());
-    } else {
-      throw new PredicatedAnalysisPropertyViolationException(
-          "Property violated during successor computation", null);
-    }
   }
 
 }
