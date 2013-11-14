@@ -9,9 +9,9 @@
 #include <algorithm>
 #include <iostream>
 
-void assert_equal(unsigned state1, unsigned state2) {
+void assert_equal(unsigned state1, unsigned state2, std::string op) {
 	if(state1 != state2) {
-		printf("ERROR: found state %i but expected state %i (UNSAFE)\n", state1, state2);
+		printf("ERROR: found state %i but expected state %i in op %s (UNSAFE)\n", state1, state2, op.c_str());
 		exit(EXIT_FAILURE);
     }
 
@@ -66,7 +66,7 @@ void traverse_cfa(unsigned root, const char* function) {
 				node_to_state[pair.first] = new_state;
 				unhandled_nodes.push(pair.first);
 			} else {
-				assert_equal(node_to_state[pair.first], new_state);
+				assert_equal(node_to_state[pair.first], new_state, pair.second);
 			}
 		}
 	}
