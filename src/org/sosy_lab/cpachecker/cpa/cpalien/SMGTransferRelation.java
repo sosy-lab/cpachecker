@@ -75,6 +75,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -1230,6 +1232,44 @@ public class SMGTransferRelation implements TransferRelation {
     public org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGRightHandSideEvaluator.AssumeVisitorNG getAssumeVisitorNG(
         CFAEdge pCfaEdge, SMGState pSmgState) {
       return new AssumeVisitorNG(pCfaEdge, pSmgState);
+    }
+
+    /**
+     * Visitor that derives further information from an assume edge
+     */
+    @SuppressWarnings("unused")
+    private class AssigningValueVisitor {
+
+      private SMGState assignableState;
+      private boolean truthValue = false;
+
+      public AssigningValueVisitor(SMGState pSMGState, boolean pTruthvalue) {
+        assignableState = pSMGState;
+        truthValue = pTruthvalue;
+      }
+
+      private CExpression unwrap(CExpression expression) {
+        // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
+
+        if (expression instanceof CUnaryExpression) {
+          CUnaryExpression exp = (CUnaryExpression)expression;
+          if (exp.getOperator() == UnaryOperator.NOT) { // TODO why only C-UnaryOperator?
+            expression = exp.getOperand();
+            truthValue = !truthValue;
+
+            expression = unwrap(expression);
+          }
+        }
+
+        if (expression instanceof CCastExpression) {
+          CCastExpression exp = (CCastExpression)expression;
+          expression = exp.getOperand();
+
+          expression = unwrap(expression);
+        }
+
+        return expression;
+      }
     }
 
     private class LValueAssignmentVisitor extends SMGExpressionEvaluator.LValueAssignmentVisitor {
