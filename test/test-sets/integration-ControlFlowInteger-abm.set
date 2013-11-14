@@ -47,7 +47,6 @@
 ../programs/benchmarks/ssh/s3_clnt.blast.04_true.i.cil.c
 ../programs/benchmarks/ssh/s3_srvr.blast.01_true.i.cil.c
 ../programs/benchmarks/ssh/s3_srvr.blast.06_true.i.cil.c
-../programs/benchmarks/ssh/s3_srvr.blast.07_true.i.cil.c
 ../programs/benchmarks/ssh/s3_srvr.blast.08_true.i.cil.c
 ../programs/benchmarks/ssh/s3_srvr.blast.09_true.i.cil.c
 ../programs/benchmarks/ssh/s3_srvr.blast.10_true.i.cil.c
