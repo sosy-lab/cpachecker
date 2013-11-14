@@ -41,7 +41,7 @@
     <condition property="os" value="linux">
         <os name="Linux"/>
     </condition>
-    <condition property="os" value="win32">
+    <condition property="os" value="windows">
         <os family="windows"/>
     </condition>
     <target name="init">
