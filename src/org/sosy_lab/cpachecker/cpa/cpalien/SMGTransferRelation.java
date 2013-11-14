@@ -288,6 +288,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       int offset =  bufferAddress.getOffset().getAsInt();
 
+      //TODO write explicit Value into smg
       SMGSymbolicValue ch = evaluateExpressionValue(currentState, cfaEdge, chExpr);
 
       if (ch.isUnknown()) {
@@ -302,6 +303,14 @@ public class SMGTransferRelation implements TransferRelation {
         // memset() copies ch into the first count characters of buffer
         for (int c = 0; c < count; c++) {
           writeValue(currentState, bufferMemory, offset + c, AnonymousTypes.dummyChar, ch, cfaEdge);
+        }
+
+        SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
+
+        SMGExplicitValue expValue = expEvaluator.evaluateExplicitValue(currentState, cfaEdge, chExpr);
+
+        if (!expValue.isUnknown()) {
+          currentState.putExplicit((SMGKnownSymValue) ch, (SMGKnownExpValue) expValue);
         }
       }
 
@@ -823,6 +832,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
 
+    //TODO also evaluate explicit value and assign to symbolic value
     SMGSymbolicValue value = expressionEvaluator.evaluateExpressionValue(readState, cfaEdge, rValue);
 
     if (value.isUnknown()) {
@@ -840,6 +850,14 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     assignFieldToState(newState, cfaEdge, memoryOfField, fieldOffset, pFieldType, value, rValueType);
+
+    SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
+
+    SMGExplicitValue expValue = expEvaluator.evaluateExplicitValue(newState, cfaEdge, rValue);
+
+    if (!expValue.isUnknown()) {
+      newState.putExplicit((SMGKnownSymValue) value, (SMGKnownExpValue) expValue);
+    }
   }
 
   private void addMissingInformation(SMGObject pMemoryOfField, int pFieldOffset, CRightHandSide pRValue,
