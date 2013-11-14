@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -136,7 +138,12 @@ public class NativeLibraries {
     if (nativePath == null) {
       String arch = Architecture.guessVmArchitecture().name().toLowerCase();
       String os = OS.guessOperatingSystem().name().toLowerCase();
-      final String pathToJar = NativeLibraries.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+      URI pathToJar;
+      try {
+        pathToJar = NativeLibraries.class.getProtectionDomain().getCodeSource().getLocation().toURI();
+      } catch (URISyntaxException e) {
+        throw new AssertionError(e);
+      }
       nativePath = Paths.get(pathToJar).getParent().resolve(Paths.get("lib", "native", arch + "-" + os));
     }
     return nativePath;
