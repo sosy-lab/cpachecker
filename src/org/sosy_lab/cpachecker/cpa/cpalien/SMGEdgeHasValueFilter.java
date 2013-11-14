@@ -101,7 +101,7 @@ public class SMGEdgeHasValueFilter {
   public Set<SMGEdgeHasValue> filterSet(Set<SMGEdgeHasValue> pEdges) {
     Set<SMGEdgeHasValue> returnSet = new HashSet<>();
     for (SMGEdgeHasValue edge : pEdges) {
-      if (this.holdsFor(edge)) {
+      if (holdsFor(edge)) {
         returnSet.add(edge);
       }
     }

@@ -71,13 +71,13 @@ public class SMG {
   public SMG(final MachineModel pMachineModel) {
     SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
 
-    this.addObject(nullObject);
-    this.object_validity.put(nullObject, false);
+    addObject(nullObject);
+    object_validity.put(nullObject, false);
 
-    this.addValue(nullAddress);
-    this.addPointsToEdge(nullPointer);
+    addValue(nullAddress);
+    addPointsToEdge(nullPointer);
 
-    this.machine_model = pMachineModel;
+    machine_model = pMachineModel;
   }
 
   /**
@@ -88,16 +88,16 @@ public class SMG {
    * @param pHeap Original SMG.
    */
   public SMG(final SMG pHeap) {
-    this.objects.addAll(pHeap.objects);
-    this.values.addAll(pHeap.values);
-    this.hv_edges.addAll(pHeap.hv_edges);
-    this.pt_edges.putAll(pHeap.pt_edges);
+    objects.addAll(pHeap.objects);
+    values.addAll(pHeap.values);
+    hv_edges.addAll(pHeap.hv_edges);
+    pt_edges.putAll(pHeap.pt_edges);
 
-    this.object_validity.putAll(pHeap.object_validity);
+    object_validity.putAll(pHeap.object_validity);
 
-    this.machine_model = pHeap.machine_model;
+    machine_model = pHeap.machine_model;
 
-    this.neq.putAll(pHeap.neq);
+    neq.putAll(pHeap.neq);
   }
 
   @Override
@@ -183,7 +183,7 @@ public class SMG {
    *
    */
   final public void addObject(final SMGObject pObj) {
-    this.addObject(pObj, true);
+    addObject(pObj, true);
   }
 
   /**
@@ -207,8 +207,8 @@ public class SMG {
    * @param pObj Object to remove
    */
   final public void removeObject(final SMGObject pObj) {
-    this.objects.remove(pObj);
-    this.object_validity.remove(pObj);
+    objects.remove(pObj);
+    object_validity.remove(pObj);
   }
 
   /**
@@ -219,9 +219,9 @@ public class SMG {
    * @param pObj Object to remove
    */
   final public void removeObjectAndEdges(final SMGObject pObj) {
-    this.removeObject(pObj);
-    Iterator<SMGEdgeHasValue> hv_iter = this.hv_edges.iterator();
-    Iterator<SMGEdgePointsTo> pt_iter = this.pt_edges.values().iterator();
+    removeObject(pObj);
+    Iterator<SMGEdgeHasValue> hv_iter = hv_edges.iterator();
+    Iterator<SMGEdgePointsTo> pt_iter = pt_edges.values().iterator();
     while (hv_iter.hasNext()) {
       if (hv_iter.next().getObject() == pObj) {
         hv_iter.remove();
@@ -245,8 +245,8 @@ public class SMG {
    *
    */
   final public void addObject(final SMGObject pObj, final boolean pValidity) {
-    this.objects.add(pObj);
-    this.object_validity.put(pObj, pValidity);
+    objects.add(pObj);
+    object_validity.put(pObj, pValidity);
   }
 
   /**
@@ -257,7 +257,7 @@ public class SMG {
    * @param pValue  Value to add.
    */
   final public void addValue(int pValue) {
-    this.values.add(Integer.valueOf(pValue));
+    values.add(Integer.valueOf(pValue));
   }
 
   /**
@@ -268,7 +268,7 @@ public class SMG {
    * @param pEdge Points-To edge to add.
    */
   final public void addPointsToEdge(SMGEdgePointsTo pEdge) {
-    this.pt_edges.put(pEdge.getValue(), pEdge);
+    pt_edges.put(pEdge.getValue(), pEdge);
   }
 
   /**
@@ -279,7 +279,7 @@ public class SMG {
    * @param pEdge Has-Value edge to add
    */
   final public void addHasValueEdge(SMGEdgeHasValue pEdge) {
-    this.hv_edges.add(pEdge);
+    hv_edges.add(pEdge);
   }
 
   /**
@@ -290,7 +290,7 @@ public class SMG {
    * @param pEdge Has-Value edge to remove
    */
   final public void removeHasValueEdge(SMGEdgeHasValue pEdge) {
-    this.hv_edges.remove(pEdge);
+    hv_edges.remove(pEdge);
   }
 
   /**
@@ -301,7 +301,7 @@ public class SMG {
    * @param pValue the Source of the Points-To edge to be removed
    */
   final public void removePointsToEdge(int pValue) {
-    this.pt_edges.remove(pValue);
+    pt_edges.remove(pValue);
   }
 
   /**
@@ -315,11 +315,11 @@ public class SMG {
    * @param pValidity Validity to set.
    */
   public void setValidity(SMGObject pObject, boolean pValidity) {
-    if (! this.objects.contains(pObject)) {
+    if (! objects.contains(pObject)) {
       throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
     }
 
-    this.object_validity.put(pObject, pValidity);
+    object_validity.put(pObject, pValidity);
   }
 
   /**
@@ -370,7 +370,7 @@ public class SMG {
    * @return String representation of values set
    */
   final public String valuesToString() {
-    return "values=" + this.values.toString();
+    return "values=" + values.toString();
   }
 
   /**
@@ -378,7 +378,7 @@ public class SMG {
    * @return String representation of has-value edges set
    */
   final public String hvToString() {
-    return "hasValue=" + this.hv_edges.toString();
+    return "hasValue=" + hv_edges.toString();
   }
 
   /**
@@ -386,7 +386,7 @@ public class SMG {
    * @return String representation of points-to edges set
    */
   final public String ptToString() {
-    return "pointsTo=" + this.pt_edges.toString();
+    return "pointsTo=" + pt_edges.toString();
   }
 
   /**
@@ -394,7 +394,7 @@ public class SMG {
    * @return Unmodifiable view on values set.
    */
   final public Set<Integer> getValues() {
-    return Collections.unmodifiableSet(this.values);
+    return Collections.unmodifiableSet(values);
   }
 
   /**
@@ -402,7 +402,7 @@ public class SMG {
    * @return Unmodifiable view on objects set.
    */
   final public Set<SMGObject> getObjects() {
-    return Collections.unmodifiableSet(this.objects);
+    return Collections.unmodifiableSet(objects);
   }
 
   /**
@@ -410,7 +410,7 @@ public class SMG {
    * @return Unmodifiable view on Has-Value edges set.
    */
   final public Set<SMGEdgeHasValue> getHVEdges() {
-    return Collections.unmodifiableSet(this.hv_edges);
+    return Collections.unmodifiableSet(hv_edges);
   }
 
   /**
@@ -420,7 +420,7 @@ public class SMG {
    * @return A set of Has-Value edges for which the criteria in p hold
    */
   final public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
-    return Collections.unmodifiableSet(pFilter.filterSet(this.hv_edges));
+    return Collections.unmodifiableSet(pFilter.filterSet(hv_edges));
   }
 
   /**
@@ -428,7 +428,7 @@ public class SMG {
    * @return Unmodifiable view on Points-To edges set.
    */
   final public Map<Integer, SMGEdgePointsTo> getPTEdges() {
-    return Collections.unmodifiableMap(this.pt_edges );
+    return Collections.unmodifiableMap(pt_edges );
   }
 
   /**
@@ -446,12 +446,12 @@ public class SMG {
    * TODO: Consistency check: no value can point to more objects
    */
   final public SMGObject getObjectPointedBy(Integer pValue) {
-    if ( ! this.values.contains(pValue)) {
+    if ( ! values.contains(pValue)) {
       throw new IllegalArgumentException("Value [" + pValue + "] not in SMG");
     }
 
-    if (this.pt_edges.containsKey(pValue)) {
-      return this.pt_edges.get(pValue).getObject();
+    if (pt_edges.containsKey(pValue)) {
+      return pt_edges.get(pValue).getObject();
     }
     else {
       return null;
@@ -467,11 +467,11 @@ public class SMG {
    * @return True if {@link pObject} is valid, False if it is invalid.
    */
   final public boolean isObjectValid(SMGObject pObject) {
-    if ( ! this.objects.contains(pObject)) {
+    if ( ! objects.contains(pObject)) {
       throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
     }
 
-    return this.object_validity.get(pObject).booleanValue();
+    return object_validity.get(pObject).booleanValue();
   }
 
   /**
@@ -479,7 +479,7 @@ public class SMG {
    * @return SMG machine model
    */
   final public MachineModel getMachineModel() {
-    return this.machine_model;
+    return machine_model;
   }
 
   /**
@@ -514,7 +514,7 @@ public class SMG {
    * {@link value} exists, otherwise false.
    */
   public boolean isPointer(Integer value) {
-    return this.pt_edges.containsKey(value);
+    return pt_edges.containsKey(value);
   }
 
   /**
@@ -526,7 +526,7 @@ public class SMG {
    * {@link value} as source.
    */
   public SMGEdgePointsTo getPointer(Integer value) {
-    return this.pt_edges.get(value);
+    return pt_edges.get(value);
   }
 
   public boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {

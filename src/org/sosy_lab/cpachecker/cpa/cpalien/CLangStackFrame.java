@@ -174,9 +174,9 @@ final public class CLangStackFrame {
    */
   public Set<SMGObject> getAllObjects() {
     HashSet<SMGObject> retset = new HashSet<>();
-    retset.addAll(this.stack_variables.values());
+    retset.addAll(stack_variables.values());
     if (returnValueObject != null) {
-      retset.add(this.returnValueObject);
+      retset.add(returnValueObject);
     }
 
     return Collections.unmodifiableSet(retset);
@@ -186,6 +186,6 @@ final public class CLangStackFrame {
    * @return an {@link SMGObject} reserved for function return value
    */
   public SMGRegion getReturnObject() {
-    return this.returnValueObject;
+    return returnValueObject;
   }
 }

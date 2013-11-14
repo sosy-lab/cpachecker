@@ -71,17 +71,17 @@ public class SMGEdgeHasValue extends SMGEdge {
       return false;
     }
 
-    if ((this.object == other.object) &&
-        (this.offset == ((SMGEdgeHasValue)other).offset) &&
-        (this.type == ((SMGEdgeHasValue)other).type)) {
-      return (this.value == other.value);
+    if ((object == other.object) &&
+        (offset == ((SMGEdgeHasValue)other).offset) &&
+        (type == ((SMGEdgeHasValue)other).type)) {
+      return (value == other.value);
     }
 
     return true;
   }
 
   public boolean overlapsWith(SMGEdgeHasValue other, MachineModel pModel) {
-    if (this.object != other.object) {
+    if (object != other.object) {
       throw new IllegalArgumentException("Call of overlapsWith() on Has-Value edges pair not originating from the same object");
     }
 
@@ -110,12 +110,12 @@ public class SMGEdgeHasValue extends SMGEdge {
   }
 
   public boolean isCompatibleField(SMGEdgeHasValue other, MachineModel pModel) {
-    return this.type.equals(other.type) && (this.offset == other.offset);
+    return type.equals(other.type) && (offset == other.offset);
   }
 
   public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other, MachineModel pModel) {
-    // return (this.type.equals(other.type)) && (this.offset == other.offset) && (this.object == other.object);
-    return pModel.getSizeof(type) == pModel.getSizeof(other.type) && (this.offset == other.offset) && this.object == other.object;
+    // return (type.equals(other.type)) && (offset == other.offset) && (object == other.object);
+    return pModel.getSizeof(type) == pModel.getSizeof(other.type) && (offset == other.offset) && object == other.object;
   }
 
   /* (non-Javadoc)

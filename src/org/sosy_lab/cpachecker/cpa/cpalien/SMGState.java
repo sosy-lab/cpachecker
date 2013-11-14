@@ -159,7 +159,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
    */
   final public void setPredecessor(SMGState pSMGState) throws SMGInconsistentException {
     predecessor = pSMGState;
-    this.performConsistencyCheck(SMGRuntimeCheck.FULL);
+    performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   /**
@@ -179,7 +179,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     SMGRegion new_object = new SMGRegion(size, pVarName);
 
     heap.addGlobalObject(new_object);
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
     return new_object;
   }
   /**
@@ -200,7 +200,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     SMGRegion new_object = new SMGRegion(size, pVarName);
 
     heap.addStackObject(new_object);
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
     return new_object;
   }
 
@@ -214,7 +214,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
    */
   public void addStackFrame(CFunctionDeclaration pFunctionDefinition) throws SMGInconsistentException {
     heap.addStackFrame(pFunctionDefinition);
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /* ********************************************* */
@@ -255,7 +255,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
    * @return An object corresponding to the variable name
    */
   public SMGObject getObjectForVisibleVariable(String pVariableName) {
-    return this.heap.getObjectForVisibleVariable(pVariableName);
+    return heap.getObjectForVisibleVariable(pVariableName);
   }
 
   /**
@@ -310,10 +310,10 @@ public class SMGState implements AbstractQueryableState, Targetable {
    */
   @Override
   public String toString() {
-    if ( this.getPredecessor() != null) {
-      return "SMGState [" + this.getId() + "] <-- parent [" + this.getPredecessor().getId() + "]\n" + heap.toString();
+    if ( getPredecessor() != null) {
+      return "SMGState [" + getId() + "] <-- parent [" + getPredecessor().getId() + "]\n" + heap.toString();
     } else {
-      return "SMGState [" + this.getId() + "] <-- no parent, initial state\n" + heap.toString();
+      return "SMGState [" + getId() + "] <-- no parent, initial state\n" + heap.toString();
     }
   }
 
@@ -362,8 +362,8 @@ public class SMGState implements AbstractQueryableState, Targetable {
    * @throws SMGInconsistentException
    */
   public Integer readValue(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
-    if (! this.heap.isObjectValid(pObject)) {
-      this.setInvalidRead();
+    if (! heap.isObjectValid(pObject)) {
+      setInvalidRead();
       return null;
     }
 
@@ -376,7 +376,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
 
     for (SMGEdgeHasValue object_edge : edges) {
       if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())) {
-        this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+        performConsistencyCheck(SMGRuntimeCheck.HALF);
         return object_edge.getValue();
       }
     }
@@ -385,12 +385,12 @@ public class SMGState implements AbstractQueryableState, Targetable {
       return 0;
     }
 
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
     return null;
   }
 
   public void setInvalidRead() {
-    this.invalidRead  = true;
+    invalidRead  = true;
   }
 
   /**
@@ -467,9 +467,9 @@ public class SMGState implements AbstractQueryableState, Targetable {
       pValue = heap.getNullValue();
     }
 
-    if (! this.heap.isObjectValid(pObject)) {
+    if (! heap.isObjectValid(pObject)) {
       //Attempt to write to invalid object
-      this.setInvalidWrite();
+      setInvalidWrite();
       return null;
     }
 
@@ -480,7 +480,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
 
     Set<SMGEdgeHasValue> edges = heap.getHVEdges(filter);
     if (edges.contains(new_edge)) {
-      this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+      performConsistencyCheck(SMGRuntimeCheck.HALF);
       return new_edge;
     }
 
@@ -513,7 +513,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
           if (hv.getOffset() < new_edge.getOffset()) {
             int prefixNullSize = new_edge.getOffset() - hv.getOffset();
             SMGEdgeHasValue prefixNull = new SMGEdgeHasValue(prefixNullSize, hv.getOffset(), pObject, heap.getNullValue());
-            this.heap.addHasValueEdge(prefixNull);
+            heap.addHasValueEdge(prefixNull);
           }
 
           int hvEnd = hv.getOffset() + hv.getSizeInBytes(heap.getMachineModel());
@@ -521,7 +521,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
           if (hvEnd > neEnd) {
             int postfixNullSize = hvEnd - neEnd;
             SMGEdgeHasValue postfixNull = new SMGEdgeHasValue(postfixNullSize, neEnd, pObject, heap.getNullValue());
-            this.heap.addHasValueEdge(postfixNull);
+            heap.addHasValueEdge(postfixNull);
           }
         }
         */
@@ -532,7 +532,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     shrinkOverlappingZeroEdges(new_edge, overlappingZeroEdges);
 
     heap.addHasValueEdge(new_edge);
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
 
     return new_edge;
   }
@@ -577,7 +577,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
    *
    */
   public void setInvalidWrite() {
-    this.invalidWrite = true;
+    invalidWrite = true;
   }
 
   /**
@@ -603,7 +603,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
    * @throws SMGInconsistentException
    */
   public boolean isLessOrEqual(SMGState reachedState) throws SMGInconsistentException {
-    SMGJoin join = new SMGJoin(reachedState.heap, this.heap);
+    SMGJoin join = new SMGJoin(reachedState.heap, heap);
     if (join.isDefined() &&
         (join.getStatus() == SMGJoinStatus.LEFT_ENTAIL || join.getStatus() == SMGJoinStatus.EQUAL)){
       return true;
@@ -631,7 +631,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
         }
         return false;
       case "has-invalid-writes":
-        if (this.invalidWrite) {
+        if (invalidWrite) {
           //TODO: Give more information
           violatedProperty = ViolatedProperty.VALID_DEREF;
           issueInvalidWriteMessage();
@@ -639,7 +639,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
         }
         return false;
       case "has-invalid-reads":
-        if (this.invalidRead) {
+        if (invalidRead) {
           //TODO: Give more information
           violatedProperty = ViolatedProperty.VALID_DEREF;
           issueInvalidReadMessage();
@@ -647,7 +647,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
         }
         return false;
       case "has-invalid-frees":
-        if (this.invalidFree) {
+        if (invalidFree) {
           //TODO: Give more information
           violatedProperty = ViolatedProperty.VALID_FREE;
           issueInvalidFreeMessage();
@@ -694,7 +694,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     heap.addValue(new_value);
     heap.addPointsToEdge(points_to);
 
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
     return points_to;
   }
 
@@ -762,10 +762,10 @@ public class SMGState implements AbstractQueryableState, Targetable {
       return;
     }
 
-    if (! this.heap.isObjectValid(smgObject)) {
+    if (! heap.isObjectValid(smgObject)) {
       // you may not invoke free multiple times on
       // the same object
-      this.setInvalidFree();
+      setInvalidFree();
       return;
     }
 
@@ -775,7 +775,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     for (SMGEdgeHasValue edge : heap.getHVEdges(filter)) {
       heap.removeHasValueEdge(edge);
     }
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /**
@@ -822,25 +822,25 @@ public class SMGState implements AbstractQueryableState, Targetable {
    * @throws SMGInconsistentException
    */
   public void dropStackFrame() throws SMGInconsistentException {
-    this.heap.dropStackFrame();
-    this.performConsistencyCheck(SMGRuntimeCheck.FULL);
+    heap.dropStackFrame();
+    performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   public void pruneUnreachable() throws SMGInconsistentException {
-    this.heap.pruneUnreachable();
+    heap.pruneUnreachable();
     //TODO: Explicit values pruning
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /**
    *  Signals an invalid free call.
    */
   public void setInvalidFree() {
-    this.invalidFree = true;
+    invalidFree = true;
   }
 
   public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
-    return this.heap.getHVEdges(pFilter);
+    return heap.getHVEdges(pFilter);
   }
 
   @Nullable
@@ -930,7 +930,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     //TODO: This can actually be an invalid read too
     //      The flagging mechanism should be improved
 
-    this.invalidWrite = true;
+    invalidWrite = true;
   }
 
   public SMGObject getNullObject() {
@@ -947,7 +947,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
 
   @Override
   public boolean isTarget() {
-    return this.violatedProperty != null;
+    return violatedProperty != null;
   }
 
   @Override

@@ -213,7 +213,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     public final void evaluateVBPlot(CFunctionCallExpression functionCall, SMGState currentState) {
       String name = functionCall.getParameterExpressions().get(0).toASTString();
-      this.dumpSMGPlot(name, currentState, functionCall.toString());
+      dumpSMGPlot(name, currentState, functionCall.toString());
     }
 
     // TODO: Seems like there is large code sharing with evaluate calloc
@@ -1165,9 +1165,9 @@ public class SMGTransferRelation implements TransferRelation {
     @SuppressWarnings("unused")
     private final SMGState smgState;
 
-    public IsNotZeroVisitor(SMGState smgState, CFAEdge cfaEdge) {
-      this.cfaEdge = cfaEdge;
-      this.smgState = smgState;
+    public IsNotZeroVisitor(SMGState pSmgState, CFAEdge pCfaEdge) {
+      cfaEdge = pCfaEdge;
+      smgState = pSmgState;
     }
 
     @Override
