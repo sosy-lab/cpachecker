@@ -597,7 +597,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
         CExpression exp = ((CInitializerExpression) init).getExpression();
         interval = evaluateInterval(element, exp, declarationEdge.getPredecessor().getFunctionName(), declarationEdge);
       } else {
-        interval = new Interval(0L);
+        interval = Interval.createUnboundInterval();
       }
 
       newElement.addInterval(varName, interval, this.threshold);
