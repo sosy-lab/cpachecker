@@ -95,8 +95,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
 
   private final Set<String> globalVars = new HashSet<>();
 
-  @Option(description="at most that many intervals will be tracked per variable")
-  private int threshold = 0;
+  @Option(description="at most that many intervals will be tracked per variable, -1 if number not restricted")
+  private int threshold = -1;
 
   public IntervalAnalysisTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);

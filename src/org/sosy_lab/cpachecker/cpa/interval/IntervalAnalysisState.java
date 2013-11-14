@@ -155,7 +155,7 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
     if (!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval)) {
       int referenceCount = getReferenceCount(variableName);
 
-      if (referenceCount < pThreshold) {
+      if (pThreshold == 1 || referenceCount < pThreshold) {
         referenceCounts.put(variableName, referenceCount + 1);
 
         intervals.put(variableName, interval);
