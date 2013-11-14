@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObjectVisitor;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
@@ -113,13 +115,13 @@ class SMGNodeDotVisitor implements SMGObjectVisitor {
 }
 
 public final class SMGPlotter {
-  static final public void debuggingPlot(CLangSMG pSmg, String pId) throws IOException {
+  static final public void debuggingPlot(CLangSMG pSmg, String pId, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) throws IOException {
     File exportSMGFilePattern = new File("smg-debug-%s.dot");
     pId = pId.replace("\"", "");
     File outputFile = new File(String.format(exportSMGFilePattern.getAbsolutePath(), pId));
     SMGPlotter plotter = new SMGPlotter();
 
-    Files.writeFile(outputFile, plotter.smgAsDot(pSmg, pId, "debug plot"));
+    Files.writeFile(outputFile, plotter.smgAsDot(pSmg, pId, "debug plot", explicitValues));
   }
 
   private final HashMap <SMGObject, SMGObjectNode> objectIndex = new HashMap<>();
@@ -132,7 +134,7 @@ public final class SMGPlotter {
     return original.replaceAll("[:]", "_");
   }
 
-  public String smgAsDot(CLangSMG smg, String name, String location) {
+  public String smgAsDot(CLangSMG smg, String name, String location, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {
     StringBuilder sb = new StringBuilder();
 
     sb.append("digraph gr_" + name.replace('-', '_') + "{\n");
@@ -157,7 +159,7 @@ public final class SMGPlotter {
 
     for (int value : smg.getValues()) {
       if (value != smg.getNullValue()) {
-        sb.append(newLineWithOffset(smgValueAsDot(value)));
+        sb.append(newLineWithOffset(smgValueAsDot(value, explicitValues)));
       }
     }
 
@@ -274,8 +276,18 @@ public final class SMGPlotter {
     return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "b\"];";
   }
 
-  private static String smgValueAsDot(int value) {
-    return "value_" + value + "[label=\"#" + value + "\"];";
+  private static String smgValueAsDot(int value, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {
+
+
+    String explicitValue = "";
+
+    SMGKnownSymValue symValue =  SMGKnownSymValue.valueOf(value);
+
+    if(explicitValues.containsKey(symValue)) {
+      explicitValue = " : " + String.valueOf(explicitValues.get(symValue).getAsLong());
+    }
+
+    return "value_" + value + "[label=\"#" + value + explicitValue +  "\"];";
   }
 
   private static String neqRelationAsDot(Integer v1, Integer v2) {

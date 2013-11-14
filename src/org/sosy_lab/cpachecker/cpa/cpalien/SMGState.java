@@ -288,7 +288,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
    */
   public String toDot(String pName, String pLocation) {
     SMGPlotter plotter = new SMGPlotter();
-    return plotter.smgAsDot(heap, pName, pLocation);
+    return plotter.smgAsDot(heap, pName, pLocation, explicitValues);
   }
 
   /**
