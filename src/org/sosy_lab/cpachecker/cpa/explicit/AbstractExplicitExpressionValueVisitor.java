@@ -739,9 +739,9 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
   /* abstract methods */
 
-  protected abstract Long evaluateCPointerExpression(CPointerExpression pCPointerExpression);
+  protected abstract Long evaluateCPointerExpression(CPointerExpression pCPointerExpression) throws UnrecognizedCCodeException;
 
-  protected abstract Long evaluateCIdExpression(CIdExpression pCIdExpression);
+  protected abstract Long evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException;
 
   protected abstract Long evaluateJIdExpression(JIdExpression varName);
 
