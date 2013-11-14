@@ -680,8 +680,9 @@ cpa.interval.merge = "SEP"
 # an inequality-check is encountered
 cpa.interval.splitIntervals = false
 
-# at most that many intervals will be tracked per variable
-cpa.interval.threshold = 0
+# at most that many intervals will be tracked per variable, -1 if number not
+# restricted
+cpa.interval.threshold = -1
 
 # Variable name of the variable for which should be checked that its value is
 # globally in a certain bound 
