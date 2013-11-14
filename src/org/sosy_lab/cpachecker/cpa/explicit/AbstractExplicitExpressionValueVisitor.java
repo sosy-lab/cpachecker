@@ -895,4 +895,8 @@ public abstract class AbstractExplicitExpressionValueVisitor
       return value; // pointer like (void)*, (struct s)*, ...
     }
   }
+
+  public CFAEdge getEdge() {
+    return edge;
+  }
 }
