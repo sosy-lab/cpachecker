@@ -189,7 +189,7 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    * @return a new state representing the join of this element and the reached state
    */
   public IntervalAnalysisState join(IntervalAnalysisState reachedState) {
-    Map<String, Interval> newIntervals = new HashMap<>();
+    Map<String, Interval> newIntervals = new HashMap<>(intervals);
     Map<String, Integer> newReferences = new HashMap<>();
 
     newReferences.putAll(referenceCounts);
