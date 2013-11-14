@@ -48,7 +48,7 @@ public class SMGSingleLinkedListFinderTest {
 
     SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 5, 16, 8, "pointer");
 
-    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder();
+    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(1);
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg);
     Assert.assertEquals(1, candidates.size());
     SMGAbstractionCandidate candidate = Iterables.getOnlyElement(candidates);
@@ -66,7 +66,7 @@ public class SMGSingleLinkedListFinderTest {
 
     TestHelpers.createGlobalList(smg, 2, 16, 8, "pointer");
 
-    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder();
+    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(1);
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg);
     Assert.assertEquals(1, candidates.size());
   }
@@ -120,7 +120,7 @@ public class SMGSingleLinkedListFinderTest {
     smg.addHasValueEdge(tailConnection);
     smg.addHasValueEdge(headConnection);
 
-    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder();
+    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(1);
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg);
     Assert.assertEquals(2, candidates.size());
 

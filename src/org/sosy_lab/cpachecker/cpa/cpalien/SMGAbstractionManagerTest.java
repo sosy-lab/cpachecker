@@ -44,7 +44,7 @@ public class SMGAbstractionManagerTest {
     SMGRegion globalVar = new SMGRegion(8, "pointer");
 
     SMGRegion next = null;
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 20; i++) {
       SMGRegion node = new SMGRegion(16, "node " + i);
       SMGEdgeHasValue hv;
       smg.addHeapObject(node);

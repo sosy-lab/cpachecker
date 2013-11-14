@@ -43,6 +43,16 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   private Map<SMGObject, Map<Integer, SMGSingleLinkedListCandidate>> candidates = new HashMap<>();
   private Map<Integer, Integer> inboundPointers = new HashMap<>();
 
+  final private int seqLengthThreshold;
+
+  public SMGSingleLinkedListFinder() {
+    seqLengthThreshold = 10;
+  }
+
+  public SMGSingleLinkedListFinder(int pSeqLengthThreshold) {
+    seqLengthThreshold = pSeqLengthThreshold;
+  }
+
   @Override
   public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg) {
     smg = pSmg;
@@ -56,7 +66,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     Set<SMGAbstractionCandidate> returnSet = new HashSet<>();
     for (Map<Integer, SMGSingleLinkedListCandidate> objCandidates : candidates.values()) {
       for (SMGSingleLinkedListCandidate candidate : objCandidates.values()) {
-        if (candidate.getLength() > 1) {
+        if (candidate.getLength() > seqLengthThreshold) {
           returnSet.add(candidate);
         }
       }
