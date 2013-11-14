@@ -1409,24 +1409,26 @@ public class SMGExpressionEvaluator {
     }
 
     @Override
-    protected Long evaluateCPointerExpression(CPointerExpression pCPointerExpression) {
+    protected Long evaluateCPointerExpression(CPointerExpression pCPointerExpression) throws UnrecognizedCCodeException {
       try {
         return getExplicitValue(evaluateExpressionValue(smgState, getEdge(), pCPointerExpression));
       } catch (CPATransferException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-        return null;
+        UnrecognizedCCodeException e2 =
+            new UnrecognizedCCodeException("SMG cannot be evaluated", getEdge(), pCPointerExpression);
+        e2.initCause(e);
+        throw e2;
       }
     }
 
     @Override
-    protected Long evaluateCIdExpression(CIdExpression pCIdExpression) {
+    protected Long evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException {
       try {
         return getExplicitValue(evaluateExpressionValue(smgState, getEdge(), pCIdExpression));
       } catch (CPATransferException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-        return null;
+        UnrecognizedCCodeException e2 =
+            new UnrecognizedCCodeException("SMG cannot be evaluated", getEdge(), pCIdExpression);
+        e2.initCause(e);
+        throw e2;
       }
     }
 
@@ -1440,9 +1442,9 @@ public class SMGExpressionEvaluator {
       try {
         return getExplicitValue(evaluateExpressionValue(smgState, getEdge(), pLValue));
       } catch (CPATransferException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-        return null;
+        UnrecognizedCCodeException e2 = new UnrecognizedCCodeException("SMG cannot be evaluated", getEdge(), pLValue);
+        e2.initCause(e);
+        throw e2;
       }
     }
 
@@ -1452,9 +1454,9 @@ public class SMGExpressionEvaluator {
       try {
         return getExplicitValue(evaluateExpressionValue(smgState, getEdge(), pLValue));
       } catch (CPATransferException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-        return null;
+        UnrecognizedCCodeException e2 = new UnrecognizedCCodeException("SMG cannot be evaluated", getEdge(), pLValue);
+        e2.initCause(e);
+        throw e2;
       }
     }
 
