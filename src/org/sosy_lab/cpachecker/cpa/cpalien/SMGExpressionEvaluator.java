@@ -1008,7 +1008,7 @@ public class SMGExpressionEvaluator {
    * The object represents the memory this struct is placed in, the offset
    * represents the start of the struct.
    */
-  class StructAndUnionVisitor extends ArrayVisitor
+  class StructAndUnionVisitor extends AddressVisitor
       implements CRightHandSideVisitor<SMGAddress, CPATransferException> {
 
     public StructAndUnionVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
