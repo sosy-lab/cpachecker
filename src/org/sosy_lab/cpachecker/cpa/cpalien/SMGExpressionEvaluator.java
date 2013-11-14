@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -73,6 +74,7 @@ import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.explicit.AbstractExplicitExpressionValueVisitor;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -257,9 +259,15 @@ public class SMGExpressionEvaluator {
   public SMGExplicitValue evaluateExplicitValue(SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue)
       throws CPATransferException {
 
-    ExplicitValueVisitor visitor = new ExplicitValueVisitor(smgState, cfaEdge);
-    SMGExplicitValue value = rValue.accept(visitor);
-    return value;
+    ExplicitValueVisitor visitor = new ExplicitValueVisitor(smgState, null, machineModel, logger, cfaEdge);
+
+    Long value = rValue.accept(visitor);
+
+    if (value == null) {
+      return SMGUnknownValue.getInstance();
+    } else {
+      return SMGKnownExpValue.valueOf(value);
+    }
   }
 
   public SMGSymbolicValue evaluateExpressionValue(SMGState smgState, CFAEdge cfaEdge,
@@ -1374,6 +1382,86 @@ public class SMGExpressionEvaluator {
     }
   }
 
+  class ExplicitValueVisitor extends AbstractExplicitExpressionValueVisitor {
+
+    private final SMGState smgState;
+
+    public ExplicitValueVisitor(SMGState pSmgState,
+        String pFunctionName, MachineModel pMachineModel,
+        LogManager pLogger, CFAEdge pEdge) {
+      super(pFunctionName, pMachineModel, pLogger, pEdge);
+      smgState = pSmgState;
+    }
+
+    private Long getExplicitValue(SMGSymbolicValue pValue) {
+
+      if (pValue.isUnknown()) {
+        return null;
+      }
+
+      SMGExplicitValue explicitValue = smgState.getExplicit((SMGKnownSymValue) pValue);
+
+      if (explicitValue.isUnknown()) {
+        return null;
+      }
+
+      return explicitValue.getAsLong();
+    }
+
+    @Override
+    protected Long evaluateCPointerExpression(CPointerExpression pCPointerExpression) {
+      try {
+        return getExplicitValue(evaluateExpressionValue(smgState, getEdge(), pCPointerExpression));
+      } catch (CPATransferException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+        return null;
+      }
+    }
+
+    @Override
+    protected Long evaluateCIdExpression(CIdExpression pCIdExpression) {
+      try {
+        return getExplicitValue(evaluateExpressionValue(smgState, getEdge(), pCIdExpression));
+      } catch (CPATransferException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+        return null;
+      }
+    }
+
+    @Override
+    protected Long evaluateJIdExpression(JIdExpression pVarName) {
+      return null;
+    }
+
+    @Override
+    protected Long evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+      try {
+        return getExplicitValue(evaluateExpressionValue(smgState, getEdge(), pLValue));
+      } catch (CPATransferException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+        return null;
+      }
+    }
+
+    @Override
+    protected Long evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
+        throws UnrecognizedCCodeException {
+      try {
+        return getExplicitValue(evaluateExpressionValue(smgState, getEdge(), pLValue));
+      } catch (CPATransferException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+        return null;
+      }
+    }
+
+  }
+
+
+  /*
    class ExplicitValueVisitor extends DefaultCExpressionVisitor<SMGExplicitValue, CPATransferException>
       implements CRightHandSideVisitor<SMGExplicitValue, CPATransferException> {
 
@@ -1612,6 +1700,8 @@ public class SMGExpressionEvaluator {
       return SMGUnknownValue.getInstance();
     }
   }
+
+   */
 
   private StructAndUnionVisitor getStructAndUnionVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
     return new StructAndUnionVisitor(pCfaEdge, pNewState);
