@@ -595,8 +595,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
       // variable may be initialized explicitly on the spot ...
       if (init instanceof CInitializerExpression) {
         CExpression exp = ((CInitializerExpression) init).getExpression();
-
-        interval = evaluateInterval(element, exp, "", declarationEdge);
+        interval = evaluateInterval(element, exp, declarationEdge.getPredecessor().getFunctionName(), declarationEdge);
       } else {
         interval = new Interval(0L);
       }
