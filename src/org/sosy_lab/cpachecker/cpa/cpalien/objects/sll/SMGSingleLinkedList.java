@@ -77,4 +77,16 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
     }
     return bindingOffset == ((SMGSingleLinkedList)pOther).bindingOffset;
   }
+
+  @Override
+  public boolean isMoreGeneral(SMGObject pOther) {
+    super.isMoreGeneral(pOther);
+    if (! pOther.isAbstract()) {
+      return true;
+    }
+    if (! matchGenericShape(this)) {
+      throw new IllegalArgumentException("isMoreGeneral called on incompatible abstract objects");
+    }
+    return length < ((SMGSingleLinkedList)pOther).length;
+  }
 }

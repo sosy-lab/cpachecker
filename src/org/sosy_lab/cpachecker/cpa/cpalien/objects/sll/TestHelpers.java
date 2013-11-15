@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cpa.cpalien.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
@@ -65,21 +64,4 @@ public final class TestHelpers {
   }
 
   private TestHelpers(){}
-}
-
-class DummyAbstraction extends SMGObject implements SMGAbstractObject {
-
-  protected DummyAbstraction(SMGObject pPrototype) {
-    super(pPrototype);
-  }
-
-  @Override
-  public boolean matchGenericShape(SMGAbstractObject pOther) {
-    return pOther instanceof DummyAbstraction;
-  }
-
-  @Override
-  public boolean matchSpecificShape(SMGAbstractObject pOther) {
-    return true;
-  }
 }

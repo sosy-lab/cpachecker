@@ -109,10 +109,10 @@ final class SMGJoinMatchObjects {
       SMGAbstractObject pAbstract1 = (SMGAbstractObject)pObj1;
       SMGAbstractObject pAbstract2 = (SMGAbstractObject)pObj2;
 
-      if (pAbstract1.matchGenericShape(pAbstract2)) {
-        if (! pAbstract1.matchSpecificShape(pAbstract2)) {
+      //TODO: It should be possible to join some of the different generic shapes, i.e. a SLL
+      //      might be a more general segment than a DLL
+      if (! (pAbstract1.matchGenericShape(pAbstract2) && pAbstract1.matchSpecificShape(pAbstract2))) {
           return true;
-        }
       }
     }
 
@@ -150,8 +150,17 @@ final class SMGJoinMatchObjects {
       return;
     }
 
-    status = pStatus;
+    status = SMGJoinMatchObjects.updateStatusForAbstractions(pObj1, pObj2, pStatus);
     defined = true;
+  }
+
+  private static SMGJoinStatus updateStatusForAbstractions(SMGObject pObj1, SMGObject pObj2, SMGJoinStatus pStatus) {
+    if (pObj1.isMoreGeneral(pObj2)) {
+      return SMGJoinStatus.updateStatus(pStatus, SMGJoinStatus.LEFT_ENTAIL);
+    } else if (pObj2.isMoreGeneral(pObj1)) {
+      return SMGJoinStatus.updateStatus(pStatus, SMGJoinStatus.RIGHT_ENTAIL);
+    }
+    return pStatus;
   }
 
   public SMGJoinStatus getStatus() {

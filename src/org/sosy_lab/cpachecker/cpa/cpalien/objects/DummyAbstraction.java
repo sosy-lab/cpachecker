@@ -23,11 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien.objects;
 
+public class DummyAbstraction extends SMGObject implements SMGAbstractObject {
 
-public interface SMGAbstractObject {
+  public DummyAbstraction(SMGObject pPrototype) {
+    super(pPrototype);
+  }
 
-  public boolean isAbstract();
-  public boolean matchGenericShape(SMGAbstractObject pOther);
-  public boolean matchSpecificShape(SMGAbstractObject pOther);
+  @Override
+  public boolean matchGenericShape(SMGAbstractObject pOther) {
+    return pOther instanceof DummyAbstraction;
+  }
 
+  @Override
+  public boolean matchSpecificShape(SMGAbstractObject pOther) {
+    return true;
+  }
+
+  @Override
+  public boolean isAbstract() {
+    return true;
+  }
 }

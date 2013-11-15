@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.cpalien.objects.sll;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.DummyAbstraction;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 

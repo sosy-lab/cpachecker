@@ -67,4 +67,11 @@ public class SMGObject {
   public void accept(SMGObjectVisitor visitor) {
     throw new UnsupportedOperationException("accept() called on SMGObject instance not on a subclass");
   }
+
+  public boolean isMoreGeneral(SMGObject pOther) {
+    if (size != pOther.size) {
+      throw new IllegalArgumentException("isMoreGeneral called on incompatible pair of objects");
+    }
+    return false;
+  }
 }
