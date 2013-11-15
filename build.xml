@@ -56,7 +56,13 @@
         </delete>
 
         <!-- Clean subprojects -->
-        <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
+        <exec executable="ant">
+            <arg value="-lib"/>
+            <arg file="${ivy.lib.dir}/build"/>
+            <arg value="-f"/>
+            <arg file="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml"/>
+            <arg value="clean"/>
+        </exec>
     </target>
     <target depends="clean" name="cleanall"/>
 
@@ -111,7 +117,12 @@
 
     <target name="build-subprojects">
             <echo message="Generate automaton parser if necessary" level="info"/>
-            <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
+            <exec executable="ant" failonerror="true">
+                <arg value="-lib"/>
+                <arg file="${ivy.lib.dir}/build"/>
+                <arg value="-f"/>
+                <arg file="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml"/>
+            </exec>
     </target>
 
 
