@@ -49,6 +49,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
@@ -697,6 +699,8 @@ public class SMGTransferRelation implements TransferRelation {
         newState.identifyNonEqualValues(visitor.knownVal1, visitor.knownVal2);
       }
       */
+
+      expressionEvaluator.deriveFurtherInformation(newState, truthValue, cfaEdge, expression);
       return newState;
     } else if ((truthValue && explicitValue.equals(SMGKnownExpValue.ONE))
         || (!truthValue && explicitValue.equals(SMGKnownExpValue.ZERO))) {
@@ -1199,10 +1203,14 @@ public class SMGTransferRelation implements TransferRelation {
       super(pLogger, pMachineModel);
     }
 
+    public void deriveFurtherInformation(SMGState pNewState, boolean pTruthValue, CFAEdge pCfaEdge, CExpression rValue)
+        throws CPATransferException {
+      rValue.accept(new AssigningValueVisitor(pNewState, pTruthValue, pCfaEdge));
+    }
+
     /**
      * Visitor that derives further information from an assume edge
      */
-    @SuppressWarnings("unused")
     private class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferException> {
 
       private SMGState assignableState;
@@ -1271,6 +1279,61 @@ public class SMGTransferRelation implements TransferRelation {
         return null;
       }
 
+
+      @Override
+      public Void visit(CBinaryExpression binExp) throws CPATransferException {
+        //TODO More precise
+
+        CExpression operand1 = unwrap(binExp.getOperand1());
+        CExpression operand2 = unwrap(binExp.getOperand2());
+        BinaryOperator op = binExp.getOperator();
+
+        if(operand1 instanceof CLeftHandSide) {
+          deriveFurtherInformation((CLeftHandSide) operand1, operand2, op);
+        }
+
+        if(operand2 instanceof CLeftHandSide) {
+          deriveFurtherInformation((CLeftHandSide) operand2, operand1, op);
+        }
+
+        return null;
+      }
+
+      private void deriveFurtherInformation(CLeftHandSide lValue, CExpression exp, BinaryOperator op) throws CPATransferException {
+
+        SMGExplicitValue rValue = evaluateExplicitValue(assignableState, edge, exp);
+
+        if(rValue.isUnknown()) {
+          // no further information can be inferred
+          return;
+        }
+
+        SMGSymbolicValue rSymValue = evaluateExpressionValue(assignableState, edge, exp);
+
+        if(rSymValue.isUnknown()) {
+          return;
+        }
+
+        SMGExpressionEvaluator.LValueAssignmentVisitor visitor = getLValueAssignmentVisitor(edge, assignableState);
+
+        SMGAddress addressOfField = lValue.accept(visitor);
+
+        if(addressOfField.isUnknown()) {
+          return;
+        }
+
+        if (truthValue) {
+          if (op == BinaryOperator.EQUALS) {
+            assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
+          }
+        } else {
+          if(op == BinaryOperator.NOT_EQUALS) {
+            assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
+            //TODO more precise
+          }
+        }
+      }
+
       @Override
       public Void visit(CUnaryExpression pE) throws CPATransferException {
 
@@ -1312,7 +1375,7 @@ public class SMGTransferRelation implements TransferRelation {
           return;
         }
 
-        // If this value is known, the assumption can be evaluated, therefor it should be unknown
+        // If this value is known, the assumption can be evaluated, therefore it should be unknown
         assert evaluateExplicitValue(assignableState, edge, lValue).isUnknown();
 
         SMGSymbolicValue value = evaluateExpressionValue(assignableState, edge, lValue);
