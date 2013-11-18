@@ -14,9 +14,11 @@
 
     <taskdef name="jflex"
         classname="JFlex.anttask.JFlexTask"
+        classpath="${dir.lib}/jflex.jar"
     />
     <taskdef name="cup"
         classname="java_cup.anttask.CUPTask"
+        classpath="${dir.lib}/java-cup.jar"
     />
 
     <target name="echos">
