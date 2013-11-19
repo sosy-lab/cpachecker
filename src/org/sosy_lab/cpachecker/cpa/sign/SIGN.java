@@ -70,7 +70,7 @@ public enum SIGN {
     return sign.split().containsAll(this.split());
   }
 
-  public ImmutableSet<SIGN> split() {
+  public ImmutableSet<SIGN> split() { // TODO performance
     ImmutableSet.Builder<SIGN> builder = ImmutableSet.builder();
     for(SIGN s : ImmutableList.of(PLUS,MINUS,ZERO)) {
       if((s.numVal & numVal) > 0) {

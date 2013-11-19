@@ -38,6 +38,8 @@ import com.google.common.collect.Sets;
 
 public class SignState implements AbstractState, TargetableWithPredicatedAnalysis{
 
+  private static final boolean DEBUG = false;
+
   private static SignTargetChecker targetChecker;
 
   static void init(Configuration config) throws InvalidConfigurationException{
@@ -108,6 +110,9 @@ public class SignState implements AbstractState, TargetableWithPredicatedAnalysi
     builder.append("[");
     String loopDelim = "";
     for(String key : signMap.keySet()) {
+      if(!DEBUG && (key.matches("\\w*::__CPAchecker_TMP_\\w*") || key.endsWith(SignTransferRelation.FUNC_RET_VAR)) ) {
+        continue;
+      }
       builder.append(loopDelim);
       builder.append(key + "->" + signMap.getSignForVariable(key));
       loopDelim = delim;

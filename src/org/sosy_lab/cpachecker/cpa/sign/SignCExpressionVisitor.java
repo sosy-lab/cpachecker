@@ -75,8 +75,7 @@ public class SignCExpressionVisitor
 
   @Override
   public SIGN visit(CIdExpression pIastIdExpression) throws UnrecognizedCodeException {
-    SIGN s = state.getSignMap().getSignForVariable(transferRel.getScopedVariableName(pIastIdExpression));
-    return s;
+    return state.getSignMap().getSignForVariable(transferRel.getScopedVariableName(pIastIdExpression));
   }
 
   @Override

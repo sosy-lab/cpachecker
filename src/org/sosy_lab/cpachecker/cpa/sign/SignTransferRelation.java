@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.sign;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
@@ -70,12 +69,13 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
 
   private Set<String> globalVariables = new HashSet<>();
 
-  private Deque<List<String>> stackVariables = new ArrayDeque<>();
+  private Deque<Set<String>> stackVariables = new ArrayDeque<>();
 
-  private final static String FUNC_RET_VAR = "__func_ret__";
+  public final static String FUNC_RET_VAR = "__func_ret__";
 
   public SignTransferRelation(LogManager pLogger) {
     logger = pLogger;
+    stackVariables.push(new HashSet<String>());
   }
 
   public String getScopedVariableName(IAExpression pVariableName) {
@@ -95,8 +95,15 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       pExpression = CNumericTypes.ZERO; // default in c
     }
     String assignedVar = getScopedVariableName(FUNC_RET_VAR, functionName);
-    stackVariables.peek().add(assignedVar);
-    return handleAssignmentToVariable(state, assignedVar, pExpression);
+    SignState result = handleAssignmentToVariable(state, assignedVar, pExpression);
+
+    // Clear stack
+    Set<String> localFunctionVars = stackVariables.pop();
+    for(String scopedVarIdent : localFunctionVars) {
+      result = result.removeSignAssumptionOfVariable(scopedVarIdent); // TODO performance
+    }
+
+    return result;
   }
 
   @Override
@@ -106,15 +113,15 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       assert (pParameters.size() == pArguments.size());
     }
     SignState successor = state;
-    stackVariables.push(new ArrayList<String>()); // side-effect: allocate space for local function vars
+    stackVariables.push(new HashSet<String>()); // side-effect: allocate space for local function variables
     for(int i = 0; i < pParameters.size(); i++) {
       IAExpression exp = pArguments.get(i);
       if(!(exp instanceof CExpression)) {
         throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
       }
       String scopedVarIdent = getScopedVariableName(pParameters.get(i).getName(), pCalledFunctionName);
-      stackVariables.peek().add(scopedVarIdent);
-      successor = handleAssignmentToVariable(successor, scopedVarIdent, exp);
+      stackVariables.getFirst().add(scopedVarIdent);
+      successor = handleAssignmentToVariable(successor, scopedVarIdent, exp); // TODO performance
     }
     return successor;
   }
@@ -132,12 +139,10 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     }
     String returnVarName = getScopedVariableName(FUNC_RET_VAR, functionName);
     String assignedVarName = getScopedVariableName(leftSide, pCallerFunctionName);
-    SignState result = state.assignSignToVariable(assignedVarName, state.getSignMap().getSignForVariable(returnVarName));
-    // Clear stack
-    List<String> localFunctionVars = stackVariables.pop();
-    for(String scopedVarIdent : localFunctionVars) {
-      result = result.removeSignAssumptionOfVariable(scopedVarIdent); // TODO performance
-    }
+
+    SignState result = state
+                        .assignSignToVariable(assignedVarName, state.getSignMap().getSignForVariable(returnVarName))
+                        .removeSignAssumptionOfVariable(returnVarName);
     return result;
   }
 
@@ -160,13 +165,13 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       globalVariables.add(decl.getName());
     } else {
       scopedId = getScopedVariableName(decl.getName(), functionName);
+      stackVariables.getFirst().add(scopedId);
     }
     IAInitializer init = decl.getInitializer();
     if(init instanceof AInitializerExpression) {
       return handleAssignmentToVariable(state, scopedId, ((AInitializerExpression)init).getExpression());
     }
-    // default sign is zero
-	// TODO since it is C, we better assume it may have any value here
+    // since it is C, we assume it may have any value here
     return state.assignSignToVariable(scopedId, SIGN.ALL);
   }
 
@@ -184,8 +189,8 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     IAExpression left = pAssignExpr.getLeftHandSide();
     // a = ...
     if(left instanceof AIdExpression) {
-      String pId = getScopedVariableName(left, functionName);
-      return handleAssignmentToVariable(state, pId, pAssignExpr.getRightHandSide());
+      String scopedId = getScopedVariableName(left, functionName);
+      return handleAssignmentToVariable(state, scopedId, pAssignExpr.getRightHandSide());
     }
     throw new UnrecognizedCodeException("left operand has to be an id expression", edge);
   }
@@ -207,10 +212,11 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     return pCalledFunctionName + "::" + pVariableName.toASTString();
   }
 
- private String getScopedVariableName(String pVariableName, String pCallFunctionName) {
-    if(globalVariables.contains(pVariableName)) {
-      return pVariableName;
-    }
-    return pCallFunctionName + "::" + pVariableName;
+  private String getScopedVariableName(String pVariableName, String pCallFunctionName) {
+     if(globalVariables.contains(pVariableName)) {
+       return pVariableName;
+     }
+     return pCallFunctionName + "::" + pVariableName;
   }
+
 }
