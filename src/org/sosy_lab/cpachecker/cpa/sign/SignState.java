@@ -23,7 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -31,7 +36,13 @@ import com.google.common.collect.Sets;
 
 
 
-public class SignState implements AbstractState {
+public class SignState implements AbstractState, TargetableWithPredicatedAnalysis{
+
+  private static SignTargetChecker targetChecker;
+
+  static void init(Configuration config) throws InvalidConfigurationException{
+    targetChecker = new SignTargetChecker(config);
+  }
 
   private SignMap signMap;
 
@@ -116,6 +127,24 @@ public class SignState implements AbstractState {
   @Override
   public int hashCode() {
     return signMap.hashCode();
+  }
+
+  @Override
+  public boolean isTarget() {
+    return targetChecker == null? false: targetChecker.isTarget(this);
+  }
+
+  @Override
+  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+    if(isTarget()){
+      return ViolatedProperty.OTHER;
+    }
+    return null;
+  }
+
+  @Override
+  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
+    return targetChecker== null? pFmgr.getBooleanFormulaManager().makeBoolean(false):targetChecker.getErrorCondition(this, pFmgr);
   }
 
 }
