@@ -184,7 +184,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     return new AbstractionState(bfmgr, pF, pA, pAbstractionLocations, pViolatedProperty);
   }
 
-  static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(PathFormula pF,
+  public static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(PathFormula pF,
       @Nullable ViolatedProperty pViolatedProperty, PredicateAbstractState oldState) {
     return new NonAbstractionState(pF, oldState.getAbstractionFormula(),
                                         oldState.getAbstractionLocationsOnPath(),

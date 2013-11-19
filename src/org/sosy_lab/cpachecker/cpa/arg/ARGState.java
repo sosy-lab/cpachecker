@@ -205,7 +205,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     mergedWith = pMergedWith;
   }
 
-  ARGState getMergedWith() {
+  public ARGState getMergedWith() {
     return mergedWith;
   }
 

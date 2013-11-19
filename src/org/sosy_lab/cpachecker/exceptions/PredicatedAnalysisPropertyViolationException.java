@@ -33,19 +33,26 @@ public class PredicatedAnalysisPropertyViolationException extends CPAException{
   private static final long serialVersionUID = 6723698516455641373L;
 
   private final AbstractState failureElem;
+  private final boolean inMerge;
 
-  public PredicatedAnalysisPropertyViolationException(String pMsg, AbstractState failureCause) {
+  public PredicatedAnalysisPropertyViolationException(String pMsg, AbstractState failureCause, boolean failedWhileMerge) {
     super(pMsg);
     failureElem = failureCause;
+    inMerge = failedWhileMerge;
   }
 
-  public PredicatedAnalysisPropertyViolationException(String msg, Throwable cause, AbstractState failureCause) {
+  public PredicatedAnalysisPropertyViolationException(String msg, Throwable cause, AbstractState failureCause, boolean failedWhileMerge) {
     super(msg, cause);
     failureElem = failureCause;
+    inMerge = failedWhileMerge;
   }
 
   public AbstractState getFailureCause(){
     return failureElem;
+  }
+
+  public boolean isMergeViolationCause() {
+    return inMerge;
   }
 
 }

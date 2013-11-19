@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinPredicatedAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeMergeAgreePredicatedAnalysisOperator;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
@@ -80,6 +81,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private CAssumeEdge fakeEdgeFromLastRun = null;
+  private AbstractState initialWrappedState = null;
 
 
   public PredicatedAnalysisAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis cpa, CFA pCfa, LogManager logger,
@@ -100,9 +102,10 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
             + "Add cpa.composite.inPredicatedAnalysis=true to your configuration options.");
     }
 
-    if (!(((ARGCPA) cpa).getMergeOperator() instanceof ARGMergeJoinPredicatedAnalysis)) { throw new InvalidConfigurationException(
-        "ARG CPA must use merge operator for predicated analysis."
-            + "Add cpa.arg.merge=JOINPREDANALYSIS to your configuration options."); }
+    if (!(CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator() instanceof CompositeMergeAgreePredicatedAnalysisOperator)) { throw new InvalidConfigurationException(
+        "Composite CPA must be informed about predicated analysis. "
+            + "Add cpa.arg.inPredicatedAnalysis=true to your configuration options.");
+    }
   }
 
   @Override
@@ -123,7 +126,10 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     pReachedSet.clear();
 
     // initialize reached set
-    pReachedSet.add(cpa.getInitialState(cfa.getMainFunction()), precision);
+    if (initialWrappedState == null) {
+      initialWrappedState = ((ARGState) cpa.getInitialState(cfa.getMainFunction())).getWrappedState();
+    }
+    pReachedSet.add(new ARGState(initialWrappedState, null), precision);
 
     // run algorithm
     logger.log(Level.FINEST, "Start analysis.");
@@ -131,9 +137,23 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     try{
       result = algorithm.run(pReachedSet);
     }catch(PredicatedAnalysisPropertyViolationException e){
-      if(e.getFailureCause()!=null && ! pReachedSet.contains(e.getFailureCause())){
-        pReachedSet.add(e.getFailureCause(), pReachedSet.getPrecision(pReachedSet.getLastState()));
+      precision =  pReachedSet.getPrecision(pReachedSet.getLastState());
+      if (e.getFailureCause() != null && !pReachedSet.contains(e.getFailureCause())
+          && ((ARGState) e.getFailureCause()).getParents().size() != 0) {
+        // add element
+        pReachedSet.add(e.getFailureCause(), precision);
+        // readd parents their may be other siblings in the ARG which are not part of the reached set
+        for (ARGState parent : ((ARGState) e.getFailureCause()).getParents()) {
+          pReachedSet.reAddToWaitlist(parent);
+        }
       }
+
+      // add merged element and clean up
+      if(e.isMergeViolationCause()){
+        pReachedSet.add(((ARGState) e.getFailureCause()).getMergedWith(), precision);
+        ((ARGMergeJoinPredicatedAnalysis)cpa.getMergeOperator()).cleanUp(pReachedSet);
+      }
+
       logger.log(Level.FINEST, "Analysis aborted because error state found");
       ARGState predecessor = (ARGState) pReachedSet.getLastState();
       CFANode node = AbstractStates.extractLocation(predecessor);
@@ -146,24 +166,63 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       }catch(IllegalArgumentException e1){
         // do nothing we require that the edge does not exist
       }
+      // TODO set null elements correctly so error path export, etc. works correctly
       CAssumeEdge assumeEdge = new CAssumeEdge(null, 0, node, node, null, true);
       fakeEdgeFromLastRun = assumeEdge;
       node.addEnteringEdge(assumeEdge);
       node.addLeavingEdge(assumeEdge);
 
-      // create fake state
+
+      // get predicate state
+      PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
+      PredicateAbstractState errorPred = AbstractStates.extractStateByType(predecessor, PredicateAbstractState.class);
       CompositeState comp = AbstractStates.extractStateByType(predecessor, CompositeState.class);
 
-      // build predicate state
-      PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
-      PredicateAbstractState errorPred = AbstractStates.extractStateByType(comp, PredicateAbstractState.class);
+      if (!e.isMergeViolationCause()) {
+        if(errorPred.isAbstractionState()){
+          // we must undo the abstraction because we do not want to separate paths at this location but exclude this that
+          // thus we require a new abstraction for the previous abstraction state
 
+          PredicateAbstractState prevErrorState =
+              AbstractStates.extractStateByType(predecessor.getParents().iterator().next(),
+                  PredicateAbstractState.class);
+
+          errorPred = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(errorPred.getAbstractionFormula()
+              .getBlockFormula(), errorPred.getViolatedProperty(), prevErrorState);
+
+          // build new composite state
+          ImmutableList.Builder<AbstractState> wrappedStates = ImmutableList.builder();
+          for (AbstractState state : comp.getWrappedStates()) {
+            if (!(state instanceof PredicateAbstractState)) {
+                wrappedStates.add(state);
+            }else{
+              wrappedStates.add(errorPred);
+            }
+          }
+
+          comp = new CompositeState(wrappedStates.build());
+
+          assert(predecessor.getChildren().size()==0);
+          assert(predecessor.getParents().size()==1);
+          assert(predecessor.getCoveredByThis().size()==0);
+
+          ARGState newPred = new ARGState(comp, predecessor.getParents().iterator().next());
+          predecessor.removeFromARG();
+          pReachedSet.add(newPred, pReachedSet.getPrecision(predecessor));
+          pReachedSet.remove(predecessor);
+          predecessor = newPred;
+        }
+      }
+
+      // create fake state
+      // build predicate state
       PathFormulaManager pfm = predCPA.getPathFormulaManager();
       PredicateAbstractionManager pam = predCPA.getPredicateManager();
       FormulaManagerView fm = predCPA.getFormulaManager();
 
       // create path to fake node
-      PathFormula pf = pfm.makeAnd(errorPred.getPathFormula(), ((TargetableWithPredicatedAnalysis)cpa).getErrorCondition(fm));
+      PathFormula pf = pfm.makeAnd(errorPred.getPathFormula(),
+          ((TargetableWithPredicatedAnalysis) predecessor).getErrorCondition(fm));
 
       // build abstraction which is needed for refinement, set to true, we do not know better
       AbstractionFormula abf = pam.makeTrueAbstractionFormula(pf);
@@ -183,9 +242,11 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       for (AbstractState state : comp.getWrappedStates()) {
         if (state != errorPred) {
             wrappedStates.add(state);
+        } else {
+          wrappedStates.add(fakePred);
         }
       }
-      wrappedStates.add(fakePred);
+
 
       comp = new CompositeState(wrappedStates.build());
 
@@ -194,6 +255,11 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
       // insert into reached set
       pReachedSet.add(successor, pReachedSet.getPrecision(predecessor));
+
+      assert(ARGUtils.checkARG(pReachedSet));
+
+      // return true such that CEGAR works fine
+      return true;
     }
 
     return result;
@@ -203,7 +269,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     if(precisions.size()==0){
       return initialPrecision;
     }
-
+    //TODO assure that refinement fails if same path is encountered twice
     Multimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstancPreds = HashMultimap.create();
     Multimap<CFANode, AbstractionPredicate> localPreds = HashMultimap.create();
     Multimap<String, AbstractionPredicate> functionPreds = HashMultimap.create();

@@ -68,13 +68,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     return AutomaticCPAFactory.forType(ARGCPA.class);
   }
 
-  @Option(toUppercase=true, values={"JOIN", "JOINPREDANALYSIS"},
-      description="which arg merge operator to use (join or joinpredanalysis)\n"
-        + "Both delegate to the wrapped cpa, but only joinpredanalysis "
-        + "deletes the children of the states if merged to ensure that if the wrapped cpa ensures that "
-        + "only one successor exists per edge the ARG CPA also ensures this property. "
-        + "Furthermore, joinpredanalysis throws an exception during merge if property violated.")
-  private String merge = "JOIN";
+  @Option(
+  description="inform ARG CPA if it is run in a predicated analysis because then it must"
+    + "behave differntly during merge.")
+  private boolean inPredicatedAnalysis = false;
 
   private final LogManager logger;
 
@@ -100,7 +97,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     if (wrappedPrec instanceof SimplePrecisionAdjustment) {
       precisionAdjustment = new ARGSimplePrecisionAdjustment((SimplePrecisionAdjustment) wrappedPrec);
     } else {
-      precisionAdjustment = new ARGPrecisionAdjustment(cpa.getPrecisionAdjustment());
+      precisionAdjustment = new ARGPrecisionAdjustment(cpa.getPrecisionAdjustment(), inPredicatedAnalysis);
     }
 
     if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
@@ -124,12 +121,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     if (wrappedMerge == MergeSepOperator.getInstance()) {
       mergeOperator = MergeSepOperator.getInstance();
     } else {
-      if (merge.equals("JOIN")) {
-        mergeOperator = new ARGMergeJoin(wrappedMerge);
-      } else if (merge.equals("JOINPREDANALYSIS")) {
+      if (inPredicatedAnalysis) {
         mergeOperator = new ARGMergeJoinPredicatedAnalysis(wrappedMerge);
       } else {
-        throw new AssertionError();
+        mergeOperator = new ARGMergeJoin(wrappedMerge);
       }
     }
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
