@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.sign;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -36,7 +36,7 @@ import com.google.common.collect.Sets;
 
 
 
-public class SignState implements AbstractState, TargetableWithPredicatedAnalysis{
+public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis{
 
   private static final boolean DEBUG = false;
 
@@ -150,6 +150,11 @@ public class SignState implements AbstractState, TargetableWithPredicatedAnalysi
   @Override
   public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
     return targetChecker== null? pFmgr.getBooleanFormulaManager().makeBoolean(false):targetChecker.getErrorCondition(this, pFmgr);
+  }
+
+  @Override
+  public String getTargetVariableName() {
+    return targetChecker == null ? "" : targetChecker.getErrorVariableName();
   }
 
 }

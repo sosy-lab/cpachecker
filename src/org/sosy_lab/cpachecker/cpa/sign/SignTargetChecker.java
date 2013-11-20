@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.sign;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
  * To ignore variables which are not declared yet or not valid anymore because the corresponding function is not on the stack,
  * the SignCPA must be wrapped into ValidVariablesCPA
  */
+@Options(prefix="cpa.sign")
 public class SignTargetChecker {
 
   @Option(
@@ -103,6 +105,10 @@ public class SignTargetChecker {
       return errorF;
     }
     return pFmgr.getBooleanFormulaManager().makeBoolean(false);
+  }
+
+  public String getErrorVariableName(){
+    return errorVar;
   }
 
 }
