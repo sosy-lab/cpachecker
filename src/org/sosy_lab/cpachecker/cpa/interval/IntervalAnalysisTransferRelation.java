@@ -597,7 +597,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
         CExpression exp = ((CInitializerExpression) init).getExpression();
         interval = evaluateInterval(element, exp, declarationEdge.getPredecessor().getFunctionName(), declarationEdge);
       } else {
-        interval = Interval.createUnboundInterval();
+        if (decl.isGlobal()) {
+          // according to C standard non initialized global vars are set to 0
+          interval = new Interval(0L);
+        } else {
+          interval = Interval.createUnboundInterval();
+        }
       }
 
       newElement.addInterval(varName, interval, this.threshold);
