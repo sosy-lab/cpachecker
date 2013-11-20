@@ -151,32 +151,33 @@ public class SignCExpressionVisitor
     return SIGN.PLUS;
   }
 
-  private static SIGN evaluateBinaryExpr(SIGN left, BinaryOperator operator, SIGN right) {
+  private SIGN evaluateBinaryExpr(SIGN left, BinaryOperator operator, SIGN right) throws UnsupportedCCodeException {
     boolean multOrDiv = operator == BinaryOperator.MULTIPLY || operator == BinaryOperator.DIVIDE;
+
+    if(left != SIGN.ZERO && right == SIGN.ZERO) {
+      throw new UnsupportedCCodeException("Dividing by zero is not supported", edgeOfExpr);
+    }
+
     /*
-     *  0 * x => 0
-     *  x * 0 => 0
+     *  0 * _ => 0
+     *  _ * 0 => 0
      *  0 / x => 0
      *  x / 0 => NOT DEFINED
      *  0 _ 0 => 0
      */
-    if(multOrDiv && left.isAll() && left == SIGN.ZERO
-        || operator == BinaryOperator.MULTIPLY && right.isAll() && right == SIGN.ZERO
-        || right.isAll() && right == SIGN.ZERO && left.isAll() && left == SIGN.ZERO) {
+    if(multOrDiv && left == SIGN.ZERO
+        || operator == BinaryOperator.MULTIPLY && right == SIGN.ZERO) {
         return SIGN.ZERO;
     }
 
+    // TODO add cases with zero
     /*
-     * ? _ ? => ?
-     * ? _ _ => ?
-     * _ _ ? => ?
      * + + - => ?
      * - + + => ?
      * - - - => ?
      * + - + => ?
      */
-    if((left.isAll() || right.isAll())
-        || operator == BinaryOperator.PLUS && left == SIGN.PLUS && right == SIGN.MINUS
+    if( operator == BinaryOperator.PLUS && left == SIGN.PLUS && right == SIGN.MINUS
         || operator == BinaryOperator.PLUS && left == SIGN.MINUS && right == SIGN.PLUS
         || operator == BinaryOperator.MINUS && left == SIGN.MINUS && right == SIGN.MINUS
         || operator == BinaryOperator.MINUS && left == SIGN.PLUS && right == SIGN.PLUS) {
