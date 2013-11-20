@@ -43,7 +43,7 @@ public class SignState implements AbstractState, TargetableWithPredicatedAnalysi
   private static SignTargetChecker targetChecker;
 
   static void init(Configuration config) throws InvalidConfigurationException{
-    targetChecker = new SignTargetChecker(config);
+    //targetChecker = new SignTargetChecker(config);
   }
 
   private SignMap signMap;
