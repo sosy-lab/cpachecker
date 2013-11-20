@@ -150,6 +150,9 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   @Override
   protected SignState handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
       throws CPATransferException {
+//    if(truthAssumption) {
+//      SIGN result = expression.accept(new SignCExpressionVisitor(cfaEdge, state, this));
+//    }
     return state;
   }
 
