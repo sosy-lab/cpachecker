@@ -36,9 +36,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 public class IntervalAnalysisState implements AbstractState, TargetableWithPredicatedAnalysis {
 
   private static IntervalTargetChecker targetChecker;
+  private static boolean ignoreRefInMerge;
 
-  static void init(Configuration config) throws InvalidConfigurationException{
+  static void init(Configuration config, boolean pIgnoreRefCount) throws InvalidConfigurationException{
     targetChecker = new IntervalTargetChecker(config);
+    ignoreRefInMerge = pIgnoreRefCount;
   }
 
   /**
@@ -209,8 +211,8 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
 
         // update the references
         newRefCount = Math.max(getReferenceCount(variableName), reachedState.getReferenceCount(variableName));
-        if (newRefCount > reachedState.getReferenceCount(variableName)) {
-          changed = true;
+        if (!ignoreRefInMerge && newRefCount > reachedState.getReferenceCount(variableName)) {
+         changed = true;
         }
         newReferences.put(variableName, newRefCount);
       } else {
