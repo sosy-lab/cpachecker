@@ -234,8 +234,9 @@ bmc.induction = false
 # Generate invariants and add them to the induction hypothesis.
 bmc.useInvariantsForInduction = false
 
-# file name where to put the path program that is generated as input for
-# CBMC. A temporary file is used if this is unspecified.
+# File name where to put the path program that is generated as input for
+# CBMC. A temporary file is used if this is unspecified. If specified, the
+# file name should end with '.i'.
 cbmc.dumpCBMCfile = no default value
 
 # specify the name of the error label
@@ -1147,6 +1148,15 @@ cpa.reachdef.merge = "JOIN"
 # which stop operator to use for ReachingDefCPA
 cpa.reachdef.stop = "SEP"
   allowed values: [SEP, JOIN, IGNORECALLSTACK]
+
+# path to a file with abstraction rules
+cpa.seplogic.partingstar.abstractionfile = no default value
+
+# path to a file with logic rules
+cpa.seplogic.partingstar.logicsfile = no default value
+
+# path to partingstar command
+cpa.seplogic.partingstar.pspath = no default value
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
