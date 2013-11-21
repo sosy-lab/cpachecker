@@ -25,8 +25,10 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Objects.firstNonNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -37,6 +39,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -47,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinPredicatedAnalysis;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -59,12 +63,16 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
@@ -82,6 +90,8 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   private final ShutdownNotifier shutdownNotifier;
   private CAssumeEdge fakeEdgeFromLastRun = null;
   private AbstractState initialWrappedState = null;
+  private ARGPath pathToFailure = null;
+  private boolean repeatedFailure = false;
 
 
   public PredicatedAnalysisAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis cpa, CFA pCfa, LogManager logger,
@@ -166,8 +176,9 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       }catch(IllegalArgumentException e1){
         // do nothing we require that the edge does not exist
       }
-      // TODO set null elements correctly so error path export, etc. works correctly
-      CAssumeEdge assumeEdge = new CAssumeEdge(null, 0, node, node, null, true);
+      // note: expression of created edge does not match error condition, only error condition will describe correct failure cause
+      CAssumeEdge assumeEdge = new CAssumeEdge("1", node.getLineNumber(), node, node, CNumericTypes.ONE, true);
+
       fakeEdgeFromLastRun = assumeEdge;
       node.addEnteringEdge(assumeEdge);
       node.addLeavingEdge(assumeEdge);
@@ -213,6 +224,11 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
           predecessor = newPred;
         }
       }
+
+      // check if it is the same failure (CFA path) as last time
+      ARGPath currentFailurePath = ARGUtils.getOnePathTo(predecessor);
+      repeatedFailure = pathToFailure == null || isSamePathInCFA(pathToFailure, currentFailurePath);
+      pathToFailure = currentFailurePath;
 
       // create fake state
       // build predicate state
@@ -265,11 +281,12 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     return result;
   }
 
-  private Precision buildInitialPrecision(Collection<Precision> precisions, Precision initialPrecision) throws InterruptedException {
+  private Precision buildInitialPrecision(Collection<Precision> precisions, Precision initialPrecision)
+      throws InterruptedException, RefinementFailedException {
     if(precisions.size()==0){
       return initialPrecision;
     }
-    //TODO assure that refinement fails if same path is encountered twice
+
     Multimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstancPreds = HashMultimap.create();
     Multimap<CFANode, AbstractionPredicate> localPreds = HashMultimap.create();
     Multimap<String, AbstractionPredicate> functionPreds = HashMultimap.create();
@@ -304,7 +321,86 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     // construct new predicate precision
     PredicatePrecision newPredPrec = new PredicatePrecision(locationInstancPreds, localPreds, functionPreds, globalPreds);
 
+    // assure that refinement fails if same path is encountered twice and precision not refined on that path
+    if(repeatedFailure && noNewPredicates(Precisions.extractPrecisionByType(initialPrecision, PredicatePrecision.class), newPredPrec)){
+      throw new RefinementFailedException(Reason.RepeatedCounterexample, pathToFailure);
+    }
+
     return Precisions.replaceByType(initialPrecision, newPredPrec, PredicatePrecision.class);
+  }
+
+  private boolean noNewPredicates(PredicatePrecision oldPrecision, PredicatePrecision newPrecision)
+      throws InterruptedException {
+    PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
+
+    // check if global precision changed
+    if (isMorePrecise(oldPrecision.getGlobalPredicates(), newPrecision.getGlobalPredicates(), predCPA)) { return false; }
+    // get CFA nodes and function names on failure path
+    HashSet<String> funNames = new HashSet<>();
+    HashSet<CFANode> nodesOnPath = new HashSet<>();
+    CFANode current;
+
+    for (int i = 0; i < pathToFailure.size() - 1; i++) {
+      current = pathToFailure.get(i).getSecond().getSuccessor();
+      funNames.add(current.getFunctionName());
+      nodesOnPath.add(current);
+    }
+
+    // check if precision for one of the functions on path changed
+    for (String funName : funNames) {
+      if (isMorePrecise(oldPrecision.getFunctionPredicates().get(funName),
+          newPrecision.getFunctionPredicates().get(funName), predCPA)) { return false; }
+    }
+
+    // check if precision for one of the CFA nodes on path changed
+    for (CFANode node : nodesOnPath) {
+      if (isMorePrecise(oldPrecision.getLocalPredicates().get(node),
+          newPrecision.getLocalPredicates().get(node), predCPA)) { return false; }
+    }
+
+    return true;
+  }
+
+  private boolean isMorePrecise(Set<AbstractionPredicate> lessPrecise, Set<AbstractionPredicate> morePrecise,
+      PredicateCPA predCPA) throws InterruptedException {
+    if (lessPrecise != null && morePrecise != null) {
+      if (lessPrecise.size() == morePrecise.size() && lessPrecise.equals(morePrecise)) { return false; }
+
+      // build conjunction of predicates
+      ArrayList<BooleanFormula> list = new ArrayList<>(Math.max(lessPrecise.size(), morePrecise.size()));
+      for (AbstractionPredicate abs : lessPrecise) {
+        list.add(abs.getSymbolicAtom());
+      }
+      BooleanFormula fLess = predCPA.getFormulaManager().getBooleanFormulaManager().and(list);
+
+      list.clear();
+      for (AbstractionPredicate abs : lessPrecise) {
+        list.add(abs.getSymbolicAtom());
+      }
+      BooleanFormula fMore = predCPA.getFormulaManager().getBooleanFormulaManager().and(list);
+      fMore = predCPA.getFormulaManager().makeNot(fMore);
+      fMore = predCPA.getFormulaManager().makeAnd(fLess, fMore);
+
+      // check if conjunction of less precise does not imply conjunction of more precise
+      ProverEnvironment prover = predCPA.getFormulaManagerFactory().newProverEnvironment(false);
+      prover.push(fMore);
+      boolean result = prover.isUnsat();
+      prover.close();
+      return result;
+    }
+
+    return lessPrecise == null && morePrecise != null;
+  }
+
+  private boolean isSamePathInCFA(ARGPath path1, ARGPath path2) {
+    if (path1.size() == path2.size()) {
+      for (int i = path1.size() - 1; i >= 0; i--) {
+        if (!AbstractStates.extractLocation(path1.get(i).getFirst()).equals(
+            AbstractStates.extractLocation(path2.get(i).getFirst()))) { return false; }
+      }
+      return true;
+    }
+    return false;
   }
 
   @Override
