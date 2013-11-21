@@ -92,7 +92,10 @@ public class ValidVarsTransferRelation implements TransferRelation{
       Collection<? extends AbstractState> wrappedSuccessors =
           wrappedTransfer.getAbstractSuccessors(state.getWrappedState(), pPrecision, pCfaEdge);
 
+    if (wrappedSuccessors == null || wrappedSuccessors.size() == 0) { return Collections.emptySet(); }
+
     ArrayList<AbstractState> successors = new ArrayList<>(wrappedSuccessors.size());
+
 
     for (AbstractState successor : wrappedSuccessors) {
       successors.add(new ValidVarsState(successor, validVariables));
@@ -108,6 +111,10 @@ public class ValidVarsTransferRelation implements TransferRelation{
     ValidVarsState state = (ValidVarsState) pState;
     Collection<? extends AbstractState> wrappedStrengthen =
         wrappedTransfer.strengthen(state.getWrappedState(), pOtherStates, pCfaEdge, pPrecision);
+
+    if(wrappedStrengthen == null || wrappedStrengthen.size()==0){
+      return null;
+    }
 
     ArrayList<AbstractState> successors = new ArrayList<>(wrappedStrengthen.size());
 
