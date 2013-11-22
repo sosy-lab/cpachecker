@@ -57,9 +57,9 @@ public enum SIGN {
     return VALUE_MAP.get(Integer.valueOf(sign.numVal | numVal));
   }
 
-  public boolean commonSubsetOfConcreteValues(SIGN sign) {
-    if (((sign.numVal ^ this.numVal) & this.numVal) == this.numVal) { return false; }
-    return true;
+  public boolean covers(SIGN sign) {
+    if ((sign.numVal | this.numVal)  == this.numVal) { return true; }
+    return false;
   }
 
   public boolean isSubsetOf(SIGN sign) {
