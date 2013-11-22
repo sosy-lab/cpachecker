@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -184,6 +185,12 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     if(pStatement instanceof IAssignment) {
       return handleAssignment((IAssignment)pStatement);
     }
+
+    // only expression expr; does not change state
+    if(pStatement instanceof AExpressionStatement){
+      return state;
+    }
+
     throw new UnrecognizedCodeException("only assignments are supported at this time", edge);
   }
 
