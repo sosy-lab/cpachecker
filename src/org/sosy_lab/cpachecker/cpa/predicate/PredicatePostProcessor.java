@@ -57,9 +57,9 @@ public class PredicatePostProcessor implements PostProcessor {
 
     Deque<ARGState> leaves = new ArrayDeque<>();
     for (AbstractState e : pReached) {
-      ARGState artEle = (ARGState) e;
-      if (artEle.getChildren().size() == 0 && (!AbstractStates.extractStateByType(artEle, PredicateAbstractState.class).isAbstractionState() || AbstractStates.extractStateByType(artEle, PredicateAbstractState.class).getAbstractionFormula().isFalse()) && !artEle.isTarget()) {
-        leaves.push(artEle);
+      ARGState argEle = (ARGState) e;
+      if (argEle.getChildren().size() == 0 && (!AbstractStates.extractStateByType(argEle, PredicateAbstractState.class).isAbstractionState() || AbstractStates.extractStateByType(argEle, PredicateAbstractState.class).getAbstractionFormula().isFalse()) && !argEle.isTarget()) {
+        leaves.push(argEle);
       }
     }
 
