@@ -154,7 +154,7 @@ public class SignCExpressionVisitor
   private SIGN evaluateBinaryExpr(SIGN left, BinaryOperator operator, SIGN right) throws UnsupportedCCodeException {
     boolean multOrDiv = operator == BinaryOperator.MULTIPLY || operator == BinaryOperator.DIVIDE;
 
-    if(left != SIGN.ZERO && right == SIGN.ZERO) {
+    if(right == SIGN.ZERO && operator == BinaryOperator.DIVIDE) {
       throw new UnsupportedCCodeException("Dividing by zero is not supported", edgeOfExpr);
     }
 
