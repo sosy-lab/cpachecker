@@ -59,7 +59,7 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
   }
 
   public SignState union(SignState pToJoin) {
-    if (pToJoin.equals(this)) { return this; }
+    if (pToJoin.equals(this)) { return pToJoin; }
     if (this.equals(TOP) || pToJoin.equals(TOP)) { return TOP; }
 
     // assure termination of loops do not merge if  pToJoin covers this but return pToJoin
