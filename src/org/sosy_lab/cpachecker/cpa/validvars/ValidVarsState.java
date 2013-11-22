@@ -48,8 +48,8 @@ public class ValidVarsState extends AbstractSingleWrapperState implements Target
   @Override
   public boolean isTarget() {
     AbstractState wrappedState = getWrappedState();
-    if (!(wrappedState instanceof AbstractStateWithTargetVariable)
-        || validVariables.containsVar(((AbstractStateWithTargetVariable) wrappedState).getTargetVariableName())) { return super
+    if ((wrappedState instanceof AbstractStateWithTargetVariable)
+        && validVariables.containsVar(((AbstractStateWithTargetVariable) wrappedState).getTargetVariableName())) { return super
         .isTarget(); }
     return false;
   }
