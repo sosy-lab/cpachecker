@@ -77,6 +77,11 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     + "behave differntly during merge.")
   private boolean inPredicatedAnalysis = false;
 
+  @Option(
+      description = "disable post processor for runtime verification ARG simplification, " +
+          "always disable if CPA does not contain an automaton/monitor for error specification")
+  private boolean disableRVARGSimplification = false;
+
   private final LogManager logger;
 
   private final AbstractDomain abstractDomain;
@@ -142,7 +147,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
       innerPostProcessor = null;
     }
     postProcessors = new ArrayList<>();
-    postProcessors.add(new RVARGSimplifier(config, this,pShutdownNotifier));
+    if (!disableRVARGSimplification) {
+      postProcessors.add(new RVARGSimplifier(config, this, pShutdownNotifier));
+    }
     postProcessors.add(new ARGDumper(config, this));
 
   }
