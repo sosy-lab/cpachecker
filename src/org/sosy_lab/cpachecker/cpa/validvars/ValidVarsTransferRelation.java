@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -78,11 +79,13 @@ public class ValidVarsTransferRelation implements TransferRelation{
       break;
     case DeclarationEdge:
       CDeclaration declaration = ((CDeclarationEdge) pCfaEdge).getDeclaration();
-      if(declaration.isGlobal()){
-        validVariables = validVariables.extendGlobalVars(declaration.getName());
-      } else {
-        validVariables =
-            validVariables.extendLocalVars(pCfaEdge.getPredecessor().getFunctionName(), declaration.getName());
+      if (declaration instanceof CVariableDeclaration) {
+        if (declaration.isGlobal()) {
+          validVariables = validVariables.extendGlobalVars(declaration.getName());
+        } else {
+          validVariables =
+              validVariables.extendLocalVars(pCfaEdge.getPredecessor().getFunctionName(), declaration.getName());
+        }
       }
       break;
     default:
