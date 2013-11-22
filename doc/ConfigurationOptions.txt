@@ -82,6 +82,10 @@ analysis.interprocedural = true
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
+# if enabled post processes (cosmetic changes) the reached set as specified
+# by the CPAs
+analysis.postProcessing = false
+
 # use a predicated analysis which proves if the program satisfies a specified
 # property with the help of a PredicateCPA to separate differnt program paths
 analysis.predicatedAnalysis = false
@@ -173,6 +177,17 @@ analysis.useRefinement = false
 
 # do analysis and then check analysis result
 analysis.useResultCheckAlgorithm = false
+
+# Add a threshold to the automaton, after so many branches on a path the
+# automaton will be ignored (0 to disable)
+assumptions.automatonBranchingThreshold = 0
+
+# write collected assumptions as automaton to file
+assumptions.automatonFile = "AssumptionAutomaton.txt"
+
+# write collected assumptions to file
+assumptions.export = true
+assumptions.file = "assumptions.txt"
 
 # Size of the BDD cache in relation to the node table size (set to 0 to use
 # fixed BDD cache size).
@@ -371,10 +386,15 @@ cpa.abm.blockHeuristic = FunctionAndLoopPartitioning.class
 # the cause of the miss.
 cpa.abm.gatherCacheMissStatistics = false
 
-# export final ART as C program
+# disable post processor for runtime verification ARG simplification, always
+# disable if CPA does not contain an automaton/monitor for error
+# specification
+cpa.arg.disableRVARGSimplification = false
+
+# export final ARG as C program
 cpa.arg.dumpARG = false
 
-# export final ART as .c file
+# export final ARG as .c file
 cpa.arg.dumpFile = "ARG.c"
 
 # export one variable assignment for error path to file, if one is found
@@ -1165,7 +1185,6 @@ cpa.reachdef.merge = "JOIN"
 cpa.reachdef.stop = "SEP"
   allowed values: [SEP, JOIN, IGNORECALLSTACK]
 
-<<<<<<< .mine
 # path to a file with abstraction rules
 cpa.seplogic.partingstar.abstractionfile = no default value
 
@@ -1184,17 +1203,6 @@ cpa.sign.allowedAbstractValue = ALL
 # globally in a certain bound 
 cpa.sign.varName = ""
 
-=======
-# path to a file with abstraction rules
-cpa.seplogic.partingstar.abstractionfile = no default value
-
-# path to a file with logic rules
-cpa.seplogic.partingstar.logicsfile = no default value
-
-# path to partingstar command
-cpa.seplogic.partingstar.pspath = no default value
-
->>>>>>> .r9889
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]
