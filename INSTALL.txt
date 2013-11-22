@@ -43,6 +43,9 @@ Install CPAchecker -- Source
 5. Run "ant" in CPAchecker directory to build CPAchecker.
    When building CPAchecker for the first time, this will automatically
    download all needed libraries.
+   If you have incompatible versions of some libraries installed on your system,
+   the build might fail with NoSuchMethodErrors or similar exceptions.
+   In this case, run "ant -lib lib/java/build".
 
 (For building CPAchecker within Eclipse, cf. doc/Developing.txt.)
 

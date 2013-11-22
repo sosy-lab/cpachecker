@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
 import java.util.Set;
 
@@ -34,18 +33,18 @@ import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 
 public class SMGStateTest {
-  private LogManager logger = mock(LogManager.class);
+  static private final  LogManager logger = mock(LogManager.class);
   private SMGState consistent_state;
   private SMGState inconsistent_state;
 
-  private CType mockType16b = mock(CType.class);
-  private CType mockType8b = mock(CType.class);
+  static private final CType mockType16b = AnonymousTypes.createTypeWithLength(16);
+  static private final CType mockType8b = AnonymousTypes.createTypeWithLength(8);
 
   @SuppressWarnings("unchecked")
   @Before
@@ -54,13 +53,8 @@ public class SMGStateTest {
     inconsistent_state = new SMGState(logger, MachineModel.LINUX64);
     SMGEdgePointsTo pt = inconsistent_state.addNewHeapAllocation(8, "label");
 
-    consistent_state.addGlobalObject(pt.getObject());
-    inconsistent_state.addGlobalObject(pt.getObject());
-
-    when(mockType16b.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(16));
-    when(mockType8b.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(8));
-    when(mockType16b.getCanonicalType()).thenReturn(mockType16b);
-    when(mockType8b.getCanonicalType()).thenReturn(mockType8b);
+    consistent_state.addGlobalObject((SMGRegion)pt.getObject());
+    inconsistent_state.addGlobalObject((SMGRegion)pt.getObject());
   }
 
   /*
@@ -70,7 +64,7 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported1Test() throws SMGInconsistentException {
-    inconsistent_state.setRuntimeCheck(SMGRuntimeCheck.FULL);
+    SMGState.setRuntimeCheck(SMGRuntimeCheck.FULL);
     inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
@@ -81,7 +75,7 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported2Test() throws SMGInconsistentException {
-    inconsistent_state.setRuntimeCheck(SMGRuntimeCheck.FULL);
+    SMGState.setRuntimeCheck(SMGRuntimeCheck.FULL);
     inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
@@ -92,7 +86,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyInconsistentNotReportedTest() throws SMGInconsistentException {
-    inconsistent_state.setRuntimeCheck(SMGRuntimeCheck.NONE);
+    SMGState.setRuntimeCheck(SMGRuntimeCheck.NONE);
     inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
@@ -103,7 +97,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent1Test() throws SMGInconsistentException {
-    consistent_state.setRuntimeCheck(SMGRuntimeCheck.FULL);
+    SMGState.setRuntimeCheck(SMGRuntimeCheck.FULL);
     consistent_state.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
   /*
@@ -113,7 +107,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent2Test() throws SMGInconsistentException {
-    consistent_state.setRuntimeCheck(SMGRuntimeCheck.NONE);
+    SMGState.setRuntimeCheck(SMGRuntimeCheck.NONE);
     consistent_state.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 

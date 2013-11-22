@@ -56,11 +56,11 @@ enum SMGRuntimeCheck {
   FULL(2);
 
   private final int id;
-  SMGRuntimeCheck(int id) { this.id = id; }
+  SMGRuntimeCheck(int pId) { id = pId; }
   public int getValue() { return id; }
 
   public boolean isFinerOrEqualThan(SMGRuntimeCheck other) {
-    return this.id >= other.id;
+    return id >= other.id;
   }
 }
 
@@ -73,6 +73,12 @@ public class CPAlienCPA implements ConfigurableProgramAnalysis {
 
   @Option(name="runtimeCheck", description = "Sets the level of runtime checking: NONE, HALF, FULL")
   private SMGRuntimeCheck runtimeCheck = SMGRuntimeCheck.NONE;
+
+  @Option(name="memoryErrors", description = "Determines if memory errors are target states")
+  private boolean memoryErrors = true;
+
+  @Option(name="unknownOnUndefined", description = "Emit messages when we encounter non-target undefined behavior")
+  private boolean unknownOnUndefined = true;
 
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
@@ -92,6 +98,11 @@ public class CPAlienCPA implements ConfigurableProgramAnalysis {
     mergeOperator = MergeSepOperator.getInstance();
     stopOperator = new StopSepOperator(abstractDomain);
     transferRelation = new SMGTransferRelation(config, logger, machineModel);
+
+    SMGState.setRuntimeCheck(runtimeCheck);
+
+    SMGState.setTargetMemoryErrors(memoryErrors);
+    SMGState.setUnknownOnUndefined(unknownOnUndefined);
   }
 
   public MachineModel getMachineModel() {
@@ -128,21 +139,16 @@ public class CPAlienCPA implements ConfigurableProgramAnalysis {
     SMGState initState = new SMGState(logger, machineModel);
 
     try {
-      initState.setRuntimeCheck(runtimeCheck);
-      //TODO: Just for debugging, remove later
-      initState.setRuntimeCheck(SMGRuntimeCheck.FULL);
-      initState.performConsistencyCheck(SMGRuntimeCheck.HALF);
-    }
-    catch(SMGInconsistentException exc) {
+      initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
+    } catch(SMGInconsistentException exc) {
       logger.log(Level.SEVERE, exc.getMessage());
     }
 
     CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
     try {
       initState.addStackFrame(functionNode.getFunctionDefinition());
-      initState.performConsistencyCheck(SMGRuntimeCheck.HALF);
-    }
-    catch(SMGInconsistentException exc) {
+      initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
+    } catch(SMGInconsistentException exc) {
       logger.log(Level.SEVERE, exc.getMessage());
     }
 

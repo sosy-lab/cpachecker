@@ -73,8 +73,9 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
   private final Timer cbmcTime = new Timer();
 
   @Option(name = "cbmc.dumpCBMCfile",
-      description = "file name where to put the path program that is generated "
-      + "as input for CBMC. A temporary file is used if this is unspecified.")
+      description = "File name where to put the path program that is generated "
+      + "as input for CBMC. A temporary file is used if this is unspecified. "
+      + "If specified, the file name should end with '.i'.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path cbmcFile;
 
@@ -108,7 +109,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     } else {
 
       // This temp file will be automatically deleted when the try block terminates.
-      try (DeleteOnCloseFile tempFile = Files.createTempFile("path", ".c")) {
+      try (DeleteOnCloseFile tempFile = Files.createTempFile("path", ".i")) {
         return checkCounterexample(pRootState, pErrorPathStates, tempFile.toPath());
 
       } catch (IOException e) {

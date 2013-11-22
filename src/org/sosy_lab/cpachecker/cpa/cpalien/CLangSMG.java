@@ -32,9 +32,13 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 import com.google.common.collect.Sets;
 
@@ -61,7 +65,7 @@ public class CLangSMG extends SMG {
   /**
    * A container for global objects
    */
-  final private HashMap<String, SMGObject> global_objects = new HashMap<>();
+  final private HashMap<String, SMGRegion> global_objects = new HashMap<>();
 
   /**
    * A flag signifying the edge leading to this state caused memory to be leaked
@@ -99,7 +103,7 @@ public class CLangSMG extends SMG {
    */
   public CLangSMG(MachineModel pMachineModel) {
     super(pMachineModel);
-    this.heap_objects.add(this.getNullObject());
+    heap_objects.add(getNullObject());
   }
 
   /**
@@ -119,6 +123,7 @@ public class CLangSMG extends SMG {
 
     heap_objects.addAll(pHeap.heap_objects);
     global_objects.putAll(pHeap.global_objects);
+    has_leaks = pHeap.has_leaks;
   }
 
   /**
@@ -132,11 +137,11 @@ public class CLangSMG extends SMG {
    * @param pObject Object to add.
    */
   public void addHeapObject(SMGObject pObject) {
-    if (CLangSMG.performChecks() && this.heap_objects.contains(pObject)) {
+    if (CLangSMG.performChecks() && heap_objects.contains(pObject)) {
       throw new IllegalArgumentException("Heap object already in the SMG: [" + pObject + "]");
     }
-    this.heap_objects.add(pObject);
-    this.addObject(pObject);
+    heap_objects.add(pObject);
+    addObject(pObject);
   }
 
   /**
@@ -150,16 +155,16 @@ public class CLangSMG extends SMG {
 
    * @param pObject Object to add
    */
-  public void addGlobalObject(SMGObject pObject) {
-    if (CLangSMG.performChecks() && this.global_objects.values().contains(pObject)) {
+  public void addGlobalObject(SMGRegion pObject) {
+    if (CLangSMG.performChecks() && global_objects.values().contains(pObject)) {
       throw new IllegalArgumentException("Global object already in the SMG: [" + pObject + "]");
     }
 
-    if (CLangSMG.performChecks() && this.global_objects.containsKey(pObject.getLabel())) {
+    if (CLangSMG.performChecks() && global_objects.containsKey(pObject.getLabel())) {
       throw new IllegalArgumentException("Global object with label [" + pObject.getLabel() + "] already in the SMG");
     }
 
-    this.global_objects.put(pObject.getLabel(), pObject);
+    global_objects.put(pObject.getLabel(), pObject);
     super.addObject(pObject);
   }
 
@@ -177,7 +182,7 @@ public class CLangSMG extends SMG {
    *
    * TODO: Shall we need an extension for putting objects to upper frames?
    */
-  public void addStackObject(SMGObject pObject) {
+  public void addStackObject(SMGRegion pObject) {
     super.addObject(pObject);
     stack_objects.peek().addStackVariable(pObject.getLabel(), pObject);
   }
@@ -190,9 +195,13 @@ public class CLangSMG extends SMG {
    * @param pFunctionDeclaration A function for which to create a new stack frame
    */
   public void addStackFrame(CFunctionDeclaration pFunctionDeclaration) {
-    CLangStackFrame newFrame = new CLangStackFrame(pFunctionDeclaration, this.getMachineModel());
+    CLangStackFrame newFrame = new CLangStackFrame(pFunctionDeclaration, getMachineModel());
 
-    super.addObject(newFrame.getReturnObject());
+    // Return object is NULL for void functions
+    SMGObject returnObject = newFrame.getReturnObject();
+    if (returnObject != null) {
+      super.addObject(newFrame.getReturnObject());
+    }
     stack_objects.push(newFrame);
   }
 
@@ -219,7 +228,7 @@ public class CLangSMG extends SMG {
   public void dropStackFrame() {
     CLangStackFrame frame = stack_objects.pop();
     for (SMGObject object : frame.getAllObjects()) {
-      this.removeObjectAndEdges(object);
+      removeObjectAndEdges(object);
     }
 
     if (CLangSMG.performChecks()) {
@@ -241,13 +250,13 @@ public class CLangSMG extends SMG {
     Queue<SMGObject> workqueue = new ArrayDeque<>();
 
     // TODO: wrap to getStackObjects(), perhaps just internally?
-    for (CLangStackFrame frame : this.getStackFrames()) {
+    for (CLangStackFrame frame : getStackFrames()) {
       for (SMGObject stack_object : frame.getAllObjects()) {
         workqueue.add(stack_object);
       }
     }
 
-    workqueue.addAll(this.getGlobalObjects().values());
+    workqueue.addAll(getGlobalObjects().values());
 
     SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
 
@@ -264,8 +273,8 @@ public class CLangSMG extends SMG {
       if ( ! seen.contains(processed)) {
         seen.add(processed);
         filter.filterByObject(processed);
-        for (SMGEdgeHasValue outbound : this.getHVEdges(filter)) {
-          SMGObject pointedObject = this.getObjectPointedBy(outbound.getValue());
+        for (SMGEdgeHasValue outbound : getHVEdges(filter)) {
+          SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
           if ( pointedObject != null && ! seen.contains(pointedObject)) {
             workqueue.add(pointedObject);
           }
@@ -279,26 +288,27 @@ public class CLangSMG extends SMG {
     /*
      * TODO: Refactor into generic methods for substracting SubSMGs (see above)
      */
-    Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(this.getObjects(), seen));
+    Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(getObjects(), seen));
     for (SMGObject stray_object : stray_objects) {
       if (stray_object.notNull()) {
-        if (this.isObjectValid(stray_object)) {
-          this.setMemoryLeak();
+        if (isObjectValid(stray_object)) {
+          setMemoryLeak();
         }
-        this.removeObjectAndEdges(stray_object);
-        this.heap_objects.remove(stray_object);
+        removeObjectAndEdges(stray_object);
+        heap_objects.remove(stray_object);
 
       }
     }
-    Set<Integer> stray_values = new HashSet<>(Sets.difference(this.getValues(), seen_values));
+
+    Set<Integer> stray_values = new HashSet<>(Sets.difference(getValues(), seen_values));
     for (Integer stray_value : stray_values) {
-      if (stray_value != this.getNullValue()) {
+      if (stray_value != getNullValue()) {
         // Here, we can't just remove stray value, we also have to remove the points-to edge
-        if(this.isPointer(stray_value)) {
+        if(isPointer(stray_value)) {
           removePointsToEdge(stray_value);
         }
 
-        this.removeValue(stray_value);
+        removeValue(stray_value);
       }
     }
 
@@ -319,7 +329,7 @@ public class CLangSMG extends SMG {
   @Override
   public String toString() {
     return "CLangSMG [\n stack_objects=" + stack_objects + "\n heap_objects=" + heap_objects + "\n global_objects="
-        + global_objects + "\n " + this.valuesToString() + "\n " + this.ptToString() + "\n " + this.hvToString() + "\n]";
+        + global_objects + "\n " + valuesToString() + "\n " + ptToString() + "\n " + hvToString() + "\n]";
   }
 
   /**
@@ -332,7 +342,7 @@ public class CLangSMG extends SMG {
    *
    * TODO: [SCOPES] Test for getting visible local object hiding other local object
    */
-  public SMGObject getObjectForVisibleVariable(String pVariableName) {
+  public SMGRegion getObjectForVisibleVariable(String pVariableName) {
     // Look in the local frame
     if (stack_objects.size() != 0) {
       if (stack_objects.peek().containsVariable(pVariableName)) {
@@ -386,7 +396,7 @@ public class CLangSMG extends SMG {
    *
    * @return Unmodifiable map from variable names to global objects.
    */
-  public Map<String, SMGObject> getGlobalObjects() {
+  public Map<String, SMGRegion> getGlobalObjects() {
     return Collections.unmodifiableMap(global_objects);
   }
 
@@ -412,6 +422,17 @@ public class CLangSMG extends SMG {
     return stack_objects.peek().getReturnObject();
   }
 
+  @Nullable
+  public String getFunctionName(SMGObject pObject) {
+    for (CLangStackFrame cLangStack : stack_objects) {
+      if (cLangStack.getAllObjects().contains(pObject)) {
+        return cLangStack.getFunctionDeclaration().getName();
+      }
+    }
+
+    return null;
+  }
+
   @Override
   public void mergeValues(int v1, int v2) {
     super.mergeValues(v1, v2);
@@ -419,6 +440,11 @@ public class CLangSMG extends SMG {
     if (CLangSMG.performChecks()) {
       CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
     }
+  }
+
+  final public void removeHeapObjectAndEdges(SMGObject pObject) {
+    heap_objects.remove(pObject);
+    removeObjectAndEdges(pObject);
   }
 }
 
@@ -446,7 +472,7 @@ class CLangSMGConsistencyVerifier {
    * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyDisjunctHeapAndGlobal(LogManager pLogger, CLangSMG pSmg) {
-    Map<String, SMGObject> globals = pSmg.getGlobalObjects();
+    Map<String, SMGRegion> globals = pSmg.getGlobalObjects();
     Set<SMGObject> heap = pSmg.getHeapObjects();
 
     boolean toReturn = Collections.disjoint(globals.values(), heap);
@@ -497,7 +523,7 @@ class CLangSMGConsistencyVerifier {
     for (CLangStackFrame frame: stack_frames) {
       stack.addAll(frame.getAllObjects());
     }
-    Map<String, SMGObject> globals = pSmg.getGlobalObjects();
+    Map<String, SMGRegion> globals = pSmg.getGlobalObjects();
 
     boolean toReturn = Collections.disjoint(stack, globals.values());
 

@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
 import java.util.Map;
 import java.util.Set;
@@ -39,20 +38,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 import com.google.common.collect.ImmutableList;
 
 public class CLangSMGTest {
-
-  private CType mockType = mock(CType.class);
-  private CFunctionType functionType = mock(CFunctionType.class);
-  private CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
+  static private final CFunctionType functionType = AnonymousTypes.createSimpleFunctionType(AnonymousTypes.dummyInt);
+  static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
   private CLangStackFrame sf;
-  private LogManager logger = mock(LogManager.class);
-  private CIdExpression id_expression = new CIdExpression(null, null, "label", null);
 
-  // TODO: Test for 32bit model too
+  static private final LogManager logger = mock(LogManager.class);
+  static private final CIdExpression id_expression = new CIdExpression(null, null, "label", null);
 
   private static CLangSMG getNewCLangSMG64() {
     return new CLangSMG(MachineModel.LINUX64);
@@ -61,9 +58,6 @@ public class CLangSMGTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
-    when(mockType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
-    when(functionType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
-
     sf = new CLangStackFrame(functionDeclaration, MachineModel.LINUX64);
     CLangSMG.setPerformChecks(true, logger);
   }
@@ -76,14 +70,14 @@ public class CLangSMGTest {
     Assert.assertEquals(1, smg.getHeapObjects().size());
     Assert.assertEquals(0, smg.getGlobalObjects().size());
 
-    SMGObject obj1 = new SMGObject(8, "obj1");
-    SMGObject obj2 = new SMGObject(8, "obj2");
+    SMGRegion obj1 = new SMGRegion(8, "obj1");
+    SMGRegion obj2 = new SMGRegion(8, "obj2");
 
     Integer val1 = Integer.valueOf(1);
     Integer val2 = Integer.valueOf(2);
 
     SMGEdgePointsTo pt = new SMGEdgePointsTo(val1, obj1, 0);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, obj2, val2.intValue());
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(AnonymousTypes.dummyInt, 0, obj2, val2.intValue());
 
     smg.addValue(val1.intValue());
     smg.addValue(val2.intValue());
@@ -111,8 +105,8 @@ public class CLangSMGTest {
   @Test
   public void CLangSMGaddHeapObjectTest() {
     CLangSMG smg = getNewCLangSMG64();
-    SMGObject obj1 = new SMGObject(8, "label");
-    SMGObject obj2 = new SMGObject(8, "label");
+    SMGRegion obj1 = new SMGRegion(8, "label");
+    SMGRegion obj2 = new SMGRegion(8, "label");
 
     smg.addHeapObject(obj1);
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
@@ -134,7 +128,7 @@ public class CLangSMGTest {
   @Test(expected=IllegalArgumentException.class)
   public void CLangSMGaddHeapObjectTwiceTest() {
     CLangSMG smg = getNewCLangSMG64();
-    SMGObject obj = new SMGObject(8, "label");
+    SMGRegion obj = new SMGRegion(8, "label");
 
     smg.addHeapObject(obj);
     smg.addHeapObject(obj);
@@ -144,7 +138,7 @@ public class CLangSMGTest {
   public void CLangSMGaddHeapObjectTwiceWithoutChecksTest() {
     CLangSMG.setPerformChecks(false, logger);
     CLangSMG smg = getNewCLangSMG64();
-    SMGObject obj = new SMGObject(8, "label");
+    SMGRegion obj = new SMGRegion(8, "label");
 
     smg.addHeapObject(obj);
     smg.addHeapObject(obj);
@@ -154,11 +148,11 @@ public class CLangSMGTest {
   @Test
   public void CLangSMGaddGlobalObjectTest() {
     CLangSMG smg = getNewCLangSMG64();
-    SMGObject obj1 = new SMGObject(8, "label");
-    SMGObject obj2 = new SMGObject(8, "another_label");
+    SMGRegion obj1 = new SMGRegion(8, "label");
+    SMGRegion obj2 = new SMGRegion(8, "another_label");
 
     smg.addGlobalObject(obj1);
-    Map<String, SMGObject> global_objects =smg.getGlobalObjects();
+    Map<String, SMGRegion> global_objects =smg.getGlobalObjects();
 
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
     Assert.assertEquals(global_objects.size(), 1);
@@ -176,7 +170,7 @@ public class CLangSMGTest {
   @Test(expected=IllegalArgumentException.class)
   public void CLangSMGaddGlobalObjectTwiceTest() {
     CLangSMG smg = getNewCLangSMG64();
-    SMGObject obj = new SMGObject(8, "label");
+    SMGRegion obj = new SMGRegion(8, "label");
 
     smg.addGlobalObject(obj);
     smg.addGlobalObject(obj);
@@ -185,8 +179,8 @@ public class CLangSMGTest {
   @Test(expected=IllegalArgumentException.class)
   public void CLangSMGaddGlobalObjectWithSameLabelTest() {
     CLangSMG smg = getNewCLangSMG64();
-    SMGObject obj1 = new SMGObject(8, "label");
-    SMGObject obj2 = new SMGObject(16, "label");
+    SMGRegion obj1 = new SMGRegion(8, "label");
+    SMGRegion obj2 = new SMGRegion(16, "label");
 
     smg.addGlobalObject(obj1);
     smg.addGlobalObject(obj2);
@@ -195,8 +189,8 @@ public class CLangSMGTest {
   @Test
   public void CLangSMGaddStackObjectTest() {
     CLangSMG smg = getNewCLangSMG64();
-    SMGObject obj1 = new SMGObject(8, "label");
-    SMGObject diffobj1 = new SMGObject(8, "difflabel");
+    SMGRegion obj1 = new SMGRegion(8, "label");
+    SMGRegion diffobj1 = new SMGRegion(8, "difflabel");
 
     smg.addStackFrame(sf.getFunctionDeclaration());
 
@@ -219,7 +213,7 @@ public class CLangSMGTest {
   @Test(expected=IllegalArgumentException.class)
   public void CLangSMGaddStackObjectTwiceTest() {
     CLangSMG smg = getNewCLangSMG64();
-    SMGObject obj1 = new SMGObject(8, "label");
+    SMGRegion obj1 = new SMGRegion(8, "label");
 
     smg.addStackFrame(sf.getFunctionDeclaration());
 
@@ -230,9 +224,9 @@ public class CLangSMGTest {
   @Test
   public void CLangSMGgetObjectForVisibleVariableTest() {
     CLangSMG smg = getNewCLangSMG64();
-    SMGObject obj1 = new SMGObject(8, "label");
-    SMGObject obj2 = new SMGObject(16, "label");
-    SMGObject obj3 = new SMGObject(32, "label");
+    SMGRegion obj1 = new SMGRegion(8, "label");
+    SMGRegion obj2 = new SMGRegion(16, "label");
+    SMGRegion obj3 = new SMGRegion(32, "label");
 
     Assert.assertNull(smg.getObjectForVisibleVariable(id_expression.getName()));
     smg.addGlobalObject(obj3);
@@ -258,20 +252,20 @@ public class CLangSMGTest {
     Assert.assertEquals(smg.getStackFrames().size(), 0);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
-    smg.addStackObject(new SMGObject(8, "frame1_1"));
-    smg.addStackObject(new SMGObject(8, "frame1_2"));
-    smg.addStackObject(new SMGObject(8, "frame1_3"));
+    smg.addStackObject(new SMGRegion(8, "frame1_1"));
+    smg.addStackObject(new SMGRegion(8, "frame1_2"));
+    smg.addStackObject(new SMGRegion(8, "frame1_3"));
     Assert.assertEquals(smg.getStackFrames().size(), 1);
     Assert.assertEquals(smg.getStackFrames().peek().getVariables().size(), 3);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
-    smg.addStackObject(new SMGObject(8, "frame2_1"));
-    smg.addStackObject(new SMGObject(8, "frame2_2"));
+    smg.addStackObject(new SMGRegion(8, "frame2_1"));
+    smg.addStackObject(new SMGRegion(8, "frame2_2"));
     Assert.assertEquals(smg.getStackFrames().size(), 2);
     Assert.assertEquals(smg.getStackFrames().peek().getVariables().size(), 2);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
-    smg.addStackObject(new SMGObject(8, "frame3_1"));
+    smg.addStackObject(new SMGRegion(8, "frame3_1"));
     Assert.assertEquals(smg.getStackFrames().size(), 3);
     Assert.assertEquals(smg.getStackFrames().peek().getVariables().size(), 1);
 
@@ -285,11 +279,11 @@ public class CLangSMGTest {
     CLangSMG smg = getNewCLangSMG64();
     Assert.assertEquals(smg.getHeapObjects().size(), 1);
 
-    smg.addHeapObject(new SMGObject(8, "heap1"));
+    smg.addHeapObject(new SMGRegion(8, "heap1"));
     Assert.assertEquals(smg.getHeapObjects().size(), 2);
 
-    smg.addHeapObject(new SMGObject(8, "heap2"));
-    smg.addHeapObject(new SMGObject(8, "heap3"));
+    smg.addHeapObject(new SMGRegion(8, "heap2"));
+    smg.addHeapObject(new SMGRegion(8, "heap3"));
     Assert.assertEquals(smg.getHeapObjects().size(), 4);
   }
 
@@ -298,11 +292,11 @@ public class CLangSMGTest {
     CLangSMG smg = getNewCLangSMG64();
     Assert.assertEquals(smg.getGlobalObjects().size(), 0);
 
-    smg.addGlobalObject(new SMGObject(8, "heap1"));
+    smg.addGlobalObject(new SMGRegion(8, "heap1"));
     Assert.assertEquals(smg.getGlobalObjects().size(), 1);
 
-    smg.addGlobalObject(new SMGObject(8, "heap2"));
-    smg.addGlobalObject(new SMGObject(8, "heap3"));
+    smg.addGlobalObject(new SMGRegion(8, "heap2"));
+    smg.addGlobalObject(new SMGRegion(8, "heap3"));
     Assert.assertEquals(smg.getGlobalObjects().size(), 3);
   }
 
@@ -318,7 +312,7 @@ public class CLangSMGTest {
   @Test
   public void ConsistencyViolationDisjunctnessTest() {
     CLangSMG smg = getNewCLangSMG64();
-    SMGObject obj = new SMGObject(8, "label");
+    SMGRegion obj = new SMGRegion(8, "label");
 
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
     smg.addHeapObject(obj);
@@ -347,10 +341,10 @@ public class CLangSMGTest {
   public void ConsistencyViolationUnionTest() {
     CLangSMG smg = getNewCLangSMG64();
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
-    SMGObject stack_obj = new SMGObject(8, "stack_variable");
-    SMGObject heap_obj = new SMGObject(8, "heap_object");
-    SMGObject global_obj = new SMGObject(8, "global_variable");
-    SMGObject dummy_obj = new SMGObject(8, "dummy_object");
+    SMGRegion stack_obj = new SMGRegion(8, "stack_variable");
+    SMGRegion heap_obj = new SMGRegion(8, "heap_object");
+    SMGRegion global_obj = new SMGRegion(8, "global_variable");
+    SMGRegion dummy_obj = new SMGRegion(8, "dummy_object");
 
     smg.addStackFrame(sf.getFunctionDeclaration());
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
@@ -366,20 +360,8 @@ public class CLangSMGTest {
 
   @Test
   public void ConsistencyViolationNullTest() {
-    SMGObject fake_null = new SMGObject();
 
     CLangSMG smg = getNewCLangSMG64();
-    smg.addGlobalObject(fake_null);
-    Assert.assertFalse(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
-
-    smg = getNewCLangSMG64();
-    smg.addHeapObject(fake_null);
-    Assert.assertFalse(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
-
-    smg = getNewCLangSMG64();
-    smg.addStackFrame(sf.getFunctionDeclaration());
-    smg.addStackObject(fake_null);
-    Assert.assertFalse(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
 
     smg = getNewCLangSMG64();
     SMGObject null_object = smg.getHeapObjects().iterator().next();
@@ -397,7 +379,7 @@ public class CLangSMGTest {
   @Test
   public void ConsistencyViolationStackNamespaceTest1() {
     CLangSMG smg = getNewCLangSMG64();
-    SMGObject obj1 = new SMGObject(8, "label");
+    SMGRegion obj1 = new SMGRegion(8, "label");
 
     smg.addStackFrame(sf.getFunctionDeclaration());
     smg.addStackObject(obj1);
@@ -413,8 +395,8 @@ public class CLangSMGTest {
   @Test
   public void ConsistencyViolationStackNamespaceTest2() {
     CLangSMG smg = getNewCLangSMG64();
-    SMGObject obj1 = new SMGObject(8, "label");
-    SMGObject obj2 = new SMGObject(16, "label");
+    SMGRegion obj1 = new SMGRegion(8, "label");
+    SMGRegion obj2 = new SMGRegion(16, "label");
 
     smg.addStackFrame(sf.getFunctionDeclaration());
     smg.addStackObject(obj1);
@@ -429,8 +411,8 @@ public class CLangSMGTest {
   @Test
   public void ConsistencyViolationStackNamespaceTest3() {
     CLangSMG smg = getNewCLangSMG64();
-    SMGObject obj1 = new SMGObject(8, "label");
-    SMGObject obj2 = new SMGObject(16, "label");
+    SMGRegion obj1 = new SMGRegion(8, "label");
+    SMGRegion obj2 = new SMGRegion(16, "label");
 
     smg.addGlobalObject(obj1);
     smg.addStackFrame(sf.getFunctionDeclaration());

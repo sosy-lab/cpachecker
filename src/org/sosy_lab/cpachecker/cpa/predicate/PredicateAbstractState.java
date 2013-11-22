@@ -145,7 +145,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  static class ComputeAbstractionState extends PredicateAbstractState {
+  public static class ComputeAbstractionState extends PredicateAbstractState {
 
     private static final long serialVersionUID = -3961784113582993743L;
     private transient final CFANode location;
@@ -177,14 +177,14 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  static PredicateAbstractState mkAbstractionState(BooleanFormulaManager bfmgr,
+  public static PredicateAbstractState mkAbstractionState(BooleanFormulaManager bfmgr,
       PathFormula pF, AbstractionFormula pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations,
       @Nullable ViolatedProperty pViolatedProperty) {
     return new AbstractionState(bfmgr, pF, pA, pAbstractionLocations, pViolatedProperty);
   }
 
-  static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(PathFormula pF,
+  public static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(PathFormula pF,
       @Nullable ViolatedProperty pViolatedProperty, PredicateAbstractState oldState) {
     return new NonAbstractionState(pF, oldState.getAbstractionFormula(),
                                         oldState.getAbstractionLocationsOnPath(),

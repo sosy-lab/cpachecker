@@ -59,6 +59,10 @@ public class BlockOperator {
       description="abstractions at loop heads if threshold has been reached (no effect if threshold = 0)")
   private boolean absOnLoop = false;
 
+  @Option(name="join",
+      description="abstractions at CFA nodes with more than one incoming edge if threshold has been reached (no effect if threshold = 0)")
+  private boolean absOnJoin = false;
+
   @Option(description="force abstractions immediately after threshold is reached (no effect if threshold = 0)")
   private boolean alwaysAfterThreshold = true;
 
@@ -71,6 +75,9 @@ public class BlockOperator {
   @Option(description="force abstractions at end of program, regardless of threshold")
   private boolean alwaysAtEndOfProgram = false;
 
+  @Option(description="force abstractions at each join node, regardless of threshold")
+  private boolean alwaysAtJoin = false;
+
   @Option(description="abstraction always and only on explicitly computed abstraction nodes.")
   private boolean alwaysAndOnlyAtExplicitNodes = false;
 
@@ -80,6 +87,7 @@ public class BlockOperator {
 
   int numBlkFunctions = 0;
   int numBlkLoops = 0;
+  int numBlkJoins = 0;
   int numBlkThreshold = 0;
 
   /**
@@ -110,6 +118,11 @@ public class BlockOperator {
       return true;
     }
 
+    if(alwaysAtJoin && isJoinNode(succLoc)){
+      numBlkJoins++;
+      return true;
+    }
+
     if (threshold > 0) {
       if (threshold == 1) {
         return true;
@@ -129,6 +142,10 @@ public class BlockOperator {
         } else if (absOnLoop && isLoopHead(succLoc)) {
           numBlkThreshold++;
           numBlkLoops++;
+          return true;
+        } else if (absOnJoin && isJoinNode(succLoc)) {
+          numBlkThreshold++;
+          numBlkJoins++;
           return true;
         }
       }
@@ -155,6 +172,10 @@ public class BlockOperator {
     }
 
     return false;
+  }
+
+  protected boolean isJoinNode(CFANode pSuccLoc) {
+    return pSuccLoc.getNumEnteringEdges()>1;
   }
 
   protected boolean isThresholdFulfilled(PathFormula pf) {

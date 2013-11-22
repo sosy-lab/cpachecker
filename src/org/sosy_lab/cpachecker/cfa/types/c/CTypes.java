@@ -31,11 +31,15 @@ public final class CTypes {
   /**
    * Return a copy of a given type that has the "const" flag not set.
    * If the given type is already a non-const type, it is returned unchanged.
-   * 
+   *
    * This method only eliminates the outer-most const flag, if it is present,
    * i.e., it does not change a non-const pointer to a const int.
    */
   public static <T extends CType> T withoutConst(T type) {
+    if (type instanceof CProblemType) {
+      return type;
+    }
+
     if (!type.isConst()) {
       return type;
     }

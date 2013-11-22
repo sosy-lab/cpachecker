@@ -165,7 +165,7 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
       }
     }
 
-    private void addElement(AbstractState element, List<AbstractState> insertIn) {
+    protected void addElement(AbstractState element, List<AbstractState> insertIn) {
       insertIn.add(insertIn.size(), element);
       CFANode node = AbstractStates.extractLocation(element);
       statesPerLocation.put(node, element);

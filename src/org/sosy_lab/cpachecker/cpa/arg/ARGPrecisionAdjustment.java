@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
@@ -37,9 +38,11 @@ import com.google.common.base.Preconditions;
 public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment wrappedPrecAdjustment;
+  protected final boolean inPredicatedAnalysis;
 
-  public ARGPrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment) {
+  public ARGPrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment, boolean pInPredicatedAnalysis) {
     wrappedPrecAdjustment = pWrappedPrecAdjustment;
+    inPredicatedAnalysis = pInPredicatedAnalysis;
   }
 
   @Override
@@ -48,6 +51,12 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
     Preconditions.checkArgument(pElement instanceof ARGState);
     ARGState element = (ARGState)pElement;
+
+    if (inPredicatedAnalysis && element.isTarget()) {
+      // strengthening of PredicateCPA already proved if path is infeasible and removed infeasible element
+      // thus path is feasible here
+      throw new PredicatedAnalysisPropertyViolationException("Property violated during successor computation", element, false);
+    }
 
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
         pElements,  ARGState.getUnwrapFunction(), Functions.<Precision>identity());

@@ -17,7 +17,6 @@
 ../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-paride-pt.ko_true.cil.out.i.pp.cil.c
 ../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-bluetooth-btmrvl.ko_true.cil.out.i.pp.cil.c
 ../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-char-ipmi-ipmi_watchdog.ko_true.cil.out.i.pp.cil.c
-../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-gpu-drm-i915-i915.ko_true.cil.out.i.pp.cil.c
 ../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-hid-hid-magicmouse.ko_true.cil.out.i.pp.cil.c
 ../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-hwmon-it87.ko_true.cil.out.i.pp.cil.c
 ../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-atl1c-atl1c.ko_true.cil.out.i.pp.cil.c

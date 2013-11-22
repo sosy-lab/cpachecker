@@ -30,7 +30,8 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGAbstractObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 
 import com.google.common.collect.Iterators;
 
@@ -70,7 +71,7 @@ final class SMGJoinMatchObjects {
 
   final private static boolean checkConsistentObjects(SMGObject pObj1, SMGObject pObj2,
                                                       SMG pSMG1, SMG pSMG2) {
-    if ((pObj1.getSizeInBytes() != pObj2.getSizeInBytes()) ||
+    if ((pObj1.getSize() != pObj2.getSize()) ||
         (pSMG1.isObjectValid(pObj1) != pSMG2.isObjectValid(pObj2))) {
       return true;
     }
@@ -103,6 +104,21 @@ final class SMGJoinMatchObjects {
     return false;
   }
 
+  private static boolean checkMatchingAbstractions(SMGObject pObj1, SMGObject pObj2) {
+    if (pObj1.isAbstract() && pObj2.isAbstract()) {
+      SMGAbstractObject pAbstract1 = (SMGAbstractObject)pObj1;
+      SMGAbstractObject pAbstract2 = (SMGAbstractObject)pObj2;
+
+      //TODO: It should be possible to join some of the different generic shapes, i.e. a SLL
+      //      might be a more general segment than a DLL
+      if (! (pAbstract1.matchGenericShape(pAbstract2) && pAbstract1.matchSpecificShape(pAbstract2))) {
+          return true;
+      }
+    }
+
+    return false;
+  }
+
   public SMGJoinMatchObjects(SMGJoinStatus pStatus, SMG pSMG1, SMG pSMG2,
                              SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
                              SMGObject pObj1, SMGObject pObj2){
@@ -126,11 +142,25 @@ final class SMGJoinMatchObjects {
       return;
     }
 
+    if (SMGJoinMatchObjects.checkMatchingAbstractions(pObj1, pObj2)) {
+      return;
+    }
+
     if (SMGJoinMatchObjects.checkConsistentFields(pObj1, pObj2, pMapping1, pMapping2, pSMG1, pSMG2)){
       return;
     }
 
+    status = SMGJoinMatchObjects.updateStatusForAbstractions(pObj1, pObj2, pStatus);
     defined = true;
+  }
+
+  private static SMGJoinStatus updateStatusForAbstractions(SMGObject pObj1, SMGObject pObj2, SMGJoinStatus pStatus) {
+    if (pObj1.isMoreGeneral(pObj2)) {
+      return SMGJoinStatus.updateStatus(pStatus, SMGJoinStatus.LEFT_ENTAIL);
+    } else if (pObj2.isMoreGeneral(pObj1)) {
+      return SMGJoinStatus.updateStatus(pStatus, SMGJoinStatus.RIGHT_ENTAIL);
+    }
+    return pStatus;
   }
 
   public SMGJoinStatus getStatus() {

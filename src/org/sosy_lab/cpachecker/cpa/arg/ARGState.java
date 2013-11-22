@@ -40,11 +40,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
 import com.google.common.primitives.Ints;
 
-public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState> {
+public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, TargetableWithPredicatedAnalysis {
 
   private static final long serialVersionUID = 2608287648397165040L;
 
@@ -202,7 +205,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     mergedWith = pMergedWith;
   }
 
-  ARGState getMergedWith() {
+  public ARGState getMergedWith() {
     return mergedWith;
   }
 
@@ -214,6 +217,12 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   void markExpanded() {
     wasExpanded = true;
+  }
+
+  void deleteChild(ARGState child){
+    assert(children.contains(child));
+    children.remove(child);
+    child.parents.remove(this);
   }
 
   // small and less important stuff
@@ -383,5 +392,14 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     }
 
     destroyed = true;
+  }
+
+  @Override
+  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
+    if (isTarget() && super.getWrappedState() instanceof TargetableWithPredicatedAnalysis) {
+      return ((TargetableWithPredicatedAnalysis) super.getWrappedState()).getErrorCondition(pFmgr);
+    } else {
+      return pFmgr.getBooleanFormulaManager().makeBoolean(false);
+    }
   }
 }

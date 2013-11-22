@@ -79,7 +79,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.pointer.PointerState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -96,8 +95,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
 
   private final Set<String> globalVars = new HashSet<>();
 
-  @Option(description="at most that many intervals will be tracked per variable")
-  private int threshold = 0;
+  @Option(description="at most that many intervals will be tracked per variable, -1 if number not restricted")
+  private int threshold = -1;
 
   public IntervalAnalysisTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -579,35 +578,35 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
           return newElement;
         }
 
-        // if this is a global variable, add it to the list of global variables
+        String varName;
+
+      // if this is a global variable, add it to the list of global variables
+      if (decl.isGlobal()) {
+        globalVars.add(decl.getName());
+        varName = constructVariableName(decl.getName(), "");
+      } else {
+        varName = constructVariableName(decl.getName(), declarationEdge.getPredecessor().getFunctionName());
+      }
+
+      Interval interval;
+
+      CInitializer init = decl.getInitializer();
+
+      // variable may be initialized explicitly on the spot ...
+      if (init instanceof CInitializerExpression) {
+        CExpression exp = ((CInitializerExpression) init).getExpression();
+        interval = evaluateInterval(element, exp, declarationEdge.getPredecessor().getFunctionName(), declarationEdge);
+      } else {
         if (decl.isGlobal()) {
-          globalVars.add(decl.getName());
-
-          Interval interval;
-
-          CInitializer init = decl.getInitializer();
-
-          // global variables may be initialized explicitly on the spot ...
-          if (init instanceof CInitializerExpression) {
-            CExpression exp = ((CInitializerExpression)init).getExpression();
-
-            interval = evaluateInterval(element, exp, "", declarationEdge);
-          } else {
-            interval = new Interval(0L);
-          }
-
-          String varName = constructVariableName(decl.getName(), "");
-
-          newElement.addInterval(varName, interval, this.threshold);
+          // according to C standard non initialized global vars are set to 0
+          interval = new Interval(0L);
+        } else {
+          interval = Interval.createUnboundInterval();
         }
+      }
 
-        // non-global variables are initialized with an unbound interval
-        else {
-          String varName = constructVariableName(decl.getName(), declarationEdge.getPredecessor().getFunctionName());
+      newElement.addInterval(varName, interval, this.threshold);
 
-          newElement.addInterval(varName, Interval.createUnboundInterval(), this.threshold);
-          //newElement.addInterval(varName, new Interval(0L), this.threshold);
-        }
     }
 
     return newElement;
@@ -799,20 +798,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements,
       CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
-    assert element instanceof IntervalAnalysisState;
-    IntervalAnalysisState intervalElement = (IntervalAnalysisState)element;
-
-    for (AbstractState elem : elements) {
-      if (elem instanceof PointerState) {
-        return strengthen(intervalElement, (PointerState)elem, cfaEdge, precision);
-      }
-    }
-
-    return null;
-  }
-
-  private Collection<? extends AbstractState> strengthen(IntervalAnalysisState intervalElement,
-      PointerState pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
     return null;
   }
 

@@ -23,14 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+
 
 public abstract class SMGEdge {
   final protected int value;
   final protected SMGObject object;
 
-  SMGEdge(int value, SMGObject object) {
-    this.value = value;
-    this.object = object;
+  SMGEdge(int pValue, SMGObject pObject) {
+    value = pValue;
+    object = pObject;
   }
 
   public int getValue() {

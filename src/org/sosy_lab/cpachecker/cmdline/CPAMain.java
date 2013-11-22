@@ -35,8 +35,10 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -63,31 +65,15 @@ public class CPAMain {
     String outputDirectory = null;
     try {
       try {
-        cpaConfig = createConfiguration(args);
+        Pair<Configuration, String> p = createConfiguration(args);
+        cpaConfig = p.getFirst();
+        outputDirectory = p.getSecond();
       } catch (InvalidCmdlineArgumentException e) {
         System.err.println("Could not process command line arguments: " + e.getMessage());
         System.exit(1);
       } catch (IOException e) {
         System.err.println("Could not read config file " + e.getMessage());
         System.exit(1);
-      }
-
-      {
-        // We want to be able to use options of type "File" with some additional
-        // logic provided by FileTypeConverter, so we create such a converter,
-        // add it to our Configuration object and to the the map of default converters.
-        // The latter will ensure that it is used whenever a Configuration object
-        // is created.
-        FileTypeConverter fileTypeConverter = new FileTypeConverter(cpaConfig);
-        outputDirectory = fileTypeConverter.getOutputDirectory();
-
-        cpaConfig = Configuration.builder()
-                            .copyFrom(cpaConfig)
-                            .addConverter(FileOption.class, fileTypeConverter)
-                            .build();
-
-        Configuration.getDefaultConverters()
-                     .put(FileOption.class, fileTypeConverter);
       }
 
       logManager = new BasicLogManager(cpaConfig);
@@ -101,7 +87,6 @@ public class CPAMain {
     // create everything
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
     CPAchecker cpachecker = null;
-    String programDenotation = null;
     ProofGenerator proofGenerator = null;
     ResourceLimitChecker limits = null;
     MainOptions options = new MainOptions();
@@ -111,7 +96,6 @@ public class CPAMain {
         throw new InvalidConfigurationException("Please specify a program to analyze on the command line.");
       }
       dumpConfiguration(options, cpaConfig, logManager);
-      programDenotation = getProgramDenotation(options);
 
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownNotifier);
       limits.start();
@@ -135,7 +119,7 @@ public class CPAMain {
     shutdownNotifier.register(forcedExitOnShutdown);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(programDenotation);
+    CPAcheckerResult result = cpachecker.run(options.programs);
 
     // We want to print the statistics completely now that we have come so far,
     // so we disable all the limits, shutdown hooks, etc.
@@ -152,6 +136,20 @@ public class CPAMain {
     System.out.flush();
     System.err.flush();
     logManager.flush();
+  }
+
+  @Options
+  private static class BootstrapOptions {
+    @Option(name="memorysafety.check",
+        description="Whether to check for memory safety properties "
+            + "(this can be specified by passing an appropriate .prp file to the -spec parameter).")
+    private boolean checkMemsafety = false;
+
+    @Option(name="memorysafety.config",
+        description="When checking for memory safety properties, "
+            + "use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private File memsafetyConfig = null;
   }
 
   @Options
@@ -178,11 +176,7 @@ public class CPAMain {
     private boolean printStatistics = false;
   }
 
-  static String getProgramDenotation(final MainOptions options) throws InvalidConfigurationException {
-    return options.programs;
-  }
-
-  static void dumpConfiguration(MainOptions options, Configuration config,
+  private static void dumpConfiguration(MainOptions options, Configuration config,
       LogManager logManager) {
     if (options.configurationOutputFile != null) {
       try {
@@ -193,23 +187,71 @@ public class CPAMain {
     }
   }
 
-  static Configuration createConfiguration(String[] args)
-          throws InvalidCmdlineArgumentException, IOException, InvalidConfigurationException {
+  /**
+   * Parse the command line, read the configuration file,
+   * and setup the program-wide base paths.
+   * @return A Configuration object and the output directory.
+   */
+  private static Pair<Configuration, String> createConfiguration(String[] args) throws InvalidConfigurationException, InvalidCmdlineArgumentException, IOException {
     // if there are some command line arguments, process them
     Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args);
-
 
     // get name of config file (may be null)
     // and remove this from the list of options (it's not a real option)
     String configFile = cmdLineOptions.remove(CmdLineArguments.CONFIGURATION_FILE_OPTION);
 
-    Configuration.Builder config = Configuration.builder();
+    // create initial configuration from config file and command-line arguments
+    Configuration.Builder configBuilder = Configuration.builder();
     if (configFile != null) {
-      config.loadFromFile(configFile);
+      configBuilder.loadFromFile(configFile);
     }
-    config.setOptions(cmdLineOptions);
+    configBuilder.setOptions(cmdLineOptions);
+    Configuration config = configBuilder.build();
 
-    return config.build();
+    // Get output directory and setup paths.
+    Pair<Configuration, String> p = setupPaths(config);
+    config = p.getFirst();
+    String outputDirectory = p.getSecond();
+
+    // Check if we should switch to another config because we are analyzing memsafety properties.
+    BootstrapOptions options = new BootstrapOptions();
+    config.inject(options);
+    if (options.checkMemsafety) {
+      if (options.memsafetyConfig == null) {
+        throw new InvalidConfigurationException("Verifying memory safety is not supported if option memorysafety.config is not specified.");
+      }
+      config = Configuration.builder()
+                            .loadFromFile(options.memsafetyConfig)
+                            .setOptions(cmdLineOptions)
+                            .clearOption("memorysafety.check")
+                            .clearOption("memorysafety.config")
+                            .clearOption("output.disable")
+                            .clearOption("output.path")
+                            .clearOption("rootDirectory")
+                            .build();
+    }
+
+    return Pair.of(config, outputDirectory);
+  }
+
+  private static Pair<Configuration, String> setupPaths(Configuration pConfig) throws InvalidConfigurationException {
+    // We want to be able to use options of type "File" with some additional
+    // logic provided by FileTypeConverter, so we create such a converter,
+    // add it to our Configuration object and to the the map of default converters.
+    // The latter will ensure that it is used whenever a Configuration object
+    // is created.
+    FileTypeConverter fileTypeConverter = new FileTypeConverter(pConfig);
+    String outputDirectory = fileTypeConverter.getOutputDirectory();
+
+    Configuration config = Configuration.builder()
+                        .copyFrom(pConfig)
+                        .addConverter(FileOption.class, fileTypeConverter)
+                        .build();
+
+    Configuration.getDefaultConverters()
+                 .put(FileOption.class, fileTypeConverter);
+
+    return Pair.of(config, outputDirectory);
   }
 
   @SuppressWarnings("deprecation")

@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -37,28 +36,75 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class SMGState implements AbstractQueryableState {
+public class SMGState implements AbstractQueryableState, Targetable {
+  static boolean targetMemoryErrors = true;
+  static boolean unknownOnUndefined = true;
+
   static private int id_counter = 0;
 
+  private final Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues = new HashMap<>();
   private final CLangSMG heap;
   private final LogManager logger;
   private SMGState predecessor;
   private final int id;
 
-  private SMGRuntimeCheck runtimeCheckLevel;
+  private static SMGRuntimeCheck runtimeCheckLevel = SMGRuntimeCheck.NONE;
 
+  //TODO These flags are not enough, they should contain more about the nature of the error.
   private boolean invalidWrite = false;
   private boolean invalidRead = false;
-
   private boolean invalidFree = false;
+
+  /*
+   * If a property is violated by this state, this member is set
+   */
+  private ViolatedProperty violatedProperty = null;
+
+  private void issueMemoryLeakMessage() {
+    issueMemoryError("Memory leak found", false);
+  }
+  private void issueInvalidReadMessage() {
+    issueMemoryError("Invalid read found", true);
+  }
+  private void issueInvalidWriteMessage() {
+    issueMemoryError("Invalid write found", true);
+  }
+  private void issueInvalidFreeMessage() {
+    issueMemoryError("Invalid free found", true);
+  }
+
+  private void issueMemoryError(String pMessage, boolean pUndefinedBehavior) {
+    if (targetMemoryErrors) {
+      logger.log(Level.WARNING, pMessage);
+    } else if (pUndefinedBehavior) {
+      logger.log(Level.WARNING, pMessage );
+      logger.log(Level.WARNING, "Non-target undefined behavior detected. The verification result is unreliable.");
+    }
+  }
+
+  static public void setTargetMemoryErrors(boolean pV) {
+    targetMemoryErrors = pV;
+  }
+
+  static public void setUnknownOnUndefined(boolean pV) {
+    unknownOnUndefined = pV;
+  }
 
   /**
    * Constructor.
@@ -73,7 +119,6 @@ public class SMGState implements AbstractQueryableState {
     logger = pLogger;
     predecessor = null;
     id = id_counter++;
-    runtimeCheckLevel = SMGRuntimeCheck.NONE;
   }
 
   /**
@@ -89,8 +134,8 @@ public class SMGState implements AbstractQueryableState {
     heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
     predecessor = pOriginalState.predecessor;
-    runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
     id = id_counter++;
+    explicitValues.putAll(pOriginalState.explicitValues);
   }
 
   /**
@@ -102,22 +147,8 @@ public class SMGState implements AbstractQueryableState {
    * {@link SMGRuntimeCheck.HALF} or {@link SMGRuntimeCheck.FULL}
    * @throws SMGInconsistentException
    */
-  final public void setRuntimeCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
+  static final public void setRuntimeCheck(SMGRuntimeCheck pLevel) {
     runtimeCheckLevel = pLevel;
-
-    if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.FULL)) {
-      SMGJoin.performChecks(true);
-    } else {
-      SMGJoin.performChecks(false);
-    }
-
-    if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.HALF)) {
-      CLangSMG.setPerformChecks(true, logger);
-    }
-    else {
-      CLangSMG.setPerformChecks(false, logger);
-    }
-    this.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   /**
@@ -128,7 +159,7 @@ public class SMGState implements AbstractQueryableState {
    */
   final public void setPredecessor(SMGState pSMGState) throws SMGInconsistentException {
     predecessor = pSMGState;
-    this.performConsistencyCheck(SMGRuntimeCheck.FULL);
+    performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   /**
@@ -145,10 +176,10 @@ public class SMGState implements AbstractQueryableState {
    */
   public SMGObject addGlobalVariable(CType pType, String pVarName) throws SMGInconsistentException {
     int size = heap.getMachineModel().getSizeof(pType);
-    SMGObject new_object = new SMGObject(size, pVarName);
+    SMGRegion new_object = new SMGRegion(size, pVarName);
 
     heap.addGlobalObject(new_object);
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
     return new_object;
   }
   /**
@@ -166,10 +197,10 @@ public class SMGState implements AbstractQueryableState {
    */
   public SMGObject addLocalVariable(CType pType, String pVarName) throws SMGInconsistentException {
     int size = heap.getMachineModel().getSizeof(pType);
-    SMGObject new_object = new SMGObject(size, pVarName);
+    SMGRegion new_object = new SMGRegion(size, pVarName);
 
     heap.addStackObject(new_object);
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
     return new_object;
   }
 
@@ -183,7 +214,7 @@ public class SMGState implements AbstractQueryableState {
    */
   public void addStackFrame(CFunctionDeclaration pFunctionDefinition) throws SMGInconsistentException {
     heap.addStackFrame(pFunctionDefinition);
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /* ********************************************* */
@@ -224,7 +255,7 @@ public class SMGState implements AbstractQueryableState {
    * @return An object corresponding to the variable name
    */
   public SMGObject getObjectForVisibleVariable(String pVariableName) {
-    return this.heap.getObjectForVisibleVariable(pVariableName);
+    return heap.getObjectForVisibleVariable(pVariableName);
   }
 
   /**
@@ -239,7 +270,7 @@ public class SMGState implements AbstractQueryableState {
    * @throws SMGInconsistentException
    */
   final public void performConsistencyCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
-    if (this.runtimeCheckLevel.isFinerOrEqualThan(pLevel)) {
+    if (SMGState.runtimeCheckLevel.isFinerOrEqualThan(pLevel)) {
       if ( ! CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap) ) {
         throw new SMGInconsistentException("SMG was found inconsistent during a check");
       }
@@ -257,7 +288,21 @@ public class SMGState implements AbstractQueryableState {
    */
   public String toDot(String pName, String pLocation) {
     SMGPlotter plotter = new SMGPlotter();
-    return plotter.smgAsDot(heap, pName, pLocation);
+    return plotter.smgAsDot(heap, pName, pLocation, explicitValues);
+  }
+
+  /**
+   * Returns a DOT representation of the SMGState with explicit Values
+   * inserted where possible.
+   *
+   * @param pName A name of the graph.
+   * @param pLocation A location in the program.
+   * @param pExplicitState
+   * @return String containing a DOT graph corresponding to the SMGState.
+   */
+  public String toDot(String pName, String pLocation, ExplicitState pExplicitState) {
+    SMGExplicitPlotter plotter = new SMGExplicitPlotter(pExplicitState, this);
+    return plotter.smgAsDot(heap, "Explicit_"+ pName, pLocation);
   }
 
   /**
@@ -265,10 +310,10 @@ public class SMGState implements AbstractQueryableState {
    */
   @Override
   public String toString() {
-    if ( this.getPredecessor() != null) {
-      return "SMGState [" + this.getId() + "] <-- parent [" + this.getPredecessor().getId() + "]\n" + heap.toString();
+    if ( getPredecessor() != null) {
+      return "SMGState [" + getId() + "] <-- parent [" + getPredecessor().getId() + "]\n" + heap.toString();
     } else {
-      return "SMGState [" + this.getId() + "] <-- no parent, initial state\n" + heap.toString();
+      return "SMGState [" + getId() + "] <-- no parent, initial state\n" + heap.toString();
     }
   }
 
@@ -317,8 +362,8 @@ public class SMGState implements AbstractQueryableState {
    * @throws SMGInconsistentException
    */
   public Integer readValue(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
-    if (! this.heap.isObjectValid(pObject)) {
-      this.setInvalidRead();
+    if (! heap.isObjectValid(pObject)) {
+      setInvalidRead();
       return null;
     }
 
@@ -331,86 +376,21 @@ public class SMGState implements AbstractQueryableState {
 
     for (SMGEdgeHasValue object_edge : edges) {
       if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())) {
-        this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+        performConsistencyCheck(SMGRuntimeCheck.HALF);
         return object_edge.getValue();
       }
     }
 
-    if(isCoveredByNullifiedBlocks(edge)) {
+    if(heap.isCoveredByNullifiedBlocks(edge)) {
       return 0;
     }
 
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
     return null;
   }
 
   public void setInvalidRead() {
-    this.invalidRead  = true;
-  }
-
-  private boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {
-
-    //TODO better Algorithm and Refactor
-
-    MachineModel maModel = heap.getMachineModel();
-
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
-    filter.filterByObject(pEdge.getObject());
-
-    Set<SMGEdgeHasValue> objectEdges = getHVEdges(filter);
-
-    Set<SMGEdgeHasValue> overlappingEdges = new HashSet<>();
-
-    for (SMGEdgeHasValue edge : objectEdges) {
-      if (edge.overlapsWith(pEdge, maModel)) {
-        overlappingEdges.add(edge);
-      }
-    }
-
-    if(overlappingEdges.size() == 0) {
-      return false;
-    }
-
-    ArrayList<Integer> offsets = new ArrayList<>(overlappingEdges.size());
-
-    for( SMGEdgeHasValue edge : overlappingEdges) {
-      if(edge.getValue() != 0) {
-        return false;
-      }
-
-      int offset = edge.getOffset();
-
-      offsets.add(offset);
-    }
-
-   Collections.sort(offsets);
-
-    for (SMGEdgeHasValue edge : overlappingEdges) {
-      int offset = edge.getOffset();
-      int index = offsets.indexOf(offset);
-
-      //  edge does not cover beginning with 0
-      if(index == 0 && offset > pEdge.getOffset()) {
-        return false;
-      }
-
-      if (index + 1 >= offsets.size()) {
-        // edge does not cover end with null
-        if (offset + heap.getMachineModel().getSizeof(edge.getType()) <  pEdge.getOffset() + pEdge.getSizeInBytes(maModel)) {
-          return false;
-        }
-      } else {
-        int sizeOfBytes = edge.getSizeInBytes(maModel);
-
-        // edge does not cover to next overlapping edge
-        if (offsets.get(index + 1) > offset + sizeOfBytes) {
-          return false;
-        }
-      }
-
-    }
-
-    return true;
+    invalidRead  = true;
   }
 
   /**
@@ -487,9 +467,9 @@ public class SMGState implements AbstractQueryableState {
       pValue = heap.getNullValue();
     }
 
-    if (! this.heap.isObjectValid(pObject)) {
+    if (! heap.isObjectValid(pObject)) {
       //Attempt to write to invalid object
-      this.setInvalidWrite();
+      setInvalidWrite();
       return null;
     }
 
@@ -500,7 +480,7 @@ public class SMGState implements AbstractQueryableState {
 
     Set<SMGEdgeHasValue> edges = heap.getHVEdges(filter);
     if (edges.contains(new_edge)) {
-      this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+      performConsistencyCheck(SMGRuntimeCheck.HALF);
       return new_edge;
     }
 
@@ -509,33 +489,87 @@ public class SMGState implements AbstractQueryableState {
       heap.addValue(pValue);
     }
 
-    // We need to remove all non-zero overlapping edges
+    HashSet<SMGEdgeHasValue> overlappingZeroEdges = new HashSet<>();
+
+    /* We need to remove all non-zero overlapping edges
+     * and remember all overlapping zero edges to shrink them later
+     */
     for (SMGEdgeHasValue hv : edges) {
-      if (new_edge.overlapsWith(hv, heap.getMachineModel())) {
-        heap.removeHasValueEdge(hv);
+
+      boolean hvEdgeOverlaps = new_edge.overlapsWith(hv, heap.getMachineModel());
+      boolean hvEdgeIsZero = hv.getValue() == heap.getNullValue();
+
+      if (hvEdgeOverlaps) {
+        if (hvEdgeIsZero) {
+          overlappingZeroEdges.add(hv);
+        } else {
+          heap.removeHasValueEdge(hv);
+        }
+
+
+        //TODO This method of shrinking did not work for my benchmarks, investigate
+        /*
         if (hv.getValue() == heap.getNullValue()) {
           if (hv.getOffset() < new_edge.getOffset()) {
             int prefixNullSize = new_edge.getOffset() - hv.getOffset();
             SMGEdgeHasValue prefixNull = new SMGEdgeHasValue(prefixNullSize, hv.getOffset(), pObject, heap.getNullValue());
-            this.heap.addHasValueEdge(prefixNull);
+            heap.addHasValueEdge(prefixNull);
           }
 
-          int hvEnd = hv.getOffset() + hv.getSizeInBytes(MachineModel.LINUX64);
-          int neEnd = new_edge.getOffset() + new_edge.getSizeInBytes(MachineModel.LINUX64);
+          int hvEnd = hv.getOffset() + hv.getSizeInBytes(heap.getMachineModel());
+          int neEnd = new_edge.getOffset() + new_edge.getSizeInBytes(heap.getMachineModel());
           if (hvEnd > neEnd) {
             int postfixNullSize = hvEnd - neEnd;
             SMGEdgeHasValue postfixNull = new SMGEdgeHasValue(postfixNullSize, neEnd, pObject, heap.getNullValue());
-            this.heap.addHasValueEdge(postfixNull);
+            heap.addHasValueEdge(postfixNull);
           }
         }
+        */
       }
     }
 
-    //TODO: Shrink overlapping zero edges
+    // TODO Until I know where the error lies, I will keep my version of shrinking in.
+    shrinkOverlappingZeroEdges(new_edge, overlappingZeroEdges);
+
     heap.addHasValueEdge(new_edge);
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
 
     return new_edge;
+  }
+
+  private void shrinkOverlappingZeroEdges(SMGEdgeHasValue pNew_edge,
+      Set<SMGEdgeHasValue> pOverlappingZeroEdges) {
+
+    SMGObject object = pNew_edge.getObject();
+    int offset = pNew_edge.getOffset();
+
+    boolean newEdgePointsToZero = pNew_edge.getValue() == 0;
+    MachineModel maModel = heap.getMachineModel();
+    int sizeOfType = pNew_edge.getSizeInBytes(maModel);
+
+    // Shrink overlapping zero edges
+    for (SMGEdgeHasValue zeroEdge : pOverlappingZeroEdges) {
+      // If the new_edge points to zero, we can just remove them
+      heap.removeHasValueEdge(zeroEdge);
+
+      if (!newEdgePointsToZero) {
+
+        int zeroEdgeOffset = zeroEdge.getOffset();
+
+        int offset2 = offset + sizeOfType;
+        int zeroEdgeOffset2 = zeroEdgeOffset + zeroEdge.getSizeInBytes(maModel);
+
+        if (zeroEdgeOffset < offset) {
+          SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(offset - zeroEdgeOffset, zeroEdgeOffset, object, 0);
+          heap.addHasValueEdge(newZeroEdge);
+        }
+
+        if (offset2 < zeroEdgeOffset2) {
+          SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(zeroEdgeOffset2 - offset2, offset2, object, 0);
+          heap.addHasValueEdge(newZeroEdge);
+        }
+      }
+    }
   }
 
   /**
@@ -543,7 +577,7 @@ public class SMGState implements AbstractQueryableState {
    *
    */
   public void setInvalidWrite() {
-    this.invalidWrite = true;
+    invalidWrite = true;
   }
 
   /**
@@ -553,7 +587,7 @@ public class SMGState implements AbstractQueryableState {
    * @return the join of the two states.
    */
   public SMGState join(SMGState reachedState) {
-    // Not neccessary if merge_SEP and stop_SEP is used.
+    // Not necessary if merge_SEP and stop_SEP is used.
     return null;
   }
 
@@ -569,7 +603,7 @@ public class SMGState implements AbstractQueryableState {
    * @throws SMGInconsistentException
    */
   public boolean isLessOrEqual(SMGState reachedState) throws SMGInconsistentException {
-    SMGJoin join = new SMGJoin(reachedState.heap, this.heap);
+    SMGJoin join = new SMGJoin(reachedState.heap, heap);
     if (join.isDefined() &&
         (join.getStatus() == SMGJoinStatus.LEFT_ENTAIL || join.getStatus() == SMGJoinStatus.EQUAL)){
       return true;
@@ -591,28 +625,32 @@ public class SMGState implements AbstractQueryableState {
       case "has-leaks":
         if (heap.hasMemoryLeaks()) {
           //TODO: Give more information
-          this.logger.log(Level.SEVERE, "Memory leak found");
+          violatedProperty = ViolatedProperty.VALID_MEMTRACK;
+          issueMemoryLeakMessage();
           return true;
         }
         return false;
       case "has-invalid-writes":
-        if (this.invalidWrite) {
+        if (invalidWrite) {
           //TODO: Give more information
-          this.logger.log(Level.SEVERE, "Invalid write found");
+          violatedProperty = ViolatedProperty.VALID_DEREF;
+          issueInvalidWriteMessage();
           return true;
         }
         return false;
       case "has-invalid-reads":
-        if (this.invalidRead) {
+        if (invalidRead) {
           //TODO: Give more information
-          this.logger.log(Level.SEVERE, "Invalid read found");
+          violatedProperty = ViolatedProperty.VALID_DEREF;
+          issueInvalidReadMessage();
           return true;
         }
         return false;
       case "has-invalid-frees":
-        if (this.invalidFree) {
+        if (invalidFree) {
           //TODO: Give more information
-          this.logger.log(Level.SEVERE, "Invalid free found");
+          violatedProperty = ViolatedProperty.VALID_FREE;
+          issueInvalidFreeMessage();
           return true;
         }
         return false;
@@ -632,7 +670,7 @@ public class SMGState implements AbstractQueryableState {
 
   }
 
-  public void addGlobalObject(SMGObject newObject) {
+  public void addGlobalObject(SMGRegion newObject) {
     heap.addGlobalObject(newObject);
   }
 
@@ -640,15 +678,23 @@ public class SMGState implements AbstractQueryableState {
     return  heap.getGlobalObjects().containsValue(heap.getObjectForVisibleVariable(variable));
   }
 
+  public boolean isGlobal(SMGObject object) {
+    return heap.getGlobalObjects().containsValue(object);
+  }
+
+  public boolean isHeapObject(SMGObject object) {
+    return heap.getHeapObjects().contains(object);
+  }
+
   public SMGEdgePointsTo addNewHeapAllocation(int pSize, String pLabel) throws SMGInconsistentException {
-    SMGObject new_object = new SMGObject(pSize, pLabel);
+    SMGRegion new_object = new SMGRegion(pSize, pLabel);
     int new_value = SMGValueFactory.getNewValue();
     SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
     heap.addHeapObject(new_object);
     heap.addValue(new_value);
     heap.addPointsToEdge(points_to);
 
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
     return points_to;
   }
 
@@ -716,10 +762,10 @@ public class SMGState implements AbstractQueryableState {
       return;
     }
 
-    if (! this.heap.isObjectValid(smgObject)) {
+    if (! heap.isObjectValid(smgObject)) {
       // you may not invoke free multiple times on
       // the same object
-      this.setInvalidFree();
+      setInvalidFree();
       return;
     }
 
@@ -729,7 +775,7 @@ public class SMGState implements AbstractQueryableState {
     for (SMGEdgeHasValue edge : heap.getHVEdges(filter)) {
       heap.removeHasValueEdge(edge);
     }
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /**
@@ -740,6 +786,7 @@ public class SMGState implements AbstractQueryableState {
    * @param value1 first symbolic value to be checked
    * @param value2 second symbolic value to be checked
    * @return true, if the symbolic values are known to be not equal, false, if it is unknown.
+   * @throws SMGInconsistentException
    */
   public boolean isUnequal(int value1, int value2) {
     // TODO Neq Relation for more precise comparison
@@ -774,29 +821,38 @@ public class SMGState implements AbstractQueryableState {
    * @param functionName
    * @throws SMGInconsistentException
    */
-  public void dropStackFrame(String functionName) throws SMGInconsistentException {
-    this.heap.dropStackFrame();
-    this.performConsistencyCheck(SMGRuntimeCheck.FULL);
-    this.heap.pruneUnreachable();
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+  public void dropStackFrame() throws SMGInconsistentException {
+    heap.dropStackFrame();
+    performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
-  /**
-   * Creates a new SMGObject representing Memory.
-   *
-   * @param size the size in Bytes of the newly created SMGObject.
-   * @param label a label representing this SMGObject as a String.
-   * @return A newly created SMGObject representing Memory.
-   */
-  public SMGObject createObject(int size, String label) {
-    return new SMGObject(size, label);
+  public void pruneUnreachable() throws SMGInconsistentException {
+    heap.pruneUnreachable();
+    //TODO: Explicit values pruning
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /**
    *  Signals an invalid free call.
    */
   public void setInvalidFree() {
-    this.invalidFree = true;
+    invalidFree = true;
+  }
+
+  public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
+    return heap.getHVEdges(pFilter);
+  }
+
+  @Nullable
+  public MemoryLocation resolveMemLoc(SMGAddress pValue, String pFunctionName) {
+    SMGObject object = pValue.getObject();
+    long offset = pValue.getOffset().getAsLong();
+
+    if (isGlobal(object) || isHeapObject(object)) {
+      return MemoryLocation.valueOf(object.getLabel(), offset);
+    } else {
+      return MemoryLocation.valueOf(pFunctionName, object.getLabel(), offset);
+    }
   }
 
   /**
@@ -820,11 +876,11 @@ public class SMGState implements AbstractQueryableState {
 
     int copyRange = pSourceRangeSize - pSourceRangeOffset;
 
-    assert pSource.getSizeInBytes() >= pSourceRangeSize;
+    assert pSource.getSize() >= pSourceRangeSize;
     assert pSourceRangeOffset >= 0;
     assert pTargetRangeOffset >= 0;
     assert copyRange >= 0;
-    assert copyRange <= pTarget.getSizeInBytes();
+    assert copyRange <= pTarget.getSize();
 
     // If copy range is 0, do nothing
     if(copyRange == 0) {
@@ -860,10 +916,10 @@ public class SMGState implements AbstractQueryableState {
       }
     }
 
-    performConsistencyCheck(runtimeCheckLevel);
+    performConsistencyCheck(SMGRuntimeCheck.FULL);
     //TODO Why do I do this here?
     heap.pruneUnreachable();
-    performConsistencyCheck(runtimeCheckLevel);
+    performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   /**
@@ -874,11 +930,11 @@ public class SMGState implements AbstractQueryableState {
     //TODO: This can actually be an invalid read too
     //      The flagging mechanism should be improved
 
-    this.invalidWrite = true;
+    invalidWrite = true;
   }
 
-  public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
-    return this.heap.getHVEdges(pFilter);
+  public SMGObject getNullObject() {
+    return heap.getNullObject();
   }
 
   public void identifyEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
@@ -887,5 +943,30 @@ public class SMGState implements AbstractQueryableState {
 
   public void identifyNonEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
     heap.addNeqRelation(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
+  }
+
+  @Override
+  public boolean isTarget() {
+    return violatedProperty != null;
+  }
+
+  @Override
+  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+    return violatedProperty;
+  }
+
+  public void putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
+    explicitValues.put(pKey, pValue);
+  }
+
+  public void clearExplicit(SMGKnownSymValue pKey) {
+    explicitValues.remove(pKey);
+  }
+
+  public SMGExplicitValue getExplicit(SMGKnownSymValue pKey) {
+    if (explicitValues.containsKey(pKey)) {
+      return explicitValues.get(pKey);
+    }
+    return SMGUnknownValue.getInstance();
   }
 }

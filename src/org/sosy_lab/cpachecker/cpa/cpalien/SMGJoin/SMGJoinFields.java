@@ -32,8 +32,8 @@ import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 
 import com.google.common.collect.Iterables;
 
@@ -43,7 +43,7 @@ class SMGJoinFields {
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
 
   public SMGJoinFields(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    if (pObj1.getSizeInBytes() != pObj2.getSizeInBytes()) {
+    if (pObj1.getSize() != pObj2.getSize()) {
       throw new IllegalArgumentException("SMGJoinFields object arguments need to have identical size");
     }
     if (! (pSMG1.getObjects().contains(pObj1) && pSMG2.getObjects().contains(pObj2))) {
@@ -112,7 +112,7 @@ class SMGJoinFields {
 
     for (int i = 0; i < origNull.length(); i++) {
       if (origNull.get(i) && (! newNull.get(i))) {
-        return SMGUpdateJoinStatus.updateStatus(pCurStatus, pNewStatus);
+        return SMGJoinStatus.updateStatus(pCurStatus, pNewStatus);
       }
     }
 
@@ -150,7 +150,7 @@ class SMGJoinFields {
         int max = edge.getOffset() + edge.getSizeInBytes(pSMG1.getMachineModel());
 
         if (newNullBytes.get(min) && newNullBytes.nextClearBit(min) >= max ) {
-          retset.add(new SMGEdgeHasValue(edge.getSizeInBytes(pSMG1.getMachineModel()), edge.getOffset(), pObj1, pSMG1.getNullValue()));
+          retset.add(new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj1, pSMG1.getNullValue()));
         }
       }
     }

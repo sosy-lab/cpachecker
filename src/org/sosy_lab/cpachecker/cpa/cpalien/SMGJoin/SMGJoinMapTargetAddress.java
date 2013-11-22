@@ -27,8 +27,8 @@ import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 
 final class SMGJoinMapTargetAddress {
   private SMG smg;

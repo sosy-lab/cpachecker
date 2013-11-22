@@ -35,7 +35,7 @@ Develop CPAchecker from within Eclipse
    Step 8 of the section "Running CPAchecker" above describes what can be entered here.
    The text box "VM arguments" needs to contain "-Djava.library.path=lib/native/<ENVIRONMENT>",
    where <ENVIRONMENT> is replaced with one of the following depending on your system:
-     x86_64-linux, x86-linux, x86_64-macosx, x86-macosx,  x86-win32
+     x86_64-linux, x86-linux, x86_64-macosx, x86-macosx,  x86-windows
 
 6. Optional:
    If you want the sources of the libraries (like Guava or CDT),

@@ -49,12 +49,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -635,10 +638,39 @@ public class CtoFormulaConverter {
               ((CElaboratedType)toType).getKind() == ComplexTypeKind.ENUM)))) {
 
       // See Enums/Pointers as Integers
-      if (fromCanBeHandledAsInt) {
+      if (fromCanBeHandledAsInt && !(toType instanceof CArrayType)) {
         fromType = fromIsPointer ? machineModel.getPointerEquivalentSimpleType() : CNumericTypes.INT;
         fromType = fromType.getCanonicalType();
+
+        // a stringliteralepxression casted to an arraytype
+      } else if (toType instanceof CArrayType
+          && edge instanceof CDeclarationEdge
+          && ((CDeclarationEdge)edge).getDeclaration() instanceof CVariableDeclaration) {
+
+        CInitializer rhs = ((CVariableDeclaration)((CDeclarationEdge)edge).getDeclaration()).getInitializer();
+        if (rhs instanceof CInitializerExpression) {
+          if (((CInitializerExpression) rhs).getExpression() instanceof CStringLiteralExpression) {
+            logger.logf(Level.INFO, "Ignoring cast from %s to %s. This was an assignment of a String to a Char Array.", fromType, toType);
+            int sfrom = machineModel.getSizeof(fromType);
+            int sto = machineModel.getSizeof(toType);
+
+            int bitsPerByte = machineModel.getSizeofCharInBits();
+
+            // Currently everything is a bitvector
+            if (sfrom > sto) {
+              return fmgr.makeExtract(formula, sto * bitsPerByte - 1, 0);
+
+            } else if (sfrom < sto) {
+              int bitsToExtend = (sto - sfrom) * bitsPerByte;
+              return fmgr.makeExtend(formula, bitsToExtend, false);
+
+            } else {
+              return formula;
+            }
+          }
+        }
       }
+
       if (toCanBeHandledAsInt) {
         toType = toIsPointer ? machineModel.getPointerEquivalentSimpleType() : CNumericTypes.INT;
         toType = toType.getCanonicalType();

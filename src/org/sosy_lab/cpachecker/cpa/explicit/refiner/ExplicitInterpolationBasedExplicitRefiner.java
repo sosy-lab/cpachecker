@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
@@ -51,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -61,6 +61,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.AssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
@@ -94,18 +96,19 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private int numberOfInterpolations        = 0;
   private Timer timerInterpolation          = new Timer();
 
-  private final MachineModel machineModel;
+  private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
   protected ExplicitInterpolationBasedExplicitRefiner(Configuration config,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
-      final MachineModel pMachineModel)
+      final CFA pCfa)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.machineModel = pMachineModel;
-    this.logger = pLogger;
-    this.shutdownNotifier = pShutdownNotifier;
+
+    logger           = pLogger;
+    cfa              = pCfa;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   protected Multimap<CFANode, String> determinePrecisionIncrement(ARGPath errorPath)
@@ -116,7 +119,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
         AssignmentsInPathConditionState.class);
 
-    ExplicitInterpolator interpolator     = new ExplicitInterpolator(logger, shutdownNotifier, machineModel);
+    ExplicitInterpolator interpolator     = new ExplicitInterpolator(logger, shutdownNotifier, cfa);
     Map<String, Long> currentInterpolant  = new HashMap<>();
     Multimap<CFANode, String> increment   = HashMultimap.create();
 
@@ -215,9 +218,15 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    * @param increment the current precision increment
    * @param isRepeatedRefinement the flag to determine whether or not this is a repeated refinement
    * @return the new refinement root
+   * @throws RefinementFailedException if no refinement root can be determined
    */
   Pair<ARGState, CFAEdge> determineRefinementRoot(ARGPath errorPath, Multimap<CFANode, String> increment,
-      boolean isRepeatedRefinement) {
+      boolean isRepeatedRefinement) throws RefinementFailedException {
+
+    if(interpolationOffset == -1) {
+      throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);
+    }
+
     // if doing lazy abstraction, use the node closest to the root node where new information is present
     if (doLazyAbstraction) {
 

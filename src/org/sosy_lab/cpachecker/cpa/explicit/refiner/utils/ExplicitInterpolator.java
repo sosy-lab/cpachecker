@@ -38,11 +38,12 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -93,11 +94,11 @@ public class ExplicitInterpolator {
    * This method acts as the constructor of the class.
    */
   public ExplicitInterpolator(final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final MachineModel pMachineModel) throws CPAException {
+      final ShutdownNotifier pShutdownNotifier, final CFA pCfa) throws CPAException {
     shutdownNotifier = pShutdownNotifier;
     try {
       config      = Configuration.builder().build();
-      transfer    = new ExplicitTransferRelation(config, pLogger, pMachineModel);
+      transfer    = new ExplicitTransferRelation(config, pLogger, pCfa);
       precision   = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
     }
     catch (InvalidConfigurationException e) {
@@ -128,7 +129,7 @@ public class ExplicitInterpolator {
     }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
-    ExplicitState initialState      = new ExplicitState(PathCopyingPersistentTreeMap.copyOf(inputInterpolant));
+    ExplicitState initialState      = new ExplicitState(MemoryLocation.transform(PathCopyingPersistentTreeMap.copyOf(inputInterpolant)));
     ExplicitState initialSuccessor  = getInitialSuccessor(initialState, errorPath.get(offset));
     if (initialSuccessor == null) {
       return null;

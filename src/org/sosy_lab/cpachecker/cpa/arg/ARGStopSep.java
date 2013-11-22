@@ -45,6 +45,11 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   @Option(description="whether to keep covered states in the reached set as addition to keeping them in the ARG")
   private boolean keepCoveredStatesInReached = false;
 
+  @Option(
+  description="inform ARG CPA if it is run in a predicated analysis because then it must"
+    + "behave differntly during merge.")
+  private boolean inPredicatedAnalysis = false;
+
   private final StopOperator wrappedStop;
   private final LogManager logger;
 
@@ -75,7 +80,11 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
         if (wrappedStop.stop(argElement.getWrappedState(), Collections.singleton(mergedWith.getWrappedState()), pPrecision)) {
           // merged and covered
-          argElement.removeFromARG();
+          if (inPredicatedAnalysis) {
+            argElement.setCovered(mergedWith);
+          } else {
+            argElement.removeFromARG();
+          }
           logger.log(Level.FINEST, "Element is covered by the element it was merged into");
 
           // in this case, return true even if we should keep covered states

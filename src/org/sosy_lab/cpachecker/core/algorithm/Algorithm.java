@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 
 public interface Algorithm {
 
@@ -36,7 +37,7 @@ public interface Algorithm {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean run(ReachedSet reachedSet) throws CPAException, InterruptedException;
+  public boolean run(ReachedSet reachedSet) throws CPAException, InterruptedException, PredicatedAnalysisPropertyViolationException;
 
   /**
    * Reset the algorithm. Returns false if reset was (partially) a no-op, otherwise true.

@@ -883,6 +883,11 @@ def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, out
     if rowsDiff:
         writeTable("diff", name + " differences", rowsDiff)
 
+def basenameWithoutEnding(file):
+    name = os.path.basename(file)
+    if name.endswith(".xml"):
+        name = name[:-4]
+    return name
 
 def main(args=None):
 
@@ -911,6 +916,12 @@ def main(args=None):
         type=str,
         dest="outputPath",
         help="Output path for the tables."
+    )
+    parser.add_argument("-n", "--name",
+        action="store",
+        type=str,
+        dest="outputName",
+        help="Base name of the created output files."
     )
     parser.add_argument("-d", "--dump",
         action="store_true", dest="dumpCounts",
@@ -941,6 +952,7 @@ def main(args=None):
 
     options = parser.parse_args(args[1:])
 
+    name = options.outputName
     outputPath = options.outputPath
     outputFilePattern = "{name}.{type}.{ext}"
 
@@ -949,9 +961,8 @@ def main(args=None):
             print ("Invalid additional arguments '{}'".format(" ".join(options.tables)))
             exit()
         runSetResults = parseTableDefinitionFile(options.xmltablefile)
-        name = os.path.basename(options.xmltablefile)
-        if name.endswith(".xml"):
-            name = name[:-4]
+        if not name:
+            name = basenameWithoutEnding(options.xmltablefile)
 
         if not outputPath:
             outputPath = os.path.dirname(options.xmltablefile)
@@ -968,12 +979,12 @@ def main(args=None):
         runSetResults = [RunSetResult.createFromXML(file, parseResultsFile(file)) for file in inputFiles]
 
         if len(inputFiles) == 1:
-            name = os.path.basename(inputFiles[0])
-            if name.endswith(".xml"):
-                name = name[:-4]
+            if not name:
+                name = basenameWithoutEnding(inputFiles[0])
             outputFilePattern = "{name}.{ext}"
         else:
-            name = NAME_START + "." + time.strftime("%y-%m-%d_%H%M", time.localtime())
+            if not name:
+                name = NAME_START + "." + time.strftime("%y-%m-%d_%H%M", time.localtime())
 
         if inputFiles and not outputPath:
             dir = os.path.dirname(inputFiles[0])

@@ -82,9 +82,9 @@ analysis.interprocedural = true
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
-# if enabled post processes (cosmetic changes) the reached set as specified
-# by the CPAs
-analysis.postProcessing = false
+# use a predicated analysis which proves if the program satisfies a specified
+# property with the help of a PredicateCPA to separate differnt program paths
+analysis.predicatedAnalysis = false
 
 # A String, denoting the programs to be analyzed
 analysis.programNames = no default value
@@ -133,6 +133,9 @@ analysis.traversal.useReversePostorder = false
 # DEPRECATED: This option was renamed to
 # analysis.traversal.useReversePostorder and will soon get removed.
 analysis.traversal.useTopsort = false
+
+# Do not report unknown if analysis terminated, report true (UNSOUND!).
+analysis.unknownAsTrue = false
 
 # use adjustable conditions algorithm
 analysis.useAdjustableConditions = false
@@ -227,8 +230,9 @@ bmc.induction = false
 # Generate invariants and add them to the induction hypothesis.
 bmc.useInvariantsForInduction = false
 
-# file name where to put the path program that is generated as input for
-# CBMC. A temporary file is used if this is unspecified.
+# File name where to put the path program that is generated as input for
+# CBMC. A temporary file is used if this is unspecified. If specified, the
+# file name should end with '.i'.
 cbmc.dumpCBMCfile = no default value
 
 # specify the name of the error label
@@ -396,6 +400,10 @@ cpa.arg.errorPath.source = "ErrorPath.%d.c"
 cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
 
+# inform ARG CPA if it is run in a predicated analysis because then it
+# mustbehave differntly during merge.
+cpa.arg.inPredicatedAnalysis = false
+
 # whether to keep covered states in the reached set as addition to keeping
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
@@ -482,6 +490,10 @@ cpa.callstack.skipRecursion = false
 # unsound).
 cpa.callstack.skipVoidRecursion = false
 
+# inform Composite CPA if it is run in a predicated analysis because then it
+# mustbehave differntly during merge.
+cpa.composite.inPredicatedAnalysis = false
+
 # which composite merge operator to use (plain or agree)
 # Both delegate to the component cpas, but agree only allows merging if all
 # cpas agree on this. This is probably what you want.
@@ -543,6 +555,10 @@ cpa.conditions.path.length.limit = -1
 # maximum repetitions of any edge in a path (-1 for infinite)
 cpa.conditions.path.repetitions.limit = -1
 
+# with this option enabled, a check for unreachable memory occurs whenever a
+# function returns, and not only at the end of the main function
+cpa.cpalien.checkForMemLeaksAtEveryFrameDrop = true
+
 # If this Option is enabled, failure of mallocis simulated
 cpa.cpalien.enableMallocFail = true
 
@@ -553,12 +569,22 @@ cpa.cpalien.exportSMG.file = "smg-%s.dot"
 # interesting, every}
 cpa.cpalien.exportSMGwhen = "never"
 
+# with this option enabled, memory that is not freed before the end of main
+# is reported as memleak even if it is reachable from local variables in main
+cpa.cpalien.handleNonFreedMemoryInMainAsMemLeak = false
+
 # Sets how unknown functions are handled. One of: {strict, assume_safe}
 cpa.cpalien.handleUnknownFunctions = "strict"
+
+# Determines if memory errors are target states
+cpa.cpalien.memoryErrors = true
 
 # Sets the level of runtime checking: NONE, HALF, FULL
 cpa.cpalien.runtimeCheck = NONE
   enum:     [FORCED, NONE, HALF, FULL]
+
+# Emit messages when we encounter non-target undefined behavior
+cpa.cpalien.unknownOnUndefined = true
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
@@ -651,6 +677,15 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
 
+# Highest allowed value of the variable
+cpa.interval.allowedHigh = Long.MAX_VALUE
+
+# Lowest allowed value of the variable
+cpa.interval.allowedLow = Long.MIN_VALUE
+
+# do not consider number of references to variables during merge in analysis
+cpa.interval.ignoreReferenceCounts = false
+
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -659,8 +694,13 @@ cpa.interval.merge = "SEP"
 # an inequality-check is encountered
 cpa.interval.splitIntervals = false
 
-# at most that many intervals will be tracked per variable
-cpa.interval.threshold = 0
+# at most that many intervals will be tracked per variable, -1 if number not
+# restricted
+cpa.interval.threshold = -1
+
+# Variable name of the variable for which should be checked that its value is
+# globally in a certain bound 
+cpa.interval.varName = ""
 
 # determine variables relevant to the decision whether or not a target path
 # assume edge is taken and limit the analyis to those variables.
@@ -704,17 +744,6 @@ cpa.monitor.pathcomputationlimit = 0
 # which merge operator to use for OctagonCPA?
 cpa.octagon.merge = "SEP"
   allowed values: [SEP, JOIN]
-
-# Setting this to true makes memory-allocation functions like malloc() always
-# return a valid pointer.
-cpa.pointer.memoryAllocationsAlwaysSucceed = false
-
-# which merge operator to use for PointerCPA?
-cpa.pointer.merge = "sep"
-  allowed values: [sep, join]
-
-# print warnings during analysis when unsafe pointer operations are found
-cpa.pointer.printWarnings = true
 
 # which merge operator to use for InvariantCPA
 cpa.pointer2.merge = "JOIN"
@@ -783,12 +812,19 @@ cpa.predicate.blk.alwaysAtEndOfProgram = false
 # force abstractions at each function calls/returns, regardless of threshold
 cpa.predicate.blk.alwaysAtFunctions = true
 
+# force abstractions at each join node, regardless of threshold
+cpa.predicate.blk.alwaysAtJoin = false
+
 # force abstractions at loop heads, regardless of threshold
 cpa.predicate.blk.alwaysAtLoops = true
 
 # abstractions at function calls/returns if threshold has been reached (no
 # effect if threshold = 0)
 cpa.predicate.blk.functions = false
+
+# abstractions at CFA nodes with more than one incoming edge if threshold has
+# been reached (no effect if threshold = 0)
+cpa.predicate.blk.join = false
 
 # abstractions at loop heads if threshold has been reached (no effect if
 # threshold = 0)
@@ -1129,6 +1165,36 @@ cpa.reachdef.merge = "JOIN"
 cpa.reachdef.stop = "SEP"
   allowed values: [SEP, JOIN, IGNORECALLSTACK]
 
+<<<<<<< .mine
+# path to a file with abstraction rules
+cpa.seplogic.partingstar.abstractionfile = no default value
+
+# path to a file with logic rules
+cpa.seplogic.partingstar.logicsfile = no default value
+
+# path to partingstar command
+cpa.seplogic.partingstar.pspath = no default value
+
+# Abstract value describing all values which are allowed for the variable
+# which is checked
+cpa.sign.allowedAbstractValue = ALL
+  enum:     [EMPTY, PLUS, MINUS, ZERO, PLUSMINUS, PLUS0, MINUS0, ALL]
+
+# Variable name of the variable for which should be checked that its value is
+# globally in a certain bound 
+cpa.sign.varName = ""
+
+=======
+# path to a file with abstraction rules
+cpa.seplogic.partingstar.abstractionfile = no default value
+
+# path to a file with logic rules
+cpa.seplogic.partingstar.logicsfile = no default value
+
+# path to partingstar command
+cpa.seplogic.partingstar.pspath = no default value
+
+>>>>>>> .r9889
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]
@@ -1180,6 +1246,14 @@ limits.time.cpu = -1
 # Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
 limits.time.wall = -1
+
+# Whether to check for memory safety properties (this can be specified by
+# passing an appropriate .prp file to the -spec parameter).
+memorysafety.check = false
+
+# When checking for memory safety properties, use this configuration file
+# instead of the current one.
+memorysafety.config = no default value
 
 # C dialect for parser
 parser.dialect = GNUC

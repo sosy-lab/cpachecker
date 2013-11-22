@@ -23,6 +23,11 @@
 
     <antversion property="ant.version.exact"/> <!-- Define property that contains the Ant version. -->
     <property name="ivy.lib.dir" value="${basedir}/lib/java"/>
+    <property environment="env"/>
+    <condition property="tmp.ivy.cache.dir" value="${env.IVY_CACHE_DIR}" else="${user.home}/.ivy2/cache">
+      <isset property="env.IVY_CACHE_DIR"/>
+    </condition>
+    <property name="ivy.cache.dir" location="${tmp.ivy.cache.dir}"/>
 
     <path id="CPAchecker.classpath">
         <pathelement location="${class.dir}"/>
@@ -36,7 +41,7 @@
     <condition property="os" value="linux">
         <os name="Linux"/>
     </condition>
-    <condition property="os" value="win32">
+    <condition property="os" value="windows">
         <os family="windows"/>
     </condition>
     <target name="init">

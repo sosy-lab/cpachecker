@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+
 
 public class SMGEdgePointsTo extends SMGEdge {
   final private int offset;
@@ -50,14 +52,51 @@ public class SMGEdgePointsTo extends SMGEdge {
       return false;
     }
 
-    if (this.value != other.value) {
-      if (this.offset == ((SMGEdgePointsTo)other).offset && this.object == other.object) {
+    if (value != other.value) {
+      if (offset == ((SMGEdgePointsTo)other).offset && object == other.object) {
         return false;
       }
     } else
-      if (this.offset != ((SMGEdgePointsTo)other).offset || this.object != other.object) {
+      if (offset != ((SMGEdgePointsTo)other).offset || object != other.object) {
         return false;
       }
+
+    return true;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + offset;
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!super.equals(obj)) {
+      return false;
+    }
+
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+
+    SMGEdgePointsTo other = (SMGEdgePointsTo) obj;
+
+    if (offset != other.offset) {
+      return false;
+    }
 
     return true;
   }

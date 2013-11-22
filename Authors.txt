@@ -9,6 +9,7 @@ Former Maintainers:
 Contributors:
   Przemislaw Daca (2011 - 2012), Technical University of Denmark, Denmark
   Matthias Dangl (2012 - 2013), University of Passau, Germany
+  Matthias Dittrich (2013), University of Passau, Germany
   Alexander Driemeyer (2012 - 2013), University of Passau, Germany
   Gregor Endler (2009 - 2010), University of Passau, Germany
   Karlheinz Friedberger (since 2011), University of Passau, Germany

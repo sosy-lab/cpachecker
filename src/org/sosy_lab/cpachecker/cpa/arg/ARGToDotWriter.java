@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
+import org.sosy_lab.cpachecker.cpa.seplogic.SeplogicState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Function;
@@ -237,6 +238,12 @@ class ARGToDotWriter {
     if (rtt != null) {
       builder.append("\\n");
       appendTo(builder, rtt);
+    }
+
+    SeplogicState sls = AbstractStates.extractStateByType(currentElement, SeplogicState.class);
+    if (sls != null) {
+      builder.append("\\n");
+      builder.append(sls.toString().replaceAll("\\*", "\\\\n*"));
     }
 
     return builder.toString();

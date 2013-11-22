@@ -35,6 +35,8 @@ import java.util.WeakHashMap;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -63,11 +65,17 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Preconditions;
 
+@Options(prefix="cpa.arg")
 public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM, ProofChecker, PostProcessor {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARGCPA.class);
   }
+
+  @Option(
+  description="inform ARG CPA if it is run in a predicated analysis because then it must"
+    + "behave differntly during merge.")
+  private boolean inPredicatedAnalysis = false;
 
   private final LogManager logger;
 
@@ -86,7 +94,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     super(cpa);
-
+    config.inject(this);
     this.logger = logger;
     abstractDomain = new FlatLatticeDomain();
     transferRelation = new ARGTransferRelation(cpa.getTransferRelation());
@@ -95,7 +103,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     if (wrappedPrec instanceof SimplePrecisionAdjustment) {
       precisionAdjustment = new ARGSimplePrecisionAdjustment((SimplePrecisionAdjustment) wrappedPrec);
     } else {
-      precisionAdjustment = new ARGPrecisionAdjustment(cpa.getPrecisionAdjustment());
+      precisionAdjustment = new ARGPrecisionAdjustment(cpa.getPrecisionAdjustment(), inPredicatedAnalysis);
     }
 
     if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
@@ -119,7 +127,11 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     if (wrappedMerge == MergeSepOperator.getInstance()) {
       mergeOperator = MergeSepOperator.getInstance();
     } else {
-      mergeOperator = new ARGMergeJoin(wrappedMerge);
+      if (inPredicatedAnalysis) {
+        mergeOperator = new ARGMergeJoinPredicatedAnalysis(wrappedMerge);
+      } else {
+        mergeOperator = new ARGMergeJoin(wrappedMerge);
+      }
     }
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
     stats = new ARGStatistics(config, this);

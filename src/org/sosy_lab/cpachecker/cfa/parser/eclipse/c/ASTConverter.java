@@ -969,6 +969,15 @@ class ASTConverter {
 
       return tmp;
 
+    case IASTUnaryExpression.op_not:
+      // Eclipse CDT produces pointer type if operand is a pointer.
+      // C §6.5.3.3 (5) says it is always type int.
+      if (!(type.getCanonicalType() instanceof CSimpleType)) {
+        logger.log(Level.FINER, "Replacing type", type, " by int for negation expression", e);
+      }
+      type = CNumericTypes.INT;
+
+      //$FALL-THROUGH$
     default:
       return new CUnaryExpression(fileLoc, type, operand, ASTOperatorConverter.convertUnaryOperator(e));
     }

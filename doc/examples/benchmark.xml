@@ -27,10 +27,10 @@
     Both tags may appear arbitrarily often and
     support an optional attribute "name" in order to distinguish them.
 
-    Inside a <sourcefiles> tag, the tags <include>, <exclude>, and <includesfile>
+    Inside a <sourcefiles> tag, the tags <include>, <exclude>, <includesfile>, and <excludesfile>
     may appear. All take a file name (supporting wildcards, variables, etc.) as content.
     <include> and <exclude> may be used to include or exclude files for verification runs directly.
-    <includesfile> needs to reference text files which may contain
+    <includesfile> and <excludesfile> needs to reference text files which may contain
     further file name patterns (each pattern on one line) of files that will be used for verification.
     All relative paths specified here are relative to the directory of this file.
     Relative paths specified inside a file referenced with <includesfile>

@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cpa.cpalien.SMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 
 import com.google.common.collect.Iterables;
 
@@ -63,7 +63,7 @@ final class SMGJoinSubSMGs {
     }
 
     destSMG = pDestSMG;
-    status = SMGUpdateJoinStatus.updateStatus(initialStatus, joinFields.getStatus());
+    status = SMGJoinStatus.updateStatus(initialStatus, joinFields.getStatus());
     mapping1 = pMapping1;
     mapping2 = pMapping2;
 
