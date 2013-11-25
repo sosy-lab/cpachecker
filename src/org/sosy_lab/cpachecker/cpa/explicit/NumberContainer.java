@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.math.BigDecimal;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+
 
 /**
  * Container that stores a number and its inital data type. The type must be
@@ -32,7 +34,9 @@ import java.math.BigDecimal;
  */
 public class NumberContainer {
 
-  private NumberTypes type;
+  private CSimpleType type;
+
+  private NumberTypes ntype;
 
   private BigDecimal number;
 
@@ -44,6 +48,17 @@ public class NumberContainer {
    * @param pNumber the value of the number (must be a <code>BigDecimal</code>)
    */
   public NumberContainer(NumberTypes pType, BigDecimal pNumber) {
+    ntype = pType;
+    number = pNumber;
+  }
+
+  /**
+   * Creates a new <code>NumberContainer</code>, given the type and a
+   * <code>BigDecimal</code>.
+   * @param pType the inital type of the number.
+   * @param pNumber the value of the number (must be a <code>BigDecimal</code>)
+   */
+  public NumberContainer(CSimpleType pType, BigDecimal pNumber) {
     type = pType;
     number = pNumber;
   }
@@ -57,6 +72,18 @@ public class NumberContainer {
    * @param pNumber the value of the number
    */
   public NumberContainer(NumberTypes pType, String pNumber) {
+    ntype = pType;
+    number = new BigDecimal(pNumber);
+  }
+
+  /**
+   * Creates a new <code>NumberContainer</code>, given a type and a
+   * <code>String</code> used to create the <code>BigDecimal</code>.
+   *
+   * @param pType the inital type of the number.
+   * @param pNumber the value of the number
+   */
+  public NumberContainer(CSimpleType pType, String pNumber) {
     type = pType;
     number = new BigDecimal(pNumber);
   }
@@ -68,8 +95,17 @@ public class NumberContainer {
    *         <code>NumberTypes</code>.
    */
   public NumberTypes getType() {
-    return type;
+    return ntype;
   }
+
+  //  /**
+  //   * Returns the inital type of the number stored in the container.
+  //   *
+  //   * @return the type of the number stored in the container.
+  //   */
+  //  public CSimpleType getType() {
+  //    return type;
+  //  }
 
 
   /**
@@ -78,9 +114,17 @@ public class NumberContainer {
    * @param pType the type of the number. Must be from <code>NumberTypes</code>.
    */
   public void setType(NumberTypes pType) {
-    type = pType;
+    ntype = pType;
   }
 
+  /**
+   * Sets the type of the number stored in the container.
+   *
+   * @param pType the type of the number.
+   */
+  public void setType(CSimpleType pType) {
+    type = pType;
+  }
 
   /**
    * Returns the number stored in the container.
@@ -107,7 +151,7 @@ public class NumberContainer {
    */
   @Override
   public String toString() {
-    return "NumberContainer [type=" + type + ", number=" + number + "]";
+    return "NumberContainer [type=" + type.toString() + ", number=" + number + "]";
   }
 
 }
