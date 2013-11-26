@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.math.BigDecimal;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -163,13 +164,13 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(final CBinaryExpression pE) throws UnrecognizedCCodeException {
+  public NumberContainer visit(final CBinaryExpression pE) throws UnrecognizedCCodeException {
 
-    final Long lVal = pE.getOperand1().accept(this);
+    final NumberContainer lVal = pE.getOperand1().accept(this);
     if (lVal == null) { return null; }
-    final Long rVal = pE.getOperand2().accept(this);
+    final NumberContainer rVal = pE.getOperand2().accept(this);
     if (rVal == null) { return null; }
-    Long result = calculateBinaryOperation(lVal, rVal, pE, machineModel, logger, edge);
+    NumberContainer result = calculateBinaryOperation(lVal, rVal, pE, machineModel, logger, edge);
 
     return result;
   }
@@ -185,7 +186,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
    * @param logger for logging
    * @param edge only for logging
    */
-  public static Long calculateBinaryOperation(Long lVal, Long rVal,
+  public static Long calculateBinaryOperation(NumberContainer lVal, NumberContainer rVal,
       final CBinaryExpression binaryExpr,
       final MachineModel machineModel, final LogManager logger, @Nullable CFAEdge edge) {
 
@@ -802,7 +803,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
    * @param logger for logging
    * @param edge only for logging
    */
-  public static Long castCValue(@Nullable final Long value, final CType targetType,
+  public static NumberContainer castCValue(@Nullable final NumberContainer value, final CType targetType,
       final MachineModel machineModel, final LogManager logger, @Nullable final CFAEdge edge) {
     if (value == null) { return null; }
 
@@ -819,38 +820,40 @@ public abstract class AbstractExplicitExpressionValueVisitor
         final int size = bitPerByte * numBytes;
 
         if ((size < SIZE_OF_JAVA_LONG) || (size == SIZE_OF_JAVA_LONG && st.isSigned())
-            || (value < Long.MAX_VALUE / 2 && value > Long.MIN_VALUE / 2)) {
+            || ((value.getNumber().compareTo(new BigDecimal(Long.MAX_VALUE / 2)) == -1)
+                && (value.getNumber().compareTo(new BigDecimal(Long.MAX_VALUE / 2)) == 1))) {
           // we can handle this with java-type "long"
 
-          final long maxValue = 1L << size; // 2^size
+          final BigDecimal maxValue = new BigDecimal(1L << size); // 2^size
 
-          long result = value;
+          NumberContainer result = value;
 
           if (size < SIZE_OF_JAVA_LONG) { // otherwise modulo is useless, because result would be 1
-            result = value % maxValue; // shrink to number of bits
+            result.setNumber(value.getNumber().remainder(maxValue)); // shrink to number of bits
 
             if (st.isSigned() ||
                 (st.getType() == CBasicType.CHAR && !st.isUnsigned() && machineModel.isDefaultCharSigned())) {
-              if (result > (maxValue / 2) - 1) {
-                result -= maxValue;
-              } else if (result < -(maxValue / 2)) {
-                result += maxValue;
+              if ((result.getNumber().compareTo((maxValue.divide(new BigDecimal(2)).subtract(new BigDecimal(-1))))) == 1) {
+                result.setNumber(result.getNumber().subtract(maxValue));
+              } else if (result.getNumber().compareTo((new BigDecimal(2).subtract(new BigDecimal(-1))).negate()) == -1) {
+                result.setNumber(result.getNumber().add(maxValue));
               }
             }
           }
 
-          if (result != value && loggedEdges.add(edge)) {
+          if (!result.equals(value) && loggedEdges.add(edge)) {
             logger.logf(Level.INFO,
                 "overflow in line %d: value %d is to big for type '%s', casting to %d.",
                 edge == null ? null : edge.getLineNumber(),
                 value, targetType, result);
           }
 
-          if (st.isUnsigned() && value < 0) {
+          if (st.isUnsigned()
+              && (value.getNumber().compareTo(new BigDecimal(0)) == -1)) {
 
             if (size < SIZE_OF_JAVA_LONG) {
               // value is negative, so adding maxValue makes it positive
-              result = maxValue + result;
+              result.setNumber(result.getNumber().add(maxValue));
 
               if (loggedEdges.add(edge)) {
                 logger.logf(Level.INFO,
