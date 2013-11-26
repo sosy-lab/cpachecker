@@ -137,6 +137,7 @@ public class ValidVarsTransferRelation implements TransferRelation{
           }
         }
       }
+      // if found may contain more variables than those already declared in the next call of funName on stack
       if(!foundCss){
         throw new CPATransferException("Require CallstackCPA or CallstackPccCPA to securely remove variables of a function "
             +"after function return. Otherwise e.g. recursion cannot be handled.");
