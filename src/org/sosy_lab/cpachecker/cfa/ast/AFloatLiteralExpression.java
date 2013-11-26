@@ -44,6 +44,11 @@ public abstract class AFloatLiteralExpression extends ALiteralExpression {
     return value;
   }
 
+  public long asLong() {
+    // TODO handle values that are bigger than MAX_LONG
+    return value.longValue();
+  }
+
   @Override
   public String toASTString() {
    return value.toString();

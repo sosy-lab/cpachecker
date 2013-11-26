@@ -391,7 +391,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
   @Override
   public Long visit(CFloatLiteralExpression pE) throws UnrecognizedCCodeException {
-    return null;
+    return pE.asLong();
   }
 
   @Override
