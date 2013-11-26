@@ -137,13 +137,13 @@ public enum InvariantsTransferRelation implements TransferRelation {
   }
 
   private InvariantsState handleAssume(InvariantsState pElement, CAssumeEdge pEdge) throws UnrecognizedCCodeException {
-    FormulaEvaluationVisitor<CompoundState> resolver = pElement.getFormulaResolver(pEdge);
+    FormulaEvaluationVisitor<CompoundInterval> resolver = pElement.getFormulaResolver(pEdge);
     CExpression expression = pEdge.getExpression();
     // Create a formula representing the edge expression
-    InvariantsFormula<CompoundState> expressionFormula = expression.accept(getExpressionToFormulaVisitor(pEdge));
+    InvariantsFormula<CompoundInterval> expressionFormula = expression.accept(getExpressionToFormulaVisitor(pEdge));
 
     // Evaluate the state of the assume edge expression
-    CompoundState expressionState = expressionFormula.accept(resolver, pElement.getEnvironment());
+    CompoundInterval expressionState = expressionFormula.accept(resolver, pElement.getEnvironment());
     /*
      * If the expression definitely evaluates to false when truth is assumed or
      * the expression definitely evaluates to true when falsehood is assumed,
@@ -176,12 +176,12 @@ public enum InvariantsTransferRelation implements TransferRelation {
       varName = scope(varName, pEdge.getSuccessor().getFunctionName());
     }
 
-    final InvariantsFormula<CompoundState> value;
+    final InvariantsFormula<CompoundInterval> value;
     if (decl.getInitializer() != null && decl.getInitializer() instanceof CInitializerExpression) {
       CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
       value = init.accept(getExpressionToFormulaVisitor(pEdge));
     } else {
-      value = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.top());
+      value = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
     }
 
     return pElement.assign(false, varName, value, pEdge).putType(varName,
@@ -200,7 +200,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
     for (Pair<String, CExpression> param : Pair.zipList(formalParams, actualParams)) {
       CExpression actualParam = param.getSecond();
 
-      InvariantsFormula<CompoundState> value = actualParam.accept(getExpressionToFormulaVisitor(new VariableNameExtractor() {
+      InvariantsFormula<CompoundInterval> value = actualParam.accept(getExpressionToFormulaVisitor(new VariableNameExtractor() {
 
         @Override
         public String extract(CExpression pCExpression) throws UnrecognizedCCodeException {
@@ -221,20 +221,20 @@ public enum InvariantsTransferRelation implements TransferRelation {
       CAssignment assignment = (CAssignment)pEdge.getStatement();
       ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
       CExpression leftHandSide = assignment.getLeftHandSide();
-      InvariantsFormula<CompoundState> value = assignment.getRightHandSide().accept(etfv);
+      InvariantsFormula<CompoundInterval> value = assignment.getRightHandSide().accept(etfv);
       return handleAssignment(pElement, pEdge.getPredecessor().getFunctionName(), pEdge, leftHandSide, value);
     }
 
     return pElement;
   }
 
-  private InvariantsState handleAssignment(InvariantsState pElement, String pFunctionName, CFAEdge pEdge, CExpression pLeftHandSide, InvariantsFormula<CompoundState> pValue) throws UnrecognizedCCodeException {
+  private InvariantsState handleAssignment(InvariantsState pElement, String pFunctionName, CFAEdge pEdge, CExpression pLeftHandSide, InvariantsFormula<CompoundInterval> pValue) throws UnrecognizedCCodeException {
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
     boolean isUnknownPointerDereference = pLeftHandSide instanceof CPointerExpression;
     if (pLeftHandSide instanceof CArraySubscriptExpression) {
       CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) pLeftHandSide;
       String array = getVarName(arraySubscriptExpression.getArrayExpression(), pEdge, pFunctionName);
-      InvariantsFormula<CompoundState> subscript = arraySubscriptExpression.getSubscriptExpression().accept(etfv);
+      InvariantsFormula<CompoundInterval> subscript = arraySubscriptExpression.getSubscriptExpression().accept(etfv);
       return pElement.assignArray(array, subscript, pValue, pEdge);
     } else {
       String varName = getVarName(pLeftHandSide, pEdge, pFunctionName);
@@ -250,7 +250,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
       return pElement;
     }
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
-    InvariantsFormula<CompoundState> returnedState = returnedExpression.accept(etfv);
+    InvariantsFormula<CompoundInterval> returnedState = returnedExpression.accept(etfv);
     String returnValueName = scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
     return pElement.assign(false, returnValueName, returnedState, pEdge);
   }
@@ -265,7 +265,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
       String returnValueName = scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
 
-      InvariantsFormula<CompoundState> value = CompoundStateFormulaManager.INSTANCE.asVariable(returnValueName);
+      InvariantsFormula<CompoundInterval> value = CompoundStateFormulaManager.INSTANCE.asVariable(returnValueName);
 
       // expression is an assignment operation, e.g. a = g(b);
       if (expression instanceof CFunctionCallAssignmentStatement) {

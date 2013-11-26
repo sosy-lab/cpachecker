@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.operators.interval.scalar.tocompo
 
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.interval.scalar.tointerval.ISIOperator;
 
@@ -41,8 +41,8 @@ enum DivideOperator implements ISCOperator {
   INSTANCE;
 
   @Override
-  public CompoundState apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
-    return CompoundState.of(ISIOperator.DIVIDE_OPERATOR.apply(pFirstOperand, pSecondOperand));
+  public CompoundInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
+    return CompoundInterval.of(ISIOperator.DIVIDE_OPERATOR.apply(pFirstOperand, pSecondOperand));
   }
 
 }

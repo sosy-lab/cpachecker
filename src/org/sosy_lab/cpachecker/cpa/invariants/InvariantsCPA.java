@@ -95,7 +95,7 @@ public class InvariantsCPA extends AbstractCPA {
   /**
    * A formula visitor for collecting the variables contained in a formula.
    */
-  private static final CollectVarsVisitor<CompoundState> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
+  private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
   @Options(prefix="cpa.invariants")
   public static class InvariantsOptions {
@@ -217,7 +217,7 @@ public class InvariantsCPA extends AbstractCPA {
 
     // Collect relevant edges and guess that information might be interesting
     Set<CFAEdge> relevantEdges = new HashSet<>();
-    Set<InvariantsFormula<CompoundState>> interestingPredicates = new LinkedHashSet<>();
+    Set<InvariantsFormula<CompoundInterval>> interestingPredicates = new LinkedHashSet<>();
     Set<String> interestingVariables = new LinkedHashSet<>();
 
     boolean guessInterestingInformation = options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
@@ -241,17 +241,17 @@ public class InvariantsCPA extends AbstractCPA {
             if (edge instanceof AssumeEdge) {
               if (guessInterestingInformation) {
                 try {
-                  InvariantsFormula<CompoundState> formula = ((CAssumeEdge) edge).getExpression().accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(edge));
+                  InvariantsFormula<CompoundInterval> formula = ((CAssumeEdge) edge).getExpression().accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(edge));
                   if (options.interestingVariableLimit != 0) {
                     addAll(interestingVariables, formula.accept(COLLECT_VARS_VISITOR), options.interestingVariableLimit);
                   }
                   if (options.interestingPredicatesLimit != 0) {
                     if (formula instanceof LogicalNot<?>) { // We don't care about negations here
-                      formula = ((LogicalNot<CompoundState>) formula).getNegated();
+                      formula = ((LogicalNot<CompoundInterval>) formula).getNegated();
                     }
-                    for (InvariantsFormula<CompoundState> assumption : formula.accept(new SplitDisjunctionsVisitor<CompoundState>())) {
+                    for (InvariantsFormula<CompoundInterval> assumption : formula.accept(new SplitDisjunctionsVisitor<CompoundInterval>())) {
                       if (assumption instanceof LogicalNot<?>) { // We don't care about negations here either
-                        assumption = ((LogicalNot<CompoundState>) assumption).getNegated();
+                        assumption = ((LogicalNot<CompoundInterval>) assumption).getNegated();
                       }
                       interestingPredicates.add(assumption);
                     }
@@ -277,7 +277,7 @@ public class InvariantsCPA extends AbstractCPA {
       ExpressionToFormulaVisitor etfv = InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(edge);
       if (edge instanceof CAssumeEdge) {
         try {
-          InvariantsFormula<CompoundState> assumption = ((CAssumeEdge) edge).getExpression().accept(etfv);
+          InvariantsFormula<CompoundInterval> assumption = ((CAssumeEdge) edge).getExpression().accept(etfv);
           relevantVariables.addAll(assumption.accept(COLLECT_VARS_VISITOR));
         } catch (UnrecognizedCCodeException e) {
           this.logManager.logException(Level.SEVERE, e, "Found unrecognized C code on an edge. Cannot specify relevant variables explicitly. Considering all variables as relevant.");
@@ -285,7 +285,7 @@ public class InvariantsCPA extends AbstractCPA {
         }
       }
     }
-    final VariableSelection<CompoundState> variableSelection;
+    final VariableSelection<CompoundInterval> variableSelection;
     if (specifyRelevantVariables) {
       // Collect all variables related to variables found on relevant assume edges from other edges with a fix point iteration
       expand(relevantVariables, relevantEdges, -1);
@@ -295,9 +295,9 @@ public class InvariantsCPA extends AbstractCPA {
     }
 
     // Remove predicates from the collection of interesting predicates that are already covered by the set of interesting variables
-    Iterator<InvariantsFormula<CompoundState>> interestingPredicateIterator = interestingPredicates.iterator();
+    Iterator<InvariantsFormula<CompoundInterval>> interestingPredicateIterator = interestingPredicates.iterator();
     while (interestingPredicateIterator.hasNext()) {
-      InvariantsFormula<CompoundState> interestingPredicate = interestingPredicateIterator.next();
+      InvariantsFormula<CompoundInterval> interestingPredicate = interestingPredicateIterator.next();
       List<String> containedUninterestingVariables = new ArrayList<>(interestingPredicate.accept(COLLECT_VARS_VISITOR));
       containedUninterestingVariables.removeAll(interestingVariables);
       if (containedUninterestingVariables.size() <= 1) {
@@ -408,7 +408,7 @@ public class InvariantsCPA extends AbstractCPA {
     for (Pair<String, CExpression> param : Pair.zipList(formalParams, actualParams)) {
       CExpression actualParam = param.getSecond();
 
-      InvariantsFormula<CompoundState> value = actualParam.accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(new VariableNameExtractor() {
+      InvariantsFormula<CompoundInterval> value = actualParam.accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(new VariableNameExtractor() {
 
         @Override
         public String extract(CExpression pCExpression) throws UnrecognizedCCodeException {
@@ -437,12 +437,12 @@ public class InvariantsCPA extends AbstractCPA {
       varName = InvariantsTransferRelation.scope(varName, pEdge.getSuccessor().getFunctionName());
     }
 
-    final InvariantsFormula<CompoundState> value;
+    final InvariantsFormula<CompoundInterval> value;
     if (decl.getInitializer() != null && decl.getInitializer() instanceof CInitializerExpression) {
       CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
       value = init.accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(pEdge));
     } else {
-      value = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.top());
+      value = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
     }
 
     if (pRelevantVariables.contains(varName)) {
@@ -460,13 +460,13 @@ public class InvariantsCPA extends AbstractCPA {
     }
   }
 
-  private static void handleAssignment(String pFunctionName, CFAEdge pCfaEdge, CExpression leftHandSide, InvariantsFormula<CompoundState> pValue, Set<String> pRelevantVariables, int pLimit) throws UnrecognizedCCodeException {
+  private static void handleAssignment(String pFunctionName, CFAEdge pCfaEdge, CExpression leftHandSide, InvariantsFormula<CompoundInterval> pValue, Set<String> pRelevantVariables, int pLimit) throws UnrecognizedCCodeException {
     ExpressionToFormulaVisitor etfv = InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(pCfaEdge);
     final String varName;
     if (leftHandSide instanceof CArraySubscriptExpression) {
       CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) leftHandSide;
       varName = InvariantsTransferRelation.getVarName(arraySubscriptExpression.getArrayExpression(), pCfaEdge, pFunctionName);
-      InvariantsFormula<CompoundState> subscript = arraySubscriptExpression.getSubscriptExpression().accept(etfv);
+      InvariantsFormula<CompoundInterval> subscript = arraySubscriptExpression.getSubscriptExpression().accept(etfv);
       for (String relevantVar : pRelevantVariables) {
         if (relevantVar.equals(varName) || relevantVar.startsWith(varName + "[")) {
           addAll(pRelevantVariables, pValue.accept(COLLECT_VARS_VISITOR), pLimit);
@@ -493,7 +493,7 @@ public class InvariantsCPA extends AbstractCPA {
       return;
     }
     ExpressionToFormulaVisitor etfv = InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(pCStatementEdge);
-    InvariantsFormula<CompoundState> returnedInvExpression = returnedExpression.accept(etfv);
+    InvariantsFormula<CompoundInterval> returnedInvExpression = returnedExpression.accept(etfv);
     String returnValueName = InvariantsTransferRelation.scope(InvariantsTransferRelation.RETURN_VARIABLE_BASE_NAME, calledFunctionName);
     if (pRelevantVariables.contains(returnValueName)) {
       addAll(pRelevantVariables, returnedInvExpression.accept(COLLECT_VARS_VISITOR), pLimit);
@@ -510,7 +510,7 @@ public class InvariantsCPA extends AbstractCPA {
 
       String returnValueName = InvariantsTransferRelation.scope(InvariantsTransferRelation.RETURN_VARIABLE_BASE_NAME, calledFunctionName);
 
-      InvariantsFormula<CompoundState> value = CompoundStateFormulaManager.INSTANCE.asVariable(returnValueName);
+      InvariantsFormula<CompoundInterval> value = CompoundStateFormulaManager.INSTANCE.asVariable(returnValueName);
 
       // expression is an assignment operation, e.g. a = g(b);
       if (expression instanceof CFunctionCallAssignmentStatement) {

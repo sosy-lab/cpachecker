@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 
 /**
  * Instances of this class are visitors for compound state invariants formulae
@@ -34,54 +34,54 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
  * {@link FormulaAbstractionVisitor} in order to enable the CPA strategy to
  * obtain very exact values for the expressions in the analyzed code.
  */
-public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationVisitor<CompoundState> {
+public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationVisitor<CompoundInterval> {
 
   /**
    * A visitor for compound state invariants formulae used to determine whether
    * or not the visited formula is a genuine boolean formula.
    */
-  private static final IsBooleanFormulaVisitor<CompoundState> IS_BOOLEAN_FORMULA_VISITOR =
+  private static final IsBooleanFormulaVisitor<CompoundInterval> IS_BOOLEAN_FORMULA_VISITOR =
       new IsBooleanFormulaVisitor<>();
 
   @Override
-  public CompoundState visit(Add<CompoundState> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(Add<CompoundInterval> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pAdd.getSummand1().accept(this, pEnvironment).add(pAdd.getSummand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(BinaryAnd<CompoundState> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(BinaryAnd<CompoundInterval> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pAnd.getOperand1().accept(this, pEnvironment).binaryAnd(pAnd.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(BinaryNot<CompoundState> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(BinaryNot<CompoundInterval> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pNot.getFlipped().accept(this, pEnvironment).binaryNot();
   }
 
   @Override
-  public CompoundState visit(BinaryOr<CompoundState> pOr, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(BinaryOr<CompoundInterval> pOr, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pOr.getOperand1().accept(this, pEnvironment).binaryOr(pOr.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(BinaryXor<CompoundState> pXor, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(BinaryXor<CompoundInterval> pXor, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pXor.getOperand1().accept(this, pEnvironment).binaryXor(pXor.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(Constant<CompoundState> pConstant, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(Constant<CompoundInterval> pConstant, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pConstant.getValue();
   }
 
   @Override
-  public CompoundState visit(Divide<CompoundState> pDivide, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(Divide<CompoundInterval> pDivide, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pDivide.getNumerator().accept(this, pEnvironment).divide(pDivide.getDenominator().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(Equal<CompoundState> pEqual, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    CompoundState operand1 = pEqual.getOperand1().accept(this, pEnvironment);
-    CompoundState operand2 = pEqual.getOperand2().accept(this, pEnvironment);
+  public CompoundInterval visit(Equal<CompoundInterval> pEqual, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    CompoundInterval operand1 = pEqual.getOperand1().accept(this, pEnvironment);
+    CompoundInterval operand2 = pEqual.getOperand2().accept(this, pEnvironment);
     /*
      *  If both operands of the equation are boolean formulae and each of their
      *  evaluations is either definitely true or definitely false, the
@@ -103,55 +103,55 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
   }
 
   @Override
-  public CompoundState visit(LessThan<CompoundState> pLessThan, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(LessThan<CompoundInterval> pLessThan, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pLessThan.getOperand1().accept(this, pEnvironment).lessThan(pLessThan.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(LogicalAnd<CompoundState> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(LogicalAnd<CompoundInterval> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pAnd.getOperand1().accept(this, pEnvironment).logicalAnd(pAnd.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(LogicalNot<CompoundState> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(LogicalNot<CompoundInterval> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pNot.getNegated().accept(this, pEnvironment).logicalNot();
   }
 
   @Override
-  public CompoundState visit(Modulo<CompoundState> pModulo, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(Modulo<CompoundInterval> pModulo, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pModulo.getNumerator().accept(this, pEnvironment).modulo(pModulo.getDenominator().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(Multiply<CompoundState> pMultiply, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(Multiply<CompoundInterval> pMultiply, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pMultiply.getFactor1().accept(this, pEnvironment).multiply(pMultiply.getFactor2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(Negate<CompoundState> pNegate, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(Negate<CompoundInterval> pNegate, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pNegate.getNegated().accept(this, pEnvironment).negate();
   }
 
   @Override
-  public CompoundState visit(ShiftLeft<CompoundState> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(ShiftLeft<CompoundInterval> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pShiftLeft.getShifted().accept(this, pEnvironment).shiftLeft(pShiftLeft.getShiftDistance().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(ShiftRight<CompoundState> pShiftRight, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(ShiftRight<CompoundInterval> pShiftRight, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pShiftRight.getShifted().accept(this, pEnvironment).shiftRight(pShiftRight.getShiftDistance().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(Union<CompoundState> pUnion, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(Union<CompoundInterval> pUnion, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pUnion.getOperand1().accept(this, pEnvironment).unionWith(pUnion.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(Variable<CompoundState> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    InvariantsFormula<CompoundState> varState = pEnvironment.get(pVariable.getName());
+  public CompoundInterval visit(Variable<CompoundInterval> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    InvariantsFormula<CompoundInterval> varState = pEnvironment.get(pVariable.getName());
     if (varState == null) {
-      return CompoundState.top();
+      return CompoundInterval.top();
     }
     return varState.accept(this, pEnvironment);
   }

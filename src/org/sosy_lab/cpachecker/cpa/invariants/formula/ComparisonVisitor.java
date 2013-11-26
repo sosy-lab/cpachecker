@@ -25,24 +25,24 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 
 /**
  * Instances of this class are invariants formula visitors that are used to
  * analyze how the visited compound state formulae compare to a comparison
  * formula.
  */
-public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<CompoundState, Map<? extends String, ? extends InvariantsFormula<CompoundState>>, ComparisonVisitor.Result> {
+public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<CompoundInterval, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>>, ComparisonVisitor.Result> {
 
   /**
    * The comparison formula.
    */
-  private final InvariantsFormula<CompoundState> comparisonFormula;
+  private final InvariantsFormula<CompoundInterval> comparisonFormula;
 
   /**
    * The formula evaluation visitor used.
    */
-  private final FormulaEvaluationVisitor<CompoundState> evaluationVisitor;
+  private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
 
   /**
    * The last visitor used to determine stateful equality over formulae.
@@ -55,7 +55,7 @@ public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<Compou
    */
   private Object stateEqualsVisitorCacheKey;
 
-  public ComparisonVisitor(InvariantsFormula<CompoundState> pComparisonFormula, FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor) {
+  public ComparisonVisitor(InvariantsFormula<CompoundInterval> pComparisonFormula, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     this.comparisonFormula = pComparisonFormula;
     this.evaluationVisitor = pEvaluationVisitor;
   }
@@ -69,7 +69,7 @@ public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<Compou
    * @return a visitor used to determine stateful equality over formulae for the
    * given environment.
    */
-  private StateEqualsVisitor getStateEqualsVisitor(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  private StateEqualsVisitor getStateEqualsVisitor(Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     if (stateEqualsVisitorCacheKey == pEnvironment) {
       return cachedStateEqualsVisitor;
     }
@@ -85,7 +85,7 @@ public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<Compou
    *
    * @return the value of the comparison formula within the given environment.
    */
-  private CompoundState getComparisonValue(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  private CompoundInterval getComparisonValue(Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return comparisonFormula.accept(evaluationVisitor, pEnvironment);
   }
 
@@ -97,7 +97,7 @@ public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<Compou
    * @return the result of the comparison between the comparison formula and
    * zero.
    */
-  private Result getCompValueToZero(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  private Result getCompValueToZero(Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     if (isCompValueDefinitelyZero(pEnvironment)) {
       return Result.EQUAL;
     }
@@ -129,8 +129,8 @@ public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<Compou
    * to a negative value within the given environment, <code>false</code>
    * otherwise.
    */
-  private boolean isCompValueDefinitelyNegative(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    CompoundState comparisonValue = getComparisonValue(pEnvironment);
+  private boolean isCompValueDefinitelyNegative(Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    CompoundInterval comparisonValue = getComparisonValue(pEnvironment);
     if (comparisonValue.hasUpperBound()) {
       return comparisonValue.getUpperBound().signum() < 0;
     }
@@ -147,8 +147,8 @@ public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<Compou
    * to a non-positive value within the given environment, <code>false</code>
    * otherwise.
    */
-  private boolean isCompValueDefinitelyNonPositive(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    CompoundState comparisonValue = getComparisonValue(pEnvironment);
+  private boolean isCompValueDefinitelyNonPositive(Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    CompoundInterval comparisonValue = getComparisonValue(pEnvironment);
     if (comparisonValue.hasUpperBound()) {
       return comparisonValue.getUpperBound().signum() <= 0;
     }
@@ -165,8 +165,8 @@ public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<Compou
    * to a positive value within the given environment, <code>false</code>
    * otherwise.
    */
-  private boolean isCompValueDefinitelyPositive(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    CompoundState comparisonValue = getComparisonValue(pEnvironment);
+  private boolean isCompValueDefinitelyPositive(Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    CompoundInterval comparisonValue = getComparisonValue(pEnvironment);
     if (comparisonValue.hasLowerBound()) {
       return comparisonValue.getLowerBound().signum() > 0;
     }
@@ -183,8 +183,8 @@ public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<Compou
    * to a non--negative value within the given environment, <code>false</code>
    * otherwise.
    */
-  private boolean isCompValueDefinitelyNonNegative(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    CompoundState comparisonValue = getComparisonValue(pEnvironment);
+  private boolean isCompValueDefinitelyNonNegative(Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    CompoundInterval comparisonValue = getComparisonValue(pEnvironment);
     if (comparisonValue.hasLowerBound()) {
       return comparisonValue.getLowerBound().signum() >= 0;
     }
@@ -200,8 +200,8 @@ public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<Compou
    * @return <code>true</code> if the comparison formula definitely evaluates
    * to zero within the given environment, <code>false</code> otherwise.
    */
-  private boolean isCompValueDefinitelyZero(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    CompoundState comparisonValue = getComparisonValue(pEnvironment);
+  private boolean isCompValueDefinitelyZero(Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    CompoundInterval comparisonValue = getComparisonValue(pEnvironment);
     return comparisonValue.isSingleton() && comparisonValue.containsZero();
   }
 
@@ -215,19 +215,19 @@ public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<Compou
    * to a non-zero value within the given environment, <code>false</code>
    * otherwise.
    */
-  private boolean isCompValueDefinitelyNonZero(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  private boolean isCompValueDefinitelyNonZero(Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return !getComparisonValue(pEnvironment).containsZero();
   }
 
   @Override
-  public Result visit(Add<CompoundState> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public Result visit(Add<CompoundInterval> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     Result s1Result = pAdd.getSummand1().accept(this, pEnvironment);
     Result s2Result = pAdd.getSummand2().accept(this, pEnvironment);
     if (s1Result == Result.UNKNOWN && s2Result == Result.UNKNOWN) {
       return Result.UNKNOWN;
     }
     if (s1Result != Result.UNKNOWN && s2Result != Result.UNKNOWN) {
-      InvariantsFormula<CompoundState> a = pAdd.getSummand1();
+      InvariantsFormula<CompoundInterval> a = pAdd.getSummand1();
       if (s1Result.compareTo(s2Result) > 0) {
         Result tmp = s1Result;
         s1Result = s2Result;
@@ -241,7 +241,7 @@ public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<Compou
           // If x+x, result depends on sign of x
           return getCompValueToZero(pEnvironment);
         default:
-          CompoundState other = a.accept(evaluationVisitor, pEnvironment);
+          CompoundInterval other = a.accept(evaluationVisitor, pEnvironment);
           if (other.isSingleton() && other.containsZero()) {
             return Result.EQUAL;
           }
@@ -267,7 +267,7 @@ public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<Compou
   }
 
   @Override
-  public Result visit(Variable<CompoundState> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public Result visit(Variable<CompoundInterval> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     if (!(comparisonFormula instanceof Variable<?>)) {
       Result inverted = comparisonFormula.accept(new ComparisonVisitor(pVariable, evaluationVisitor), pEnvironment);
       switch (inverted) {
@@ -291,13 +291,13 @@ public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<Compou
   }
 
   @Override
-  protected Result visitDefault(InvariantsFormula<CompoundState> pFormula, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  protected Result visitDefault(InvariantsFormula<CompoundInterval> pFormula, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     if (pFormula.accept(getStateEqualsVisitor(pEnvironment), comparisonFormula)) {
       return Result.EQUAL;
     }
-    CompoundState evaluated = pFormula.accept(evaluationVisitor, pEnvironment);
-    CompoundState comparisonValue = getComparisonValue(pEnvironment);
-    CompoundState equation = evaluated.logicalEquals(comparisonValue);
+    CompoundInterval evaluated = pFormula.accept(evaluationVisitor, pEnvironment);
+    CompoundInterval comparisonValue = getComparisonValue(pEnvironment);
+    CompoundInterval equation = evaluated.logicalEquals(comparisonValue);
     if (equation.isDefinitelyTrue()) {
       return Result.EQUAL;
     }
