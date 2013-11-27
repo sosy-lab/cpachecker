@@ -154,7 +154,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  protected Long visitDefault(CExpression pExp) {
+  protected NumberContainer visitDefault(CExpression pExp) {
     return null;
   }
 
@@ -250,7 +250,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
     return result;
   }
 
-  private static long arithmeticOperation(final long l, final long r,
+  private static long arithmeticOperation(final NumberContainer l, final NumberContainer r,
       final BinaryOperator op, final CType calculationType,
       final MachineModel machineModel, final LogManager logger) {
 
@@ -326,7 +326,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
     }
   }
 
-  private static boolean booleanOperation(final long l, final long r,
+  private static boolean booleanOperation(final NumberContainer l, final NumberContainer r,
       final BinaryOperator op, final CType calculationType,
       final MachineModel machineModel) {
 
@@ -370,48 +370,48 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(CCastExpression pE) throws UnrecognizedCCodeException {
+  public NumberContainer visit(CCastExpression pE) throws UnrecognizedCCodeException {
     return castCValue(pE.getOperand().accept(this), pE.getExpressionType(), machineModel, logger, edge);
   }
 
   @Override
-  public Long visit(CComplexCastExpression pE) throws UnrecognizedCCodeException {
+  public NumberContainer visit(CComplexCastExpression pE) throws UnrecognizedCCodeException {
     // evaluation of complex numbers is not supported by now
     return null;
   }
 
   @Override
-  public Long visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
+  public NumberContainer visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
     return null;
   }
 
   @Override
-  public Long visit(CCharLiteralExpression pE) throws UnrecognizedCCodeException {
+  public NumberContainer visit(CCharLiteralExpression pE) throws UnrecognizedCCodeException {
     return (long) pE.getCharacter();
   }
 
   @Override
-  public Long visit(CFloatLiteralExpression pE) throws UnrecognizedCCodeException {
+  public NumberContainer visit(CFloatLiteralExpression pE) throws UnrecognizedCCodeException {
     return pE.asLong();
   }
 
   @Override
-  public Long visit(CIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
+  public NumberContainer visit(CIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
     return pE.asLong();
   }
 
   @Override
-  public Long visit(CImaginaryLiteralExpression pE) throws UnrecognizedCCodeException {
+  public NumberContainer visit(CImaginaryLiteralExpression pE) throws UnrecognizedCCodeException {
     return pE.getValue().accept(this);
   }
 
   @Override
-  public Long visit(CStringLiteralExpression pE) throws UnrecognizedCCodeException {
+  public NumberContainer visit(CStringLiteralExpression pE) throws UnrecognizedCCodeException {
     return null;
   }
 
   @Override
-  public Long visit(final CTypeIdExpression pE) {
+  public NumberContainer visit(final CTypeIdExpression pE) {
     final TypeIdOperator idOperator = pE.getOperator();
     final CType innerType = pE.getType();
 
@@ -426,7 +426,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(CIdExpression idExp) throws UnrecognizedCCodeException {
+  public NumberContainer visit(CIdExpression idExp) throws UnrecognizedCCodeException {
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
       if (enumerator.hasValue()) {
@@ -440,7 +440,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
+  public NumberContainer visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
     final UnaryOperator unaryOperator = unaryExpression.getOperator();
     final CExpression unaryOperand = unaryExpression.getOperand();
 
@@ -476,38 +476,38 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
+  public NumberContainer visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
     return evaluateCPointerExpression(pointerExpression);
   }
 
   @Override
-  public Long visit(CFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
+  public NumberContainer visit(CFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
     return evaluateCFieldReference(fieldReferenceExpression);
   }
 
   @Override
-  public Long visit(CArraySubscriptExpression pE)
+  public NumberContainer visit(CArraySubscriptExpression pE)
       throws UnrecognizedCCodeException {
     return evaluateCArraySubscriptExpression(pE);
   }
 
   @Override
-  public Long visit(JCharLiteralExpression pE) {
+  public NumberContainer visit(JCharLiteralExpression pE) {
     return (long) pE.getCharacter();
   }
 
   @Override
-  public Long visit(JThisExpression thisExpression) {
+  public NumberContainer visit(JThisExpression thisExpression) {
     return null;
   }
 
   @Override
-  public Long visit(JStringLiteralExpression pPaStringLiteralExpression) {
+  public NumberContainer visit(JStringLiteralExpression pPaStringLiteralExpression) {
     return null;
   }
 
   @Override
-  public Long visit(JBinaryExpression pE) {
+  public NumberContainer visit(JBinaryExpression pE) {
 
     org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator binaryOperator = pE.getOperator();
     JExpression lVarInBinaryExp = pE.getOperand1();
@@ -621,7 +621,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(JIdExpression idExp) {
+  public NumberContainer visit(JIdExpression idExp) {
 
 
     IASimpleDeclaration decl = idExp.getDeclaration();
@@ -638,7 +638,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(JUnaryExpression unaryExpression) {
+  public NumberContainer visit(JUnaryExpression unaryExpression) {
 
     JUnaryExpression.UnaryOperator unaryOperator = unaryExpression.getOperator();
     JExpression unaryOperand = unaryExpression.getOperand();
@@ -673,82 +673,82 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(JIntegerLiteralExpression pE) {
+  public NumberContainer visit(JIntegerLiteralExpression pE) {
     return pE.asLong();
   }
 
   @Override
-  public Long visit(JBooleanLiteralExpression pE) {
+  public NumberContainer visit(JBooleanLiteralExpression pE) {
     return ((pE.getValue()) ? 1l : 0l);
   }
 
   @Override
-  public Long visit(JFloatLiteralExpression pJBooleanLiteralExpression) {
+  public NumberContainer visit(JFloatLiteralExpression pJBooleanLiteralExpression) {
     return null;
   }
 
   @Override
-  public Long visit(JMethodInvocationExpression pAFunctionCallExpression) {
+  public NumberContainer visit(JMethodInvocationExpression pAFunctionCallExpression) {
     return null;
   }
 
   @Override
-  public Long visit(JArrayCreationExpression aCE) {
+  public NumberContainer visit(JArrayCreationExpression aCE) {
     return null;
   }
 
   @Override
-  public Long visit(JArrayInitializer pJArrayInitializer) {
+  public NumberContainer visit(JArrayInitializer pJArrayInitializer) {
     return null;
   }
 
   @Override
-  public Long visit(JArraySubscriptExpression pAArraySubscriptExpression) {
+  public NumberContainer visit(JArraySubscriptExpression pAArraySubscriptExpression) {
     return pAArraySubscriptExpression.getSubscriptExpression().accept(this);
   }
 
   @Override
-  public Long visit(JClassInstanceCreation pJClassInstanzeCreation) {
+  public NumberContainer visit(JClassInstanceCreation pJClassInstanzeCreation) {
     return null;
   }
 
   @Override
-  public Long visit(JVariableRunTimeType pJThisRunTimeType) {
+  public NumberContainer visit(JVariableRunTimeType pJThisRunTimeType) {
     return null;
   }
 
   @Override
-  public Long visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) {
+  public NumberContainer visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) {
     return null;
   }
 
   @Override
-  public Long visit(JNullLiteralExpression pJNullLiteralExpression) {
+  public NumberContainer visit(JNullLiteralExpression pJNullLiteralExpression) {
     return null;
   }
 
   @Override
-  public Long visit(JEnumConstantExpression pJEnumConstantExpression) {
+  public NumberContainer visit(JEnumConstantExpression pJEnumConstantExpression) {
     missingEnumComparisonInformation = true;
     return null;
   }
 
   @Override
-  public Long visit(JCastExpression pJCastExpression) {
+  public NumberContainer visit(JCastExpression pJCastExpression) {
     return pJCastExpression.getOperand().accept(this);
   }
 
   /* abstract methods */
 
-  protected abstract Long evaluateCPointerExpression(CPointerExpression pCPointerExpression) throws UnrecognizedCCodeException;
+  protected abstract NumberContainer evaluateCPointerExpression(CPointerExpression pCPointerExpression) throws UnrecognizedCCodeException;
 
-  protected abstract Long evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException;
+  protected abstract NumberContainer evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException;
 
-  protected abstract Long evaluateJIdExpression(JIdExpression varName);
+  protected abstract NumberContainer evaluateJIdExpression(JIdExpression varName);
 
-  protected abstract Long evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException;
+  protected abstract NumberContainer evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException;
 
-  protected abstract Long evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue) throws UnrecognizedCCodeException;
+  protected abstract NumberContainer evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue) throws UnrecognizedCCodeException;
 
   /* additional methods */
 
@@ -769,7 +769,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
    * @param pTargetType the type of the left side of an assignment
    * @return if evaluation successful, then value, else null
    */
-  public Long evaluate(final CExpression pExp, final CType pTargetType)
+  public NumberContainer evaluate(final CExpression pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
     return castCValue(pExp.accept(this), pTargetType, machineModel, logger, edge);
   }
@@ -783,7 +783,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
    * @param pTargetType the type of the left side of an assignment
    * @return if evaluation successful, then value, else null
    */
-  public Long evaluate(final CRightHandSide pExp, final CType pTargetType)
+  public NumberContainer evaluate(final CRightHandSide pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
     return castCValue(pExp.accept(this), pTargetType, machineModel, logger, edge);
   }
