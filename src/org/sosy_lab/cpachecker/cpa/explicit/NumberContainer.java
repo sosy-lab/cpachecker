@@ -89,13 +89,13 @@ public class NumberContainer {
   }
 
   /**
-   * Returns the inital type of the number stored in the container.
+   * Returns the C type of the number stored in the container.
    *
-   * @return the type of the number stored in the container. Must be from
-   *         <code>NumberTypes</code>.
+   * @return The type of the number stored in the container. Must be a CSimpleType
+   *         which represents a numeric type.
    */
-  public NumberTypes getType() {
-    return ntype;
+  public CSimpleType getType() {
+    return type;
   }
 
   //  /**

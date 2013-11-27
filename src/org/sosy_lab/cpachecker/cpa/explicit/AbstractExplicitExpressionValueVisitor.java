@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -186,7 +187,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
    * @param logger for logging
    * @param edge only for logging
    */
-  public static Long calculateBinaryOperation(NumberContainer lVal, NumberContainer rVal,
+  public static NumberContainer calculateBinaryOperation(NumberContainer lVal, NumberContainer rVal,
       final CBinaryExpression binaryExpr,
       final MachineModel machineModel, final LogManager logger, @Nullable CFAEdge edge) {
 
@@ -209,7 +210,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
       rVal = castCValue(rVal, calculationType, machineModel, logger, edge);
     }
 
-    Long result;
+    NumberContainer result;
     switch (binaryOperator) {
     case PLUS:
     case MINUS:
@@ -221,7 +222,6 @@ public abstract class AbstractExplicitExpressionValueVisitor
     case BINARY_AND:
     case BINARY_OR:
     case BINARY_XOR: {
-
       result = arithmeticOperation(lVal, rVal, binaryOperator, calculationType, machineModel, logger);
       result = castCValue(result, binaryExpr.getExpressionType(), machineModel, logger, edge);
 
@@ -237,7 +237,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
       final boolean tmp = booleanOperation(lVal, rVal, binaryOperator, calculationType, machineModel);
       // return 1 if expression holds, 0 otherwise
-      result = tmp ? 1L : 0L;
+      result = new NumberContainer(CNumericTypes.LONG_INT, new BigDecimal(tmp ? 1L : 0L));
       // we do not cast here, because 0 and 1 should be small enough for every type.
 
       break;
@@ -250,7 +250,12 @@ public abstract class AbstractExplicitExpressionValueVisitor
     return result;
   }
 
-  private static long arithmeticOperation(final NumberContainer l, final NumberContainer r,
+  /**
+   * Calculate an arithmetic operation on two integer types.
+   * @param l
+   * @return
+   */
+  private static long arithmeticOperation(final long l, final long r,
       final BinaryOperator op, final CType calculationType,
       final MachineModel machineModel, final LogManager logger) {
 
@@ -323,6 +328,32 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
     default:
       throw new AssertionError("unknown binary operation: " + op);
+    }
+
+  }
+
+  private static NumberContainer arithmeticOperation(final NumberContainer l, final NumberContainer r,
+      final BinaryOperator op, final CType calculationType,
+      final MachineModel machineModel, final LogManager logger) {
+
+    try {
+      // At this point we're only handling explicit values of simple types.
+      CSimpleType type = (CSimpleType) calculationType;
+
+      if(type.getType() == CBasicType.INT) {
+        // Both l and r must be of the same type, which in this case is INT, so we can cast to long.
+        long lVal = l.getNumber().longValue();
+        long rVal = l.getNumber().longValue();
+        long result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+        return new NumberContainer(CNumericTypes.INT, new BigDecimal(result));
+      } else if(type.getType() == CBasicType.FLOAT) {
+        // TODO: implement arithmetic operations for floats
+        throw new AssertionError("floats not implemented yet!");
+      } else {
+        throw new AssertionError("unsupported type of result of binary operation: "+type);
+      }
+    } catch(ClassCastException e) {
+      throw new AssertionError("unsupported type of result of binary operation:"+calculationType);
     }
   }
 
