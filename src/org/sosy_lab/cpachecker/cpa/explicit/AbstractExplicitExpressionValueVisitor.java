@@ -107,10 +107,10 @@ import com.google.common.primitives.UnsignedLongs;
  * to get values stored in the memory of a program.
  */
 public abstract class AbstractExplicitExpressionValueVisitor
-    extends DefaultCExpressionVisitor<Long, UnrecognizedCCodeException>
-    implements CRightHandSideVisitor<Long, UnrecognizedCCodeException>,
-    JRightHandSideVisitor<Long, RuntimeException>,
-    JExpressionVisitor<Long, RuntimeException> {
+    extends DefaultCExpressionVisitor<NumberContainer, UnrecognizedCCodeException>
+    implements CRightHandSideVisitor<NumberContainer, UnrecognizedCCodeException>,
+    JRightHandSideVisitor<NumberContainer, RuntimeException>,
+    JExpressionVisitor<NumberContainer, RuntimeException> {
 
   /** length of type LONG in Java. */
   private final static int SIZE_OF_JAVA_LONG = 64;
