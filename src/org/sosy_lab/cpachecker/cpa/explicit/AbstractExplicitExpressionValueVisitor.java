@@ -921,6 +921,44 @@ public abstract class AbstractExplicitExpressionValueVisitor
         }
       }
 
+      case FLOAT:
+      case DOUBLE: {
+        // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
+        // TODO: because of differences between C and Java, there may still be inaccuracies here
+        NumberContainer result = null;
+
+        BigDecimal valueDecimal = value.getNumber();
+        CBasicType basicType = value.getType().getType();
+        if(basicType == CBasicType.INT) {
+          long longValue = valueDecimal.longValue();
+          // TODO: ensure the long fits into our float type, if not, clip it
+          result = new NumberContainer(st, new BigDecimal(longValue));
+        } else if(basicType == CBasicType.FLOAT || basicType == CBasicType.DOUBLE) {
+          // There are two possibilities here: Either we're converting to float or double.
+          //
+          // If we're converting to double, we should not lose precision, unless java's
+          // doubles are smaller than C's doubles.
+          //
+          // If we're converting to float, we must lose precision in order to be accurate.
+          // For that, we simply convert our value to a java float using BigDecimal.floatValue().
+          //
+          // TODO: handle long, long long modifiers and so on(can java even represent a `long double`?)
+
+          if(st.getType() == CBasicType.FLOAT) {
+            double floatValue = valueDecimal.floatValue();
+            result = new NumberContainer(st, new BigDecimal(floatValue));
+          } else {
+            // Must be a double
+            double doubleValue = valueDecimal.doubleValue();
+            result = new NumberContainer(st, new BigDecimal(doubleValue));
+          }
+        } else {
+          throw new AssertionError("Trying to cast unsupported type to float or double: "+st);
+        }
+
+        return result;
+      }
+
       default:
         return value; // currently we do not handle floats, doubles or voids
       }
