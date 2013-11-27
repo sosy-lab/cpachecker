@@ -36,21 +36,7 @@ public class NumberContainer {
 
   private CSimpleType type;
 
-  private NumberTypes ntype;
-
   private BigDecimal number;
-
-  /**
-   * Creates a new <code>NumberContainer</code>, given the type and a
-   * <code>BigDecimal</code>.
-   * @param pType the inital type of the number. Must be from
-   *        <code>NumberTypes</code>.
-   * @param pNumber the value of the number (must be a <code>BigDecimal</code>)
-   */
-  public NumberContainer(NumberTypes pType, BigDecimal pNumber) {
-    ntype = pType;
-    number = pNumber;
-  }
 
   /**
    * Creates a new <code>NumberContainer</code>, given the type and a
@@ -61,19 +47,6 @@ public class NumberContainer {
   public NumberContainer(CSimpleType pType, BigDecimal pNumber) {
     type = pType;
     number = pNumber;
-  }
-
-  /**
-   * Creates a new <code>NumberContainer</code>, given a type and a
-   * <code>String</code> used to create the <code>BigDecimal</code>.
-   *
-   * @param pType the inital type of the number. Must be from
-   *        <code>NumberTypes</code>.
-   * @param pNumber the value of the number
-   */
-  public NumberContainer(NumberTypes pType, String pNumber) {
-    ntype = pType;
-    number = new BigDecimal(pNumber);
   }
 
   /**
@@ -96,25 +69,6 @@ public class NumberContainer {
    */
   public CSimpleType getType() {
     return type;
-  }
-
-  //  /**
-  //   * Returns the inital type of the number stored in the container.
-  //   *
-  //   * @return the type of the number stored in the container.
-  //   */
-  //  public CSimpleType getType() {
-  //    return type;
-  //  }
-
-
-  /**
-   * Sets the type of the number stored in the container.
-   *
-   * @param pType the type of the number. Must be from <code>NumberTypes</code>.
-   */
-  public void setType(NumberTypes pType) {
-    ntype = pType;
   }
 
   /**
