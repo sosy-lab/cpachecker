@@ -34,6 +34,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -130,21 +131,28 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   @Override
   protected SignState handleFunctionReturnEdge(FunctionReturnEdge pCfaEdge, FunctionSummaryEdge pFnkCall,
       AFunctionCall pSummaryExpr, String pCallerFunctionName) throws CPATransferException {
-    if(!(pSummaryExpr instanceof AFunctionCallAssignmentStatement)) {
-      throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
-    }
-    AFunctionCallAssignmentStatement assignStmt = (AFunctionCallAssignmentStatement)pSummaryExpr;
-    IAExpression leftSide = assignStmt.getLeftHandSide();
-    if(!(leftSide instanceof AIdExpression)) {
-      throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
-    }
-    String returnVarName = getScopedVariableName(FUNC_RET_VAR, functionName);
-    String assignedVarName = getScopedVariableName(leftSide, pCallerFunctionName);
 
-    SignState result = state
-                        .assignSignToVariable(assignedVarName, state.getSignMap().getSignForVariable(returnVarName))
-                        .removeSignAssumptionOfVariable(returnVarName);
-    return result;
+    // x = fun();
+    if (pSummaryExpr instanceof AFunctionCallAssignmentStatement) {
+      AFunctionCallAssignmentStatement assignStmt = (AFunctionCallAssignmentStatement) pSummaryExpr;
+      IAExpression leftSide = assignStmt.getLeftHandSide();
+      if (!(leftSide instanceof AIdExpression)) { throw new UnrecognizedCodeException("Unsupported code found",
+          pCfaEdge); }
+      String returnVarName = getScopedVariableName(FUNC_RET_VAR, functionName);
+      String assignedVarName = getScopedVariableName(leftSide, pCallerFunctionName);
+
+      SignState result = state
+          .assignSignToVariable(assignedVarName, state.getSignMap().getSignForVariable(returnVarName))
+          .removeSignAssumptionOfVariable(returnVarName);
+      return result;
+    }
+
+    // fun()
+    if (pSummaryExpr instanceof AFunctionCallStatement) {
+      return state.removeSignAssumptionOfVariable(getScopedVariableName(FUNC_RET_VAR, functionName));
+    }
+
+    throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
   }
 
 
