@@ -418,17 +418,17 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
   @Override
   public NumberContainer visit(CCharLiteralExpression pE) throws UnrecognizedCCodeException {
-    return (long) pE.getCharacter();
+    return new NumberContainer(CNumericTypes.CHAR, (long) pE.getValue());
   }
 
   @Override
   public NumberContainer visit(CFloatLiteralExpression pE) throws UnrecognizedCCodeException {
-    return pE.asLong();
+    return new NumberContainer(CNumericTypes.DOUBLE, pE.getValue());
   }
 
   @Override
   public NumberContainer visit(CIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
-    return pE.asLong();
+    return new NumberContainer(CNumericTypes.INT, pE.getValue());
   }
 
   @Override
