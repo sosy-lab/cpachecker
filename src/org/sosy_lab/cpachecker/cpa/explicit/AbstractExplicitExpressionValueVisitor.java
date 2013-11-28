@@ -454,9 +454,11 @@ public abstract class AbstractExplicitExpressionValueVisitor
     final UnaryOperator unaryOperator = unaryExpression.getOperator();
     final CExpression unaryOperand = unaryExpression.getOperand();
 
-    if (unaryOperator == UnaryOperator.SIZEOF) { return (long) machineModel.getSizeof(unaryOperand.getExpressionType()); }
+    if (unaryOperator == UnaryOperator.SIZEOF) {
+      return new NumberContainer(machineModel.getSizeof(unaryOperand.getExpressionType()));
+    }
 
-    final Long value = unaryOperand.accept(this);
+    final NumberContainer value = unaryOperand.accept(this);
 
     if (value == null && unaryOperator != UnaryOperator.SIZEOF) {
       return null;
@@ -467,17 +469,17 @@ public abstract class AbstractExplicitExpressionValueVisitor
       return value;
 
     case MINUS:
-      return -value;
+      return new NumberContainer(value.getType(), value.bigDecimalValue().negate());
 
     case NOT:
-      return (value == 0L) ? 1L : 0L;
+      return new NumberContainer((value.doubleValue() == 0L) ? 1L : 0L);
 
     case SIZEOF:
       throw new AssertionError("SIZEOF should be handled before!");
 
     case AMPER: // valid expression, but it's a pointer value
       // TODO Not precise enough
-      return getSizeof(unaryOperand.getExpressionType());
+      return new NumberContainer(getSizeof(unaryOperand.getExpressionType()));
     case TILDE:
     default:
       // TODO handle unimplemented operators
