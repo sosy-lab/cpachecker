@@ -924,36 +924,23 @@ public abstract class AbstractExplicitExpressionValueVisitor
       case FLOAT:
       case DOUBLE: {
         // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
-        // TODO: because of differences between C and Java, there may still be inaccuracies here
+        // TODO: check for overflow(source larger than the highest number we can store in target etc.)
+
+        double doubleValue = value.doubleValue();
         NumberContainer result = null;
 
-        BigDecimal valueDecimal = value.getNumber();
-        CBasicType basicType = value.getType().getType();
-        if(basicType == CBasicType.INT) {
-          long longValue = valueDecimal.longValue();
-          // TODO: ensure the long fits into our float type, if not, clip it
-          result = new NumberContainer(st, new BigDecimal(longValue));
-        } else if(basicType == CBasicType.FLOAT || basicType == CBasicType.DOUBLE) {
-          // There are two possibilities here: Either we're converting to float or double.
-          //
-          // If we're converting to double, we should not lose precision, unless java's
-          // doubles are smaller than C's doubles.
-          //
-          // If we're converting to float, we must lose precision in order to be accurate.
-          // For that, we simply convert our value to a java float using BigDecimal.floatValue().
-          //
-          // TODO: handle long, long long modifiers and so on(can java even represent a `long double`?)
+        final int bitPerByte = machineModel.getSizeofCharInBits();
+        final int numBytes = machineModel.getSizeof(st);
+        final int size = bitPerByte * numBytes;
 
-          if(st.getType() == CBasicType.FLOAT) {
-            double floatValue = valueDecimal.floatValue();
-            result = new NumberContainer(st, new BigDecimal(floatValue));
-          } else {
-            // Must be a double
-            double doubleValue = valueDecimal.doubleValue();
-            result = new NumberContainer(st, new BigDecimal(doubleValue));
-          }
+        if(size == 32) {
+          // 32 bit means Java float
+          result = new NumberContainer(st, (float) doubleValue);
+        } else if(size == 64) {
+          // 64 bit means Java double
+          result = new NumberContainer(st, doubleValue);
         } else {
-          throw new AssertionError("Trying to cast unsupported type to float or double: "+st);
+          throw new AssertionError("Trying to cast to unsupported floating point type: "+st);
         }
 
         return result;

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.math.BigDecimal;
+
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 
@@ -46,7 +48,7 @@ public class NumberContainer {
     type = pType;
     number = pNumber;
   }
-  
+
   /*
    * Returns the C type of the number stored in the container.
    *
@@ -56,7 +58,7 @@ public class NumberContainer {
   public CSimpleType getType() {
     return type;
   }
-  
+
   /**
    * Returns the number stored in the container.
    *
@@ -64,6 +66,39 @@ public class NumberContainer {
    */
   public Number getNumber() {
     return number;
+  }
+
+  /**
+   * Returns the integer stored in the container as long. Before calling this function,
+   * it must be ensured using `getType()` that this container contains an integer.
+   * @return
+   */
+  public long longValue() {
+    return number.longValue();
+  }
+
+  /**
+   * Returns the floating point stored in the container as float.
+   * @return
+   */
+  public float floatValue() {
+    return number.floatValue();
+  }
+
+  /**
+   * Returns the floating point stored in the container as double.
+   * @return
+   */
+  public double doubleValue() {
+    return number.doubleValue();
+  }
+
+  /**
+   * Returns a BigDecimal value representing the stored number.
+   */
+  public BigDecimal bigDecimalValue() {
+
+    return new BigDecimal(number.toString());
   }
 
   /* (non-Javadoc)
