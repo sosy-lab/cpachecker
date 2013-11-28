@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.math.BigDecimal;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 
@@ -97,8 +98,11 @@ public class NumberContainer {
    * Returns a BigDecimal value representing the stored number.
    */
   public BigDecimal bigDecimalValue() {
-
     return new BigDecimal(number.toString());
+  }
+
+  public NumberContainer(long longValue) {
+    this(CNumericTypes.LONG_INT, longValue);
   }
 
   /* (non-Javadoc)

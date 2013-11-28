@@ -237,7 +237,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
       final boolean tmp = booleanOperation(lVal, rVal, binaryOperator, calculationType, machineModel);
       // return 1 if expression holds, 0 otherwise
-      result = new NumberContainer(CNumericTypes.LONG_INT, new BigDecimal(tmp ? 1L : 0L));
+      result = new NumberContainer(tmp ? 1L : 0L);
       // we do not cast here, because 0 and 1 should be small enough for every type.
 
       break;
@@ -361,42 +361,21 @@ public abstract class AbstractExplicitExpressionValueVisitor
       final BinaryOperator op, final CType calculationType,
       final MachineModel machineModel) {
 
-    // special handling for UNSIGNED_LONGLONG (32 and 64bit), UNSIGNED_LONG (64bit)
-    // because Java only has SIGNED_LONGLONG
-    if (calculationType instanceof CSimpleType) {
-      final CSimpleType st = (CSimpleType) calculationType;
-      if (machineModel.getSizeof(st) * machineModel.getSizeofCharInBits() >= SIZE_OF_JAVA_LONG
-          && st.isUnsigned()) {
-        final int cmp = UnsignedLongs.compare(l, r);
-        switch (op) {
-        case GREATER_THAN:
-          return cmp > 0;
-        case GREATER_EQUAL:
-          return cmp >= 0;
-        case LESS_THAN:
-          return cmp < 0;
-        case LESS_EQUAL:
-          return cmp <= 0;
-        }
-      }
-    }
+    BigDecimal lVal = l.bigDecimalValue();
+    BigDecimal rVal = r.bigDecimalValue();
 
+    final int cmp = lVal.compareTo(rVal);
     switch (op) {
-    case EQUALS:
-      return (l == r);
-    case NOT_EQUALS:
-      return (l != r);
-    case GREATER_THAN:
-      return (l > r);
-    case GREATER_EQUAL:
-      return (l >= r);
-    case LESS_THAN:
-      return (l < r);
-    case LESS_EQUAL:
-      return (l <= r);
-
-    default:
-      throw new AssertionError("unknown binary operation: " + op);
+      case GREATER_THAN:
+        return cmp > 0;
+      case GREATER_EQUAL:
+        return cmp >= 0;
+      case LESS_THAN:
+        return cmp < 0;
+      case LESS_EQUAL:
+        return cmp <= 0;
+      default:
+        throw new AssertionError("unknown binary operation: " + op);
     }
   }
 
@@ -449,7 +428,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
     switch (idOperator) {
     case SIZEOF:
       int size = machineModel.getSizeof(innerType);
-      return (long) size;
+      return new NumberContainer(size);
 
     default: // TODO support more operators
       return null;
@@ -461,7 +440,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
       if (enumerator.hasValue()) {
-        return enumerator.getValue();
+        return new NumberContainer(enumerator.getValue());
       } else {
         return null;
       }
@@ -524,7 +503,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
   @Override
   public NumberContainer visit(JCharLiteralExpression pE) {
-    return (long) pE.getCharacter();
+    return new NumberContainer(pE.getCharacter());
   }
 
   @Override
