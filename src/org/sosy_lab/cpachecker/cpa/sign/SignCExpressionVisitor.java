@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
@@ -65,6 +66,10 @@ public class SignCExpressionVisitor
 
   @Override
   public SIGN visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCodeException {
+    // e.g. x = non_det() where non_det is extern, unknown function allways assume returns any value
+    if(pIastFunctionCallExpression.getExpressionType() instanceof CSimpleType){
+    return SIGN.ALL;
+    }
     return null;
   }
 
