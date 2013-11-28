@@ -367,6 +367,41 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
   }
 
+  private static float arithmeticOperation(final float l, final float r,
+      final BinaryOperator op, final CType calculationType,
+      final MachineModel machineModel, final LogManager logger) {
+
+    switch (op) {
+    case PLUS:
+      return l + r;
+    case MINUS:
+      return l - r;
+    case DIVIDE:
+      if (r == 0) {
+        logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
+        return 0;
+      }
+      return l / r;
+    case MODULO:
+      return l % r; // TODO in C always sign of first operand?
+    case MULTIPLY:
+      return l * r;
+    case SHIFT_LEFT:
+      throw new AssertionError("trying to perform shift on floating point operands");
+    case SHIFT_RIGHT:
+      throw new AssertionError("trying to perform shift on floating point operands");
+    case BINARY_AND:
+      throw new AssertionError("trying to perform binary and on floating point operands");
+    case BINARY_OR:
+      throw new AssertionError("trying to perform binary or on floating point operands");
+    case BINARY_XOR:
+      throw new AssertionError("trying to perform binary xor on floating point operands");
+    default:
+      throw new AssertionError("unknown binary operation: " + op);
+    }
+
+  }
+
   private static NumberContainer arithmeticOperation(final NumberContainer l, final NumberContainer r,
       final BinaryOperator op, final CType calculationType,
       final MachineModel machineModel, final LogManager logger) {
@@ -386,6 +421,11 @@ public abstract class AbstractExplicitExpressionValueVisitor
         double rVal = r.doubleValue();
         double result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
         return new NumberContainer(CNumericTypes.DOUBLE, result);
+      } else if(type.getType() == CBasicType.FLOAT) {
+        float lVal = l.floatValue();
+        float rVal = r.floatValue();
+        float result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+        return new NumberContainer(CNumericTypes.FLOAT, result);
       } else {
         throw new AssertionError("unsupported type of result of binary operation: "+type);
       }
