@@ -110,8 +110,8 @@ import com.google.common.primitives.UnsignedLongs;
 public abstract class AbstractExplicitExpressionValueVisitor
     extends DefaultCExpressionVisitor<NumberContainer, UnrecognizedCCodeException>
     implements CRightHandSideVisitor<NumberContainer, UnrecognizedCCodeException>,
-    JRightHandSideVisitor<NumberContainer, RuntimeException>,
-    JExpressionVisitor<NumberContainer, RuntimeException> {
+    JRightHandSideVisitor<Long, RuntimeException>,
+    JExpressionVisitor<Long, RuntimeException> {
 
   /** length of type LONG in Java. */
   private final static int SIZE_OF_JAVA_LONG = 64;
@@ -504,22 +504,22 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public NumberContainer visit(JCharLiteralExpression pE) {
-    return new NumberContainer(pE.getCharacter());
+  public Long visit(JCharLiteralExpression pE) {
+    return (long) pE.getCharacter();
   }
 
   @Override
-  public NumberContainer visit(JThisExpression thisExpression) {
+  public Long visit(JThisExpression thisExpression) {
     return null;
   }
 
   @Override
-  public NumberContainer visit(JStringLiteralExpression pPaStringLiteralExpression) {
+  public Long visit(JStringLiteralExpression pPaStringLiteralExpression) {
     return null;
   }
 
   @Override
-  public NumberContainer visit(JBinaryExpression pE) {
+  public Long visit(JBinaryExpression pE) {
 
     org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator binaryOperator = pE.getOperator();
     JExpression lVarInBinaryExp = pE.getOperand1();
@@ -633,7 +633,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public NumberContainer visit(JIdExpression idExp) {
+  public Long visit(JIdExpression idExp) {
 
 
     IASimpleDeclaration decl = idExp.getDeclaration();
@@ -650,7 +650,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public NumberContainer visit(JUnaryExpression unaryExpression) {
+  public Long visit(JUnaryExpression unaryExpression) {
 
     JUnaryExpression.UnaryOperator unaryOperator = unaryExpression.getOperator();
     JExpression unaryOperand = unaryExpression.getOperand();
@@ -685,68 +685,68 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public NumberContainer visit(JIntegerLiteralExpression pE) {
+  public Long visit(JIntegerLiteralExpression pE) {
     return pE.asLong();
   }
 
   @Override
-  public NumberContainer visit(JBooleanLiteralExpression pE) {
+  public Long visit(JBooleanLiteralExpression pE) {
     return ((pE.getValue()) ? 1l : 0l);
   }
 
   @Override
-  public NumberContainer visit(JFloatLiteralExpression pJBooleanLiteralExpression) {
+  public Long visit(JFloatLiteralExpression pJBooleanLiteralExpression) {
     return null;
   }
 
   @Override
-  public NumberContainer visit(JMethodInvocationExpression pAFunctionCallExpression) {
+  public Long visit(JMethodInvocationExpression pAFunctionCallExpression) {
     return null;
   }
 
   @Override
-  public NumberContainer visit(JArrayCreationExpression aCE) {
+  public Long visit(JArrayCreationExpression aCE) {
     return null;
   }
 
   @Override
-  public NumberContainer visit(JArrayInitializer pJArrayInitializer) {
+  public Long visit(JArrayInitializer pJArrayInitializer) {
     return null;
   }
 
   @Override
-  public NumberContainer visit(JArraySubscriptExpression pAArraySubscriptExpression) {
+  public Long visit(JArraySubscriptExpression pAArraySubscriptExpression) {
     return pAArraySubscriptExpression.getSubscriptExpression().accept(this);
   }
 
   @Override
-  public NumberContainer visit(JClassInstanceCreation pJClassInstanzeCreation) {
+  public Long visit(JClassInstanceCreation pJClassInstanzeCreation) {
     return null;
   }
 
   @Override
-  public NumberContainer visit(JVariableRunTimeType pJThisRunTimeType) {
+  public Long visit(JVariableRunTimeType pJThisRunTimeType) {
     return null;
   }
 
   @Override
-  public NumberContainer visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) {
+  public Long visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) {
     return null;
   }
 
   @Override
-  public NumberContainer visit(JNullLiteralExpression pJNullLiteralExpression) {
+  public Long visit(JNullLiteralExpression pJNullLiteralExpression) {
     return null;
   }
 
   @Override
-  public NumberContainer visit(JEnumConstantExpression pJEnumConstantExpression) {
+  public Long visit(JEnumConstantExpression pJEnumConstantExpression) {
     missingEnumComparisonInformation = true;
     return null;
   }
 
   @Override
-  public NumberContainer visit(JCastExpression pJCastExpression) {
+  public Long visit(JCastExpression pJCastExpression) {
     return pJCastExpression.getOperand().accept(this);
   }
 
@@ -756,7 +756,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
   protected abstract NumberContainer evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException;
 
-  protected abstract NumberContainer evaluateJIdExpression(JIdExpression varName);
+  protected abstract Long evaluateJIdExpression(JIdExpression varName);
 
   protected abstract NumberContainer evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException;
 
