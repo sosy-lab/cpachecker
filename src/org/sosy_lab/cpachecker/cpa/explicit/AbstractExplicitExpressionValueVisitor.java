@@ -851,23 +851,24 @@ public abstract class AbstractExplicitExpressionValueVisitor
         final int size = bitPerByte * numBytes;
 
         if ((size < SIZE_OF_JAVA_LONG) || (size == SIZE_OF_JAVA_LONG && st.isSigned())
-            || ((value.getNumber().compareTo(new BigDecimal(Long.MAX_VALUE / 2)) == -1)
-                && (value.getNumber().compareTo(new BigDecimal(Long.MAX_VALUE / 2)) == 1))) {
+            || ((value.bigDecimalValue().compareTo(new BigDecimal(Long.MAX_VALUE / 2)) == -1)
+                && (value.bigDecimalValue().compareTo(new BigDecimal(Long.MAX_VALUE / 2)) == 1))) {
           // we can handle this with java-type "long"
 
           final BigDecimal maxValue = new BigDecimal(1L << size); // 2^size
 
-          NumberContainer result = value;
+          // TODO: make sure `result` is an integral
+          BigDecimal result = value.bigDecimalValue();
 
           if (size < SIZE_OF_JAVA_LONG) { // otherwise modulo is useless, because result would be 1
-            result.setNumber(value.getNumber().remainder(maxValue)); // shrink to number of bits
+            result = result.remainder(maxValue); // shrink to number of bits
 
             if (st.isSigned() ||
                 (st.getType() == CBasicType.CHAR && !st.isUnsigned() && machineModel.isDefaultCharSigned())) {
-              if ((result.getNumber().compareTo((maxValue.divide(new BigDecimal(2)).subtract(new BigDecimal(-1))))) == 1) {
-                result.setNumber(result.getNumber().subtract(maxValue));
-              } else if (result.getNumber().compareTo((new BigDecimal(2).subtract(new BigDecimal(-1))).negate()) == -1) {
-                result.setNumber(result.getNumber().add(maxValue));
+              if ((result.compareTo((maxValue.divide(new BigDecimal(2)).subtract(new BigDecimal(-1))))) == 1) {
+                result = result.subtract(maxValue);
+              } else if (result.compareTo((new BigDecimal(2).subtract(new BigDecimal(-1))).negate()) == -1) {
+                result = result.add(maxValue);
               }
             }
           }
@@ -880,11 +881,11 @@ public abstract class AbstractExplicitExpressionValueVisitor
           }
 
           if (st.isUnsigned()
-              && (value.getNumber().compareTo(new BigDecimal(0)) == -1)) {
+              && (result.compareTo(new BigDecimal(0)) == -1)) {
 
             if (size < SIZE_OF_JAVA_LONG) {
               // value is negative, so adding maxValue makes it positive
-              result.setNumber(result.getNumber().add(maxValue));
+              result = result.add(maxValue);
 
               if (loggedEdges.add(edge)) {
                 logger.logf(Level.INFO,
@@ -905,8 +906,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
             }
           }
 
-          return result;
-
+          return new NumberContainer(st, result.longValue());
         } else {
           // java-type "long" is too small for big types like UNSIGNED_LONGLONG,
           // so we do nothing here and trust the analysis, that handles it later
