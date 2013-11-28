@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.math.BigDecimal;
-
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 
@@ -36,7 +34,7 @@ public class NumberContainer {
 
   private CSimpleType type;
 
-  private BigDecimal number;
+  private Number number;
 
   /**
    * Creates a new <code>NumberContainer</code>, given the type and a
@@ -44,24 +42,12 @@ public class NumberContainer {
    * @param pType the inital type of the number.
    * @param pNumber the value of the number (must be a <code>BigDecimal</code>)
    */
-  public NumberContainer(CSimpleType pType, BigDecimal pNumber) {
+  public NumberContainer(CSimpleType pType, Number pNumber) {
     type = pType;
     number = pNumber;
   }
-
-  /**
-   * Creates a new <code>NumberContainer</code>, given a type and a
-   * <code>String</code> used to create the <code>BigDecimal</code>.
-   *
-   * @param pType the inital type of the number.
-   * @param pNumber the value of the number
-   */
-  public NumberContainer(CSimpleType pType, String pNumber) {
-    type = pType;
-    number = new BigDecimal(pNumber);
-  }
-
-  /**
+  
+  /*
    * Returns the C type of the number stored in the container.
    *
    * @return The type of the number stored in the container. Must be a CSimpleType
@@ -70,35 +56,15 @@ public class NumberContainer {
   public CSimpleType getType() {
     return type;
   }
-
-  /**
-   * Sets the type of the number stored in the container.
-   *
-   * @param pType the type of the number.
-   */
-  public void setType(CSimpleType pType) {
-    type = pType;
-  }
-
+  
   /**
    * Returns the number stored in the container.
    *
    * @return the number stored in the container
    */
-  public BigDecimal getNumber() {
+  public Number getNumber() {
     return number;
   }
-
-
-  /**
-   * Sets the number stored in the container.
-   *
-   * @param pNumber the number to store in the container
-   */
-  public void setNumber(BigDecimal pNumber) {
-    number = pNumber;
-  }
-
 
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
