@@ -30,8 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 
 /**
- * Container that stores a number and its inital data type. The type must be
- * from <code>NumerTypes</code>.
+ * Container that stores a number and its inital data type.
  */
 public class NumberContainer {
 
@@ -50,7 +49,7 @@ public class NumberContainer {
     number = pNumber;
   }
 
-  /*
+  /**
    * Returns the C type of the number stored in the container.
    *
    * @return The type of the number stored in the container. Must be a CSimpleType

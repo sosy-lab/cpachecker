@@ -910,7 +910,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
         if ((size < SIZE_OF_JAVA_LONG) || (size == SIZE_OF_JAVA_LONG && st.isSigned())
             || ((value.bigDecimalValue().compareTo(new BigDecimal(Long.MAX_VALUE / 2)) == -1)
-                && (value.bigDecimalValue().compareTo(new BigDecimal(Long.MAX_VALUE / 2)) == 1))) {
+                && (value.bigDecimalValue().compareTo(new BigDecimal(Long.MIN_VALUE / 2)) == 1))) {
           // we can handle this with java-type "long"
 
           final BigDecimal maxValue = new BigDecimal(1L << size); // 2^size
@@ -925,17 +925,17 @@ public abstract class AbstractExplicitExpressionValueVisitor
                 (st.getType() == CBasicType.CHAR && !st.isUnsigned() && machineModel.isDefaultCharSigned())) {
               if ((result.compareTo((maxValue.divide(new BigDecimal(2)).subtract(new BigDecimal(-1))))) == 1) {
                 result = result.subtract(maxValue);
-              } else if (result.compareTo((new BigDecimal(2).subtract(new BigDecimal(-1))).negate()) == -1) {
+              } else if (result.compareTo((maxValue.divide(new BigDecimal(2))).negate()) == -1) {
                 result = result.add(maxValue);
               }
             }
           }
 
-          if (!result.equals(value) && loggedEdges.add(edge)) {
+          if (!result.equals(value.bigDecimalValue()) && loggedEdges.add(edge)) {
             logger.logf(Level.INFO,
                 "overflow in line %d: value %d is to big for type '%s', casting to %d.",
                 edge == null ? null : edge.getLineNumber(),
-                value, targetType, result);
+                value.longValue(), targetType, result.longValue());
           }
 
           if (st.isUnsigned()
@@ -949,7 +949,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
                 logger.logf(Level.INFO,
                     "overflow in line %d: target-type is '%s', value %d is changed to %d.",
                     edge == null ? null : edge.getLineNumber(),
-                    targetType, value, result);
+                    targetType, value.longValue(), result.longValue());
               }
 
             } else {
@@ -959,7 +959,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
                 logger.logf(Level.INFO,
                     "overflow in line %d: value %s of c-type '%s' may be too big for java-type 'long'.",
                     edge == null ? null : edge.getLineNumber(),
-                    value, targetType);
+                    value.longValue(), targetType);
               }
             }
           }
@@ -972,7 +972,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
             logger.logf(Level.INFO,
                 "overflow in line %d: value %s of c-type '%s' may be too big for java-type 'long'.",
                 edge == null ? null : edge.getLineNumber(),
-                value, targetType);
+                value.longValue(), targetType);
           }
 
           return value;

@@ -303,7 +303,7 @@ public class ExpressionValueVisitorTest {
         new CIntegerLiteralExpression(loc, null, BigInteger.valueOf(in)),
         outType);
 
-    // System.out.println(String.format("(%s) %d == %d == %d", outType, in, expectedOut, value));
+    System.out.println(String.format("(%s) %d == %d == %d", outType, in, expectedOut, value.longValue()));
 
     Assert.assertTrue(expectedOut == value.longValue());
   }
