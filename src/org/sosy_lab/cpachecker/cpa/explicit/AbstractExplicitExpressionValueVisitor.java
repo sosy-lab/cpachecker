@@ -923,7 +923,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
             if (st.isSigned() ||
                 (st.getType() == CBasicType.CHAR && !st.isUnsigned() && machineModel.isDefaultCharSigned())) {
-              if ((result.compareTo((maxValue.divide(new BigDecimal(2)).subtract(new BigDecimal(-1))))) == 1) {
+              if ((result.compareTo(((maxValue.divide(new BigDecimal(2))).subtract(new BigDecimal(1))))) == 1) {
                 result = result.subtract(maxValue);
               } else if (result.compareTo((maxValue.divide(new BigDecimal(2))).negate()) == -1) {
                 result = result.add(maxValue);
