@@ -8,6 +8,6 @@ void main()
     }
     if(x==y)
     {
-	x--;
+	x=x-1;
     }
 }
