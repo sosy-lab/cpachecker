@@ -176,6 +176,7 @@ public class SignCExpressionVisitor
     }
 
     // TODO add cases with zero
+    // TODO add special case PLUS -1 => PLUS0 and MINUS + 1 => MINUS0
     /*
      * + + - => ?
      * - + + => ?
