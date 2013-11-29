@@ -87,13 +87,13 @@ public class SignCExpressionVisitor
   public SIGN visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCodeException {
     SIGN left = pIastBinaryExpression.getOperand1().accept(this);
     SIGN right = pIastBinaryExpression.getOperand2().accept(this);
+    Set<SIGN> leftAtomSigns = left.split();
+    Set<SIGN> rightAtomSigns = right.split();
     switch(pIastBinaryExpression.getOperator()) {
     case PLUS:
     case MINUS:
     case MULTIPLY:
     case DIVIDE:
-      Set<SIGN> leftAtomSigns = left.split();
-      Set<SIGN> rightAtomSigns = right.split();
       SIGN result = SIGN.EMPTY;
       for(List<SIGN> signCombi : Sets.cartesianProduct(ImmutableList.of(leftAtomSigns, rightAtomSigns))) {
         result = result.combineWith(evaluateBinaryExpr(signCombi.get(0), pIastBinaryExpression.getOperator(), signCombi.get(1)));
