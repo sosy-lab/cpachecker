@@ -44,6 +44,9 @@ public class ARGDumper implements PostProcessor {
   @Option(name="dumpARG", description="export final ARG as C program")
   private boolean dumpARG = false;
 
+  @Option(name = "addInclude", description = "whether or not add #include <stdio.h> in front of transformed program")
+  private boolean addDefaultInclude = true;
+
   @Option(name="dumpFile", description="export final ARG as .c file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File dumpFile = new File("ARG.c");
@@ -63,7 +66,7 @@ public class ARGDumper implements PostProcessor {
       //generate source code out of given ARG / ReachedSet
       ARGState argRoot = (ARGState) pReached.getFirstState();
       try {
-        Files.writeFile(dumpFile, ARGToCTranslator.translateARG(argRoot, pReached));
+        Files.writeFile(dumpFile, ARGToCTranslator.translateARG(argRoot, pReached, addDefaultInclude));
         t.stop();
         System.out.println("ARGToC translation took " + t);
       } catch (IOException e) {

@@ -176,19 +176,21 @@ public class ARGToCTranslator {
 
   private ARGToCTranslator() { }
 
-  public static String translateARG(ARGState argRoot, ReachedSet pReached) {
+  public static String translateARG(ARGState argRoot, ReachedSet pReached, boolean includeHeader) {
     reached = pReached.asCollection();
     ARGToCTranslator translator = new ARGToCTranslator();
 
     translator.translate(argRoot);
 
-    return translator.generateCCode();
+    return translator.generateCCode(includeHeader);
   }
 
-  private String generateCCode() {
+  private String generateCCode(boolean includeHeader) {
     StringBuffer buffer = new StringBuffer();
 
-    buffer.append("#include <stdio.h>\n");
+    if (includeHeader) {
+      buffer.append("#include <stdio.h>\n");
+    }
     for(String globalDef : globalDefinitionsList) {
       buffer.append(globalDef + "\n");
     }
@@ -400,17 +402,23 @@ public class ARGToCTranslator {
 
     case StatementEdge: {
       CStatementEdge lStatementEdge = (CStatementEdge)pCFAEdge;
-      return lStatementEdge.getStatement().toASTString() + ";";
+      return lStatementEdge.getStatement().toASTString() + (lStatementEdge.getStatement().toASTString().endsWith(";") ? "" : ";");
     }
 
     case DeclarationEdge: {
       CDeclarationEdge lDeclarationEdge = (CDeclarationEdge)pCFAEdge;
+      String declaration;
+      // TODO adapt if String in org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
+      if (lDeclarationEdge.getDeclaration().toASTString().contains("__CPAchecker_TMP_")) {
+        declaration = lDeclarationEdge.getDeclaration().toASTString();
+      } else {
+        declaration = lDeclarationEdge.getRawStatement();
+      }
 
       if (lDeclarationEdge.getDeclaration().isGlobal()) {
-        String rawStatement = lDeclarationEdge.getRawStatement();
-        globalDefinitionsList.add(rawStatement + (rawStatement.endsWith(";") ? "" : ";"));
+        globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
       } else {
-        return lDeclarationEdge.getRawStatement();
+        return declaration;
       }
 
       break;
