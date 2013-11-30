@@ -25,12 +25,14 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
+
 
 /**
  * This interface represents the Rational-Theory
  */
 public interface RationalFormulaManager {
-  public RationalFormula makeNumber(long pI);
+  public RationalFormula makeNumber(NumberContainer pI);
   public RationalFormula makeNumber(BigInteger pI);
   public RationalFormula makeNumber(String pI);
 

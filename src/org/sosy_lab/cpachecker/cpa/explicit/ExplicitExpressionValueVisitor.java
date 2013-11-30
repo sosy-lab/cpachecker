@@ -86,17 +86,18 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
   }
 
   @Override
-  protected Long evaluateCIdExpression(CIdExpression varName) {
+  protected NumberContainer evaluateCIdExpression(CIdExpression varName) {
     return evaluateAIdExpression(varName);
   }
 
   @Override
   protected Long evaluateJIdExpression(JIdExpression varName) {
-    return evaluateAIdExpression(varName);
+     return null; // TODO java
+    //return evaluateAIdExpression(varName);
   }
 
   /** This method returns the value of a variable from the current state. */
-  private Long evaluateAIdExpression(AIdExpression varName) {
+  private NumberContainer evaluateAIdExpression(AIdExpression varName) {
 
     MemoryLocation memLoc;
 
@@ -113,7 +114,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
     }
   }
 
-  private Long evaluateLValue(CLeftHandSide pLValue) throws UnrecognizedCCodeException {
+  private NumberContainer evaluateLValue(CLeftHandSide pLValue) throws UnrecognizedCCodeException {
 
     MemoryLocation varLoc = evaluateMemoryLocation(pLValue);
 
@@ -129,17 +130,17 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
   }
 
   @Override
-  protected Long evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+  protected NumberContainer evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
     return evaluateLValue(pLValue);
   }
 
   @Override
-  protected Long evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue) throws UnrecognizedCCodeException {
+  protected NumberContainer evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue) throws UnrecognizedCCodeException {
     return evaluateLValue(pLValue);
   }
 
   @Override
-  protected Long evaluateCPointerExpression(CPointerExpression pVarName) {
+  protected NumberContainer evaluateCPointerExpression(CPointerExpression pVarName) {
     missingPointer = true;
     return null;
   }
@@ -190,7 +191,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
         return null;
       }
 
-      Long subscriptValue = subscript.accept(evv);
+      NumberContainer subscriptValue = subscript.accept(evv);
 
       if(subscriptValue == null) {
         return null;
@@ -198,7 +199,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
 
       long typeSize = evv.getSizeof(elementType);
 
-      long subscriptOffset = subscriptValue * typeSize;
+      long subscriptOffset = subscriptValue.longValue() * typeSize;
 
       if (arrayLoc.isOnFunctionStack()) {
 

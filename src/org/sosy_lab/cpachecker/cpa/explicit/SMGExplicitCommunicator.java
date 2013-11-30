@@ -78,7 +78,7 @@ public class SMGExplicitCommunicator {
     functionName = pFunctionName;
   }
 
-  public Long evaluateExpression(CRightHandSide rValue) throws UnrecognizedCCodeException {
+  public NumberContainer evaluateExpression(CRightHandSide rValue) throws UnrecognizedCCodeException {
 
     ExplicitExpressionValueVisitor evv =
         new ExplicitExpressionValueVisitor();
@@ -151,21 +151,21 @@ public class SMGExplicitCommunicator {
     }
 
     @Override
-    public Long visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
+    public NumberContainer visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
 
       MemoryLocation memloc = evaluateMemloc(pPointerExpression);
       return getValueFromLocation(memloc, pPointerExpression);
     }
 
     @Override
-    public Long visit(CFieldReference pFieldReferenceExpression) throws UnrecognizedCCodeException {
+    public NumberContainer visit(CFieldReference pFieldReferenceExpression) throws UnrecognizedCCodeException {
 
       MemoryLocation memloc = evaluateMemloc(pFieldReferenceExpression);
       return getValueFromLocation(memloc, pFieldReferenceExpression);
     }
 
     @Override
-    public Long visit(CUnaryExpression pUnaryExpression) throws UnrecognizedCCodeException {
+    public NumberContainer visit(CUnaryExpression pUnaryExpression) throws UnrecognizedCCodeException {
 
       CExpression unaryOperand = pUnaryExpression.getOperand();
 
@@ -192,9 +192,9 @@ public class SMGExplicitCommunicator {
           if (address.isUnknown()) {
             return null;
           } else if (address.getAsInt() == 0) {
-            return 1L;
+            return new NumberContainer(1L);
           } else {
-            return 0L;
+            return new NumberContainer(0L);
           }
         default:
           return super.visit(pUnaryExpression);
@@ -206,8 +206,8 @@ public class SMGExplicitCommunicator {
     }
 
     @Override
-    public Long visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
-      Long result = super.visit(pE);
+    public NumberContainer visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
+      NumberContainer result = super.visit(pE);
       if (result != null) {
         return result;
       }
@@ -237,12 +237,12 @@ public class SMGExplicitCommunicator {
 
         switch (pE.getOperator()) {
         case EQUALS:
-          return booleanAsLong(op1Value.getObject().equals(op2Value.getObject())
-                              && op1Offset == op2Offset);
+          return new NumberContainer(booleanAsLong(op1Value.getObject().equals(op2Value.getObject())
+                              && op1Offset == op2Offset));
 
         case NOT_EQUALS:
-          return booleanAsLong(!(op1Value.getObject().equals(op2Value.getObject())
-                              && op1Offset == op2Offset));
+          return new NumberContainer(booleanAsLong(!(op1Value.getObject().equals(op2Value.getObject())
+                              && op1Offset == op2Offset)));
 
         case GREATER_EQUAL:
         case GREATER_THAN:
@@ -253,13 +253,13 @@ public class SMGExplicitCommunicator {
           }
           switch (pE.getOperator()) {
           case GREATER_EQUAL:
-            return booleanAsLong(op1Offset >= op2Offset);
+            return new NumberContainer(booleanAsLong(op1Offset >= op2Offset));
           case GREATER_THAN:
-            return booleanAsLong(op1Offset > op2Offset);
+            return new NumberContainer(booleanAsLong(op1Offset > op2Offset));
           case LESS_EQUAL:
-            return booleanAsLong(op1Offset <= op2Offset);
+            return new NumberContainer(booleanAsLong(op1Offset <= op2Offset));
           case LESS_THAN:
-            return booleanAsLong(op1Offset < op2Offset);
+            return new NumberContainer(booleanAsLong(op1Offset < op2Offset));
           default:
             throw new AssertionError();
           }
@@ -279,12 +279,12 @@ public class SMGExplicitCommunicator {
     }
 
     @Override
-    public Long visit(CArraySubscriptExpression pE) throws UnrecognizedCCodeException {
+    public NumberContainer visit(CArraySubscriptExpression pE) throws UnrecognizedCCodeException {
       MemoryLocation memloc = evaluateMemloc(pE);
       return getValueFromLocation(memloc, pE);
     }
 
-    private Long getValueFromLocation(MemoryLocation pMemloc, CExpression rValue) throws UnrecognizedCCodeException {
+    private NumberContainer getValueFromLocation(MemoryLocation pMemloc, CExpression rValue) throws UnrecognizedCCodeException {
 
       if(pMemloc == null) {
         return null;
@@ -310,7 +310,7 @@ public class SMGExplicitCommunicator {
          if(value.isUnknown() || value.getAsInt() != 0) {
            return null;
          } else {
-           return 0L;
+           return new NumberContainer(0L);
          }
       }
     }
@@ -349,7 +349,7 @@ public class SMGExplicitCommunicator {
     @Override
     public SMGExplicitValue evaluateExplicitValue(SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue)
         throws CPATransferException {
-      Long value = pRValue.accept(evv);
+      NumberContainer value = pRValue.accept(evv);
 
       if (value == null) {
         return SMGUnknownValue.getInstance();

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -136,11 +137,11 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   private String missingInformationLeftJVariable = null;
 
   private boolean missingFieldVariableObject;
-  private Pair<String, Long> fieldNameAndInitialValue;
+  private Pair<String, NumberContainer> fieldNameAndInitialValue;
 
   private boolean missingScopedFieldName;
   private JIdExpression notScopedField;
-  private Long notScopedFieldValue;
+  private NumberContainer notScopedFieldValue;
 
   private boolean missingAssumeInformation;
 
@@ -221,11 +222,11 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     // get value of actual parameter in caller function context
     for (int i = 0; i < parameters.size(); i++) {
-      Long value;
+      NumberContainer value = null;
       IAExpression exp = arguments.get(i);
 
       if (exp instanceof JExpression) {
-        value = ((JExpression) exp).accept(visitor);
+        //value = ((JExpression) exp).accept(visitor); TODO for java
       } else if (exp instanceof CExpression) {
         value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
       } else {
@@ -303,13 +304,13 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
         if (assignedVarName == null) {
           if (v.hasMissingPointer() && valueExists) {
-            Long value = state.getValueFor(returnVarName);
+            NumberContainer value = state.getValueFor(returnVarName);
             addMissingInformation((CLeftHandSide) op1, value);
           }
         } else if (!valueExists) {
           newElement.forget(assignedVarName);
         } else {
-          Long value = state.getValueFor(returnVarName);
+          NumberContainer value = state.getValueFor(returnVarName);
           newElement.assignConstant(assignedVarName, value);
         }
 
@@ -348,7 +349,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     ExplicitExpressionValueVisitor evv = getVisitor();
 
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
-    Long value = getExpressionValue(expression, CNumericTypes.INT, evv);
+    NumberContainer value = getExpressionValue(expression, CNumericTypes.INT, evv);
 
     // value is null, try to derive further information
     if (value == null) {
@@ -375,7 +376,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       return element;
 
-    } else if ((truthValue && value == 1L) || (!truthValue && value == 0L)) {
+    } else if ((truthValue && (value.bigDecimalValue().compareTo(new BigDecimal(1))== 0))
+        || (!truthValue && (value.bigDecimalValue().compareTo(new BigDecimal(0))== 0))) {
       // we do not know more than before, and the assumption is fulfilled,
       // so return the old state
       return state;
@@ -403,7 +405,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     // get the variable name in the declarator
     String varName = decl.getName();
 
-    Long initialValue = null;
+    NumberContainer initialValue = null;
 
     // get initial value
     IAInitializer init = decl.getInitializer();
@@ -420,7 +422,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       // global variables without initializer are set to 0 in C
       if (init == null) {
-        initialValue = 0L;
+        initialValue = new NumberContainer(0L);
       }
     }
 
@@ -605,9 +607,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       MemoryLocation assignedVar, final Type lType, IARightHandSide exp, ExplicitExpressionValueVisitor visitor)
       throws UnrecognizedCCodeException {
 
-    Long value;
+    NumberContainer value = null;
     if (exp instanceof JRightHandSide) {
-       value = ((JRightHandSide) exp).accept(visitor);
+       //value = ((JRightHandSide) exp).accept(visitor); TODO for java
     } else if (exp instanceof CRightHandSide) {
        value = visitor.evaluate((CRightHandSide) exp, (CType) lType);
     } else {
@@ -671,7 +673,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
   }
 
-  private void addMissingInformation(CLeftHandSide pOp1, Long pValue) {
+  private void addMissingInformation(CLeftHandSide pOp1, NumberContainer pValue) {
     missingInformationList.add(new MissingInformation(pOp1, pValue));
 
   }
@@ -714,7 +716,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     @Override
-    public Long visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
+    public NumberContainer visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
       BinaryOperator binaryOperator   = pE.getOperator();
 
       CExpression lVarInBinaryExp  = pE.getOperand1();
@@ -723,8 +725,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       CExpression rVarInBinaryExp  = pE.getOperand2();
 
-      Long leftValue                  = lVarInBinaryExp.accept(this);
-      Long rightValue                 = rVarInBinaryExp.accept(this);
+      NumberContainer leftValue                  = lVarInBinaryExp.accept(this);
+      NumberContainer rightValue                 = rVarInBinaryExp.accept(this);
 
       if ((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue)) {
         if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
@@ -743,14 +745,18 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         // x is unknown, a binaryOperation (x==0), false-branch: set x=1L
         if ((binaryOperator == BinaryOperator.NOT_EQUALS && truthValue)
             || (binaryOperator == BinaryOperator.EQUALS && !truthValue)) {
-          if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
+          if (leftValue == null &&
+              (rightValue.bigDecimalValue().compareTo(new BigDecimal(0)) == 0)
+              && isAssignable(lVarInBinaryExp)) {
             MemoryLocation leftVariableName = getMemoryLocation(lVarInBinaryExp);
-            assignableState.assignConstant(leftVariableName, 1L);
+            assignableState.assignConstant(leftVariableName, new NumberContainer(1L));
           }
 
-          else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
+          else if (rightValue == null &&
+              (leftValue.bigDecimalValue().compareTo(new BigDecimal(0)) == 0)
+              && isAssignable(rVarInBinaryExp)) {
             MemoryLocation rightVariableName = getMemoryLocation(rVarInBinaryExp);
-            assignableState.assignConstant(rightVariableName, 1L);
+            assignableState.assignConstant(rightVariableName, new NumberContainer(1L));
           }
         }
       }
@@ -774,10 +780,11 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
 
           String leftVariableName = getScopedVariableName(lVarInBinaryExp, functionName);
-          assignableState.assignConstant(leftVariableName, rightValue);
+          // TODO for java
+          //assignableState.assignConstant(leftVariableName, rightValue);
         } else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
           String rightVariableName = getScopedVariableName(rVarInBinaryExp, functionName);
-          assignableState.assignConstant(rightVariableName, leftValue);
+          //assignableState.assignConstant(rightVariableName, leftValue);
 
         }
       }
@@ -789,13 +796,14 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
             || (binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && !truthValue)) {
           if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
             String leftVariableName = getScopedVariableName(lVarInBinaryExp, functionName);
-            assignableState.assignConstant(leftVariableName, 1L);
+            // TODO for java
+            //assignableState.assignConstant(leftVariableName, 1L);
 
           }
 
           else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
             String rightVariableName = getScopedVariableName(rVarInBinaryExp, functionName);
-            assignableState.assignConstant(rightVariableName, 1L);
+            //assignableState.assignConstant(rightVariableName, 1L);
           }
         }
       }
@@ -984,14 +992,15 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       String varName = handleIdExpression(idExp);
 
       if (state.contains(varName)) {
-        return state.getValueFor(varName);
+        return null; //TODO for java
+        //return state.getValueFor(varName);
       } else {
         return null;
       }
     }
   }
 
-  private Long getExpressionValue(IAExpression expression, final Type type, ExplicitExpressionValueVisitor evv)
+  private NumberContainer getExpressionValue(IAExpression expression, final Type type, ExplicitExpressionValueVisitor evv)
       throws UnrecognizedCCodeException {
 
     if (expression instanceof JRightHandSide) {
@@ -1002,7 +1011,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         missingInformationRightJExpression = (JRightHandSide) expression;
         return null;
       } else {
-        return value;
+        return null; // TODO for java
+        //return value;
       }
     } else if (expression instanceof CRightHandSide) {
       return evv.evaluate((CRightHandSide) expression, (CType) type);
@@ -1179,7 +1189,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       return pNewElement;
     }
 
-    Long explicitValue = null;
+    NumberContainer explicitValue = null;
 
     if (pMissingInformation.hasKnownValue()) {
       explicitValue = pMissingInformation.getcExpressionValue();
@@ -1202,7 +1212,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     return pNewElement;
   }
 
-  private Long resolveValue(SMGState pSmgState, CExpression rValue)
+  private NumberContainer resolveValue(SMGState pSmgState, CExpression rValue)
       throws UnrecognizedCCodeException {
 
     SMGExplicitCommunicator cc = new SMGExplicitCommunicator(oldState, functionName,
@@ -1227,9 +1237,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     long truthValue = bTruthValue ? 1 : 0;
 
-    Long value = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
+    NumberContainer value = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
 
-    if(value != null && value != truthValue) {
+    if(value != null && (!(value.bigDecimalValue().equals(new BigDecimal(truthValue))))) {
       return null;
     } else {
 
@@ -1294,7 +1304,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       Long value = handleMissingInformationRightJExpression(rttState);
 
       if (value != null) {
-        newElement.assignConstant(missingInformationLeftJVariable, value);
+        // TODO java
+        //newElement.assignConstant(missingInformationLeftJVariable, value);
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;
         return Collections.singleton(newElement);
@@ -1328,9 +1339,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
      String scopedFieldName = getRTTScopedVariableName(notScopedField.getName(), objectScope);
 
-     Long value = notScopedFieldValue;
+     NumberContainer value = notScopedFieldValue;
      if (missingInformationRightJExpression != null) {
-       value = handleMissingInformationRightJExpression(rttState);
+       // TODO for java
+       //value = handleMissingInformationRightJExpression(rttState);
      }
 
      if (value != null) {
@@ -1417,7 +1429,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
      * Expression could not be evaluated due to missing information. (e.g.
      * missing pointer alias).
      */
-    private final Long cExpressionValue;
+    private final NumberContainer cExpressionValue;
 
     /**
      * The truth Assumption made in this assume edge.
@@ -1471,7 +1483,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     public MissingInformation(CExpression pMissingCLeftMemoryLocation,
-        Long pCExpressionValue) {
+        NumberContainer pCExpressionValue) {
       missingCExpressionInformation = null;
       missingCLeftMemoryLocation = pMissingCLeftMemoryLocation;
       cExpressionValue = pCExpressionValue;
@@ -1532,7 +1544,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       return missingFreeInvocation != null;
     }
 
-    public Long getcExpressionValue() {
+    public NumberContainer getcExpressionValue() {
       checkNotNull(cExpressionValue);
       return cExpressionValue;
     }
