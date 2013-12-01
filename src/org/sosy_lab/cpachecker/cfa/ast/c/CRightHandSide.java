@@ -27,7 +27,6 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 
 
 
@@ -37,7 +36,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 public interface CRightHandSide extends CAstNode, IARightHandSide {
 
 
-  public <R, X extends Exception> NumberContainer accept(CRightHandSideVisitor<R, X> pV) throws X;
+  public <R, X extends Exception> R accept(CRightHandSideVisitor<R, X> pV) throws X;
 
   @Override
   public CType getExpressionType();

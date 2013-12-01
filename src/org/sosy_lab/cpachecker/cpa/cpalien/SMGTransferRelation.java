@@ -103,6 +103,7 @@ import org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.AssumeVisitor;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.LValueAssignmentVisitor;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 import org.sosy_lab.cpachecker.cpa.explicit.SMGExplicitCommunicator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -1776,13 +1777,14 @@ public class SMGTransferRelation implements TransferRelation {
 
     long truthValue = pMissingInformation.getTruthAssumption() ? 1 : 0;
 
-    Long value =
+    NumberContainer value =
         resolveAssumptionValue(oldState,
             pExplicitState,
             pMissingInformation.getMissingCExpressionInformation(),
             edge);
 
-    if (value != null && value != truthValue) {
+    if (value != null
+        && (value.bigDecimalValue().compareTo(new BigDecimal(truthValue)) != 0)) {
       return null;
     } else {
       hasChanged = true;
@@ -1790,7 +1792,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
   }
 
-  private Long resolveAssumptionValue(SMGState pSmgState, ExplicitState pExplicitState,
+  private NumberContainer resolveAssumptionValue(SMGState pSmgState, ExplicitState pExplicitState,
       CRightHandSide rValue, CFAEdge edge) throws UnrecognizedCCodeException {
 
     String functionName = edge.getPredecessor().getFunctionName();
@@ -1855,12 +1857,12 @@ public class SMGTransferRelation implements TransferRelation {
       SMGExplicitCommunicator cc = new SMGExplicitCommunicator(explicitState, functionName,
           pState, machineModel, logger, pCfaEdge);
 
-      Long value = cc.evaluateExpression(pRValue);
+      NumberContainer value = cc.evaluateExpression(pRValue);
 
       if (value == null) {
         return SMGUnknownValue.getInstance();
       } else {
-        return SMGKnownExpValue.valueOf(value);
+        return SMGKnownExpValue.valueOf(value.longValue());
       }
     }
   }

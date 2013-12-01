@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -148,7 +149,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, long pI) {
-    RationalFormula number = rationalFormulaManager.makeNumber(pI);
+    RationalFormula number = rationalFormulaManager.makeNumber(new NumberContainer(pI));
     return wrap(getFormulaType(pLength), number);
   }
 

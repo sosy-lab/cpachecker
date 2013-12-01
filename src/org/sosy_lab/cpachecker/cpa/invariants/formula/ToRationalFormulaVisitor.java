@@ -27,6 +27,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -90,8 +91,8 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundState,
       FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor) {
     this.bfmgr = pFmgr.getBooleanFormulaManager();
     this.rfmgr = pFmgr.getRationalFormulaManager();
-    this.zero = this.rfmgr.makeNumber(0);
-    this.one = this.rfmgr.makeNumber(1);
+    this.zero = this.rfmgr.makeNumber(new NumberContainer(0L));
+    this.one = this.rfmgr.makeNumber(new NumberContainer(1L));
     this.toBooleanFormulaVisitor = pToBooleanFormulaVisitor;
     this.evaluationVisitor = pEvaluationVisitor;
   }

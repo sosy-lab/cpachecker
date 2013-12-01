@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -120,8 +121,9 @@ public final class SMGExplicitPlotter {
   }
 
   private String explicitValueAsDot(MemoryLocation pMemloc) {
-    long value = explicitState.getValueFor(pMemloc);
-    return "expValue_" + value + "[label=\"" + value + "\"];";
+    NumberContainer value = explicitState.getValueFor(pMemloc);
+    return "expValue_" + value.bigDecimalValue().toString()
+        + "[label=\"" + value.bigDecimalValue().toString() + "\"];";
   }
 
   private void addStackSubgraph(CLangSMG pSmg, StringBuilder pSb) {
