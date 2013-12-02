@@ -446,8 +446,8 @@ public class ARGUtils {
    * @throws IOException
    */
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
-      Set<ARGState> pPathStates) throws IOException {
-    sb.append("CONTROL AUTOMATON AssumptionAutomaton\n\n");
+      Set<ARGState> pPathStates, String name) throws IOException {
+    sb.append("CONTROL AUTOMATON " + name + "\n\n");
     sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
 
     int multiEdgeCount = 0; // see below
