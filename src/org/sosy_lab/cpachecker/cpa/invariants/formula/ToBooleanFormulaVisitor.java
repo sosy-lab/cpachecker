@@ -343,7 +343,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
 
   @Override
   public BooleanFormula visit(Variable<CompoundInterval> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    return this.bfmgr.makeVariable(pVariable.getName());
+    return fromValueFormula(pVariable, pEnvironment);
   }
 
   @Override
