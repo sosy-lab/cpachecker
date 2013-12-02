@@ -1147,7 +1147,6 @@ cpa.reachdef.merge = "JOIN"
 cpa.reachdef.stop = "SEP"
   allowed values: [SEP, JOIN, IGNORECALLSTACK]
 
-<<<<<<< .mine
 # path to a file with abstraction rules
 cpa.seplogic.partingstar.abstractionfile = no default value
 
@@ -1166,17 +1165,6 @@ cpa.sign.allowedAbstractValue = ALL
 # globally in a certain bound 
 cpa.sign.varName = ""
 
-=======
-# path to a file with abstraction rules
-cpa.seplogic.partingstar.abstractionfile = no default value
-
-# path to a file with logic rules
-cpa.seplogic.partingstar.logicsfile = no default value
-
-# path to partingstar command
-cpa.seplogic.partingstar.pspath = no default value
-
->>>>>>> .r9889
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]
