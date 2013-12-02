@@ -142,6 +142,7 @@ public class CompoundInterval {
         ++start;
         lastInterval = currentLocal;
         currentLocal = start < this.intervals.size() ? this.intervals.get(start) : null;
+        assert currentLocal == null || currentLocal.hasUpperBound() : toString();
       }
     }
     boolean inserted = false;
@@ -158,6 +159,10 @@ public class CompoundInterval {
         if (pOther.touches(lastInterval)) {
           result.intervals.remove(result.intervals.size() - 1);
           lastInterval = union(pOther, lastInterval);
+          if (lastInterval.touches(interval)) {
+            lastInterval = union(lastInterval, interval);
+            currentInserted = true;
+          }
           result.intervals.add(lastInterval);
           inserted = true;
         } else if (pOther.touches(interval)) {

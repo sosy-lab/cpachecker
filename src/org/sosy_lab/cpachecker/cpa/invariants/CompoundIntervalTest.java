@@ -94,6 +94,15 @@ public class CompoundIntervalTest {
     for (int i = -6; i <= 6; i += 2) {
       assertTrue(stepsNegInf.contains(i));
     }
+
+    CompoundInterval zeroOrTenToInf = CompoundInterval.singleton(0).unionWith(CompoundInterval.singleton(10).extendToPositiveInfinity());
+    CompoundInterval negOne = CompoundInterval.singleton(-1);
+    CompoundInterval negOneOrZeroOrTenToInf = CompoundInterval.of(SimpleInterval.of(BigInteger.valueOf(-1), BigInteger.ZERO)).unionWith(CompoundInterval.singleton(10).extendToPositiveInfinity());
+    assertEquals(negOneOrZeroOrTenToInf, zeroOrTenToInf.unionWith(negOne));
+
+    CompoundInterval one = CompoundInterval.singleton(1);
+    assertEquals(CompoundInterval.of(SimpleInterval.of(BigInteger.valueOf(-1), BigInteger.valueOf(1))), negOne.unionWith(one).unionWith(zero));
+    assertEquals(1, negOne.unionWith(one).unionWith(zero).getIntervals().size());
   }
 
   @Test
