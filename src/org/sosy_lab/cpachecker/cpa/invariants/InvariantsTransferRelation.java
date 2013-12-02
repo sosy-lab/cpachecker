@@ -83,50 +83,50 @@ public enum InvariantsTransferRelation implements TransferRelation {
       AbstractState pElement, Precision pPrecision, CFAEdge pEdge)
       throws CPATransferException {
 
-    InvariantsState element = (InvariantsState)pElement;
+    InvariantsState element = (InvariantsState) pElement;
+    InvariantsPrecision precision = (InvariantsPrecision) pPrecision;
 
-    element = getSuccessor(pEdge, element);
+    element = getSuccessor(pEdge, precision, element);
 
     if (element == null) {
       return Collections.emptySet();
-    } else {
-      return Collections.singleton(element);
     }
+    return Collections.singleton(element);
   }
 
-  private InvariantsState getSuccessor(CFAEdge pEdge, InvariantsState pState) throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
+  private InvariantsState getSuccessor(CFAEdge pEdge, InvariantsPrecision pPrecision, InvariantsState pState) throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
     InvariantsState element = pState;
-    if (!element.isRelevant(pEdge)) {
+    if (pPrecision != null && !pPrecision.isRelevant(pEdge)) {
       element = pState.clear();
     } else {
       switch (pEdge.getEdgeType()) {
       case BlankEdge:
         break;
       case FunctionReturnEdge:
-        element = handleFunctionReturn(element, (CFunctionReturnEdge) pEdge);
+        element = handleFunctionReturn(element, (CFunctionReturnEdge) pEdge, pPrecision);
         break;
       case ReturnStatementEdge:
-        element = handleReturnStatement(element, (CReturnStatementEdge) pEdge);
+        element = handleReturnStatement(element, (CReturnStatementEdge) pEdge, pPrecision);
         break;
       case AssumeEdge:
-        element = handleAssume(element, (CAssumeEdge)pEdge);
+        element = handleAssume(element, (CAssumeEdge) pEdge, pPrecision);
         break;
 
       case DeclarationEdge:
-        element = handleDeclaration(element, (CDeclarationEdge)pEdge);
+        element = handleDeclaration(element, (CDeclarationEdge) pEdge, pPrecision);
         break;
 
       case FunctionCallEdge:
-        element = handleFunctionCall(element, (CFunctionCallEdge)pEdge);
+        element = handleFunctionCall(element, (CFunctionCallEdge) pEdge, pPrecision);
         break;
 
       case StatementEdge:
-        element = handleStatement(element, (CStatementEdge)pEdge);
+        element = handleStatement(element, (CStatementEdge) pEdge, pPrecision);
         break;
       case MultiEdge:
         Iterator<CFAEdge> edgeIterator = ((MultiEdge) pEdge).iterator();
         while (element != null && edgeIterator.hasNext()) {
-          element = getSuccessor(edgeIterator.next(), element);
+          element = getSuccessor(edgeIterator.next(), pPrecision, element);
         }
         break;
       default:
@@ -136,7 +136,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
     return element;
   }
 
-  private InvariantsState handleAssume(InvariantsState pElement, CAssumeEdge pEdge) throws UnrecognizedCCodeException {
+  private InvariantsState handleAssume(InvariantsState pElement, CAssumeEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
     FormulaEvaluationVisitor<CompoundInterval> resolver = pElement.getFormulaResolver(pEdge);
     CExpression expression = pEdge.getExpression();
     // Create a formula representing the edge expression
@@ -164,7 +164,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
     return result;
   }
 
-  private InvariantsState handleDeclaration(InvariantsState pElement, CDeclarationEdge pEdge) throws UnrecognizedCCodeException {
+  private InvariantsState handleDeclaration(InvariantsState pElement, CDeclarationEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
     if (!(pEdge.getDeclaration() instanceof CVariableDeclaration)) {
       return pElement;
     }
@@ -184,11 +184,10 @@ public enum InvariantsTransferRelation implements TransferRelation {
       value = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
     }
 
-    return pElement.assign(false, varName, value, pEdge).putType(varName,
-        decl.getType());
+    return pElement.assign(false, varName, value, pEdge);
   }
 
-  private InvariantsState handleFunctionCall(InvariantsState pElement, final CFunctionCallEdge pEdge) throws UnrecognizedCCodeException {
+  private InvariantsState handleFunctionCall(InvariantsState pElement, final CFunctionCallEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
 
     InvariantsState newElement = pElement;
     List<String> formalParams = pEdge.getSuccessor().getFunctionParameterNames();
@@ -215,20 +214,20 @@ public enum InvariantsTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private InvariantsState handleStatement(InvariantsState pElement, CStatementEdge pEdge) throws UnrecognizedCCodeException {
+  private InvariantsState handleStatement(InvariantsState pElement, CStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
 
     if (pEdge.getStatement() instanceof CAssignment) {
       CAssignment assignment = (CAssignment)pEdge.getStatement();
       ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
       CExpression leftHandSide = assignment.getLeftHandSide();
       InvariantsFormula<CompoundInterval> value = assignment.getRightHandSide().accept(etfv);
-      return handleAssignment(pElement, pEdge.getPredecessor().getFunctionName(), pEdge, leftHandSide, value);
+      return handleAssignment(pElement, pEdge.getPredecessor().getFunctionName(), pEdge, leftHandSide, value, pPrecision);
     }
 
     return pElement;
   }
 
-  private InvariantsState handleAssignment(InvariantsState pElement, String pFunctionName, CFAEdge pEdge, CExpression pLeftHandSide, InvariantsFormula<CompoundInterval> pValue) throws UnrecognizedCCodeException {
+  private InvariantsState handleAssignment(InvariantsState pElement, String pFunctionName, CFAEdge pEdge, CExpression pLeftHandSide, InvariantsFormula<CompoundInterval> pValue, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
     boolean isUnknownPointerDereference = pLeftHandSide instanceof CPointerExpression;
     if (pLeftHandSide instanceof CArraySubscriptExpression) {
@@ -242,7 +241,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
     }
   }
 
-  private InvariantsState handleReturnStatement(InvariantsState pElement, CReturnStatementEdge pEdge) throws UnrecognizedCCodeException {
+  private InvariantsState handleReturnStatement(InvariantsState pElement, CReturnStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
     String calledFunctionName = pEdge.getPredecessor().getFunctionName();
     CExpression returnedExpression = pEdge.getExpression();
     // If the return edge has no statement, no return value is passed: "return;"
@@ -255,7 +254,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
     return pElement.assign(false, returnValueName, returnedState, pEdge);
   }
 
-  private InvariantsState handleFunctionReturn(InvariantsState pElement, CFunctionReturnEdge pFunctionReturnEdge)
+  private InvariantsState handleFunctionReturn(InvariantsState pElement, CFunctionReturnEdge pFunctionReturnEdge, InvariantsPrecision pPrecision)
       throws UnrecognizedCCodeException {
       CFunctionSummaryEdge summaryEdge = pFunctionReturnEdge.getSummaryEdge();
 
@@ -269,9 +268,9 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
       // expression is an assignment operation, e.g. a = g(b);
       if (expression instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement)expression;
+        CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement) expression;
 
-        return handleAssignment(pElement, pFunctionReturnEdge.getSuccessor().getFunctionName(), pFunctionReturnEdge, funcExp.getLeftHandSide(), value);
+        return handleAssignment(pElement, pFunctionReturnEdge.getSuccessor().getFunctionName(), pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pPrecision);
       }
       return pElement;
   }

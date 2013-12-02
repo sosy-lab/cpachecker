@@ -32,6 +32,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -151,6 +152,8 @@ public class InvariantsCPA extends AbstractCPA {
    */
   private final CFA cfa;
 
+  private final WeakHashMap<CFANode, InvariantsPrecision> initialPrecisionMap = new WeakHashMap<>();
+
   /**
    * Gets a factory for creating InvariantCPAs.
    *
@@ -182,7 +185,7 @@ public class InvariantsCPA extends AbstractCPA {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public InvariantsState getInitialState(CFANode pNode) {
     Set<CFANode> relevantLocations = new LinkedHashSet<>();
     Set<CFANode> targetLocations = new LinkedHashSet<>();
 
@@ -305,12 +308,23 @@ public class InvariantsCPA extends AbstractCPA {
       }
     }
 
-    // Create the configured initial state
-    return new InvariantsState(options.useBitvectors,
-        variableSelection,
-        ImmutableSet.copyOf(relevantEdges),
+    InvariantsPrecision precision = new InvariantsPrecision(relevantEdges,
         ImmutableSet.copyOf(limit(interestingPredicates, options.interestingPredicatesLimit)),
         ImmutableSet.copyOf(limit(interestingVariables, options.interestingVariableLimit)));
+
+    initialPrecisionMap.put(pNode, precision);
+
+    // Create the configured initial state
+    return new InvariantsState(options.useBitvectors, variableSelection, precision);
+  }
+
+  @Override
+  public InvariantsPrecision getInitialPrecision(CFANode pNode) {
+    InvariantsPrecision precision = initialPrecisionMap.get(pNode);
+    if (precision != null) {
+      return precision;
+    }
+    return getInitialState(pNode).getPrecision();
   }
 
   /**
