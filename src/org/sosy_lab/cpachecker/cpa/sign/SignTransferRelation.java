@@ -101,13 +101,6 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     }
     String assignedVar = getScopedVariableName(FUNC_RET_VAR, functionName);
     SignState result = handleAssignmentToVariable(state, assignedVar, pExpression);
-
-    // Clear stack TODO move to handleFunctionReturnEdge otherwise these variables are not removed if no return statement exists
-    Set<String> localFunctionVars = stackVariables.pop();
-    for(String scopedVarIdent : localFunctionVars) {
-      result = result.removeSignAssumptionOfVariable(scopedVarIdent); // TODO performance
-    }
-
     return result;
   }
 
@@ -147,6 +140,14 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       SignState result = state
           .assignSignToVariable(assignedVarName, state.getSignMap().getSignForVariable(returnVarName))
           .removeSignAssumptionOfVariable(returnVarName);
+
+
+      // Clear stack TODO move to handleFunctionReturnEdge otherwise these variables are not removed if no return statement exists
+      Set<String> localFunctionVars = stackVariables.pop();
+      for(String scopedVarIdent : localFunctionVars) {
+        result = result.removeSignAssumptionOfVariable(scopedVarIdent); // TODO performance
+      }
+
       return result;
     }
 
