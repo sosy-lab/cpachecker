@@ -423,18 +423,6 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
   }
 
   @Override
-  public InvariantsFormula<CompoundInterval> visit(Negate<CompoundInterval> pNegate, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
-    InvariantsFormula<CompoundInterval> operand = pNegate.getNegated().accept(this, pEvaluationVisitor);
-    if (operand instanceof Constant<?>) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(pNegate.accept(pEvaluationVisitor, environment));
-    }
-    if (operand == pNegate.getNegated()) {
-      return pNegate;
-    }
-    return CompoundStateFormulaManager.INSTANCE.negate(operand);
-  }
-
-  @Override
   public InvariantsFormula<CompoundInterval> visit(ShiftLeft<CompoundInterval> pShiftLeft, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     InvariantsFormula<CompoundInterval> shifted = pShiftLeft.getShifted().accept(this, pEvaluationVisitor);
     InvariantsFormula<CompoundInterval> shiftDistance = pShiftLeft.getShiftDistance().accept(this, pEvaluationVisitor);

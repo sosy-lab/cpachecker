@@ -106,11 +106,6 @@ public class ParameterizedInvariantsFormulaVisitorWrapper<ConstantType, Paramete
   }
 
   @Override
-  public ReturnType visit(Negate<ConstantType> pNegate, ParameterType pParameter) {
-    return this.wrapped.visit(pNegate, pParameter);
-  }
-
-  @Override
   public ReturnType visit(ShiftLeft<ConstantType> pShiftLeft, ParameterType pParameter) {
     return this.wrapped.visit(pShiftLeft, pParameter);
   }

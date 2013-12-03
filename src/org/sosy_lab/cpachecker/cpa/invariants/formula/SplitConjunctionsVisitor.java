@@ -104,11 +104,6 @@ public class SplitConjunctionsVisitor<T> implements InvariantsFormulaVisitor<T, 
   }
 
   @Override
-  public List<InvariantsFormula<T>> visit(Negate<T> pNegate) {
-    return Collections.<InvariantsFormula<T>>singletonList(pNegate);
-  }
-
-  @Override
   public List<InvariantsFormula<T>> visit(ShiftLeft<T> pShiftLeft) {
     return Collections.<InvariantsFormula<T>>singletonList(pShiftLeft);
   }

@@ -110,11 +110,6 @@ public abstract class DefaultFormulaVisitor<ConstantType, ReturnType> implements
   }
 
   @Override
-  public ReturnType visit(Negate<ConstantType> pNegate) {
-    return visitDefault(pNegate);
-  }
-
-  @Override
   public ReturnType visit(ShiftLeft<ConstantType> pShiftLeft) {
     return visitDefault(pShiftLeft);
   }

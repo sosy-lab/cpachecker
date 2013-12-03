@@ -134,11 +134,6 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisito
   }
 
   @Override
-  public CompoundInterval visit(ShiftRight<CompoundInterval> pShiftRight, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    return CompoundStateFormulaManager.INSTANCE.shiftLeft(pShiftRight.getShifted(), InvariantsFormulaManager.INSTANCE.negate(pShiftRight.getShiftDistance())).accept(this, pEnvironment);
-  }
-
-  @Override
   public CompoundInterval visit(Variable<CompoundInterval> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     InvariantsFormula<CompoundInterval> varState = pEnvironment.get(pVariable.getName());
     if (varState == null) {

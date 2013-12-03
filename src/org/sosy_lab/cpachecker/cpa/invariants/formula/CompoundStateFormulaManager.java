@@ -57,6 +57,8 @@ public enum CompoundStateFormulaManager {
 
   private static final InvariantsFormula<CompoundInterval> TRUE = InvariantsFormulaManager.INSTANCE.asConstant(CompoundInterval.logicalTrue());
 
+  private static final InvariantsFormula<CompoundInterval> MINUS_ONE = InvariantsFormulaManager.INSTANCE.asConstant(CompoundInterval.minusOne());
+
   private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
   private static final ContainsOnlyEnvInfoVisitor<CompoundInterval> CONTAINS_ONLY_ENV_INFO_VISITOR = new ContainsOnlyEnvInfoVisitor<>();
@@ -746,7 +748,17 @@ public enum CompoundStateFormulaManager {
     if (isDefinitelyTop(pToNegate)) {
       return TOP;
     }
-    return InvariantsFormulaManager.INSTANCE.negate(pToNegate);
+    if (pToNegate instanceof Multiply<?>) {
+      InvariantsFormula<CompoundInterval> factor1 = ((Multiply<CompoundInterval>) pToNegate).getFactor1();
+      InvariantsFormula<CompoundInterval> factor2 = ((Multiply<CompoundInterval>) pToNegate).getFactor2();
+      if (factor1.equals(MINUS_ONE)) {
+        return factor2;
+      }
+      if (factor2.equals(MINUS_ONE)) {
+        return factor1;
+      }
+    }
+    return InvariantsFormulaManager.INSTANCE.multiply(pToNegate, MINUS_ONE);
   }
 
   /**
@@ -765,7 +777,7 @@ public enum CompoundStateFormulaManager {
     if (isDefinitelyTop(pMinuend) || isDefinitelyTop(pSubtrahend)) {
       return TOP;
     }
-    return InvariantsFormulaManager.INSTANCE.subtract(pMinuend, pSubtrahend);
+    return InvariantsFormulaManager.INSTANCE.add(pMinuend, negate(pSubtrahend));
   }
 
   /**

@@ -128,11 +128,6 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
   }
 
   @Override
-  public CompoundInterval visit(Negate<CompoundInterval> pNegate, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    return pNegate.getNegated().accept(this, pEnvironment).negate();
-  }
-
-  @Override
   public CompoundInterval visit(ShiftLeft<CompoundInterval> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pShiftLeft.getShifted().accept(this, pEnvironment).shiftLeft(pShiftLeft.getShiftDistance().accept(this, pEnvironment));
   }

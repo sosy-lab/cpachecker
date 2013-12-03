@@ -166,16 +166,6 @@ public interface ParameterizedInvariantsFormulaVisitor<ConstantType, ParameterTy
   ReturnType visit(Multiply<ConstantType> pMultiply, ParameterType pParameter);
 
   /**
-   * Visits the given numerical negation invariants formula.
-   *
-   * @param pMultiply the numerical negation invariants formula to visit.
-   * @param pParameter the additional parameter to take into consideration.
-   *
-   * @return the result of the visit.
-   */
-  ReturnType visit(Negate<ConstantType> pNegate, ParameterType pParameter);
-
-  /**
    * Visits the given left shift invariants formula.
    *
    * @param pMultiply the left shift invariants formula to visit.

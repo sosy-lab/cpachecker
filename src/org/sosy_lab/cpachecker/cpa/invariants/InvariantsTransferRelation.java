@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundStateFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor.VariableNameExtractor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -176,18 +177,22 @@ public enum InvariantsTransferRelation implements TransferRelation {
       varName = scope(varName, pEdge.getSuccessor().getFunctionName());
     }
 
-    final InvariantsFormula<CompoundInterval> value;
+    InvariantsFormula<CompoundInterval> value;
     if (decl.getInitializer() != null && decl.getInitializer() instanceof CInitializerExpression) {
       CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
       value = init.accept(getExpressionToFormulaVisitor(pEdge));
+
     } else {
       value = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+    }
+    if (value.toString().contains("[*]")) {
+      value = toConstant(value, pElement);
     }
 
     return pElement.assign(false, varName, value, pEdge);
   }
 
-  private InvariantsState handleFunctionCall(InvariantsState pElement, final CFunctionCallEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
+  private InvariantsState handleFunctionCall(final InvariantsState pElement, final CFunctionCallEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
 
     InvariantsState newElement = pElement;
     List<String> formalParams = pEdge.getSuccessor().getFunctionParameterNames();
@@ -203,15 +208,25 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
         @Override
         public String extract(CExpression pCExpression) throws UnrecognizedCCodeException {
-          return getVarName(pCExpression, pEdge, pEdge.getPredecessor().getFunctionName());
+          return getVarName(pCExpression, pEdge, pEdge.getPredecessor().getFunctionName(), pElement);
         }
       }));
-
+      if (value.toString().contains("[*]")) {
+        value = toConstant(value, pElement);
+      }
       String formalParam = scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
       newElement = newElement.assign(false, formalParam, value, pEdge);
     }
 
     return newElement;
+  }
+
+  private static CompoundInterval evaluate(InvariantsFormula<CompoundInterval> pFormula, InvariantsState pState) {
+    return pFormula.accept(new FormulaCompoundStateEvaluationVisitor(), pState.getEnvironment());
+  }
+
+  private static InvariantsFormula<CompoundInterval> toConstant(InvariantsFormula<CompoundInterval> pFormula, InvariantsState pState) {
+    return CompoundStateFormulaManager.INSTANCE.asConstant(evaluate(pFormula, pState));
   }
 
   private InvariantsState handleStatement(InvariantsState pElement, CStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
@@ -278,8 +293,11 @@ public enum InvariantsTransferRelation implements TransferRelation {
   public static String getVarName(CExpression pLhs, CFAEdge pEdge) throws UnrecognizedCCodeException {
     return getVarName(pLhs, pEdge, pEdge.getSuccessor().getFunctionName());
   }
-
   public static String getVarName(CExpression pLhs, CFAEdge pEdge, String pFunctionName) throws UnrecognizedCCodeException {
+    return getVarName(pLhs, pEdge, pFunctionName, null);
+  }
+
+  public static String getVarName(CExpression pLhs, CFAEdge pEdge, String pFunctionName, InvariantsState pState) throws UnrecognizedCCodeException {
     if (pLhs instanceof CIdExpression) {
       CIdExpression var = (CIdExpression) pLhs;
       String varName = var.getName();
@@ -309,6 +327,12 @@ public enum InvariantsTransferRelation implements TransferRelation {
       CArraySubscriptExpression arraySubscript = (CArraySubscriptExpression) pLhs;
       CExpression subscript = arraySubscript.getSubscriptExpression();
       CExpression owner = arraySubscript.getArrayExpression();
+      if (pState != null) {
+        CompoundInterval subscriptValue = evaluate(subscript.accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(pEdge)), pState);
+        if (subscriptValue.isSingleton()) {
+          return String.format("%s[%d]", getVarName(owner, pEdge, pFunctionName), subscriptValue.getValue());
+        }
+      }
       if (subscript instanceof CIntegerLiteralExpression) {
         CIntegerLiteralExpression literal = (CIntegerLiteralExpression) subscript;
         return String.format("%s[%d]", getVarName(owner, pEdge, pFunctionName), literal.asLong());

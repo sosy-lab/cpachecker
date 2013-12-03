@@ -717,10 +717,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   public boolean equals(Object pObj) {
     if (pObj == this) { return true; }
     if (!(pObj instanceof InvariantsState)) { return false; }
-    InvariantsState other = (InvariantsState) pObj;
-    return environment.equals(other.environment)
-        && assumptions.equals(other.assumptions)
-        && collectedInterestingAssumptions.equals(other.collectedInterestingAssumptions);
+    return equals((InvariantsState) pObj);
+  }
+
+  public boolean equals(InvariantsState pOther) {
+    return pOther != null && environment.equals(pOther.environment)
+        && assumptions.equals(pOther.assumptions)
+        && collectedInterestingAssumptions.equals(pOther.collectedInterestingAssumptions);
   }
 
   @Override
@@ -811,10 +814,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   public InvariantsState join(InvariantsState pElement2) {
-    return join(pElement2, false);
-  }
-
-  public InvariantsState join(InvariantsState pElement2, boolean forceJoin) {
     Preconditions.checkArgument(pElement2.useBitvectors == useBitvectors);
     Preconditions.checkArgument(pElement2.precision == precision);
 
@@ -824,8 +823,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     InvariantsState result;
 
     if (isLessThanOrEqualTo(element2)
-        || !forceJoin && !collectedInterestingAssumptions.equals(element2.collectedInterestingAssumptions)
-        || !forceJoin && !environmentsEqualWithRespectToInterestingVariables(pElement2)) {
+        || !collectedInterestingAssumptions.equals(element2.collectedInterestingAssumptions)
+        || !environmentsEqualWithRespectToInterestingVariables(pElement2)) {
       result = element2;
     } else if (element2.isLessThanOrEqualTo(element1)) {
       result = element1;

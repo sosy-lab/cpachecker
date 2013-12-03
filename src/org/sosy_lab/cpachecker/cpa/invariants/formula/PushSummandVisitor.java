@@ -129,23 +129,6 @@ public class PushSummandVisitor<T> extends DefaultParameterizedFormulaVisitor<T,
    * summand consumed, otherwise it does nothing.
    */
   @Override
-  public InvariantsFormula<T> visit(Negate<T> pNegate, T pToPush) throws IllegalStateException {
-    checkNotConsumed();
-    InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
-    InvariantsFormula<T> toPush = ifm.asConstant(pToPush);
-    InvariantsFormula<T> negatedSummand = ifm.negate(toPush);
-    T negatedValue = negatedSummand.accept(this.evaluationVisitor, EMPTY_ENVIRONMENT);
-    if (negatedSummand instanceof Constant<?>) {
-      return pNegate.accept(this, negatedValue);
-    }
-    return visitDefault(pNegate, pToPush);
-  }
-
-  /**
-   * @throws IllegalStateException if the visitor already managed to get a
-   * summand consumed, otherwise it does nothing.
-   */
-  @Override
   protected InvariantsFormula<T> visitDefault(InvariantsFormula<T> pFormula, T pToPush) throws IllegalStateException {
     checkNotConsumed();
     InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;

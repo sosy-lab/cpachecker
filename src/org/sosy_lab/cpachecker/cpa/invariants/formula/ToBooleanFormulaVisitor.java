@@ -322,11 +322,6 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
   }
 
   @Override
-  public BooleanFormula visit(Negate<CompoundInterval> pNegate, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    return fromValueFormula(pNegate, pEnvironment);
-  }
-
-  @Override
   public BooleanFormula visit(ShiftLeft<CompoundInterval> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromValueFormula(pShiftLeft, pEnvironment);
   }

@@ -88,10 +88,6 @@ public class Add<ConstantType> extends AbstractFormula<ConstantType> implements 
 
   @Override
   public String toString() {
-    if (getSummand2() instanceof Negate<?>) {
-      Negate<?> summand2 = (Negate<?>) getSummand2();
-      return String.format("(%s - %s)", getSummand1(), summand2.getNegated());
-    }
     return String.format("(%s + %s)", getSummand1(), getSummand2());
   }
 
