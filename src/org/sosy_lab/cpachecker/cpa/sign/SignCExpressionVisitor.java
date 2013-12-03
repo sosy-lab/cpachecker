@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -68,7 +67,7 @@ public class SignCExpressionVisitor
   public SIGN visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCodeException {
     // e.g. x = non_det() where non_det is extern, unknown function allways assume returns any value
     if(pIastFunctionCallExpression.getExpressionType() instanceof CSimpleType){
-    return SIGN.ALL;
+      return SIGN.ALL;
     }
     return null;
   }
@@ -89,21 +88,33 @@ public class SignCExpressionVisitor
     SIGN right = pIastBinaryExpression.getOperand2().accept(this);
     Set<SIGN> leftAtomSigns = left.split();
     Set<SIGN> rightAtomSigns = right.split();
-    switch(pIastBinaryExpression.getOperator()) {
+    SIGN result = SIGN.EMPTY;
+    for(List<SIGN> signCombi : Sets.cartesianProduct(ImmutableList.of(leftAtomSigns, rightAtomSigns))) {
+      result = result.combineWith(evaluateExpression(signCombi.get(0), pIastBinaryExpression, signCombi.get(1)));
+    }
+    return result;
+  }
+
+  private SIGN evaluateExpression(SIGN pLeft, CBinaryExpression pExp, SIGN pRight) throws UnsupportedCCodeException {
+    SIGN result = SIGN.EMPTY;
+    switch(pExp.getOperator()) {
     case PLUS:
+      result = evaluatePlusOp(pLeft, pExp.getOperand1(), pRight, pExp.getOperand2());
+      break;
     case MINUS:
+      result = evaluateMinusOp(pLeft, pRight, pExp.getOperand2());
+      break;
     case MULTIPLY:
+      result = evaluateMulOp(pLeft, pRight);
+      break;
     case DIVIDE:
-      SIGN result = SIGN.EMPTY;
-      for(List<SIGN> signCombi : Sets.cartesianProduct(ImmutableList.of(leftAtomSigns, rightAtomSigns))) {
-        result = result.combineWith(evaluateBinaryExpr(signCombi.get(0), pIastBinaryExpression.getOperator(), signCombi.get(1)));
-      }
-      return result;
+      result = evaluateDivideOp(pLeft, pRight);
+      break;
     default:
       throw new UnsupportedCCodeException(
-          "Not supported", edgeOfExpr,
-          pIastBinaryExpression);
+          "Not supported", edgeOfExpr);
     }
+    return result;
   }
 
   @Override
@@ -156,54 +167,74 @@ public class SignCExpressionVisitor
     return SIGN.PLUS;
   }
 
-  private SIGN evaluateBinaryExpr(SIGN left, BinaryOperator operator, SIGN right) throws UnsupportedCCodeException {
-    boolean multOrDiv = operator == BinaryOperator.MULTIPLY || operator == BinaryOperator.DIVIDE;
-
-    if(right == SIGN.ZERO && operator == BinaryOperator.DIVIDE) {
-      throw new UnsupportedCCodeException("Dividing by zero is not supported", edgeOfExpr);
+  private SIGN evaluatePlusOp(SIGN pLeft, CExpression pLeftExp, SIGN pRight, CExpression pRightExp) {
+    // Special case: - + 1 => -0, 1 + - => -0
+    if(pLeft == SIGN.MINUS && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)
+        || (pLeftExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pLeftExp).getValue().equals(BigInteger.ONE) && pRight == SIGN.MINUS) {
+      return SIGN.MINUS0;
     }
+    SIGN leftToRightResult = evaluateNonCommutativePlusOp(pLeft, pRight);
+    SIGN rightToLeftResult = evaluateNonCommutativePlusOp(pRight, pLeft);
+    return leftToRightResult.combineWith(rightToLeftResult);
+  }
 
-    /*
-     *  0 * _ => 0
-     *  _ * 0 => 0
-     *  0 / x => 0
-     *  x / 0 => NOT DEFINED
-     *  0 _ 0 => 0
-     */
-    if(multOrDiv && left == SIGN.ZERO
-        || operator == BinaryOperator.MULTIPLY && right == SIGN.ZERO) {
-        return SIGN.ZERO;
+  private SIGN evaluateNonCommutativePlusOp(SIGN pLeft, SIGN pRight) {
+    if(pRight == SIGN.ZERO) {
+      return pLeft;
     }
-
-    // TODO add cases with zero
-    // TODO add special case PLUS -1 => PLUS0 and MINUS + 1 => MINUS0
-    /*
-     * + + - => ?
-     * - + + => ?
-     * - - - => ?
-     * + - + => ?
-     */
-    if( operator == BinaryOperator.PLUS && left == SIGN.PLUS && right == SIGN.MINUS
-        || operator == BinaryOperator.PLUS && left == SIGN.MINUS && right == SIGN.PLUS
-        || operator == BinaryOperator.MINUS && left == SIGN.MINUS && right == SIGN.MINUS
-        || operator == BinaryOperator.MINUS && left == SIGN.PLUS && right == SIGN.PLUS) {
+    if(pLeft == SIGN.PLUS && pRight == SIGN.MINUS) {
       return SIGN.ALL;
     }
-
-    /*
-     * - + - => -
-     * - - + => -
-     * - * + => -
-     * + * - => -
-     * - / + => -
-     * + / - => -
-     */
-    if(operator == BinaryOperator.PLUS && left == SIGN.MINUS && right == SIGN.MINUS
-        || operator == BinaryOperator.MINUS && left == SIGN.MINUS && right == SIGN.PLUS
-        || multOrDiv && left == SIGN.MINUS && right == SIGN.PLUS
-        || multOrDiv && left == SIGN.PLUS && right == SIGN.MINUS) {
+    if(pLeft == SIGN.MINUS && pRight == SIGN.MINUS) {
       return SIGN.MINUS;
     }
-    return SIGN.PLUS;
+    if(pLeft == SIGN.PLUS && pRight == SIGN.PLUS) {
+      return SIGN.PLUS;
+    }
+    return SIGN.EMPTY;
+  }
+
+  private SIGN evaluateMinusOp(SIGN pLeft, SIGN pRight, CExpression pRightExp) {
+    // Special case: + - 1 => +0
+    if(pLeft == SIGN.PLUS && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)) {
+      return SIGN.PLUS0;
+    }
+    if(pRight == SIGN.ZERO) {
+      return pLeft;
+    }
+    if(pLeft == SIGN.PLUS && pRight == SIGN.MINUS) {
+      return SIGN.PLUS;
+    }
+    if(pLeft == SIGN.MINUS && pRight == SIGN.PLUS) {
+      return SIGN.MINUS;
+    }
+    return SIGN.ALL;
+  }
+
+  private SIGN evaluateMulOp(SIGN pLeft, SIGN pRight) {
+    SIGN leftToRightResult = evaluateNonCommutativeMulOp(pLeft, pRight);
+    SIGN rightToLeftResult = evaluateNonCommutativeMulOp(pRight, pLeft);
+    return leftToRightResult.combineWith(rightToLeftResult);
+  }
+
+  private SIGN evaluateNonCommutativeMulOp(SIGN left, SIGN right) {
+    if(right == SIGN.ZERO) {
+      return SIGN.ZERO;
+    }
+    if(left == SIGN.PLUS && right == SIGN.MINUS) {
+      return SIGN.MINUS;
+    }
+    if(left == SIGN.PLUS && right == SIGN.PLUS
+        || left == SIGN.MINUS && right == SIGN.MINUS) {
+      return SIGN.PLUS;
+    }
+    return SIGN.EMPTY;
+  }
+
+  private SIGN evaluateDivideOp(SIGN left, SIGN right) throws UnsupportedCCodeException {
+    if(right == SIGN.ZERO) {
+      throw new UnsupportedCCodeException("Dividing by zero is not supported", edgeOfExpr);
+    }
+    return evaluateMulOp(left, right);
   }
 }
