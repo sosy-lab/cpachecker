@@ -20,7 +20,6 @@
 ../programs/benchmarks/ssh-simplified/s3_srvr_1a_true.cil.c
 ../programs/benchmarks/ssh-simplified/s3_srvr_1b_true.cil.c
 ../programs/benchmarks/ssh-simplified/s3_srvr_3_true.cil.c
-../programs/benchmarks/ssh-simplified/s3_srvr_4_true.cil.c
 ../programs/benchmarks/ssh-simplified/s3_srvr_6_true.cil.c
 ../programs/benchmarks/ssh-simplified/s3_srvr_7_true.cil.c
 ../programs/benchmarks/ssh-simplified/s3_srvr_8_true.cil.c

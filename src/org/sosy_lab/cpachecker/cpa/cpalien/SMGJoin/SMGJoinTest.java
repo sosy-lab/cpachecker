@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien.SMGJoin;
 
-import java.util.ArrayList;
 import java.util.Set;
 
 import org.junit.Assert;
@@ -32,24 +31,22 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.cpalien.AnonymousTypes;
 import org.sosy_lab.cpachecker.cpa.cpalien.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.cpalien.SMGObject;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 public class SMGJoinTest {
-  private CType returnType = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
-  private CFunctionType functionType = new CFunctionType(false, false, returnType, new ArrayList<CType>(), false);
-  private CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
+  static private final CFunctionType functionType = AnonymousTypes.createSimpleFunctionType(AnonymousTypes.dummyInt);
+  static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
 
   private CLangSMG smg1;
   private CLangSMG smg2;
@@ -63,8 +60,8 @@ public class SMGJoinTest {
 
   // Testing condition: adds an identical global variable to both SMGs
   private void addGlobalWithoutValueToBoth(String pVarName) {
-    SMGObject global1 = new SMGObject(8, pVarName);
-    SMGObject global2 = new SMGObject(8, pVarName);
+    SMGRegion global1 = new SMGRegion(8, pVarName);
+    SMGRegion global2 = new SMGRegion(8, pVarName);
 
     smg1.addGlobalObject(global1);
     smg2.addGlobalObject(global2);
@@ -72,8 +69,8 @@ public class SMGJoinTest {
 
   // Testing condition: adds an identical local variable to both SMGs
   private void addLocalWithoutValueToBoth(String pVarName) {
-    SMGObject local1 = new SMGObject(8, pVarName);
-    SMGObject local2 = new SMGObject(8, pVarName);
+    SMGRegion local1 = new SMGRegion(8, pVarName);
+    SMGRegion local2 = new SMGRegion(8, pVarName);
 
     smg1.addStackObject(local1);
     smg2.addStackObject(local2);
@@ -81,8 +78,8 @@ public class SMGJoinTest {
 
   // Testing condition: adds an identical global variable to both SMGs, with value
   private void addGlobalWithValueToBoth(String pVarName) {
-    SMGObject global1 = new SMGObject(8, pVarName);
-    SMGObject global2 = new SMGObject(8, pVarName);
+    SMGRegion global1 = new SMGRegion(8, pVarName);
+    SMGRegion global2 = new SMGRegion(8, pVarName);
     Integer value1 = SMGValueFactory.getNewValue();
     Integer value2 = SMGValueFactory.getNewValue();
     SMGEdgeHasValue hv1 = new SMGEdgeHasValue(4, 0, global1, value1);
@@ -98,8 +95,8 @@ public class SMGJoinTest {
 
   // Testing condition: adds an identical local value to both SMGs, with value
   private void addLocalWithValueToBoth(String pVarName) {
-    SMGObject local1 = new SMGObject(8, pVarName);
-    SMGObject local2 = new SMGObject(8, pVarName);
+    SMGRegion local1 = new SMGRegion(8, pVarName);
+    SMGRegion local2 = new SMGRegion(8, pVarName);
     Integer value1 = SMGValueFactory.getNewValue();
     Integer value2 = SMGValueFactory.getNewValue();
     SMGEdgeHasValue hv1 = new SMGEdgeHasValue(4, 0, local1, value1);

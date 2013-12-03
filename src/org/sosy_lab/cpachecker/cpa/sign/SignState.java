@@ -23,52 +23,80 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
-import java.util.Map;
-import java.util.Set;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
+import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Sets;
 
 
 
-public class SignState implements AbstractState {
+public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis {
 
-  //
-  public static enum SIGN {
-    PLUS, MINUS, ZERO;
+  private static final boolean DEBUG = false;
+
+  private static SignTargetChecker targetChecker;
+
+  static void init(Configuration config) throws InvalidConfigurationException {
+    targetChecker = new SignTargetChecker(config);
   }
 
-  // TODO I assumed and indeed prefer we have just a single map,
-  // possibly a multimap so you may have more than one sign assumption per variable but this will complicate the transfer relation
-  // another possibility is that we adapt our SIGN enumeration to also contain PLUS0, MINUS0, ALL and thus have a single value
-  // ALL may also mean that the variable does not occur in the map
-  private Set<Map<String, SIGN>> possibleSigns;
+  private SignMap signMap;
 
-  public SignState(Set<Map<String, SIGN>> pPossibleSigns) {
-    possibleSigns = pPossibleSigns;
+  public SignMap getSignMap() {
+    return signMap;
+  }
+
+  public final static SignState TOP = new SignState(ImmutableMap.<String, SIGN> of());
+
+  public SignState(ImmutableMap<String, SIGN> pPossibleSigns) {
+    signMap = new SignMap(pPossibleSigns);
   }
 
   public SignState union(SignState pToJoin) {
-    if(pToJoin == this) {
-      return this;
+    if (pToJoin.equals(this)) { return pToJoin; }
+    if (this.equals(TOP) || pToJoin.equals(TOP)) { return TOP; }
+
+    // assure termination of loops do not merge if  pToJoin covers this but return pToJoin
+    if (isSubsetOf(pToJoin)) { return pToJoin; }
+
+    SignState result = SignState.TOP;
+    for (String varIdent : Sets.union(signMap.keySet(), pToJoin.signMap.keySet())) {
+      result = result.assignSignToVariable(varIdent,
+          signMap.getSignForVariable(varIdent).combineWith(pToJoin.signMap.getSignForVariable(varIdent))); // TODO performance
     }
-    Set<Map<String, SIGN>> resultSetOfPossStates;
-    // TODO does it terminate for loops?, I assumed one combines the content of the different maps
-    resultSetOfPossStates = Sets.union(possibleSigns, pToJoin.possibleSigns);
-    return new SignState(resultSetOfPossStates);
+    return result;
   }
 
   public boolean isSubsetOf(SignState pSuperset) {
-    // TODO in principal it is sufficient if for every variable all sign assumptions are considered in pSuperset
-    if(pSuperset == this) {
-      return true;
+    if (pSuperset.equals(this) || pSuperset.equals(TOP)) { return true; }
+    // is subset if for every variable all sign assumptions are considered in pSuperset
+    for (String varIdent : Sets.union(signMap.keySet(), pSuperset.signMap.keySet())) {
+      if (!signMap.getSignForVariable(varIdent).isSubsetOf(pSuperset.signMap.getSignForVariable(varIdent))) { return false; }
     }
-    return pSuperset.possibleSigns.containsAll(possibleSigns);
+    return true;
   }
 
-  public Set<Map<String, SIGN>> getPossibleSigns() {
-    return possibleSigns;
+  public SignState assignSignToVariable(String pVarIdent, SIGN sign) {
+    Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
+    if (!sign.isAll()) {
+      mapBuilder.put(pVarIdent, sign);
+    }
+    for (String varIdent : signMap.keySet()) {
+      if (!varIdent.equals(pVarIdent)) {
+        mapBuilder.put(varIdent, signMap.getSignForVariable(varIdent));
+      }
+    }
+    return new SignState(mapBuilder.build());
+  }
+
+  public SignState removeSignAssumptionOfVariable(String pVarIdent) {
+    return assignSignToVariable(pVarIdent, SIGN.ALL);
   }
 
   @Override
@@ -76,18 +104,50 @@ public class SignState implements AbstractState {
     StringBuilder builder = new StringBuilder();
     String delim = ", ";
     builder.append("[");
-    for(Map<String, SIGN> varMap : possibleSigns) {
-      builder.append("{");
-      String loopDelim = "";
-      for(String key : varMap.keySet()) {
-        builder.append(loopDelim);
-        builder.append(key + "->" + varMap.get(key));
-        loopDelim = delim;
+    String loopDelim = "";
+    for (String key : signMap.keySet()) {
+      if (!DEBUG && (key.matches("\\w*::__CPAchecker_TMP_\\w*") || key.endsWith(SignTransferRelation.FUNC_RET_VAR))) {
+        continue;
       }
-      builder.append("}");
+      builder.append(loopDelim);
+      builder.append(key + "->" + signMap.getSignForVariable(key));
+      loopDelim = delim;
     }
     builder.append("]");
     return builder.toString();
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (!(pObj instanceof SignState)) { return false; }
+    return ((SignState) pObj).getSignMap().equals(this.getSignMap());
+  }
+
+  @Override
+  public int hashCode() {
+    return signMap.hashCode();
+  }
+
+  @Override
+  public boolean isTarget() {
+    return targetChecker == null ? false : targetChecker.isTarget(this);
+  }
+
+  @Override
+  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+    if (isTarget()) { return ViolatedProperty.OTHER; }
+    return null;
+  }
+
+  @Override
+  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
+    return targetChecker == null ? pFmgr.getBooleanFormulaManager().makeBoolean(false) : targetChecker
+        .getErrorCondition(this, pFmgr);
+  }
+
+  @Override
+  public String getTargetVariableName() {
+    return targetChecker == null ? "" : targetChecker.getErrorVariableName();
   }
 
 }

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+
 
 public class SMGEdgePointsTo extends SMGEdge {
   final private int offset;
@@ -50,12 +52,12 @@ public class SMGEdgePointsTo extends SMGEdge {
       return false;
     }
 
-    if (this.value != other.value) {
-      if (this.offset == ((SMGEdgePointsTo)other).offset && this.object == other.object) {
+    if (value != other.value) {
+      if (offset == ((SMGEdgePointsTo)other).offset && object == other.object) {
         return false;
       }
     } else
-      if (this.offset != ((SMGEdgePointsTo)other).offset || this.object != other.object) {
+      if (offset != ((SMGEdgePointsTo)other).offset || object != other.object) {
         return false;
       }
 

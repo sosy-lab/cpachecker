@@ -293,7 +293,8 @@ public class ARGStatistics implements Statistics {
     writeErrorPathFile(errorPathAutomatonFile, cexIndex, new Appender() {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
-        ARGUtils.producePathAutomaton(pAppendable, rootState, pathElements);
+        ARGUtils.producePathAutomaton(pAppendable, rootState, pathElements,
+                                      "ErrorPath" + cexIndex);
       }
     });
 

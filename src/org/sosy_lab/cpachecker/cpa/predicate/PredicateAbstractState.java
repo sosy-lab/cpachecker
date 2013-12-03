@@ -32,6 +32,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
@@ -148,7 +149,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  static class ComputeAbstractionState extends PredicateAbstractState {
+  public static class ComputeAbstractionState extends PredicateAbstractState {
 
     private static final long serialVersionUID = -3961784113582993743L;
     private transient final CFANode location;
@@ -181,7 +182,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  static PredicateAbstractState mkAbstractionState(BooleanFormulaManager bfmgr,
+  public static PredicateAbstractState mkAbstractionState(BooleanFormulaManager bfmgr,
       PathFormula pF, AbstractionFormula pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations,
       @Nullable ViolatedProperty pViolatedProperty,
@@ -190,10 +191,10 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
   }
 
   static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(
-      PathFormula pF,
-      @Nullable ViolatedProperty pViolatedProperty,
-      PredicateAbstractState oldState,
-      Set<Integer> pReusedStateIds) {
+    PathFormula pF,
+    @Nullable ViolatedProperty pViolatedProperty, 
+    PredicateAbstractState oldState,
+	Set<Integer> pReusedStateIds) {
     return new NonAbstractionState(pF, oldState.getAbstractionFormula(),
         oldState.getAbstractionLocationsOnPath(), pViolatedProperty, pReusedStateIds);
   }
@@ -210,6 +211,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
   private final PersistentMap<CFANode, Integer> abstractionLocations;
 
   private final Set<Integer> positionInReuseGraph;
+  private final Set<CFAEdge> opsSinceReuse;
 
   private final @Nullable ViolatedProperty violatedProperty;
 
@@ -222,6 +224,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     this.abstractionLocations = pAbstractionLocations;
     this.violatedProperty = pViolatedProperty;
     this.positionInReuseGraph = pReuseStateId;
+
   }
 
   public abstract boolean isAbstractionState();

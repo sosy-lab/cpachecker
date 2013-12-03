@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
-import java.util.HashSet;
-import java.util.Map;
-
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -42,7 +41,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.sign.SignState.SIGN;
 
 
 public class SignCPA implements ConfigurableProgramAnalysis {
@@ -57,13 +55,15 @@ public class SignCPA implements ConfigurableProgramAnalysis {
 
   private MergeOperator merge;
 
-  public SignCPA(LogManager pLogger) {
+  public SignCPA(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
     logger = pLogger;
     domain = new SignDomain();
     transfer = new SignTransferRelation(logger);
     // TODO SEP, JOIN for merge, stop should be configurable
     merge = new MergeJoinOperator(domain);
     stop = new StopJoinOperator(domain);
+
+    SignState.init(config);
   }
 
   public static CPAFactory factory() {
@@ -97,7 +97,7 @@ public class SignCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return new SignState(new HashSet<Map<String, SIGN>>());
+    return SignState.TOP;
   }
 
   @Override

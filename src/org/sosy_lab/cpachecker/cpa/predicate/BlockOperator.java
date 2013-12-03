@@ -72,6 +72,9 @@ public class BlockOperator {
   @Option(description="force abstractions at each function calls/returns, regardless of threshold")
   private boolean alwaysAtFunctions = true;
 
+  @Option(description="force abstractions at each join node, regardless of threshold")
+  private boolean alwaysAtJoin = false;
+
   @Option(description="abstraction always and only on explicitly computed abstraction nodes.")
   private boolean alwaysAndOnlyAtExplicitNodes = false;
 
@@ -109,6 +112,11 @@ public class BlockOperator {
 
     if (alwaysAtLoops && isLoopHead(succLoc)) {
       numBlkLoops++;
+      return true;
+    }
+
+    if(alwaysAtJoin && isJoinNode(succLoc)){
+      numBlkJoins++;
       return true;
     }
 

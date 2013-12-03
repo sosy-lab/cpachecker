@@ -61,6 +61,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.AssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
@@ -216,9 +218,15 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    * @param increment the current precision increment
    * @param isRepeatedRefinement the flag to determine whether or not this is a repeated refinement
    * @return the new refinement root
+   * @throws RefinementFailedException if no refinement root can be determined
    */
   Pair<ARGState, CFAEdge> determineRefinementRoot(ARGPath errorPath, Multimap<CFANode, String> increment,
-      boolean isRepeatedRefinement) {
+      boolean isRepeatedRefinement) throws RefinementFailedException {
+
+    if(interpolationOffset == -1) {
+      throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);
+    }
+
     // if doing lazy abstraction, use the node closest to the root node where new information is present
     if (doLazyAbstraction) {
 

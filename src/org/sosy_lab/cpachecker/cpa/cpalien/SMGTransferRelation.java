@@ -70,12 +70,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -87,20 +89,19 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.AssumeVisitor;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.LValueAssignmentVisitor;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.SMGExplicitCommunicator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -212,7 +213,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     public final void evaluateVBPlot(CFunctionCallExpression functionCall, SMGState currentState) {
       String name = functionCall.getParameterExpressions().get(0).toASTString();
-      this.dumpSMGPlot(name, currentState, functionCall.toString());
+      dumpSMGPlot(name, currentState, functionCall.toString());
     }
 
     // TODO: Seems like there is large code sharing with evaluate calloc
@@ -287,11 +288,16 @@ public class SMGTransferRelation implements TransferRelation {
 
       int offset =  bufferAddress.getOffset().getAsInt();
 
+      //TODO write explicit Value into smg
       SMGSymbolicValue ch = evaluateExpressionValue(currentState, cfaEdge, chExpr);
 
       if (ch.isUnknown()) {
         throw new UnrecognizedCCodeException("Can't simulate memset", cfaEdge, functionCall);
       }
+
+      SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
+
+      SMGExplicitValue expValue = expEvaluator.evaluateExplicitValue(currentState, cfaEdge, chExpr);
 
       if (ch.equals(SMGKnownSymValue.ZERO)) {
         // Create one large edge
@@ -301,6 +307,10 @@ public class SMGTransferRelation implements TransferRelation {
         // memset() copies ch into the first count characters of buffer
         for (int c = 0; c < count; c++) {
           writeValue(currentState, bufferMemory, offset + c, AnonymousTypes.dummyChar, ch, cfaEdge);
+        }
+
+        if (!expValue.isUnknown()) {
+          currentState.putExplicit((SMGKnownSymValue) ch, (SMGKnownExpValue) expValue);
         }
       }
 
@@ -358,14 +368,7 @@ public class SMGTransferRelation implements TransferRelation {
       String allocation_label = "Calloc_ID" + SMGValueFactory.getNewValue() + "_Line:" + functionCall.getFileLocation().getStartingLineNumber();
       SMGEdgePointsTo new_pointer = currentState.addNewHeapAllocation(num * size, allocation_label);
 
-
-      //TODO Create mock types
-      CSimpleType charType = new CSimpleType(false, false, CBasicType.CHAR,
-          false, false, false, false, false, false, false);
-      CType newType = new CArrayType(false, false, charType,
-          new CIntegerLiteralExpression(null, null, BigInteger.valueOf(size)));
-
-      currentState.writeValue(new_pointer.getObject(), 0, newType, SMGKnownSymValue.ZERO);
+      currentState.writeValue(new_pointer.getObject(), 0, AnonymousTypes.createTypeWithLength(size), SMGKnownSymValue.ZERO);
 
       possibleMallocFail = true;
       return new_pointer;
@@ -663,11 +666,8 @@ public class SMGTransferRelation implements TransferRelation {
   private SMGState handleAssumption(SMGState smgState, CExpression expression, CFAEdge cfaEdge,
       boolean truthValue) throws CPATransferException {
 
-    // convert an expression like [a + 753 != 951] to [a != 951 - 753]
-    expression = optimizeAssumeForEvaluation(expression);
-
     // get the value of the expression (either true[-1], false[0], or unknown[null])
-    SMGRightHandSideEvaluator.AssumeVisitorNG visitor = expressionEvaluator.getAssumeVisitorNG(cfaEdge, smgState);
+    AssumeVisitor visitor = expressionEvaluator.getAssumeVisitor(cfaEdge, smgState);
     SMGSymbolicValue value = expression.accept(visitor);
 
     if (! value.isUnknown()) {
@@ -699,6 +699,8 @@ public class SMGTransferRelation implements TransferRelation {
         newState.identifyNonEqualValues(visitor.knownVal1, visitor.knownVal2);
       }
       */
+
+      expressionEvaluator.deriveFurtherInformation(newState, truthValue, cfaEdge, expression);
       return newState;
     } else if ((truthValue && explicitValue.equals(SMGKnownExpValue.ONE))
         || (!truthValue && explicitValue.equals(SMGKnownExpValue.ZERO))) {
@@ -822,6 +824,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
 
+    //TODO also evaluate explicit value and assign to symbolic value
     SMGSymbolicValue value = expressionEvaluator.evaluateExpressionValue(readState, cfaEdge, rValue);
 
     if (value.isUnknown()) {
@@ -838,7 +841,15 @@ public class SMGTransferRelation implements TransferRelation {
       }
     }
 
+    SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
+
+    SMGExplicitValue expValue = expEvaluator.evaluateExplicitValue(newState, cfaEdge, rValue);
+
     assignFieldToState(newState, cfaEdge, memoryOfField, fieldOffset, pFieldType, value, rValueType);
+
+    if (!expValue.isUnknown()) {
+      newState.putExplicit((SMGKnownSymValue) value, (SMGKnownExpValue) expValue);
+    }
   }
 
   private void addMissingInformation(SMGObject pMemoryOfField, int pFieldOffset, CRightHandSide pRValue,
@@ -854,9 +865,9 @@ public class SMGTransferRelation implements TransferRelation {
       SMGObject memoryOfField, int fieldOffset, CType pFieldType, SMGSymbolicValue value, CType rValueType)
       throws UnrecognizedCCodeException, SMGInconsistentException {
 
-    if (memoryOfField.getSizeInBytes() < expressionEvaluator.getSizeof(cfaEdge, rValueType)) {
+    if (memoryOfField.getSize() < expressionEvaluator.getSizeof(cfaEdge, rValueType)) {
       logger.log(Level.WARNING, "Attempting to write " + expressionEvaluator.getSizeof(cfaEdge, rValueType) +
-          " bytes into a field with size " + memoryOfField.getSizeInBytes() + "bytes.\n" +
+          " bytes into a field with size " + memoryOfField.getSize() + "bytes.\n" +
           "Line " + cfaEdge.getLineNumber() + ": " + cfaEdge.getRawStatement());
     }
 
@@ -884,16 +895,14 @@ public class SMGTransferRelation implements TransferRelation {
   }
   private void writeValue(SMGState pNewState, SMGObject pMemoryOfField, int pFieldOffset, long pSizeType,
       SMGSymbolicValue pValue, CFAEdge pEdge) throws UnrecognizedCCodeException, SMGInconsistentException {
-    CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(null, AnonymousTypes.dummyInt, BigInteger.valueOf(pSizeType));
-    CType anonymousType = new CArrayType(false, false, AnonymousTypes.dummyChar, arrayLen);
-    writeValue(pNewState, pMemoryOfField, pFieldOffset, anonymousType, pValue, pEdge);
+    writeValue(pNewState, pMemoryOfField, pFieldOffset, AnonymousTypes.createTypeWithLength(pSizeType), pValue, pEdge);
   }
 
   private void writeValue(SMGState pNewState, SMGObject pMemoryOfField, int pFieldOffset, CType pRValueType,
       SMGSymbolicValue pValue, CFAEdge pEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
 
     boolean doesNotFitIntoObject = pFieldOffset < 0
-        || pFieldOffset + expressionEvaluator.getSizeof(pEdge, pRValueType) > pMemoryOfField.getSizeInBytes();
+        || pFieldOffset + expressionEvaluator.getSizeof(pEdge, pRValueType) > pMemoryOfField.getSize();
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
@@ -1078,15 +1087,7 @@ public class SMGTransferRelation implements TransferRelation {
       int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType);
 
       if(offset < sizeOfType ) {
-
-        //TODO MockType
-        CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-        CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
-
-        CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(null, dummyInt, BigInteger.valueOf(sizeOfType - offset));
-        CArrayType type = new CArrayType(false, false, dummyChar, arrayLen);
-
-        pNewState.writeValue(pNewObject, offset, type, SMGKnownSymValue.ZERO);
+        pNewState.writeValue(pNewObject, offset, AnonymousTypes.createTypeWithLength(sizeOfType), SMGKnownSymValue.ZERO);
       }
     }
 
@@ -1121,65 +1122,11 @@ public class SMGTransferRelation implements TransferRelation {
 
       int offset = pOffset + listCounter * sizeOfElementType;
       if (offset < sizeOfType) {
-
-        //TODO MockType
-        CSimpleType dummyChar =
-            new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-        CSimpleType dummyInt =
-            new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
-
-        CIntegerLiteralExpression arrayLen =
-            new CIntegerLiteralExpression(null, dummyInt, BigInteger.valueOf(sizeOfType - offset));
-        CArrayType type = new CArrayType(false, false, dummyChar, arrayLen);
-
-        pNewState.writeValue(pNewObject, offset, type, SMGKnownSymValue.ZERO);
+        pNewState.writeValue(pNewObject, offset, AnonymousTypes.createTypeWithLength(sizeOfType-offset), SMGKnownSymValue.ZERO);
       }
     }
 
     return pNewState;
-  }
-
-  /**
-   * This method converts an expression like [a + 753 != 951] to [a != 951 - 753], to be able to derive addition information easier with the current expression evaluation visitor.
-   *
-   * @param expression the expression to generalize
-   * @return the generalized expression
-   */
-  private CExpression optimizeAssumeForEvaluation(CExpression expression) {
-    if (expression instanceof CBinaryExpression) {
-      CBinaryExpression binaryExpression = (CBinaryExpression) expression;
-
-      BinaryOperator operator = binaryExpression.getOperator();
-      CExpression leftOperand = binaryExpression.getOperand1();
-      CExpression riteOperand = binaryExpression.getOperand2();
-
-
-      if (operator == BinaryOperator.EQUALS || operator == BinaryOperator.NOT_EQUALS) {
-        if (leftOperand instanceof CBinaryExpression && riteOperand instanceof CLiteralExpression) {
-          CBinaryExpression expr = (CBinaryExpression) leftOperand;
-
-          BinaryOperator operation = expr.getOperator();
-          CExpression leftAddend = expr.getOperand1();
-          CExpression riteAddend = expr.getOperand2();
-
-          // [(a + 753) != 951] => [a != 951 + 753]
-
-          if (riteAddend instanceof CLiteralExpression
-              && (operation == BinaryOperator.PLUS || operation == BinaryOperator.MINUS)) {
-            BinaryOperator newOperation =
-                (operation == BinaryOperator.PLUS) ? BinaryOperator.MINUS : BinaryOperator.PLUS;
-
-            final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(machineModel, logger);
-            final CBinaryExpression sum = binExprBuilder.buildBinaryExpression(
-                riteOperand, riteAddend, newOperation);
-            final CBinaryExpression assume = binExprBuilder.buildBinaryExpression(
-                leftAddend, sum, operator);
-            return assume;
-          }
-        }
-      }
-    }
-    return expression;
   }
 
   private class IsNotZeroVisitor extends DefaultCExpressionVisitor<Boolean, UnrecognizedCCodeException>
@@ -1192,9 +1139,9 @@ public class SMGTransferRelation implements TransferRelation {
     @SuppressWarnings("unused")
     private final SMGState smgState;
 
-    public IsNotZeroVisitor(SMGState smgState, CFAEdge cfaEdge) {
-      this.cfaEdge = cfaEdge;
-      this.smgState = smgState;
+    public IsNotZeroVisitor(SMGState pSmgState, CFAEdge pCfaEdge) {
+      cfaEdge = pCfaEdge;
+      smgState = pSmgState;
     }
 
     @Override
@@ -1256,9 +1203,212 @@ public class SMGTransferRelation implements TransferRelation {
       super(pLogger, pMachineModel);
     }
 
-    public org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGRightHandSideEvaluator.AssumeVisitorNG getAssumeVisitorNG(
-        CFAEdge pCfaEdge, SMGState pSmgState) {
-      return new AssumeVisitorNG(pCfaEdge, pSmgState);
+    public void deriveFurtherInformation(SMGState pNewState, boolean pTruthValue, CFAEdge pCfaEdge, CExpression rValue)
+        throws CPATransferException {
+      rValue.accept(new AssigningValueVisitor(pNewState, pTruthValue, pCfaEdge));
+    }
+
+    /**
+     * Visitor that derives further information from an assume edge
+     */
+    private class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferException> {
+
+      private SMGState assignableState;
+      private boolean truthValue = false;
+      private CFAEdge edge;
+
+      public AssigningValueVisitor(SMGState pSMGState, boolean pTruthvalue, CFAEdge pEdge) {
+        assignableState = pSMGState;
+        truthValue = pTruthvalue;
+        edge = pEdge;
+      }
+
+      @Override
+      protected Void visitDefault(CExpression pExp) throws CPATransferException {
+        return null;
+      }
+
+      @Override
+      public Void visit(CPointerExpression pointerExpression) throws CPATransferException {
+        deriveFurtherInformation(pointerExpression);
+        return null;
+      }
+
+      @Override
+      public Void visit(CIdExpression pExp) throws CPATransferException {
+        deriveFurtherInformation(pExp);
+        return null;
+      }
+
+      @Override
+      public Void visit(CArraySubscriptExpression pExp) throws CPATransferException {
+        deriveFurtherInformation(pExp);
+        return null;
+      }
+
+      @Override
+      public Void visit(CFieldReference pExp) throws CPATransferException {
+        deriveFurtherInformation(pExp);
+        return null;
+      }
+
+      @Override
+      public Void visit(CCastExpression pE) throws CPATransferException {
+        // TODO cast reinterpretations
+        return pE.getOperand().accept(this);
+      }
+
+      @Override
+      public Void visit(CCharLiteralExpression pE) throws CPATransferException {
+
+        assert false;
+        return null;
+      }
+
+      @Override
+      public Void visit(CFloatLiteralExpression pE) throws CPATransferException {
+
+        assert false;
+        return null;
+      }
+
+      @Override
+      public Void visit(CIntegerLiteralExpression pE) throws CPATransferException {
+
+        assert false;
+        return null;
+      }
+
+
+      @Override
+      public Void visit(CBinaryExpression binExp) throws CPATransferException {
+        //TODO More precise
+
+        CExpression operand1 = unwrap(binExp.getOperand1());
+        CExpression operand2 = unwrap(binExp.getOperand2());
+        BinaryOperator op = binExp.getOperator();
+
+        if(operand1 instanceof CLeftHandSide) {
+          deriveFurtherInformation((CLeftHandSide) operand1, operand2, op);
+        }
+
+        if(operand2 instanceof CLeftHandSide) {
+          deriveFurtherInformation((CLeftHandSide) operand2, operand1, op);
+        }
+
+        return null;
+      }
+
+      private void deriveFurtherInformation(CLeftHandSide lValue, CExpression exp, BinaryOperator op) throws CPATransferException {
+
+        SMGExplicitValue rValue = evaluateExplicitValue(assignableState, edge, exp);
+
+        if(rValue.isUnknown()) {
+          // no further information can be inferred
+          return;
+        }
+
+        SMGSymbolicValue rSymValue = evaluateExpressionValue(assignableState, edge, exp);
+
+        if(rSymValue.isUnknown()) {
+          return;
+        }
+
+        SMGExpressionEvaluator.LValueAssignmentVisitor visitor = getLValueAssignmentVisitor(edge, assignableState);
+
+        SMGAddress addressOfField = lValue.accept(visitor);
+
+        if(addressOfField.isUnknown()) {
+          return;
+        }
+
+        if (truthValue) {
+          if (op == BinaryOperator.EQUALS) {
+            assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
+          }
+        } else {
+          if(op == BinaryOperator.NOT_EQUALS) {
+            assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
+            //TODO more precise
+          }
+        }
+      }
+
+      @Override
+      public Void visit(CUnaryExpression pE) throws CPATransferException {
+
+        UnaryOperator op = pE.getOperator();
+
+        CExpression operand = pE.getOperand();
+
+        switch (op) {
+        case AMPER:
+          assert false : "In this case, the assume should be able to be calculated";
+          return null;
+        case MINUS:
+        case PLUS:
+        case TILDE:
+          // don't change the truth value
+          return operand.accept(this);
+        case NOT:
+          truthValue = !truthValue;
+          return operand.accept(this);
+        case SIZEOF:
+          assert false : "At the moment, this cae should be able to be calculated";
+
+        }
+
+        return null;
+      }
+
+      private void deriveFurtherInformation(CLeftHandSide lValue) throws CPATransferException {
+
+        if(truthValue == true) {
+          return; // no further explicit Information can be derived
+        }
+
+        SMGExpressionEvaluator.LValueAssignmentVisitor visitor = getLValueAssignmentVisitor(edge, assignableState);
+
+        SMGAddress addressOfField = lValue.accept(visitor);
+
+        if(addressOfField.isUnknown()) {
+          return;
+        }
+
+        // If this value is known, the assumption can be evaluated, therefore it should be unknown
+        assert evaluateExplicitValue(assignableState, edge, lValue).isUnknown();
+
+        SMGSymbolicValue value = evaluateExpressionValue(assignableState, edge, lValue);
+
+        // This symbolic value should have been added when evaluating the assume
+        assert !value.isUnknown();
+
+        assignableState.putExplicit((SMGKnownSymValue)value, SMGKnownExpValue.ZERO);
+
+      }
+
+      private CExpression unwrap(CExpression expression) {
+        // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
+
+        if (expression instanceof CUnaryExpression) {
+          CUnaryExpression exp = (CUnaryExpression) expression;
+          if (exp.getOperator() == UnaryOperator.NOT) { // TODO why only C-UnaryOperator?
+            expression = exp.getOperand();
+            truthValue = !truthValue;
+
+            expression = unwrap(expression);
+          }
+        }
+
+        if (expression instanceof CCastExpression) {
+          CCastExpression exp = (CCastExpression) expression;
+          expression = exp.getOperand();
+
+          expression = unwrap(expression);
+        }
+
+        return expression;
+      }
     }
 
     private class LValueAssignmentVisitor extends SMGExpressionEvaluator.LValueAssignmentVisitor {
@@ -1396,199 +1546,6 @@ public class SMGTransferRelation implements TransferRelation {
         }
       }
     }
-
-    public class AssumeVisitorNG extends ExpressionValueVisitor {
-
-      @SuppressWarnings("hiding")
-      private final SMGState smgState;
-      @SuppressWarnings("unused")
-      private SMGKnownSymValue knownVal1;
-      @SuppressWarnings("unused")
-      private SMGKnownSymValue knownVal2;
-      private BinaryRelationEvaluator relation = null;
-
-      public AssumeVisitorNG(CFAEdge pEdge, SMGState pSmgState) {
-        super(pEdge, pSmgState);
-        smgState = getSmgState();
-      }
-
-      @Override
-      public SMGSymbolicValue visit(CBinaryExpression pExp) throws CPATransferException {
-        BinaryOperator binaryOperator = pExp.getOperator();
-
-        switch (binaryOperator) {
-        case EQUALS:
-        case NOT_EQUALS:
-        case LESS_EQUAL:
-        case LESS_THAN:
-        case GREATER_EQUAL:
-        case GREATER_THAN:
-          CExpression leftSideExpression = pExp.getOperand1();
-          CExpression rightSideExpression = pExp.getOperand2();
-
-          CFAEdge cfaEdge = getCfaEdge();
-
-          SMGSymbolicValue leftSideVal = evaluateExpressionValue(smgState, cfaEdge, leftSideExpression);
-          if (leftSideVal.isUnknown()) { return SMGUnknownValue.getInstance(); }
-          SMGSymbolicValue rightSideVal = evaluateExpressionValue(smgState, cfaEdge, rightSideExpression);
-          if (rightSideVal.isUnknown()) { return SMGUnknownValue.getInstance(); }
-
-          SMGKnownSymValue knownRightSideVal = SMGKnownSymValue.valueOf(rightSideVal.getAsInt());
-          SMGKnownSymValue knownLeftSideVal = SMGKnownSymValue.valueOf(leftSideVal.getAsInt());
-          return evaluateBinaryAssumption(binaryOperator, knownLeftSideVal, knownRightSideVal);
-        default:
-          return super.visit(pExp);
-        }
-      }
-
-      private class BinaryRelationEvaluator {
-
-        private boolean isTrue = false;
-        private boolean isFalse = false;
-
-        private boolean impliesEqWhenTrue = false;
-        private boolean impliesNeqWhenTrue = false;
-        private boolean impliesEqWhenFalse = false;
-        private boolean impliesNeqWhenFalse = false;
-
-        public BinaryRelationEvaluator(BinaryOperator pOp, SMGSymbolicValue pV1, SMGSymbolicValue pV2) {
-          int v1 = pV1.getAsInt();
-          int v2 = pV2.getAsInt();
-
-          boolean areEqual = (v1 == v2);
-          boolean areNonEqual = (smgState.isUnequal(v1, v2));
-
-          switch (pOp) {
-          case NOT_EQUALS:
-            isTrue = areNonEqual;
-            isFalse = areEqual;
-            impliesEqWhenFalse = true;
-            impliesNeqWhenTrue = true;
-            break;
-          case EQUALS:
-            isTrue = areEqual;
-            isFalse = areNonEqual;
-            impliesEqWhenTrue = true;
-            impliesNeqWhenFalse = true;
-            break;
-          case LESS_EQUAL:
-          case GREATER_EQUAL:
-            if (v1 == v2) {
-              isTrue = true;
-              impliesEqWhenTrue = true;
-              impliesNeqWhenFalse = true;
-            } else {
-              impliesNeqWhenFalse = true;
-              compareAsAddresses();
-            }
-            break;
-          case GREATER_THAN:
-          case LESS_THAN:
-            compareAsAddresses();
-            impliesNeqWhenTrue = true;
-            break;
-          default:
-            throw new AssertionError("Binary Relation with non-relational operator: " + pOp.toString());
-          }
-        }
-
-        private void compareAsAddresses() {
-          // TODO Auto-generated method stub
-        }
-
-        public boolean isTrue() {
-          return isTrue;
-        }
-
-        public boolean isFalse() {
-          return isFalse;
-        }
-
-        public boolean impliesEq(boolean pTruth) {
-          return pTruth ? impliesEqWhenTrue : impliesEqWhenFalse;
-        }
-
-        public boolean impliesNeq(boolean pTruth) {
-          return pTruth ? impliesNeqWhenTrue : impliesNeqWhenFalse;
-        }
-      }
-
-      private SMGSymbolicValue evaluateBinaryAssumption(BinaryOperator pOp, SMGKnownSymValue v1, SMGKnownSymValue v2) {
-        relation = new BinaryRelationEvaluator(pOp, v1, v2);
-        if (relation.isFalse()) {
-          return SMGKnownSymValue.FALSE;
-        } else if (relation.isTrue()) { return SMGKnownSymValue.TRUE; }
-          knownVal1 = v1;
-          knownVal2 = v2;
-
-        return SMGUnknownValue.getInstance();
-      }
-
-      @SuppressWarnings("unused")
-      public boolean impliesEqOn(boolean pTruth) {
-        if (relation == null) {
-          return false;
-        }
-        return relation.impliesEq(pTruth);
-      }
-
-      @SuppressWarnings("unused")
-      public boolean impliesNeqOn(boolean pTruth) {
-        if (relation == null) {
-          return false;
-        }
-        return relation.impliesNeq(pTruth);
-
-      }
-    }
-
-    //              //$FALL-THROUGH$
-    //            case GREATER_THAN:
-    //            case LESS_THAN:
-    //
-    //              SMGAddressValue rAddress = getAddressFromSymbolicValue(getSmgState(), rVal);
-    //
-    //              if (rAddress.isUnknown()) {
-    //                return SMGUnknownValue.getInstance();
-    //              }
-    //
-    //              SMGAddressValue lAddress = getAddressFromSymbolicValue(getSmgState(), rVal);
-    //
-    //              if (lAddress.isUnknown()) {
-    //                return SMGUnknownValue.getInstance();
-    //              }
-    //
-    //              SMGObject lObject = lAddress.getObject();
-    //              SMGObject rObject = rAddress.getObject();
-    //
-    //              if (!lObject.equals(rObject)) {
-    //                return SMGUnknownValue.getInstance();
-    //              }
-    //
-    //              long rOffset = rAddress.getOffset().getAsLong();
-    //              long lOffset = lAddress.getOffset().getAsLong();
-    //
-    //              // We already checked equality
-    //              switch (binaryOperator) {
-    //              case LESS_THAN:
-    //              case LESS_EQUAL:
-    //                isOne = lOffset < rOffset;
-    //                isZero = !isOne;
-    //                break;
-    //              case GREATER_EQUAL:
-    //              case GREATER_THAN:
-    //                isOne = lOffset > rOffset;
-    //                isZero = !isOne;
-    //                break;
-    //              default:
-    //                throw new AssertionError();
-    //              }
-    //              break;
-    //            default:
-    //              throw new AssertionError();
-    //            }
-    //
-    //}
 
     @Override
     protected org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.PointerVisitor getPointerVisitor(

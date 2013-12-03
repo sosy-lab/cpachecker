@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 
 /**
  * Instances of this class are visitors for compound state invariants formulae
@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
  * {@link FormulaCompoundStateEvaluationVisitor} in order to enable the CPA
  * strategy to prevent infeasible interpretation of the analyzed code.
  */
-public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisitor<CompoundState, Map<? extends String, ? extends InvariantsFormula<CompoundState>>, CompoundState> implements FormulaEvaluationVisitor<CompoundState> {
+public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisitor<CompoundInterval, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>>, CompoundInterval> implements FormulaEvaluationVisitor<CompoundInterval> {
 
   private static final FormulaCompoundStateEvaluationVisitor EVALUATION_VISITOR = new FormulaCompoundStateEvaluationVisitor();
 
@@ -42,7 +42,7 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisito
    * Compute a compound state representing possible results of adding the
    * given summand compound states up. This method provides a much weaker
    * implementation of compound state addition than
-   * {@link CompoundState#add(CompoundState)} and will thus usually return a
+   * {@link CompoundInterval#add(CompoundInterval)} and will thus usually return a
    * much larger result range.
    *
    * @param a the first summand.
@@ -50,7 +50,7 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisito
    * @return a state representing possible results of adding the given summand
    * compound states up.
    */
-  private CompoundState weakAdd(CompoundState pA, CompoundState pB) {
+  private CompoundInterval weakAdd(CompoundInterval pA, CompoundInterval pB) {
     if (pA.isSingleton() && pA.containsZero()) {
       return pB;
     }
@@ -60,11 +60,11 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisito
     return abstractionOf(pA.add(pB));
   }
 
-  private static CompoundState abstractionOf(CompoundState pValue) {
+  private static CompoundInterval abstractionOf(CompoundInterval pValue) {
     if (pValue.isBottom() || pValue.isTop()) {
       return pValue;
     }
-    CompoundState result = pValue.signum();
+    CompoundInterval result = pValue.signum();
     boolean extendToNeg = false;
     if (!pValue.lessThan(result).isDefinitelyFalse()) {
       extendToNeg = true;
@@ -83,7 +83,7 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisito
    * Compute a compound state representing possible results of multiplying the
    * given factor compound states. This method provides a much weaker
    * implementation of compound state addition than
-   * {@link CompoundState#multiply(CompoundState)} and will thus usually return
+   * {@link CompoundInterval#multiply(CompoundInterval)} and will thus usually return
    * a much larger result range.
    *
    * @param a the first factor.
@@ -91,7 +91,7 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisito
    * @return a state representing possible results of multiplying the given
    * factor compound states.
    */
-  private CompoundState weakMultiply(CompoundState a, CompoundState b) {
+  private CompoundInterval weakMultiply(CompoundInterval a, CompoundInterval b) {
     if (a.isSingleton() && a.containsZero()) {
       return a;
     }
@@ -108,25 +108,25 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisito
   }
 
   @Override
-  public CompoundState visit(Add<CompoundState> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(Add<CompoundInterval> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return weakAdd(pAdd.getSummand1().accept(EVALUATION_VISITOR, pEnvironment), pAdd.getSummand2().accept(EVALUATION_VISITOR, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(Constant<CompoundState> pConstant, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(Constant<CompoundInterval> pConstant, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pConstant.getValue();
   }
 
   @Override
-  public CompoundState visit(Multiply<CompoundState> pMultiply, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(Multiply<CompoundInterval> pMultiply, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return weakMultiply(pMultiply.getFactor1().accept(this, pEnvironment), pMultiply.getFactor2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(ShiftLeft<CompoundState> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    CompoundState toShift = pShiftLeft.getShifted().accept(this, pEnvironment);
-    CompoundState shiftDistance = pShiftLeft.getShiftDistance().accept(this, pEnvironment);
-    CompoundState evaluation = toShift.shiftLeft(shiftDistance);
+  public CompoundInterval visit(ShiftLeft<CompoundInterval> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    CompoundInterval toShift = pShiftLeft.getShifted().accept(this, pEnvironment);
+    CompoundInterval shiftDistance = pShiftLeft.getShiftDistance().accept(this, pEnvironment);
+    CompoundInterval evaluation = toShift.shiftLeft(shiftDistance);
     if (!shiftDistance.containsPositive()) {
       return evaluation;
     }
@@ -134,22 +134,22 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisito
   }
 
   @Override
-  public CompoundState visit(ShiftRight<CompoundState> pShiftRight, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CompoundInterval visit(ShiftRight<CompoundInterval> pShiftRight, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return CompoundStateFormulaManager.INSTANCE.shiftLeft(pShiftRight.getShifted(), InvariantsFormulaManager.INSTANCE.negate(pShiftRight.getShiftDistance())).accept(this, pEnvironment);
   }
 
   @Override
-  public CompoundState visit(Variable<CompoundState> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    InvariantsFormula<CompoundState> varState = pEnvironment.get(pVariable.getName());
+  public CompoundInterval visit(Variable<CompoundInterval> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    InvariantsFormula<CompoundInterval> varState = pEnvironment.get(pVariable.getName());
     if (varState == null) {
-      return CompoundState.top();
+      return CompoundInterval.top();
     }
     return varState.accept(this, pEnvironment);
   }
 
   @Override
-  protected CompoundState visitDefault(InvariantsFormula<CompoundState> pFormula,
-      Map<? extends String, ? extends InvariantsFormula<CompoundState>> pParam) {
+  protected CompoundInterval visitDefault(InvariantsFormula<CompoundInterval> pFormula,
+      Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pParam) {
     return abstractionOf(pFormula.accept(EVALUATION_VISITOR, pParam));
   }
 

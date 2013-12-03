@@ -208,11 +208,11 @@ class MainCPAStatistics implements Statistics {
     if (result != Result.NOT_YET_STARTED) {
       dumpReachedSet(reached);
 
+      printSubStatistics(out, result, reached);
+
       if (exportCoverage && outputCoverageFile != null) {
         printCoverageInfo(reached);
       }
-
-      printSubStatistics(out, result, reached);
     }
 
     out.println("CPAchecker general statistics");

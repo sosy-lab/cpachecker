@@ -26,9 +26,23 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-public class IntervalAnalysisState implements AbstractState {
+public class IntervalAnalysisState implements AbstractState, TargetableWithPredicatedAnalysis {
+
+  private static IntervalTargetChecker targetChecker;
+  private static boolean ignoreRefInMerge;
+
+  static void init(Configuration config, boolean pIgnoreRefCount) throws InvalidConfigurationException{
+    targetChecker = new IntervalTargetChecker(config);
+    ignoreRefInMerge = pIgnoreRefCount;
+  }
+
   /**
    * the intervals of the element
    */
@@ -143,7 +157,7 @@ public class IntervalAnalysisState implements AbstractState {
     if (!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval)) {
       int referenceCount = getReferenceCount(variableName);
 
-      if (referenceCount < pThreshold) {
+      if (pThreshold == -1 || referenceCount < pThreshold) {
         referenceCounts.put(variableName, referenceCount + 1);
 
         intervals.put(variableName, interval);
@@ -177,24 +191,41 @@ public class IntervalAnalysisState implements AbstractState {
    * @return a new state representing the join of this element and the reached state
    */
   public IntervalAnalysisState join(IntervalAnalysisState reachedState) {
-    Map<String, Interval> newIntervals = new HashMap<>();
+    Map<String, Interval> newIntervals = new HashMap<>(intervals);
     Map<String, Integer> newReferences = new HashMap<>();
 
     newReferences.putAll(referenceCounts);
 
+    boolean changed = false;
+    int newRefCount;
+    Interval mergedInterval;
+
     for (String variableName : reachedState.intervals.keySet()) {
       if (intervals.containsKey(variableName)) {
         // update the interval
-        newIntervals.put(variableName, getInterval(variableName).union(reachedState.getInterval(variableName)));
+        mergedInterval = getInterval(variableName).union(reachedState.getInterval(variableName));
+        if (mergedInterval != reachedState.getInterval(variableName)) {
+          changed = true;
+        }
+        newIntervals.put(variableName,mergedInterval);
 
         // update the references
-        newReferences.put(variableName, Math.max(getReferenceCount(variableName), reachedState.getReferenceCount(variableName)));
+        newRefCount = Math.max(getReferenceCount(variableName), reachedState.getReferenceCount(variableName));
+        if (!ignoreRefInMerge && newRefCount > reachedState.getReferenceCount(variableName)) {
+         changed = true;
+        }
+        newReferences.put(variableName, newRefCount);
       } else {
         newReferences.put(variableName, reachedState.getReferenceCount(variableName));
+        changed = true;
       }
     }
 
-    return new IntervalAnalysisState(newIntervals, newReferences, previousState);
+    if (changed) {
+      return new IntervalAnalysisState(newIntervals, newReferences, previousState);
+    } else {
+      return reachedState;
+    }
   }
 
   /**
@@ -297,5 +328,23 @@ public class IntervalAnalysisState implements AbstractState {
     }
 
     return sb.append("] size->  ").append(intervals.size()).toString();
+  }
+
+  @Override
+  public boolean isTarget() {
+   return targetChecker == null? false: targetChecker.isTarget(this);
+  }
+
+  @Override
+  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+    if(isTarget()){
+      return ViolatedProperty.OTHER;
+    }
+    return null;
+  }
+
+  @Override
+  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
+    return targetChecker== null? pFmgr.getBooleanFormulaManager().makeBoolean(false):targetChecker.getErrorCondition(this, pFmgr);
   }
 }

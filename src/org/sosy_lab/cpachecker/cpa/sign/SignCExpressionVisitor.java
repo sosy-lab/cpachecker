@@ -25,7 +25,8 @@ package org.sosy_lab.cpachecker.cpa.sign;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Map;
+import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -39,51 +40,65 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.sign.SignState.SIGN;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
-import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 
 public class SignCExpressionVisitor
-  extends DefaultCExpressionVisitor<Optional<SIGN>, UnrecognizedCodeException>
-  implements CRightHandSideVisitor<Optional<SIGN>, UnrecognizedCodeException> {
+  extends DefaultCExpressionVisitor<SIGN, UnrecognizedCodeException>
+  implements CRightHandSideVisitor<SIGN, UnrecognizedCodeException> {
 
   private CFAEdge edgeOfExpr;
 
-  private Map<String, SIGN> signMap;
+  private SignState state;
 
-  public SignCExpressionVisitor(CFAEdge pEdgeOfExpr, Map<String, SIGN> pSignMap) {
+  private SignTransferRelation transferRel;
+
+  public SignCExpressionVisitor(CFAEdge pEdgeOfExpr, SignState pState, SignTransferRelation pTransferRel) {
     edgeOfExpr = pEdgeOfExpr;
-    signMap = pSignMap;
+    state = pState;
+    transferRel = pTransferRel;
   }
 
   @Override
-  public Optional<SIGN> visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCodeException {
+  public SIGN visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCodeException {
+    // e.g. x = non_det() where non_det is extern, unknown function allways assume returns any value
+    if(pIastFunctionCallExpression.getExpressionType() instanceof CSimpleType){
+    return SIGN.ALL;
+    }
     return null;
   }
 
   @Override
-  protected Optional<SIGN> visitDefault(CExpression pExp) throws UnrecognizedCodeException {
+  protected SIGN visitDefault(CExpression pExp) throws UnrecognizedCodeException {
     throw new UnrecognizedCodeException("unsupported code found", edgeOfExpr);
   }
 
   @Override
-  public Optional<SIGN> visit(CIdExpression pIastIdExpression) throws UnrecognizedCodeException {
-    return Optional.fromNullable(signMap.get(pIastIdExpression.getName()));
+  public SIGN visit(CIdExpression pIastIdExpression) throws UnrecognizedCodeException {
+    return state.getSignMap().getSignForVariable(transferRel.getScopedVariableName(pIastIdExpression));
   }
 
   @Override
-  public Optional<SIGN> visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCodeException {
-    Optional<SIGN> left = pIastBinaryExpression.getOperand1().accept(this);
-    Optional<SIGN> right = pIastBinaryExpression.getOperand2().accept(this);
+  public SIGN visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCodeException {
+    SIGN left = pIastBinaryExpression.getOperand1().accept(this);
+    SIGN right = pIastBinaryExpression.getOperand2().accept(this);
+    Set<SIGN> leftAtomSigns = left.split();
+    Set<SIGN> rightAtomSigns = right.split();
     switch(pIastBinaryExpression.getOperator()) {
     case PLUS:
     case MINUS:
     case MULTIPLY:
     case DIVIDE:
-      return evaluateBinaryExpr(left, pIastBinaryExpression.getOperator(), right);
+      SIGN result = SIGN.EMPTY;
+      for(List<SIGN> signCombi : Sets.cartesianProduct(ImmutableList.of(leftAtomSigns, rightAtomSigns))) {
+        result = result.combineWith(evaluateBinaryExpr(signCombi.get(0), pIastBinaryExpression.getOperator(), signCombi.get(1)));
+      }
+      return result;
     default:
       throw new UnsupportedCCodeException(
           "Not supported", edgeOfExpr,
@@ -92,36 +107,40 @@ public class SignCExpressionVisitor
   }
 
   @Override
-  public Optional<SIGN> visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws UnrecognizedCodeException {
+  public SIGN visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws UnrecognizedCodeException {
     BigDecimal value = pIastFloatLiteralExpression.getValue();
     int cResult = value.compareTo(BigDecimal.ZERO);
     if(cResult == 1) {
-      return Optional.of(SIGN.PLUS);
+      return SIGN.PLUS;
     } else if (cResult == -1) {
-      return Optional.of(SIGN.MINUS);
+      return SIGN.MINUS;
     }
-    return Optional.of(SIGN.ZERO);
+    return SIGN.ZERO;
   }
 
   @Override
-  public Optional<SIGN> visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws UnrecognizedCodeException {
+  public SIGN visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws UnrecognizedCodeException {
     BigInteger value = pIastIntegerLiteralExpression.getValue();
     int cResult = value.compareTo(BigInteger.ZERO);
     if(cResult == 1) {
-      return Optional.of(SIGN.PLUS);
+      return SIGN.PLUS;
     } else if (cResult == -1) {
-      return Optional.of(SIGN.MINUS);
+      return SIGN.MINUS;
     }
-    return Optional.of(SIGN.ZERO);
+    return SIGN.ZERO;
   }
 
   @Override
-  public Optional<SIGN> visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
-    Optional<SIGN> operandSign = pIastUnaryExpression.getOperand().accept(this);
+  public SIGN visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
     switch(pIastUnaryExpression.getOperator()) {
     case PLUS:
     case MINUS:
-      return evaluateUnaryExpr(pIastUnaryExpression.getOperator(), operandSign);
+      SIGN result = SIGN.EMPTY;
+      SIGN operandSign = pIastUnaryExpression.getOperand().accept(this);
+      for(SIGN atomSign : operandSign.split()) {
+        result = result.combineWith(evaluateUnaryExpr(pIastUnaryExpression.getOperator(), atomSign));
+      }
+      return result;
     default:
       throw new UnsupportedCCodeException(
           "Not supported", edgeOfExpr,
@@ -129,45 +148,46 @@ public class SignCExpressionVisitor
     }
   }
 
-  private static Optional<SIGN> evaluateUnaryExpr(UnaryOperator operator, Optional<SIGN> operand) {
-    if(!operand.isPresent()) {
-      return Optional.absent();
+  private static SIGN evaluateUnaryExpr(UnaryOperator operator, SIGN operand) {
+    if(operator == UnaryOperator.PLUS && operand == SIGN.MINUS
+        || operator == UnaryOperator.MINUS && operand == SIGN.PLUS) {
+      return SIGN.MINUS;
     }
-    if(operator == UnaryOperator.PLUS && operand.get() == SIGN.MINUS
-        || operator == UnaryOperator.MINUS && operand.get() == SIGN.PLUS) {
-      return Optional.of(SIGN.MINUS);
-    }
-    return Optional.of(SIGN.PLUS);
+    return SIGN.PLUS;
   }
 
-  private static Optional<SIGN> evaluateBinaryExpr(Optional<SIGN> left, BinaryOperator operator, Optional<SIGN> right) {
+  private SIGN evaluateBinaryExpr(SIGN left, BinaryOperator operator, SIGN right) throws UnsupportedCCodeException {
     boolean multOrDiv = operator == BinaryOperator.MULTIPLY || operator == BinaryOperator.DIVIDE;
+
+    if(right == SIGN.ZERO && operator == BinaryOperator.DIVIDE) {
+      throw new UnsupportedCCodeException("Dividing by zero is not supported", edgeOfExpr);
+    }
+
     /*
-     *  0 * x => 0
-     *  x * 0 => 0
+     *  0 * _ => 0
+     *  _ * 0 => 0
      *  0 / x => 0
      *  x / 0 => NOT DEFINED
      *  0 _ 0 => 0
      */
-    if(multOrDiv && left.isPresent() && left.get() == SIGN.ZERO
-        || operator == BinaryOperator.MULTIPLY && right.isPresent() && right.get() == SIGN.ZERO
-        || right.isPresent() && right.get() == SIGN.ZERO && left.isPresent() && left.get() == SIGN.ZERO) {
-        return Optional.of(SIGN.ZERO);
+    if(multOrDiv && left == SIGN.ZERO
+        || operator == BinaryOperator.MULTIPLY && right == SIGN.ZERO) {
+        return SIGN.ZERO;
     }
 
+    // TODO add cases with zero
+    // TODO add special case PLUS -1 => PLUS0 and MINUS + 1 => MINUS0
     /*
-     * ? _ ? => ?
      * + + - => ?
      * - + + => ?
      * - - - => ?
      * + - + => ?
      */
-    if((!left.isPresent() || !right.isPresent())
-        || operator == BinaryOperator.PLUS && left.get() == SIGN.PLUS && right.get() == SIGN.MINUS
-        || operator == BinaryOperator.PLUS && left.get() == SIGN.MINUS && right.get() == SIGN.PLUS
-        || operator == BinaryOperator.MINUS && left.get() == SIGN.MINUS && right.get() == SIGN.MINUS
-        || operator == BinaryOperator.MINUS && left.get() == SIGN.PLUS && right.get() == SIGN.PLUS) {
-      return Optional.absent();
+    if( operator == BinaryOperator.PLUS && left == SIGN.PLUS && right == SIGN.MINUS
+        || operator == BinaryOperator.PLUS && left == SIGN.MINUS && right == SIGN.PLUS
+        || operator == BinaryOperator.MINUS && left == SIGN.MINUS && right == SIGN.MINUS
+        || operator == BinaryOperator.MINUS && left == SIGN.PLUS && right == SIGN.PLUS) {
+      return SIGN.ALL;
     }
 
     /*
@@ -178,12 +198,12 @@ public class SignCExpressionVisitor
      * - / + => -
      * + / - => -
      */
-    if(operator == BinaryOperator.PLUS && left.get() == SIGN.MINUS && right.get() == SIGN.MINUS
-        || operator == BinaryOperator.MINUS && left.get() == SIGN.MINUS && right.get() == SIGN.PLUS
-        || multOrDiv && left.get() == SIGN.MINUS && right.get() == SIGN.PLUS
-        || multOrDiv && left.get() == SIGN.PLUS && right.get() == SIGN.MINUS) {
-      return Optional.of(SIGN.MINUS);
+    if(operator == BinaryOperator.PLUS && left == SIGN.MINUS && right == SIGN.MINUS
+        || operator == BinaryOperator.MINUS && left == SIGN.MINUS && right == SIGN.PLUS
+        || multOrDiv && left == SIGN.MINUS && right == SIGN.PLUS
+        || multOrDiv && left == SIGN.PLUS && right == SIGN.MINUS) {
+      return SIGN.MINUS;
     }
-    return Optional.of(SIGN.PLUS);
+    return SIGN.PLUS;
   }
 }

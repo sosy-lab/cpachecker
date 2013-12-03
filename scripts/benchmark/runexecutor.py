@@ -624,7 +624,7 @@ def _removeCgroup(cgroup):
         try:
             os.rmdir(cgroup)
         except OSError:
-            # somethings this fails because the cgroup is still busy, we try again once
+            # sometimes this fails because the cgroup is still busy, we try again once
             os.rmdir(cgroup)
 
 def _initCgroup(cgroupsParents, subsystem):

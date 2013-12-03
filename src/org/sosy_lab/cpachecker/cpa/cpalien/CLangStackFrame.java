@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 /**
  * Represents a C language stack frame
@@ -51,12 +53,12 @@ final public class CLangStackFrame {
    * A mapping from variable names to a set of SMG objects, representing
    * local variables.
    */
-  final HashMap <String, SMGObject> stack_variables = new HashMap<>();
+  final HashMap <String, SMGRegion> stack_variables = new HashMap<>();
 
   /**
    * An object to store function return value
    */
-  final SMGObject returnValueObject;
+  final SMGRegion returnValueObject;
 
   /**
    * Constructor. Creates an empty frame.
@@ -73,7 +75,7 @@ final public class CLangStackFrame {
       returnValueObject = null;
     } else {
       int return_value_size = pMachineModel.getSizeof(returnType);
-      returnValueObject = new SMGObject(return_value_size, CLangStackFrame.RETVAL_LABEL);
+      returnValueObject = new SMGRegion(return_value_size, CLangStackFrame.RETVAL_LABEL);
     }
   }
 
@@ -98,7 +100,7 @@ final public class CLangStackFrame {
    * @param pVariableName A name of the variable
    * @param pObject An object to put into the stack frame
    */
-  public void addStackVariable(String pVariableName, SMGObject pObject) {
+  public void addStackVariable(String pVariableName, SMGRegion pObject) {
     if (stack_variables.containsKey(pVariableName)) {
       throw new IllegalArgumentException("Stack frame for function '" +
                                        stack_function.toASTString() +
@@ -133,8 +135,8 @@ final public class CLangStackFrame {
    * @param pName Variable name
    * @return SMG object corresponding to pName in the frame
    */
-  public SMGObject getVariable(String pName) {
-    SMGObject to_return = stack_variables.get(pName);
+  public SMGRegion getVariable(String pName) {
+    SMGRegion to_return = stack_variables.get(pName);
 
     if (to_return == null) {
       throw new NoSuchElementException("No variable with name '" +
@@ -163,7 +165,7 @@ final public class CLangStackFrame {
   /**
    * @return a mapping from variables name to SMGObjects
    */
-  public Map<String, SMGObject> getVariables() {
+  public Map<String, SMGRegion> getVariables() {
     return Collections.unmodifiableMap(stack_variables);
   }
 
@@ -172,9 +174,9 @@ final public class CLangStackFrame {
    */
   public Set<SMGObject> getAllObjects() {
     HashSet<SMGObject> retset = new HashSet<>();
-    retset.addAll(this.stack_variables.values());
+    retset.addAll(stack_variables.values());
     if (returnValueObject != null) {
-      retset.add(this.returnValueObject);
+      retset.add(returnValueObject);
     }
 
     return Collections.unmodifiableSet(retset);
@@ -183,7 +185,7 @@ final public class CLangStackFrame {
   /**
    * @return an {@link SMGObject} reserved for function return value
    */
-  public SMGObject getReturnObject() {
-    return this.returnValueObject;
+  public SMGRegion getReturnObject() {
+    return returnValueObject;
   }
 }

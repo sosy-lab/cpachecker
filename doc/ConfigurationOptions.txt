@@ -78,6 +78,10 @@ analysis.interprocedural = true
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
+# use a predicated analysis which proves if the program satisfies a specified
+# property with the help of a PredicateCPA to separate differnt program paths
+analysis.predicatedAnalysis = false
+
 # A String, denoting the programs to be analyzed
 analysis.programNames = no default value
 
@@ -230,8 +234,9 @@ bmc.induction = false
 # Generate invariants and add them to the induction hypothesis.
 bmc.useInvariantsForInduction = false
 
-# file name where to put the path program that is generated as input for
-# CBMC. A temporary file is used if this is unspecified.
+# File name where to put the path program that is generated as input for
+# CBMC. A temporary file is used if this is unspecified. If specified, the
+# file name should end with '.i'.
 cbmc.dumpCBMCfile = no default value
 
 # specify the name of the error label
@@ -380,6 +385,10 @@ cpa.arg.errorPath.source = "ErrorPath.%d.c"
 cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
 
+# inform ARG CPA if it is run in a predicated analysis because then it
+# mustbehave differntly during merge.
+cpa.arg.inPredicatedAnalysis = false
+
 # whether to keep covered states in the reached set as addition to keeping
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
@@ -465,6 +474,10 @@ cpa.callstack.skipRecursion = false
 # Skip recursion if it happens only by going via a void function (this is
 # unsound).
 cpa.callstack.skipVoidRecursion = false
+
+# inform Composite CPA if it is run in a predicated analysis because then it
+# mustbehave differntly during merge.
+cpa.composite.inPredicatedAnalysis = false
 
 # which composite merge operator to use (plain or agree)
 # Both delegate to the component cpas, but agree only allows merging if all
@@ -649,6 +662,15 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
 
+# Highest allowed value of the variable
+cpa.interval.allowedHigh = Long.MAX_VALUE
+
+# Lowest allowed value of the variable
+cpa.interval.allowedLow = Long.MIN_VALUE
+
+# do not consider number of references to variables during merge in analysis
+cpa.interval.ignoreReferenceCounts = false
+
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -657,8 +679,13 @@ cpa.interval.merge = "SEP"
 # an inequality-check is encountered
 cpa.interval.splitIntervals = false
 
-# at most that many intervals will be tracked per variable
-cpa.interval.threshold = 0
+# at most that many intervals will be tracked per variable, -1 if number not
+# restricted
+cpa.interval.threshold = -1
+
+# Variable name of the variable for which should be checked that its value is
+# globally in a certain bound 
+cpa.interval.varName = ""
 
 # determine variables relevant to the decision whether or not a target path
 # assume edge is taken and limit the analyis to those variables.
@@ -702,17 +729,6 @@ cpa.monitor.pathcomputationlimit = 0
 # which merge operator to use for OctagonCPA?
 cpa.octagon.merge = "SEP"
   allowed values: [SEP, JOIN]
-
-# Setting this to true makes memory-allocation functions like malloc() always
-# return a valid pointer.
-cpa.pointer.memoryAllocationsAlwaysSucceed = false
-
-# which merge operator to use for PointerCPA?
-cpa.pointer.merge = "sep"
-  allowed values: [sep, join]
-
-# print warnings during analysis when unsafe pointer operations are found
-cpa.pointer.printWarnings = true
 
 # which merge operator to use for InvariantCPA
 cpa.pointer2.merge = "JOIN"
@@ -780,6 +796,9 @@ cpa.predicate.blk.alwaysAndOnlyAtExplicitNodes = false
 
 # force abstractions at each function calls/returns, regardless of threshold
 cpa.predicate.blk.alwaysAtFunctions = true
+
+# force abstractions at each join node, regardless of threshold
+cpa.predicate.blk.alwaysAtJoin = false
 
 # force abstractions at loop heads, regardless of threshold
 cpa.predicate.blk.alwaysAtLoops = true
@@ -1130,6 +1149,24 @@ cpa.reachdef.merge = "JOIN"
 # which stop operator to use for ReachingDefCPA
 cpa.reachdef.stop = "SEP"
   allowed values: [SEP, JOIN, IGNORECALLSTACK]
+
+# path to a file with abstraction rules
+cpa.seplogic.partingstar.abstractionfile = no default value
+
+# path to a file with logic rules
+cpa.seplogic.partingstar.logicsfile = no default value
+
+# path to partingstar command
+cpa.seplogic.partingstar.pspath = no default value
+
+# Abstract value describing all values which are allowed for the variable
+# which is checked
+cpa.sign.allowedAbstractValue = ALL
+  enum:     [EMPTY, PLUS, MINUS, ZERO, PLUSMINUS, PLUS0, MINUS0, ALL]
+
+# Variable name of the variable for which should be checked that its value is
+# globally in a certain bound 
+cpa.sign.varName = ""
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"

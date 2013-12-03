@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import java.math.BigInteger;
-
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
 
 public class SMGEdgeHasValue extends SMGEdge {
   final private CType type;
@@ -42,8 +39,7 @@ public class SMGEdgeHasValue extends SMGEdge {
 
   public SMGEdgeHasValue(int pSizeInBytes, int pOffset, SMGObject pObject, int pValue) {
     super(pValue, pObject);
-    CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(null, AnonymousTypes.dummyInt, BigInteger.valueOf(pSizeInBytes));
-    type = new CArrayType(false, false, AnonymousTypes.dummyChar, arrayLen);
+    type = AnonymousTypes.createTypeWithLength(pSizeInBytes);
     offset = pOffset;
   }
 
@@ -70,17 +66,17 @@ public class SMGEdgeHasValue extends SMGEdge {
       return false;
     }
 
-    if ((this.object == other.object) &&
-        (this.offset == ((SMGEdgeHasValue)other).offset) &&
-        (this.type == ((SMGEdgeHasValue)other).type)) {
-      return (this.value == other.value);
+    if ((object == other.object) &&
+        (offset == ((SMGEdgeHasValue)other).offset) &&
+        (type == ((SMGEdgeHasValue)other).type)) {
+      return (value == other.value);
     }
 
     return true;
   }
 
   public boolean overlapsWith(SMGEdgeHasValue other, MachineModel pModel) {
-    if (this.object != other.object) {
+    if (object != other.object) {
       throw new IllegalArgumentException("Call of overlapsWith() on Has-Value edges pair not originating from the same object");
     }
 
@@ -109,12 +105,12 @@ public class SMGEdgeHasValue extends SMGEdge {
   }
 
   public boolean isCompatibleField(SMGEdgeHasValue other, MachineModel pModel) {
-    return this.type.equals(other.type) && (this.offset == other.offset);
+    return type.equals(other.type) && (offset == other.offset);
   }
 
   public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other, MachineModel pModel) {
-    // return (this.type.equals(other.type)) && (this.offset == other.offset) && (this.object == other.object);
-    return pModel.getSizeof(type) == pModel.getSizeof(other.type) && (this.offset == other.offset) && this.object == other.object;
+    // return (type.equals(other.type)) && (offset == other.offset) && (object == other.object);
+    return pModel.getSizeof(type) == pModel.getSizeof(other.type) && (offset == other.offset) && object == other.object;
   }
 
   /* (non-Javadoc)

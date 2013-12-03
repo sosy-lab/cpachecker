@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.interval.interval.tocompound;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.interval.interval.tointerval.IIIOperator;
 
@@ -39,8 +39,8 @@ enum DivideOperator implements IICOperator {
   INSTANCE;
 
   @Override
-  public CompoundState apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
-    return CompoundState.of(IIIOperator.DIVIDE_OPERATOR.apply(pFirstOperand, pSecondOperand));
+  public CompoundInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
+    return CompoundInterval.of(IIIOperator.DIVIDE_OPERATOR.apply(pFirstOperand, pSecondOperand));
   }
 
 }

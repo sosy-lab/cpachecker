@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ComparisonVisitor.Result;
 
 /**
@@ -33,23 +33,23 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ComparisonVisitor.Result;
  * assumption over compound state invariants formulae definitely still holds
  * after a variable changed.
  */
-public class DefinitelyStillHoldsVisitor extends DefaultParameterizedFormulaVisitor<CompoundState, Map<? extends String, ? extends InvariantsFormula<CompoundState>>, Boolean> implements ParameterizedInvariantsFormulaVisitor<CompoundState, Map<? extends String, ? extends InvariantsFormula<CompoundState>>, Boolean> {
+public class DefinitelyStillHoldsVisitor extends DefaultParameterizedFormulaVisitor<CompoundInterval, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>>, Boolean> implements ParameterizedInvariantsFormulaVisitor<CompoundInterval, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>>, Boolean> {
 
   /**
    * The visitor used to check if a formula contains a specified variable.
    */
-  private static final ContainsVarVisitor<CompoundState> CONTAINS_VAR_VISITOR = new ContainsVarVisitor<>();
+  private static final ContainsVarVisitor<CompoundInterval> CONTAINS_VAR_VISITOR = new ContainsVarVisitor<>();
 
   /**
    * The formula representing the new value of the changed variable.
    */
-  private final InvariantsFormula<CompoundState> newValue;
+  private final InvariantsFormula<CompoundInterval> newValue;
 
   /**
    * The evaluation visitor used to evaluate compound state invariants formulae
    * to compound states.
    */
-  private final FormulaEvaluationVisitor<CompoundState> evaluationVisitor;
+  private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
 
   /**
    * The name of the changed variable.
@@ -73,8 +73,8 @@ public class DefinitelyStillHoldsVisitor extends DefaultParameterizedFormulaVisi
    * state invariants formulae to compound states.
    */
   public DefinitelyStillHoldsVisitor(String pChangedVariableName,
-      InvariantsFormula<CompoundState> pNewValue,
-      FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor) {
+      InvariantsFormula<CompoundInterval> pNewValue,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     this.newValue = pNewValue;
     this.evaluationVisitor = pEvaluationVisitor;
     this.changedVariableName = pChangedVariableName;
@@ -82,7 +82,7 @@ public class DefinitelyStillHoldsVisitor extends DefaultParameterizedFormulaVisi
   }
 
   @Override
-  public Boolean visit(Equal<CompoundState> pEqual, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public Boolean visit(Equal<CompoundInterval> pEqual, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     if (visitDefault(pEqual, pEnvironment)) {
       return true;
     }
@@ -102,7 +102,7 @@ public class DefinitelyStillHoldsVisitor extends DefaultParameterizedFormulaVisi
   }
 
   @Override
-  public Boolean visit(LessThan<CompoundState> pLessThan, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public Boolean visit(LessThan<CompoundInterval> pLessThan, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     if (visitDefault(pLessThan, pEnvironment)) {
       return true;
     }
@@ -128,7 +128,7 @@ public class DefinitelyStillHoldsVisitor extends DefaultParameterizedFormulaVisi
   }
 
   @Override
-  public Boolean visit(LogicalAnd<CompoundState> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public Boolean visit(LogicalAnd<CompoundInterval> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     if (visitDefault(pAnd, pEnvironment)) {
       return true;
     }
@@ -136,7 +136,7 @@ public class DefinitelyStillHoldsVisitor extends DefaultParameterizedFormulaVisi
   }
 
   @Override
-  protected Boolean visitDefault(InvariantsFormula<CompoundState> pFormula, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  protected Boolean visitDefault(InvariantsFormula<CompoundInterval> pFormula, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return pFormula.accept(evaluationVisitor, pEnvironment).isDefinitelyTrue();
   }
 
@@ -147,7 +147,7 @@ public class DefinitelyStillHoldsVisitor extends DefaultParameterizedFormulaVisi
    * @return <code>true</code> if the given formula contains the changed
    * variable, <code>false</code> otherwise.
    */
-  private boolean containsChangedVariable(InvariantsFormula<CompoundState> pFormula) {
+  private boolean containsChangedVariable(InvariantsFormula<CompoundInterval> pFormula) {
     return containsVariable(pFormula, changedVariableName);
   }
 
@@ -159,7 +159,7 @@ public class DefinitelyStillHoldsVisitor extends DefaultParameterizedFormulaVisi
    * @return <code>true</code> if the given formula contains the  variable,
    * <code>false</code> otherwise.
    */
-  private static boolean containsVariable(InvariantsFormula<CompoundState> pFormula, String pVarName) {
+  private static boolean containsVariable(InvariantsFormula<CompoundInterval> pFormula, String pVarName) {
     return pFormula.accept(CONTAINS_VAR_VISITOR, pVarName);
   }
 

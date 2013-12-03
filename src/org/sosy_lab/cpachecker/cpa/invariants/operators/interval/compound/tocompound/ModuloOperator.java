@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.interval.compound.tocompound;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.interval.interval.tocompound.IICOperator;
 
@@ -39,10 +39,10 @@ enum ModuloOperator implements ICCOperator {
   INSTANCE;
 
   @Override
-  public CompoundState apply(SimpleInterval pFirstOperand, CompoundState pSecondOperand) {
-    CompoundState result = CompoundState.bottom();
+  public CompoundInterval apply(SimpleInterval pFirstOperand, CompoundInterval pSecondOperand) {
+    CompoundInterval result = CompoundInterval.bottom();
     for (SimpleInterval interval : pSecondOperand.getIntervals()) {
-      CompoundState current = IICOperator.MODULO_OPERATOR.apply(pFirstOperand, interval);
+      CompoundInterval current = IICOperator.MODULO_OPERATOR.apply(pFirstOperand, interval);
       if (current != null) {
         result = result.unionWith(current);
         if (result.isTop()) {

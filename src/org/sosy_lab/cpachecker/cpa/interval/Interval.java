@@ -158,11 +158,13 @@ public class Interval {
    * @return the new interval with the respective bounds
    */
   public Interval union(Interval other) {
-      if (isEmpty() || other.isEmpty()) {
-        return createEmptyInterval();
-      } else {
-        return new Interval(Math.min(low, other.low), Math.max(high, other.high));
-      }
+    if (isEmpty() || other.isEmpty()) {
+      return createEmptyInterval();
+    } else if (low >= other.low && high <= other.high) {
+      return other;
+    } else {
+      return new Interval(Math.min(low, other.low), Math.max(high, other.high));
+    }
   }
 
   /**

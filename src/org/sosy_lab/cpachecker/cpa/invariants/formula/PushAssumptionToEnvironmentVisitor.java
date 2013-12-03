@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 
 /**
@@ -35,20 +35,20 @@ import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
  * The visited formulae are the expressions for which the states provided as
  * the additional parameters are assumed.
  */
-public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvariantsFormulaVisitor<CompoundState, CompoundState, Boolean> {
+public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvariantsFormulaVisitor<CompoundInterval, CompoundInterval, Boolean> {
 
   /**
    * The environment to push the gained information into.
    */
-  private final Map<String, InvariantsFormula<CompoundState>> environment;
+  private final Map<String, InvariantsFormula<CompoundInterval>> environment;
 
   /**
    * The evaluation visitor used to evaluate compound state invariants formulae
    * to compound states.
    */
-  private final FormulaEvaluationVisitor<CompoundState> evaluationVisitor;
+  private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
 
-  private final CachingEvaluationVisitor<CompoundState> cachingEvaluationVisitor;
+  private final CachingEvaluationVisitor<CompoundInterval> cachingEvaluationVisitor;
 
   /**
    * Creates a new visitor for pushing information obtained from assuming given
@@ -59,29 +59,29 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
    * @param pEnvironment the environment to push the gained information into.
    * Obviously, this environment must be mutable.
    */
-  public PushAssumptionToEnvironmentVisitor(FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor, Map<String, InvariantsFormula<CompoundState>> pEnvironment) {
+  public PushAssumptionToEnvironmentVisitor(FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, Map<String, InvariantsFormula<CompoundInterval>> pEnvironment) {
     this.evaluationVisitor = pEvaluationVisitor;
     this.environment = pEnvironment;
     this.cachingEvaluationVisitor = new CachingEvaluationVisitor<>(environment, evaluationVisitor);
   }
 
-  private CompoundState evaluate(InvariantsFormula<CompoundState> pFormula) {
+  private CompoundInterval evaluate(InvariantsFormula<CompoundInterval> pFormula) {
     return pFormula.accept(this.cachingEvaluationVisitor);
   }
 
   @Override
-  public Boolean visit(Add<CompoundState> pAdd, CompoundState pParameter) {
+  public Boolean visit(Add<CompoundInterval> pAdd, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = evaluate(pAdd).intersectWith(pParameter);
+    CompoundInterval parameter = evaluate(pAdd).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
-    CompoundState leftValue = evaluate(pAdd.getSummand1());
-    CompoundState rightValue = evaluate(pAdd.getSummand2());
-    CompoundState pushLeftValue = parameter.add(rightValue.negate());
-    CompoundState pushRightValue = parameter.add(leftValue.negate());
+    CompoundInterval leftValue = evaluate(pAdd.getSummand1());
+    CompoundInterval rightValue = evaluate(pAdd.getSummand2());
+    CompoundInterval pushLeftValue = parameter.add(rightValue.negate());
+    CompoundInterval pushRightValue = parameter.add(leftValue.negate());
     if (!pAdd.getSummand1().accept(this, pushLeftValue)
         || !pAdd.getSummand2().accept(this, pushRightValue)) {
       return false;
@@ -90,7 +90,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(BinaryAnd<CompoundState> pAnd, CompoundState pParameter) {
+  public Boolean visit(BinaryAnd<CompoundInterval> pAnd, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
@@ -98,11 +98,11 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(BinaryNot<CompoundState> pNot, CompoundState pParameter) {
+  public Boolean visit(BinaryNot<CompoundInterval> pNot, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = evaluate(pNot).intersectWith(pParameter);
+    CompoundInterval parameter = evaluate(pNot).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
@@ -113,7 +113,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(BinaryOr<CompoundState> pOr, CompoundState pParameter) {
+  public Boolean visit(BinaryOr<CompoundInterval> pOr, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
@@ -121,7 +121,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(BinaryXor<CompoundState> pXor, CompoundState pParameter) {
+  public Boolean visit(BinaryXor<CompoundInterval> pXor, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
@@ -129,7 +129,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(Constant<CompoundState> pConstant, CompoundState pParameter) {
+  public Boolean visit(Constant<CompoundInterval> pConstant, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
@@ -137,27 +137,27 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(Divide<CompoundState> pDivide, CompoundState pParameter) {
+  public Boolean visit(Divide<CompoundInterval> pDivide, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = evaluate(pDivide).intersectWith(pParameter);
+    CompoundInterval parameter = evaluate(pDivide).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
-    CompoundState leftValue = evaluate(pDivide.getNumerator());
-    CompoundState rightValue = evaluate(pDivide.getDenominator());
+    CompoundInterval leftValue = evaluate(pDivide.getNumerator());
+    CompoundInterval rightValue = evaluate(pDivide.getDenominator());
 
     // Determine the numerator but consider integer division
-    CompoundState computedLeftValue = parameter.multiply(rightValue);
+    CompoundInterval computedLeftValue = parameter.multiply(rightValue);
     for (SimpleInterval interval : computedLeftValue.getIntervals()) {
-      CompoundState borderA = CompoundState.of(interval);
-      CompoundState borderB = borderA.add(rightValue.add(rightValue.signum().negate()));
-      computedLeftValue = computedLeftValue.unionWith(CompoundState.span(borderA, borderB));
+      CompoundInterval borderA = CompoundInterval.of(interval);
+      CompoundInterval borderB = borderA.add(rightValue.add(rightValue.signum().negate()));
+      computedLeftValue = computedLeftValue.unionWith(CompoundInterval.span(borderA, borderB));
     }
 
-    CompoundState pushLeftValue = leftValue.intersectWith(computedLeftValue);
-    CompoundState pushRightValue = leftValue.divide(parameter);
+    CompoundInterval pushLeftValue = leftValue.intersectWith(computedLeftValue);
+    CompoundInterval pushRightValue = leftValue.divide(parameter);
     if (!pDivide.getNumerator().accept(this, pushLeftValue)
         || !pDivide.getDenominator().accept(this, pushRightValue)) {
       return false;
@@ -166,15 +166,15 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(Equal<CompoundState> pEqual, CompoundState pParameter) {
-    CompoundState parameter = evaluate(pEqual).intersectWith(pParameter);
+  public Boolean visit(Equal<CompoundInterval> pEqual, CompoundInterval pParameter) {
+    CompoundInterval parameter = evaluate(pEqual).intersectWith(pParameter);
     // If the truth of the equation is undecided, anything is possible and
     // no information can be gained
     if (!parameter.isDefinitelyTrue() && !parameter.isDefinitelyFalse()) {
       return !parameter.isBottom();
     }
-    CompoundState leftValue = evaluate(pEqual.getOperand1());
-    CompoundState rightValue = evaluate(pEqual.getOperand2());
+    CompoundInterval leftValue = evaluate(pEqual.getOperand1());
+    CompoundInterval rightValue = evaluate(pEqual.getOperand2());
     // If the equation is definitely true, push right to left and vice versa
     if (parameter.isDefinitelyTrue()) {
       return pEqual.getOperand1().accept(this, rightValue)
@@ -191,11 +191,11 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(LessThan<CompoundState> pLessThan, CompoundState pParameter) {
+  public Boolean visit(LessThan<CompoundInterval> pLessThan, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = evaluate(pLessThan).intersectWith(pParameter);
+    CompoundInterval parameter = evaluate(pLessThan).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
@@ -204,11 +204,11 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (!parameter.isDefinitelyTrue() && !parameter.isDefinitelyFalse()) {
       return !parameter.isBottom();
     }
-    CompoundState leftValue = evaluate(pLessThan.getOperand1());
-    CompoundState rightValue = evaluate(pLessThan.getOperand2());
+    CompoundInterval leftValue = evaluate(pLessThan.getOperand1());
+    CompoundInterval rightValue = evaluate(pLessThan.getOperand2());
 
-    final CompoundState leftPushValue;
-    final CompoundState rightPushValue;
+    final CompoundInterval leftPushValue;
+    final CompoundInterval rightPushValue;
     // If the equation is definitely true, push
     // (negative infinity to ((right upper bound) - 1)) to the left and
     // (((left lower bound) + 1) to infinity) to the right,
@@ -227,11 +227,11 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(LogicalAnd<CompoundState> pAnd, CompoundState pParameter) {
+  public Boolean visit(LogicalAnd<CompoundInterval> pAnd, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = evaluate(pAnd).intersectWith(pParameter);
+    CompoundInterval parameter = evaluate(pAnd).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
@@ -241,34 +241,34 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
       return pAnd.getOperand1().accept(this, parameter)
           && pAnd.getOperand2().accept(this, parameter);
     } else if (parameter.isDefinitelyFalse()) {
-      Map<String, InvariantsFormula<CompoundState>> env1 = new HashMap<>(this.environment);
+      Map<String, InvariantsFormula<CompoundInterval>> env1 = new HashMap<>(this.environment);
       boolean push1 = pAnd.getOperand1().accept(new PushAssumptionToEnvironmentVisitor(evaluationVisitor, env1), pParameter);
 
       // If operand1 cannot be false, operand2 must be false
       if (!push1) {
-        return pAnd.getOperand2().accept(this, CompoundState.logicalFalse());
+        return pAnd.getOperand2().accept(this, CompoundInterval.logicalFalse());
       }
 
-      Map<String, InvariantsFormula<CompoundState>> env2 = new HashMap<>(this.environment);
+      Map<String, InvariantsFormula<CompoundInterval>> env2 = new HashMap<>(this.environment);
       boolean push2 = pAnd.getOperand2().accept(new PushAssumptionToEnvironmentVisitor(evaluationVisitor, env2), pParameter);
       // If operand2 cannot be false, operand1 must be false
       if (!push2) {
-        return pAnd.getOperand1().accept(this, CompoundState.logicalFalse());
+        return pAnd.getOperand1().accept(this, CompoundInterval.logicalFalse());
       }
 
       // If both may be false, the effects on the environment are united
-      for (Map.Entry<String, InvariantsFormula<CompoundState>> entry : env2.entrySet()) {
+      for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : env2.entrySet()) {
         String varName = entry.getKey();
-        InvariantsFormula<CompoundState> value1 = env1.get(varName);
+        InvariantsFormula<CompoundInterval> value1 = env1.get(varName);
         // Only if BOTH parts produced an environment value, they can be united to a non-top value
         if (value1 != null) {
-          InvariantsFormula<CompoundState> value2 = entry.getValue();
-          final InvariantsFormula<CompoundState> newValueFormula = CompoundStateFormulaManager.INSTANCE.union(value1, value2).accept(new PartialEvaluator(this.environment), evaluationVisitor);
+          InvariantsFormula<CompoundInterval> value2 = entry.getValue();
+          final InvariantsFormula<CompoundInterval> newValueFormula = CompoundStateFormulaManager.INSTANCE.union(value1, value2).accept(new PartialEvaluator(this.environment), evaluationVisitor);
           if (newValueFormula.accept(this.evaluationVisitor, this.environment).isBottom()) {
             this.cachingEvaluationVisitor.clearCache();
             return false;
           }
-          if (newValueFormula instanceof Constant<?> && ((Constant<CompoundState>) newValueFormula).getValue().isTop()) {
+          if (newValueFormula instanceof Constant<?> && ((Constant<CompoundInterval>) newValueFormula).getValue().isTop()) {
             continue;
           }
           this.environment.put(varName, newValueFormula);
@@ -280,11 +280,11 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(LogicalNot<CompoundState> pNot, CompoundState pParameter) {
+  public Boolean visit(LogicalNot<CompoundInterval> pNot, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = evaluate(pNot).intersectWith(pParameter);
+    CompoundInterval parameter = evaluate(pNot).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
@@ -296,7 +296,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(Modulo<CompoundState> pModulo, CompoundState pParameter) {
+  public Boolean visit(Modulo<CompoundInterval> pModulo, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
@@ -304,18 +304,18 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(Multiply<CompoundState> pMultiply, CompoundState pParameter) {
+  public Boolean visit(Multiply<CompoundInterval> pMultiply, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = evaluate(pMultiply).intersectWith(pParameter);
+    CompoundInterval parameter = evaluate(pMultiply).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
-    CompoundState leftValue = evaluate(pMultiply.getFactor1());
-    CompoundState rightValue = evaluate(pMultiply.getFactor2());
-    CompoundState pushLeftValue = parameter.divide(rightValue);
-    CompoundState pushRightValue = parameter.divide(leftValue);
+    CompoundInterval leftValue = evaluate(pMultiply.getFactor1());
+    CompoundInterval rightValue = evaluate(pMultiply.getFactor2());
+    CompoundInterval pushLeftValue = parameter.divide(rightValue);
+    CompoundInterval pushRightValue = parameter.divide(leftValue);
     if (!pMultiply.getFactor1().accept(this, pushLeftValue)
         || !pMultiply.getFactor2().accept(this, pushRightValue)) {
       return false;
@@ -324,11 +324,11 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(Negate<CompoundState> pNegate, CompoundState pParameter) {
+  public Boolean visit(Negate<CompoundInterval> pNegate, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = evaluate(pNegate).intersectWith(pParameter);
+    CompoundInterval parameter = evaluate(pNegate).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
@@ -336,7 +336,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(ShiftLeft<CompoundState> pShiftLeft, CompoundState pParameter) {
+  public Boolean visit(ShiftLeft<CompoundInterval> pShiftLeft, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
@@ -344,7 +344,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(ShiftRight<CompoundState> pShiftRight, CompoundState pParameter) {
+  public Boolean visit(ShiftRight<CompoundInterval> pShiftRight, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
@@ -352,12 +352,12 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(Union<CompoundState> pUnion, CompoundState pParameter) {
+  public Boolean visit(Union<CompoundInterval> pUnion, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    InvariantsFormula<CompoundState> operand1 = pUnion.getOperand1();
-    InvariantsFormula<CompoundState> operand2 = pUnion.getOperand2();
+    InvariantsFormula<CompoundInterval> operand1 = pUnion.getOperand1();
+    InvariantsFormula<CompoundInterval> operand2 = pUnion.getOperand2();
     if (!evaluate(operand1).intersectsWith(pParameter)) {
       if (!operand2.accept(this, pParameter)) {
         return false;
@@ -370,16 +370,16 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     }
 
     CompoundStateFormulaManager ifm = CompoundStateFormulaManager.INSTANCE;
-    InvariantsFormula<CompoundState> parameter = ifm.asConstant(pParameter);
-    return ifm.logicalOr(ifm.equal(pUnion.getOperand1(), parameter), ifm.equal(pUnion.getOperand2(), parameter)).accept(this, CompoundState.logicalTrue());
+    InvariantsFormula<CompoundInterval> parameter = ifm.asConstant(pParameter);
+    return ifm.logicalOr(ifm.equal(pUnion.getOperand1(), parameter), ifm.equal(pUnion.getOperand2(), parameter)).accept(this, CompoundInterval.logicalTrue());
   }
 
   @Override
-  public Boolean visit(Variable<CompoundState> pVariable, CompoundState pParameter) {
+  public Boolean visit(Variable<CompoundInterval> pVariable, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundState parameter = evaluate(pVariable).intersectWith(pParameter);
+    CompoundInterval parameter = evaluate(pVariable).intersectWith(pParameter);
     if (parameter.isBottom()) {
       return false;
     }
@@ -387,13 +387,13 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
       return true;
     }
     String varName = pVariable.getName();
-    InvariantsFormula<CompoundState> resolved = getFromEnvironment(varName);
+    InvariantsFormula<CompoundInterval> resolved = getFromEnvironment(varName);
     if (!resolved.accept(this, parameter)) {
       return false;
     }
-    final CompoundState newValue;
+    final CompoundInterval newValue;
     if (resolved instanceof Constant<?>) {
-      CompoundState resolvedValue = ((Constant<CompoundState>) resolved).getValue();
+      CompoundInterval resolvedValue = ((Constant<CompoundInterval>) resolved).getValue();
       newValue = resolvedValue.intersectWith(parameter);
     } else {
       newValue = parameter;
@@ -418,10 +418,10 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
    *
    * @return the expression formula assigned to the variable.
    */
-  private InvariantsFormula<CompoundState> getFromEnvironment(String pVarName) {
-    InvariantsFormula<CompoundState> result = environment.get(pVarName);
+  private InvariantsFormula<CompoundInterval> getFromEnvironment(String pVarName) {
+    InvariantsFormula<CompoundInterval> result = environment.get(pVarName);
     if (result == null) {
-      return CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.top());
+      return CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
     }
     return result;
   }

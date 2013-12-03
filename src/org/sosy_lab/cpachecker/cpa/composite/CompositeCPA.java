@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.explicit.ComponentAwareExplicitPrecisionAdjustment;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -74,6 +75,11 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       + "and only delegates to each component's precision adjustment operator individually, "
       + "the COMPONENT strategy operates with knowledge about all components.")
     private String precAdjust = "COMPOSITE";
+
+    @Option(
+    description="inform Composite CPA if it is run in a predicated analysis because then it must"
+      + "behave differntly during merge.")
+    private boolean inPredicatedAnalysis = false;
   }
 
   private static class CompositeCPAFactory extends AbstractCPAFactory {
@@ -98,12 +104,14 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
       boolean mergeSep = true;
       boolean simplePrec = true;
-      boolean explicitCPA2 = false;
+
+      PredicateAbstractionManager abmgr = null;
 
       for (ConfigurableProgramAnalysis sp : cpas) {
-        if (sp instanceof org.sosy_lab.cpachecker.cpa.explicit2.ExplicitCPA) {
-          explicitCPA2 = true;
+        if(sp instanceof org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA){
+          abmgr = ((org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA)sp).getPredicateManager();
         }
+
         domains.add(sp.getAbstractDomain());
         transferRelations.add(sp.getTransferRelation());
         stopOperators.add(sp.getStopOperator());
@@ -129,13 +137,20 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       if (mergeSep) {
         compositeMerge = MergeSepOperator.getInstance();
       } else {
-
-        if (options.merge.equals("AGREE")) {
-          compositeMerge = new CompositeMergeAgreeOperator(mergeOperators.build(), stopOps);
-        } else if (options.merge.equals("PLAIN")) {
-          compositeMerge = new CompositeMergePlainOperator(mergeOperators.build());
+        if (options.inPredicatedAnalysis) {
+          if (options.merge.equals("AGREE")) {
+            compositeMerge = new CompositeMergeAgreePredicatedAnalysisOperator(mergeOperators.build(), stopOps, abmgr);
+          } else {
+            throw new InvalidConfigurationException("Merge PLAIN is currently not supported in predicated analysis");
+          }
         } else {
-          throw new AssertionError();
+          if (options.merge.equals("AGREE")) {
+            compositeMerge = new CompositeMergeAgreeOperator(mergeOperators.build(), stopOps);
+          } else if (options.merge.equals("PLAIN")) {
+            compositeMerge = new CompositeMergePlainOperator(mergeOperators.build());
+          } else {
+            throw new AssertionError();
+          }
         }
       }
 
@@ -145,26 +160,19 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
       PrecisionAdjustment compositePrecisionAdjustment;
       if (options.precAdjust.equals("COMPONENT")) {
-        if (explicitCPA2) {
-          compositePrecisionAdjustment = new org.sosy_lab.cpachecker.cpa.explicit2.ComponentAwareExplicitPrecisionAdjustment(
-              precisionAdjustments.build(),
-              getConfiguration(),
-              cfa
-              );
-        } else {
-          compositePrecisionAdjustment = new ComponentAwareExplicitPrecisionAdjustment(
-              precisionAdjustments.build(),
-              getConfiguration(),
-              cfa
-              );
-        }
+        compositePrecisionAdjustment = new ComponentAwareExplicitPrecisionAdjustment(
+            precisionAdjustments.build(),
+            getConfiguration(),
+            cfa
+            );
       }
 
       else {
         if (simplePrec) {
           compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
         } else {
-          compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build());
+          compositePrecisionAdjustment =
+              new CompositePrecisionAdjustment(precisionAdjustments.build());
         }
       }
 

@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGRegion;
 
 
 public class SMGEdgePointsToTest {
@@ -32,7 +34,7 @@ public class SMGEdgePointsToTest {
   @Test
   public void testSMGEdgePointsTo() {
     Integer val = Integer.valueOf(6);
-    SMGObject obj = new SMGObject(8, "object");
+    SMGObject obj = new SMGRegion(8, "object");
     SMGEdgePointsTo edge = new SMGEdgePointsTo(val, obj, 0);
 
     Assert.assertEquals(val.intValue(), edge.getValue());
@@ -44,8 +46,8 @@ public class SMGEdgePointsToTest {
   public void testIsConsistentWith() {
     Integer val1 = Integer.valueOf(1);
     Integer val2 = Integer.valueOf(2);
-    SMGObject obj = new SMGObject(8, "object");
-    SMGObject obj2 = new SMGObject(8, "object2");
+    SMGObject obj = new SMGRegion(8, "object");
+    SMGObject obj2 = new SMGRegion(8, "object2");
 
     SMGEdgePointsTo edge1 = new SMGEdgePointsTo(val1, obj, 0);
     SMGEdgePointsTo edge2 = new SMGEdgePointsTo(val2, obj, 0);
