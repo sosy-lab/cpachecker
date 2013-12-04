@@ -178,7 +178,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     abstractionStorage = new PredicateAbstractionReuse(reuseAbstractionsFrom, logger, formulaManager);
 
     predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, pathFormulaManager, solver, abstractionStorage, config, logger);
-    transfer = new PredicateTransferRelation(this, blk, abstractionStorage);
+    transfer = new PredicateTransferRelation(this, blk);
 
     Set<Integer> rootReuseIds = abstractionStorage.hasDataForReuse()
           ? Collections.<Integer>singleton(abstractionStorage.getRootAbstractionId())
@@ -189,8 +189,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
         pathFormulaManager.makeEmptyPathFormula(),
         predicateManager.makeTrueAbstractionFormula(null),
         PathCopyingPersistentTreeMap.<CFANode, Integer>of(),
-        null, 
-		rootReuseIds);
+        null,
+        rootReuseIds,
+        Collections.<CFAEdge>emptySet());
     domain = new PredicateAbstractDomain(this);
 
     if (mergeType.equals("SEP")) {

@@ -35,6 +35,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -104,7 +105,10 @@ public class ABMPredicateReducer implements Reducer {
                                                                              .empty();
 
       return PredicateAbstractState.mkAbstractionState(bfmgr, pathFormula,
-          newAbstraction, abstractionLocations, predicateElement.getViolatedProperty(), Collections.<Integer>emptySet());
+          newAbstraction, abstractionLocations,
+          predicateElement.getViolatedProperty(),
+          Collections.<Integer>emptySet(),
+          Collections.<CFAEdge>emptySet());
     } finally {
       reduceTimer.stop();
     }
@@ -155,7 +159,8 @@ public class ABMPredicateReducer implements Reducer {
       PersistentMap<CFANode, Integer> abstractionLocations = reducedState.getAbstractionLocationsOnPath();
 
       return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-          newAbstractionFormula, abstractionLocations, reducedState.getViolatedProperty(), Collections.<Integer>emptySet());
+          newAbstractionFormula, abstractionLocations, reducedState.getViolatedProperty(),
+          Collections.<Integer>emptySet(), Collections.<CFAEdge>emptySet());
     } finally {
       expandTimer.stop();
     }
@@ -424,6 +429,7 @@ public class ABMPredicateReducer implements Reducer {
     PersistentMap<CFANode, Integer> abstractionLocations = rootState.getAbstractionLocationsOnPath();
 
     return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-        newAbstractionFormula, abstractionLocations, reducedState.getViolatedProperty(), Collections.<Integer>emptySet());
+        newAbstractionFormula, abstractionLocations, reducedState.getViolatedProperty(),
+        Collections.<Integer>emptySet(), Collections.<CFAEdge>emptySet());
   }
 }

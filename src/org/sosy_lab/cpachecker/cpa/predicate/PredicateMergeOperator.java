@@ -90,7 +90,8 @@ public class PredicateMergeOperator implements MergeOperator {
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
         merged = mkNonAbstractionStateWithNewPathFormula(pathFormula, elem1.getViolatedProperty(), elem1,
-            Sets.union(elem1.getPositionInReuseGraph(), elem2.getPositionInReuseGraph()));
+            Sets.union(elem1.getLastAbstractionsReused(), elem2.getLastAbstractionsReused()),
+            Sets.union(elem1.getOpsSinceReuse(), elem2.getOpsSinceReuse()));
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

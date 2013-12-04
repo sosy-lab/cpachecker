@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +41,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -147,7 +149,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     computingAbstractionTime.start();
     try {
 	    newAbstraction = formulaManager.buildAbstraction(
-	        element.getPositionInReuseGraph(), loc, abstractionFormula, pathFormula, preds);
+	        element.getLastAbstractionsReused(), loc, abstractionFormula, pathFormula, preds);
 	    newAbstractionFormula = newAbstraction.getFirst();
     } finally {
       computingAbstractionTime.stop();
@@ -171,7 +173,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
     return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-        newAbstractionFormula, abstractionLocations, element.getViolatedProperty(), newAbstraction.getSecond());
+        newAbstractionFormula, abstractionLocations, element.getViolatedProperty(),
+        newAbstraction.getSecond(), Collections.<CFAEdge>emptySet());
   }
 
   private void extractInvariants() throws CPAException {

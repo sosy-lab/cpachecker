@@ -128,8 +128,6 @@ public class PredicateAbstractionManager {
   private final PathFormulaManager pfmgr;
   private final Solver solver;
 
-  private static final Set<Integer> noAbstractionReuse = ImmutableSet.of();
-
   private static enum AbstractionType {
     CARTESIAN,
     BOOLEAN,

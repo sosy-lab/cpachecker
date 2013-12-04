@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * AbstractState for Symbolic Predicate Abstraction CPA
@@ -74,8 +75,9 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     private AbstractionState(BooleanFormulaManager bfmgr, PathFormula pf,
         AbstractionFormula pA, PersistentMap<CFANode, Integer> pAbstractionLocations,
         @Nullable ViolatedProperty pViolatedProperty,
-		Set<Integer> pReuseStateId) {
-      super(pf, pA, pAbstractionLocations, pViolatedProperty, pReuseStateId);
+        Set<Integer> pReuseStateId,
+        Set<CFAEdge> pOpsSinceReuse) {
+      super(pf, pA, pAbstractionLocations, pViolatedProperty, pReuseStateId, pOpsSinceReuse);
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
       //Preconditions.checkArgument(bfmgr.isTrue(pf.getFormula()));
@@ -118,8 +120,9 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     private NonAbstractionState(PathFormula pF, AbstractionFormula pA,
         PersistentMap<CFANode, Integer> pAbstractionLocations,
         @Nullable ViolatedProperty pViolatedProperty,
-		Set<Integer> pReuseStateId) {
-      super(pF, pA, pAbstractionLocations, pViolatedProperty, pReuseStateId);
+        Set<Integer> pReuseStateId,
+        Set<CFAEdge> pOpsSinceReuse) {
+      super(pF, pA, pAbstractionLocations, pViolatedProperty, pReuseStateId, pOpsSinceReuse);
     }
 
     @Override
@@ -157,8 +160,9 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     public ComputeAbstractionState(PathFormula pf, AbstractionFormula pA,
         CFANode pLoc, PersistentMap<CFANode, Integer> pAbstractionLocations,
         @Nullable ViolatedProperty pViolatedProperty,
-        Set<Integer> pReuseStateId) {
-      super(pf, pA, pAbstractionLocations, pViolatedProperty, pReuseStateId);
+        Set<Integer> pReuseStateId,
+        Set<CFAEdge> pOpsSinceReuse) {
+      super(pf, pA, pAbstractionLocations, pViolatedProperty, pReuseStateId, pOpsSinceReuse);
       location = pLoc;
     }
 
@@ -186,17 +190,19 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
       PathFormula pF, AbstractionFormula pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations,
       @Nullable ViolatedProperty pViolatedProperty,
-      Set<Integer> pReusedStateIds) {
-    return new AbstractionState(bfmgr, pF, pA, pAbstractionLocations, pViolatedProperty, pReusedStateIds);
+      Set<Integer> pReusedStateIds,
+      Set<CFAEdge> pOpsSinceReuse) {
+    return new AbstractionState(bfmgr, pF, pA, pAbstractionLocations, pViolatedProperty, pReusedStateIds, pOpsSinceReuse);
   }
 
   static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(
     PathFormula pF,
-    @Nullable ViolatedProperty pViolatedProperty, 
+    @Nullable ViolatedProperty pViolatedProperty,
     PredicateAbstractState oldState,
-	Set<Integer> pReusedStateIds) {
+    Set<Integer> pReusedStateIds,
+    Set<CFAEdge> pOpsSinceReuse) {
     return new NonAbstractionState(pF, oldState.getAbstractionFormula(),
-        oldState.getAbstractionLocationsOnPath(), pViolatedProperty, pReusedStateIds);
+        oldState.getAbstractionLocationsOnPath(), pViolatedProperty, pReusedStateIds, pOpsSinceReuse);
   }
 
   /** The path formula for the path from the last abstraction node to this node.
@@ -210,21 +216,22 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
   /** How often each abstraction location was visited on the path to the current state. */
   private final PersistentMap<CFANode, Integer> abstractionLocations;
 
-  private final Set<Integer> positionInReuseGraph;
-  private final Set<CFAEdge> opsSinceReuse;
+  private final Set<Integer> lastAbstractionsReused;
+  private ImmutableSet<CFAEdge> opsSinceReuse;
 
   private final @Nullable ViolatedProperty violatedProperty;
 
   private PredicateAbstractState(PathFormula pf, AbstractionFormula a,
       PersistentMap<CFANode, Integer> pAbstractionLocations,
       @Nullable ViolatedProperty pViolatedProperty,
-      Set<Integer> pReuseStateId) {
+      Set<Integer> pLastAbstractionsReused,
+      Set<CFAEdge> pOpsSinceReuse) {
     this.pathFormula = pf;
     this.abstractionFormula = a;
     this.abstractionLocations = pAbstractionLocations;
     this.violatedProperty = pViolatedProperty;
-    this.positionInReuseGraph = pReuseStateId;
-
+    this.lastAbstractionsReused = pLastAbstractionsReused;
+    this.opsSinceReuse = ImmutableSet.copyOf(pOpsSinceReuse);
   }
 
   public abstract boolean isAbstractionState();
@@ -286,9 +293,20 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     return pathFormula;
   }
 
+  public Set<Integer> getLastAbstractionsReused() {
+    return lastAbstractionsReused;
+  }
 
-  public Set<Integer> getPositionInReuseGraph() {
-    return positionInReuseGraph;
+  public ImmutableSet<CFAEdge> getOpsSinceReuse() {
+    return opsSinceReuse;
+  }
+
+  public void addOpSinceReuse(final CFAEdge pEdge) {
+    opsSinceReuse = ImmutableSet
+          .<CFAEdge>builder()
+          .addAll(opsSinceReuse)
+          .add(pEdge)
+          .build();
   }
 
 }
