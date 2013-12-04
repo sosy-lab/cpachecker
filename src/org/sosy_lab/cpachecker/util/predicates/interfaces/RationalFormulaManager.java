@@ -35,6 +35,7 @@ public interface RationalFormulaManager {
   public RationalFormula makeNumber(NumberContainer pI);
   public RationalFormula makeNumber(BigInteger pI);
   public RationalFormula makeNumber(String pI);
+  public RationalFormula makeNumber(long pI);
 
   public RationalFormula makeVariable(String pVar);
 
