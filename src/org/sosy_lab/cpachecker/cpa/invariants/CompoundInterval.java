@@ -45,6 +45,12 @@ import com.google.common.base.Preconditions;
  */
 public class CompoundInterval {
 
+  private static final CompoundInterval ZERO = CompoundInterval.singleton(BigInteger.ZERO);
+
+  private static final CompoundInterval ONE = CompoundInterval.singleton(BigInteger.ONE);
+
+  private static final CompoundInterval MINUS_ONE = CompoundInterval.singleton(-1);
+
   /**
    * The compound state representing "bottom".
    */
@@ -58,7 +64,7 @@ public class CompoundInterval {
   /**
    * The compound state representing "false".
    */
-  private static final CompoundInterval FALSE = CompoundInterval.singleton(BigInteger.ZERO);
+  private static final CompoundInterval FALSE = ZERO;
 
   /**
    * The compound state representing "true":
@@ -1495,6 +1501,18 @@ public class CompoundInterval {
 
   public static CompoundInterval logicalTrue() {
     return TRUE;
+  }
+
+  public static CompoundInterval zero() {
+    return ZERO;
+  }
+
+  public static CompoundInterval one() {
+    return ONE;
+  }
+
+  public static CompoundInterval minusOne() {
+    return MINUS_ONE;
   }
 
   /**

@@ -138,6 +138,9 @@ public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<Co
 
   @Override
   public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
     return this.inner.equals(o);
   }
 

@@ -109,11 +109,6 @@ public class CollectVarsVisitor<T> implements InvariantsFormulaVisitor<T, Set<St
   }
 
   @Override
-  public Set<String> visit(Negate<T> pNegate) {
-    return pNegate.getNegated().accept(this);
-  }
-
-  @Override
   public Set<String> visit(ShiftLeft<T> pShiftLeft) {
     return concat(pShiftLeft.getShifted().accept(this), pShiftLeft.getShiftDistance().accept(this));
   }

@@ -324,18 +324,6 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
   }
 
   @Override
-  public Boolean visit(Negate<CompoundInterval> pNegate, CompoundInterval pParameter) {
-    if (pParameter == null || pParameter.isBottom()) {
-      return false;
-    }
-    CompoundInterval parameter = evaluate(pNegate).intersectWith(pParameter);
-    if (parameter.isBottom()) {
-      return false;
-    }
-    return pNegate.getNegated().accept(this, parameter.negate());
-  }
-
-  @Override
   public Boolean visit(ShiftLeft<CompoundInterval> pShiftLeft, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
       return false;

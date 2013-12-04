@@ -239,15 +239,6 @@ public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundInterv
   }
 
   @Override
-  public RationalFormula visit(Negate<CompoundInterval> pNegate, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    RationalFormula negated = pNegate.getNegated().accept(this, pEnvironment);
-    if (negated == null) {
-      return evaluate(pNegate, pEnvironment);
-    }
-    return this.rfmgr.negate(negated);
-  }
-
-  @Override
   public RationalFormula visit(ShiftLeft<CompoundInterval> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pShiftLeft, pEnvironment);
   }

@@ -248,15 +248,6 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
   }
 
   @Override
-  public BitvectorFormula visit(Negate<CompoundInterval> pNegate, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    BitvectorFormula negated = pNegate.getNegated().accept(this, pEnvironment);
-    if (negated == null) {
-      return evaluate(pNegate, pEnvironment);
-    }
-    return this.bvfmgr.negate(negated);
-  }
-
-  @Override
   public BitvectorFormula visit(ShiftLeft<CompoundInterval> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pShiftLeft, pEnvironment);
   }

@@ -42,6 +42,8 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstackPCC.CallstackPccState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+import com.google.common.collect.ImmutableSet;
+
 
 public class ValidVarsTransferRelation implements TransferRelation{
 
@@ -73,8 +75,14 @@ public class ValidVarsTransferRelation implements TransferRelation{
       }
 
       return predecessors;
+    case BlankEdge:
+      if(pCfaEdge.getDescription().equals("Function start dummy edge")){
+        validVariables = validVariables.extendLocalVars(pCfaEdge.getSuccessor().getFunctionName(),
+           ImmutableSet.<String>of());
+      }
+      break;
     case FunctionCallEdge:
-      validVariables.extendLocalVars(pCfaEdge.getSuccessor().getFunctionName(),
+      validVariables = validVariables.extendLocalVars(pCfaEdge.getSuccessor().getFunctionName(),
           ((FunctionEntryNode) pCfaEdge.getSuccessor()).getFunctionParameterNames());
       break;
     case DeclarationEdge:

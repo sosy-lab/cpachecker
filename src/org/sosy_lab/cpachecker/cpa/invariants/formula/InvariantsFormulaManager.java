@@ -217,8 +217,8 @@ public enum InvariantsFormulaManager {
    * operand.
    */
   public <T> InvariantsFormula<T> logicalNot(InvariantsFormula<T> pToNegate) {
-    if (pToNegate instanceof Negate<?>) {
-      return ((Negate<T>) pToNegate).getNegated();
+    if (pToNegate instanceof LogicalNot<?>) {
+      return ((LogicalNot<T>) pToNegate).getNegated();
     }
     return LogicalNot.of(pToNegate);
   }
@@ -277,35 +277,6 @@ public enum InvariantsFormulaManager {
   public <T> InvariantsFormula<T> multiply(InvariantsFormula<T> pFactor1,
       InvariantsFormula<T> pFactor2) {
     return Multiply.of(pFactor1, pFactor2);
-  }
-
-  /**
-   * Gets an invariants formula representing the numerical negation of the
-   * given invariants formula.
-   *
-   * @param pToNegate the invariants formula to negate.
-   *
-   * @return an invariants formula representing the numerical negation of the
-   * given invariants formula.
-   */
-  public <T> InvariantsFormula<T> negate(InvariantsFormula<T> pToNegate) {
-    if (pToNegate instanceof Negate<?>) {
-      return ((Negate<T>) pToNegate).getNegated();
-    }
-    return Negate.of(pToNegate);
-  }
-
-  /**
-   * Gets the difference of the given invariants formulae as a formula.
-   *
-   * @param pMinuend the minuend.
-   * @param pSubtrahend the subtrahend.
-   *
-   * @return the sum of the given formulae.
-   */
-  public <T> InvariantsFormula<T> subtract(InvariantsFormula<T> pMinuend,
-      InvariantsFormula<T> pSubtrahend) {
-    return Add.of(pMinuend, negate(pSubtrahend));
   }
 
   /**

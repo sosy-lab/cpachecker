@@ -70,7 +70,8 @@ public class CanExtractVariableRelationVisitor implements ParameterizedInvariant
 
   @Override
   public Boolean visit(Divide<CompoundInterval> pDivide, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
-    return pDivide.getNumerator().accept(this, pParameter) && pDivide.getDenominator().accept(this, pParameter);
+    return pDivide.getNumerator().accept(COLLECT_VARS_VISITOR).isEmpty()
+        && pDivide.getNumerator().accept(this, pParameter) && pDivide.getDenominator().accept(this, pParameter);
   }
 
   @Override
@@ -95,19 +96,14 @@ public class CanExtractVariableRelationVisitor implements ParameterizedInvariant
 
   @Override
   public Boolean visit(Modulo<CompoundInterval> pModulo, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
-    return pModulo.getNumerator().accept(this, pParameter) && pModulo.getDenominator().accept(this, pParameter);
+    return pModulo.getNumerator().accept(COLLECT_VARS_VISITOR).isEmpty()
+        && pModulo.getNumerator().accept(this, pParameter) && pModulo.getDenominator().accept(this, pParameter);
   }
 
   @Override
   public Boolean visit(Multiply<CompoundInterval> pMultiply, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
-    return pMultiply.getFactor1().accept(this, pParameter) && pMultiply.getFactor2().accept(this, pParameter)
-        && (pMultiply.getFactor1().accept(COLLECT_VARS_VISITOR).isEmpty() || !pMultiply.getFactor2().accept(pParameter, this.environment).containsZero())
-        && (pMultiply.getFactor2().accept(COLLECT_VARS_VISITOR).isEmpty() || !pMultiply.getFactor1().accept(pParameter, this.environment).containsZero());
-  }
-
-  @Override
-  public Boolean visit(Negate<CompoundInterval> pNegate, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
-    return pNegate.getNegated().accept(this, pParameter);
+    return pMultiply.getFactor1().accept(COLLECT_VARS_VISITOR).isEmpty()
+        && pMultiply.getFactor2().accept(COLLECT_VARS_VISITOR).isEmpty();
   }
 
   @Override

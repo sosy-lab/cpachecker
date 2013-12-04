@@ -253,17 +253,6 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(Negate<CompoundInterval> pNegate, InvariantsFormula<CompoundInterval> pOther) {
-    if (pOther instanceof Negate<?>) {
-      Negate<CompoundInterval> other = (Negate<CompoundInterval>) pOther;
-      if (pNegate.getNegated().accept(this, other.getNegated())) {
-        return true;
-      }
-    }
-    return visitDefault(pNegate, pOther);
-  }
-
-  @Override
   public Boolean visit(ShiftLeft<CompoundInterval> pShiftLeft, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof ShiftLeft<?>) {
       ShiftLeft<CompoundInterval> other = (ShiftLeft<CompoundInterval>) pOther;
