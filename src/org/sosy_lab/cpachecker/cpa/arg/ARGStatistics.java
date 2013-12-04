@@ -32,8 +32,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,6 +45,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -77,17 +76,17 @@ public class ARGStatistics implements Statistics {
   @Option(name="file",
       description="export final ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path argFile = Paths.get("ARG.dot");
+  private Path argFile = new Path("ARG.dot");
 
   @Option(name="simplifiedARG.file",
       description="export final ARG as .dot file, showing only loop heads and function entries/exits")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path simplifiedArgFile = Paths.get("ARGSimplified.dot");
+  private Path simplifiedArgFile = new Path("ARGSimplified.dot");
 
   @Option(name="refinements.file",
       description="export simplified ARG that shows all refinements to .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path refinementGraphFile = Paths.get("ARGRefinements.dot");
+  private Path refinementGraphFile = new Path("ARGRefinements.dot");
 
   @Option(name="errorPath.export",
       description="export error path to file, if one is found")
@@ -96,17 +95,17 @@ public class ARGStatistics implements Statistics {
   @Option(name="errorPath.file",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathFile = Paths.get("ErrorPath.%d.txt");
+  private Path errorPathFile = new Path("ErrorPath.%d.txt");
 
   @Option(name="errorPath.core",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathCoreFile = Paths.get("ErrorPath.%d.core.txt");
+  private Path errorPathCoreFile = new Path("ErrorPath.%d.core.txt");
 
   @Option(name="errorPath.source",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathSourceFile = Paths.get("ErrorPath.%d.c");
+  private Path errorPathSourceFile = new Path("ErrorPath.%d.c");
 
   @Option(name="errorPath.exportAsSource",
       description="translate error path to C program")
@@ -115,22 +114,22 @@ public class ARGStatistics implements Statistics {
   @Option(name="errorPath.json",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathJson = Paths.get("ErrorPath.%d.json");
+  private Path errorPathJson = new Path("ErrorPath.%d.json");
 
   @Option(name="errorPath.assignment",
       description="export one variable assignment for error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathAssignment = Paths.get("ErrorPath.%d.assignment.txt");
+  private Path errorPathAssignment = new Path("ErrorPath.%d.assignment.txt");
 
   @Option(name="errorPath.graph",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathGraphFile = Paths.get("ErrorPath.%d.dot");
+  private Path errorPathGraphFile = new Path("ErrorPath.%d.dot");
 
   @Option(name="errorPath.automaton",
       description="export error path to file as an automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathAutomatonFile = Paths.get("ErrorPath.%d.spc");
+  private Path errorPathAutomatonFile = new Path("ErrorPath.%d.spc");
 
   private final ARGCPA cpa;
 
@@ -305,7 +304,7 @@ public class ARGStatistics implements Statistics {
 
       for (Pair<Object, File> info : counterexample.getAllFurtherInformation()) {
         if (info.getSecond() != null) {
-          writeErrorPathFile(info.getSecond().toPath(), cexIndex, info.getFirst());
+          writeErrorPathFile(Path.fromFile(info.getSecond()), cexIndex, info.getFirst());
         }
       }
     }
@@ -423,7 +422,7 @@ public class ARGStatistics implements Statistics {
   private void writeErrorPathFile(Path file, int cexIndex, Object content) {
     if (file != null) {
       // fill in index in file name
-      file = Paths.get(String.format(file.toString(), cexIndex));
+      file = new Path(String.format(file.toString(), cexIndex));
 
       try {
         Files.writeFile(file, content);

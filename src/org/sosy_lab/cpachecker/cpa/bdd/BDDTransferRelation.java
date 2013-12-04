@@ -29,8 +29,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.math.BigInteger;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,6 +42,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -101,7 +100,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   @Option(name = "logfile", description = "Dump tracked variables to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path dumpfile = Paths.get("BDDCPA_tracked_variables.log");
+  private Path dumpfile = new Path("BDDCPA_tracked_variables.log");
 
   private static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
 

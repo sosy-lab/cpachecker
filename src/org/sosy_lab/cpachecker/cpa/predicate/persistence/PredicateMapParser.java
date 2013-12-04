@@ -37,6 +37,7 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -128,7 +129,7 @@ public class PredicateMapParser {
 
     Files.checkReadableFile(file);
 
-    try (BufferedReader reader = java.nio.file.Files.newBufferedReader(file.toPath(), Charsets.US_ASCII)) {
+    try (BufferedReader reader = Path.fromFile(file).asCharSource(Charsets.US_ASCII).openBufferedStream()) {
       return parsePredicates(reader, file.getName());
     }
   }

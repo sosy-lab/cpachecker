@@ -27,8 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -40,6 +38,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -74,7 +73,7 @@ public class BlockedCFAReducer implements BlockComputer {
 
   @Option(name="reducedCfaFile", description="write the reduced cfa to the specified file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path reducedCfaFile = Paths.get("ReducedCfa.rsf");
+  private Path reducedCfaFile = new Path("ReducedCfa.rsf");
 
   private int functionCallSeq = 0;
   private final Deque<FunctionEntryNode> inliningStack;
