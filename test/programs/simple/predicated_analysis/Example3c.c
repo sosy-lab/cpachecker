@@ -1,6 +1,8 @@
 void main()
 {
     int y;
+    int i=0;
+    int x = 0;
     if(y<0)
     {
 	y=0;
@@ -9,7 +11,6 @@ void main()
     }
     int x=y;
     x=x+1;
-    int i=0;
     while(1)
     {
 	if(i==1)
