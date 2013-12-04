@@ -116,6 +116,12 @@ public class CReferencedFunctionsCollector {
     }
   }
 
+  public void visitDeclaration(CVariableDeclaration decl) {
+    if (decl.getInitializer() != null) {
+      decl.getInitializer().accept(new CollectFunctionsVisitor(collectedFunctions));
+    }
+  }
+
   private static class CollectFunctionsVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
                                                implements CRightHandSideVisitor<Void, RuntimeException>,
                                                           CStatementVisitor<Void, RuntimeException>,

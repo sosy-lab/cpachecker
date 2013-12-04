@@ -371,7 +371,7 @@ public class CFACreator {
 
       // add function pointer edges
       if (language == Language.C && fptrCallEdges) {
-        CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, config, logger);
+        CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, c.getGlobalDeclarations(), config, logger);
         fptrResolver.resolveFunctionPointers();
       }
 
