@@ -471,11 +471,20 @@ class _OomEventThread(threading.Thread):
             EFD_CLOEXEC = 0x80000 # from <sys/eventfd.h>
             self._efd = libc.eventfd(0, EFD_CLOEXEC) 
 
-            writeFile('{} {}'.format(self._efd, ofd),
-                      cgroup, 'cgroup.event_control')
+            try:
+                writeFile('{} {}'.format(self._efd, ofd),
+                          cgroup, 'cgroup.event_control')
 
-            # If everything worked, disable Kernel-side process killing
-            os.write(ofd, '1')
+                # If everything worked, disable Kernel-side process killing.
+                # This is not allowed if memory.use_hierarchy is enabled,
+                # but we don't care.
+                try:
+                    os.write(ofd, '1')
+                except OSError:
+                    pass
+            except Error as e:
+                os.close(self._efd)
+                raise e
         finally:
             os.close(ofd)
 
