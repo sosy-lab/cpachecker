@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -38,6 +39,11 @@ import com.google.common.base.Joiner;
  * and the analysis did not terminate gracefully.
  */
 class ForceTerminationOnShutdown implements Runnable {
+
+  // static state, currently only one instance can be alive
+  // (which is fully sufficient given that all instance would just kill the JVM)
+  // We need this instance to be able to cancel the forced termination.
+  private static final AtomicReference<Thread> forceTerminationOnShutdownThread = new AtomicReference<>();
 
   // Time that a shutdown may last before we kill the program.
   private static final int SHUTDOWN_GRACE_PERIOD = 10; // seconds
@@ -66,6 +72,13 @@ class ForceTerminationOnShutdown implements Runnable {
 
         @Override
         public void shutdownRequested(final String pReason) {
+          if (forceTerminationOnShutdownThread.get() != null) {
+            logger.log(Level.WARNING, "Shutdown requested",
+                "(" + pReason + "),",
+                "but there is already a thread waiting to terminate the JVM.");
+            return;
+          }
+
           logger.log(Level.WARNING, "Shutdown requested",
               "(" + pReason + "),",
               "waiting for termination.");
@@ -74,15 +87,34 @@ class ForceTerminationOnShutdown implements Runnable {
                                                                shutdownHook),
                                 "ForceTerminationOnShutdown");
           t.setDaemon(true);
-          t.start();
+          boolean success = forceTerminationOnShutdownThread.compareAndSet(null, t);
+          if (success) {
+            t.start();
+          }
+          // Otherwise a second instance of such a thread was created in the meantime,
+          // we do not need to start our's.
         }
       };
+  }
+
+  /**
+   * If a shutdown request was signalled,
+   * and we are currently waiting to kill the JVM after some time,
+   * this method cancels the pending termination process,
+   * so that no action will be done.
+   */
+  static void cancelPendingTermination() {
+    Thread t = forceTerminationOnShutdownThread.getAndSet(null);
+    if (t != null) {
+      t.interrupt();
+    }
   }
 
   @SuppressWarnings("deprecation")
   @Override
   public void run() {
     // This thread may be killed at any time by the JVM because it is a daemon thread.
+    // Interrupts signal that we should abort.
 
     try {
       TimeUnit.SECONDS.sleep(SHUTDOWN_GRACE_PERIOD);
