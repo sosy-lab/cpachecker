@@ -9,7 +9,7 @@ void main()
     }else{
 	y=5;
     }
-    int x=y;
+    x=y;
     x=x+1;
     while(1)
     {
