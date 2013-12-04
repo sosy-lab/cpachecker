@@ -330,8 +330,11 @@ class RunExecutor():
             # This measurement reads the maximum number of bytes of RAM+Swap the process used.
             # For more details, c.f. the kernel documentation:
             # https://www.kernel.org/doc/Documentation/cgroups/memory.txt
+            memUsageFile = 'memory.memsw.max_usage_in_bytes'
+            if not os.path.exists(os.path.join(cgroups[MEMORY], memUsageFile)):
+                memUsageFile = 'memory.max_usage_in_bytes'
             try:
-                memUsage = readFile(cgroups[MEMORY], 'memory.memsw.max_usage_in_bytes')
+                memUsage = readFile(cgroups[MEMORY], memUsageFile)
                 memUsage = int(memUsage)
             except IOError as e:
                 if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
