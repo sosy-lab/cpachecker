@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUti
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
@@ -239,5 +240,14 @@ class SmtInterpolRationalFormulaManager extends AbstractRationalFormulaManager<T
   @Override
   public boolean isLessOrEquals(Term pNumber) {
     return SmtInterpolUtil.isFunction(pNumber, "<=");
+  }
+
+  @Override
+  protected Term makeNumberImpl(NumberContainer pI) {
+    if (useIntegers) {
+      return env.numeral(BigInteger.valueOf(pI.longValue()));
+    } else {
+      return env.decimal(BigDecimal.valueOf(pI.longValue()));
+    }
   }
 }

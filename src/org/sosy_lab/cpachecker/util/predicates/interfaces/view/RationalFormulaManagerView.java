@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
@@ -174,6 +175,11 @@ public class RationalFormulaManagerView extends BaseManagerView<RationalFormula>
   @Override
   public FormulaType<RationalFormula> getFormulaType() {
     return manager.getFormulaType();
+  }
+
+  @Override
+  public RationalFormula makeNumber(NumberContainer pI) {
+    return wrapInView(manager.makeNumber(pI.longValue()));
   }
 
 }

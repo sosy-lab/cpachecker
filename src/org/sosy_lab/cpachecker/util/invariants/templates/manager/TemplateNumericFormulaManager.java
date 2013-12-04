@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.invariants.templates.manager;
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateNumber;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -181,6 +182,14 @@ public class TemplateNumericFormulaManager implements RationalFormulaManager {
   @Override
   public boolean isLessOrEquals(BooleanFormula pNumber) {
     return baseManager.isLessOrEquals(pNumber);
+  }
+
+  @Override
+  public RationalFormula makeNumber(NumberContainer pI) {
+    TemplateNumber N = new TemplateNumber(type, (int) pI.longValue());
+    TemplateTerm T = new TemplateTerm(type);
+    T.setCoefficient(N);
+    return T;
   }
 
 }

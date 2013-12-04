@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
@@ -283,6 +284,11 @@ class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManager<Long
   @Override
   public boolean isLessOrEquals(Long pNumber) {
     return msat_term_is_leq(mathsatEnv, pNumber);
+  }
+
+  @Override
+  protected Long makeNumberImpl(NumberContainer pI) {
+    return msat_make_number(mathsatEnv, Long.toString(pI.longValue()));
   }
 
 }

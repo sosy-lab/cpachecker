@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.pcc.propertychecker;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -52,7 +53,7 @@ public class SingleValueChecker implements PropertyChecker {
     // check if value correctly specified at location
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
     if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(labelLocVarVal)) {
-      if (AbstractStates.extractStateByType(pElemToCheck, ExplicitState.class).getValueFor(varValName) != varVal) { return false; }
+      if (AbstractStates.extractStateByType(pElemToCheck, ExplicitState.class).getValueFor(varValName).bigDecimalValue().compareTo(new BigDecimal(varVal)) != 0) { return false; }
     }
     return true;
   }

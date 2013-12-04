@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
@@ -239,5 +240,11 @@ public class Z3RationalFormulaManager extends AbstractRationalFormulaManager<Lon
   @Override
   public boolean isLessOrEquals(Long pNumber) {
     return isOP(z3context, pNumber, Z3_OP_LE);
+  }
+
+  @Override
+  protected Long makeNumberImpl(NumberContainer pI) {
+    long sort = creator.getNumberType();
+    return mk_int64(z3context, pI.longValue(), sort);
   }
 }
