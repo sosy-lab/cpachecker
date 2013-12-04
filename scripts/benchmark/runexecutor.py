@@ -164,8 +164,9 @@ class RunExecutor():
             # out our process if the limit is reached.
             # Some kernels might not have this feature,
             # which is ok if there is actually no swap.
-            if not os.path.exists(os.path.join(cgroupMemory, swapLimitFile)) and _hasSwap():
-                sys.exit('Kernel misses feature for accounting swap memory (memory.memsw.limit_in_bytes file does not exist in memory cgroup), but machine has swap.')
+            if not os.path.exists(os.path.join(cgroupMemory, swapLimitFile)):
+                if _hasSwap():
+                    sys.exit('Kernel misses feature for accounting swap memory (memory.memsw.limit_in_bytes file does not exist in memory cgroup), but machine has swap.')
             else:
                 try:
                     writeFile(memlimit, cgroupMemory, swapLimitFile)
