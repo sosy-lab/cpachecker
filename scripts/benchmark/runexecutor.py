@@ -142,10 +142,10 @@ class RunExecutor():
             totalCpuCount = len(self.cpus)
             myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
             myCpusEnd = (myCpusStart + myCpuCount - 1) % totalCpuCount
-            myCpus = ','.join(map(str, range(myCpusStart, myCpusEnd + 1)))
+            myCpus = ','.join(map(str, map(lambda i: self.cpus[i], range(myCpusStart, myCpusEnd + 1))))
             writeFile(myCpus, cgroupCpuset, 'cpuset.cpus')
             myCpus = readFile(cgroupCpuset, 'cpuset.cpus')
-            logging.debug('Executing {0} with cpu cores {1}.'.format(args, myCpus))
+            logging.debug('Executing {0} with cpu cores [{1}].'.format(args, myCpus))
 
         # Setup memory limit
         if MEMLIMIT in rlimits:
