@@ -262,17 +262,21 @@ class RunExecutor():
                 timelimitThread.start()
 
             if MEMLIMIT in rlimits:
-                oomThread = _OomEventThread(cgroups[MEMORY], p, rlimits[MEMLIMIT])
-                oomThread.start()
-        
-            logging.debug("waiting for: pid:{0}".format(p.pid))
-            pid, returnvalue, ru_child = os.wait4(p.pid, 0)
-            logging.debug("waiting finished: pid:{0}, retVal:{1}".format(pid, returnvalue))
+                try:
+                    oomThread = _OomEventThread(cgroups[MEMORY], p, rlimits[MEMLIMIT])
+                    oomThread.start()
+                except OSError as e:
+                    logging.critical("OSError {0} during setup of OomEventListenerThread: {1}.".format(e.errno, e.strerror))
 
-        except OSError as e:
-            returnvalue = 0
-            ru_child = None
-            logging.critical("OSError {0} while waiting for termination of {1} ({2}): {3}.".format(e.errno, args[0], p.pid, e.strerror))
+            try:
+                logging.debug("waiting for: pid:{0}".format(p.pid))
+                pid, returnvalue, ru_child = os.wait4(p.pid, 0)
+                logging.debug("waiting finished: pid:{0}, retVal:{1}".format(pid, returnvalue))
+
+            except OSError as e:
+                returnvalue = 0
+                ru_child = None
+                logging.critical("OSError {0} while waiting for termination of {1} ({2}): {3}.".format(e.errno, args[0], p.pid, e.strerror))
 
         finally:
             with self.SUB_PROCESSES_LOCK:
