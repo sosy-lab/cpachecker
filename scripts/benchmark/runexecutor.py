@@ -195,6 +195,26 @@ class RunExecutor():
 
             # put us into the cgroup(s)
             pid = os.getpid()
+            # On some systems, cgrulesngd would move our process into other cgroups.
+            # We disable this behavior via libcgroup if available.
+            # Unfortunately, logging/printing does not seem to work here.
+            from ctypes import cdll
+            try:
+                libcgroup = cdll.LoadLibrary('libcgroup.so.1')
+                failure = libcgroup.cgroup_init()
+                if failure:
+                    pass
+                    #print('Could not initialize libcgroup, error {}'.format(success))
+                else:
+                    CGROUP_DAEMON_UNCHANGE_CHILDREN = 0x1
+                    failure = libcgroup.cgroup_register_unchanged_process(pid, CGROUP_DAEMON_UNCHANGE_CHILDREN)
+                    if failure:
+                        pass
+                        #print('Could not register process to cgrulesndg, error {}. Probably the daemon will mess up our cgroups.'.format(success))
+            except OSError as e:
+                pass
+                #print('libcgroup is not available: {}'.format(e.strerror))
+
             for cgroup in cgroups.values():
                 _addTaskToCgroup(cgroup, pid)
 
