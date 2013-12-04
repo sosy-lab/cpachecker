@@ -599,21 +599,10 @@ def filterRowsWithDifferences(rows):
         return []
 
     def allEqualResult(listOfResults):
-        for result in listOfResults:
-            if listOfResults[0].status != result.status:
-                return (False, listOfResults[0].status, result.status)
-        return (True, None, None)
+        allStatus = set([result.status for result in listOfResults if result.status])
+        return len(allStatus) <= 1
 
-    maxLen = max(len(row.fileName) for row in rows)
-    rowsDiff = []
-    for row in rows:
-        (allEqual, oldStatus, newStatus) = allEqualResult(row.results)
-        if not allEqual:
-            rowsDiff.append(row)
-# TODO replace with call to log.debug when this script has logging
-#            print ('    difference found:  {0} : {1} --> {2}'.format(
-#                        row.fileName.ljust(maxLen), oldStatus, newStatus))
-
+    rowsDiff = [row for row in rows if not allEqualResult(row.results)]
 
     if len(rowsDiff) == 0:
         print ("---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'")
