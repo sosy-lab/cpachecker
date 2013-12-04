@@ -60,25 +60,31 @@ class Tool(benchmark.tools.template.BaseTool):
         # Determine the revision and add it to the version.
         cpaShDir = os.path.dirname(os.path.realpath(executable))
         cpacheckerDir = os.path.join(cpaShDir, os.path.pardir)
-        svnProcess = subprocess.Popen(['svnversion', cpacheckerDir], env={'LANG': 'C'}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdout, stderr) = svnProcess.communicate()
-        stdout = Util.decodeToString(stdout).strip()
-        if not (svnProcess.returncode or stderr or (stdout == 'exported')):
-            return version + ' ' + stdout
+        try:
+            svnProcess = subprocess.Popen(['svnversion', cpacheckerDir], env={'LANG': 'C'}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            (stdout, stderr) = svnProcess.communicate()
+            stdout = Util.decodeToString(stdout).strip()
+            if not (svnProcess.returncode or stderr or (stdout == 'exported')):
+                return version + ' ' + stdout
+        except OSError:
+            pass
 
         # CPAchecker might be within a git-svn repository
-        gitProcess = subprocess.Popen(['git', 'svn', 'find-rev', 'HEAD'], env={'LANG': 'C'}, cwd=cpacheckerDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdout, stderr) = gitProcess.communicate()
-        stdout = Util.decodeToString(stdout).strip()
-        if not (gitProcess.returncode or stderr) and stdout:
-            return version + ' ' + stdout + ('M' if self._isGitRepositoryDirty(cpacheckerDir) else '')
-
-        # CPAchecker might be within a git repository
-        gitProcess = subprocess.Popen(['git', 'log', '-1', '--pretty=format:%h', '--abbrev-commit'], env={'LANG': 'C'}, cwd=cpacheckerDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdout, stderr) = gitProcess.communicate()
-        stdout = Util.decodeToString(stdout).strip()
-        if not (gitProcess.returncode or stderr) and stdout:
-            return version + ' ' + stdout + ('+' if self._isGitRepositoryDirty(cpacheckerDir) else '')
+        try:
+            gitProcess = subprocess.Popen(['git', 'svn', 'find-rev', 'HEAD'], env={'LANG': 'C'}, cwd=cpacheckerDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            (stdout, stderr) = gitProcess.communicate()
+            stdout = Util.decodeToString(stdout).strip()
+            if not (gitProcess.returncode or stderr) and stdout:
+                return version + ' ' + stdout + ('M' if self._isGitRepositoryDirty(cpacheckerDir) else '')
+    
+            # CPAchecker might be within a git repository
+            gitProcess = subprocess.Popen(['git', 'log', '-1', '--pretty=format:%h', '--abbrev-commit'], env={'LANG': 'C'}, cwd=cpacheckerDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            (stdout, stderr) = gitProcess.communicate()
+            stdout = Util.decodeToString(stdout).strip()
+            if not (gitProcess.returncode or stderr) and stdout:
+                return version + ' ' + stdout + ('+' if self._isGitRepositoryDirty(cpacheckerDir) else '')
+        except OSError:
+            pass
 
         return version
 
