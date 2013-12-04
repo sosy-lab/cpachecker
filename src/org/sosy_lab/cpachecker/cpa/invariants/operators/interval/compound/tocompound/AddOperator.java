@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.interval.compound.tocompound;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 
 /**
@@ -38,7 +38,7 @@ enum AddOperator implements ICCOperator {
   INSTANCE;
 
   @Override
-  public CompoundState apply(SimpleInterval pFirstOperand, CompoundState pSecondOperand) {
+  public CompoundInterval apply(SimpleInterval pFirstOperand, CompoundInterval pSecondOperand) {
     return pSecondOperand.add(pFirstOperand);
   }
 

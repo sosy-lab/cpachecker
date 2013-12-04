@@ -92,11 +92,6 @@ public class FormulaDepthCountVisitor<ConstantType> implements InvariantsFormula
   }
 
   @Override
-  public Integer visit(Negate<ConstantType> pNegate) {
-    return pNegate.getNegated().accept(this) + 1;
-  }
-
-  @Override
   public Integer visit(ShiftLeft<ConstantType> pShiftLeft) {
     return Math.max(pShiftLeft.getShifted().accept(this), pShiftLeft.getShiftDistance().accept(this)) + 1;
   }

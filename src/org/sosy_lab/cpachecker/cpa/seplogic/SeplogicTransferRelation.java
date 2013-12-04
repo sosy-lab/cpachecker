@@ -47,13 +47,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
@@ -196,11 +196,11 @@ public class SeplogicTransferRelation implements TransferRelation {
       return element;
     }
 
-    String varName = name;
     return element; //XXX wrong
     // throw new UnrecognizedCCodeException("unsupported", edge);
 
     /* XXX fill
+    String varName = name;
     if (specifier instanceof IASTArrayTypeSpecifier) {
       Pointer p = new Pointer(1);
       element.addNewLocalPointer(varName, p);
@@ -428,7 +428,7 @@ public class SeplogicTransferRelation implements TransferRelation {
     String nsName = funcName + namespaceCounter++;
 
     List<String> formalParameters = funcDefNode.getFunctionParameterNames();
-    List<CExpression> actualParameters = (List<CExpression>) ((FunctionCallEdge) cfaEdge).getArguments();
+    List<CExpression> actualParameters = ((CFunctionCallEdge) cfaEdge).getArguments();
 
     if (formalParameters != null && formalParameters.size() > 0
         && !actualParameters.isEmpty()) {

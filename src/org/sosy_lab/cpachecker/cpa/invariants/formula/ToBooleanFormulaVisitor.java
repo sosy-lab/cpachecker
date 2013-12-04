@@ -27,7 +27,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
  * always coexists with an instance of {@link ToFormulaVisitor} for value type
  * formulae.
  */
-public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisitor<CompoundState, BooleanFormula> {
+public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisitor<CompoundInterval, BooleanFormula> {
 
   /**
    * The boolean formula manager used.
@@ -50,19 +50,19 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
    * The formula evaluation visitor used to evaluate compound state invariants
    * formulae to compound states.
    */
-  private final FormulaEvaluationVisitor<CompoundState> evaluationVisitor;
+  private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
 
   /**
    * The corresponding compound state invariants formula visitor used to
    * convert visited formulae into formulae of the value type.
    */
-  private final ToFormulaVisitor<CompoundState, ValueFormulaType> toValueFormulaVisitor;
+  private final ToFormulaVisitor<CompoundInterval, ValueFormulaType> toValueFormulaVisitor;
 
-  public static ToFormulaVisitor<CompoundState, BooleanFormula> getVisitor(FormulaManagerView pFmgr,
-        FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor,
+  public static ToFormulaVisitor<CompoundInterval, BooleanFormula> getVisitor(FormulaManagerView pFmgr,
+        FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
         boolean useBitvectors) {
 
-    final ToFormulaVisitorWrapper<CompoundState, BooleanFormula> wrapper = new ToFormulaVisitorWrapper<>();
+    final ToFormulaVisitorWrapper<CompoundInterval, BooleanFormula> wrapper = new ToFormulaVisitorWrapper<>();
     final ToBooleanFormulaVisitor<?> result;
     if (useBitvectors) {
       result = new ToBooleanFormulaVisitor<>(
@@ -91,8 +91,8 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
    * state invariants formulae to compound states.
    */
   public ToBooleanFormulaVisitor(FormulaManagerView pFmgr,
-      ToFormulaVisitor<CompoundState, ValueFormulaType> pToValueFormulaVisitor,
-      FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor) {
+      ToFormulaVisitor<CompoundInterval, ValueFormulaType> pToValueFormulaVisitor,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     this.bfmgr = pFmgr.getBooleanFormulaManager();
     this.evaluationVisitor = pEvaluationVisitor;
     this.toValueFormulaVisitor = pToValueFormulaVisitor;
@@ -105,7 +105,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
    * @return a visitor for converting compound state invariants formulae to
    * value type formulae.
    */
-  public ToFormulaVisitor<CompoundState, ValueFormulaType> getValueVisitor() {
+  public ToFormulaVisitor<CompoundInterval, ValueFormulaType> getValueVisitor() {
     return this.toValueFormulaVisitor;
   }
 
@@ -122,7 +122,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
    * or <code>null</code> if it was not possible to interpret the formula as a
    * boolean formula.
    */
-  private @Nullable BooleanFormula fromValueFormula(InvariantsFormula<CompoundState> pValueFormula, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  private @Nullable BooleanFormula fromValueFormula(InvariantsFormula<CompoundInterval> pValueFormula, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     ValueFormulaType valueFormula = pValueFormula.accept(getValueVisitor(), pEnvironment);
     if (valueFormula == null) {
       return evaluateAsBoolean(pValueFormula, pEnvironment);
@@ -163,8 +163,8 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
    * <code>null</code> if the evaluated formula does not clearly represent
    * either <code>true</code> or <code>false</code>.
    */
-  private BooleanFormula evaluateAsBoolean(InvariantsFormula<CompoundState> pValueFormula, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    CompoundState value = pValueFormula.accept(this.evaluationVisitor, pEnvironment);
+  private BooleanFormula evaluateAsBoolean(InvariantsFormula<CompoundInterval> pValueFormula, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    CompoundInterval value = pValueFormula.accept(this.evaluationVisitor, pEnvironment);
     if (value.isDefinitelyFalse()) {
       return this.bfmgr.makeBoolean(false);
     }
@@ -175,42 +175,42 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
   }
 
   @Override
-  public BooleanFormula visit(Add<CompoundState> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(Add<CompoundInterval> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromValueFormula(pAdd, pEnvironment);
   }
 
   @Override
-  public BooleanFormula visit(BinaryAnd<CompoundState> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(BinaryAnd<CompoundInterval> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromValueFormula(pAnd, pEnvironment);
   }
 
   @Override
-  public BooleanFormula visit(BinaryNot<CompoundState> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(BinaryNot<CompoundInterval> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromValueFormula(pNot, pEnvironment);
   }
 
   @Override
-  public BooleanFormula visit(BinaryOr<CompoundState> pOr, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(BinaryOr<CompoundInterval> pOr, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromValueFormula(pOr, pEnvironment);
   }
 
   @Override
-  public BooleanFormula visit(BinaryXor<CompoundState> pXor, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(BinaryXor<CompoundInterval> pXor, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromValueFormula(pXor, pEnvironment);
   }
 
   @Override
-  public BooleanFormula visit(Constant<CompoundState> pConstant, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(Constant<CompoundInterval> pConstant, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromValueFormula(pConstant, pEnvironment);
   }
 
   @Override
-  public BooleanFormula visit(Divide<CompoundState> pDivide, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(Divide<CompoundInterval> pDivide, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromValueFormula(pDivide, pEnvironment);
   }
 
   @Override
-  public BooleanFormula visit(Equal<CompoundState> pEqual, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(Equal<CompoundInterval> pEqual, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     ValueFormulaType operand1 = pEqual.getOperand1().accept(getValueVisitor(), pEnvironment);
     ValueFormulaType operand2 = pEqual.getOperand2().accept(getValueVisitor(), pEnvironment);
     if (operand1 == null && operand2 == null) {
@@ -218,7 +218,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
     }
     if (operand1 == null || operand2 == null) {
       final ValueFormulaType left;
-      final InvariantsFormula<CompoundState> right;
+      final InvariantsFormula<CompoundInterval> right;
       if (operand1 != null) {
         left = operand1;
         right = pEqual.getOperand2();
@@ -226,7 +226,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
         left = operand2;
         right = pEqual.getOperand1();
       }
-      CompoundState rightValue = right.accept(evaluationVisitor, pEnvironment);
+      CompoundInterval rightValue = right.accept(evaluationVisitor, pEnvironment);
       BooleanFormula bf = this.bfmgr.makeBoolean(false);
       for (SimpleInterval interval : rightValue.getIntervals()) {
         BooleanFormula intervalFormula = this.bfmgr.makeBoolean(true);
@@ -250,12 +250,12 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
     return getValueVisitor().equal(operand1, operand2);
   }
 
-  private ValueFormulaType getValueFormula(long pValue, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.singleton(pValue)).accept(getValueVisitor(), pEnvironment);
+  private ValueFormulaType getValueFormula(long pValue, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    return CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.singleton(pValue)).accept(getValueVisitor(), pEnvironment);
   }
 
   @Override
-  public BooleanFormula visit(LessThan<CompoundState> pLessThan, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(LessThan<CompoundInterval> pLessThan, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     ValueFormulaType operand1 = pLessThan.getOperand1().accept(getValueVisitor(), pEnvironment);
     ValueFormulaType operand2 = pLessThan.getOperand2().accept(getValueVisitor(), pEnvironment);
     if (operand1 == null && operand2 == null) {
@@ -263,7 +263,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
     }
     if (operand1 == null || operand2 == null) {
       final ValueFormulaType left;
-      final InvariantsFormula<CompoundState> right;
+      final InvariantsFormula<CompoundInterval> right;
       final boolean lessThan;
       if (operand1 != null) {
         left = operand1;
@@ -274,7 +274,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
         right = pLessThan.getOperand1();
         lessThan = false;
       }
-      CompoundState rightValue = right.accept(evaluationVisitor, pEnvironment);
+      CompoundInterval rightValue = right.accept(evaluationVisitor, pEnvironment);
       if (rightValue.isBottom()) {
         return this.bfmgr.makeBoolean(false);
       }
@@ -293,7 +293,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
   }
 
   @Override
-  public BooleanFormula visit(LogicalAnd<CompoundState> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(LogicalAnd<CompoundInterval> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     BooleanFormula operand1 = pAnd.getOperand1().accept(this, pEnvironment);
     BooleanFormula operand2 = pAnd.getOperand2().accept(this, pEnvironment);
     if (operand1 == null || operand2 == null) {
@@ -303,7 +303,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
   }
 
   @Override
-  public BooleanFormula visit(LogicalNot<CompoundState> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(LogicalNot<CompoundInterval> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     BooleanFormula operand = pNot.getNegated().accept(this, pEnvironment);
     if (operand == null) {
       return evaluateAsBoolean(pNot, pEnvironment);
@@ -312,38 +312,33 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
   }
 
   @Override
-  public BooleanFormula visit(Modulo<CompoundState> pModulo, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(Modulo<CompoundInterval> pModulo, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromValueFormula(pModulo, pEnvironment);
   }
 
   @Override
-  public BooleanFormula visit(Multiply<CompoundState> pMultiply, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(Multiply<CompoundInterval> pMultiply, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromValueFormula(pMultiply, pEnvironment);
   }
 
   @Override
-  public BooleanFormula visit(Negate<CompoundState> pNegate, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return fromValueFormula(pNegate, pEnvironment);
-  }
-
-  @Override
-  public BooleanFormula visit(ShiftLeft<CompoundState> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(ShiftLeft<CompoundInterval> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromValueFormula(pShiftLeft, pEnvironment);
   }
 
   @Override
-  public BooleanFormula visit(ShiftRight<CompoundState> pShiftRight, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(ShiftRight<CompoundInterval> pShiftRight, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromValueFormula(pShiftRight, pEnvironment);
   }
 
   @Override
-  public BooleanFormula visit(Union<CompoundState> pUnion, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public BooleanFormula visit(Union<CompoundInterval> pUnion, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     return fromValueFormula(pUnion, pEnvironment);
   }
 
   @Override
-  public BooleanFormula visit(Variable<CompoundState> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return this.bfmgr.makeVariable(pVariable.getName());
+  public BooleanFormula visit(Variable<CompoundInterval> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    return fromValueFormula(pVariable, pEnvironment);
   }
 
   @Override

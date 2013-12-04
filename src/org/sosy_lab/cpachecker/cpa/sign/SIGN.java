@@ -51,6 +51,9 @@ public enum SIGN {
   public boolean isAll() {
     return this == ALL;
   }
+  public boolean isEmpty() {
+    return this == EMPTY;
+  }
 
   public SIGN combineWith(SIGN sign) {
     // combine bit values
@@ -60,6 +63,13 @@ public enum SIGN {
   public boolean covers(SIGN sign) {
     if ((sign.numVal | this.numVal)  == this.numVal) { return true; }
     return false;
+  }
+
+  public static SIGN min(SIGN sign0, SIGN sign1) {
+    if(sign0.isSubsetOf(sign1)) {
+      return sign0;
+    }
+    return sign1;
   }
 
   public boolean isSubsetOf(SIGN sign) {

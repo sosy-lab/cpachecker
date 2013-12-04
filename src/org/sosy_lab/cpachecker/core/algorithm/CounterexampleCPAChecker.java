@@ -86,7 +86,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     try (DeleteOnCloseFile automatonFile = Files.createTempFile("automaton", ".txt")) {
 
       try (Writer w = Files.openOutputFile(automatonFile.toPath())) {
-        ARGUtils.producePathAutomaton(w, pRootState, pErrorPathStates);
+        ARGUtils.producePathAutomaton(w, pRootState, pErrorPathStates, "CounterexampleToCheck");
       }
 
       return checkCounterexample(pRootState, automatonFile.toPath());

@@ -125,6 +125,7 @@ public class CPAMain {
     // so we disable all the limits, shutdown hooks, etc.
     shutdownHook.disable();
     shutdownNotifier.unregister(forcedExitOnShutdown);
+    ForceTerminationOnShutdown.cancelPendingTermination();
     limits.cancel();
     Thread.interrupted(); // clear interrupted flag
 

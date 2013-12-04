@@ -124,7 +124,7 @@ public class SeplogicCPA implements ConfigurableProgramAnalysis, StatisticsProvi
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    Deque<String> namespaces = new ArrayDeque<String>();
+    Deque<String> namespaces = new ArrayDeque<>();
     namespaces.push("main");
     return new SeplogicState(PartingstarInterface.getInstance().makeEmp(), namespaces);
   }

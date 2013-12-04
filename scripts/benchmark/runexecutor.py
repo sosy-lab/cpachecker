@@ -155,16 +155,26 @@ class RunExecutor():
 
             cgroupMemory = cgroups[MEMORY]
             memlimit = str(rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR) # MB to Byte
-            writeFile(memlimit, cgroupMemory, 'memory.limit_in_bytes')
 
-            try:
-                writeFile(memlimit, cgroupMemory, 'memory.memsw.limit_in_bytes')
-            except IOError as e:
-                if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
-                    sys.exit("Memory limit specified, but kernel does not allow limiting swap memory. Please set swapaccount=1 on your kernel command line.")
-                raise e
+            limitFile = 'memory.limit_in_bytes'
+            writeFile(memlimit, cgroupMemory, limitFile)
 
-            memlimit = readFile(cgroupMemory, 'memory.memsw.limit_in_bytes')
+            swapLimitFile = 'memory.memsw.limit_in_bytes'
+            # We need swap limit because otherwise the kernel just starts swapping
+            # out our process if the limit is reached.
+            # Some kernels might not have this feature,
+            # which is ok if there is actually no swap.
+            if not os.path.exists(os.path.join(cgroupMemory, swapLimitFile)) and _hasSwap():
+                sys.exit('Kernel misses feature for accounting swap memory (memory.memsw.limit_in_bytes file does not exist in memory cgroup), but machine has swap.')
+            else:
+                try:
+                    writeFile(memlimit, cgroupMemory, swapLimitFile)
+                except IOError as e:
+                    if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
+                        sys.exit("Memory limit specified, but kernel does not allow limiting swap memory. Please set swapaccount=1 on your kernel command line.")
+                    raise e
+
+            memlimit = readFile(cgroupMemory, limitFile)
             logging.debug('Executing {0} with memory limit {1} bytes.'.format(args, memlimit))
 
         return (cgroups, myCpuCount)
@@ -524,6 +534,15 @@ def _killSubprocess(process):
     except OSError: # process itself returned and exited before killing
         pass
 
+def _hasSwap():
+    with open('/proc/meminfo', 'r') as meminfo:
+        for line in meminfo:
+            if line.startswith('SwapTotal:'):
+                swap = line.split()[1]
+                if int(swap) == 0:
+                    return False
+    return True
+
 def _findCgroupMount(subsystem=None):
     with open('/proc/mounts', 'rt') as mounts:
         for mount in mounts:
@@ -624,7 +643,7 @@ def _removeCgroup(cgroup):
         try:
             os.rmdir(cgroup)
         except OSError:
-            # somethings this fails because the cgroup is still busy, we try again once
+            # sometimes this fails because the cgroup is still busy, we try again once
             os.rmdir(cgroup)
 
 def _initCgroup(cgroupsParents, subsystem):

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 
 /**
  * Instances of this class are parameterized compound state invariants formula
@@ -33,18 +33,18 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
  * state as the formula given as the second parameter in the context of the
  * environment provided by the visitor.
  */
-public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<CompoundState, InvariantsFormula<CompoundState>, Boolean> {
+public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<CompoundInterval, InvariantsFormula<CompoundInterval>, Boolean> {
 
   /**
    * The evaluation visitor used to evaluate formulae to states that can be
    * compared when all else fails.
    */
-  private final FormulaEvaluationVisitor<CompoundState> evaluationVisitor;
+  private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
 
   /**
    * The environment providing the context for the analysis of state equality.
    */
-  private final Map<? extends String, ? extends InvariantsFormula<CompoundState>> environment;
+  private final Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> environment;
 
   /**
    * Creates a new visitor for determining the equality of states represented
@@ -55,15 +55,15 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
    * @param pEnvironment the environment providing the context for the analysis
    * of state equality.
    */
-  public StateEqualsVisitor(FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public StateEqualsVisitor(FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     this.evaluationVisitor = pEvaluationVisitor;
     this.environment = pEnvironment;
   }
 
   @Override
-  protected Boolean visitDefault(InvariantsFormula<CompoundState> pFormula, InvariantsFormula<CompoundState> pOther) {
-    CompoundState leftValue = pFormula.accept(evaluationVisitor, environment);
-    CompoundState rightValue = pOther.accept(evaluationVisitor, environment);
+  protected Boolean visitDefault(InvariantsFormula<CompoundInterval> pFormula, InvariantsFormula<CompoundInterval> pOther) {
+    CompoundInterval leftValue = pFormula.accept(evaluationVisitor, environment);
+    CompoundInterval rightValue = pOther.accept(evaluationVisitor, environment);
     return leftValue.logicalEquals(rightValue).isDefinitelyTrue();
   }
 
@@ -80,10 +80,10 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
    * states, <code>false</code> if the represented states are not equal or
    * their equality could not be determined.
    */
-  private Boolean visitCommutative(InvariantsFormula<CompoundState> pO1,
-      InvariantsFormula<CompoundState> pO2,
-      InvariantsFormula<CompoundState> pOtherO1,
-      InvariantsFormula<CompoundState> pOtherO2) {
+  private Boolean visitCommutative(InvariantsFormula<CompoundInterval> pO1,
+      InvariantsFormula<CompoundInterval> pO2,
+      InvariantsFormula<CompoundInterval> pOtherO1,
+      InvariantsFormula<CompoundInterval> pOtherO2) {
     return visitNonCommutative(pO1, pO2, pOtherO1, pOtherO2)
         || pO1.accept(this, pOtherO2)
         && pO2.accept(this, pOtherO1);
@@ -102,18 +102,18 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
    * states, <code>false</code> if the represented states are not equal or
    * their equality could not be determined.
    */
-  private Boolean visitNonCommutative(InvariantsFormula<CompoundState> pO1,
-      InvariantsFormula<CompoundState> pO2,
-      InvariantsFormula<CompoundState> pOtherO1,
-      InvariantsFormula<CompoundState> pOtherO2) {
+  private Boolean visitNonCommutative(InvariantsFormula<CompoundInterval> pO1,
+      InvariantsFormula<CompoundInterval> pO2,
+      InvariantsFormula<CompoundInterval> pOtherO1,
+      InvariantsFormula<CompoundInterval> pOtherO2) {
     return pO1.accept(this, pOtherO1)
         && pO2.accept(this, pOtherO2);
   }
 
   @Override
-  public Boolean visit(Add<CompoundState> pAdd, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(Add<CompoundInterval> pAdd, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof Add<?>) {
-      Add<CompoundState> other = (Add<CompoundState>) pOther;
+      Add<CompoundInterval> other = (Add<CompoundInterval>) pOther;
       if (visitCommutative(pAdd.getSummand1(), pAdd.getSummand2(),
           other.getSummand1(), other.getSummand2())) {
         return true;
@@ -123,9 +123,9 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(BinaryAnd<CompoundState> pAnd, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(BinaryAnd<CompoundInterval> pAnd, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof BinaryAnd<?>) {
-      BinaryAnd<CompoundState> other = (BinaryAnd<CompoundState>) pOther;
+      BinaryAnd<CompoundInterval> other = (BinaryAnd<CompoundInterval>) pOther;
       if (visitCommutative(pAnd.getOperand1(), pAnd.getOperand2(),
           other.getOperand1(), other.getOperand2())) {
         return true;
@@ -135,9 +135,9 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(BinaryNot<CompoundState> pNot, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(BinaryNot<CompoundInterval> pNot, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof BinaryNot<?>) {
-      BinaryNot<CompoundState> other = (BinaryNot<CompoundState>) pOther;
+      BinaryNot<CompoundInterval> other = (BinaryNot<CompoundInterval>) pOther;
       if (pNot.getFlipped().accept(this, other.getFlipped())) {
         return true;
       }
@@ -146,9 +146,9 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(BinaryOr<CompoundState> pOr, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(BinaryOr<CompoundInterval> pOr, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof BinaryOr<?>) {
-      BinaryOr<CompoundState> other = (BinaryOr<CompoundState>) pOther;
+      BinaryOr<CompoundInterval> other = (BinaryOr<CompoundInterval>) pOther;
       if (visitCommutative(pOr.getOperand1(), pOr.getOperand2(),
           other.getOperand1(), other.getOperand2())) {
         return true;
@@ -158,9 +158,9 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(BinaryXor<CompoundState> pXor, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(BinaryXor<CompoundInterval> pXor, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof BinaryXor<?>) {
-      BinaryXor<CompoundState> other = (BinaryXor<CompoundState>) pOther;
+      BinaryXor<CompoundInterval> other = (BinaryXor<CompoundInterval>) pOther;
       if (visitCommutative(pXor.getOperand1(), pXor.getOperand2(),
           other.getOperand1(), other.getOperand2())) {
         return true;
@@ -170,9 +170,9 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(Divide<CompoundState> pDivide, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(Divide<CompoundInterval> pDivide, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof Divide<?>) {
-      Divide<CompoundState> other = (Divide<CompoundState>) pOther;
+      Divide<CompoundInterval> other = (Divide<CompoundInterval>) pOther;
       if (visitNonCommutative(pDivide.getNumerator(), pDivide.getDenominator(),
           other.getNumerator(), other.getDenominator())) {
         return true;
@@ -182,9 +182,9 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(Equal<CompoundState> pEqual, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(Equal<CompoundInterval> pEqual, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof Equal<?>) {
-      Equal<CompoundState> other = (Equal<CompoundState>) pOther;
+      Equal<CompoundInterval> other = (Equal<CompoundInterval>) pOther;
       if (visitCommutative(pEqual.getOperand1(), pEqual.getOperand2(),
           other.getOperand1(), other.getOperand2())) {
         return true;
@@ -194,9 +194,9 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(LessThan<CompoundState> pLessThan, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(LessThan<CompoundInterval> pLessThan, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof LessThan<?>) {
-      LessThan<CompoundState> other = (LessThan<CompoundState>) pOther;
+      LessThan<CompoundInterval> other = (LessThan<CompoundInterval>) pOther;
       if (visitNonCommutative(pLessThan.getOperand1(), pLessThan.getOperand2(),
           other.getOperand1(), other.getOperand2())) {
         return true;
@@ -206,9 +206,9 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(LogicalAnd<CompoundState> pAnd, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(LogicalAnd<CompoundInterval> pAnd, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof LogicalAnd<?>) {
-      LogicalAnd<CompoundState> other = (LogicalAnd<CompoundState>) pOther;
+      LogicalAnd<CompoundInterval> other = (LogicalAnd<CompoundInterval>) pOther;
       if (visitCommutative(pAnd.getOperand1(), pAnd.getOperand2(),
           other.getOperand1(), other.getOperand2())) {
         return true;
@@ -218,9 +218,9 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(LogicalNot<CompoundState> pNot, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(LogicalNot<CompoundInterval> pNot, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof LogicalNot<?>) {
-      LogicalNot<CompoundState> other = (LogicalNot<CompoundState>) pOther;
+      LogicalNot<CompoundInterval> other = (LogicalNot<CompoundInterval>) pOther;
       if (pNot.getNegated().accept(this, other.getNegated())) {
         return true;
       }
@@ -229,9 +229,9 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(Modulo<CompoundState> pModulo, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(Modulo<CompoundInterval> pModulo, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof Modulo<?>) {
-      Modulo<CompoundState> other = (Modulo<CompoundState>) pOther;
+      Modulo<CompoundInterval> other = (Modulo<CompoundInterval>) pOther;
       if (visitNonCommutative(pModulo.getNumerator(), pModulo.getDenominator(),
           other.getNumerator(), other.getDenominator())) {
         return true;
@@ -241,9 +241,9 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(Multiply<CompoundState> pMultiply, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(Multiply<CompoundInterval> pMultiply, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof Multiply<?>) {
-      Multiply<CompoundState> other = (Multiply<CompoundState>) pOther;
+      Multiply<CompoundInterval> other = (Multiply<CompoundInterval>) pOther;
       if (visitCommutative(pMultiply.getFactor1(), pMultiply.getFactor2(),
           other.getFactor1(), other.getFactor2())) {
         return true;
@@ -253,20 +253,9 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(Negate<CompoundState> pNegate, InvariantsFormula<CompoundState> pOther) {
-    if (pOther instanceof Negate<?>) {
-      Negate<CompoundState> other = (Negate<CompoundState>) pOther;
-      if (pNegate.getNegated().accept(this, other.getNegated())) {
-        return true;
-      }
-    }
-    return visitDefault(pNegate, pOther);
-  }
-
-  @Override
-  public Boolean visit(ShiftLeft<CompoundState> pShiftLeft, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(ShiftLeft<CompoundInterval> pShiftLeft, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof ShiftLeft<?>) {
-      ShiftLeft<CompoundState> other = (ShiftLeft<CompoundState>) pOther;
+      ShiftLeft<CompoundInterval> other = (ShiftLeft<CompoundInterval>) pOther;
       if (visitNonCommutative(pShiftLeft.getShifted(), pShiftLeft.getShiftDistance(),
           other.getShifted(), other.getShiftDistance())) {
         return true;
@@ -276,9 +265,9 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(ShiftRight<CompoundState> pShiftRight, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(ShiftRight<CompoundInterval> pShiftRight, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof ShiftRight<?>) {
-      ShiftRight<CompoundState> other = (ShiftRight<CompoundState>) pOther;
+      ShiftRight<CompoundInterval> other = (ShiftRight<CompoundInterval>) pOther;
       if (visitNonCommutative(pShiftRight.getShifted(), pShiftRight.getShiftDistance(),
           other.getShifted(), other.getShiftDistance())) {
         return true;
@@ -288,9 +277,9 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(Union<CompoundState> pUnion, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(Union<CompoundInterval> pUnion, InvariantsFormula<CompoundInterval> pOther) {
     if (pOther instanceof Union<?>) {
-      Union<CompoundState> other = (Union<CompoundState>) pOther;
+      Union<CompoundInterval> other = (Union<CompoundInterval>) pOther;
       if (visitCommutative(pUnion.getOperand1(), pUnion.getOperand2(),
           other.getOperand1(), other.getOperand2())) {
         return true;
@@ -300,20 +289,20 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
   }
 
   @Override
-  public Boolean visit(Variable<CompoundState> pVariable, InvariantsFormula<CompoundState> pOther) {
+  public Boolean visit(Variable<CompoundInterval> pVariable, InvariantsFormula<CompoundInterval> pOther) {
     if (pVariable.equals(pOther)) {
       return true;
     }
     String leftVarName = pVariable.getName();
-    InvariantsFormula<CompoundState> resolvedLeft = this.environment.get(leftVarName);
-    resolvedLeft = resolvedLeft == null ? CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.top()) : resolvedLeft;
+    InvariantsFormula<CompoundInterval> resolvedLeft = this.environment.get(leftVarName);
+    resolvedLeft = resolvedLeft == null ? CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.top()) : resolvedLeft;
     if (pOther instanceof Variable<?>) {
       String rightVarName = ((Variable<?>) pOther).getName();
       if (leftVarName.equals(rightVarName)) {
         return true;
       }
-      InvariantsFormula<CompoundState> resolvedRight = this.environment.get(rightVarName);
-      resolvedRight = resolvedRight == null ? CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.top()) : resolvedRight;
+      InvariantsFormula<CompoundInterval> resolvedRight = this.environment.get(rightVarName);
+      resolvedRight = resolvedRight == null ? CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.top()) : resolvedRight;
       if (resolvedLeft.accept(this, resolvedRight)) {
         return true;
       }

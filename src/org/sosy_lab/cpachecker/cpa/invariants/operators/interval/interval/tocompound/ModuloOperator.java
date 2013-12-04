@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.interval.interval.tocompound;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 
 /**
@@ -38,11 +38,11 @@ enum ModuloOperator implements IICOperator {
   INSTANCE;
 
   @Override
-  public CompoundState apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
+  public CompoundInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
     if (!pSecondOperand.hasLowerBound() || !pSecondOperand.hasUpperBound()) {
-      return CompoundState.of(pFirstOperand);
+      return CompoundInterval.of(pFirstOperand);
     }
-    return CompoundState.of(pFirstOperand).modulo(pSecondOperand.getLowerBound().abs().max(pSecondOperand.getUpperBound().abs()));
+    return CompoundInterval.of(pFirstOperand).modulo(pSecondOperand.getLowerBound().abs().max(pSecondOperand.getUpperBound().abs()));
   }
 
 }

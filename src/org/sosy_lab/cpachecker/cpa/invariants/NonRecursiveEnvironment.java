@@ -37,23 +37,23 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 
 
-public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<CompoundState>> {
+public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<CompoundInterval>> {
 
-  private static final FormulaEvaluationVisitor<CompoundState> FORMULA_EVALUATION_VISITOR = new FormulaCompoundStateEvaluationVisitor();
+  private static final FormulaEvaluationVisitor<CompoundInterval> FORMULA_EVALUATION_VISITOR = new FormulaCompoundStateEvaluationVisitor();
 
-  private static final CollectVarsVisitor<CompoundState> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
+  private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
-  private static final InvariantsFormula<CompoundState> TOP = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.top());
+  private static final InvariantsFormula<CompoundInterval> TOP = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
 
-  private final ContainsVarVisitor<CompoundState> containsVarVisitor = new ContainsVarVisitor<>(this);
+  private final ContainsVarVisitor<CompoundInterval> containsVarVisitor = new ContainsVarVisitor<>(this);
 
-  private final Map<String, InvariantsFormula<CompoundState>> inner;
+  private final Map<String, InvariantsFormula<CompoundInterval>> inner;
 
   public NonRecursiveEnvironment() {
-    this(Collections.<String, InvariantsFormula<CompoundState>>emptyMap());
+    this(Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap());
   }
 
-  public NonRecursiveEnvironment(Map<String, InvariantsFormula<CompoundState>> pInner) {
+  public NonRecursiveEnvironment(Map<String, InvariantsFormula<CompoundInterval>> pInner) {
     this.inner = new HashMap<>(pInner);
   }
 
@@ -78,19 +78,19 @@ public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<Co
   }
 
   @Override
-  public InvariantsFormula<CompoundState> get(Object pVarName) {
+  public InvariantsFormula<CompoundInterval> get(Object pVarName) {
     return this.inner.get(pVarName);
   }
 
   @Override
-  public InvariantsFormula<CompoundState> put(String pVarName, InvariantsFormula<CompoundState> pValue) {
+  public InvariantsFormula<CompoundInterval> put(String pVarName, InvariantsFormula<CompoundInterval> pValue) {
     if (pValue == null || pValue.equals(TOP)) {
       return this.inner.remove(pVarName);
     }
     if (pValue.accept(containsVarVisitor, pVarName)) {
       return put(pVarName, CompoundStateFormulaManager.INSTANCE.asConstant(pValue.accept(FORMULA_EVALUATION_VISITOR, this)));
     }
-    InvariantsFormula<CompoundState> variable = CompoundStateFormulaManager.INSTANCE.asVariable(pVarName);
+    InvariantsFormula<CompoundInterval> variable = CompoundStateFormulaManager.INSTANCE.asVariable(pVarName);
     for (String containedVarName : pValue.accept(COLLECT_VARS_VISITOR)) {
       if (variable.accept(containsVarVisitor, containedVarName)) {
         return put(pVarName, CompoundStateFormulaManager.INSTANCE.asConstant(pValue.accept(FORMULA_EVALUATION_VISITOR, this)));
@@ -100,13 +100,13 @@ public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<Co
   }
 
   @Override
-  public InvariantsFormula<CompoundState> remove(Object pKey) {
+  public InvariantsFormula<CompoundInterval> remove(Object pKey) {
     return this.inner.remove(pKey);
   }
 
   @Override
-  public void putAll(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pM) {
-    for (Map.Entry<? extends String, ? extends InvariantsFormula<CompoundState>> entry : pM.entrySet()) {
+  public void putAll(Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pM) {
+    for (Map.Entry<? extends String, ? extends InvariantsFormula<CompoundInterval>> entry : pM.entrySet()) {
       put(entry.getKey(), entry.getValue());
     }
   }
@@ -122,12 +122,12 @@ public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<Co
   }
 
   @Override
-  public Collection<InvariantsFormula<CompoundState>> values() {
+  public Collection<InvariantsFormula<CompoundInterval>> values() {
     return Collections.unmodifiableCollection(this.inner.values());
   }
 
   @Override
-  public Set<java.util.Map.Entry<String, InvariantsFormula<CompoundState>>> entrySet() {
+  public Set<java.util.Map.Entry<String, InvariantsFormula<CompoundInterval>>> entrySet() {
     return Collections.unmodifiableSet(this.inner.entrySet());
   }
 
@@ -138,6 +138,9 @@ public class NonRecursiveEnvironment implements Map<String, InvariantsFormula<Co
 
   @Override
   public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
     return this.inner.equals(o);
   }
 

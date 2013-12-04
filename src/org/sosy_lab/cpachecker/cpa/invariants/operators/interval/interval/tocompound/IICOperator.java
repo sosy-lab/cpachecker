@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.interval.interval.tocompound;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
  * be applied to two simple interval operands, producing a compound state
  * representing the result of the operation.
  */
-public interface IICOperator extends Operator<SimpleInterval, SimpleInterval, CompoundState> {
+public interface IICOperator extends Operator<SimpleInterval, SimpleInterval, CompoundInterval> {
 
   /**
    * Applies this operator to the given operands.
@@ -43,35 +43,35 @@ public interface IICOperator extends Operator<SimpleInterval, SimpleInterval, Co
    * second operand.
    */
   @Override
-  CompoundState apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand);
+  CompoundInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand);
 
   /**
    * The addition operator for adding intervals to other intervals.
    */
-  Operator<SimpleInterval, SimpleInterval, CompoundState> ADD_OPERATOR = AddOperator.INSTANCE;
+  Operator<SimpleInterval, SimpleInterval, CompoundInterval> ADD_OPERATOR = AddOperator.INSTANCE;
   /**
    * The division operator for dividing intervals by other intervals.
    */
-  Operator<SimpleInterval, SimpleInterval, CompoundState> DIVIDE_OPERATOR = DivideOperator.INSTANCE;
+  Operator<SimpleInterval, SimpleInterval, CompoundInterval> DIVIDE_OPERATOR = DivideOperator.INSTANCE;
 
   /**
    * The modulo operator for computing the remainders of dividing intervals by other intervals.
    */
-  Operator<SimpleInterval, SimpleInterval, CompoundState> MODULO_OPERATOR = ModuloOperator.INSTANCE;
+  Operator<SimpleInterval, SimpleInterval, CompoundInterval> MODULO_OPERATOR = ModuloOperator.INSTANCE;
 
   /**
    * The multiplication operator for multiplying simple intervals with other intervals.
    */
-  Operator<SimpleInterval, SimpleInterval, CompoundState> MULTIPLY_OPERATOR = MultiplyOperator.INSTANCE;
+  Operator<SimpleInterval, SimpleInterval, CompoundInterval> MULTIPLY_OPERATOR = MultiplyOperator.INSTANCE;
 
   /**
    * The left shift operator for left shifting simple intervals by other intervals.
    */
-  Operator<SimpleInterval, SimpleInterval, CompoundState> SHIFT_LEFT_OPERATOR = ShiftLeftOperator.INSTANCE;
+  Operator<SimpleInterval, SimpleInterval, CompoundInterval> SHIFT_LEFT_OPERATOR = ShiftLeftOperator.INSTANCE;
 
   /**
    * The right shift operator for right shifting simple intervals by other intervals.
    */
-  Operator<SimpleInterval, SimpleInterval, CompoundState> SHIFT_RIGHT_OPERATOR = ShiftRightOperator.INSTANCE;
+  Operator<SimpleInterval, SimpleInterval, CompoundInterval> SHIFT_RIGHT_OPERATOR = ShiftRightOperator.INSTANCE;
 
 }

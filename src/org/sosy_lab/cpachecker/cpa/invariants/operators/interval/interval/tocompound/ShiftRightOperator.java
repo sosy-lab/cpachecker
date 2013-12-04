@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.operators.interval.interval.tocom
 
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.interval.scalar.tocompound.ISCOperator;
 
@@ -41,7 +41,7 @@ enum ShiftRightOperator implements IICOperator {
   INSTANCE;
 
   @Override
-  public CompoundState apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
+  public CompoundInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
     /*
      * If this is top, it will stay top after any kind of shift, so the
      * identity is returned. The same applies for shifting [0] (a
@@ -49,9 +49,9 @@ enum ShiftRightOperator implements IICOperator {
      */
     if (pFirstOperand.isTop() || pSecondOperand.isSingleton() && pSecondOperand.containsZero()
         || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
-      return CompoundState.of(pFirstOperand);
+      return CompoundInterval.of(pFirstOperand);
     }
-    CompoundState result = CompoundState.bottom();
+    CompoundInterval result = CompoundInterval.bottom();
     /*
      * If zero is one of the possible shift distances, this interval is
      * contained in the overall result.
@@ -80,12 +80,12 @@ enum ShiftRightOperator implements IICOperator {
        * Shift this interval by the lower bound, then by the upper bound of
        * the positive part and span over the results.
        */
-      CompoundState posPartResult = ISCOperator.SHIFT_RIGHT_OPERATOR.apply(pFirstOperand, posPart.getLowerBound());
+      CompoundInterval posPartResult = ISCOperator.SHIFT_RIGHT_OPERATOR.apply(pFirstOperand, posPart.getLowerBound());
       if (posPart.hasUpperBound()) {
-        posPartResult = CompoundState.span(posPartResult, ISCOperator.SHIFT_RIGHT_OPERATOR.apply(pFirstOperand, posPart.getUpperBound()));
+        posPartResult = CompoundInterval.span(posPartResult, ISCOperator.SHIFT_RIGHT_OPERATOR.apply(pFirstOperand, posPart.getUpperBound()));
       } else {
         // Shifting by infinitely large values will result in zero.
-        posPartResult = CompoundState.span(posPartResult, CompoundState.singleton(BigInteger.ZERO));
+        posPartResult = CompoundInterval.span(posPartResult, CompoundInterval.singleton(BigInteger.ZERO));
       }
       result = result.unionWith(posPartResult);
     }
