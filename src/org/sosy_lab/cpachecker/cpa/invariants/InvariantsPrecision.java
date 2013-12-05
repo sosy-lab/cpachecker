@@ -45,6 +45,11 @@ public class InvariantsPrecision implements Precision {
       return true;
     }
 
+    @Override
+    public String toString() {
+      return "no precision";
+    }
+
   };
 
   private final ImmutableSet<CFAEdge> relevantEdges;
@@ -79,6 +84,30 @@ public class InvariantsPrecision implements Precision {
 
   public Set<String> getInterestingVariables() {
     return this.interestingVariables;
+  }
+
+  @Override
+  public String toString() {
+    return String.format("Number of relevant edges: %d; Interesting asumptions: %s; Interesting variables: %s;", this.relevantEdges.size(), this.interestingAssumptions, this.interestingVariables);
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    if (pOther instanceof InvariantsPrecision) {
+      InvariantsPrecision other = (InvariantsPrecision) pOther;
+      return relevantEdges.equals(other.relevantEdges)
+          && interestingAssumptions.equals(other.interestingAssumptions)
+          && interestingVariables.equals(other.interestingVariables);
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return this.interestingVariables.hashCode() * 43 + interestingAssumptions.hashCode();
   }
 
 }

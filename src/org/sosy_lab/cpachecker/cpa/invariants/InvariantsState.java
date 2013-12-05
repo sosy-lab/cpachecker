@@ -24,9 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import java.math.BigInteger;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -396,7 +398,27 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     CompoundStateFormulaManager ifm = CompoundStateFormulaManager.INSTANCE;
     for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : this.environment.entrySet()) {
       InvariantsFormula<CompoundInterval> variable = ifm.asVariable(entry.getKey());
-      InvariantsFormula<CompoundInterval> equation = ifm.equal(variable, entry.getValue());
+
+      List<InvariantsFormula<CompoundInterval>> atomic = new ArrayList<>();
+      Deque<InvariantsFormula<CompoundInterval>> toCheck = new ArrayDeque<>();
+      toCheck.add(entry.getValue());
+      while (!toCheck.isEmpty()) {
+        InvariantsFormula<CompoundInterval> current = toCheck.poll();
+        if (current instanceof Union<?>) {
+          Union<CompoundInterval> union = (Union<CompoundInterval>) current;
+          toCheck.add(union.getOperand1());
+          toCheck.add(union.getOperand2());
+        } else {
+          atomic.add(current);
+        }
+      }
+      assert !atomic.isEmpty();
+      Iterator<InvariantsFormula<CompoundInterval>> iterator = atomic.iterator();
+      InvariantsFormula<CompoundInterval> equation = ifm.equal(variable, iterator.next());
+      while (iterator.hasNext()) {
+        equation = ifm.logicalOr(equation, ifm.equal(variable, iterator.next()));
+      }
+
       environmentalAssumptions.add(equation);
     }
     return environmentalAssumptions;
