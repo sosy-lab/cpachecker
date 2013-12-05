@@ -246,17 +246,22 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   private Optional<IdentifierValuePair> evaluateNonCommutativeAssumption(CIdExpression pIdExp, SIGN pResultSign, BinaryOperator pOp) {
+    boolean equalZero = false;
     switch(pOp) {
     case GREATER_EQUAL:
+      equalZero = true;
+      //$FALL-THROUGH$
     case GREATER_THAN: // x > 0+
       if(SIGN.PLUS0.covers(pResultSign)) {
-        return Optional.of(new IdentifierValuePair(pIdExp, SIGN.PLUS));
+        return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.PLUS0 : SIGN.PLUS));
       }
       break;
     case LESS_EQUAL:
+      equalZero = true;
+      //$FALL-THROUGH$
     case LESS_THAN: // x < 0-
       if(SIGN.MINUS0.covers(pResultSign)) {
-        return Optional.of(new IdentifierValuePair(pIdExp, SIGN.MINUS));
+        return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.MINUS0 : SIGN.MINUS));
       }
       break;
     case EQUALS:
