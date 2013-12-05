@@ -150,15 +150,6 @@ public interface InvariantsFormulaVisitor<ConstantType, ReturnType> {
   ReturnType visit(Multiply<ConstantType> pMultiply);
 
   /**
-   * Visits the given numerical negation invariants formula.
-   *
-   * @param pMultiply the numerical negation invariants formula to visit.
-   *
-   * @return the result of the visit.
-   */
-  ReturnType visit(Negate<ConstantType> pNegate);
-
-  /**
    * Visits the given left shift invariants formula.
    *
    * @param pMultiply the left shift invariants formula to visit.

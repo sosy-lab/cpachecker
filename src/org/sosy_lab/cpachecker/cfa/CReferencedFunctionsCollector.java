@@ -67,14 +67,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 public class CReferencedFunctionsCollector {
 
   private final Set<String> collectedFunctions = new HashSet<>();
+  private final CollectFunctionsVisitor collector = new CollectFunctionsVisitor(collectedFunctions);
 
   public Set<String> getCollectedFunctions() {
     return collectedFunctions;
   }
 
   public void visitEdge(CFAEdge edge) {
-    CollectFunctionsVisitor collector = new CollectFunctionsVisitor(collectedFunctions);
-
     switch (edge.getEdgeType()) {
     case AssumeEdge:
       CAssumeEdge assumeEdge = (CAssumeEdge)edge;
@@ -113,6 +112,12 @@ public class CReferencedFunctionsCollector {
     default:
       assert false;
       break;
+    }
+  }
+
+  public void visitDeclaration(CVariableDeclaration decl) {
+    if (decl.getInitializer() != null) {
+      decl.getInitializer().accept(collector);
     }
   }
 

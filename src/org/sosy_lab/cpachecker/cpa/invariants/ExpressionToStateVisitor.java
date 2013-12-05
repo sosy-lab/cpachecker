@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
-interface ExpressionToStateVisitor extends CRightHandSideVisitor<CompoundState, UnrecognizedCCodeException> {
+interface ExpressionToStateVisitor extends CRightHandSideVisitor<CompoundInterval, UnrecognizedCCodeException> {
 
   InvariantsState getBaseState();
 
@@ -35,9 +35,9 @@ interface ExpressionToStateVisitor extends CRightHandSideVisitor<CompoundState, 
 
   boolean hasBaseState();
 
-  CompoundState getVarState(CIdExpression pCIdExpression) throws UnrecognizedCCodeException;
+  CompoundInterval getVarState(CIdExpression pCIdExpression) throws UnrecognizedCCodeException;
 
-  InvariantsState copyAndSetBaseState(CIdExpression pCIdExpression, CompoundState pStateToSet)
+  InvariantsState copyAndSetBaseState(CIdExpression pCIdExpression, CompoundInterval pStateToSet)
       throws UnrecognizedCCodeException;
 
 }

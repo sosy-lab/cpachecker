@@ -112,11 +112,6 @@ public abstract class DefaultParameterizedFormulaVisitor<ConstantType, ParamType
   }
 
   @Override
-  public ReturnType visit(Negate<ConstantType> pNegate, ParamType pParam) {
-    return visitDefault(pNegate, pParam);
-  }
-
-  @Override
   public ReturnType visit(ShiftLeft<ConstantType> pShiftLeft, ParamType pParam) {
     return visitDefault(pShiftLeft, pParam);
   }

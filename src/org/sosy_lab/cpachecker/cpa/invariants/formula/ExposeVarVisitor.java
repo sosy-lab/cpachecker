@@ -294,16 +294,6 @@ public class ExposeVarVisitor<T> implements ParameterizedInvariantsFormulaVisito
   }
 
   @Override
-  public InvariantsFormula<T> visit(Negate<T> pNegate, String pVarName) {
-    InvariantsFormula<T> operand = pNegate.getNegated().accept(this, pVarName);
-    if (!operand.accept(containsVarVisitor, pVarName)
-        || operand.equals(pNegate.getNegated())) {
-      return pNegate;
-    }
-    return InvariantsFormulaManager.INSTANCE.negate(operand);
-  }
-
-  @Override
   public InvariantsFormula<T> visit(ShiftLeft<T> pShiftLeft, String pVarName) {
     InvariantsFormula<T> shifted = pShiftLeft.getShifted().accept(this, pVarName);
     InvariantsFormula<T> shiftDistance = pShiftLeft.getShiftDistance().accept(this, pVarName);

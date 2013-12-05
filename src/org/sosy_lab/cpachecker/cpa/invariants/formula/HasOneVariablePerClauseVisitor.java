@@ -95,11 +95,6 @@ public class HasOneVariablePerClauseVisitor<ConstantType> implements InvariantsF
   }
 
   @Override
-  public Boolean visit(Negate<ConstantType> pNegate) {
-    return pNegate.accept(this.collectVarsVisitor).size() == 1;
-  }
-
-  @Override
   public Boolean visit(ShiftLeft<ConstantType> pShiftLeft) {
     return pShiftLeft.accept(this.collectVarsVisitor).size() == 1;
   }

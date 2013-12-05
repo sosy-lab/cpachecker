@@ -385,18 +385,13 @@ cpa.arg.errorPath.source = "ErrorPath.%d.c"
 cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
 
+# inform ARG CPA if it is run in a predicated analysis because then it
+# mustbehave differntly during merge.
+cpa.arg.inPredicatedAnalysis = false
+
 # whether to keep covered states in the reached set as addition to keeping
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
-
-# which arg merge operator to use (join or joinpredanalysis)
-# Both delegate to the wrapped cpa, but only joinpredanalysis deletes the
-# children of the states if merged to ensure that if the wrapped cpa ensures
-# that only one successor exists per edge the ARG CPA also ensures this
-# property. Furthermore, joinpredanalysis throws an exception during merge if
-# property violated.
-cpa.arg.merge = "JOIN"
-  allowed values: [JOIN, JOINPREDANALYSIS]
 
 # export simplified ARG that shows all refinements to .dot file
 cpa.arg.refinements.file = "ARGRefinements.dot"
@@ -672,6 +667,9 @@ cpa.interval.allowedHigh = Long.MAX_VALUE
 
 # Lowest allowed value of the variable
 cpa.interval.allowedLow = Long.MIN_VALUE
+
+# do not consider number of references to variables during merge in analysis
+cpa.interval.ignoreReferenceCounts = false
 
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
@@ -1157,6 +1155,15 @@ cpa.seplogic.partingstar.logicsfile = no default value
 
 # path to partingstar command
 cpa.seplogic.partingstar.pspath = no default value
+
+# Abstract value describing all values which are allowed for the variable
+# which is checked
+cpa.sign.allowedAbstractValue = ALL
+  enum:     [EMPTY, PLUS, MINUS, ZERO, PLUSMINUS, PLUS0, MINUS0, ALL]
+
+# Variable name of the variable for which should be checked that its value is
+# globally in a certain bound 
+cpa.sign.varName = ""
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"

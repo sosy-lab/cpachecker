@@ -100,11 +100,6 @@ public class IsBooleanFormulaVisitor<T> implements InvariantsFormulaVisitor<T, B
   }
 
   @Override
-  public Boolean visit(Negate<T> pNegate) {
-    return false;
-  }
-
-  @Override
   public Boolean visit(ShiftLeft<T> pShiftLeft) {
     return false;
   }

@@ -37,7 +37,8 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-
+// requires that function names are unique, no two functions may have the same name although they have different signature
+// currently ensured by parser
 public class ValidVarsCPA extends AbstractSingleWrapperCPA{
 
   public static CPAFactory factory() {

@@ -25,108 +25,104 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 
 
-public class CanExtractVariableRelationVisitor implements ParameterizedInvariantsFormulaVisitor<CompoundState, FormulaEvaluationVisitor<CompoundState>, Boolean> {
+public class CanExtractVariableRelationVisitor implements ParameterizedInvariantsFormulaVisitor<CompoundInterval, FormulaEvaluationVisitor<CompoundInterval>, Boolean> {
 
-  private static final CollectVarsVisitor<CompoundState> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
+  private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
-  private final Map<? extends String, ? extends InvariantsFormula<CompoundState>> environment;
+  private final Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> environment;
 
-  public CanExtractVariableRelationVisitor(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  public CanExtractVariableRelationVisitor(Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     this.environment = pEnvironment;
   }
 
   @Override
-  public Boolean visit(Add<CompoundState> pAdd, FormulaEvaluationVisitor<CompoundState> pParameter) {
+  public Boolean visit(Add<CompoundInterval> pAdd, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
     return pAdd.getSummand1().accept(this, pParameter) && pAdd.getSummand2().accept(this, pParameter);
   }
 
   @Override
-  public Boolean visit(BinaryAnd<CompoundState> pAnd, FormulaEvaluationVisitor<CompoundState> pParameter) {
+  public Boolean visit(BinaryAnd<CompoundInterval> pAnd, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
     return pAnd.getOperand1().accept(COLLECT_VARS_VISITOR).isEmpty() && pAnd.getOperand2().accept(COLLECT_VARS_VISITOR).isEmpty();
   }
 
   @Override
-  public Boolean visit(BinaryNot<CompoundState> pNot, FormulaEvaluationVisitor<CompoundState> pParameter) {
+  public Boolean visit(BinaryNot<CompoundInterval> pNot, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
     return pNot.getFlipped().accept(COLLECT_VARS_VISITOR).isEmpty();
   }
 
   @Override
-  public Boolean visit(BinaryOr<CompoundState> pOr, FormulaEvaluationVisitor<CompoundState> pParameter) {
+  public Boolean visit(BinaryOr<CompoundInterval> pOr, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
     return pOr.getOperand1().accept(COLLECT_VARS_VISITOR).isEmpty();
   }
 
   @Override
-  public Boolean visit(BinaryXor<CompoundState> pXor, FormulaEvaluationVisitor<CompoundState> pParameter) {
+  public Boolean visit(BinaryXor<CompoundInterval> pXor, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
     return pXor.getOperand1().accept(COLLECT_VARS_VISITOR).isEmpty() && pXor.getOperand2().accept(COLLECT_VARS_VISITOR).isEmpty();
   }
 
   @Override
-  public Boolean visit(Constant<CompoundState> pConstant, FormulaEvaluationVisitor<CompoundState> pParameter) {
+  public Boolean visit(Constant<CompoundInterval> pConstant, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
     return true;
   }
 
   @Override
-  public Boolean visit(Divide<CompoundState> pDivide, FormulaEvaluationVisitor<CompoundState> pParameter) {
-    return pDivide.getNumerator().accept(this, pParameter) && pDivide.getDenominator().accept(this, pParameter);
+  public Boolean visit(Divide<CompoundInterval> pDivide, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
+    return pDivide.getNumerator().accept(COLLECT_VARS_VISITOR).isEmpty()
+        && pDivide.getNumerator().accept(this, pParameter) && pDivide.getDenominator().accept(this, pParameter);
   }
 
   @Override
-  public Boolean visit(Equal<CompoundState> pEqual, FormulaEvaluationVisitor<CompoundState> pParameter) {
+  public Boolean visit(Equal<CompoundInterval> pEqual, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
     return pEqual.getOperand1().accept(this, pParameter) && pEqual.getOperand2().accept(this, pParameter);
   }
 
   @Override
-  public Boolean visit(LessThan<CompoundState> pLessThan, FormulaEvaluationVisitor<CompoundState> pParameter) {
+  public Boolean visit(LessThan<CompoundInterval> pLessThan, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
     return pLessThan.getOperand1().accept(this, pParameter) && pLessThan.getOperand2().accept(this, pParameter);
   }
 
   @Override
-  public Boolean visit(LogicalAnd<CompoundState> pAnd, FormulaEvaluationVisitor<CompoundState> pParameter) {
+  public Boolean visit(LogicalAnd<CompoundInterval> pAnd, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
     return pAnd.getOperand1().accept(this, pParameter) && pAnd.getOperand2().accept(this, pParameter);
   }
 
   @Override
-  public Boolean visit(LogicalNot<CompoundState> pNot, FormulaEvaluationVisitor<CompoundState> pParameter) {
+  public Boolean visit(LogicalNot<CompoundInterval> pNot, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
     return pNot.getNegated().accept(this, pParameter);
   }
 
   @Override
-  public Boolean visit(Modulo<CompoundState> pModulo, FormulaEvaluationVisitor<CompoundState> pParameter) {
-    return pModulo.getNumerator().accept(this, pParameter) && pModulo.getDenominator().accept(this, pParameter);
+  public Boolean visit(Modulo<CompoundInterval> pModulo, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
+    return pModulo.getNumerator().accept(COLLECT_VARS_VISITOR).isEmpty()
+        && pModulo.getNumerator().accept(this, pParameter) && pModulo.getDenominator().accept(this, pParameter);
   }
 
   @Override
-  public Boolean visit(Multiply<CompoundState> pMultiply, FormulaEvaluationVisitor<CompoundState> pParameter) {
-    return pMultiply.getFactor1().accept(this, pParameter) && pMultiply.getFactor2().accept(this, pParameter)
-        && (pMultiply.getFactor1().accept(COLLECT_VARS_VISITOR).isEmpty() || !pMultiply.getFactor2().accept(pParameter, this.environment).containsZero())
-        && (pMultiply.getFactor2().accept(COLLECT_VARS_VISITOR).isEmpty() || !pMultiply.getFactor1().accept(pParameter, this.environment).containsZero());
+  public Boolean visit(Multiply<CompoundInterval> pMultiply, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
+    return pMultiply.getFactor1().accept(COLLECT_VARS_VISITOR).isEmpty()
+        && pMultiply.getFactor2().accept(COLLECT_VARS_VISITOR).isEmpty();
   }
 
   @Override
-  public Boolean visit(Negate<CompoundState> pNegate, FormulaEvaluationVisitor<CompoundState> pParameter) {
-    return pNegate.getNegated().accept(this, pParameter);
-  }
-
-  @Override
-  public Boolean visit(ShiftLeft<CompoundState> pShiftLeft, FormulaEvaluationVisitor<CompoundState> pParameter) {
+  public Boolean visit(ShiftLeft<CompoundInterval> pShiftLeft, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
     return pShiftLeft.getShifted().accept(this, pParameter) && pShiftLeft.getShiftDistance().accept(this, pParameter);
   }
 
   @Override
-  public Boolean visit(ShiftRight<CompoundState> pShiftRight, FormulaEvaluationVisitor<CompoundState> pParameter) {
+  public Boolean visit(ShiftRight<CompoundInterval> pShiftRight, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
     return pShiftRight.getShifted().accept(COLLECT_VARS_VISITOR).isEmpty() && pShiftRight.getShiftDistance().accept(COLLECT_VARS_VISITOR).isEmpty() || !pShiftRight.getShiftDistance().accept(pParameter, this.environment).containsPositive();
   }
 
   @Override
-  public Boolean visit(Union<CompoundState> pUnion, FormulaEvaluationVisitor<CompoundState> pParameter) {
+  public Boolean visit(Union<CompoundInterval> pUnion, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
     return pUnion.getOperand1().accept(this, pParameter) && pUnion.getOperand2().accept(this, pParameter);
   }
 
   @Override
-  public Boolean visit(Variable<CompoundState> pVariable, FormulaEvaluationVisitor<CompoundState> pParameter) {
+  public Boolean visit(Variable<CompoundInterval> pVariable, FormulaEvaluationVisitor<CompoundInterval> pParameter) {
     return true;
   }
 

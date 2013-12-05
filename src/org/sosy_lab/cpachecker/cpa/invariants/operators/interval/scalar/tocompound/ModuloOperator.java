@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.operators.interval.scalar.tocompo
 
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 
 /**
@@ -40,10 +40,10 @@ enum ModuloOperator implements ISCOperator {
   INSTANCE;
 
   @Override
-  public CompoundState apply(SimpleInterval pFirstOperand, BigInteger pValue) {
+  public CompoundInterval apply(SimpleInterval pFirstOperand, BigInteger pValue) {
     // Division by zero is undefined, so bottom is returned
     if (pValue.signum() == 0) {
-      return CompoundState.bottom();
+      return CompoundInterval.bottom();
     }
     /*
      * Only the absolute value of the divisor is considered (see
@@ -58,12 +58,12 @@ enum ModuloOperator implements ISCOperator {
      * remainder implementation.
      */
     if (pFirstOperand.isSingleton()) {
-      return CompoundState.singleton(pFirstOperand.getLowerBound().remainder(pValue));
+      return CompoundInterval.singleton(pFirstOperand.getLowerBound().remainder(pValue));
     }
     BigInteger largestPossibleValue = pValue.subtract(BigInteger.ONE);
-    CompoundState result = CompoundState.bottom();
+    CompoundInterval result = CompoundInterval.bottom();
     if (pFirstOperand.containsNegative()) {
-      CompoundState negRange = CompoundState.of(SimpleInterval.of(largestPossibleValue.negate(), BigInteger.ZERO));
+      CompoundInterval negRange = CompoundInterval.of(SimpleInterval.of(largestPossibleValue.negate(), BigInteger.ZERO));
       if (pFirstOperand.hasLowerBound()) {
         final SimpleInterval negPart;
         if (pFirstOperand.containsZero()) {
@@ -76,7 +76,7 @@ enum ModuloOperator implements ISCOperator {
       result = result.unionWith(negRange);
     }
     if (pFirstOperand.containsPositive()) {
-      CompoundState posRange = CompoundState.of(SimpleInterval.of(BigInteger.ZERO, largestPossibleValue));
+      CompoundInterval posRange = CompoundInterval.of(SimpleInterval.of(BigInteger.ZERO, largestPossibleValue));
       if (pFirstOperand.hasUpperBound()) {
         final SimpleInterval posPart;
         if (pFirstOperand.containsZero()) {
@@ -98,7 +98,7 @@ enum ModuloOperator implements ISCOperator {
               && nextModBorder.compareTo(posPart.getUpperBound()) >= 0) {
             BigInteger bound1 = posPart.getLowerBound().remainder(pValue);
             BigInteger bound2 = posPart.getUpperBound().remainder(pValue);
-            posRange = CompoundState.of(SimpleInterval.of(bound1.min(bound2), bound1.max(bound2)));
+            posRange = CompoundInterval.of(SimpleInterval.of(bound1.min(bound2), bound1.max(bound2)));
           } else if (modBorder.compareTo(posPart.getLowerBound()) > 0
               && modBorder.compareTo(posPart.getUpperBound()) < 0) {
             SimpleInterval posPart1 = SimpleInterval.of(posPart.getLowerBound(), modBorder.subtract(BigInteger.ONE));

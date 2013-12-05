@@ -29,14 +29,20 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.callstackPCC.CallstackPccState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+
+import com.google.common.collect.ImmutableSet;
 
 
 public class ValidVarsTransferRelation implements TransferRelation{
@@ -69,20 +75,25 @@ public class ValidVarsTransferRelation implements TransferRelation{
       }
 
       return predecessors;
-    case FunctionCallEdge:
-      validVariables.extendLocalVars(pCfaEdge.getSuccessor().getFunctionName(),
-          ((FunctionEntryNode) pCfaEdge.getSuccessor()).getFunctionParameterNames());
+    case BlankEdge:
+      if(pCfaEdge.getDescription().equals("Function start dummy edge")){
+        validVariables = validVariables.extendLocalVars(pCfaEdge.getSuccessor().getFunctionName(),
+           ImmutableSet.<String>of());
+      }
       break;
-    case FunctionReturnEdge:
-      validVariables = validVariables.removeVarsOfFunction(pCfaEdge.getPredecessor().getFunctionName());
+    case FunctionCallEdge:
+      validVariables = validVariables.extendLocalVars(pCfaEdge.getSuccessor().getFunctionName(),
+          ((FunctionEntryNode) pCfaEdge.getSuccessor()).getFunctionParameterNames());
       break;
     case DeclarationEdge:
       CDeclaration declaration = ((CDeclarationEdge) pCfaEdge).getDeclaration();
-      if(declaration.isGlobal()){
-        validVariables = validVariables.extendGlobalVars(declaration.getName());
-      } else {
-        validVariables =
-            validVariables.extendLocalVars(pCfaEdge.getPredecessor().getFunctionName(), declaration.getName());
+      if (declaration instanceof CVariableDeclaration) {
+        if (declaration.isGlobal()) {
+          validVariables = validVariables.extendGlobalVars(declaration.getName());
+        } else {
+          validVariables =
+              validVariables.extendLocalVars(pCfaEdge.getPredecessor().getFunctionName(), declaration.getName());
+        }
       }
       break;
     default:
@@ -109,17 +120,55 @@ public class ValidVarsTransferRelation implements TransferRelation{
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
 
     ValidVarsState state = (ValidVarsState) pState;
+    ValidVars vars = state.getValidVariables();
+
+    if(pCfaEdge instanceof FunctionReturnEdge){
+      String funName = pCfaEdge.getPredecessor().getFunctionName();
+      boolean containsFunction = false;
+      boolean foundCss = false;
+
+      for(AbstractState otherS :pOtherStates){
+        if (otherS instanceof CallstackState) {
+          foundCss = true;
+          CallstackState css = (CallstackState) otherS;
+          for (int i = css.getDepth(); i > 0 & !containsFunction; i--) {
+            containsFunction = containsFunction && css.getCurrentFunction().equals(funName);
+            css = css.getPreviousState();
+          }
+        }
+        if(otherS instanceof CallstackPccState){
+          foundCss = true;
+          CallstackPccState css = (CallstackPccState) otherS;
+          for (int i = css.getDepth(); i > 0 & !containsFunction; i--) {
+            containsFunction = containsFunction && css.getCurrentFunction().equals(funName);
+            css = css.getPreviousState();
+          }
+        }
+      }
+      // if found may contain more variables than those already declared in the next call of funName on stack
+      if(!foundCss){
+        throw new CPATransferException("Require CallstackCPA or CallstackPccCPA to securely remove variables of a function "
+            +"after function return. Otherwise e.g. recursion cannot be handled.");
+      }
+      if(!containsFunction){
+        vars = vars.removeVarsOfFunction(funName);
+      }
+    }
+
     Collection<? extends AbstractState> wrappedStrengthen =
         wrappedTransfer.strengthen(state.getWrappedState(), pOtherStates, pCfaEdge, pPrecision);
 
     if(wrappedStrengthen == null || wrappedStrengthen.size()==0){
+      if(pCfaEdge instanceof FunctionReturnEdge && vars!=state.getValidVariables()){
+        return Collections.singleton(new ValidVarsState(state.getWrappedState(), vars));
+      }
       return null;
     }
 
     ArrayList<AbstractState> successors = new ArrayList<>(wrappedStrengthen.size());
 
     for (AbstractState successor : wrappedStrengthen) {
-      successors.add(new ValidVarsState(successor, state.getValidVariables()));
+      successors.add(new ValidVarsState(successor, vars));
     }
 
     return successors;

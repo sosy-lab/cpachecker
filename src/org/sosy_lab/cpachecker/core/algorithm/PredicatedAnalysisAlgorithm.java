@@ -92,6 +92,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   private AbstractState initialWrappedState = null;
   private ARGPath pathToFailure = null;
   private boolean repeatedFailure = false;
+  private PredicatePrecision oldPrecision = null;
 
 
   public PredicatedAnalysisAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis cpa, CFA pCfa, LogManager logger,
@@ -131,6 +132,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     logger.log(Level.FINEST, "Construct precision for current run");
     Precision precision =
         buildInitialPrecision(pReachedSet.getPrecisions(), cpa.getInitialPrecision(cfa.getMainFunction()));
+    oldPrecision = Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
 
     // clear reached set for current run
     pReachedSet.clear();
@@ -322,7 +324,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     PredicatePrecision newPredPrec = new PredicatePrecision(locationInstancPreds, localPreds, functionPreds, globalPreds);
 
     // assure that refinement fails if same path is encountered twice and precision not refined on that path
-    if(repeatedFailure && noNewPredicates(Precisions.extractPrecisionByType(initialPrecision, PredicatePrecision.class), newPredPrec)){
+    if(repeatedFailure && noNewPredicates(oldPrecision, newPredPrec)){
       throw new RefinementFailedException(Reason.RepeatedCounterexample, pathToFailure);
     }
 

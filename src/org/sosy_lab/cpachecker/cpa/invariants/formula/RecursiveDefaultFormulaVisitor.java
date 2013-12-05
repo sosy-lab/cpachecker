@@ -200,18 +200,6 @@ public abstract class RecursiveDefaultFormulaVisitor<T> implements InvariantsFor
   }
 
   @Override
-  public InvariantsFormula<T> visit(Negate<T> pNegate) {
-    InvariantsFormula<T> operand = pNegate.getNegated().accept(this);
-    final InvariantsFormula<T> toVisit;
-    if (operand == pNegate.getNegated()) {
-      toVisit = pNegate;
-    } else {
-      toVisit = InvariantsFormulaManager.INSTANCE.negate(operand);
-    }
-    return visitPost(toVisit);
-  }
-
-  @Override
   public InvariantsFormula<T> visit(ShiftLeft<T> pShiftLeft) {
     InvariantsFormula<T> shifted = pShiftLeft.getShifted().accept(this);
     InvariantsFormula<T> shiftDistance = pShiftLeft.getShiftDistance().accept(this);

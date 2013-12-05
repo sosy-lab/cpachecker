@@ -34,7 +34,7 @@ enum InvariantsDomain implements AbstractDomain {
   public InvariantsState join(AbstractState pElement1, AbstractState pElement2) {
     InvariantsState element1 = (InvariantsState) pElement1;
     InvariantsState element2 = (InvariantsState) pElement2;
-    InvariantsState result = element1.join(element2, false);
+    InvariantsState result = element1.join(element2);
     return result;
   }
 

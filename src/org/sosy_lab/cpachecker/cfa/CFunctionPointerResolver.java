@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -55,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -119,7 +121,8 @@ public class CFunctionPointerResolver {
   private final MutableCFA cfa;
   private final LogManager logger;
 
-  public CFunctionPointerResolver(MutableCFA pCfa, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public CFunctionPointerResolver(MutableCFA pCfa, List<Pair<IADeclaration, String>> pGlobalVars,
+      Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     cfa = pCfa;
     logger = pLogger;
 
@@ -132,6 +135,12 @@ public class CFunctionPointerResolver {
       for (CFANode node : cfa.getAllNodes()) {
         for (CFAEdge edge : leavingEdges(node)) {
           varCollector.visitEdge(edge);
+        }
+      }
+      for (Pair<IADeclaration, String> decl : pGlobalVars) {
+        if (decl.getFirst() instanceof CVariableDeclaration) {
+          CVariableDeclaration varDecl = (CVariableDeclaration)decl.getFirst();
+          varCollector.visitDeclaration(varDecl);
         }
       }
       Set<String> addressedFunctions = varCollector.getCollectedFunctions();
@@ -305,9 +314,10 @@ public class CFunctionPointerResolver {
 
     if (nameExp instanceof CPointerExpression) {
       CExpression operand = ((CPointerExpression)nameExp).getOperand();
+      CType operandType = operand.getExpressionType().getCanonicalType();
       if (operand instanceof CIdExpression
-          && operand.getExpressionType() instanceof CPointerType
-          && ((CPointerType)operand.getExpressionType()).getType() instanceof CFunctionType) {
+          && operandType instanceof CPointerType
+          && ((CPointerType)operandType).getType() instanceof CFunctionType) {
         // *fp is the same as fp
         nameExp = operand;
       }

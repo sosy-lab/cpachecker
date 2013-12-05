@@ -43,8 +43,8 @@ public class SignTargetChecker {
       name = "varName",
       description = "Variable name of the variable for which should be checked that its value is globally in a certain bound ")
   private String errorVar = "";
-  @Option(description = "Abstract value which is not allowed for the variable which is checked")
-  private SIGN forbiddenAbstractValue = SIGN.ALL;
+  @Option(description = "Abstract value describing all values which are allowed for the variable which is checked")
+  private SIGN allowedAbstractValue = SIGN.ALL;
 
   private BooleanFormula errorF;
 
@@ -55,11 +55,11 @@ public class SignTargetChecker {
   public boolean isTarget(SignState pSignState) {
     SIGN absValue = pSignState.getSignMap().getSignForVariable(errorVar);
 
-    if(forbiddenAbstractValue.commonSubsetOfConcreteValues(absValue)){
-      return true;
+    if(allowedAbstractValue.covers(absValue)){
+      return false;
     }
 
-    return false;
+    return true;
   }
 
   public BooleanFormula getErrorCondition(SignState pSignState, FormulaManagerView pFmgr) {
@@ -68,38 +68,38 @@ public class SignTargetChecker {
         // build error condition
         Formula f = pFmgr.makeVariable(FormulaType.RationalType, errorVar);
 
-        switch (forbiddenAbstractValue) {
+        switch (allowedAbstractValue) {
         case EMPTY: {
-          errorF = pFmgr.getBooleanFormulaManager().makeBoolean(false);
+          errorF = pFmgr.getBooleanFormulaManager().makeBoolean(true);
           break;
         }
         case PLUS: {
-          errorF = pFmgr.makeGreaterThan(f, pFmgr.makeNumber(FormulaType.RationalType, 0), true);
+          errorF = pFmgr.makeLessOrEqual(f, pFmgr.makeNumber(FormulaType.RationalType, 0), true);
           break;
         }
         case MINUS: {
-          errorF = pFmgr.makeLessThan(f, pFmgr.makeNumber(FormulaType.RationalType, 0), true);
+          errorF = pFmgr.makeGreaterOrEqual(f, pFmgr.makeNumber(FormulaType.RationalType, 0), true);
           break;
         }
         case ZERO: {
           errorF = pFmgr.makeEqual(f, pFmgr.makeNumber(FormulaType.RationalType, 0));
+          errorF = pFmgr.makeNegate(errorF);
           break;
         }
         case PLUSMINUS: {
           errorF = pFmgr.makeEqual(f, pFmgr.makeNumber(FormulaType.RationalType, 0));
-          errorF = pFmgr.makeNegate(errorF);
           break;
         }
         case PLUS0: {
-          errorF = pFmgr.makeGreaterOrEqual(f, pFmgr.makeNumber(FormulaType.RationalType, 0), true);
+          errorF = pFmgr.makeLessThan(f, pFmgr.makeNumber(FormulaType.RationalType, 0), true);
           break;
         }
         case MINUS0: {
-          errorF = pFmgr.makeLessOrEqual(f, pFmgr.makeNumber(FormulaType.RationalType, 0), true);
+          errorF = pFmgr.makeGreaterThan(f, pFmgr.makeNumber(FormulaType.RationalType, 0), true);
           break;
         }
         default:
-          errorF = pFmgr.getBooleanFormulaManager().makeBoolean(true);
+          errorF = pFmgr.getBooleanFormulaManager().makeBoolean(false);
         }
       }
       return errorF;

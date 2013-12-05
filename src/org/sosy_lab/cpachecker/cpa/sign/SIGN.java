@@ -51,15 +51,25 @@ public enum SIGN {
   public boolean isAll() {
     return this == ALL;
   }
+  public boolean isEmpty() {
+    return this == EMPTY;
+  }
 
   public SIGN combineWith(SIGN sign) {
     // combine bit values
     return VALUE_MAP.get(Integer.valueOf(sign.numVal | numVal));
   }
 
-  public boolean commonSubsetOfConcreteValues(SIGN sign) {
-    if (((sign.numVal ^ this.numVal) & this.numVal) == this.numVal) { return false; }
-    return true;
+  public boolean covers(SIGN sign) {
+    if ((sign.numVal | this.numVal)  == this.numVal) { return true; }
+    return false;
+  }
+
+  public static SIGN min(SIGN sign0, SIGN sign1) {
+    if(sign0.isSubsetOf(sign1)) {
+      return sign0;
+    }
+    return sign1;
   }
 
   public boolean isSubsetOf(SIGN sign) {

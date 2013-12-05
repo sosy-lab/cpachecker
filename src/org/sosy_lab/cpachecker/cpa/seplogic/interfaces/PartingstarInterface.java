@@ -78,7 +78,6 @@ public class PartingstarInterface {
   private Timer frameTimer = new Timer();
   private Timer specAssTimer = new Timer();
   private Timer abstractionTimer = new Timer();
-  private long maxImplicationDuration = 0;
 
   @Option(name="pspath", required=true,
       description="path to partingstar command")
@@ -365,6 +364,7 @@ public class PartingstarInterface {
     psProcess.getOutputStream().flush();
   }
 
+  @SuppressWarnings("unused")
   private void readFromProcess(byte[] buffer, int len) throws IOException {
     if (psProcess.getInputStream().read(buffer, 0, len) != len) {
       throw new IOException("Smaller read");
@@ -421,6 +421,7 @@ public class PartingstarInterface {
     }
   }
 
+  @SuppressWarnings("unused")
   private List<String> readMultiple() throws IOException {
     List<String> retval = new ArrayList<>();
     String read = "42";

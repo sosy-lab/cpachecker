@@ -44,7 +44,11 @@ import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
@@ -122,10 +126,13 @@ public class SSAMap implements Serializable {
       checkNotNull(type);
       CType oldType = varTypes.get(name);
       if (oldType != null) {
+        oldType = oldType.getCanonicalType();
+        type = type.getCanonicalType();
         Preconditions.checkArgument(
             name.startsWith("__content__")
             || type instanceof CFunctionType || oldType instanceof CFunctionType
-            || oldType.getCanonicalType().equals(type.getCanonicalType())
+            || (isEnumPointerType(type) && isEnumPointerType(oldType))
+            || oldType.equals(type)
             , "Cannot change type of variable %s in SSAMap from %s to %s", name, oldType, type);
       } else {
         varTypes = varTypes.putAndCopy(name, type);
@@ -153,8 +160,12 @@ public class SSAMap implements Serializable {
       checkNotNull(type);
       CType oldType = Objects.firstNonNull(funcTypesBuilder, ssa.types).get(key);
       if (oldType != null) {
-        Preconditions.checkArgument(oldType.getCanonicalType().equals(type.getCanonicalType())
-            || type instanceof CFunctionType || oldType instanceof CFunctionType
+        oldType = oldType.getCanonicalType();
+        type = type.getCanonicalType();
+        Preconditions.checkArgument(
+               type instanceof CFunctionType || oldType instanceof CFunctionType
+            || (isEnumPointerType(type) && isEnumPointerType(oldType))
+            || oldType.equals(type)
             , "Cannot change type of variable %s in SSAMap from %s to %s", key, oldType, type);
       } else {
         if (funcTypesBuilder == null) {
@@ -164,6 +175,15 @@ public class SSAMap implements Serializable {
       }
 
       funcsBuilder.setCount(key, idx);
+    }
+
+    private static boolean isEnumPointerType(CType type) {
+      if (type instanceof CPointerType) {
+        type = ((CPointerType) type).getType();
+        return (type instanceof CComplexType) && ((CComplexType)type).getKind() == ComplexTypeKind.ENUM
+            || (type instanceof CElaboratedType) && ((CElaboratedType)type).getKind() == ComplexTypeKind.ENUM;
+      }
+      return false;
     }
 
     public void deleteVariable(String variable) {

@@ -118,11 +118,6 @@ public class ContainsVarVisitor<T> implements ParameterizedInvariantsFormulaVisi
   }
 
   @Override
-  public Boolean visit(Negate<T> pNegate, String pVarName) {
-    return pNegate.getNegated().accept(this, pVarName);
-  }
-
-  @Override
   public Boolean visit(ShiftLeft<T> pShiftLeft, String pVarName) {
     return pShiftLeft.getShifted().accept(this, pVarName)
         || pShiftLeft.getShiftDistance().accept(this, pVarName);

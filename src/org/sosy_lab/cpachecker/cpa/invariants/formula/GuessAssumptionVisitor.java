@@ -27,35 +27,35 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 
 
-public class GuessAssumptionVisitor extends DefaultFormulaVisitor<CompoundState, Set<InvariantsFormula<CompoundState>>> {
+public class GuessAssumptionVisitor extends DefaultFormulaVisitor<CompoundInterval, Set<InvariantsFormula<CompoundInterval>>> {
 
   @Override
-  protected Set<InvariantsFormula<CompoundState>> visitDefault(InvariantsFormula<CompoundState> pFormula) {
+  protected Set<InvariantsFormula<CompoundInterval>> visitDefault(InvariantsFormula<CompoundInterval> pFormula) {
     return Collections.singleton(pFormula);
   }
 
   @Override
-  public Set<InvariantsFormula<CompoundState>> visit(LogicalNot<CompoundState> pNot) {
+  public Set<InvariantsFormula<CompoundInterval>> visit(LogicalNot<CompoundInterval> pNot) {
     return pNot.getNegated().accept(this);
   }
 
   @Override
-  public Set<InvariantsFormula<CompoundState>> visit(Equal<CompoundState> pEqual) {
+  public Set<InvariantsFormula<CompoundInterval>> visit(Equal<CompoundInterval> pEqual) {
     return guess(pEqual.getOperand1(), pEqual.getOperand2());
   }
 
   @Override
-  public Set<InvariantsFormula<CompoundState>> visit(LessThan<CompoundState> pLessThan) {
+  public Set<InvariantsFormula<CompoundInterval>> visit(LessThan<CompoundInterval> pLessThan) {
     return guess(pLessThan.getOperand1(), pLessThan.getOperand2());
   }
 
   @Override
-  public Set<InvariantsFormula<CompoundState>> visit(LogicalAnd<CompoundState> pAnd) {
-    Set<InvariantsFormula<CompoundState>> guessesLeft = pAnd.getOperand1().accept(this);
-    Set<InvariantsFormula<CompoundState>> guessesRight = pAnd.getOperand2().accept(this);
+  public Set<InvariantsFormula<CompoundInterval>> visit(LogicalAnd<CompoundInterval> pAnd) {
+    Set<InvariantsFormula<CompoundInterval>> guessesLeft = pAnd.getOperand1().accept(this);
+    Set<InvariantsFormula<CompoundInterval>> guessesRight = pAnd.getOperand2().accept(this);
     if (guessesLeft.isEmpty()) {
       return guessesRight;
     }
@@ -64,7 +64,7 @@ public class GuessAssumptionVisitor extends DefaultFormulaVisitor<CompoundState,
     }
     if (guessesLeft.size() == 1) {
       if (guessesRight.size() == 1 ) {
-        Set<InvariantsFormula<CompoundState>> guesses = new HashSet<>();
+        Set<InvariantsFormula<CompoundInterval>> guesses = new HashSet<>();
         guesses.addAll(guessesLeft);
         guesses.addAll(guessesRight);
         return guesses;
@@ -76,10 +76,10 @@ public class GuessAssumptionVisitor extends DefaultFormulaVisitor<CompoundState,
     return guessesLeft;
   }
 
-  private Set<InvariantsFormula<CompoundState>> guess(InvariantsFormula<CompoundState> pOperand1, InvariantsFormula<CompoundState> pOperand2) {
+  private Set<InvariantsFormula<CompoundInterval>> guess(InvariantsFormula<CompoundInterval> pOperand1, InvariantsFormula<CompoundInterval> pOperand2) {
     CompoundStateFormulaManager ifm = CompoundStateFormulaManager.INSTANCE;
-    Set<InvariantsFormula<CompoundState>> guesses = new HashSet<>();
-    InvariantsFormula<CompoundState> equation = ifm.equal(pOperand1, pOperand2);
+    Set<InvariantsFormula<CompoundInterval>> guesses = new HashSet<>();
+    InvariantsFormula<CompoundInterval> equation = ifm.equal(pOperand1, pOperand2);
     guesses.add(equation);
     guesses.add(ifm.lessThan(pOperand1, pOperand2));
     guesses.add(ifm.lessThanOrEqual(pOperand1, pOperand2));

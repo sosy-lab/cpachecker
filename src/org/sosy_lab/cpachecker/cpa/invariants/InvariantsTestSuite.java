@@ -29,7 +29,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 
 @RunWith(Suite.class)
-@SuiteClasses({ CompoundStateTest.class, SimpleIntervalTest.class,
+@SuiteClasses({ CompoundIntervalTest.class, SimpleIntervalTest.class,
   org.sosy_lab.cpachecker.cpa.invariants.operators.interval.interval.tointerval.AddOperatorTest.class,
   org.sosy_lab.cpachecker.cpa.invariants.operators.interval.interval.tointerval.MultiplyOperatorTest.class,
   org.sosy_lab.cpachecker.cpa.invariants.operators.interval.interval.tointerval.DivideOperatorTest.class,
