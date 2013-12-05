@@ -781,6 +781,13 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
 
       OctCoefficients coeffs = right.accept(new COctagonCoefficientVisitor(state));
 
+      // if we cannot determine coefficients, we cannot make any assumptions about
+      // the value of the assigned varible and reset its value to unknown
+      if (coeffs == null) {
+        state.forget(buildVarName(functionName, ((CArraySubscriptExpression) left).getArrayExpression().toASTString()));
+        return state;
+      }
+
       // TODO check if we can handle array subscripts
       if (left instanceof CArraySubscriptExpression) {
         state.forget(buildVarName(functionName, ((CArraySubscriptExpression) left).getArrayExpression().toASTString()));
