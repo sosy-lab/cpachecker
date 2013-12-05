@@ -49,8 +49,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 
 import com.google.common.collect.Sets;
 
@@ -97,14 +99,19 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       return Pair.of((CExpression) newExpr, null);
     }
 
-    long result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
-        pair1.getSecond().longValue(), pair2.getSecond().longValue(),
+    // TODO ExplicitFloat: handle values of non-simple type
+    CSimpleType lValueType = (CSimpleType) pair1.getFirst().getExpressionType();
+    CSimpleType rValueType = (CSimpleType) pair2.getFirst().getExpressionType();
+    NumberContainer lValue = new NumberContainer(lValueType, pair1.getSecond());
+    NumberContainer rValue = new NumberContainer(rValueType, pair2.getSecond());
+    NumberContainer result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
+        lValue, rValue,
         expr, machineModel, logger, null);
 
     return Pair.<CExpression, Number> of(
-        new CIntegerLiteralExpression(expr.getFileLocation(),
-            expr.getExpressionType(), BigInteger.valueOf(result)),
-        result);
+        new CFloatLiteralExpression(expr.getFileLocation(),
+            expr.getExpressionType(), result.bigDecimalValue()),
+        result.bigDecimalValue());
   }
 
   @Override
@@ -125,13 +132,15 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       return Pair.of((CExpression) newExpr, null);
     }
 
-    final long castedValue = ExplicitExpressionValueVisitor.castCValue(
-        pair.getSecond().longValue(), expr.getExpressionType(), machineModel, logger, null);
+    // TODO ExplicitFloat: handle values of non-simple type
+    final NumberContainer valueToCast = new NumberContainer((CSimpleType) expr.getExpressionType(), pair.getSecond());
+    final NumberContainer castedValue = ExplicitExpressionValueVisitor.castCValue(
+        valueToCast, expr.getExpressionType(), machineModel, logger, null);
 
     return Pair.<CExpression, Number> of(
-        new CIntegerLiteralExpression(expr.getFileLocation(),
-            expr.getExpressionType(), BigInteger.valueOf(castedValue)),
-        castedValue);
+        new CFloatLiteralExpression(expr.getFileLocation(),
+            expr.getExpressionType(), castedValue.bigDecimalValue()),
+        castedValue.bigDecimalValue());
   }
 
   @Override
