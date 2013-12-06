@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -340,7 +341,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     /**
      * the mapping from variable name to the set of assigned values to this variable
      */
-    private Multimap<String, Long> mapping = HashMultimap.create();
+    private Multimap<String, NumberContainer> mapping = HashMultimap.create();
 
     /**
      * default constructor for creating the initial element

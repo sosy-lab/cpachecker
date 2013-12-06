@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -965,8 +966,8 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       Integer value1 = tryEvaluateExpression(param1);
       if (value0 != null && value1 != null) {
         long result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
-            value0.longValue(), value1.longValue(), multiplication,
-            conv.machineModel, conv.logger, edge);
+        new NumberContainer(value0.longValue()), new NumberContainer(value1.longValue()), multiplication,
+            conv.machineModel, conv.logger, edge).longValue();
 
         CExpression newParam = new CIntegerLiteralExpression(param0.getFileLocation(),
                                                  multiplication.getExpressionType(),

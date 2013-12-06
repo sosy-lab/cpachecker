@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
+import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
@@ -111,14 +112,14 @@ public class ExplicitInterpolator {
    *
    * @param errorPath the path to check
    * @param offset offset of the state at where to start the current interpolation
-   * @param inputInterpolant the input interpolant
+   * @param pInputInterpolant the input interpolant
    * @throws CPAException
    * @throws InterruptedException
    */
-  public Set<Pair<String, Long>> deriveInterpolant(
+  public Set<Pair<String, NumberContainer>> deriveInterpolant(
       List<CFAEdge> errorPath,
       int offset,
-      Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {
+      Map<String, NumberContainer> pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolations = 0;
 
     currentOffset = offset;
@@ -129,7 +130,7 @@ public class ExplicitInterpolator {
     }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
-    ExplicitState initialState      = new ExplicitState(MemoryLocation.transform(PathCopyingPersistentTreeMap.copyOf(inputInterpolant)));
+    ExplicitState initialState      = new ExplicitState(MemoryLocation.transform(PathCopyingPersistentTreeMap.copyOf(pInputInterpolant)));
     ExplicitState initialSuccessor  = getInitialSuccessor(initialState, errorPath.get(offset));
     if (initialSuccessor == null) {
       return null;
@@ -140,7 +141,7 @@ public class ExplicitInterpolator {
       return Collections.emptySet();
     }
 
-    Set<Pair<String, Long>> interpolant = new HashSet<>();
+    Set<Pair<String, NumberContainer>> interpolant = new HashSet<>();
     List<String> list = Lists.newArrayList(initialSuccessor.getTrackedVariableNames());
     for (String currentVariable : list) {
       shutdownNotifier.shutdownIfNecessary();
@@ -148,7 +149,7 @@ public class ExplicitInterpolator {
 
       // remove the value of the current and all already-found-to-be-irrelevant variables from the successor
       successor.forget(currentVariable);
-      for (Pair<String, Long> interpolantVariable : interpolant) {
+      for (Pair<String, NumberContainer> interpolantVariable : interpolant) {
         if (interpolantVariable.getSecond() == null) {
           successor.forget(interpolantVariable.getFirst());
         }
@@ -160,7 +161,7 @@ public class ExplicitInterpolator {
       if (isFeasible) {
         interpolant.add(Pair.of(currentVariable, initialSuccessor.getValueFor(currentVariable)));
       } else {
-        interpolant.add(Pair.<String, Long>of(currentVariable, null));
+        interpolant.add(Pair.<String, NumberContainer>of(currentVariable, null));
       }
     }
 

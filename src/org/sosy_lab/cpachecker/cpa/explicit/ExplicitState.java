@@ -37,6 +37,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -668,12 +669,12 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
       return getAsSimpleString();
     }
 
-    public static PersistentMap<MemoryLocation, Long> transform(
-        PersistentMap<String, Long> pConstantMap) {
+    public static PersistentMap<MemoryLocation, NumberContainer> transform(
+        PersistentSortedMap<String, NumberContainer> pPersistentSortedMap) {
 
-      PersistentMap<MemoryLocation, Long> result = PathCopyingPersistentTreeMap.of();
+      PersistentMap<MemoryLocation, NumberContainer> result = PathCopyingPersistentTreeMap.of();
 
-      for (Map.Entry<String, Long> entry : pConstantMap.entrySet()) {
+      for (Map.Entry<String, NumberContainer> entry : pPersistentSortedMap.entrySet()) {
         result = result.putAndCopy(valueOf(entry.getKey()), checkNotNull(entry.getValue()));
       }
 
