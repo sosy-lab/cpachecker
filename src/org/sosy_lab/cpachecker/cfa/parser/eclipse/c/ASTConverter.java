@@ -350,7 +350,24 @@ class ASTConverter {
       return convert((IASTFunctionCallExpression)e);
 
     } else if (e instanceof IASTIdExpression) {
-      return convert((IASTIdExpression)e);
+      CExpression exp = convert((IASTIdExpression)e);
+      CType type = exp.getExpressionType();
+
+      // this id expression is the name of a function. When there is no
+      // functionCallExpressionn or unaryexpression with pointertype and operator.Amper
+      // around it, we create it.
+      if (type instanceof CFunctionType
+          && !(e.getParent() instanceof IASTFunctionCallExpression
+              || (e.getParent() instanceof IASTUnaryExpression
+                  && ((IASTUnaryExpression) e.getParent()).getOperator() == IASTUnaryExpression.op_amper))) {
+        exp = new CUnaryExpression(exp.getFileLocation(),
+                                   new CPointerType(type.isConst(),
+                                                    type.isVolatile(),
+                                                    type),
+                                   exp,
+                                   UnaryOperator.AMPER);
+        }
+      return exp;
 
     } else if (e instanceof IASTLiteralExpression) {
       return literalConverter.convert((IASTLiteralExpression)e);
@@ -489,12 +506,6 @@ class ASTConverter {
         CAstNode rightHandSide = convertExpressionWithSideEffects(e.getOperand2()); // right-hand side may have a function call
 
         if (rightHandSide instanceof CExpression) {
-          // this is something like a = f; with f beeing a function
-          // we turn it to a = &f;
-          if (((CExpression) rightHandSide).getExpressionType() instanceof CFunctionType) {
-            CFunctionType tp = (CFunctionType) ((CExpression) rightHandSide).getExpressionType();
-            rightHandSide = new CUnaryExpression(fileLoc, new CPointerType(tp.isConst(), tp.isVolatile(), tp), (CExpression) rightHandSide, UnaryOperator.AMPER);
-          }
           // a = b
           return new CExpressionAssignmentStatement(fileLoc, lhs, (CExpression)rightHandSide);
 
@@ -1669,13 +1680,6 @@ class ASTConverter {
 
       if (!(initializer instanceof CExpression)) {
         throw new CFAGenerationRuntimeException("Initializer is not free of side-effects, it is a " + initializer.getClass().getSimpleName(), e);
-      }
-
-      // this is something like int (*a)() = f; with f beeing a function
-      // we turn it to int (*a)() = &f;
-      if (((CExpression) initializer).getExpressionType() instanceof CFunctionType) {
-        CFunctionType tp = (CFunctionType) ((CExpression) initializer).getExpressionType();
-        initializer = new CUnaryExpression(initializer.getFileLocation(), new CPointerType(tp.isConst(), tp.isVolatile(), tp), (CExpression) initializer, UnaryOperator.AMPER);
       }
 
       return new CInitializerExpression(getLocation(ic), (CExpression)initializer);
