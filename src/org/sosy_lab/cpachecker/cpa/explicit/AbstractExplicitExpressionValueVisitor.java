@@ -453,6 +453,8 @@ public abstract class AbstractExplicitExpressionValueVisitor
         return cmp <= 0;
       case EQUALS:
         return cmp == 0;
+      case NOT_EQUALS:
+        return cmp != 0;
       default:
         throw new AssertionError("unknown binary operation: " + op);
     }
