@@ -90,6 +90,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
    */
   private static int temporaryVariableCounter = 0;
 
+
   /**
    * Class constructor.
    */
@@ -338,7 +339,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
     String leftVarName = null;
     // check left side
     if (left instanceof CIdExpression || left instanceof CFieldReference) {
-      leftVarName = buildVarName(functionName, left.toASTString());
+      leftVarName = buildVarName((CLeftHandSide) left);
 
       // create a temp var for the left side of the expression
     } else {
@@ -536,7 +537,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
 
     // check left side
     if (left instanceof CIdExpression || left instanceof CFieldReference) {
-      leftVarName = buildVarName(functionName, left.toASTString());
+      leftVarName = buildVarName((CLeftHandSide) left);
 
       // create a temp var for the left side of the expression
     } else {
@@ -557,7 +558,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
 
     // check right side
     if (right instanceof CIdExpression || right instanceof CFieldReference) {
-      rightVarName = buildVarName(functionName, right.toASTString());
+      rightVarName = buildVarName((CLeftHandSide) right);
 
       // create a temp var for the right side of the expression
     } else {
@@ -718,7 +719,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       CVariableDeclaration declaration = (CVariableDeclaration) decl;
 
       // get the variable name in the declarator
-      String varName = declaration.getName();
+      String variableName = declaration.getName();
 
       // TODO check other types of variables later - just handle primitive
       // types for the moment
@@ -726,9 +727,17 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       if (decl.getType() instanceof CPointerType) { return state; }
 
       // make the fullyqualifiedname
-      String variableName = buildVarName(functionName, varName);
-      // do the declaration of the variable, even if we have no initializer
-      state.declareVariable(variableName);
+      if (!decl.isGlobal()) {
+        variableName = buildVarName(functionName, variableName);
+      }
+
+      // for global declarations, there may be forwards declarations, so we do
+      // not need to declarate them a second time, but if there is an initializer
+      // we assign it the the before declared variable
+      if (!(decl.isGlobal() && state.getVariableIndexFor(variableName) != null)) {
+        // do the declaration of the variable, even if we have no initializer
+        state.declareVariable(variableName);
+      }
 
 
       OctCoefficients v = null;
@@ -781,22 +790,49 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
 
       OctCoefficients coeffs = right.accept(new COctagonCoefficientVisitor(state));
 
-      // if we cannot determine coefficients, we cannot make any assumptions about
-      // the value of the assigned varible and reset its value to unknown
-      if (coeffs == null) {
-        state.forget(buildVarName(functionName, ((CArraySubscriptExpression) left).getArrayExpression().toASTString()));
+
+      String variableName = buildVarName(left);
+
+      // as pointers do not get declarated in the beginning we can just
+      // ignore them here
+      if (left.getExpressionType() instanceof CPointerType) {
         return state;
       }
 
       // TODO check if we can handle array subscripts
       if (left instanceof CArraySubscriptExpression) {
-        state.forget(buildVarName(functionName, ((CArraySubscriptExpression) left).getArrayExpression().toASTString()));
+        state.forget(variableName);
         return state;
+
+
+        // TODO check if we can handle it like that
+        // we do currently nothing with pointers, they are even not declarated
+        // so we have to ignore them here, too
       } else if (left instanceof CPointerExpression) {
-        state.makeAssignment(buildVarName(functionName, ((CPointerExpression) left).getOperand().toASTString()), coeffs);
+
+        // TODO check if we can handle it like that
+      } else if (left instanceof CFieldReference) {
+
+        // as pointers do not get declarated in the beginning we can just
+        // ignore them here
+        if (((CFieldReference) left).isPointerDereference()) {
+          return state;
+        }
+        if (coeffs == null) {
+          state.forget(variableName);
+        } else {
+          state.makeAssignment(variableName, coeffs);
+        }
+
       } else {
-        // TODO is assignment to field valid?
-        state.makeAssignment(buildVarName(functionName, left.toASTString()), coeffs);
+        // if we cannot determine coefficients, we cannot make any assumptions about
+        // the value of the assigned varible and reset its value to unknown
+        if (coeffs == null) {
+          state.forget(variableName);
+        } else {
+          // TODO is assignment to field valid?
+          state.makeAssignment(variableName, coeffs);
+        }
       }
 
       // external function call, or p.e. a;
@@ -811,12 +847,50 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
     return state;
   }
 
+  private String buildVarName(CLeftHandSide left) {
+    String variableName = null;
+    if (left instanceof CArraySubscriptExpression) {
+      variableName = ((CArraySubscriptExpression) left).getArrayExpression().toASTString();
+
+      if (!isGlobal(((CArraySubscriptExpression) left).getArrayExpression())) {
+        variableName = buildVarName(functionName, variableName);
+      }
+    } else if (left instanceof CPointerExpression) {
+      variableName = ((CPointerExpression) left).getOperand().toASTString();
+
+      if (!isGlobal(((CPointerExpression) left).getOperand())) {
+        variableName = buildVarName(functionName, variableName);
+      }
+    } else if (left instanceof CFieldReference) {
+      variableName = ((CFieldReference) left).getFieldOwner().toASTString();
+
+      if (!isGlobal(((CFieldReference) left).getFieldOwner())) {
+        variableName = buildVarName(functionName, variableName);
+      }
+    } else {
+      variableName = ((CIdExpression) left).toASTString();
+
+      if (!isGlobal(left)) {
+        variableName = buildVarName(functionName, variableName);
+      }
+    }
+
+    return variableName;
+  }
+
   /**
    * This is a return statement in a function
    */
   @Override
   protected OctState handleReturnStatementEdge(CReturnStatementEdge cfaEdge, @Nullable CExpression expression)
       throws CPATransferException {
+
+    // this is for functions without return value, which just have returns
+    // in them to end the function
+    if (expression == null) {
+      return state;
+    }
+
     String tempVarName = buildVarName(cfaEdge.getSuccessor().getFunctionName(), "___cpa_temp_result_var_");
     state.declareVariable(tempVarName);
     OctCoefficients coeffs = expression.accept(new COctagonCoefficientVisitor(state));
@@ -843,7 +917,6 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
     // TODO Auto-generated method stub
     return null;
   }
-
 
   class COctagonCoefficientVisitor extends DefaultCExpressionVisitor<OctCoefficients, CPATransferException>
       implements CRightHandSideVisitor<OctCoefficients, CPATransferException> {
@@ -939,7 +1012,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
 
     @Override
     public OctCoefficients visit(CFieldReference e) throws CPATransferException {
-      String varName = buildVarName(functionName, e.toASTString());
+      String varName = buildVarName(e);
       Integer varIndex = coeffState.getVariableIndexFor(varName);
       if (varIndex == null) { return null; }
       return new OctCoefficients(coeffState.sizeOfVariables() + 1, varIndex, 1);
@@ -947,7 +1020,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
 
     @Override
     public OctCoefficients visit(CIdExpression e) throws CPATransferException {
-      String varName = buildVarName(functionName, e.toASTString());
+      String varName = buildVarName(e);
       Integer varIndex = coeffState.getVariableIndexFor(varName);
       if (varIndex == null) { return null; }
       return new OctCoefficients(coeffState.sizeOfVariables() + 1, varIndex, 1);
