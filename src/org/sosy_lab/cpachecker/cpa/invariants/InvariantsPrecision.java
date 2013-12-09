@@ -38,7 +38,7 @@ public class InvariantsPrecision implements Precision {
   public static final InvariantsPrecision NONE = new InvariantsPrecision(
       Collections.<CFAEdge>emptySet(),
       Collections.<InvariantsFormula<CompoundInterval>>emptySet(),
-      Collections.<String>emptySet()) {
+      Collections.<String>emptySet(), 0, false) {
 
     @Override
     public boolean isRelevant(CFAEdge pEdge) {
@@ -58,24 +58,34 @@ public class InvariantsPrecision implements Precision {
 
   private final ImmutableSet<String> interestingVariables;
 
+  private final int maximumFormulaDepth;
+
+  private final boolean useBinaryVariableInterrelations;
+
   public InvariantsPrecision(Set<CFAEdge> pRelevantEdges,
       Set<InvariantsFormula<CompoundInterval>> pInterestingAssumptions,
-      Set<String> pInterestingVariables) {
-    this(ImmutableSet.<CFAEdge>copyOf(pRelevantEdges),
+      Set<String> pInterestingVariables, int pMaximumFormulaDepth,
+      boolean pUseBinaryVariableInterrelations) {
+    this(pRelevantEdges == null ? null : ImmutableSet.<CFAEdge>copyOf(pRelevantEdges),
         ImmutableSet.<InvariantsFormula<CompoundInterval>>copyOf(pInterestingAssumptions),
-        ImmutableSet.<String>copyOf(pInterestingVariables));
+        ImmutableSet.<String>copyOf(pInterestingVariables),
+        pMaximumFormulaDepth,
+        pUseBinaryVariableInterrelations);
   }
 
   public InvariantsPrecision(ImmutableSet<CFAEdge> pRelevantEdges,
       ImmutableSet<InvariantsFormula<CompoundInterval>> pInterestingAssumptions,
-      ImmutableSet<String> pInterestingVariables) {
+      ImmutableSet<String> pInterestingVariables, int pMaximumFormulaDepth,
+      boolean pUseBinaryVariableInterrelations) {
     this.relevantEdges = pRelevantEdges;
     this.interestingAssumptions = pInterestingAssumptions;
     this.interestingVariables = pInterestingVariables;
+    this.maximumFormulaDepth = pMaximumFormulaDepth;
+    this.useBinaryVariableInterrelations = pUseBinaryVariableInterrelations;
   }
 
   public boolean isRelevant(CFAEdge pEdge) {
-    return this.relevantEdges.contains(pEdge);
+    return this.relevantEdges == null || this.relevantEdges.contains(pEdge);
   }
 
   public Set<InvariantsFormula<CompoundInterval>> getInterestingAssumptions() {
@@ -100,7 +110,9 @@ public class InvariantsPrecision implements Precision {
       InvariantsPrecision other = (InvariantsPrecision) pOther;
       return relevantEdges.equals(other.relevantEdges)
           && interestingAssumptions.equals(other.interestingAssumptions)
-          && interestingVariables.equals(other.interestingVariables);
+          && interestingVariables.equals(other.interestingVariables)
+          && maximumFormulaDepth == other.maximumFormulaDepth
+          && useBinaryVariableInterrelations == other.useBinaryVariableInterrelations;
     }
     return false;
   }
@@ -108,6 +120,14 @@ public class InvariantsPrecision implements Precision {
   @Override
   public int hashCode() {
     return this.interestingVariables.hashCode() * 43 + interestingAssumptions.hashCode();
+  }
+
+  public int getMaximumFormulaDepth() {
+    return this.maximumFormulaDepth;
+  }
+
+  public boolean isUsingBinaryVariableInterrelations() {
+    return this.useBinaryVariableInterrelations;
   }
 
 }

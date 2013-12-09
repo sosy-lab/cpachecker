@@ -381,7 +381,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   private InvariantsFormula<CompoundInterval> trim(InvariantsFormula<CompoundInterval> pFormula) {
-    if (pFormula.accept(FORMULA_DEPTH_COUNT_VISITOR) > 4) {
+    if (pFormula.accept(FORMULA_DEPTH_COUNT_VISITOR) > this.precision.getMaximumFormulaDepth()) {
       return CompoundStateFormulaManager.INSTANCE.asConstant(
           pFormula.accept(ABSTRACTION_VISITOR, environment));
     }
@@ -578,7 +578,9 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       }
     }
 
-    extractVariableRelations(assumption, EVALUATION_VISITOR, this.assumptions);
+    if (this.precision.isUsingBinaryVariableInterrelations()) {
+      extractVariableRelations(assumption, EVALUATION_VISITOR, this.assumptions);
+    }
 
     return true;
   }
