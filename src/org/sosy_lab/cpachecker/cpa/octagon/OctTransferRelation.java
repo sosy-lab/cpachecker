@@ -337,7 +337,8 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       boolean truthAssumption) throws CPATransferException {
 
     // we cannot handle pointers, so just ignore them
-    if (left.getExpressionType() instanceof CPointerType) {
+    if (left.getExpressionType() instanceof CPointerType
+        || (left instanceof CFieldReference && ((CFieldReference) left).isPointerDereference())) {
       return state;
     }
 
@@ -541,7 +542,9 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
     String rightVarName = null;
 
     // we cannot handle pointers, so just ignore them
-    if (left.getExpressionType() instanceof CPointerType || right.getExpressionType() instanceof CPointerType) {
+    if (left.getExpressionType() instanceof CPointerType || right.getExpressionType() instanceof CPointerType
+        || (left instanceof CFieldReference && ((CFieldReference) left).isPointerDereference())
+        || (right instanceof CFieldReference && ((CFieldReference) right).isPointerDereference())) {
       return state;
     }
 
