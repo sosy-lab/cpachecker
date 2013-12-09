@@ -171,6 +171,9 @@ class OctState implements AbstractState {
     OctagonManager.forget(octagon, getVariableIndexFor(pVariableName));
   }
 
+  /**
+   * Returns the index of the variable, or null if it is not in the map.
+   */
   protected Integer getVariableIndexFor(String pVariableName) {
     return variableToIndexMap.get(pVariableName);
   }
