@@ -703,6 +703,13 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       CFunctionCallAssignmentStatement binExp = ((CFunctionCallAssignmentStatement) exprOnSummary);
       CLeftHandSide op1 = binExp.getLeftHandSide();
 
+      // we do not know anything about pointers, so assignments to pointers
+      // are not possible for us
+      if (op1.getExpressionType() instanceof CPointerType
+          || (op1 instanceof CFieldReference && ((CFieldReference) op1).isPointerDereference())) {
+        return state;
+      }
+
 
       String returnVarName = calledFunctionName + "::" + "___cpa_temp_result_var_";
 
