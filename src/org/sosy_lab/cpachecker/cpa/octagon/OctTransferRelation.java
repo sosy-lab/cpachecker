@@ -336,6 +336,11 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
   private OctState handleBinaryAssumptionWithOneLiteral(CExpression left, CLiteralExpression right, BinaryOperator op,
       boolean truthAssumption) throws CPATransferException {
 
+    // we cannot handle pointers, so just ignore them
+    if (left.getExpressionType() instanceof CPointerType) {
+      return state;
+    }
+
     String leftVarName = null;
     // check left side
     if (left instanceof CIdExpression || left instanceof CFieldReference) {
@@ -534,6 +539,11 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
     CBinaryExpression.BinaryOperator op = binExp.getOperator();
     String leftVarName = null;
     String rightVarName = null;
+
+    // we cannot handle pointers, so just ignore them
+    if (left.getExpressionType() instanceof CPointerType || right.getExpressionType() instanceof CPointerType) {
+      return state;
+    }
 
     // check left side
     if (left instanceof CIdExpression || left instanceof CFieldReference) {
