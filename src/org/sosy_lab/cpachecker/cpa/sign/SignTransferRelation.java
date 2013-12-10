@@ -172,25 +172,6 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     }
   }
 
-  private BinaryOperator reverseComparisonOperator(BinaryOperator pOp) {
-    switch(pOp) {
-    case LESS_THAN:
-      return BinaryOperator.GREATER_THAN;
-    case LESS_EQUAL:
-      return BinaryOperator.GREATER_EQUAL;
-    case GREATER_THAN:
-      return BinaryOperator.LESS_THAN;
-    case GREATER_EQUAL:
-      return BinaryOperator.LESS_EQUAL;
-    case EQUALS:
-      return BinaryOperator.EQUALS;
-    case NOT_EQUALS:
-      return BinaryOperator.NOT_EQUALS;
-     default:
-       throw new IllegalArgumentException("Cannot negate given operator");
-    }
-  }
-
   private BinaryOperator negateComparisonOperator(BinaryOperator pOp) {
     switch(pOp) {
     case LESS_THAN:
