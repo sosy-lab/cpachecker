@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 
 
 public class SignTransferRelation extends ForwardingTransferRelation<SignState, SingletonPrecision> {
@@ -211,15 +210,6 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     }
   }
 
-  private Optional<IdentifierValuePair> resolve(Optional<IdentifierValuePair> result, Optional<IdentifierValuePair> reversedResult) {
-    for(Optional<IdentifierValuePair> optValPair : ImmutableList.of(result, reversedResult)) {
-      if(optValPair.isPresent()) {
-        return optValPair;
-      }
-    }
-    return Optional.absent();
-  }
-
   private Optional<IdentifierValuePair> evaluateAssumption(CBinaryExpression pAssumeExp, boolean negation, CFAEdge pCFAEdge)  {
     Optional<CIdExpression> optStrongestIdent = getStrongestIdentifier(pAssumeExp, pCFAEdge);
     if(!optStrongestIdent.isPresent()) {
@@ -228,18 +218,14 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     CIdExpression strongestIdent = optStrongestIdent.get();
     CExpression refinementExpression = getRefinementExpression(strongestIdent, pAssumeExp);
     BinaryOperator resultOp = negation ? negateComparisonOperator(pAssumeExp.getOperator()) : pAssumeExp.getOperator();
-    if(!isLeftOperand(strongestIdent, pAssumeExp)) {
-      resultOp = reverseComparisonOperator(resultOp);
-    }
     SIGN resultSign;
     try {
       resultSign = refinementExpression.accept(new SignCExpressionVisitor(pCFAEdge, state, this));
     } catch (UnrecognizedCodeException e) {
       return Optional.absent();
     }
-    Optional<IdentifierValuePair> leftIdentResult = evaluateAssumption(strongestIdent, resultOp, resultSign, pCFAEdge, true);
-    Optional<IdentifierValuePair> rightIdentResult = evaluateAssumption(strongestIdent, reverseComparisonOperator(resultOp), resultSign, pCFAEdge, false);
-    return resolve(leftIdentResult, rightIdentResult);
+    Optional<IdentifierValuePair> leftIdentResult = evaluateAssumption(strongestIdent, resultOp, resultSign, pCFAEdge, isLeftOperand(strongestIdent, pAssumeExp));
+    return leftIdentResult;
   }
 
   private boolean isLeftOperand(CExpression pExp, CBinaryExpression  pBinExp) {
@@ -259,7 +245,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       //$FALL-THROUGH$
     case GREATER_THAN:
       if(pIdentIsLeft) {
-        if(SIGN.PLUS.covers(pResultSign)) { // x > 0+
+        if(SIGN.PLUS0.covers(pResultSign)) { // x > (0)+
           return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.PLUS0 : SIGN.PLUS));
         }
       } else {
@@ -272,7 +258,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       equalZero = pResultSign == SIGN.ZERO;
       //$FALL-THROUGH$
     case LESS_THAN:
-      if(pIdentIsLeft) { // x < 0-
+      if(pIdentIsLeft) { // x < (0)-
         if(SIGN.MINUS0.covers(pResultSign)) {
           return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.MINUS0 : SIGN.MINUS));
         }
