@@ -191,22 +191,22 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     }
   }
 
-  private Optional<IdentifierValuePair> evaluateAssumption(CBinaryExpression pAssumeExp, boolean negation, CFAEdge pCFAEdge)  {
+  private Optional<IdentifierValuePair> evaluateAssumption(CBinaryExpression pAssumeExp, boolean truthAssumption, CFAEdge pCFAEdge)  {
     Optional<CIdExpression> optStrongestIdent = getStrongestIdentifier(pAssumeExp, pCFAEdge);
     if(!optStrongestIdent.isPresent()) {
       return Optional.absent(); // No refinement possible, since no strongest identifier was found
     }
     CIdExpression strongestIdent = optStrongestIdent.get();
     CExpression refinementExpression = getRefinementExpression(strongestIdent, pAssumeExp);
-    BinaryOperator resultOp = negation ? negateComparisonOperator(pAssumeExp.getOperator()) : pAssumeExp.getOperator();
+    BinaryOperator resultOp = !truthAssumption ? negateComparisonOperator(pAssumeExp.getOperator()) : pAssumeExp.getOperator();
     SIGN resultSign;
     try {
       resultSign = refinementExpression.accept(new SignCExpressionVisitor(pCFAEdge, state, this));
     } catch (UnrecognizedCodeException e) {
       return Optional.absent();
     }
-    Optional<IdentifierValuePair> leftIdentResult = evaluateAssumption(strongestIdent, resultOp, resultSign, pCFAEdge, isLeftOperand(strongestIdent, pAssumeExp));
-    return leftIdentResult;
+    Optional<IdentifierValuePair> result = evaluateAssumption(strongestIdent, resultOp, resultSign, pCFAEdge, isLeftOperand(strongestIdent, pAssumeExp));
+    return result;
   }
 
   private boolean isLeftOperand(CExpression pExp, CBinaryExpression  pBinExp) {
@@ -297,13 +297,13 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   @Override
-  protected SignState handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
+  protected SignState handleAssumption(CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption)
       throws CPATransferException {
     // Analyse only expressions of the form x op y
-    if(!(expression instanceof CBinaryExpression)) {
+    if(!(pExpression instanceof CBinaryExpression)) {
       return state;
     }
-    Optional<IdentifierValuePair> result = evaluateAssumption((CBinaryExpression)expression, !truthAssumption, cfaEdge);
+    Optional<IdentifierValuePair> result = evaluateAssumption((CBinaryExpression)pExpression, pTruthAssumption, pCfaEdge);
     if(result.isPresent()) {
       return state.assignSignToVariable(result.get().identifier.getName(), result.get().value);
     }
