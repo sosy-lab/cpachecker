@@ -293,13 +293,9 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       //      }
 
       if (bddPrecision != null) {
-        /* TODO: convert memory locations to variable identifiers in the next commit,
-         * to have these changes separated - BDDs can handle structs anyway, so then
-         * memory locations and string identifiers are equivalent any ... yaaay!
         BDDPrecision refinedBDDPrecision = new BDDPrecision(bddPrecision, increment);
         refinedPrecisions.add(refinedBDDPrecision);
         newPrecisionTypes.add(BDDPrecision.class);
-        */
       }
     }
 
