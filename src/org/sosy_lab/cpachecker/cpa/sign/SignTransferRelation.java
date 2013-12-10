@@ -231,9 +231,15 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     if(!isLeftOperand(strongestIdent, pAssumeExp)) {
       resultOp = reverseComparisonOperator(resultOp);
     }
-    Optional<IdentifierValuePair> result = evaluateNonCommutativeAssumption(strongestIdent, resultOp, refinementExpression, pCFAEdge);
-    Optional<IdentifierValuePair> reverseResult = evaluateNonCommutativeAssumption(refinementExpression, reverseComparisonOperator(resultOp), strongestIdent, pCFAEdge);
-    return resolve(result, reverseResult);
+    SIGN resultSign;
+    try {
+      resultSign = refinementExpression.accept(new SignCExpressionVisitor(pCFAEdge, state, this));
+    } catch (UnrecognizedCodeException e) {
+      return Optional.absent();
+    }
+    Optional<IdentifierValuePair> leftIdentResult = evaluateAssumption(strongestIdent, resultOp, resultSign, pCFAEdge, true);
+    Optional<IdentifierValuePair> rightIdentResult = evaluateAssumption(strongestIdent, reverseComparisonOperator(resultOp), resultSign, pCFAEdge, false);
+    return resolve(leftIdentResult, rightIdentResult);
   }
 
   private boolean isLeftOperand(CExpression pExp, CBinaryExpression  pBinExp) {
@@ -245,65 +251,39 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     throw new IllegalArgumentException("Argument pExp is not part of pBinExp");
   }
 
-  // TODO remove redundant code
-  private Optional<IdentifierValuePair> evaluateNonCommutativeAssumption(CIdExpression pLeftIdExp, BinaryOperator pOp, CExpression pRightExp, CFAEdge pCFAEdge) {
-    SIGN resultSign;
-    try {
-      resultSign = pRightExp.accept(new SignCExpressionVisitor(pCFAEdge, state, this));
-    } catch (UnrecognizedCodeException e) {
-      return Optional.absent();
-    }
+  private Optional<IdentifierValuePair> evaluateAssumption(CIdExpression pIdExp, BinaryOperator pOp, SIGN pResultSign, CFAEdge pCFAEdge, boolean pIdentIsLeft) {
     boolean equalZero = false;
     switch(pOp) {
     case GREATER_EQUAL:
-      equalZero = resultSign == SIGN.ZERO;
+      equalZero = pResultSign == SIGN.ZERO;
       //$FALL-THROUGH$
-    case GREATER_THAN: // x > 0+
-      if(SIGN.PLUS.covers(resultSign)) {
-        return Optional.of(new IdentifierValuePair(pLeftIdExp, equalZero ? SIGN.PLUS0 : SIGN.PLUS));
+    case GREATER_THAN:
+      if(pIdentIsLeft) {
+        if(SIGN.PLUS.covers(pResultSign)) { // x > 0+
+          return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.PLUS0 : SIGN.PLUS));
+        }
+      } else {
+        if(SIGN.MINUS0.covers(pResultSign)) { // (0)- > x
+          return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.MINUS0 : SIGN.MINUS));
+        }
       }
       break;
     case LESS_EQUAL:
-      equalZero = resultSign == SIGN.ZERO;
+      equalZero = pResultSign == SIGN.ZERO;
       //$FALL-THROUGH$
-    case LESS_THAN: // x < 0-
-      if(SIGN.MINUS0.covers(resultSign)) {
-        return Optional.of(new IdentifierValuePair(pLeftIdExp, equalZero ? SIGN.MINUS0 : SIGN.MINUS));
+    case LESS_THAN:
+      if(pIdentIsLeft) { // x < 0-
+        if(SIGN.MINUS0.covers(pResultSign)) {
+          return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.MINUS0 : SIGN.MINUS));
+        }
+      } else {
+        if(SIGN.PLUS0.covers(pResultSign)) { // (0)+ < x
+          return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.PLUS0 : SIGN.PLUS));
+        }
       }
       break;
     case EQUALS:
-      return Optional.of(new IdentifierValuePair(pLeftIdExp, resultSign));
-    }
-    return Optional.absent();
-  }
-
-  private Optional<IdentifierValuePair> evaluateNonCommutativeAssumption(CExpression pLeftExp, BinaryOperator pOp, CIdExpression pRightIdExp, CFAEdge pCFAEdge) {
-    SIGN resultSign;
-    try {
-      resultSign = pLeftExp.accept(new SignCExpressionVisitor(pCFAEdge, state, this));
-    } catch (UnrecognizedCodeException e) {
-      return Optional.absent();
-    }
-    boolean equalZero = false;
-    switch(pOp) {
-    case GREATER_EQUAL:
-      equalZero = resultSign == SIGN.ZERO;
-      //$FALL-THROUGH$
-    case GREATER_THAN: // (0)- > x
-      if(SIGN.MINUS0.covers(resultSign)) {
-        return Optional.of(new IdentifierValuePair(pRightIdExp, equalZero ? SIGN.MINUS0 : SIGN.MINUS));
-      }
-      break;
-    case LESS_EQUAL:
-      equalZero = resultSign == SIGN.ZERO;
-      //$FALL-THROUGH$
-    case LESS_THAN: // (0)+ < x
-      if(SIGN.PLUS0.covers(resultSign)) {
-        return Optional.of(new IdentifierValuePair(pRightIdExp, equalZero ? SIGN.PLUS0 : SIGN.PLUS));
-      }
-      break;
-    case EQUALS:
-      return Optional.of(new IdentifierValuePair(pRightIdExp, resultSign));
+      return Optional.of(new IdentifierValuePair(pIdExp, pResultSign));
     }
     return Optional.absent();
   }
