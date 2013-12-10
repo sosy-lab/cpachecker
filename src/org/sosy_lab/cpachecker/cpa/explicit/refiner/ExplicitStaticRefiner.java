@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.StaticRefiner;
 
@@ -70,12 +72,12 @@ public class ExplicitStaticRefiner extends StaticRefiner {
     CFANode targetNode = extractLocation(targetState);
     Collection<CFANode> targetNodes = ImmutableList.of(targetNode);
     Set<AssumeEdge> assumeEdges = new HashSet<>(getTargetLocationAssumes(targetNodes).values());
-    Multimap<CFANode, String> increment = HashMultimap.create();
+    Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
 
     for (AssumeEdge assume : assumeEdges) {
       for (CIdExpression idExpr : getVariablesOfAssume(assume)) {
-        String var = idExpr.getDeclaration().getQualifiedName();
-        increment.put(assume.getSuccessor(), var);
+        MemoryLocation memoryLocation = MemoryLocation.valueOf(idExpr.getDeclaration().getQualifiedName());
+        increment.put(assume.getSuccessor(), memoryLocation);
       }
     }
 

@@ -115,10 +115,10 @@ public class ExplicitInterpolator {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public Set<Pair<String, Long>> deriveInterpolant(
+  public Set<Pair<MemoryLocation, Long>> deriveInterpolant(
       List<CFAEdge> errorPath,
       int offset,
-      Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {
+      Map<MemoryLocation, Long> inputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolations = 0;
 
     currentOffset = offset;
@@ -129,7 +129,7 @@ public class ExplicitInterpolator {
     }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
-    ExplicitState initialState      = new ExplicitState(MemoryLocation.transform(PathCopyingPersistentTreeMap.copyOf(inputInterpolant)));
+    ExplicitState initialState      = new ExplicitState(PathCopyingPersistentTreeMap.copyOf(inputInterpolant));
     ExplicitState initialSuccessor  = getInitialSuccessor(initialState, errorPath.get(offset));
     if (initialSuccessor == null) {
       return null;
@@ -140,15 +140,16 @@ public class ExplicitInterpolator {
       return Collections.emptySet();
     }
 
-    Set<Pair<String, Long>> interpolant = new HashSet<>();
-    List<String> list = Lists.newArrayList(initialSuccessor.getTrackedVariableNames());
-    for (String currentVariable : list) {
+    Set<Pair<MemoryLocation, Long>> interpolant = new HashSet<>();
+
+    List<MemoryLocation> memoryLocations = Lists.newArrayList(initialSuccessor.getTrackedMemoryLocations());
+    for (MemoryLocation currentMemoryLocation : memoryLocations) {
       shutdownNotifier.shutdownIfNecessary();
       ExplicitState successor = initialSuccessor.clone();
 
       // remove the value of the current and all already-found-to-be-irrelevant variables from the successor
-      successor.forget(currentVariable);
-      for (Pair<String, Long> interpolantVariable : interpolant) {
+      successor.forget(currentMemoryLocation);
+      for (Pair<MemoryLocation, Long> interpolantVariable : interpolant) {
         if (interpolantVariable.getSecond() == null) {
           successor.forget(interpolantVariable.getFirst());
         }
@@ -158,9 +159,9 @@ public class ExplicitInterpolator {
       isFeasible = isRemainingPathFeasible(skip(errorPath, offset + 1), successor);
 
       if (isFeasible) {
-        interpolant.add(Pair.of(currentVariable, initialSuccessor.getValueFor(currentVariable)));
+        interpolant.add(Pair.of(currentMemoryLocation, initialSuccessor.getValueFor(currentMemoryLocation)));
       } else {
-        interpolant.add(Pair.<String, Long>of(currentVariable, null));
+        interpolant.add(Pair.<MemoryLocation, Long>of(currentMemoryLocation, null));
       }
     }
 

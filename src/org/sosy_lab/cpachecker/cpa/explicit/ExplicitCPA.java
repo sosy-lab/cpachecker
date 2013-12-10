@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.ExplicitStaticRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -194,8 +195,8 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
             !config.getProperty("cpa.composite.precAdjust").equals("COMPONENT");
   }
 
-  private Multimap<CFANode, String> restoreMappingFromFile(CFA cfa) throws InvalidConfigurationException {
-    Multimap<CFANode, String> mapping = HashMultimap.create();
+  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) throws InvalidConfigurationException {
+    Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
     if (initialPrecisionFile == null) {
       return mapping;
     }
@@ -226,10 +227,15 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
       }
 
       else {
-        mapping.put(location, currentLine);
+        mapping.put(location, extractMemoryLocation(currentLine));
       }
     }
     return mapping;
+  }
+
+  // TODO: this needs fixing - just a stub
+  private MemoryLocation extractMemoryLocation(String identifier) {
+    return MemoryLocation.valueOf("BOGUS");
   }
 
   private CFANode getDefaultLocation(Map<Integer, CFANode> idToCfaNode) {
