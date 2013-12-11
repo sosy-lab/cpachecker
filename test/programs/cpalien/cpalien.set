@@ -10,3 +10,4 @@
 0016-assume-edge-nullwrite_unsafe.c
 0017-assume-edge-deref-dangling_unsafe.c
 0018-builtins_safe.c
+0019-assume-edge-eq0_safe.c
