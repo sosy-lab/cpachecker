@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="900">
+  <option name="-disable-java-assertions"/>
+  <option name="-heap">12000M</option>
+  <option name="-preprocess" />
+
+  <sourcefiles name="cpalien">
+    <includesfile>../programs/cpalien/cpalien.set</includesfile>
+  </sourcefiles>
+
+  <rundefinition name="cpalien">
+    <option name="-CPAlien"/>
+  </rundefinition>
+</benchmark>
