@@ -18,6 +18,5 @@
 
   <requiredfiles>../programs/cpalien/cpalien-headers.h</requiredfiles>
 
-  <rundefinition name="smg">
-  </rundefinition>
+  <rundefinition/>
 </benchmark>
