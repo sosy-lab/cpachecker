@@ -35,7 +35,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -178,41 +177,27 @@ public class ExplicitPrecision implements Precision {
   public boolean isTracking(MemoryLocation variable) {
     boolean result = refinablePrecision.contains(variable)
             && !isOnBlacklist(variable.getIdentifier())
-            && !isInIgnoredVarClass(variable.getIdentifier());
+            && !isInIgnoredVarClass(variable);
 
     return result;
   }
 
   /** returns true, iff the variable is in an varClass, that should be ignored. */
-  private boolean isInIgnoredVarClass(String variable) {
+  private boolean isInIgnoredVarClass(final MemoryLocation variable) {
     if (varClass==null || !varClass.isPresent()) { return false; }
 
-    final Pair<String, String> var = splitVar(variable);
+    final String functionName = variable.isOnFunctionStack() ? variable.getFunctionName() : null;
+    final String varName = variable.getIdentifier();
 
-    final boolean isBoolean = varClass.get().getIntBoolVars().containsEntry(var.getFirst(), var.getSecond());
-    final boolean isIntEqual = varClass.get().getIntEqualVars().containsEntry(var.getFirst(), var.getSecond());
-    final boolean isIntAdd = varClass.get().getIntAddVars().containsEntry(var.getFirst(), var.getSecond());
+    final boolean isBoolean = varClass.get().getIntBoolVars().containsEntry(functionName, varName);
+    final boolean isIntEqual = varClass.get().getIntEqualVars().containsEntry(functionName, varName);
+    final boolean isIntAdd = varClass.get().getIntAddVars().containsEntry(functionName, varName);
 
     final boolean isIgnoredBoolean = ignoreBoolean && isBoolean;
     final boolean isIgnoredIntEqual = ignoreIntEqual && isIntEqual;
     final boolean isIgnoredIntAdd = ignoreIntAdd && isIntAdd;
 
     return isIgnoredBoolean || isIgnoredIntEqual || isIgnoredIntAdd;
-  }
-
-  /** split var into function and varName */
-  private static Pair<String, String> splitVar(String variable) {
-    int i = variable.indexOf("::");
-    String function;
-    String varName;
-    if (i == -1) { // global variable, no splitting
-      function = null;
-      varName = variable;
-    } else { // split function::varName
-      function = variable.substring(0, i);
-      varName = variable.substring(i + 2);
-    }
-    return Pair.of(function, varName);
   }
 
   private RefinablePrecision createInstance() {
