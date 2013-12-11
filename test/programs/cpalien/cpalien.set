@@ -3,3 +3,7 @@
 0003-simple_function_safe.c
 0004-simple_function_unsafe.c
 0005-memleak_unsafe.c
+0006-ptr-return_safe.c
+0007-ptr-traverse_safe.c
+0008-ptr-traverse_deref_freed_unsafe.c
+0009-ptr-traverse_double_free_unsafe.c
