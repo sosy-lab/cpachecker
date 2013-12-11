@@ -203,9 +203,7 @@ public class InvariantsCPA extends AbstractCPA {
         configurationBuilder.setOption("output.disable", "true");
         configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA");
         String specification = config.getProperty("specification");
-        if (specification == null || specification.isEmpty()) {
-          specification = "config/specification/default.spc";
-        }
+        specification = "config/specification/default.spc";
         configurationBuilder.setOption("specification", specification);
 
         ConfigurableProgramAnalysis cpa = new CPABuilder(configurationBuilder.build(), logManager, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
