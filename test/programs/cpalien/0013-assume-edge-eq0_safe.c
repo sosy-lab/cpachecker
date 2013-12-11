@@ -9,7 +9,7 @@ int main() {
   int *ptr;
 
   if (!selector) {
-    *ptr = malloc(sizeof(int));
+    ptr = malloc(sizeof(int));
   }
 
   if (!selector) {
@@ -17,5 +17,5 @@ int main() {
     free(ptr);
   }
 
-  return;
+  return 0;
 }

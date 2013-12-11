@@ -9,7 +9,7 @@ int main() {
   int *ptr = NULL;
 
   if (!selector) {
-    *ptr = malloc(sizeof(int));
+    ptr = malloc(sizeof(int));
   }
 
   if (selector) {
