@@ -138,6 +138,9 @@ class Tool(benchmark.tools.template.BaseTool):
             status = ''
 
         bad_free = False
+        memory_leak = False
+        bad_deref = False
+        undef = False
         for line in output.splitlines():
             if 'java.lang.OutOfMemoryError' in line:
                 status = 'OUT OF JAVA MEMORY'
@@ -162,9 +165,19 @@ class Tool(benchmark.tools.template.BaseTool):
                     status = 'ERROR (threads)'
                 elif 'Parsing failed' in line:
                     status = 'ERROR (parsing failed)'
+                elif 'Unknown function' in line:
+                    status = 'ERROR (unknown function)'
             elif line.startswith("Invalid free found"):
               bad_free = True
-
+            elif line.startswith("Memory leak found"):
+              memory_leak = True
+            elif line.startswith("Invalid read found"):
+              bad_deref = True
+            elif line.startswith("Invalid write found"):
+              bad_deref = True
+            elif line.startswith("Non-target undefined behavior detected."):
+              status = "ERROR (undefined behavior)"
+              undef = True;
 
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
@@ -172,16 +185,20 @@ class Tool(benchmark.tools.template.BaseTool):
                     newStatus = result.STR_TRUE
                 elif line.startswith('UNSAFE'):
                   newStatus = result.STR_FALSE
+                  if memory_leak:
+                    newStatus = result.STR_PROP_MEMTRACK
                   if bad_free:
                     newStatus = result.STR_PROP_FREE
+                  if bad_deref:
+                    newStatus = result.STR_PROP_DEREF
                 else:
                     newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
-                if newStatus:
-                    status = newStatus if not status else "{0} ({1})".format(status, newStatus)
+                if newStatus and not status:
+                    status = newStatus
 
         if status == 'KILLED (UNKNOWN)':
             status = 'KILLED'
-        if not status:
+        if not status or undef:
             status = result.STR_UNKNOWN
         return status
 
