@@ -775,7 +775,7 @@ public class SMGTransferRelation implements TransferRelation {
         case "strict":
           throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.cpalien.handleUnknownFunction option.");
         case "assume_safe":
-          newState = new SMGState(pState);
+          return new SMGState(pState);
         }
         throw new AssertionError();
       }
