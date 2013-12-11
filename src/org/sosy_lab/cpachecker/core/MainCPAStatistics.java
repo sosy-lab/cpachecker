@@ -175,6 +175,16 @@ class MainCPAStatistics implements Statistics {
       // user was already warned
       analysisCpuTime = -1;
     }
+    /*
+     * Google App Engine does not allow to use classes from the package java.lang.management.
+     * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+     * CPAChecker from crashing in this case we catch the error and log the event.
+     */
+    catch (NoClassDefFoundError e) {
+      logger.logDebugException(e, "Querying cpu time failed");
+      logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
+      analysisCpuTime = -1;
+    }
   }
 
   void stopAnalysisTimer() {
@@ -194,6 +204,15 @@ class MainCPAStatistics implements Statistics {
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
       // user was already warned
+    }
+    /*
+     * Google App Engine does not allow to use classes from the package java.lang.management.
+     * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+     * CPAChecker from crashing in this case we catch the error and log the event.
+     */
+    catch (NoClassDefFoundError e) {
+      logger.logDebugException(e, "Querying cpu time failed");
+      logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
     }
   }
 
