@@ -227,15 +227,11 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
       }
 
       else {
-        mapping.put(location, extractMemoryLocation(currentLine));
+        mapping.put(location, MemoryLocation.valueOf(currentLine));
       }
     }
-    return mapping;
-  }
 
-  // TODO: this needs fixing - just a stub
-  private MemoryLocation extractMemoryLocation(String identifier) {
-    return MemoryLocation.valueOf("BOGUS");
+    return mapping;
   }
 
   private CFANode getDefaultLocation(Map<Integer, CFANode> idToCfaNode) {

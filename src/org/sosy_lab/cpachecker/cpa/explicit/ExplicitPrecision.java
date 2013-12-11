@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -326,7 +327,7 @@ public class ExplicitPrecision implements Precision {
         writer.write("\n" + currentLocation + ":\n");
 
         for (MemoryLocation variable : rawPrecision.get(currentLocation)) {
-          writer.write(variable + "\n");
+          writer.write(variable.serialize() + "\n");
         }
       }
     }
@@ -381,8 +382,9 @@ public class ExplicitPrecision implements Precision {
     @Override
     void serialize(Writer writer) throws IOException {
       SortedSet<MemoryLocation> sortedPrecision = new TreeSet<>(rawPrecision);
-      ArrayList<MemoryLocation> globals         = new ArrayList<>();
-      String previousScope                      = null;
+
+      List<String> globals = new ArrayList<>();
+      String previousScope = null;
 
       for (MemoryLocation variable : sortedPrecision) {
         if (variable.isOnFunctionStack()) {
@@ -390,12 +392,12 @@ public class ExplicitPrecision implements Precision {
           if (!functionName.equals(previousScope)) {
             writer.write("\n" + functionName + ":\n");
           }
-          writer.write(variable + "\n");
+          writer.write(variable.serialize() + "\n");
 
           previousScope = functionName;
         }
         else {
-          globals.add(variable);
+          globals.add(variable.serialize());
         }
       }
 
