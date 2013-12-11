@@ -7,3 +7,6 @@
 0007-ptr-traverse_safe.c
 0008-ptr-traverse_deref_freed_unsafe.c
 0009-ptr-traverse_double_free_unsafe.c
+0016-assume-edge-nullwrite_unsafe.c
+0017-assume-edge-deref-dangling_unsafe.c
+0018-builtins_safe.c
