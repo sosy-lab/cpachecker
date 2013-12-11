@@ -23,5 +23,6 @@ int main() {
   }
 
   free(nd->next);
+  nd = (void*)0;
   return 0;
 }

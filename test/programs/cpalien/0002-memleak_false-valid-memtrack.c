@@ -8,5 +8,6 @@
 
 int main(int argc, char* argv[]){
   int* pointer = malloc(sizeof(int));
+  pointer = (void*)0;
   return 0;
 }

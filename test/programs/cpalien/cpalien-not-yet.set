@@ -1,5 +1,3 @@
-0002-memleak_false-valid-memtrack.c
-0011-trivial-cycle_false-valid-memtrack.c
 0012-trivial-tree_safe.c
 0013-assume-edge-eq0_safe.c
 0014-assume-edge-neq0_safe.c
