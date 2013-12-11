@@ -15,96 +15,11 @@ if __name__ == "__main__":
     sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
 
 import benchmark.util as Util
+import benchmark.tools.cpachecker
 import benchmark.tools.template
 
-class Tool(benchmark.tools.template.BaseTool):
+class Tool(benchmark.tools.cpachecker.Tool):
 
-    def getExecutable(self):
-        executable = Util.findExecutable('cpa.sh', 'scripts/cpa.sh')
-        executableDir = os.path.join(os.path.dirname(executable),"../")
-        if os.path.isdir(os.path.join(executableDir, 'src')):
-            self._buildCPAchecker(executableDir)
-        if not os.path.isfile(os.path.join(executableDir, "cpachecker.jar")):
-            logging.warning("Required JAR file for CPAchecker not found in {0}.".format(executableDir))
-        return executable
-
-
-    def _buildCPAchecker(self, executableDir):
-        logging.info('Building CPAchecker in directory {0}.'.format(executableDir))
-        ant = subprocess.Popen(['ant', '-q', 'jar'], cwd=executableDir)
-        (stdout, stderr) = ant.communicate()
-        if ant.returncode:
-            sys.exit('Failed to build CPAchecker, please fix the build first.')
-
-
-    def getProgrammFiles(self, executable):
-        executableDir = os.path.join(os.path.dirname(executable),"../")
-        return [os.path.join(executableDir, path) for path in ["lib", "scripts", "cpachecker.jar", "config"]]
-
-
-    def getWorkingDirectory(self, executable):
-        return os.curdir
-
-
-    def getVersion(self, executable):
-        process = subprocess.Popen([executable, '-help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdout, stderr) = process.communicate()
-        if stderr:
-            sys.exit(Util.decodeToString(stderr))
-        if process.returncode:
-            sys.exit('CPAchecker returned exit code {0}'.format(process.returncode))
-        stdout = Util.decodeToString(stdout)
-        version = ' '.join(stdout.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
-
-        # CPAchecker might be within a SVN repository
-        # Determine the revision and add it to the version.
-        cpaShDir = os.path.dirname(os.path.realpath(executable))
-        cpacheckerDir = os.path.join(cpaShDir, os.path.pardir)
-        try:
-            svnProcess = subprocess.Popen(['svnversion', cpacheckerDir], env={'LANG': 'C'}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = svnProcess.communicate()
-            stdout = Util.decodeToString(stdout).strip()
-            if not (svnProcess.returncode or stderr or (stdout == 'exported')):
-                return version + ' ' + stdout
-        except OSError:
-            pass
-
-        # CPAchecker might be within a git-svn repository
-        try:
-            gitProcess = subprocess.Popen(['git', 'svn', 'find-rev', 'HEAD'], env={'LANG': 'C'}, cwd=cpacheckerDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = gitProcess.communicate()
-            stdout = Util.decodeToString(stdout).strip()
-            if not (gitProcess.returncode or stderr) and stdout:
-                return version + ' ' + stdout + ('M' if self._isGitRepositoryDirty(cpacheckerDir) else '')
-    
-            # CPAchecker might be within a git repository
-            gitProcess = subprocess.Popen(['git', 'log', '-1', '--pretty=format:%h', '--abbrev-commit'], env={'LANG': 'C'}, cwd=cpacheckerDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = gitProcess.communicate()
-            stdout = Util.decodeToString(stdout).strip()
-            if not (gitProcess.returncode or stderr) and stdout:
-                return version + ' ' + stdout + ('+' if self._isGitRepositoryDirty(cpacheckerDir) else '')
-        except OSError:
-            pass
-
-        return version
-
-
-    def _isGitRepositoryDirty(self, dir):
-        gitProcess = subprocess.Popen(['git', 'status', '--porcelain'], env={'LANG': 'C'}, cwd=dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdout, stderr) = gitProcess.communicate()
-        if not (gitProcess.returncode or stderr):
-            return True if stdout else False  # True if stdout is non-empty
-        return None
-
-
-    def getName(self):
-        return 'CPAchecker'
-
-
-    def getCmdline(self, executable, options, sourcefile):
-        if ("-stats" not in options):
-            options = options + ["-stats"]
-        return [executable] + options + [sourcefile]
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
@@ -191,23 +106,6 @@ class Tool(benchmark.tools.template.BaseTool):
         if not status:
             status = result.STR_UNKNOWN
         return status
-
-
-    def addColumnValues(self, output, columns):
-        for column in columns:
-
-            # search for the text in output and get its value,
-            # stop after the first line, that contains the searched text
-            column.value = "-" # default value
-            for line in output.splitlines():
-                if column.text in line:
-                    startPosition = line.find(':') + 1
-                    endPosition = line.find('(', startPosition) # bracket maybe not found -> (-1)
-                    if (endPosition == -1):
-                        column.value = line[startPosition:].strip()
-                    else:
-                        column.value = line[startPosition: endPosition].strip()
-                    break
 
 
 if __name__ == "__main__":
