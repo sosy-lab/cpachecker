@@ -5,8 +5,8 @@
   <option name="-heap">12000M</option>
   <option name="-preprocess" />
 
-  <sourcefiles name="cpalien-okay">
-    <includesfile>../programs/cpalien/cpalien.set</includesfile>
+  <sourcefiles name="cpalien-not-yet-there">
+    <includesfile>../programs/cpalien/cpalien-not-yet.set</includesfile>
   </sourcefiles>
 
   <rundefinition name="cpalien">
