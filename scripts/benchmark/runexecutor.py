@@ -509,8 +509,14 @@ class _OomEventThread(threading.Thread):
                 # We now need to increase the memory limit of this cgroup
                 # to give the process a chance to terminate
                 # 10MB ought to be enough
-                writeFile(str((self._memlimit + 10) * _BYTE_FACTOR * _BYTE_FACTOR),
-                          self._cgroup, 'memory.memsw.limit_in_bytes')
+                limitFile = 'memory.memsw.limit_in_bytes'
+                if not os.path.exists(os.path.join(self._cgroup, limitFile)):
+                    limitFile = 'memory.limit_in_bytes'
+                try:
+                    writeFile(str((self._memlimit + 10) * _BYTE_FACTOR * _BYTE_FACTOR),
+                              self._cgroup, limitFile)
+                except IOError:
+                    logging.warning('Failed to increase memory limit after OOM: error {0} ({1})'.format(e.errno, e.strerror))
 
         finally:
             os.close(self._efd)

@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 
 
 public class SignTransferRelation extends ForwardingTransferRelation<SignState, SingletonPrecision> {
@@ -173,25 +172,6 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     }
   }
 
-  private BinaryOperator reverseComparisonOperator(BinaryOperator pOp) {
-    switch(pOp) {
-    case LESS_THAN:
-      return BinaryOperator.GREATER_THAN;
-    case LESS_EQUAL:
-      return BinaryOperator.GREATER_EQUAL;
-    case GREATER_THAN:
-      return BinaryOperator.LESS_THAN;
-    case GREATER_EQUAL:
-      return BinaryOperator.LESS_EQUAL;
-    case EQUALS:
-      return BinaryOperator.EQUALS;
-    case NOT_EQUALS:
-      return BinaryOperator.NOT_EQUALS;
-     default:
-       throw new IllegalArgumentException("Cannot negate given operator");
-    }
-  }
-
   private BinaryOperator negateComparisonOperator(BinaryOperator pOp) {
     switch(pOp) {
     case LESS_THAN:
@@ -211,29 +191,22 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     }
   }
 
-  private Optional<IdentifierValuePair> resolve(Optional<IdentifierValuePair> result, Optional<IdentifierValuePair> reversedResult) {
-    for(Optional<IdentifierValuePair> optValPair : ImmutableList.of(result, reversedResult)) {
-      if(optValPair.isPresent()) {
-        return optValPair;
-      }
-    }
-    return Optional.absent();
-  }
-
-  private Optional<IdentifierValuePair> evaluateAssumption(CBinaryExpression pAssumeExp, boolean negation, CFAEdge pCFAEdge)  {
+  private Optional<IdentifierValuePair> evaluateAssumption(CBinaryExpression pAssumeExp, boolean truthAssumption, CFAEdge pCFAEdge)  {
     Optional<CIdExpression> optStrongestIdent = getStrongestIdentifier(pAssumeExp, pCFAEdge);
     if(!optStrongestIdent.isPresent()) {
       return Optional.absent(); // No refinement possible, since no strongest identifier was found
     }
     CIdExpression strongestIdent = optStrongestIdent.get();
     CExpression refinementExpression = getRefinementExpression(strongestIdent, pAssumeExp);
-    BinaryOperator resultOp = negation ? negateComparisonOperator(pAssumeExp.getOperator()) : pAssumeExp.getOperator();
-    if(!isLeftOperand(strongestIdent, pAssumeExp)) {
-      resultOp = reverseComparisonOperator(resultOp);
+    BinaryOperator resultOp = !truthAssumption ? negateComparisonOperator(pAssumeExp.getOperator()) : pAssumeExp.getOperator();
+    SIGN resultSign;
+    try {
+      resultSign = refinementExpression.accept(new SignCExpressionVisitor(pCFAEdge, state, this));
+    } catch (UnrecognizedCodeException e) {
+      return Optional.absent();
     }
-    Optional<IdentifierValuePair> result = evaluateNonCommutativeAssumption(strongestIdent, resultOp, refinementExpression, pCFAEdge);
-    Optional<IdentifierValuePair> reverseResult = evaluateNonCommutativeAssumption(refinementExpression, reverseComparisonOperator(resultOp), strongestIdent, pCFAEdge);
-    return resolve(result, reverseResult);
+    Optional<IdentifierValuePair> result = evaluateAssumption(strongestIdent, resultOp, resultSign, pCFAEdge, isLeftOperand(strongestIdent, pAssumeExp));
+    return result;
   }
 
   private boolean isLeftOperand(CExpression pExp, CBinaryExpression  pBinExp) {
@@ -245,49 +218,41 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     throw new IllegalArgumentException("Argument pExp is not part of pBinExp");
   }
 
-  private Optional<IdentifierValuePair> evaluateNonCommutativeAssumption(CIdExpression pIdExp, SIGN pResultSign, BinaryOperator pOp) {
+  private Optional<IdentifierValuePair> evaluateAssumption(CIdExpression pIdExp, BinaryOperator pOp, SIGN pResultSign, CFAEdge pCFAEdge, boolean pIdentIsLeft) {
     boolean equalZero = false;
     switch(pOp) {
     case GREATER_EQUAL:
-      equalZero = true;
+      equalZero = pResultSign == SIGN.ZERO;
       //$FALL-THROUGH$
-    case GREATER_THAN: // x > 0+
-      if(SIGN.PLUS0.covers(pResultSign)) {
-        return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.PLUS0 : SIGN.PLUS));
+    case GREATER_THAN:
+      if(pIdentIsLeft) {
+        if(SIGN.PLUS0.covers(pResultSign)) { // x > (0)+
+          return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.PLUS0 : SIGN.PLUS));
+        }
+      } else {
+        if(SIGN.MINUS0.covers(pResultSign)) { // (0)- > x
+          return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.MINUS0 : SIGN.MINUS));
+        }
       }
       break;
     case LESS_EQUAL:
-      equalZero = true;
+      equalZero = pResultSign == SIGN.ZERO;
       //$FALL-THROUGH$
-    case LESS_THAN: // x < 0-
-      if(SIGN.MINUS0.covers(pResultSign)) {
-        return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.MINUS0 : SIGN.MINUS));
+    case LESS_THAN:
+      if(pIdentIsLeft) { // x < (0)-
+        if(SIGN.MINUS0.covers(pResultSign)) {
+          return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.MINUS0 : SIGN.MINUS));
+        }
+      } else {
+        if(SIGN.PLUS0.covers(pResultSign)) { // (0)+ < x
+          return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? SIGN.PLUS0 : SIGN.PLUS));
+        }
       }
       break;
     case EQUALS:
       return Optional.of(new IdentifierValuePair(pIdExp, pResultSign));
     }
     return Optional.absent();
-  }
-
-  private Optional<IdentifierValuePair> evaluateNonCommutativeAssumption(CIdExpression pLeftIdExp, BinaryOperator pOp, CExpression pRightExp, CFAEdge pCFAEdge) {
-    SIGN resultSign;
-    try {
-      resultSign = pRightExp.accept(new SignCExpressionVisitor(pCFAEdge, state, this));
-    } catch (UnrecognizedCodeException e) {
-      return Optional.absent();
-    }
-    return evaluateNonCommutativeAssumption(pLeftIdExp, resultSign, pOp);
-  }
-
-  private Optional<IdentifierValuePair> evaluateNonCommutativeAssumption(CExpression pLeftExp, BinaryOperator pOp, CIdExpression pRightIdExp, CFAEdge pCFAEdge) {
-    SIGN resultSign;
-    try {
-      resultSign = pLeftExp.accept(new SignCExpressionVisitor(pCFAEdge, state, this));
-    } catch (UnrecognizedCodeException e) {
-      return Optional.absent();
-    }
-    return evaluateNonCommutativeAssumption(pRightIdExp, resultSign, pOp);
   }
 
   private CExpression getRefinementExpression(CIdExpression pStrongestIdent, CBinaryExpression pBinExp) {
@@ -332,13 +297,13 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   @Override
-  protected SignState handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
+  protected SignState handleAssumption(CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption)
       throws CPATransferException {
     // Analyse only expressions of the form x op y
-    if(!(expression instanceof CBinaryExpression)) {
+    if(!(pExpression instanceof CBinaryExpression)) {
       return state;
     }
-    Optional<IdentifierValuePair> result = evaluateAssumption((CBinaryExpression)expression, !truthAssumption, cfaEdge);
+    Optional<IdentifierValuePair> result = evaluateAssumption((CBinaryExpression)pExpression, pTruthAssumption, pCfaEdge);
     if(result.isPresent()) {
       return state.assignSignToVariable(result.get().identifier.getName(), result.get().value);
     }

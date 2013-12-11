@@ -42,6 +42,48 @@ import com.google.common.collect.HashBiMap;
  */
 class OctState implements AbstractState {
 
+  enum BinaryConstraints {
+    /**
+     * constraint of the form vx <= c
+     */
+    PX(0),
+
+    /**
+     * constraint of the form -vx <= c
+     */
+    MX(1),
+
+    /**
+     * constraint of the form vx  + vy<= c
+     */
+    PXPY(2),
+
+    /**
+     * constraint of the form vx - vy <= c
+     */
+    PXMY(3),
+
+    /**
+     * constraint of the form -vx  + vy <= c
+     */
+    MXPY(4),
+
+    /**
+     * constraint of the form -vx - vy <= c
+     */
+    MXMY(5);
+
+    private int num;
+
+    BinaryConstraints(int i) {
+      num = i;
+    }
+
+    int getNumber() {
+      return num;
+    }
+  }
+
   // the octagon representation
   private Octagon octagon;
 
@@ -106,12 +148,8 @@ class OctState implements AbstractState {
     return variableToIndexMap;
   }
 
-  public void addVariable(String pVarName, boolean pIsGlobal,
-      String pFunctionName) {
-
-    if (sizeOfVariables() == 0) {
-
-    }
+  public boolean isEmpty() {
+    return OctagonManager.isEmpty(octagon);
   }
 
   @Override
@@ -126,163 +164,172 @@ class OctState implements AbstractState {
     return new OctState(newOct, newMap, this.previousState);
   }
 
-  public boolean addVar(String pVarName, String pFunctionName, boolean pIsGlobal) {
-    // create variable name
-    String varName = pIsGlobal? pVarName : pFunctionName + "::" + pVarName;
-
-    // normally it should not contain
-    if (!variableToIndexMap.containsKey(pVarName)) {
-      int sizeOfMap = variableToIndexMap.size();
-      variableToIndexMap.put(varName, sizeOfMap);
-    }
-    // TODO
-    return false;
-  }
-
+  /**
+   * This method sets the coefficients/ the value of a variable to undefined.
+   */
   public void forget(String pVariableName) {
     OctagonManager.forget(octagon, getVariableIndexFor(pVariableName));
   }
 
-  public void assignConstant(String pVariableName, long pLongValue) {
-
-    if (pVariableName.contains("NONDET") || pVariableName.contains("NONDET")) {
-      forget(pVariableName);
-    }
-
-    else {
-      NumArray arr = getArrayForLiteral(pLongValue);
-      octagon = OctagonManager.assingVar(octagon, getVariableIndexFor(pVariableName), arr);
-      OctagonManager.num_clear_n(arr, size() + 1);
-    }
-  }
-
-  protected int getVariableIndexFor(String pVariableName) {
+  /**
+   * Returns the index of the variable, or null if it is not in the map.
+   */
+  protected Integer getVariableIndexFor(String pVariableName) {
     return variableToIndexMap.get(pVariableName);
   }
 
+  /**
+   * This method declares a variable.
+   */
   public void declareVariable(String pVariableName) {
     assert (!variableToIndexMap.containsKey(pVariableName));
-    variableToIndexMap.put(pVariableName, size());
+    variableToIndexMap.put(pVariableName, sizeOfVariables());
     octagon = OctagonManager.addDimensionAndEmbed(octagon, 1);
   }
 
-  private NumArray getArrayForLiteral(long pLongValue) {
-    NumArray arr = OctagonManager.init_num_t(size() + 1);
-    for (int i = 0; i<variableToIndexMap.size(); i++) {
-      OctagonManager.num_set_int(arr, i, 0);
-    }
-    OctagonManager.num_set_int(arr, size(), (int)pLongValue);
-    return arr;
+  /**
+   * This method makes an assignment to a variable
+   */
+  public void makeAssignment(String leftVarName, OctCoefficients oct) {
+    NumArray arr = oct.getNumArray();
+    octagon = OctagonManager.assingVar(octagon, getVariableIndexFor(leftVarName), arr);
+    OctagonManager.num_clear_n(arr, oct.size());
   }
 
-  public int size() {
-    return variableToIndexMap.size();
-  }
-
-  public void addConstraint(int pType, int pLVarIdx, int pRVarIdx, int pConstant) {
+  /**
+   * Helper method for all addXXXXConstraint methods
+   */
+  private void addConstraint(BinaryConstraints cons, int leftIndex, int rightIndex, int constantValue) {
     NumArray arr = OctagonManager.init_num_t(4);
-    OctagonManager.num_set_int(arr, 0, pType);
-    OctagonManager.num_set_int(arr, 1, pLVarIdx);
-    OctagonManager.num_set_int(arr, 2, pRVarIdx);
-    OctagonManager.num_set_int(arr, 3, pConstant);
+    OctagonManager.num_set_int(arr, 0, cons.getNumber());
+    OctagonManager.num_set_int(arr, 1, leftIndex);
+    OctagonManager.num_set_int(arr, 2, rightIndex);
+    OctagonManager.num_set_int(arr, 3, constantValue);
     octagon = OctagonManager.addBinConstraint(octagon, 1, arr);
     OctagonManager.num_clear_n(arr, 4);
   }
 
-  public void assignVariable(String pLeftVarName, String pRightVarName, int coef) {
+  /**
+   * This method adds a smaller constraint between two variables (p.e. a <= b).
+   * Note that this only works with integers!
+   */
+  public void addSmallerEqConstraint(String pRightVariableName, String pLeftVariableName) {
+    int rVarIdx = getVariableIndexFor(pRightVariableName);
+    int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
-    if (pLeftVarName.contains("NONDET") || pRightVarName.contains("NONDET")) {
-      forget(pLeftVarName);
-    }
-
-    else {
-      NumArray arr = getArrayForVariable(getVariableIndexFor(pRightVarName), coef);
-      octagon = OctagonManager.assingVar(octagon, getVariableIndexFor(pLeftVarName), arr);
-      OctagonManager.num_clear_n(arr, size() + 1);
-    }
+    // use 0 as constant value, we don't need it
+    addConstraint(BinaryConstraints.PXMY, lVarIdx, rVarIdx, 0);
   }
 
-  private NumArray getArrayForVariable(int pVariableIndexFor, int coef) {
-    NumArray arr = OctagonManager.init_num_t(size() + 1);
-    for (int i = 0; i<variableToIndexMap.size(); i++) {
-      if (i == pVariableIndexFor) {
-        OctagonManager.num_set_int(arr, i, coef);
-      } else {
-        OctagonManager.num_set_int(arr, i, 0);
-      }
-    }
-    OctagonManager.num_set_int(arr, size(), 0);
-    return arr;
+  /**
+   * This method adds a smaller equal constraint between a variable and a long (p.e. a <= 3).
+   * Note that this only works with integers!
+   */
+  public void addSmallerEqConstraint(String pVariableName, long pValueOfLiteral) {
+    int varIdx = getVariableIndexFor(pVariableName);
+    addConstraint(BinaryConstraints.PX, varIdx, 0, (int)pValueOfLiteral);
   }
 
-  public void assignmentOfBinaryExp(String pAssignedVar, String pLeftVarName,
-      int pLeftVarCoef, String pRightVarName, int pRightVarCoef, int pConstVal) {
-    int leftVarIdx;
-    int rightVarIdx;
-    int leftVarCoef;
-    int rightVarCoef;
+  /**
+   * This method adds a smaller constraint between two variables (p.e. a < b).
+   * Note that this only works with integers!
+   */
+  public void addSmallerConstraint(String pRightVariableName, String pLeftVariableName) {
+    int rVarIdx = getVariableIndexFor(pRightVariableName);
+    int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
-    if (pAssignedVar.contains("NONDET") ||
-        (pLeftVarName != null && pLeftVarName.contains("NONDET")) ||
-        (pRightVarName != null && pRightVarName.contains("NONDET"))) {
-      forget(pAssignedVar);
-    } else {
-      if (pLeftVarName == null) {
-        leftVarIdx = -1;
-        leftVarCoef = 0;
-      } else {
-        leftVarIdx = getVariableIndexFor(pLeftVarName);
-        leftVarCoef = pLeftVarCoef;
-      }
-
-      if (pRightVarName == null) {
-        rightVarIdx = -1;
-        rightVarCoef = 0;
-      } else {
-        rightVarIdx = getVariableIndexFor(pRightVarName);
-        rightVarCoef = pRightVarCoef;
-      }
-
-      int idxForAssignedVar = getVariableIndexFor(pAssignedVar);
-
-      NumArray arr = getArrayForVariableAndConstant(
-          leftVarIdx, leftVarCoef, rightVarIdx, rightVarCoef, pConstVal);
-
-      octagon = OctagonManager.assingVar(octagon, idxForAssignedVar, arr);
-      OctagonManager.num_clear_n(arr, size() + 1);
-    }
+    // we want the lefthandside to be really smaller than the righthandside
+    // so we use -1 as a constant value
+    addConstraint(BinaryConstraints.PXMY, lVarIdx, rVarIdx, -1);
   }
 
-  private NumArray getArrayForVariableAndConstant(int pLeftVarIdx, int pLeftVarCoef, int pRightVarIdx, int pRightVarCoef, int pConstVal) {
-    NumArray arr = OctagonManager.init_num_t(size() + 1);
-    for (int i = 0; i<variableToIndexMap.size(); i++) {
-      if (i == pLeftVarIdx) {
-        OctagonManager.num_set_int(arr, i, pLeftVarCoef);
-      } else if (i == pRightVarIdx) {
-        OctagonManager.num_set_int(arr, i, pRightVarCoef);
-      } else {
-        OctagonManager.num_set_int(arr, i, 0);
-      }
-    }
-    OctagonManager.num_set_int(arr, size(), pConstVal);
-    return arr;
+  /**
+   * This method adds a smaller constraint between a variable and a long (p.e. a < 3).
+   * Note that this only works with integers!
+   */
+  public void addSmallerConstraint(String pVariableName, long pValueOfLiteral) {
+    int varIdx = getVariableIndexFor(pVariableName);
+
+    // set right index to -1 as it is not used
+    addConstraint(BinaryConstraints.PX, varIdx, -1, (int)pValueOfLiteral-1);
   }
 
-  public boolean isEmpty() {
-    return OctagonManager.isEmpty(octagon);
+  /**
+   * This method adds a greater equal constraint between two variables (p.e. a >= b).
+   * Note that this only works with integers!
+   */
+  public void addGreaterEqConstraint(String pRightVariableName, String pLeftVariableName) {
+    int rVarIdx = getVariableIndexFor(pRightVariableName);
+    int lVarIdx = getVariableIndexFor(pLeftVariableName);
+
+    // use 0 as constant value, we don't need it
+    addConstraint(BinaryConstraints.MXPY, lVarIdx, rVarIdx, 0);
   }
 
-  // keep pSizeOfpreviousElem dimensions at the beginning and remove the rest
-  public void removeLocalVariables(OctState pPreviousElem, int noOfGlobalVars) {
-    int noOfLocalVars = (size()- pPreviousElem.size());
+  /**
+   * This method adds a greater equal constraint between a variable and a literal (p.e. a >= 3).
+   * Note that this only works with integers!
+   */
+  public void addGreaterEqConstraint(String pVariableName, long pValueOfLiteral) {
+    int varIdx = getVariableIndexFor(pVariableName);
 
-    for (int i = size(); i>pPreviousElem.size(); i--) {
+    // set right index to -1 as it is not used
+    addConstraint(BinaryConstraints.MX, varIdx, -1, (int)-pValueOfLiteral);
+  }
+
+  /**
+   * This method adds a greater constraint between two variables (p.e. a > b).
+   * Note that this only works with integers!
+   */
+  public void addGreaterConstraint(String pRightVariableName, String pLeftVariableName) {
+    int rVarIdx = getVariableIndexFor(pRightVariableName);
+    int lVarIdx = getVariableIndexFor(pLeftVariableName);
+
+    // we want the lefthandside to be really greater than the righthandside
+    // so we use -1 as a constant value
+    addConstraint(BinaryConstraints.MXPY, lVarIdx, rVarIdx, -1);
+  }
+
+  /**
+   * This method adds a greater constraint between a variable and a literal (p.e. a > 3).
+   * Note that this only works with integers!
+   */
+  public void addGreaterConstraint(String pVariableName, long pValueOfLiteral) {
+    int varIdx = getVariableIndexFor(pVariableName);
+
+    // set right index to -1 as it is not used
+    addConstraint(BinaryConstraints.MX, varIdx, -1, (-1 - (int)pValueOfLiteral));
+  }
+
+  /**
+   * This method adds an equality constraint between two variables (p.e. a == b).
+   * Note that this only works with integers!
+   */
+  public void addEqConstraint(String pRightVariableName, String pLeftVariableName) {
+    addSmallerEqConstraint(pLeftVariableName, pRightVariableName);
+    addGreaterEqConstraint(pLeftVariableName, pRightVariableName);
+  }
+
+  /**
+   * This method adds an equality constraint between a variable and a literal (p.e. a == 3).
+   * Note that this only works with integers!
+   */
+  public void addEqConstraint(String pVariableName, long constantValue) {
+    addSmallerEqConstraint(pVariableName, constantValue);
+    addGreaterEqConstraint(pVariableName, constantValue);
+  }
+
+  // keep sizeOfpreviousElem dimensions at the beginning and remove the rest
+  public void removeLocalVariables(OctState prevState) {
+    int noOfLocalVars = (sizeOfVariables()- prevState.sizeOfVariables());
+
+    for (int i = sizeOfVariables(); i>prevState.sizeOfVariables(); i--) {
       String s = variableToIndexMap.inverse().get(i-1);
       variableToIndexMap.remove(s);
     }
 
     octagon = OctagonManager.removeDimension(octagon, noOfLocalVars);
-    assert (OctagonManager.dimension(octagon) == size());
+    assert (OctagonManager.dimension(octagon) == sizeOfVariables());
   }
 
 }

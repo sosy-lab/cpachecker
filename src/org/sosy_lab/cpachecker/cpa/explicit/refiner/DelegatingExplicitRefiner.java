@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -230,6 +231,8 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       if (performExplicitRefinement(reached, errorPath)) {
         return CounterexampleInfo.spurious();
       }
+    } else {
+
     }
 
     if(predicatingRefiner != null) {
@@ -270,7 +273,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       initialStaticRefinementDone = true;
     }
     else {
-      Multimap<CFANode, String> increment = interpolatingRefiner.determinePrecisionIncrement(errorPath);
+      Multimap<CFANode, MemoryLocation> increment = interpolatingRefiner.determinePrecisionIncrement(errorPath);
       refinementRoot                      = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
 
       // no increment - explicit refinement was not successful
@@ -313,7 +316,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    * @param refinementRoot the current refinement root
    * @return true, if the current refinement is found to be similar to the previous one, else false
    */
-  private boolean isRepeatedRefinement(Multimap<CFANode, String> increment, Pair<ARGState, CFAEdge> refinementRoot) {
+  private boolean isRepeatedRefinement(Multimap<CFANode, MemoryLocation> increment, Pair<ARGState, CFAEdge> refinementRoot) {
     int currentRefinementId = refinementRoot.getSecond().getLineNumber();
     boolean result          = (previousRefinementId == currentRefinementId);
     previousRefinementId    = currentRefinementId;

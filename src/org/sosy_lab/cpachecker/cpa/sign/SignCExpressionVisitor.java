@@ -99,16 +99,16 @@ public class SignCExpressionVisitor
     SIGN result = SIGN.EMPTY;
     switch(pExp.getOperator()) {
     case PLUS:
-      result = evaluatePlusOp(pLeft, pExp.getOperand1(), pRight, pExp.getOperand2());
+      result = evaluatePlusOperator(pLeft, pExp.getOperand1(), pRight, pExp.getOperand2());
       break;
     case MINUS:
-      result = evaluateMinusOp(pLeft, pRight, pExp.getOperand2());
+      result = evaluateMinusOperator(pLeft, pRight, pExp.getOperand2());
       break;
     case MULTIPLY:
-      result = evaluateMulOp(pLeft, pRight);
+      result = evaluateMulOperator(pLeft, pRight);
       break;
     case DIVIDE:
-      result = evaluateDivideOp(pLeft, pRight);
+      result = evaluateDivideOperator(pLeft, pRight);
       break;
     default:
       throw new UnsupportedCCodeException(
@@ -149,7 +149,7 @@ public class SignCExpressionVisitor
       SIGN result = SIGN.EMPTY;
       SIGN operandSign = pIastUnaryExpression.getOperand().accept(this);
       for(SIGN atomSign : operandSign.split()) {
-        result = result.combineWith(evaluateUnaryExpr(pIastUnaryExpression.getOperator(), atomSign));
+        result = result.combineWith(evaluateUnaryExpression(pIastUnaryExpression.getOperator(), atomSign));
       }
       return result;
     default:
@@ -159,7 +159,7 @@ public class SignCExpressionVisitor
     }
   }
 
-  private static SIGN evaluateUnaryExpr(UnaryOperator operator, SIGN operand) {
+  private static SIGN evaluateUnaryExpression(UnaryOperator operator, SIGN operand) {
     if(operator == UnaryOperator.PLUS && operand == SIGN.MINUS
         || operator == UnaryOperator.MINUS && operand == SIGN.PLUS) {
       return SIGN.MINUS;
@@ -167,18 +167,18 @@ public class SignCExpressionVisitor
     return SIGN.PLUS;
   }
 
-  private SIGN evaluatePlusOp(SIGN pLeft, CExpression pLeftExp, SIGN pRight, CExpression pRightExp) {
+  private SIGN evaluatePlusOperator(SIGN pLeft, CExpression pLeftExp, SIGN pRight, CExpression pRightExp) {
     // Special case: - + 1 => -0, 1 + - => -0
     if(pLeft == SIGN.MINUS && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)
         || (pLeftExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pLeftExp).getValue().equals(BigInteger.ONE) && pRight == SIGN.MINUS) {
       return SIGN.MINUS0;
     }
-    SIGN leftToRightResult = evaluateNonCommutativePlusOp(pLeft, pRight);
-    SIGN rightToLeftResult = evaluateNonCommutativePlusOp(pRight, pLeft);
+    SIGN leftToRightResult = evaluateNonCommutativePlusOperator(pLeft, pRight);
+    SIGN rightToLeftResult = evaluateNonCommutativePlusOperator(pRight, pLeft);
     return leftToRightResult.combineWith(rightToLeftResult);
   }
 
-  private SIGN evaluateNonCommutativePlusOp(SIGN pLeft, SIGN pRight) {
+  private SIGN evaluateNonCommutativePlusOperator(SIGN pLeft, SIGN pRight) {
     if(pRight == SIGN.ZERO) {
       return pLeft;
     }
@@ -194,7 +194,7 @@ public class SignCExpressionVisitor
     return SIGN.EMPTY;
   }
 
-  private SIGN evaluateMinusOp(SIGN pLeft, SIGN pRight, CExpression pRightExp) {
+  private SIGN evaluateMinusOperator(SIGN pLeft, SIGN pRight, CExpression pRightExp) {
     // Special case: + - 1 => +0
     if(pLeft == SIGN.PLUS && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)) {
       return SIGN.PLUS0;
@@ -211,13 +211,13 @@ public class SignCExpressionVisitor
     return SIGN.ALL;
   }
 
-  private SIGN evaluateMulOp(SIGN pLeft, SIGN pRight) {
-    SIGN leftToRightResult = evaluateNonCommutativeMulOp(pLeft, pRight);
-    SIGN rightToLeftResult = evaluateNonCommutativeMulOp(pRight, pLeft);
+  private SIGN evaluateMulOperator(SIGN pLeft, SIGN pRight) {
+    SIGN leftToRightResult = evaluateNonCommutativeMulOperator(pLeft, pRight);
+    SIGN rightToLeftResult = evaluateNonCommutativeMulOperator(pRight, pLeft);
     return leftToRightResult.combineWith(rightToLeftResult);
   }
 
-  private SIGN evaluateNonCommutativeMulOp(SIGN left, SIGN right) {
+  private SIGN evaluateNonCommutativeMulOperator(SIGN left, SIGN right) {
     if(right == SIGN.ZERO) {
       return SIGN.ZERO;
     }
@@ -231,10 +231,10 @@ public class SignCExpressionVisitor
     return SIGN.EMPTY;
   }
 
-  private SIGN evaluateDivideOp(SIGN left, SIGN right) throws UnsupportedCCodeException {
+  private SIGN evaluateDivideOperator(SIGN left, SIGN right) throws UnsupportedCCodeException {
     if(right == SIGN.ZERO) {
       throw new UnsupportedCCodeException("Dividing by zero is not supported", edgeOfExpr);
     }
-    return evaluateMulOp(left, right);
+    return evaluateMulOperator(left, right);
   }
 }

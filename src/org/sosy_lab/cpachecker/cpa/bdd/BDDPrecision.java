@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
@@ -77,7 +78,7 @@ public class BDDPrecision implements Precision {
   }
 
   /** copy-constructor, that allows to add new variables to cegar-precision. */
-  public BDDPrecision(BDDPrecision original, Multimap<CFANode, String> increment) {
+  public BDDPrecision(BDDPrecision original, Multimap<CFANode, MemoryLocation> increment) {
     this.varClass = original.varClass;
     this.forceTrackingPattern = original.forceTrackingPattern;
     this.trackBoolean = original.trackBoolean;
@@ -151,7 +152,7 @@ public class BDDPrecision implements Precision {
 
     /** the collection that determines which variables are tracked at
      *  a specific location - if it is null, all variables are tracked */
-    private HashMultimap<CFANode, String> mapping = null;
+    private HashMultimap<CFANode, MemoryLocation> mapping = null;
 
     @Option(description = "whether or not to add newly-found variables " +
         "only to the exact program location or to the whole scope of the variable.")
@@ -190,7 +191,9 @@ public class BDDPrecision implements Precision {
     public boolean allowsTrackingAt(@Nullable String function, String var) {
       if (mapping == null) { return true; }
 
-      final String variable = (function == null ? "" : function + "::") + var;
+      final MemoryLocation variable = function == null ? MemoryLocation.valueOf(var, 0)
+                                                       : MemoryLocation.valueOf(function, var, 0);
+
       // when using scoped interpolation, it suffices to have the (scoped) variable identifier in the precision
       if (useScopedInterpolation) {
         return mapping.containsValue(variable);
@@ -210,7 +213,7 @@ public class BDDPrecision implements Precision {
      *
      * @param additionalMapping to be added to the current mapping
      */
-    public void addToMapping(Multimap<CFANode, String> additionalMapping) {
+    public void addToMapping(Multimap<CFANode, MemoryLocation> additionalMapping) {
       mapping.putAll(additionalMapping);
     }
   }

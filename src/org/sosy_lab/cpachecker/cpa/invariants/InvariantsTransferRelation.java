@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundStateFormulaManage
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor.VariableNameExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -138,22 +137,22 @@ public enum InvariantsTransferRelation implements TransferRelation {
   }
 
   private InvariantsState handleAssume(InvariantsState pElement, CAssumeEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
-    FormulaEvaluationVisitor<CompoundInterval> resolver = pElement.getFormulaResolver(pEdge);
     CExpression expression = pEdge.getExpression();
     // Create a formula representing the edge expression
     InvariantsFormula<CompoundInterval> expressionFormula = expression.accept(getExpressionToFormulaVisitor(pEdge));
 
-    // Evaluate the state of the assume edge expression
-    CompoundInterval expressionState = expressionFormula.accept(resolver, pElement.getEnvironment());
+    Collection<InvariantsFormula<CompoundInterval>> informationBase = FluentIterable.from(pElement.getAssumptionsAndEnvironment()).toList();
+
     /*
      * If the expression definitely evaluates to false when truth is assumed or
      * the expression definitely evaluates to true when falsehood is assumed,
      * the state is unreachable.
      */
-    if (pEdge.getTruthAssumption() && expressionState.isDefinitelyFalse()
-        || !pEdge.getTruthAssumption() && expressionState.isDefinitelyTrue()) {
+    if (pEdge.getTruthAssumption() && CompoundStateFormulaManager.definitelyImplies(informationBase, CompoundStateFormulaManager.INSTANCE.logicalNot(expressionFormula))
+        || !pEdge.getTruthAssumption() && CompoundStateFormulaManager.definitelyImplies(informationBase, expressionFormula)) {
       return null;
     }
+
     /*
      * Assume the state of the expression:
      * If truth is assumed, any non-zero value, otherwise zero.

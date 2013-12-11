@@ -441,6 +441,20 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
   }
 
   protected S handleFunctionSummaryEdge(FunctionSummaryEdge cfaEdge) throws CPATransferException {
+    if (cfaEdge instanceof CFunctionSummaryEdge) {
+      return handleFunctionSummaryEdge((CFunctionSummaryEdge)cfaEdge);
+    } else if (cfaEdge instanceof JMethodSummaryEdge) {
+      return handleFunctionSummaryEdge((JMethodSummaryEdge)cfaEdge);
+    } else {
+      throw new AssertionError("unkown error");
+    }
+  }
+
+  protected S handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
+    throw new AssertionError(NOT_IMPLEMENTED);
+  }
+
+  protected S handleFunctionSummaryEdge(JMethodSummaryEdge cfaEdge) throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
