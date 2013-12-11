@@ -6,7 +6,7 @@ extern bool __VERIFIER_nondet_bool();
 int main() {
   bool selector = __VERIFIER_nondet_bool();
 
-  int *ptr;
+  int *ptr = NULL;
 
   if (!selector) {
     ptr = malloc(sizeof(int));
@@ -14,9 +14,8 @@ int main() {
 
   if (selector) {
     *ptr = 666;
-    ptr = NULL;
-    free(ptr);
   }
+  free(ptr);
 
-  return;
+  return 0;
 }

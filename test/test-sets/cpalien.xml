@@ -7,9 +7,14 @@
 
   <sourcefiles name="cpalien-okay">
     <includesfile>../programs/cpalien/cpalien.set</includesfile>
+    <option name="-CPAlien"/>
+  </sourcefiles>
+
+  <sourcefiles name="cpalien-label-okay">
+    <includesfile>../programs/cpalien/cpalien-label.set</includesfile>
+    <option name="-CPAlien-label"/>
   </sourcefiles>
 
   <rundefinition name="cpalien">
-    <option name="-CPAlien"/>
   </rundefinition>
 </benchmark>

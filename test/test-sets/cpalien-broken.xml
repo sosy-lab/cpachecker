@@ -7,9 +7,14 @@
 
   <sourcefiles name="cpalien-not-yet-there">
     <includesfile>../programs/cpalien/cpalien-not-yet.set</includesfile>
+    <option name="-CPAlien"/>
+  </sourcefiles>
+
+  <sourcefiles name="cpalien-label-not-yet-there">
+    <includesfile>../programs/cpalien/cpalien-label-not-yet.set</includesfile>
+    <option name="-CPAlien-label"/>
   </sourcefiles>
 
   <rundefinition name="cpalien">
-    <option name="-CPAlien"/>
   </rundefinition>
 </benchmark>
