@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class ExplicitInterpolator {
 
@@ -61,6 +63,9 @@ public class ExplicitInterpolator {
    */
   private Configuration config = null;
 
+  /**
+   * the shutdownNotifier in use
+   */
   private final ShutdownNotifier shutdownNotifier;
 
   /**
@@ -74,10 +79,18 @@ public class ExplicitInterpolator {
   private ExplicitPrecision precision = null;
 
   /**
+   * whether to check memory locations in ascending or descending order during interpolation
+   */
+  private final boolean descendingOrder;
+
+  /**
    * the first path element without any successors
    */
   public Integer conflictingOffset = null;
 
+  /**
+   * the current offset, needed for incremental interpolation
+   */
   public Integer currentOffset = null;
 
   /**
@@ -93,13 +106,14 @@ public class ExplicitInterpolator {
   /**
    * This method acts as the constructor of the class.
    */
-  public ExplicitInterpolator(final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final CFA pCfa) throws CPAException {
+  public ExplicitInterpolator(final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      final CFA pCfa, final boolean pDescendingOrder) throws CPAException {
     shutdownNotifier = pShutdownNotifier;
     try {
-      config      = Configuration.builder().build();
-      transfer    = new ExplicitTransferRelation(config, pLogger, pCfa);
-      precision   = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
+      config          = Configuration.builder().build();
+      transfer        = new ExplicitTransferRelation(config, pLogger, pCfa);
+      precision       = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
+      descendingOrder = pDescendingOrder;
     }
     catch (InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
@@ -140,9 +154,13 @@ public class ExplicitInterpolator {
       return Collections.emptySet();
     }
 
+    NavigableSet<MemoryLocation> memoryLocations = Sets.newTreeSet(initialSuccessor.getTrackedMemoryLocations());
+    if(descendingOrder) {
+      memoryLocations = memoryLocations.descendingSet();
+    }
+
     Set<Pair<MemoryLocation, Long>> interpolant = new HashSet<>();
 
-    List<MemoryLocation> memoryLocations = Lists.newArrayList(initialSuccessor.getTrackedMemoryLocations());
     for (MemoryLocation currentMemoryLocation : memoryLocations) {
       shutdownNotifier.shutdownIfNecessary();
       ExplicitState successor = initialSuccessor.clone();
