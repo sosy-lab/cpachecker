@@ -200,3 +200,4 @@
 /test/results/*
 
 /.metadata
+/test/programs/benchmarks

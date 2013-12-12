@@ -740,9 +740,15 @@ cpa.invariants.interestingPredicatesLimit = 0
 # variables is disabled.
 cpa.invariants.interestingVariableLimit = 2
 
+# the maximum tree depth of a formula recorded in the environment.
+cpa.invariants.maximumFormulaDepth = 4
+
 # which merge operator to use for InvariantCPA
 cpa.invariants.merge = "JOIN"
   allowed values: [JOIN, SEP]
+
+# whether or not to collect information about binary variable interrelations.
+cpa.invariants.useBinaryVariableInterrelations = true
 
 # whether or not to use a bit vector formula manager when extracting
 # invariant approximations from states.

@@ -69,7 +69,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   /**
    * the current delta of this state to the previous state
    */
-  private Set<String> delta;
+  private Set<MemoryLocation> delta;
 
   public ExplicitState() {
     constantsMap = PathCopyingPersistentTreeMap.of();
@@ -455,14 +455,16 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param other the other state for which to get the difference
    * @return the set of variable names that differ
    */
-  public Set<String> getDifference(ExplicitState other) {
-    Set<String> difference = new HashSet<>();
+  public Set<MemoryLocation> getDifference(ExplicitState other) {
+    Set<MemoryLocation> difference = new HashSet<>();
 
     for (MemoryLocation variableName : other.constantsMap.keySet()) {
       if (!contains(variableName)) {
-        difference.add(variableName.getAsSimpleString());
-      } else if (!getValueFor(variableName).equals(other.getValueFor(variableName))) {
-        difference.add(variableName.getAsSimpleString());
+        difference.add(variableName);
+      }
+
+      else if (!getValueFor(variableName).equals(other.getValueFor(variableName))) {
+        difference.add(variableName);
       }
     }
 
@@ -474,7 +476,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    *
    * @return the current delta of this state
    */
-  Collection<String> getDelta() {
+  Collection<MemoryLocation> getDelta() {
     return ImmutableSet.copyOf(delta);
   }
 
@@ -617,26 +619,37 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
     public static MemoryLocation valueOf(String pVariableName) {
 
-      int offset = 0;
+      String[] nameParts    = pVariableName.split("::");
+      String[] offsetParts  = pVariableName.split("/");
 
-      if (pVariableName.contains("::")) {
+      boolean isScoped  = nameParts.length == 2;
+      boolean hasOffset = offsetParts.length == 2;
 
-        String[] names = pVariableName.split("::");
+      int offset = hasOffset ? Integer.parseInt(offsetParts[1]) : 0;
 
-        assert names.length == 2;
+      if(isScoped) {
+        return new MemoryLocation(nameParts[0], nameParts[1].replace("/" + offset, ""), offset);
+      }
 
-        int functionName = 0;
-        int identifierName = 1;
-        return new MemoryLocation(names[functionName], names[identifierName],
-            offset);
-
-      } else {
-        return new MemoryLocation(pVariableName, offset);
+      else {
+        return new MemoryLocation(nameParts[0].replace("/" + offset, ""), offset);
       }
     }
 
     public String getAsSimpleString() {
-      return isOnFunctionStack() ? functionName + "::" + identifier : identifier;
+      /*
+            String simpleName = identifier + "[" + offset + "]";
+
+      return isOnFunctionStack() ? (functionName + "::" + simpleName) : simpleName;
+      */
+
+      return isOnFunctionStack() ? (functionName + "::" + identifier) : (identifier);
+    }
+
+    public String serialize() {
+      String simpleName = identifier + "/" + offset;
+
+      return isOnFunctionStack() ? (functionName + "::" + simpleName) : simpleName;
     }
 
     public boolean isOnFunctionStack() {
