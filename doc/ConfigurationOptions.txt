@@ -633,6 +633,10 @@ cpa.explicit.refiner.avoidAssumes = false
 # refinement root
 cpa.explicit.refiner.checkForRepeatedRefinements = true
 
+# whether to check memory locations in ascending or descending order during
+# interpolation
+cpa.explicit.refiner.descendingOrder = false
+
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = true
 
@@ -1231,6 +1235,10 @@ memorysafety.check = false
 # instead of the current one.
 memorysafety.config = no default value
 
+# which merge operator to use for SignCPA
+merge = "JOIN"
+  allowed values: [SEP, JOIN]
+
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
@@ -1303,4 +1311,8 @@ statistics.memory = true
 
 # print statistics to console
 statistics.print = false
+
+# which stop operator to use for SignCPA
+stop = "JOIN"
+  allowed values: [SEP, JOIN]
 
