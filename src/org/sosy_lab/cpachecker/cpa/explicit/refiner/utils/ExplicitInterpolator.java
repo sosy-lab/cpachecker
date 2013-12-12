@@ -182,15 +182,6 @@ public class ExplicitInterpolator {
   }
 
   /**
-   * This method returns whether or not the last error path was feasible.
-   *
-   * @return whether or not the last error path was feasible
-   */
-  public boolean isFeasible() {
-    return isFeasible;
-  }
-
-  /**
    * This method returns the number of performed interpolations.
    *
    * @return the number of performed interpolations
