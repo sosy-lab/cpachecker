@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -104,6 +105,21 @@ public enum CompoundStateFormulaManager {
       }
     } else {
       formulas = pFormulas;
+    }
+    for (InvariantsFormula<CompoundInterval> formula : formulas) {
+      Collection<InvariantsFormula<CompoundInterval>> disjunctions = formula.accept(SPLIT_DISJUNCTIONS_VISITOR);
+      if (disjunctions.size() > 1) {
+        ArrayList<InvariantsFormula<CompoundInterval>> newFormulas = new ArrayList<>(pFormulas);
+        newFormulas.remove(formula);
+        for (InvariantsFormula<CompoundInterval> disjunctivePart : disjunctions) {
+          newFormulas.add(disjunctivePart);
+          if (!definitelyImplies(newFormulas, pFormula)) {
+            return false;
+          }
+          newFormulas.remove(disjunctivePart);
+        }
+        return true;
+      }
     }
     Map<String, InvariantsFormula<CompoundInterval>> tmpEnvironment = pEnvironment;
     PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(FORMULA_EVALUATION_VISITOR, tmpEnvironment);

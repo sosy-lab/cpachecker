@@ -350,7 +350,24 @@ class ASTConverter {
       return convert((IASTFunctionCallExpression)e);
 
     } else if (e instanceof IASTIdExpression) {
-      return convert((IASTIdExpression)e);
+      CExpression exp = convert((IASTIdExpression)e);
+      CType type = exp.getExpressionType();
+
+      // this id expression is the name of a function. When there is no
+      // functionCallExpressionn or unaryexpression with pointertype and operator.Amper
+      // around it, we create it.
+      if (type instanceof CFunctionType
+          && !(e.getParent() instanceof IASTFunctionCallExpression
+              || (e.getParent() instanceof IASTUnaryExpression
+                  && ((IASTUnaryExpression) e.getParent()).getOperator() == IASTUnaryExpression.op_amper))) {
+        exp = new CUnaryExpression(exp.getFileLocation(),
+                                   new CPointerType(type.isConst(),
+                                                    type.isVolatile(),
+                                                    type),
+                                   exp,
+                                   UnaryOperator.AMPER);
+        }
+      return exp;
 
     } else if (e instanceof IASTLiteralExpression) {
       return literalConverter.convert((IASTLiteralExpression)e);

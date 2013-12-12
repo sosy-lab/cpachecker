@@ -117,6 +117,12 @@ public class InvariantsCPA extends AbstractCPA {
     @Option(description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
     private int interestingVariableLimit = 2;
 
+    @Option(description="the maximum tree depth of a formula recorded in the environment.")
+    private int maximumFormulaDepth = 4;
+
+    @Option(description="whether or not to collect information about binary variable interrelations.")
+    private boolean useBinaryVariableInterrelations = true;
+
     @Option(description="whether or not to use a bit vector formula manager when extracting invariant approximations from states.")
     private boolean useBitvectors = false;
 
@@ -193,10 +199,12 @@ public class InvariantsCPA extends AbstractCPA {
     boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
     if (determineTargetLocations) {
       try {
-        Configuration.Builder configurationBuilder = Configuration.builder().copyFrom(config);
+        Configuration.Builder configurationBuilder = Configuration.builder();
         configurationBuilder.setOption("output.disable", "true");
         configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA");
-        configurationBuilder.setOption("specification", "config/specification/default.spc");
+        String specification = config.getProperty("specification");
+        specification = "config/specification/default.spc";
+        configurationBuilder.setOption("specification", specification);
 
         ConfigurableProgramAnalysis cpa = new CPABuilder(configurationBuilder.build(), logManager, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
         ReachedSet reached = reachedSetFactory.create();
@@ -310,7 +318,9 @@ public class InvariantsCPA extends AbstractCPA {
 
     InvariantsPrecision precision = new InvariantsPrecision(relevantEdges,
         ImmutableSet.copyOf(limit(interestingPredicates, options.interestingPredicatesLimit)),
-        ImmutableSet.copyOf(limit(interestingVariables, options.interestingVariableLimit)));
+        ImmutableSet.copyOf(limit(interestingVariables, options.interestingVariableLimit)),
+        options.maximumFormulaDepth,
+        options.useBinaryVariableInterrelations);
 
     initialPrecisionMap.put(pNode, precision);
 

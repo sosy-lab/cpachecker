@@ -29,18 +29,19 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Joiner;
@@ -109,7 +110,7 @@ public class ExplicitPrecision implements Precision {
    * @param original the ExplicitPrecision to refine
    * @param increment the increment to refine with
    */
-  public ExplicitPrecision(ExplicitPrecision original, Multimap<CFANode, String> increment) {
+  public ExplicitPrecision(ExplicitPrecision original, Multimap<CFANode, MemoryLocation> increment) {
     // refine the refinable component precision with the given increment
     refinablePrecision    = original.refinablePrecision.refine(increment);
 
@@ -152,40 +153,14 @@ public class ExplicitPrecision implements Precision {
   ExplicitState computeAbstraction(ExplicitState state, CFANode location) {
     refinablePrecision.setLocation(location);
 
-    Collection<String> candidates = refinablePrecision.getAbstractionCandidates(state);
-    for (Iterator<String> variableNames = candidates.iterator(); variableNames.hasNext(); ) {
-      String name = variableNames.next();
-      /* for tests with failing benchmarks in product-lines
-       * //if(!name.equals("executiveFloor") && !name.startsWith("calls_") && !name.startsWith("personOnFloor_")) {
-      if (!name.startsWith("personOnFloor_0")
-          && !name.startsWith("personOnFloor_1")
-          && !name.startsWith("personOnFloor_2")
-          && !name.startsWith("personOnFloor_3")
-          && !name.startsWith("personOnFloor_4")
-          && !name.startsWith("personOnFloor_5")
+    Collection<MemoryLocation> candidates = refinablePrecision.getAbstractionCandidates(state);
+    for (Iterator<MemoryLocation> memoryLocations = candidates.iterator(); memoryLocations.hasNext(); ) {
+      MemoryLocation memoryLocation = memoryLocations.next();
 
-          && !name.startsWith("calls_")
-
-          && !name.startsWith("persons_")
-
-          && !name.startsWith("floorButtons_")
-
-          && !name.equals("executiveFloor")
-          && !name.equals("currentFloorID")
-          && !name.equals("currentHeading")) {
-        variableNames.remove();
-        continue;
-      }
-      if (name.contains("___cpa_temp_result_var_")) {
-        variableNames.remove();
-        continue;
-      }*/
-
-      if (isTracking(name)) {
-        variableNames.remove();
+      if (!isTracking(memoryLocation)) {
+        state.forget(memoryLocation);
       }
     }
-    state.removeAll(candidates);
 
     return state;
   }
@@ -199,23 +174,24 @@ public class ExplicitPrecision implements Precision {
    * @param variable the scoped name of the variable to check
    * @return true, if the variable has to be tracked, else false
    */
-  public boolean isTracking(String variable) {
+  public boolean isTracking(MemoryLocation variable) {
     boolean result = refinablePrecision.contains(variable)
-            && !isOnBlacklist(variable)
+            && !isOnBlacklist(variable.getIdentifier())
             && !isInIgnoredVarClass(variable);
 
     return result;
   }
 
   /** returns true, iff the variable is in an varClass, that should be ignored. */
-  private boolean isInIgnoredVarClass(String variable) {
+  private boolean isInIgnoredVarClass(final MemoryLocation variable) {
     if (varClass==null || !varClass.isPresent()) { return false; }
 
-    final Pair<String, String> var = splitVar(variable);
+    final String functionName = variable.isOnFunctionStack() ? variable.getFunctionName() : null;
+    final String varName = variable.getIdentifier();
 
-    final boolean isBoolean = varClass.get().getIntBoolVars().containsEntry(var.getFirst(), var.getSecond());
-    final boolean isIntEqual = varClass.get().getIntEqualVars().containsEntry(var.getFirst(), var.getSecond());
-    final boolean isIntAdd = varClass.get().getIntAddVars().containsEntry(var.getFirst(), var.getSecond());
+    final boolean isBoolean = varClass.get().getIntBoolVars().containsEntry(functionName, varName);
+    final boolean isIntEqual = varClass.get().getIntEqualVars().containsEntry(functionName, varName);
+    final boolean isIntAdd = varClass.get().getIntAddVars().containsEntry(functionName, varName);
 
     final boolean isIgnoredBoolean = ignoreBoolean && isBoolean;
     final boolean isIgnoredIntEqual = ignoreIntEqual && isIntEqual;
@@ -224,29 +200,14 @@ public class ExplicitPrecision implements Precision {
     return isIgnoredBoolean || isIgnoredIntEqual || isIgnoredIntAdd;
   }
 
-  /** split var into function and varName */
-  private static Pair<String, String> splitVar(String variable) {
-    int i = variable.indexOf("::");
-    String function;
-    String varName;
-    if (i == -1) { // global variable, no splitting
-      function = null;
-      varName = variable;
-    } else { // split function::varName
-      function = variable.substring(0, i);
-      varName = variable.substring(i + 2);
-    }
-    return Pair.of(function, varName);
-  }
-
   private RefinablePrecision createInstance() {
-	if(sharing.equals("scope")) {
+    if(sharing.equals("scope")) {
       return new ScopedRefinablePrecision();
-	}
+    }
 
     else if(sharing.equals("location")) {
       return new LocalizedRefinablePrecision();
-	}
+    }
 
     else {
       throw new InternalError("Wrong value for precison sharing strategy given (was " + sharing + ")," +
@@ -277,7 +238,7 @@ public class ExplicitPrecision implements Precision {
      * @param variable the scoped name of the variable for which to make the decision
      * @return true, when the variable is allowed to be tracked, else false
      */
-    abstract public boolean contains(String variable);
+    abstract public boolean contains(MemoryLocation variable);
 
     /**
      * This method refines the precision with the given increment.
@@ -285,7 +246,7 @@ public class ExplicitPrecision implements Precision {
      * @param increment the increment to refine the precision with
      * @return the refined precision
      */
-    abstract protected RefinablePrecision refine(Multimap<CFANode, String> increment);
+    abstract protected RefinablePrecision refine(Multimap<CFANode, MemoryLocation> increment);
 
     /**
      * This method returns the size of the refinable precision, i.e., the number of elements contained.
@@ -316,17 +277,17 @@ public class ExplicitPrecision implements Precision {
      * @param state the state for which to compute the abstraction candidates
      * @return the set of the abstraction candidates
      */
-    abstract protected Collection<String> getAbstractionCandidates(ExplicitState state);
+    abstract protected Collection<MemoryLocation> getAbstractionCandidates(ExplicitState state);
   }
 
   public static class LocalizedRefinablePrecision extends RefinablePrecision {
     /**
      * the collection that determines which variables are tracked at a specific location - if it is null, all variables are tracked
      */
-    private HashMultimap<CFANode, String> rawPrecision = HashMultimap.create();
+    private HashMultimap<CFANode, MemoryLocation> rawPrecision = HashMultimap.create();
 
     @Override
-    public LocalizedRefinablePrecision refine(Multimap<CFANode, String> increment) {
+    public LocalizedRefinablePrecision refine(Multimap<CFANode, MemoryLocation> increment) {
       if (this.rawPrecision.entries().containsAll(increment.entries())) {
         return this;
       }
@@ -341,7 +302,7 @@ public class ExplicitPrecision implements Precision {
     }
 
     @Override
-    public boolean contains(String variable) {
+    public boolean contains(MemoryLocation variable) {
       return rawPrecision.containsEntry(location, variable);
     }
 
@@ -350,8 +311,8 @@ public class ExplicitPrecision implements Precision {
       for (CFANode currentLocation : rawPrecision.keySet()) {
         writer.write("\n" + currentLocation + ":\n");
 
-        for (String variable : rawPrecision.get(currentLocation)) {
-          writer.write(variable + "\n");
+        for (MemoryLocation variable : rawPrecision.get(currentLocation)) {
+          writer.write(variable.serialize() + "\n");
         }
       }
     }
@@ -368,8 +329,8 @@ public class ExplicitPrecision implements Precision {
     }
 
     @Override
-    protected Collection<String> getAbstractionCandidates(ExplicitState state) {
-      return new HashSet<>(state.getTrackedVariableNames());
+    protected Collection<MemoryLocation> getAbstractionCandidates(ExplicitState state) {
+      return new HashSet<>(state.getTrackedMemoryLocations());
     }
 
     @Override
@@ -382,15 +343,15 @@ public class ExplicitPrecision implements Precision {
     /**
      * the collection that determines which variables are tracked within a specific scope
      */
-    private Set<String> rawPrecision = new HashSet<>();
+    private Set<MemoryLocation> rawPrecision = new HashSet<>();
 
     @Override
-    public boolean contains(String variable) {
+    public boolean contains(MemoryLocation variable) {
       return rawPrecision.contains(variable);
     }
 
     @Override
-    public ScopedRefinablePrecision refine(Multimap<CFANode, String> increment) {
+    public ScopedRefinablePrecision refine(Multimap<CFANode, MemoryLocation> increment) {
       if (this.rawPrecision.containsAll(increment.values())) {
         return this;
       }
@@ -405,22 +366,23 @@ public class ExplicitPrecision implements Precision {
 
     @Override
     void serialize(Writer writer) throws IOException {
-      SortedSet<String> sortedPrecision = new TreeSet<>(rawPrecision);
+      SortedSet<MemoryLocation> sortedPrecision = new TreeSet<>(rawPrecision);
 
-      ArrayList<String> globals = new ArrayList<>();
-      String previousScope      = null;
-      for (String variable : sortedPrecision) {
-        if (variable.contains("::")) {
-          String functionName = variable.substring(0, variable.indexOf("::"));
+      List<String> globals = new ArrayList<>();
+      String previousScope = null;
+
+      for (MemoryLocation variable : sortedPrecision) {
+        if (variable.isOnFunctionStack()) {
+          String functionName = variable.getFunctionName();
           if (!functionName.equals(previousScope)) {
             writer.write("\n" + functionName + ":\n");
           }
-          writer.write(variable + "\n");
+          writer.write(variable.serialize() + "\n");
 
           previousScope = functionName;
         }
         else {
-          globals.add(variable);
+          globals.add(variable.serialize());
         }
       }
 
@@ -443,7 +405,7 @@ public class ExplicitPrecision implements Precision {
     }
 
     @Override
-    protected Collection<String> getAbstractionCandidates(ExplicitState state) {
+    protected Collection<MemoryLocation> getAbstractionCandidates(ExplicitState state) {
       return new HashSet<>(state.getDelta());
     }
 
@@ -455,12 +417,12 @@ public class ExplicitPrecision implements Precision {
 
   public static class FullPrecision extends RefinablePrecision {
     @Override
-    public boolean contains(String variable) {
+    public boolean contains(MemoryLocation variable) {
       return true;
     }
 
     @Override
-    public FullPrecision refine(Multimap<CFANode, String> additionalMapping) {
+    public FullPrecision refine(Multimap<CFANode, MemoryLocation> additionalMapping) {
       return this;
     }
 
@@ -480,7 +442,7 @@ public class ExplicitPrecision implements Precision {
     }
 
     @Override
-    protected Collection<String> getAbstractionCandidates(ExplicitState state) {
+    protected Collection<MemoryLocation> getAbstractionCandidates(ExplicitState state) {
       return new HashSet<>(state.getDelta());
     }
   }

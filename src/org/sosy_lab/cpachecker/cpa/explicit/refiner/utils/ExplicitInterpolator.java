@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
@@ -54,32 +55,38 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class ExplicitInterpolator {
-
   /**
-   * the configuration of the interpolator
+   * the shutdownNotifier in use
    */
-  private Configuration config = null;
-
   private final ShutdownNotifier shutdownNotifier;
 
   /**
    * the transfer relation in use
    */
-  private ExplicitTransferRelation transfer = null;
+  private final ExplicitTransferRelation transfer;
 
   /**
    * the precision in use
    */
-  private ExplicitPrecision precision = null;
+  private final ExplicitPrecision precision;
+
+  /**
+   * whether to check memory locations in ascending or descending order during interpolation
+   */
+  private final boolean descendingOrder;
 
   /**
    * the first path element without any successors
    */
-  public Integer conflictingOffset = null;
+  private Integer conflictingOffset = null;
 
-  public Integer currentOffset = null;
+  /**
+   * the current offset, needed for incremental interpolation
+   */
+  private Integer currentOffset = null;
 
   /**
    * boolean flag telling whether the current path is feasible
@@ -94,13 +101,15 @@ public class ExplicitInterpolator {
   /**
    * This method acts as the constructor of the class.
    */
-  public ExplicitInterpolator(final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final CFA pCfa) throws CPAException {
+  public ExplicitInterpolator(final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      final CFA pCfa, final boolean pDescendingOrder) throws CPAException {
     shutdownNotifier = pShutdownNotifier;
     try {
-      config      = Configuration.builder().build();
-      transfer    = new ExplicitTransferRelation(config, pLogger, pCfa);
-      precision   = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
+      Configuration config = Configuration.builder().build();
+
+      transfer        = new ExplicitTransferRelation(config, pLogger, pCfa);
+      precision       = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
+      descendingOrder = pDescendingOrder;
     }
     catch (InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
@@ -110,19 +119,18 @@ public class ExplicitInterpolator {
   /**
    * This method derives an interpolant for the given error path and interpolation state.
    *
-   * @param errorPath the path to check
-   * @param offset offset of the state at where to start the current interpolation
+   * @param pErrorPath the path to check
+   * @param pOffset offset of the state at where to start the current interpolation
    * @param pInputInterpolant the input interpolant
    * @throws CPAException
    * @throws InterruptedException
    */
-  public Set<Pair<String, NumberContainer>> deriveInterpolant(
-      List<CFAEdge> errorPath,
-      int offset,
-      Map<String, NumberContainer> pInputInterpolant) throws CPAException, InterruptedException {
+  public Set<Pair<MemoryLocation, NumberContainer>> deriveInterpolant(
+      List<CFAEdge> pErrorPath,
+      int pOffset,
+      Map<MemoryLocation, NumberContainer> pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolations = 0;
-
-    currentOffset = offset;
+    currentOffset          = pOffset;
 
     // cancel the interpolation if we are interpolating at the conflicting element
     if (conflictingOffset != null && currentOffset >= conflictingOffset) {
@@ -130,51 +138,48 @@ public class ExplicitInterpolator {
     }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
-    ExplicitState initialState      = new ExplicitState(MemoryLocation.transform(PathCopyingPersistentTreeMap.copyOf(pInputInterpolant)));
-    ExplicitState initialSuccessor  = getInitialSuccessor(initialState, errorPath.get(offset));
+    ExplicitState initialState      = new ExplicitState(PathCopyingPersistentTreeMap.copyOf(pInputInterpolant));
+    ExplicitState initialSuccessor  = getInitialSuccessor(initialState, pErrorPath.get(currentOffset));
     if (initialSuccessor == null) {
       return null;
     }
 
     // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
-    if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(skip(errorPath, offset + 1), new ExplicitState())) {
+    Iterable<CFAEdge> remainingErrorPath = skip(pErrorPath, currentOffset + 1);
+    if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(remainingErrorPath, new ExplicitState())) {
       return Collections.emptySet();
     }
 
-    Set<Pair<String, NumberContainer>> interpolant = new HashSet<>();
-    List<String> list = Lists.newArrayList(initialSuccessor.getTrackedVariableNames());
-    for (String currentVariable : list) {
+    NavigableSet<MemoryLocation> memoryLocations = Sets.newTreeSet(initialSuccessor.getTrackedMemoryLocations());
+    if(descendingOrder) {
+      memoryLocations = memoryLocations.descendingSet();
+    }
+
+    Set<Pair<MemoryLocation, NumberContainer>> interpolant = new HashSet<>();
+
+    for (MemoryLocation currentMemoryLocation : memoryLocations) {
       shutdownNotifier.shutdownIfNecessary();
       ExplicitState successor = initialSuccessor.clone();
 
       // remove the value of the current and all already-found-to-be-irrelevant variables from the successor
-      successor.forget(currentVariable);
-      for (Pair<String, NumberContainer> interpolantVariable : interpolant) {
+      successor.forget(currentMemoryLocation);
+      for (Pair<MemoryLocation, NumberContainer> interpolantVariable : interpolant) {
         if (interpolantVariable.getSecond() == null) {
           successor.forget(interpolantVariable.getFirst());
         }
       }
 
       // check if the remaining path now becomes feasible
-      isFeasible = isRemainingPathFeasible(skip(errorPath, offset + 1), successor);
+      isFeasible = isRemainingPathFeasible(remainingErrorPath, successor);
 
       if (isFeasible) {
-        interpolant.add(Pair.of(currentVariable, initialSuccessor.getValueFor(currentVariable)));
+        interpolant.add(Pair.of(currentMemoryLocation, initialSuccessor.getValueFor(currentMemoryLocation)));
       } else {
-        interpolant.add(Pair.<String, NumberContainer>of(currentVariable, null));
+        interpolant.add(Pair.<MemoryLocation, NumberContainer>of(currentMemoryLocation, null));
       }
     }
 
     return interpolant;
-  }
-
-  /**
-   * This method returns whether or not the last error path was feasible.
-   *
-   * @return whether or not the last error path was feasible
-   */
-  public boolean isFeasible() {
-    return isFeasible;
   }
 
   /**
@@ -208,18 +213,18 @@ public class ExplicitInterpolator {
   /**
    * This method checks, whether or not the (remaining) error path is feasible when starting with the given (pseudo) initial state.
    *
-   * @param errorPath the error path to check feasibility on
+   * @param remainingErrorPath the error path to check feasibility on
    * @param initialState the (pseudo) initial state
    * @return true, it the path is feasible, else false
    * @throws CPATransferException
    */
-  private boolean isRemainingPathFeasible(Iterable<CFAEdge> errorPath, ExplicitState initialState)
+  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ExplicitState initialState)
       throws CPATransferException {
     numberOfInterpolations++;
 
-    List<CFAEdge> path = Lists.newArrayList(errorPath);
-    for (int i = 0; i < path.size(); i++) {
-      CFAEdge currentEdge = path.get(i);
+    int i = 0;
+    for(CFAEdge currentEdge : remainingErrorPath) {
+      i++;
       Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
         initialState,
         precision,
@@ -228,7 +233,7 @@ public class ExplicitInterpolator {
       initialState = extractSuccessorState(successors);
 
       // there is no successor and the end of the path is not reached => error path is spurious
-      if (initialState == null && currentEdge != Iterables.getLast(path)) {
+      if (initialState == null && currentEdge != Iterables.getLast(remainingErrorPath)) {
         /* needed for sequences like ...
           ...
           status = 259;
