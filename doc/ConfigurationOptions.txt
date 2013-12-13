@@ -640,6 +640,10 @@ cpa.explicit.refiner.descendingOrder = false
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = true
 
+# whether to check memory locations in ascending or descending order during
+# interpolation
+cpa.explicit.refiner.itpReorder = false
+
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
 cpa.explicit.refiner.performInitialStaticRefinement = false
