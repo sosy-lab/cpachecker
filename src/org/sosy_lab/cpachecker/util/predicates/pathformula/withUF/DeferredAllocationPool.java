@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
-import java.util.ArrayList;
+import static com.google.common.base.Predicates.in;
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -153,47 +155,29 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 
   static <T> PersistentList<T> mergeLists(final PersistentList<T> list1,
                                           final PersistentList<T> list2) {
+    if (list1 == list2) {
+      return list1;
+    }
     final int size1 = list1.size();
-    final ArrayList<T> arrayList1 = new ArrayList<>(size1);
-    for (final T element : list1) {
-      arrayList1.add(element);
-    }
     final int size2 = list2.size();
-    final ArrayList<T> arrayList2 = new ArrayList<>(size2);
-    for (final T element : list2) {
-      arrayList2.add(element);
+    if (size1 == size2 && list1.equals(list2)) {
+      return list1;
     }
-    int sizeCommon = 0;
-    for (int i = 0;
-         i < arrayList1.size() && i < arrayList2.size() && arrayList1.get(i).equals(arrayList2.get(i));
-         i++) {
-      ++sizeCommon;
-    }
-    PersistentList<T> result;
-    final ArrayList<T> biggerArrayList, smallerArrayList;
-    final int biggerCommonStart, smallerCommonStart;
+
+    PersistentList<T> smallerList, biggerList;
     if (size1 > size2) {
-      result = list1;
-      biggerArrayList = arrayList1;
-      smallerArrayList = arrayList2;
-      biggerCommonStart = size1 - sizeCommon;
-      smallerCommonStart = size2 - sizeCommon;
+      smallerList = list2;
+      biggerList = list1;
     } else {
-      result = list2;
-      biggerArrayList = arrayList2;
-      smallerArrayList = arrayList1;
-      biggerCommonStart = size2 - sizeCommon;
-      smallerCommonStart = size1 - sizeCommon;
+      smallerList = list1;
+      biggerList = list2;
     }
-    final Set<T> fromBigger = new HashSet<>(2 * biggerCommonStart, 1.0f);
-    for (int i = 0; i < biggerCommonStart; i++) {
-      fromBigger.add(biggerArrayList.get(i));
-    }
-    for (int i = 0; i < smallerCommonStart; i++) {
-      final T target = smallerArrayList.get(i);
-      if (!fromBigger.contains(target)) {
-        result = result.with(target);
-      }
+
+    final Set<T> fromBigger = new HashSet<>(biggerList);
+    PersistentList<T> result = biggerList;
+
+    for (final T target : from(smallerList).filter(in(fromBigger))) {
+      result = result.with(target);
     }
     return result;
   }
