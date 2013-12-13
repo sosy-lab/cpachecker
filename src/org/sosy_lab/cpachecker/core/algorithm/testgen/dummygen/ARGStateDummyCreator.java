@@ -24,8 +24,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.testgen.dummygen;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -37,10 +41,15 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+
+import com.google.common.base.Function;
 
 
 public class ARGStateDummyCreator {
@@ -100,5 +109,44 @@ public class ARGStateDummyCreator {
     return newState;
 
   }
+
+  /**
+   * @param pReached The ReachedSet to work on
+   * @param pIsTraget Function that identifies the target State to switch
+   * @return Triple(the new path, the root ARGState, the target ARGState identified by pIsTarget)
+   */
+  public Triple<Set<ARGState>, ARGState, ARGState> produceOtherPath(ReachedSet pReached,
+      Function<ARGState, Boolean> pIsTarget) throws CPATransferException, InterruptedException {
+    ARGState lastState = (ARGState) pReached.getLastState();
+    ARGPath path = ARGUtils.getOnePathTo(lastState);
+
+    ARGState targetState = null;
+    ARGState targetSuccessorInPath = null;
+
+    Set<ARGState> newPath = new HashSet<>();
+
+    for (Pair<ARGState, CFAEdge> stateEdgePair : path) {
+      ARGState curState = stateEdgePair.getFirst();
+      if (targetState != null) {
+        targetSuccessorInPath = curState;
+        break;
+      } else if (pIsTarget.apply(curState)) {
+        targetState = curState;
+      }
+
+      newPath.add(curState);
+    }
+
+    assert targetState != null : "Target State not found";
+    assert targetSuccessorInPath != null : "Target State found but has no successor in path";
+
+    ARGState targetOtherSuccessor = computeOtherSuccessor(targetState, targetSuccessorInPath);
+    targetSuccessorInPath.removeFromARG();
+    targetOtherSuccessor.addParent(targetState);
+    newPath.add(targetOtherSuccessor);
+
+    return Triple.of(newPath, path.getFirst().getFirst(), targetState);
+  }
+
 
 }
