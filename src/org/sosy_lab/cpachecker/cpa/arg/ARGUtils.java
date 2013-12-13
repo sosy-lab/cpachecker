@@ -436,6 +436,62 @@ public class ARGUtils {
       return true;
     }
 
+  public class ConditionContainer{
+    private ARGState currentState;
+    private int visitedAssumeEdgesCount;
+    private int visitedStatesCount;
+
+    public ARGState getCurrentState() {
+      return currentState;
+    }
+
+    public int getVisitedAssumeEdgesCount() {
+      return visitedAssumeEdgesCount;
+    }
+
+    public int getVisitedStatesCount() {
+      return visitedStatesCount;
+    }
+
+  }
+
+  /**
+   *
+   * @param sb
+   * @param pRootState
+   * @param pPathStates
+   * @param name
+   * @param modificator
+   */
+  public static void produceControlAutomatonForSubPath(Appendable sb, ARGState pRootState,
+      Set<ARGState> pPathStates, String name, Function<Boolean, ConditionContainer> conditionChecker)
+  {
+    producePathAutomatonUntilCondition(sb, pRootState,pPathStates, name, conditionChecker);
+    //append the template using the last state.
+  }
+
+  /**
+   * same as {@link #producePathAutomaton(Appendable, ARGState, Set, String)}
+   * but stops at a specified state (stop condition is specified by the given function.
+   *
+   * @param sb
+   * @param pRootState
+   * @param pPathStates
+   * @param name
+   * @param modificator
+   */
+  public static ARGState producePathAutomatonUntilCondition(Appendable sb, ARGState pRootState,
+      Set<ARGState> pPathStates, String name, Function<Boolean, ConditionContainer> conditionChecker)
+  {
+    /**
+     * do the same as in {@link #producePathAutomaton(Appendable, ARGState, Set, String)}
+     */
+    //for each state call conditionChecker before appending the state
+    //FIXME
+    throw new UnsupportedOperationException("not yet implemented.");
+    //return null; //return the last state for which we appended data in the appendable or null if no state left.
+  }
+
   /**
    * Produce an automaton in the format for the AutomatonCPA from
    * a given path. The automaton matches exactly the edges along the path.
