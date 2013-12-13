@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.testgen.dummygen;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
@@ -93,7 +94,7 @@ public class ARGStateDummyCreator {
   /**
    * @param pReached The ReachedSet to work on
    * @param pIsTraget Function that identifies the target State to switch
-   * @return Triple(the new path, the root ARGState, the target ARGState)
+   * @return Triple(the new path, the root ARGState, the target ARGState identified by pIsTarget)
    */
   public Triple<Set<ARGState>, ARGState, ARGState> produceOtherPath(ReachedSet pReached,
       Function<ARGState, Boolean> pIsTarget) throws CPATransferException, InterruptedException {
@@ -103,6 +104,8 @@ public class ARGStateDummyCreator {
     ARGState targetState = null;
     ARGState targetSuccessorInPath = null;
 
+    Set<ARGState> newPath = new HashSet<>();
+
     for (Pair<ARGState, CFAEdge> stateEdgePair : path) {
       ARGState curState = stateEdgePair.getFirst();
       if (targetState != null) {
@@ -111,14 +114,19 @@ public class ARGStateDummyCreator {
       } else if (pIsTarget.apply(curState)) {
         targetState = curState;
       }
+
+      newPath.add(curState);
     }
 
     assert targetState != null : "Target State not found";
     assert targetSuccessorInPath != null : "Target State found but has no successor in path";
 
     ARGState targetOtherSuccessor = computeOtherSuccessor(targetState, targetSuccessorInPath);
+    targetSuccessorInPath.removeFromARG();
+    targetOtherSuccessor.addParent(targetState);
+    newPath.add(targetOtherSuccessor);
 
-    return null;
+    return Triple.of(newPath, path.getFirst().getFirst(), targetState);
   }
 
 }
