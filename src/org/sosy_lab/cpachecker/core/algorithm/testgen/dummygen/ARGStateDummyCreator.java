@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -35,8 +36,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGTransferRelation;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -93,7 +96,27 @@ public class ARGStateDummyCreator {
    * @return Triple(the new path, the root ARGState, the target ARGState)
    */
   public Triple<Set<ARGState>, ARGState, ARGState> produceOtherPath(ReachedSet pReached,
-      Function<ARGState, Boolean> pIsTarget) {
+      Function<ARGState, Boolean> pIsTarget) throws CPATransferException, InterruptedException {
+    ARGState lastState = (ARGState) pReached.getLastState();
+    ARGPath path = ARGUtils.getOnePathTo(lastState);
+
+    ARGState targetState = null;
+    ARGState targetSuccessorInPath = null;
+
+    for (Pair<ARGState, CFAEdge> stateEdgePair : path) {
+      ARGState curState = stateEdgePair.getFirst();
+      if (targetState != null) {
+        targetSuccessorInPath = curState;
+        break;
+      } else if (pIsTarget.apply(curState)) {
+        targetState = curState;
+      }
+    }
+
+    assert targetState != null : "Target State not found";
+    assert targetSuccessorInPath != null : "Target State found but has no successor in path";
+
+    ARGState targetOtherSuccessor = computeOtherSuccessor(targetState, targetSuccessorInPath);
 
     return null;
   }
