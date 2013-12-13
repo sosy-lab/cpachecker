@@ -175,6 +175,12 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return efmgr.getFormulaType(size * bitsPerByte);
   }
 
+  @Override
+  Variable scopedIfNecessary(CIdExpression var, SSAMapBuilder ssa, String function) {
+    return Variable.create(var.getDeclaration().getQualifiedName(),
+                           PointerTargetSet.simplifyType(var.getExpressionType()));
+  }
+
   private void checkSsaSavedType(final String name, final CType type, final SSAMapBuilder ssa) {
     CType ssaSavedType = ssa.getType(name);
     if (ssaSavedType != null) {
