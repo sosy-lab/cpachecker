@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core;
+package org.sosy_lab.cpachecker.core.algorithm.testgen.dummygen;
 
 import java.util.Map;
 
@@ -33,6 +33,10 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
+import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 import com.google.common.collect.ImmutableMap;
 
