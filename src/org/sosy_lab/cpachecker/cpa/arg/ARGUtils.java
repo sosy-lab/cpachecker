@@ -41,6 +41,7 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -436,25 +437,6 @@ public class ARGUtils {
       return true;
     }
 
-  public class ConditionContainer{
-    private ARGState currentState;
-    private int visitedAssumeEdgesCount;
-    private int visitedStatesCount;
-
-    public ARGState getCurrentState() {
-      return currentState;
-    }
-
-    public int getVisitedAssumeEdgesCount() {
-      return visitedAssumeEdgesCount;
-    }
-
-    public int getVisitedStatesCount() {
-      return visitedStatesCount;
-    }
-
-  }
-
   /**
    *
    * @param sb
@@ -462,9 +444,10 @@ public class ARGUtils {
    * @param pPathStates
    * @param name
    * @param modificator
+   * @throws IOException
    */
   public static void produceControlAutomatonForSubPath(Appendable sb, ARGState pRootState,
-      Set<ARGState> pPathStates, String name, Function<Boolean, ConditionContainer> conditionChecker)
+      Set<ARGState> pPathStates, String name, Function<ConditionContainer, Boolean> conditionChecker) throws IOException
   {
     producePathAutomatonUntilCondition(sb, pRootState,pPathStates, name, conditionChecker);
     //append the template using the last state.
@@ -479,17 +462,112 @@ public class ARGUtils {
    * @param pPathStates
    * @param name
    * @param modificator
+   * @throws IOException
    */
   public static ARGState producePathAutomatonUntilCondition(Appendable sb, ARGState pRootState,
-      Set<ARGState> pPathStates, String name, Function<Boolean, ConditionContainer> conditionChecker)
+      Set<ARGState> pPathStates, String name, Function<ConditionContainer, Boolean> conditionChecker) throws IOException
   {
     /**
      * do the same as in {@link #producePathAutomaton(Appendable, ARGState, Set, String)}
      */
     //for each state call conditionChecker before appending the state
     //FIXME
-    throw new UnsupportedOperationException("not yet implemented.");
+    //throw new UnsupportedOperationException("not yet implemented.");
     //return null; //return the last state for which we appended data in the appendable or null if no state left.
+
+    sb.append("CONTROL AUTOMATON " + name + "\n\n");
+    sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
+
+    int multiEdgeCount = 0; // see below
+    int visitedAssumeEdgesCount = 0;
+    int visitedStatesCount = 0;
+
+
+    for (ARGState s : pPathStates) {
+      visitedStatesCount++;
+      CFANode loc = AbstractStates.extractLocation(s);
+      sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
+
+      for (ARGState child : s.getChildren()) {
+        if (child.isCovered()) {
+          child = child.getCoveringState();
+          assert !child.isCovered();
+        }
+        CFAEdge currentEdge = s.getEdgeToChild(child);
+
+        if(currentEdge.getEdgeType()==CFAEdgeType.AssumeEdge){
+          visitedAssumeEdgesCount++;
+          if(conditionChecker.apply(new ConditionContainer(s, visitedAssumeEdgesCount, visitedStatesCount))) {
+            //create tmepelate edges here.
+            sb.append("//REACHED assume edge on diff path \""+currentEdge.getRawStatement()+"\" visited "+visitedAssumeEdgesCount+" statesCount "+visitedStatesCount+"\n");
+            sb.append("  MATCH \""+currentEdge.getRawStatement()+"\" -> STOP;\n");
+            sb.append("  TRUE -> GOTO ARG"+(s.getStateId()+1)+";\n\n");
+            //we follow the rest of the path till we enter abort or exit
+            sb.append("STATE USEFIRST ARG"+(s.getStateId()+1)+" :\n");
+            sb.append("    MATCH {abort($?)} || MATCH {exit($?)}  -> STOP;\n");
+            sb.append("    TRUE -> GOTO ARG6;\n");
+
+            sb.append("END AUTOMATON\n");
+            return s;
+          }
+        }
+
+
+        if (pPathStates.contains(child)) {
+          CFANode childLoc = AbstractStates.extractLocation(child);
+          CFAEdge edge = loc.getEdgeTo(childLoc);
+          if (edge instanceof MultiEdge) {
+            // The successor state might have several incoming MultiEdges.
+            // In this case the state names like ARG<successor>_0 would occur
+            // several times.
+            // So we add this counter to the state names to make them unique.
+            multiEdgeCount++;
+
+            // Write out a long linear chain of pseudo-states
+            // because the AutomatonCPA also iterates through the MultiEdge.
+            List<CFAEdge> edges = ((MultiEdge)edge).getEdges();
+
+            // first, write edge entering the list
+            int i = 0;
+            sb.append("    MATCH \"");
+            escape(edges.get(i).getRawStatement(), sb);
+            sb.append("\" -> ");
+            sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
+            sb.append(";\n");
+
+            // inner part (without first and last edge)
+            for (; i < edges.size()-1; i++) {
+              sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
+              sb.append("    MATCH \"");
+              escape(edges.get(i).getRawStatement(), sb);
+              sb.append("\" -> ");
+              sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
+              sb.append(";\n");
+            }
+
+            // last edge connecting it with the real successor
+            edge = edges.get(i);
+            sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
+            // remainder is written by code below
+          }
+
+          sb.append("    MATCH \"");
+          escape(edge.getRawStatement(), sb);
+          sb.append("\" -> ");
+
+          if (child.isTarget()) {
+            sb.append("ERROR");
+          } else {
+            sb.append("GOTO ARG" + child.getStateId());
+          }
+          sb.append(";\n");
+        }
+      }
+      sb.append("    TRUE -> STOP;\n\n");
+    }
+    sb.append("END AUTOMATON\n");
+
+    return null;
   }
 
   /**
@@ -503,6 +581,19 @@ public class ARGUtils {
    */
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name) throws IOException {
+
+//    producePathAutomatonUntilCondition(sb, pRootState, pPathStates, name, new Function<ConditionContainer, Boolean>() {
+//      @Override
+//      public Boolean apply(ConditionContainer conditionContainer) {
+//        return true;
+//      }
+//    });
+    producePathAutomaton1(sb, pRootState, pPathStates, name);
+  }
+
+  public static void producePathAutomaton1(Appendable sb, ARGState pRootState,
+        Set<ARGState> pPathStates, String name) throws IOException {
+
     sb.append("CONTROL AUTOMATON " + name + "\n\n");
     sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
 
