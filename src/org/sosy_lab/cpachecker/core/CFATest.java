@@ -40,18 +40,22 @@ public class CFATest {
   // Specification Tests
   @Test
   public void ignoreVariablesTest1() throws Exception {
-    // check whether a variable can be ignored (this will lead to a spurious counterexample be found)
 
-    Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA",
-        "specification",     "config/specification/default.spc",
-        "log.consoleLevel", "FINER"
-      );
+    ImmutableMap<String, String> prop =
+        new ImmutableMap.Builder<String, String>()
+            .put("cpa", "cpa.arg.ARGCPA")
+            .put("ARGCPA.cpa", "cpa.composite.CompositeCPA")
+            .put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA")
+            .put("specification", "config/specification/default.spc")
+            .put("cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*")
+            .put("cpa.composite.precAdjust", "COMPONENT")
+            .put("log.consoleLevel", "FINER")
+            .build();
 
-      TestResults results = run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
-      System.out.println(results.getLog());
-      //System.out.println(results.getCheckerResult().getResult());
-      Assert.assertTrue(results.isUnsafe());
+    TestResults results = run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
+    System.out.println(results.getLog());
+    //System.out.println(results.getCheckerResult().getResult());
+    Assert.assertTrue(results.isUnsafe());
   }
   private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
     Configuration config = Configuration.builder()
