@@ -49,7 +49,6 @@ public class TestgenTestHelper {
             .put("ARGCPA.cpa", "cpa.composite.CompositeCPA")
             .put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA")
             .put("specification", "config/specification/default.spc")
-            .put("cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*")
             .put("cpa.composite.precAdjust", "COMPONENT")
             .put("log.consoleLevel", "FINER")
             .build();
