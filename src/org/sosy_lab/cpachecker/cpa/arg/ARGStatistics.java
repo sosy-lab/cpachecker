@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -197,7 +198,7 @@ public class ARGStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult,
-      ReachedSet pReached) {
+      final ReachedSet pReached) {
 
     if (!exportARG && !exportErrorPath) {
       // shortcut, avoid unnecessary creation of path etc.
@@ -225,6 +226,74 @@ public class ARGStatistics implements Statistics {
 
     if (exportARG) {
       exportARG(rootState, Predicates.in(allTargetPathEdges));
+    }
+
+    //TODO: this has to be relocated for an alg. specific class but is currently our best entry point
+    //      writeNextPathToExecuteToFile(pReached, rootState, targetPath);
+try{
+    writeNextPathToExecuteToFile(nextPathToExecuteFile, new Appender() {
+      @Override
+      public void appendTo(Appendable pAppendable) throws IOException {
+        //hack if there exists an counterexample there is an error path so we ship this into
+        //the produce path and generate the new way out of it.
+        //if we are on a normal way we just guess
+        @Nullable CounterexampleInfo counterexampleForNextPath = null;
+        if(getAllCounterexamples(pReached).entrySet().iterator().hasNext()) {
+          Entry<ARGState, CounterexampleInfo> targetPathEdges = getAllCounterexamples(pReached).entrySet().iterator().next();
+
+          final ARGPath targetPath = checkNotNull(getTargetPath(targetPathEdges.getKey(), targetPathEdges.getValue()));
+          CounterexampleInfo counterexample1 = targetPathEdges.getValue();
+
+          ARGState lastElement = (ARGState)pReached.getLastState();
+          final Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(lastElement);
+
+          final Set<Pair<ARGState, ARGState>> targetPathEdges1 = getEdgesOfPath(targetPath);
+          allTargetPathEdges.addAll(targetPathEdges1);
+
+          ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
+          ARGPath shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
+
+          ARGUtils.producePathAutomaton(pAppendable, rootState, targetPath.getStateSet(), "NextPath");
+        }
+        else{
+          Set<ARGState> states = new HashSet<>();
+          ARGState lastState = null;
+          for(AbstractState state : pReached){
+            if(pReached.contains(state)){
+              ARGState argState = (ARGState)state;
+              states.add(argState);
+              lastState = (ARGState)state;
+            }
+          }
+          ARGPath path = ARGUtils.getOnePathTo(lastState);
+
+          ARGUtils.producePathAutomaton(pAppendable, rootState, path.getStateSet(), "NextPath");
+        }
+      }
+    });
+}catch(Exception e){
+  System.out.println("ASK MAX " + e.getStackTrace());
+}
+    //END TODO
+  }
+  //TODO: this has to be relocated for an alg. specific class but is currently our best entry point
+  @Option(name="nextPathToExecuteFile.file",
+      description="export the next path to execute.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path nextPathToExecuteFile = Paths.get("nextPath.spc");
+
+  //TODO: this has to be relocated for an alg. specific class but is currently our best entry point
+  private void writeNextPathToExecuteToFile(Path file, Object content) {
+    if (file != null) {
+      // fill in index in file name
+      file = Paths.get(file.toString());
+
+      try {
+        Files.writeFile(file, content);
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e,
+            "Could not write information about the error path to file");
+      }
     }
   }
 

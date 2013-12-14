@@ -499,15 +499,7 @@ public class ARGUtils {
           visitedAssumeEdgesCount++;
           if(conditionChecker.apply(new ConditionContainer(s, visitedAssumeEdgesCount, visitedStatesCount))) {
             //create tmepelate edges here.
-            sb.append("//REACHED assume edge on diff path \""+currentEdge.getRawStatement()+"\" visited "+visitedAssumeEdgesCount+" statesCount "+visitedStatesCount+"\n");
-            sb.append("  MATCH \""+currentEdge.getRawStatement()+"\" -> STOP;\n");
-            sb.append("  TRUE -> GOTO ARG"+(s.getStateId()+1)+";\n\n");
-            //we follow the rest of the path till we enter abort or exit
-            sb.append("STATE USEFIRST ARG"+(s.getStateId()+1)+" :\n");
-            sb.append("    MATCH {abort($?)} || MATCH {exit($?)}  -> STOP;\n");
-            sb.append("    TRUE -> GOTO ARG6;\n");
-
-            sb.append("END AUTOMATON\n");
+            appendLoopStates(sb, visitedAssumeEdgesCount, visitedStatesCount, currentEdge);
             return s;
           }
         }
@@ -570,6 +562,19 @@ public class ARGUtils {
     return null;
   }
 
+  private static void appendLoopStates(Appendable sb, int visitedAssumeEdgesCount, int visitedStatesCount,
+      CFAEdge currentEdge) throws IOException {
+    sb.append("//REACHED AN assume edge going for another way \""+currentEdge.getRawStatement()+"\" visited "+visitedAssumeEdgesCount+" statesCount "+visitedStatesCount+"\n");
+    sb.append("  MATCH \""+currentEdge.getRawStatement()+"\" -> STOP;\n");
+    sb.append("  TRUE -> GOTO LOOPSTATE;\n\n");
+    //we follow the rest of the path till we enter abort or exit
+    sb.append("STATE USEFIRST LOOPSTATE :\n");
+    sb.append("    MATCH {abort($?)} || MATCH {exit($?)}  -> STOP;\n");
+    sb.append("    TRUE -> GOTO LOOPSTATE;\n");
+
+    sb.append("END AUTOMATON\n");
+  }
+
   /**
    * Produce an automaton in the format for the AutomatonCPA from
    * a given path. The automaton matches exactly the edges along the path.
@@ -582,13 +587,13 @@ public class ARGUtils {
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name) throws IOException {
 
-//    producePathAutomatonUntilCondition(sb, pRootState, pPathStates, name, new Function<ConditionContainer, Boolean>() {
-//      @Override
-//      public Boolean apply(ConditionContainer conditionContainer) {
-//        return true;
-//      }
-//    });
-    producePathAutomaton1(sb, pRootState, pPathStates, name);
+    producePathAutomatonUntilCondition(sb, pRootState, pPathStates, name, new Function<ConditionContainer, Boolean>() {
+      @Override
+      public Boolean apply(ConditionContainer conditionContainer) {
+          return true;
+      }
+    });
+//    producePathAutomaton1(sb, pRootState, pPathStates, name);
   }
 
   public static void producePathAutomaton1(Appendable sb, ARGState pRootState,

@@ -25,6 +25,14 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 
 public class ConditionContainer implements IConditionContainer{
+
+  /**
+   * Contains state information for while going through an ARGStatePath
+   *
+   * @param currentState contains the current State
+   * @param visitedAssumeEdgesCount contains the current visited assume edges along the path
+   * @param visitedStatesCount contains the current visited state
+   */
   public ConditionContainer(ARGState currentState, int visitedAssumeEdgesCount, int visitedStatesCount){
     this.currentState = currentState;
     this.visitedAssumeEdgesCount = visitedAssumeEdgesCount;
