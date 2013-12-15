@@ -1,17 +1,22 @@
 CONTROL AUTOMATON OnePathLoopAutomaton
 
-INITIAL STATE entry;
+INITIAL STATE ARG1;
 
-STATE USEFIRST entry :
-    MATCH "" -> GOTO loopstate;
-    
-STATE USEFIRST loopstate :
-//MATCH {abort($?)} || MATCH {exit($?)}  -> STOP;
+STATE USEFIRST ARG1 :
+    MATCH "" -> GOTO ARG2;
+STATE USEFIRST ARG2 :
+    MATCH "void main()" -> GOTO ARG3;
+STATE USEFIRST ARG3 :
+    MATCH "" -> GOTO ARG4;
+STATE USEFIRST ARG4 :
+    TRUE -> GOTO ARG7;
+STATE USEFIRST ARG7 :
+	MATCH {abort($?)} || MATCH {exit($?)}  -> STOP;
 	//MATCH EXIT -> GOTO targetstate;
-	MATCH EXIT -> ERROR;
-	TRUE -> GOTO loopstate;
+	//MATCH EXIT -> ERROR;
+	TRUE -> GOTO ARG7;
 
 TARGET STATE USEFIRST targetstate :
 	TRUE -> STOP;
-	
+
 END AUTOMATON
