@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -37,9 +38,43 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
@@ -52,6 +87,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.primitives.Ints;
@@ -811,5 +847,262 @@ public class CFAUtils {
       }
     }
     return successor;
+  }
+
+  public static Set<Integer> collectTokensFromStatement(CRightHandSide pStmt) {
+    final TreeSet<Integer> result = Sets.newTreeSet();
+
+    pStmt.accept(new CRightHandSideVisitor<Void, RuntimeException>() {
+
+      @Override
+      public Void visit(CBinaryExpression pIastBinaryExpression) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Void visit(CCastExpression pIastCastExpression) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Void visit(CCharLiteralExpression pIastCharLiteralExpression) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Void visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Void visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Void visit(CStringLiteralExpression pIastStringLiteralExpression) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Void visit(CTypeIdExpression pIastTypeIdExpression) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Void visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Void visit(CUnaryExpression pIastUnaryExpression) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Void visit(CImaginaryLiteralExpression PIastLiteralExpression) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Void visit(CFieldReference pIastFieldReference) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Void visit(CIdExpression pIastIdExpression) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Void visit(CPointerExpression pPointerExpression) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Void visit(CComplexCastExpression pComplexCastExpression) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public Void visit(CFunctionCallExpression pIastFunctionCallExpression) throws RuntimeException {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+    });
+
+    return result;
+  }
+
+  public static Set<Integer> collectTokensFromStatement(CStatement pStmt) {
+    final TreeSet<Integer> result = Sets.newTreeSet();
+
+    pStmt.accept(new CStatementVisitor<Void, RuntimeException>() {
+      @Override
+      public Void visit(CExpressionAssignmentStatement pS) throws RuntimeException {
+        result.add(pS.getFileLocation().getStartingLineNumber());
+        result.addAll(collectTokensFromExpression(pS.getLeftHandSide()));
+        result.addAll(collectTokensFromExpression(pS.getRightHandSide()));
+        return null;
+      }
+      @Override
+      public Void visit(CExpressionStatement pS) throws RuntimeException {
+        result.add(pS.getFileLocation().getStartingLineNumber());
+        result.addAll(collectTokensFromExpression(pS.getExpression()));
+        return null;
+      }
+      @Override
+      public Void visit(CFunctionCallAssignmentStatement pS) throws RuntimeException {
+        result.add(pS.getFileLocation().getStartingLineNumber());
+        result.addAll(collectTokensFromExpression(pS.getLeftHandSide()));
+        result.addAll(collectTokensFromExpression(pS.getRightHandSide().getFunctionNameExpression()));
+        for (CExpression expr : pS.getRightHandSide().getParameterExpressions()) {
+          result.addAll(collectTokensFromExpression(expr));
+        }
+        return null;
+      }
+      @Override
+      public Void visit(CFunctionCallStatement pS) throws RuntimeException {
+        result.add(pS.getFileLocation().getStartingLineNumber());
+        return null;
+      }
+    });
+
+    return result;
+  }
+
+  public static Set<Integer> collectTokensFromExpression(CExpression pExpr) {
+    final TreeSet<Integer> result = Sets.newTreeSet();
+    result.add(pExpr.getFileLocation().getStartingLineNumber());
+
+    DefaultCExpressionVisitor<Void, RuntimeException> visitor = new DefaultCExpressionVisitor<Void, RuntimeException>() {
+
+      @Override
+        protected Void visitDefault(CExpression pE) throws RuntimeException {
+          if (pE != null) {
+            if (pE.getFileLocation() != null) {
+              result.add(pE.getFileLocation().getStartingLineNumber());
+            }
+          }
+          return null;
+        }
+
+      @Override
+        public Void visit(CArraySubscriptExpression pE) throws RuntimeException {
+          result.add(pE.getFileLocation().getStartingLineNumber());
+          pE.getArrayExpression().accept(this);
+          pE.getSubscriptExpression().accept(this);
+          return super.visit(pE);
+        }
+
+      @Override
+        public Void visit(CBinaryExpression pE) throws RuntimeException {
+          result.add(pE.getFileLocation().getStartingLineNumber());
+          pE.getOperand1().accept(this);
+          pE.getOperand2().accept(this);
+          return super.visit(pE);
+        }
+
+      @Override
+        public Void visit(CCastExpression pE) throws RuntimeException {
+          result.add(pE.getFileLocation().getStartingLineNumber());
+          pE.getOperand().accept(this);
+          return super.visit(pE);
+        }
+
+      @Override
+        public Void visit(CComplexCastExpression pE) throws RuntimeException {
+          result.add(pE.getFileLocation().getStartingLineNumber());
+          pE.getOperand().accept(this);
+          return super.visit(pE);
+        }
+
+      @Override
+        public Void visit(CFieldReference pE) throws RuntimeException {
+          result.add(pE.getFileLocation().getStartingLineNumber());
+          pE.getFieldOwner().accept(this);
+          return super.visit(pE);
+        }
+
+      @Override
+        public Void visit(CPointerExpression pE) throws RuntimeException {
+          result.add(pE.getFileLocation().getStartingLineNumber());
+          pE.getOperand().accept(this);
+          return super.visit(pE);
+        }
+
+      @Override
+        public Void visit(CUnaryExpression pE) throws RuntimeException {
+          result.add(pE.getFileLocation().getStartingLineNumber());
+          pE.getOperand().accept(this);
+          return super.visit(pE);
+        }
+
+      };
+
+    pExpr.accept(visitor);
+
+    return result;
+  }
+
+  public static Set<Integer> getTokensFromCFAEdge(CFAEdge pEdge) {
+    final TreeSet<Integer> result = Sets.newTreeSet();
+    final Deque<CFAEdge> edges = Queues.newArrayDeque();
+    final Deque<CExpression> expressions = Queues.newArrayDeque();
+
+    edges.add(pEdge);
+
+    while (!edges.isEmpty()) {
+      CFAEdge edge = edges.pop();
+      switch (edge.getEdgeType()) {
+      case MultiEdge: edges.addAll(((MultiEdge) edge).getEdges()); break;
+      case AssumeEdge: expressions.add(((CAssumeEdge) edge).getExpression()); break;
+      case CallToReturnEdge:
+        CFunctionSummaryEdge fnSumEdge = (CFunctionSummaryEdge) edge;
+        result.add(fnSumEdge.getLineNumber());
+        result.addAll(collectTokensFromStatement(fnSumEdge.getExpression()));
+        result.addAll(collectTokensFromExpression(fnSumEdge.getExpression().getFunctionCallExpression().getFunctionNameExpression()));
+        result.add(fnSumEdge.getExpression().getFileLocation().getStartingLineNumber());
+        result.add(fnSumEdge.getExpression().getFunctionCallExpression().getFileLocation().getStartingLineNumber());
+        expressions.addAll(fnSumEdge.getExpression().getFunctionCallExpression().getParameterExpressions());
+      break;
+      case DeclarationEdge: result.add(((CDeclarationEdge) edge).getDeclaration().getFileLocation().getStartingLineNumber()); break;
+      case FunctionCallEdge:
+        result.add(((CFunctionCallEdge) edge).getLineNumber());
+        expressions.addAll(((CFunctionCallEdge) edge).getArguments());
+      break ;
+      case FunctionReturnEdge: result.add(((CFunctionReturnEdge) edge).getLineNumber()); break;
+      case ReturnStatementEdge: result.add(((CReturnStatementEdge) edge).getLineNumber()); break;
+      case StatementEdge: result.addAll(collectTokensFromStatement(((CStatementEdge) edge).getStatement())); break;
+      }
+
+      while(!expressions.isEmpty()) {
+        CExpression expr = expressions.pop();
+        result.addAll(collectTokensFromExpression(expr));
+      }
+    }
+
+    return result;
   }
 }
