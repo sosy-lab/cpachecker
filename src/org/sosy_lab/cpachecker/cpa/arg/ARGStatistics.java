@@ -237,23 +237,27 @@ try{
         //hack if there exists an counterexample there is an error path so we ship this into
         //the produce path and generate the new way out of it.
         //if we are on a normal way we just guess
-        @Nullable CounterexampleInfo counterexampleForNextPath = null;
         if(getAllCounterexamples(pReached).entrySet().iterator().hasNext()) {
           Entry<ARGState, CounterexampleInfo> targetPathEdges = getAllCounterexamples(pReached).entrySet().iterator().next();
 
           final ARGPath targetPath = checkNotNull(getTargetPath(targetPathEdges.getKey(), targetPathEdges.getValue()));
-          CounterexampleInfo counterexample1 = targetPathEdges.getValue();
 
-          ARGState lastElement = (ARGState)pReached.getLastState();
-          final Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(lastElement);
+//          ARGState lastElement = (ARGState)pReached.getLastState();
+//          final Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(lastElement);
 
           final Set<Pair<ARGState, ARGState>> targetPathEdges1 = getEdgesOfPath(targetPath);
           allTargetPathEdges.addAll(targetPathEdges1);
 
-          ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
-          ARGPath shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
+//          ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
+//          ARGPath shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
 
-          ARGUtils.producePathAutomaton(pAppendable, rootState, targetPath.getStateSet(), "NextPath");
+//          ARGUtils.producePathAutomaton(pAppendable, rootState, targetPath.getStateSet(), "NextPath");
+          ARGUtils.producePathAutomatonUntilCondition(pAppendable, rootState, targetPath.getStateSet(), "NextPath", new Function<ConditionContainer, Boolean>() {
+        @Override
+        public Boolean apply(ConditionContainer conditionContainer) {
+            return true;
+        }
+      });
         }
         else{
           Set<ARGState> states = new HashSet<>();

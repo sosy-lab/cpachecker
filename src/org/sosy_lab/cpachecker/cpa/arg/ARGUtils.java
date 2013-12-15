@@ -587,13 +587,13 @@ public class ARGUtils {
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name) throws IOException {
 
-    producePathAutomatonUntilCondition(sb, pRootState, pPathStates, name, new Function<ConditionContainer, Boolean>() {
-      @Override
-      public Boolean apply(ConditionContainer conditionContainer) {
-          return true;
-      }
-    });
-//    producePathAutomaton1(sb, pRootState, pPathStates, name);
+//    producePathAutomatonUntilCondition(sb, pRootState, pPathStates, name, new Function<ConditionContainer, Boolean>() {
+//      @Override
+//      public Boolean apply(ConditionContainer conditionContainer) {
+//          return true;
+//      }
+//    });
+    producePathAutomaton1(sb, pRootState, pPathStates, name);
   }
 
   public static void producePathAutomaton1(Appendable sb, ARGState pRootState,
