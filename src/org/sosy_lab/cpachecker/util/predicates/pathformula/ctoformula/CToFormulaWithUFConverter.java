@@ -1080,8 +1080,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       return result;
     } else if (initializer instanceof CInitializerList) {
       final Object initializerList = statementVisitor.visitInitializer(declarationType,
-                                                                       initializer,
-                                                                       !declaration.isGlobal());
+                                                                       initializer);
       assert initializerList instanceof List : "Wrong initializer";
       return statementVisitor.visitComplexInitialization(declaration,
                                                          (List<?>) initializerList);
