@@ -464,6 +464,7 @@ class Run():
 
     def __init__(self, sourcefile, fileOptions, runSet):
         self.sourcefile = sourcefile
+        self.runSet = runSet
         self.benchmark = runSet.benchmark
         self.specificOptions = fileOptions # options that are specific for this run
         self.logFile = runSet.logFolder + os.path.basename(sourcefile) + ".log"
