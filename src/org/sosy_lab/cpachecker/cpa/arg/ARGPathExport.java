@@ -35,10 +35,12 @@ import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -271,12 +273,17 @@ public class ARGPathExport {
           if (sinkNode == null) {
             sinkNode = appendNewNode(doc, graph, SINK_NODE_ID, NodeType.SINKNODE);
           }
-          appendNewEdge(doc, graph, prevStateId, SINK_NODE_ID, edgeToNextState);
+          // Path to non-assumption edge (this becomes the sink)
+          exportUntilNonAssume(doc, graph, prevStateId, edgeToNextState, pPathStates);
         }
       }
     }
 
-    // Write document to appender
+    writeXmlToAppendable(sb, doc);
+  }
+
+  private static void writeXmlToAppendable(Appendable sb, Document doc) throws TransformerFactoryConfigurationError,
+      IOException {
     try {
       StringWriter sw = new StringWriter();
       TransformerFactory tf = TransformerFactory.newInstance();
@@ -292,6 +299,25 @@ public class ARGPathExport {
         throw new RuntimeException("Error while dumping program path", ex);
     }
   }
+
+  private static void exportUntilNonAssume(Document doc, Element graph, String prevStateId,
+      CFAEdge startWith, Set<ARGState> pathStates) throws IOException {
+
+    if (startWith.getEdgeType() != CFAEdgeType.AssumeEdge) {
+      appendNewEdge(doc, graph, prevStateId, SINK_NODE_ID, startWith);
+    } else {
+      CFANode successorLoc = startWith.getSuccessor();
+      String newPrevStateId = prevStateId + "_" + successorLoc.getNodeNumber();
+      appendNewNode(doc, graph, newPrevStateId, NodeType.ONPATH);
+      appendNewEdge(doc, graph, prevStateId, newPrevStateId, startWith);
+
+      for (CFAEdge e : CFAUtils.allLeavingEdges(successorLoc)) {
+        // Recursive!
+        exportUntilNonAssume(doc, graph, newPrevStateId, e, pathStates);
+      }
+    }
+  }
+
 
 
 
