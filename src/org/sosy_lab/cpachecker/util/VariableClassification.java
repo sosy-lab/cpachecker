@@ -28,8 +28,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import java.io.IOException;
 import java.io.Writer;
 import java.math.BigInteger;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
@@ -49,6 +47,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -124,11 +123,11 @@ public class VariableClassification {
 
   @Option(name = "logfile", description = "Dump variable classification to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path dumpfile = Paths.get("VariableClassification.log");
+  private Path dumpfile = new Path("VariableClassification.log");
 
   @Option(description = "Dump variable type mapping to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path typeMapFile = Paths.get("VariableTypeMapping.txt");
+  private Path typeMapFile = new Path("VariableTypeMapping.txt");
 
   @Option(description = "Print some information about the variable classification.")
   private boolean printStatsOnStartup = false;
