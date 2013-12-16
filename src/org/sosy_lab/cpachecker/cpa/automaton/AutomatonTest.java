@@ -77,15 +77,15 @@ public class AutomatonTest {
       );
 
       TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
-      Assert.assertTrue(results.logContains("Automaton: Uninitialized return value"));
-      Assert.assertTrue(results.logContains("Automaton: Uninitialized variable used"));
+      assertThat(results.getLog(), containsString("Automaton: Uninitialized return value"));
+      assertThat(results.getLog(), containsString("Automaton: Uninitialized variable used"));
 /*
       results = run(prop, "test/programs/simple/PointerAnalysisErrors.c");
-      Assert.assertTrue(results.logContains("Found a DOUBLE_FREE"));
-      Assert.assertTrue(results.logContains("Found an INVALID_FREE"));
-      Assert.assertTrue(results.logContains("Found a POTENTIALLY_UNSAFE_DEREFERENCE"));
-      Assert.assertTrue(results.logContains("Found a Memory Leak"));
-      Assert.assertTrue(results.logContains("Found an UNSAFE_DEREFERENCE"));
+      assertThat(results.getLog(), containsString("Found a DOUBLE_FREE"));
+      assertThat(results.getLog(), containsString("Found an INVALID_FREE"));
+      assertThat(results.getLog(), containsString("Found a POTENTIALLY_UNSAFE_DEREFERENCE"));
+      assertThat(results.getLog(), containsString("Found a Memory Leak"));
+      assertThat(results.getLog(), containsString("Found an UNSAFE_DEREFERENCE"));
 */
   }
   @Test
@@ -96,7 +96,7 @@ public class AutomatonTest {
         "specification", "test/config/automata/LockingAutomatonAll.txt");
 
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
-      Assert.assertTrue(results.logContains("Option specification gave specification automata, but no CompositeCPA was used"));
+      assertThat(results.getLog(), containsString("Option specification gave specification automata, but no CompositeCPA was used"));
       Assert.assertEquals(CPAcheckerResult.Result.NOT_YET_STARTED, results.getCheckerResult().getResult());
   }
   @Test
@@ -108,8 +108,8 @@ public class AutomatonTest {
         "cpa.explicit.threshold",       "10");
 
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
-      Assert.assertTrue(results.logContains("MODIFIED"));
-      Assert.assertTrue(results.logContains("Modification successful"));
+      assertThat(results.getLog(), containsString("MODIFIED"));
+      assertThat(results.getLog(), containsString("Modification successful"));
       Assert.assertTrue(results.isSafe());
   }
 
@@ -124,8 +124,8 @@ public class AutomatonTest {
       );
 
       TestResults results = run(prop, "test/programs/simple/loop1.c");
-      Assert.assertTrue(results.logContains("Last statement is \"return (0);\""));
-      Assert.assertTrue(results.logContains("Last statement is \"return (-1);\""));
+      assertThat(results.getLog(), containsString("Last statement is \"return (0);\""));
+      assertThat(results.getLog(), containsString("Last statement is \"return (-1);\""));
       Assert.assertTrue(results.isSafe());
   }
   @Test
@@ -137,7 +137,7 @@ public class AutomatonTest {
 
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
       Assert.assertEquals(CPAcheckerResult.Result.NOT_YET_STARTED, results.getCheckerResult().getResult());
-      Assert.assertTrue(results.logContains("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!"));
+      assertThat(results.getLog(), containsString("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!"));
   }
 
   @Test
@@ -149,8 +149,8 @@ public class AutomatonTest {
         "cpa.explicit.threshold",       "10");
 
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
-      Assert.assertTrue(results.logContains("MODIFIED"));
-      Assert.assertTrue(results.logContains("Modification successful"));
+      assertThat(results.getLog(), containsString("MODIFIED"));
+      assertThat(results.getLog(), containsString("Modification successful"));
       Assert.assertTrue(results.isSafe());
   }
 
@@ -165,7 +165,7 @@ public class AutomatonTest {
 
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
       // check for stack trace
-      Assert.assertTrue(results.logContains("Error: Invalid configuration (The transition \"MATCH "));
+      assertThat(results.getLog(), containsString("Error: Invalid configuration (The transition \"MATCH "));
   }
 
   @Test
@@ -179,8 +179,8 @@ public class AutomatonTest {
 
 
       TestResults results = run(prop, "test/programs/simple/simple_setuid_test.c");
-      Assert.assertTrue(results.logContains("Systemcall in line 10 with userid 2"));
-      Assert.assertTrue(results.logContains("going to ErrorState on edge \"system(40);\""));
+      assertThat(results.getLog(), containsString("Systemcall in line 10 with userid 2"));
+      assertThat(results.getLog(), containsString("going to ErrorState on edge \"system(40);\""));
       Assert.assertTrue(results.isUnsafe());
   }
   @Test
@@ -194,8 +194,8 @@ public class AutomatonTest {
       );
 
       TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
-      Assert.assertTrue(results.logContains("Automaton: Uninitialized return value"));
-      Assert.assertTrue(results.logContains("Automaton: Uninitialized variable used"));
+      assertThat(results.getLog(), containsString("Automaton: Uninitialized return value"));
+      assertThat(results.getLog(), containsString("Automaton: Uninitialized variable used"));
   }
 
   @Test
@@ -233,10 +233,10 @@ public class AutomatonTest {
       );
 
       TestResults results = run(prop, "test/programs/simple/ex2.cil.c");
-      Assert.assertTrue(results.logContains("st==3 after Edge st = 3;"));
-      Assert.assertTrue(results.logContains("st==1 after Edge st = 1;"));
-      Assert.assertTrue(results.logContains("st==2 after Edge st = 2;"));
-      Assert.assertTrue(results.logContains("st==4 after Edge st = 4;"));
+      assertThat(results.getLog(), containsString("st==3 after Edge st = 3;"));
+      assertThat(results.getLog(), containsString("st==1 after Edge st = 1;"));
+      assertThat(results.getLog(), containsString("st==2 after Edge st = 2;"));
+      assertThat(results.getLog(), containsString("st==4 after Edge st = 4;"));
       Assert.assertTrue(results.isSafe());
   }
 
@@ -249,11 +249,11 @@ public class AutomatonTest {
       );
 
       TestResults results = run(prop, "test/programs/simple/functionCall.c");
-      Assert.assertTrue(results.logContains("i'm in Main after Edge int y;"));
-      Assert.assertTrue(results.logContains("i'm in f after Edge y = f()"));
-      Assert.assertTrue(results.logContains("i'm in f after Edge int x;"));
-      Assert.assertTrue(results.logContains("i'm in Main after Edge return"));
-      Assert.assertTrue(results.logContains("i'm in Main after Edge ERROR:"));
+      assertThat(results.getLog(), containsString("i'm in Main after Edge int y;"));
+      assertThat(results.getLog(), containsString("i'm in f after Edge y = f()"));
+      assertThat(results.getLog(), containsString("i'm in f after Edge int x;"));
+      assertThat(results.getLog(), containsString("i'm in Main after Edge return"));
+      assertThat(results.getLog(), containsString("i'm in Main after Edge ERROR:"));
   }
 
   @Test
@@ -267,8 +267,8 @@ public class AutomatonTest {
       );
 
       TestResults results = run(prop, "test/programs/simple/loop1.c");
-      Assert.assertTrue(results.logContains("A: Matched i in line 13 x=2"));
-      Assert.assertTrue(results.logContains("B: A increased to 2 And i followed "));
+      assertThat(results.getLog(), containsString("A: Matched i in line 13 x=2"));
+      assertThat(results.getLog(), containsString("B: A increased to 2 And i followed "));
       Assert.assertTrue(results.isSafe());
   }
 
@@ -293,15 +293,11 @@ public class AutomatonTest {
       log = pLog;
       checkerResult = pCheckerResult;
     }
-    @SuppressWarnings("unused")
     public String getLog() {
       return log;
     }
     public CPAcheckerResult getCheckerResult() {
       return checkerResult;
-    }
-    boolean logContains(String pattern) {
-     return log.contains(pattern);
     }
     boolean isSafe() {
       return checkerResult.getResult().equals(CPAcheckerResult.Result.SAFE);
