@@ -93,7 +93,6 @@ abstract class AutomatonAction {
   }
 
 
-
   /** Assigns the value of a AutomatonIntExpr to a AutomatonVariable determined by its name.
    */
   static class Assignment extends AutomatonAction {
@@ -124,6 +123,7 @@ abstract class AutomatonAction {
       return defaultResultValue;
     }
   }
+
   /**
    * Modifies the state of a CPA
    */
