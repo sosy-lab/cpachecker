@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpalien" timelimit="60">
+  <option name="-disable-java-assertions"/>
+  <option name="-heap">12000M</option>
+  <option name="-preprocess" />
+
+  <sourcefiles name="cpalien-not-yet-there">
+    <includesfile>../programs/cpalien/cpalien-not-yet.set</includesfile>
+    <option name="-CPAlien"/>
+  </sourcefiles>
+
+  <sourcefiles name="cpalien-label-not-yet-there">
+    <includesfile>../programs/cpalien/cpalien-label-not-yet.set</includesfile>
+    <option name="-CPAlien-label"/>
+  </sourcefiles>
+
+  <rundefinition name="cpalien">
+  </rundefinition>
+</benchmark>

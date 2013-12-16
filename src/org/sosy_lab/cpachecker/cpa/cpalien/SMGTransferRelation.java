@@ -181,6 +181,9 @@ public class SMGTransferRelation implements TransferRelation {
             "free",
             "memset",
             "calloc",
+            //TODO: Properly model printf (dereferences and stuff)
+            //TODO: General modelling system for functions which do not modify state?
+            "printf",
         }));
 
     private void dumpSMGPlot(String name, SMGState currentState, String location) {
@@ -757,6 +760,9 @@ public class SMGTransferRelation implements TransferRelation {
           break;
         case "memset":
           builtins.evaluateMemset(cFCExpression, newState, pCfaEdge);
+          break;
+        case "printf":
+          return new SMGState(pState);
         }
 
         if(expressionEvaluator.missingExplicitInformation) {
@@ -769,7 +775,7 @@ public class SMGTransferRelation implements TransferRelation {
         case "strict":
           throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.cpalien.handleUnknownFunction option.");
         case "assume_safe":
-          newState = new SMGState(pState);
+          return new SMGState(pState);
         }
         throw new AssertionError();
       }
@@ -1481,6 +1487,8 @@ public class SMGTransferRelation implements TransferRelation {
             possibleMallocFail = true;
             SMGEdgePointsTo callocEdge = builtins.evaluateCalloc(pIastFunctionCallExpression, getSmgState(), getCfaEdge());
             return createAddress(callocEdge);
+          case "printf":
+            return SMGUnknownValue.getInstance();
           default:
             if (builtins.isNondetBuiltin(functionName)) {
               return SMGUnknownValue.getInstance();
@@ -1527,6 +1535,8 @@ public class SMGTransferRelation implements TransferRelation {
           case "memset":
             SMGEdgePointsTo memsetTargetEdge = builtins.evaluateMemset(pIastFunctionCallExpression, getSmgState(), getCfaEdge());
             return createAddress(memsetTargetEdge);
+          case "printf":
+            return SMGUnknownValue.getInstance();
           default:
             if (builtins.isNondetBuiltin(functionName)) {
               return SMGUnknownValue.getInstance();

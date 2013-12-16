@@ -378,6 +378,11 @@ cpa.arg.errorPath.exportAsSource = true
 # export error path to file, if one is found
 cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
+
+# export error path to file as an automaton to a graphml file
+cpa.arg.errorPath.graphml = "ErrorPath.%d.graphml"
+
+# export error path to file, if one is found
 cpa.arg.errorPath.json = "ErrorPath.%d.json"
 cpa.arg.errorPath.source = "ErrorPath.%d.c"
 
@@ -633,6 +638,10 @@ cpa.explicit.refiner.avoidAssumes = false
 # refinement root
 cpa.explicit.refiner.checkForRepeatedRefinements = true
 
+# whether to check memory locations in ascending or descending order during
+# interpolation
+cpa.explicit.refiner.descendingOrder = false
+
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = true
 
@@ -843,7 +852,7 @@ cpa.predicate.defaultArrayLength = 20
 
 # Use deferred allocation heuristic that tracks void * variables until the
 # actual type of the allocation is figured out.
-cpa.predicate.deferUntypedAllocations = false
+cpa.predicate.deferUntypedAllocations = true
 
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
@@ -1065,7 +1074,7 @@ cpa.predicate.replaceBitvectorWithRationalAndFunctionTheory = true
 
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
-cpa.predicate.revealAllocationTypeFromLhs = false
+cpa.predicate.revealAllocationTypeFromLhs = true
 
 # maximum blocksize before a satisfiability check is done
 # (non-negative number, 0 means never, if positive should be smaller than
@@ -1231,6 +1240,10 @@ memorysafety.check = false
 # instead of the current one.
 memorysafety.config = no default value
 
+# which merge operator to use for SignCPA
+merge = "JOIN"
+  allowed values: [SEP, JOIN]
+
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
@@ -1240,6 +1253,10 @@ parser.dialect = GNUC
 # appended to this string. The preprocessor needs to print the output to
 # stdout.
 parser.preprocessor = "cpp"
+
+# Preprocess the given C files before parsing: Put every single token onto a
+# new line. Then the line number corresponds to the token number.
+parser.transformTokensToLines = true
 
 # For C files, run the preprocessor on them before parsing. Note that all
 # file numbers printed by CPAchecker will refer to the pre-processed file,
@@ -1303,4 +1320,8 @@ statistics.memory = true
 
 # print statistics to console
 statistics.print = false
+
+# which stop operator to use for SignCPA
+stop = "JOIN"
+  allowed values: [SEP, JOIN]
 

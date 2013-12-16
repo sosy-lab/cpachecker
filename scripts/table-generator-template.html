@@ -60,16 +60,16 @@
 <script type="text/javascript">
 
 // All the data from the table head in nice JS data structures.
-var tests = {{runSets|json}};   // list with the attributes of all run sets
+var runSets = {{runSets|json}};   // list with the attributes of all run sets
 var columns = {{columns|json}}; // nested list with all the columns headings
-var columnsToTest = [];         // for each column of the table the test it belongs to (first column is 0)
+var columnsToRunset = [];         // for each column of the table the runSet it belongs to (first column is 0)
 
 for (var i = 0; i < columns.length; i++) {
-  tests[i].columns = columns[i];
+  runSets[i].columns = columns[i];
 }
-for (var i = 0; i < tests.length; i++) {
-  for (var j = 0; j < tests[i].columns.length; j++) {
-    columnsToTest.push(tests[i]);
+for (var i = 0; i < runSets.length; i++) {
+  for (var j = 0; j < runSets[i].columns.length; j++) {
+    columnsToRunset.push(runSets[i]);
   }
 }
 
@@ -129,15 +129,15 @@ function fKeyPressed(event) {
 
 // input: the index of the column in the table
 function getNameOfTest(column) {
-  var test = columnsToTest[column-1];
-  return getNameOfTestDirect(test);
+  var runSet = columnsToRunset[column-1];
+  return getNameOfTestDirect(runSet);
 }
 
-function getNameOfTestDirect(test) {
-  return test.tool + ' '
-       + (test.date ? test.date + ' ' : '')
-       + test.name
-       + (test.benchmarkname ? '.' + test.benchmarkname : '');
+function getNameOfTestDirect(runSet) {
+  return runSet.tool + ' '
+       + (runSet.date ? runSet.date + ' ' : '')
+       + runSet.name
+       + (runSet.benchmarkname ? '.' + runSet.benchmarkname : '');
 }
 
 $(document).ready(function() {
@@ -300,10 +300,10 @@ function toggleCells(indices) {
 // @returns number of columns, equal to "sum(len(c) for c in columns)"
 function getColumns(columnTitles, titlesToColumns) {
     var columnIndex = 1; // column 1 is the first data-column
-    for (var i = 0; i < tests.length; i++) {
-        var test = tests[i];
-        test.indexToColumn = {} // from test-column-index to table-index
-        test.indices = [] // equal to values from test.indexToColumn
+    for (var i = 0; i < runSets.length; i++) {
+        var runSet = runSets[i];
+        runSet.indexToColumn = {} // from runSet-column-index to table-index
+        runSet.indices = [] // equal to values from runSet.indexToColumn
 
         var cols = columns[i];
         for (var j = 0; j < cols.length; j++, columnIndex++) {
@@ -317,8 +317,8 @@ function getColumns(columnTitles, titlesToColumns) {
                 columnTitles.push(title);
                 index = columnTitles.length - 1; // index of last position
             }
-            test.indexToColumn[index] = columnIndex;
-            test.indices.push(columnIndex);
+            runSet.indexToColumn[index] = columnIndex;
+            runSet.indices.push(columnIndex);
         }
     }
     return columnIndex;
@@ -364,24 +364,24 @@ function createColumnToggleView() {
 
     // create body for table
     var tableBody = $('<tbody>').appendTo(tableHTML);
-    for (var i = 0; i < tests.length; i++) {
+    for (var i = 0; i < runSets.length; i++) {
         rowHTML = $('<tr>').appendTo(tableBody);
-        var test = tests[i];
+        var runSet = runSets[i];
         
         // get indices of row and create rowTitle-cell
-        var rowTitle = test.tool + ' ' + (test.date ? test.date + ' ' : '') + test.name;
+        var rowTitle = runSet.tool + ' ' + (runSet.date ? runSet.date + ' ' : '') + runSet.name;
         $('<td>').append(rowTitle)
-            .click( {indices: test.indices}, 
+            .click( {indices: runSet.indices}, 
                     function(event) { toggleCells(event.data.indices); } )
             .addClass('clickable')
-            .attr('title', 'Click here to toggle all columns of this test')
+            .attr('title', 'Click here to toggle all columns of this runSet')
             .appendTo(rowHTML);
     
         // get cells of row
         var cols = columns[i];
         for (var j = 0; j < columnTitles.length; j++) {
             var cell = $('<td>').appendTo(rowHTML);
-            var index = test.indexToColumn[j];
+            var index = runSet.indexToColumn[j];
             if (index) {
                 indexToCell[index] = cell;
                 var childIndex = index + 1;
@@ -438,12 +438,12 @@ function createStatsView(statistics, currentIndex) {
 
     // create body for table
     var tableBody = $('<tbody>').appendTo(tableHTML);
-    for (var i = 0; i < tests.length; i++) {
+    for (var i = 0; i < runSets.length; i++) {
         rowHTML = $('<tr>').appendTo(tableBody);
-        var test = tests[i];
+        var runSet = runSets[i];
         
         // get indices of row and create rowTitle-cell
-        var rowTitle = test.tool + ' ' + (test.date ? test.date + ' ' : '') + test.name;
+        var rowTitle = runSet.tool + ' ' + (runSet.date ? runSet.date + ' ' : '') + runSet.name;
         $('<td>').append(rowTitle)
             .appendTo(rowHTML);
     
@@ -451,7 +451,7 @@ function createStatsView(statistics, currentIndex) {
         var cols = columns[i];
         for (var j = 0; j < columnTitles.length; j++) {
             var cell = $('<td>').appendTo(rowHTML);
-            var index = test.indexToColumn[j];
+            var index = runSet.indexToColumn[j];
             if (index) {
                 originalCell = $(statisticsRow.cells[index]);
                 cell.text(originalCell.text()).attr('title', originalCell.attr('title'));                    
@@ -501,16 +501,16 @@ function createRowFilterButtons() {
   var buttonList = $('<form>', {id:'rowFilterButtons', onsubmit:'return false'})
         .appendTo($("#contentPane"));
   var columnIndex = 1; // columns start with 1
-  for (var i = 0; i < tests.length; i++) {
-    var test = tests[i];
+  for (var i = 0; i < runSets.length; i++) {
+    var runSet = runSets[i];
     var sublist = $('<ul>').text(getNameOfTest(columnIndex)).appendTo(buttonList);
 
-    for (var j = 0; j < test.columns.length; j++, columnIndex++) {
+    for (var j = 0; j < runSet.columns.length; j++, columnIndex++) {
       var target = 'check' + columnIndex;
       var button = $('<input>', {
                     type:'radio', name:'filter', id:target, 
                     onclick:('fillRowFilterField(' + columnIndex + ')')});
-      var label = $('<label>', {for:target}).text(test.columns[j]).addClass("clickable");
+      var label = $('<label>', {for:target}).text(runSet.columns[j]).addClass("clickable");
       $('<li>').append(button).append(label).appendTo(sublist);
     }
   }
@@ -707,7 +707,7 @@ function getColumnIndicesForTarget(target) {
     for (i = 1; i < cells.length; i++) { // skip first cell
       if ($(cells[i]).is(":visible")) {
         if ("status" != cells[i].textContent
-            && tests[index-1] === columnsToTest[i-1]) {
+            && runSets[index-1] === columnsToRunset[i-1]) {
           columnIndizes.push(i);
         }
       }
@@ -899,7 +899,7 @@ function getYTicks() {
   }
 }
 
-// returns label of a test: 'tool+test+date'.
+// returns label of a runset: 'tool+runset+date'.
 function getLabels() {
   var labels = [];
   if (graphData.isRunSet) {
@@ -1007,12 +1007,12 @@ function addButtons(target, callback, showQuantileButton) {
 function getSelectorForScatter(identifier) {
     var select = $('<select>', {class:'scatterplot-selector'});
     var columnIndex = 1; // columns start with 1
-    for (var i = 0; i < tests.length; i++) {
-        var test = tests[i];
-        var group = $('<optgroup>', {label:getNameOfTestDirect(test)})
+    for (var i = 0; i < runSets.length; i++) {
+        var runSet = runSets[i];
+        var group = $('<optgroup>', {label:getNameOfTestDirect(runSet)})
                 .appendTo(select);
-        for (var j = 0; j < test.columns.length; j++, columnIndex++) {
-            var column = test.columns[j];
+        for (var j = 0; j < runSet.columns.length; j++, columnIndex++) {
+            var column = runSet.columns[j];
             var option = $('<option>', {
                             value:columnIndex, 
                             selected:(graphData.target[identifier] == columnIndex)})

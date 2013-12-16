@@ -85,6 +85,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   @Option(description="whether or not to avoid restarting at assume edges after a refinement")
   private boolean avoidAssumes = false;
 
+  @Option(description="whether to check memory locations in ascending or descending order during interpolation")
+  private boolean descendingOrder = false;
+
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
    */
@@ -122,7 +125,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
         AssignmentsInPathConditionState.class);
 
-    ExplicitInterpolator interpolator     = new ExplicitInterpolator(logger, shutdownNotifier, cfa);
+    ExplicitInterpolator interpolator     = new ExplicitInterpolator(logger, shutdownNotifier, cfa, descendingOrder);
     Map<MemoryLocation, Long> currentInterpolant  = new HashMap<>();
     Multimap<CFANode, MemoryLocation> increment   = HashMultimap.create();
 

@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="900" memlimit="15000" cpuCores="2">
+  <option name="-noout"/>
+  <option name="-heap">10000M</option>
+  <option name="-spec">${sourcefile_path}/ALL.prp</option>
+  <requiredfiles>../programs/benchmarks/*/ALL.prp</requiredfiles>
+
+  <sourcefiles name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="BitVectors">
+    <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Concurrency">
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="DeviceDrivers64">
+    <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
+    <option name="-64"/>
+  </sourcefiles>
+  <!-- Demonstration Category
+  <sourcefiles name="DriverChallenges">
+    <includesfile>../programs/benchmarks/DriverChallenges.set</includesfile>
+    <option name="-64"/>
+  </sourcefiles>
+  -->
+  <sourcefiles name="HeapManipulation">
+    <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Loops">
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="MemorySafety">
+    <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="ProductLines">
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Recursive">
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+  </sourcefiles>
+
+  <rundefinition>
+    <option name="-sv-comp14"/>
+  </rundefinition>
+</benchmark>

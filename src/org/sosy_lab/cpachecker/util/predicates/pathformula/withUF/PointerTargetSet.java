@@ -42,6 +42,8 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentLinkedList;
+import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -307,7 +309,7 @@ public class PointerTargetSet implements Serializable {
 
   public PersistentList<PointerTarget> getAllTargets(final CType type) {
     return firstNonNull(targets.get(typeToString(type)),
-                        PersistentList.<PointerTarget>empty());
+                        PersistentLinkedList.<PointerTarget>of());
   }
 
   /**
@@ -353,7 +355,6 @@ public class PointerTargetSet implements Serializable {
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
 
       final Multiset<String> members = HashMultiset.create();
-
       int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         members.setCount(memberDeclaration.getName(), offset);
@@ -395,7 +396,7 @@ public class PointerTargetSet implements Serializable {
                            final int containerOffset) {
       final String type = typeToString(targetType);
       PersistentList<PointerTarget> targetsForType = firstNonNull(targets.get(type),
-                                                                  PersistentList.<PointerTarget>empty());
+                                                                  PersistentLinkedList.<PointerTarget>of());
       targets = targets.putAndCopy(type, targetsForType.with(new PointerTarget(base,
                                                                                containerType,
                                                                                properOffset,
@@ -1117,7 +1118,7 @@ public class PointerTargetSet implements Serializable {
     return new ConflictHandler<PersistentList<T>>() {
       @Override
       public PersistentList<T> resolveConflict(PersistentList<T> list1, PersistentList<T> list2) {
-        return PersistentList.merge(list1, list2);
+        return DeferredAllocationPool.mergeLists(list1, list2);
       }
     };
   }
@@ -1126,7 +1127,7 @@ public class PointerTargetSet implements Serializable {
     return new ConflictHandler<PersistentList<T>>() {
       @Override
       public PersistentList<T> resolveConflict(PersistentList<T> list1, PersistentList<T> list2) {
-        return list2.destructiveBuildOnto(list1);
+        return list1.withAll(list2);
       }
     };
   }

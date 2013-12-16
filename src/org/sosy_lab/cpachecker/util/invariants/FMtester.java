@@ -70,7 +70,7 @@ public class FMtester {
     try {
       logger = new BasicLogManager(config);
       cfac = new CFACreator(config, logger, shutdownNotifier);
-      CFA cfa = cfac.parseFileAndCreateCFA(testfile);
+      CFA cfa = cfac.parseFileAndCreateCFA(new String[]{testfile});
       root = cfa.getMainFunction();
 
       // construct FormulaManager, and extended one

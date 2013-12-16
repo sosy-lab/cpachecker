@@ -51,11 +51,11 @@ public class FormulaEncodingWithUFOptions extends FormulaEncodingOptions {
 
   @Option(description = "Enable the option to allow detecting the allocation type by type " +
                         "of the LHS of the assignment, e.g. char *arr = malloc(size) is detected as char[size]")
-  private boolean revealAllocationTypeFromLhs = false;
+  private boolean revealAllocationTypeFromLhs = true;
 
   @Option(description = "Use deferred allocation heuristic that tracks void * variables until the actual type " +
                         "of the allocation is figured out.")
-  private boolean deferUntypedAllocations = false;
+  private boolean deferUntypedAllocations = true;
 
   @Option(description = "Maximum size of allocations for which all structure fields are regarded always essential, " +
                         "regardless of whether they were ever really used in code.")

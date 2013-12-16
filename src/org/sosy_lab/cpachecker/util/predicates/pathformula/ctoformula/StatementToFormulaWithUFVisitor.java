@@ -627,9 +627,15 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       final List<Object> result = new ArrayList<>(length);
       for (int i = 0; i < length; ++i) {
         if (isAutomatic) {
-          result.add(zero);
-        } else {
           result.add(null);
+        } else {
+          if (!(elementType instanceof CArrayType) && !(elementType instanceof CCompositeType)) {
+            result.add(zero);
+          } else {
+            result.add(visitInitializer(elementType,
+                                        new CInitializerList(topInitializer.getFileLocation(),
+                                        Collections.<CInitializer>emptyList()), false));
+          }
         }
       }
       int index = 0;
@@ -689,11 +695,17 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         index++;
       }
       final List<Object> result = new ArrayList<>(size);
-      for (int i = 0; i < size; ++i) {
+      for (final CType memberType : memberTypes) {
         if (isAutomatic) {
-          result.add(zero);
-        } else {
           result.add(null);
+        } else {
+          if (!(memberType instanceof CArrayType) && !(memberType instanceof CCompositeType)) {
+            result.add(zero);
+          } else {
+            result.add(visitInitializer(memberType,
+                                        new CInitializerList(topInitializer.getFileLocation(),
+                                        Collections.<CInitializer>emptyList()), false));
+          }
         }
       }
       index = 0;
@@ -784,6 +796,13 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                              topInitializer);
       }
     } else {
+      if (topInitializer instanceof CInitializerList &&
+          ((CInitializerList) topInitializer).getInitializers().size() == 0) {
+        topInitializer = new CInitializerExpression(topInitializer.getFileLocation(),
+                                                    new CIntegerLiteralExpression(topInitializer.getFileLocation(),
+                                                                                  CNumericTypes.CHAR,
+                                                                                  BigInteger.ZERO));
+      }
       assert topInitializer instanceof CInitializerExpression : "Unrecognized initializer";
       final CExpression initializerExpression = ((CInitializerExpression) topInitializer).getExpression();
       final Formula initializer = initializerExpression.accept(this);

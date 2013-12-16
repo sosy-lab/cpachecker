@@ -434,8 +434,9 @@ def handleCloudResults(benchmark, outputHandler):
             outputHandler.outputBeforeRun(run)
             output = ''
             try:
-                with open(run.logFile, 'rt') as f:
-                    output = f.read()
+                with open(run.logFile, 'rt') as outputFile:
+                    # first 6 lines are for logging, rest is output of subprocess, see RunExecutor.py for details
+                    output = '\n'.join(map(Util.decodeToString, outputFile.readlines()[6:]))
             except IOError as e:
                 logging.warning("Cannot read log file: " + e.strerror)
 

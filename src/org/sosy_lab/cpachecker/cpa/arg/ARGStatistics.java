@@ -131,6 +131,11 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path errorPathAutomatonFile = new Path("ErrorPath.%d.spc");
 
+  @Option(name="errorPath.graphml",
+      description="export error path to file as an automaton to a graphml file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path errorPathAutomatonGraphmlFile = Paths.get("ErrorPath.%d.graphml");
+
   private final ARGCPA cpa;
 
   private Writer refinementGraphUnderlyingWriter = null;
@@ -227,9 +232,11 @@ public class ARGStatistics implements Statistics {
     }
   }
 
-  private void exportCounterexample(ReachedSet pReached, final ARGState rootState,
+  private void exportCounterexample(ReachedSet pReached,
+      final ARGState rootState,
       final int cexIndex,
-      final CounterexampleInfo counterexample, final ARGPath targetPath,
+      final CounterexampleInfo counterexample,
+      final ARGPath targetPath,
       final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
 
     writeErrorPathFile(errorPathFile, cexIndex,
@@ -293,6 +300,14 @@ public class ARGStatistics implements Statistics {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
         ARGUtils.producePathAutomaton(pAppendable, rootState, pathElements,
+                                      "ErrorPath" + cexIndex);
+      }
+    });
+
+    writeErrorPathFile(errorPathAutomatonGraphmlFile, cexIndex, new Appender() {
+      @Override
+      public void appendTo(Appendable pAppendable) throws IOException {
+        ARGPathExport.producePathAutomatonGraphMl(pAppendable, rootState, pathElements,
                                       "ErrorPath" + cexIndex);
       }
     });

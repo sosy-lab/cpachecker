@@ -264,13 +264,13 @@ public class CPAchecker {
     return !programDenotation.contains(",");
   }
 
-  private CFA parse(String filename, MainCPAStatistics stats) throws InvalidConfigurationException, IOException,
+  private CFA parse(String fileNamesCommaSeparated, MainCPAStatistics stats) throws InvalidConfigurationException, IOException,
       ParserException, InterruptedException {
     // parse file and create CFA
     CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
     stats.setCFACreator(cfaCreator);
 
-    CFA cfa = cfaCreator.parseFileAndCreateCFA(filename);
+    CFA cfa = cfaCreator.parseFileAndCreateCFA(fileNamesCommaSeparated.split(","));
     stats.setCFA(cfa);
     return cfa;
   }

@@ -199,10 +199,12 @@ public class InvariantsCPA extends AbstractCPA {
     boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingPredicatesLimit != 0 || options.interestingVariableLimit != 0;
     if (determineTargetLocations) {
       try {
-        Configuration.Builder configurationBuilder = Configuration.builder().copyFrom(config);
+        Configuration.Builder configurationBuilder = Configuration.builder();
         configurationBuilder.setOption("output.disable", "true");
         configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA");
-        configurationBuilder.setOption("specification", "config/specification/default.spc");
+        String specification = config.getProperty("specification");
+        specification = "config/specification/default.spc";
+        configurationBuilder.setOption("specification", specification);
 
         ConfigurableProgramAnalysis cpa = new CPABuilder(configurationBuilder.build(), logManager, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
         ReachedSet reached = reachedSetFactory.create();
