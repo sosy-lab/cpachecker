@@ -128,9 +128,10 @@ public class ARGPathExport {
     appendNewKeyDef(doc, target, "sourcecode", "node", "sourcecode", "string");
   }
 
-  private static Element createAndAppendGraphRoot(Document doc, Element target, GraphType type) {
+  private static Element createAndAppendGraphRoot(Document doc, Element target, GraphType type, String entryStateNodeId) {
     Element result = doc.createElement("graph");
     result.setAttribute("edgedefault", "directed");
+    result.setAttribute("entrynode", entryStateNodeId);
     result.setAttribute("type", GraphType.PROGRAMPATH.toString());
 
     target.appendChild(result);
@@ -212,7 +213,8 @@ public class ARGPathExport {
     appendKeyDefinitions(doc, root, graphType);
 
     // Root of graph
-    Element graph = createAndAppendGraphRoot(doc, root, graphType);
+    String entryStateNodeId = getStateIdent(pRootState);
+    Element graph = createAndAppendGraphRoot(doc, root, graphType, entryStateNodeId);
 
     Element sinkNode = null;
 
@@ -273,6 +275,7 @@ public class ARGPathExport {
           if (sinkNode == null) {
             sinkNode = appendNewNode(doc, graph, SINK_NODE_ID, NodeType.SINKNODE);
           }
+
           // Path to non-assumption edge (this becomes the sink)
           exportUntilNonAssume(doc, graph, prevStateId, edgeToNextState, pPathStates);
         }
