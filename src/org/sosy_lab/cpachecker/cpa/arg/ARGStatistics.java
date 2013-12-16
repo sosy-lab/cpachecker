@@ -134,7 +134,7 @@ public class ARGStatistics implements Statistics {
   @Option(name="errorPath.graphml",
       description="export error path to file as an automaton to a graphml file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathAutomatonGraphmlFile = Paths.get("ErrorPath.%d.graphml");
+  private Path errorPathAutomatonGraphmlFile = new Path("ErrorPath.%d.graphml");
 
   private final ARGCPA cpa;
 
