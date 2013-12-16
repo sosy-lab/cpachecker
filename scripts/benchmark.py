@@ -123,7 +123,7 @@ class Worker(threading.Thread):
 
         (run.wallTime, run.cpuTime, run.memUsage, returnvalue, output) = \
             self.runExecutor.executeRun(
-                run.args, run.benchmark.rlimits, run.logFile,
+                run.getCmdline(), run.benchmark.rlimits, run.logFile,
                 myCpuIndex=self.numberOfThread,
                 environments=run.benchmark.getEnvironments(),
                 runningDir=run.benchmark.workingDirectory())
@@ -379,7 +379,7 @@ def getBenchmarkDataForCloud(benchmark):
             # so we can use all other chars for the info, that is needed to run the tool.
             # we build a string-representation of all this info (it's a map),
             # that can be parsed with python again in cloudRunexecutor.py (this is very easy with eval()) .
-            argString = repr({"args":run.args, "env":env, "debug": config.debug})
+            argString = repr({"args":run.getCmdline(), "env":env, "debug": config.debug})
             assert not "\t" in argString # cannot call toTabList(), if there is a tab
 
             logFile = os.path.relpath(run.logFile, benchmark.logFolder)

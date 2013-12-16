@@ -485,10 +485,12 @@ class Run():
         self.memUsage = None
         self.host = None
 
+
+    def getCmdline(self):
         args = self.benchmark.tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
         args = [os.path.expandvars(arg) for arg in args]
         args = [os.path.expanduser(arg) for arg in args]
-        self.args = args;
+        return args;
 
 
     def afterExecution(self, returnvalue, output):
