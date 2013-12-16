@@ -464,13 +464,14 @@ class Run():
 
     def __init__(self, sourcefile, fileOptions, runSet):
         self.sourcefile = sourcefile
-        self.runSet = runSet
         self.benchmark = runSet.benchmark
         self.specificOptions = fileOptions # options that are specific for this run
         self.logFile = runSet.logFolder + os.path.basename(sourcefile) + ".log"
-        self.options = substituteVars(runSet.options + fileOptions, # all options to be used when executing this run
-                                      runSet,
-                                      sourcefile)
+        
+        # lets reduce memory-consumption: if 2 lists are equal, do not use the second one
+        self.options = runSet.options + fileOptions if fileOptions else runSet.options # all options to be used when executing this run
+        substitutedOptions = substituteVars(self.options, runSet, sourcefile)
+        if substitutedOptions != self.options: self.options = substitutedOptions # for less memory again
 
         # Copy columns for having own objects in run
         # (we need this for storing the results in them).
@@ -488,7 +489,6 @@ class Run():
         args = [os.path.expandvars(arg) for arg in args]
         args = [os.path.expanduser(arg) for arg in args]
         self.args = args;
-
 
 
     def afterExecution(self, returnvalue, output):
