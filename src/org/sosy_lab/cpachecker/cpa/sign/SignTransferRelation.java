@@ -294,7 +294,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     }
     Optional<IdentifierValuePair> result = evaluateAssumption((CBinaryExpression)pExpression, pTruthAssumption, pCfaEdge);
     if(result.isPresent()) {
-      logger.log(Level.FINE, "Assumption: " + pExpression + " --> " + result.get().identifier + " = " + result.get().value);
+      logger.log(Level.FINE, "Assumption: " + (pTruthAssumption ? pExpression : "!(" + pExpression + ")") + " --> " + result.get().identifier + " = " + result.get().value);
       return state.assignSignToVariable(getScopedVariableName(result.get().identifier), result.get().value);
     }
     return state;
