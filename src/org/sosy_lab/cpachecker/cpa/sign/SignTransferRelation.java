@@ -30,6 +30,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.common.LogManager;
@@ -74,7 +75,6 @@ import com.google.common.collect.ImmutableMap.Builder;
 
 public class SignTransferRelation extends ForwardingTransferRelation<SignState, SingletonPrecision> {
 
-  @SuppressWarnings("unused")
   private LogManager logger;
 
   private Set<String> globalVariables = new HashSet<>();
@@ -121,7 +121,9 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       String scopedVarId = getScopedVariableName(pParameters.get(i).getName(), pCalledFunctionName);
       mapBuilder.put(scopedVarId, ((CRightHandSide)exp).accept(new SignCExpressionVisitor(edge, state, this)));
     }
-    return state.enterFunction(mapBuilder.build());
+    ImmutableMap<String, SIGN> argumentMap = mapBuilder.build();
+    logger.log(Level.FINE, "Entering function " + pCalledFunctionName + " with arguments " + argumentMap);
+    return state.enterFunction(argumentMap);
   }
 
   @Override
@@ -136,6 +138,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
           pCfaEdge); }
       String returnVarName = getScopedVariableName(FUNC_RET_VAR, functionName);
       String assignedVarName = getScopedVariableName(leftSide, pCallerFunctionName);
+      logger.log(Level.FINE, "Leave function " + functionName + " with return assignment: " + assignedVarName + " = " + state.getSignMap().getSignForVariable(returnVarName));
       SignState result = state
               .leaveFunction()
               .assignSignToVariable(assignedVarName, state.getSignMap().getSignForVariable(returnVarName));
@@ -144,6 +147,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
 
     // fun()
     if (pSummaryExpr instanceof AFunctionCallStatement) {
+      logger.log(Level.FINE, "Leave function " + functionName);
       return state.removeSignAssumptionOfVariable(getScopedVariableName(FUNC_RET_VAR, functionName));
     }
 
@@ -185,6 +189,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       return Optional.absent(); // No refinement possible, since no strongest identifier was found
     }
     CIdExpression strongestId = optStrongestId.get();
+    logger.log(Level.FINER, "Filtered strongest identifier " + strongestId + " from assume expression" + pAssumeExp);
     CExpression refinementExpression = getRefinementExpression(strongestId, pAssumeExp);
     BinaryOperator resultOp = !truthAssumption ? negateComparisonOperator(pAssumeExp.getOperator()) : pAssumeExp.getOperator();
     SIGN resultSign;
@@ -292,6 +297,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     }
     Optional<IdentifierValuePair> result = evaluateAssumption((CBinaryExpression)pExpression, pTruthAssumption, pCfaEdge);
     if(result.isPresent()) {
+      logger.log(Level.FINE, "Assumption: " + pExpression + " --> " + result.get().identifier + " = " + result.get().value);
       return state.assignSignToVariable(getScopedVariableName(result.get().identifier), result.get().value);
     }
     return state;
@@ -311,9 +317,12 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       scopedId = getScopedVariableName(decl.getName(), functionName);
     }
     IAInitializer init = decl.getInitializer();
+    logger.log(Level.FINE, "Declaration: " + scopedId);
+    // type x = expression;
     if(init instanceof AInitializerExpression) {
       return handleAssignmentToVariable(state, scopedId, ((AInitializerExpression)init).getExpression());
     }
+    // type x;
     // since it is C, we assume it may have any value here
     return state.assignSignToVariable(scopedId, SIGN.ALL);
   }
@@ -349,6 +358,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     if(pRightExpr instanceof CRightHandSide) {
       CRightHandSide right = (CRightHandSide)pRightExpr;
       SIGN result = right.accept(new SignCExpressionVisitor(edge, pState, this));
+      logger.log(Level.FINE,  "Assignment: " + pVarIdent + " = " + result);
       return pState.assignSignToVariable(pVarIdent, result);
     }
     throw new UnrecognizedCodeException("unhandled righthandside expression", edge);
