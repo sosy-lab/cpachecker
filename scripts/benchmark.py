@@ -413,8 +413,13 @@ def handleCloudResults(benchmark, outputHandler):
         outputHandler.outputBeforeRunSet(runSet)
 
         for run in runSet.runs:
+            stdoutFile = run.logFile + ".stdOut"
+            if not os.path.exists(stdoutFile):
+                logging.warning("No results exist for file {0}.".format(run.sourcefile))
+                executedAllRuns = False
+                continue
+
             try:
-                stdoutFile = run.logFile + ".stdOut"
                 (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
 
                 if run.sourcefile in runToHostMap:
@@ -423,13 +428,12 @@ def handleCloudResults(benchmark, outputHandler):
                 if returnValue is not None:
                     # Do not delete stdOut file if there was some problem
                     os.remove(stdoutFile)
-                    pass
                 else:
-                    executedAllRuns = False;
+                    executedAllRuns = False
 
             except EnvironmentError as e:
                 logging.warning("Cannot extract measured values from output for file {0}: {1}".format(run.sourcefile, e))
-                executedAllRuns = False;
+                executedAllRuns = False
                 continue
 
             if os.path.exists(run.logFile + ".stdError"):
