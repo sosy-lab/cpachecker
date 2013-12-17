@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableSet;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
@@ -41,6 +40,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 public class ExplicitInterpolator {
   /**
@@ -71,11 +70,6 @@ public class ExplicitInterpolator {
    * the precision in use
    */
   private final ExplicitPrecision precision;
-
-  /**
-   * whether to check memory locations in ascending or descending order during interpolation
-   */
-  private final boolean descendingOrder;
 
   /**
    * the first path element without any successors
@@ -98,17 +92,30 @@ public class ExplicitInterpolator {
   private int numberOfInterpolations = 0;
 
   /**
+   * the set of assume edges leading out of loops
+   */
+  private final Set<CAssumeEdge> loopLeavingAssumes;
+
+  /**
+   * the set of memory locations appearing in assume edges leading out of loops
+   */
+  private final Set<MemoryLocation> loopLeavingMemoryLocations;
+
+  /**
    * This method acts as the constructor of the class.
    */
   public ExplicitInterpolator(final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa, final boolean pDescendingOrder) throws CPAException {
+      final CFA pCfa, final Set<CAssumeEdge> pLoopLeavingAssumes, final Set<MemoryLocation> pLoopLeavingMemoryLocations)
+          throws CPAException {
     shutdownNotifier = pShutdownNotifier;
     try {
       Configuration config = Configuration.builder().build();
 
-      transfer        = new ExplicitTransferRelation(config, pLogger, pCfa);
-      precision       = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
-      descendingOrder = pDescendingOrder;
+      transfer              = new ExplicitTransferRelation(config, pLogger, pCfa);
+      precision             = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
+
+      loopLeavingAssumes          = pLoopLeavingAssumes;
+      loopLeavingMemoryLocations  = pLoopLeavingMemoryLocations;
     }
     catch (InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
@@ -149,14 +156,8 @@ public class ExplicitInterpolator {
       return Collections.emptySet();
     }
 
-    NavigableSet<MemoryLocation> memoryLocations = Sets.newTreeSet(initialSuccessor.getTrackedMemoryLocations());
-    if(descendingOrder) {
-      memoryLocations = memoryLocations.descendingSet();
-    }
-
     Set<Pair<MemoryLocation, Long>> interpolant = new HashSet<>();
-
-    for (MemoryLocation currentMemoryLocation : memoryLocations) {
+    for (MemoryLocation currentMemoryLocation : determineInterpolationCandidates(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
       ExplicitState successor = initialSuccessor.clone();
 
@@ -179,6 +180,29 @@ public class ExplicitInterpolator {
     }
 
     return interpolant;
+  }
+
+  /**
+   * This method returns a (possibly) reordered collection of interpolation candidates, which favors non-loop variables
+   * to be part of the interpolant.
+   *
+   * @param explicitState the collection of interpolation candidates, encoded in an explicit-value state
+   * @return a (possibly) reordered collection of interpolation candidates
+   */
+  private Collection<MemoryLocation> determineInterpolationCandidates(ExplicitState explicitState) {
+    Set<MemoryLocation> trackedMemoryLocations = explicitState.getTrackedMemoryLocations();
+
+    List<MemoryLocation> reOrderedMemoryLocations = Lists.newArrayListWithCapacity(trackedMemoryLocations.size());
+
+    // move loop-variables to the front - being checked for relevance earlier minimizes their impact on feasibility
+    for(MemoryLocation currentMemoryLocation : trackedMemoryLocations) {
+      if(loopLeavingMemoryLocations.contains(currentMemoryLocation)) {
+        reOrderedMemoryLocations.add(0, currentMemoryLocation);
+      } else {
+        reOrderedMemoryLocations.add(currentMemoryLocation);
+      }
+    }
+    return reOrderedMemoryLocations;
   }
 
   /**
@@ -224,6 +248,11 @@ public class ExplicitInterpolator {
     int i = 0;
     for(CFAEdge currentEdge : remainingErrorPath) {
       i++;
+
+      if(loopLeavingAssumes.contains(currentEdge)) {
+        continue;
+      }
+
       Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
         initialState,
         precision,
@@ -242,13 +271,12 @@ public class ExplicitInterpolator {
           ... as this would otherwise stop interpolation after first conflicting element,
           as the path to first conflicting element always is infeasible here
         */
-        //if ((conflictingOffset == null) || (conflictingOffset <= i + currentOffset))
-
         if ((conflictingOffset == null) || (conflictingOffset <= i + currentOffset)) {
           conflictingOffset = i + currentOffset + 1;
         }
         return false;
       }
+
     }
     return true;
   }
