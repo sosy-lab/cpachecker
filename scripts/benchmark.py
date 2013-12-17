@@ -404,6 +404,7 @@ def handleCloudResults(benchmark, outputHandler):
 
     # write results in runs and handle output after all runs are done
     executedAllRuns = True
+    runsProducedErrorOutput = False
     for runSet in benchmark.runSets:
         if not runSet.shouldBeExecuted():
             outputHandler.outputForSkippingRunSet(runSet)
@@ -431,6 +432,9 @@ def handleCloudResults(benchmark, outputHandler):
                 executedAllRuns = False;
                 continue
 
+            if os.path.exists(run.logFile + ".stdError"):
+                runsProducedErrorOutput = True
+
             outputHandler.outputBeforeRun(run)
             output = ''
             try:
@@ -448,7 +452,10 @@ def handleCloudResults(benchmark, outputHandler):
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
 
     if not executedAllRuns:
-         logging.warning("Not all runs were executed in the cloud!")
+        logging.warning("Not all runs were executed in the cloud!")
+    if runsProducedErrorOutput:
+        logging.warning("Some runs produced unexpected warnings on stderr, please check the {0} files!"
+                        .format(os.path.join(outputDir, '*.stdError')))
 
 
 def executeBenchmarkInCloud(benchmark, outputHandler):
