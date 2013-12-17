@@ -363,7 +363,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       return null;
     }
 
-    if (equals(result)) {
+    if (equalsState(result)) {
       return this;
     }
     return result;
@@ -678,7 +678,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
         newVariableSelection, collectedInterestingAssumptions, precision);
     if (result != null) {
       if (!result.assumeInternal(assumption, evaluator)) { return null; }
-      if (equals(result)) {
+      if (equalsState(result)) {
         return this;
       }
     }
@@ -741,10 +741,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   public boolean equals(Object pObj) {
     if (pObj == this) { return true; }
     if (!(pObj instanceof InvariantsState)) { return false; }
-    return equals((InvariantsState) pObj);
+    return equalsState((InvariantsState) pObj);
   }
 
-  public boolean equals(InvariantsState pOther) {
+  private boolean equalsState(InvariantsState pOther) {
     return pOther != null && environment.equals(pOther.environment)
         && assumptions.equals(pOther.assumptions)
         && collectedInterestingAssumptions.equals(pOther.collectedInterestingAssumptions);
@@ -918,9 +918,9 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
           collectedInterestingAssumptions, precision);
     }
     if (result != null) {
-      if (result.equals(element2)) {
+      if (result.equalsState(element2)) {
         result = element2;
-      } else if (result.equals(element1)) {
+      } else if (result.equalsState(element1)) {
         result = element1;
       }
     }
