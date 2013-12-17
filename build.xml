@@ -131,6 +131,8 @@
                encoding="UTF-8">
             <src path="${source.dir}"/>
             <classpath refid="CPAchecker.classpath"/>
+        	<!-- exclude for now since necessary JARs might not be installed -->
+        	<exclude name="org/sosy_lab/cpachecker/appengine/**"/>
         </javac>
     </target>
 
