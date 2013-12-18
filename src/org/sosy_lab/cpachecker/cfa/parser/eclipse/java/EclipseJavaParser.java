@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedList;
@@ -41,6 +39,7 @@ import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -89,7 +88,7 @@ public class EclipseJavaParser implements Parser {
   @Option(name="java.typeHierarchyFile",
       description="export TypeHierarchy as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportTypeHierarchyFile = Paths.get("typeHierarchy.dot");
+  private Path exportTypeHierarchyFile = new Path("typeHierarchy.dot");
 
   private final ASTParser parser = ASTParser.newParser(AST.JLS4);
 

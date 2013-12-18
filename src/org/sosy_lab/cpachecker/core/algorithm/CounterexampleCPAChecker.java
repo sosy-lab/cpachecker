@@ -29,12 +29,12 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.file.Path;
 import java.util.Set;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.Files.DeleteOnCloseFile;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;

@@ -28,6 +28,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -99,7 +101,12 @@ public class CPABuilder {
       cpas = new ArrayList<>();
 
       for (File specFile : specificationFiles) {
-        List<Automaton> automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel());
+        List<Automaton> automata = Collections.emptyList();
+        if (specFile.getPath().endsWith(".graphml")) {
+          automata = AutomatonGraphmlParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel());
+        } else {
+          automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel());
+        }
 
         for (Automaton automaton : automata) {
           String cpaAlias = automaton.getName();

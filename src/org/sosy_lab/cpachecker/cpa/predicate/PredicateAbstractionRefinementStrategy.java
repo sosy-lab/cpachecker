@@ -32,8 +32,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -43,6 +41,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -428,7 +427,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     assert targetStatePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
 
     if (dumpPredicates && dumpPredicatesFile != null) {
-      Path precFile = Paths.get(String.format(dumpPredicatesFile.getPath(), precisionUpdate.getUpdateCount()));
+      Path precFile = new Path(String.format(dumpPredicatesFile.getPath(), precisionUpdate.getUpdateCount()));
       try (Writer w = Files.openOutputFile(precFile)) {
         precisionWriter.writePredicateMap(
             ImmutableSetMultimap.copyOf(newPredicates),

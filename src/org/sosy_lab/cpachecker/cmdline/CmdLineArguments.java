@@ -28,8 +28,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -42,6 +40,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.CPAchecker;
@@ -344,8 +343,8 @@ class CmdLineArguments {
           // handle property files, as demanded by SV-COMP, which are just mapped to an explicit entry function and
           // the respective specification definition
           else if(PROPERTY_FILE_PATTERN.matcher(newValue).matches()) {
-            Path propertyFile = Paths.get(newValue);
-            if (java.nio.file.Files.exists(propertyFile)) {
+            Path propertyFile = new Path(newValue);
+            if (propertyFile.toFile().exists()) {
               PropertyFileParser parser = new PropertyFileParser(propertyFile.toFile());
               parser.parse();
               putIfNotExistent(options, "analysis.entryFunction", parser.entryFunction);
@@ -412,19 +411,19 @@ class CmdLineArguments {
   private static Path findFile(final String template, final String name) {
     final String fileName = String.format(template, name);
 
-    Path file = Paths.get(fileName);
+    Path file = new Path(fileName);
 
     // look in current directory first
-    if (java.nio.file.Files.exists(file)) {
+    if (file.toFile().exists()) {
       return file.toAbsolutePath();
     }
 
     // look relative to code location second
-    Path codeLocation = Paths.get(CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+    Path codeLocation = new Path(CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().getPath());
     Path baseDir = codeLocation.getParent();
 
     file = baseDir.resolve(fileName);
-    if (java.nio.file.Files.exists(file)) {
+    if (file.toFile().exists()) {
       return file.toAbsolutePath();
     }
 
@@ -450,7 +449,7 @@ class CmdLineArguments {
 
     private void parse() throws InvalidCmdlineArgumentException {
       String rawProperty = null;
-      try (BufferedReader br = java.nio.file.Files.newBufferedReader(propertyFile.toPath(), Charset.defaultCharset())) {
+      try (BufferedReader br = Path.fromFile(propertyFile).asCharSource(Charset.defaultCharset()).openBufferedStream()) {
         while ((rawProperty = br.readLine()) != null) {
           if (!rawProperty.isEmpty()) {
             properties.add(parsePropertyLine(rawProperty));

@@ -30,8 +30,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -44,6 +42,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -79,6 +78,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 
@@ -98,6 +98,11 @@ public class CFACreator {
       description="For C files, run the preprocessor on them before parsing. " +
                   "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
   private boolean usePreprocessor = false;
+
+  @Option(name="parser.transformTokensToLines",
+      description="Preprocess the given C files before parsing: Put every single token onto a new line. "
+      + "Then the line number corresponds to the token number.")
+  private boolean transformTokensToLines = true;
 
   @Option(name="analysis.entryFunction", regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
       description="entry function")
@@ -150,12 +155,12 @@ public class CFACreator {
   @Option(name="cfa.callgraph.file",
       description="file name for call graph as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportFunctionCallsFile = Paths.get("functionCalls.dot");
+  private Path exportFunctionCallsFile = new Path("functionCalls.dot");
 
   @Option(name="cfa.file",
       description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportCfaFile = Paths.get("cfa.dot");
+  private Path exportCfaFile = new Path("cfa.dot");
 
   @Option(name="cfa.checkNullPointers",
       description="while this option is activated, before each use of a "
@@ -246,85 +251,77 @@ public class CFACreator {
   /**
    * Parse a file and create a CFA, including all post-processing etc.
    *
-   * @param programDenotation  The file to parse.
+   * @param sourceFiles  The file to parse.
    * @return A representation of the CFA.
    * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    * @throws InterruptedException
    */
-  public CFA parseFileAndCreateCFA(String programDenotation)
+  public CFA parseFileAndCreateCFA(String[] sourceFiles)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+
+    Preconditions.checkArgument(sourceFiles.length > 0, "At least one source file must be provided!");
 
     stats.totalTime.start();
     try {
 
       // FIRST, parse file(s) and create CFAs for each function
       logger.log(Level.FINE, "Starting parsing of file");
-      ParseResult c;
+      ParseResult c = null;
 
       if (language == Language.C) {
-        checkIfValidFiles(programDenotation);
+        checkIfValidFiles(sourceFiles);
       }
 
-      if (language == Language.C && usePreprocessor) {
+      if (language == Language.C) {
         CPreprocessor preprocessor = new CPreprocessor(config, logger);
-        if(denotesOneFile(programDenotation)) {
-          String program = preprocessor.preprocess(programDenotation);
-
-          if (program.isEmpty()) {
-            throw new CParserException("Preprocessor returned empty program");
-          }
-
-          c = parser.parseString(program);
-
-          // when there is more than one file which should be evaluated, the
-          // programdenotations are separated from each other and a prefix for
-          // static variables is generated
-        } else {
-          List<Pair<String, String>> programs = new ArrayList<>();
-          int counter = 0;
-          String[] paths = programDenotation.split(", ");
-          String staticVarPrefix;
-          String prog;
-          for(int i = 0; i < paths.length; i++) {
-            String[] tmp = paths[i].split("/");
-            staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
-            prog = preprocessor.preprocess(paths[i]);
-            programs.add(Pair.of(prog, staticVarPrefix));
-
-            if (prog.isEmpty()) {
+        if(sourceFiles.length == 1) {
+          String program = sourceFiles[0];
+          if (usePreprocessor) {
+            String programCode = preprocessor.preprocess(program);
+            if (programCode.isEmpty()) {
               throw new CParserException("Preprocessor returned empty program");
             }
+            c = parser.parseString(programCode);
+          } else {
+            c = parser.parseFile(program);
           }
-          c = ((CParser)parser).parseString(programs);
-        }
 
-
-      } else {
-        if(denotesOneFile(programDenotation)) {
-          c = parser.parseFile((programDenotation));
-
+        } else {
           // when there is more than one file which should be evaluated, the
           // programdenotations are separated from each other and a prefix for
           // static variables is generated
-        } else {
-          List<Pair<String, String>> programs = new ArrayList<>();
+
+          List<Pair<String, String>> programFragments = new ArrayList<>();
           int counter = 0;
-          String[] paths = programDenotation.split(", ");
           String staticVarPrefix;
-          for(int i = 0; i < paths.length; i++) {
-            String[] tmp = paths[i].split("/");
+          for(String fileName : sourceFiles) {
+            String[] tmp = fileName.split("/");
             staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
-            programs.add(Pair.of(paths[i], staticVarPrefix));
+
+            if (usePreprocessor) {
+              String fileContent = preprocessor.preprocess(fileName);
+              programFragments.add(Pair.of(fileContent, staticVarPrefix));
+              if (fileContent.isEmpty()) {
+                throw new CParserException("Preprocessor returned empty program");
+              }
+            } else {
+              programFragments.add(Pair.of(fileName, staticVarPrefix));
+            }
           }
-          c = ((CParser)parser).parseFile(programs);
+
+          if (usePreprocessor) {
+            c = ((CParser)parser).parseString(programFragments);
+          } else {
+            c = ((CParser)parser).parseFile(programFragments);
+          }
         }
       }
 
       logger.log(Level.FINE, "Parser Finished");
 
-      if (c.isEmpty()) {
+      if (c == null || c.isEmpty()) {
         switch (language) {
         case JAVA:
           throw new JParserException("No methods found in program");
@@ -337,10 +334,10 @@ public class CFACreator {
 
       switch (language) {
       case JAVA:
-        mainFunction = getJavaMainMethod(programDenotation, c.getFunctions());
+        mainFunction = getJavaMainMethod(sourceFiles, c.getFunctions());
         break;
       case C:
-        mainFunction = getCMainFunction(programDenotation, c.getFunctions());
+        mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
         break;
       default:
         throw new AssertionError();
@@ -465,8 +462,11 @@ public class CFACreator {
     }
   }
 
-  private FunctionEntryNode getJavaMainMethod(String mainClassName, Map<String, FunctionEntryNode> cfas)
+  private FunctionEntryNode getJavaMainMethod(String[] sourceFiles, Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
+
+    Preconditions.checkArgument(sourceFiles.length == 1, "Multiple input files not supported by 'getJavaMainMethod'");
+    String mainClassName = sourceFiles[0];
 
     // try specified function
     FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
@@ -492,14 +492,9 @@ public class CFACreator {
     return mainFunction;
   }
 
-  private void checkIfValidFiles(String fileDenotation) throws InvalidConfigurationException {
-
-    if (denotesOneFile(fileDenotation)) {
-      checkIfValidFile(fileDenotation);
-    } else {
-      for(String path : fileDenotation.split(", ")) {
-        checkIfValidFile(path);
-      }
+  private void checkIfValidFiles(String[] sourceFiles) throws InvalidConfigurationException {
+    for (String file : sourceFiles) {
+      checkIfValidFile(file);
     }
   }
 
@@ -513,18 +508,15 @@ public class CFACreator {
     }
   }
 
-  private boolean denotesOneFile(String filePath) {
-    return !filePath.contains(",");
-  }
-
-  private FunctionEntryNode getCMainFunction(String filename,
+  private FunctionEntryNode getCMainFunction(String[] sourceFiles,
       final Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
 
+    Preconditions.checkArgument(sourceFiles.length == 1, "Multiple input files not supported by 'getCMainFunction'");
+    String filename = sourceFiles[0];
+
     // try specified function
     FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
-
-
 
     if (mainFunction != null) {
       return mainFunction;

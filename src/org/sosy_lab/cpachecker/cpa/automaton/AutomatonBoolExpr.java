@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Optional;
 
@@ -181,6 +183,27 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public String toString() {
       return "MATCH \"" + pattern + "\"";
+    }
+  }
+
+  static class MatchEdgeTokens implements AutomatonBoolExpr {
+
+    private final Set<Integer> matchTokens;
+
+    public MatchEdgeTokens(Set<Integer> pTokens) {
+      matchTokens = pTokens;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      Set<Integer> edgeTokens = CFAUtils.getTokensFromCFAEdge(pArgs.getCfaEdge());
+      boolean match = edgeTokens.equals(matchTokens);
+      return match ? CONST_TRUE : CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH TOKENS " + matchTokens;
     }
   }
 

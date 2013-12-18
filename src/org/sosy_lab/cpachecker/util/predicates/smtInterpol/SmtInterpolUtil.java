@@ -136,27 +136,27 @@ class SmtInterpolUtil {
 
   /** t1 and t2 */
   public static boolean isAnd(Term t) {
-    return isFunction(t, t.getTheory().m_And);
+    return isFunction(t, t.getTheory().mAnd);
   }
 
   /** t1 or t2 */
   public static boolean isOr(Term t) {
-    return isFunction(t, t.getTheory().m_Or);
+    return isFunction(t, t.getTheory().mOr);
   }
 
   /** not t */
   public static boolean isNot(Term t) {
-    return isFunction(t, t.getTheory().m_Not);
+    return isFunction(t, t.getTheory().mNot);
   }
 
   /** t1 => t2 */
   public static boolean isImplication(Term t) {
-    return isFunction(t, t.getTheory().m_Implies);
+    return isFunction(t, t.getTheory().mImplies);
   }
 
   /** t1 or t2 */
   public static boolean isXor(Term t) {
-    return isFunction(t, t.getTheory().m_Xor);
+    return isFunction(t, t.getTheory().mXor);
   }
 
   /** (ite t1 t2 t3) */
@@ -206,11 +206,11 @@ class SmtInterpolUtil {
   }
 
   public static boolean isTrue(Term t) {
-    return t.getTheory().TRUE == t;
+    return t.getTheory().mTrue == t;
   }
 
   public static boolean isFalse(Term t) {
-    return t.getTheory().FALSE == t;
+    return t.getTheory().mFalse == t;
   }
 
   /** this function creates a new Term with the same function and new parameters. */

@@ -29,8 +29,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -41,6 +39,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -84,11 +83,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   @Option(name="file", description="write collected assumptions to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumptionsFile = Paths.get("assumptions.txt");
+  private Path assumptionsFile = new Path("assumptions.txt");
 
   @Option(name="automatonFile", description="write collected assumptions as automaton to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumptionAutomatonFile = Paths.get("AssumptionAutomaton.txt");
+  private Path assumptionAutomatonFile = new Path("AssumptionAutomaton.txt");
 
   @Option(description="Add a threshold to the automaton, after so many branches on a path the automaton will be ignored (0 to disable)")
   @IntegerOption(min=0)

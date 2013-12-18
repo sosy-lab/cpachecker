@@ -416,7 +416,7 @@ public class CompoundInterval {
       return Character.toString('\u22A4');
     }
     StringBuilder sb = new StringBuilder();
-    sb.append("{");
+    sb.append('{');
     if (!isBottom()) {
       Iterator<SimpleInterval> intervalIterator = this.intervals.iterator();
       sb.append(intervalIterator.next());
@@ -425,7 +425,7 @@ public class CompoundInterval {
         sb.append(intervalIterator.next());
       }
     }
-    sb.append("}");
+    sb.append('}');
     return sb.toString();
   }
 

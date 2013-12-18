@@ -593,14 +593,21 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                         s.charAt(i))));
     }
     if (zeroTerminated) {
-      initializers.add(new CInitializerExpression(
-                             e.getFileLocation(),
-                             new CCharLiteralExpression(e.getFileLocation(), CNumericTypes.SIGNED_CHAR, '\0')));
+      // http://stackoverflow.com/questions/10828294/c-and-c-partial-initialization-of-automatic-structure
+      // C99 Standard 6.7.8.21
+      // If there are ... fewer characters in a string literal
+      // used to initialize an array of known size than there are elements in the array,
+      // the remainder of the aggregate shall be initialized implicitly ...
+      for (int i = s.length(); i < length; i++) {
+        initializers.add(new CInitializerExpression(
+                               e.getFileLocation(),
+                               new CCharLiteralExpression(e.getFileLocation(), CNumericTypes.SIGNED_CHAR, '\0')));
+      }
     }
     return new CInitializerList(e.getFileLocation(), initializers);
   }
 
-  public Object visitInitializer(CType type, CInitializer topInitializer, final boolean isAutomatic)
+  public Object visitInitializer(CType type, CInitializer topInitializer)
   throws UnrecognizedCCodeException {
     type = PointerTargetSet.simplifyType(type);
     final Formula zero = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR, pts), 0);
@@ -625,17 +632,21 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       }
       assert length >= initializerList.getInitializers().size() : "Initializer is larger than the array";
       final List<Object> result = new ArrayList<>(length);
+      final Object zeroInitializer; // Either a formula representing zero value or a list of initializers
+      if (!(elementType instanceof CArrayType) && !(elementType instanceof CCompositeType)) {
+        zeroInitializer = conv.makeCast(CNumericTypes.SIGNED_CHAR, elementType, zero, edge);
+      } else {
+        zeroInitializer = visitInitializer(elementType,
+                                           new CInitializerList(topInitializer.getFileLocation(),
+                                           Collections.<CInitializer>emptyList()));
+      }
       for (int i = 0; i < length; ++i) {
-        if (isAutomatic) {
-          result.add(zero);
-        } else {
-          result.add(null);
-        }
+        result.add(zeroInitializer);
       }
       int index = 0;
       for (final CInitializer initializer : initializerList.getInitializers()) {
         if (!(initializer instanceof CDesignatedInitializer)) {
-          result.set(index, visitInitializer(elementType, initializer, isAutomatic));
+          result.set(index, visitInitializer(elementType, initializer));
         } else {
           final CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) initializer;
           final List<CDesignator> designators = designatedInitializer.getDesignators();
@@ -649,7 +660,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           } else {
             designator = Iterables.getOnlyElement(designators);
           }
-          final Object rhs = visitInitializer(elementType, designatedInitializer.getRightHandSide(), isAutomatic);
+          final Object rhs = visitInitializer(elementType, designatedInitializer.getRightHandSide());
           if (designator instanceof CArrayRangeDesignator) {
             final Integer floor = tryEvaluateExpression(((CArrayRangeDesignator) designator).getFloorExpression());
             final Integer ceiling = tryEvaluateExpression(((CArrayRangeDesignator) designator).getFloorExpression());
@@ -689,17 +700,19 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         index++;
       }
       final List<Object> result = new ArrayList<>(size);
-      for (int i = 0; i < size; ++i) {
-        if (isAutomatic) {
-          result.add(zero);
+      for (final CType memberType : memberTypes) {
+        if (!(memberType instanceof CArrayType) && !(memberType instanceof CCompositeType)) {
+          result.add(conv.makeCast(CNumericTypes.SIGNED_CHAR, memberType, zero, edge));
         } else {
-          result.add(null);
+          result.add(visitInitializer(memberType,
+                                      new CInitializerList(topInitializer.getFileLocation(),
+                                      Collections.<CInitializer>emptyList())));
         }
       }
       index = 0;
       for (final CInitializer initializer : initializerList.getInitializers()) {
         if (!(initializer instanceof CDesignatedInitializer)) {
-          result.set(index, visitInitializer(memberTypes.get(index), initializer, isAutomatic));
+          result.set(index, visitInitializer(memberTypes.get(index), initializer));
         } else {
           final CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) initializer;
           final List<CDesignator> designators = designatedInitializer.getDesignators();
@@ -715,9 +728,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           }
           if (designator instanceof CFieldDesignator) {
             final Pair<Integer, CType> indexType = members.get(((CFieldDesignator) designator).getFieldName());
-            final Object rhs = visitInitializer(indexType.getSecond(),
-                                                designatedInitializer.getRightHandSide(),
-                                                isAutomatic);
+            final Object rhs = visitInitializer(indexType.getSecond(), designatedInitializer.getRightHandSide());
             result.set(indexType.getFirst(), rhs);
           } else {
             throw new UnrecognizedCCodeException("Wrong designator", edge, designator);
@@ -736,15 +747,11 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           result.add(null);
         }
         if (((CInitializerList) topInitializer).getInitializers().size() == 0) {
-          result.set(0, visitInitializer(compositeType.getMembers().get(0).getType(),
-                                         topInitializer,
-                                         isAutomatic));
+          result.set(0, visitInitializer(compositeType.getMembers().get(0).getType(), topInitializer));
         } else {
           topInitializer = ((CInitializerList) topInitializer).getInitializers().get(0);
           if (!(topInitializer instanceof CDesignatedInitializer)) {
-            result.set(0, visitInitializer(compositeType.getMembers().get(0).getType(),
-                                           topInitializer,
-                                           isAutomatic));
+            result.set(0, visitInitializer(compositeType.getMembers().get(0).getType(), topInitializer));
           } else {
             final CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) topInitializer;
             final CDesignator designator = designatedInitializer.getDesignators().get(0);
@@ -764,7 +771,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                                   designatedInitializer.getDesignators().size()),
                                                                 designatedInitializer.getRightHandSide());
                   }
-                  result.set(index, visitInitializer(memberType, newInitializer, isAutomatic));
+                  result.set(index, visitInitializer(memberType, newInitializer));
                   break;
                 }
                 index++;
@@ -784,6 +791,13 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                              topInitializer);
       }
     } else {
+      if (topInitializer instanceof CInitializerList &&
+          ((CInitializerList) topInitializer).getInitializers().size() == 0) {
+        topInitializer = new CInitializerExpression(topInitializer.getFileLocation(),
+                                                    new CIntegerLiteralExpression(topInitializer.getFileLocation(),
+                                                                                  CNumericTypes.SIGNED_CHAR,
+                                                                                  BigInteger.ZERO));
+      }
       assert topInitializer instanceof CInitializerExpression : "Unrecognized initializer";
       final CExpression initializerExpression = ((CInitializerExpression) topInitializer).getExpression();
       final Formula initializer = initializerExpression.accept(this);

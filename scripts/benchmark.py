@@ -123,7 +123,7 @@ class Worker(threading.Thread):
 
         (run.wallTime, run.cpuTime, run.memUsage, returnvalue, output) = \
             self.runExecutor.executeRun(
-                run.args, run.benchmark.rlimits, run.logFile,
+                run.getCmdline(), run.benchmark.rlimits, run.logFile,
                 myCpuIndex=self.numberOfThread,
                 environments=run.benchmark.getEnvironments(),
                 runningDir=run.benchmark.workingDirectory())
@@ -379,7 +379,7 @@ def getBenchmarkDataForCloud(benchmark):
             # so we can use all other chars for the info, that is needed to run the tool.
             # we build a string-representation of all this info (it's a map),
             # that can be parsed with python again in cloudRunexecutor.py (this is very easy with eval()) .
-            argString = repr({"args":run.args, "env":env, "debug": config.debug})
+            argString = repr({"args":run.getCmdline(), "env":env, "debug": config.debug})
             assert not "\t" in argString # cannot call toTabList(), if there is a tab
 
             logFile = os.path.relpath(run.logFile, benchmark.logFolder)
@@ -404,6 +404,7 @@ def handleCloudResults(benchmark, outputHandler):
 
     # write results in runs and handle output after all runs are done
     executedAllRuns = True
+    runsProducedErrorOutput = False
     for runSet in benchmark.runSets:
         if not runSet.shouldBeExecuted():
             outputHandler.outputForSkippingRunSet(runSet)
@@ -412,8 +413,13 @@ def handleCloudResults(benchmark, outputHandler):
         outputHandler.outputBeforeRunSet(runSet)
 
         for run in runSet.runs:
+            stdoutFile = run.logFile + ".stdOut"
+            if not os.path.exists(stdoutFile):
+                logging.warning("No results exist for file {0}.".format(run.sourcefile))
+                executedAllRuns = False
+                continue
+
             try:
-                stdoutFile = run.logFile + ".stdOut"
                 (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
 
                 if run.sourcefile in runToHostMap:
@@ -422,20 +428,23 @@ def handleCloudResults(benchmark, outputHandler):
                 if returnValue is not None:
                     # Do not delete stdOut file if there was some problem
                     os.remove(stdoutFile)
-                    pass
                 else:
-                    executedAllRuns = False;
+                    executedAllRuns = False
 
             except EnvironmentError as e:
                 logging.warning("Cannot extract measured values from output for file {0}: {1}".format(run.sourcefile, e))
-                executedAllRuns = False;
+                executedAllRuns = False
                 continue
+
+            if os.path.exists(run.logFile + ".stdError"):
+                runsProducedErrorOutput = True
 
             outputHandler.outputBeforeRun(run)
             output = ''
             try:
-                with open(run.logFile, 'rt') as f:
-                    output = f.read()
+                with open(run.logFile, 'rt') as outputFile:
+                    # first 6 lines are for logging, rest is output of subprocess, see RunExecutor.py for details
+                    output = '\n'.join(map(Util.decodeToString, outputFile.readlines()[6:]))
             except IOError as e:
                 logging.warning("Cannot read log file: " + e.strerror)
 
@@ -447,7 +456,10 @@ def handleCloudResults(benchmark, outputHandler):
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
 
     if not executedAllRuns:
-         logging.warning("Not all runs were executed in the cloud!")
+        logging.warning("Not all runs were executed in the cloud!")
+    if runsProducedErrorOutput:
+        logging.warning("Some runs produced unexpected warnings on stderr, please check the {0} files!"
+                        .format(os.path.join(outputDir, '*.stdError')))
 
 
 def executeBenchmarkInCloud(benchmark, outputHandler):
@@ -624,15 +636,14 @@ def main(argv=None):
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
 
-    # Temporarily disabled because of problems with hanging ps processes.
-    #if not config.cloud:
-    #    try:
-    #        processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
-    #        if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
-    #            logging.warn("Already running instance of this script detected. " + \
-    #                         "Please make sure to not interfere with somebody else's benchmarks.")
-    #    except OSError:
-    #        pass # this does not work on Windows
+    if not config.cloud:
+        try:
+            processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
+            if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
+                logging.warn("Already running instance of this script detected. " + \
+                             "Please make sure to not interfere with somebody else's benchmarks.")
+        except OSError:
+            pass # this does not work on Windows
 
     for arg in config.files:
         if STOPPED_BY_INTERRUPT: break

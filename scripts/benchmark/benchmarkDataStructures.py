@@ -50,8 +50,8 @@ def getOptionsFromXML(optionsTag):
     This function searches for options in a tag
     and returns a list with command-line arguments.
     '''
-    return Util.toSimpleList([(option.get("name"), option.text)
-               for option in optionsTag.findall("option")])
+    return Util.toSimpleList((option.get("name"), option.text)
+               for option in optionsTag.findall("option"))
 
 
 def substituteVars(oldList, runSet, sourcefile=None):
@@ -468,9 +468,11 @@ class Run():
         self.benchmark = runSet.benchmark
         self.specificOptions = fileOptions # options that are specific for this run
         self.logFile = runSet.logFolder + os.path.basename(sourcefile) + ".log"
-        self.options = substituteVars(runSet.options + fileOptions, # all options to be used when executing this run
-                                      runSet,
-                                      sourcefile)
+        
+        # lets reduce memory-consumption: if 2 lists are equal, do not use the second one
+        self.options = runSet.options + fileOptions if fileOptions else runSet.options # all options to be used when executing this run
+        substitutedOptions = substituteVars(self.options, runSet, sourcefile)
+        if substitutedOptions != self.options: self.options = substitutedOptions # for less memory again
 
         # Copy columns for having own objects in run
         # (we need this for storing the results in them).
@@ -483,12 +485,12 @@ class Run():
         self.memUsage = None
         self.host = None
 
-        self.tool = self.benchmark.tool
-        args = self.tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
+
+    def getCmdline(self):
+        args = self.benchmark.tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
         args = [os.path.expandvars(arg) for arg in args]
         args = [os.path.expanduser(arg) for arg in args]
-        self.args = args;
-
+        return args;
 
 
     def afterExecution(self, returnvalue, output):
@@ -501,8 +503,8 @@ class Run():
         returnsignal = returnvalue & 0x7F
         returncode = returnvalue >> 8
         logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
-        self.status = self.tool.getStatus(returncode, returnsignal, output, isTimeout)
-        self.tool.addColumnValues(output, self.columns)
+        self.status = self.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
+        self.benchmark.tool.addColumnValues(output, self.columns)
 
         # Tools sometimes produce a result even after a timeout.
         # This should not be counted, so we overwrite the result with TIMEOUT

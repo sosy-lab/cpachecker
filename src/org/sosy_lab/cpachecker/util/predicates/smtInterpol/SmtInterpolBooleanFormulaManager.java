@@ -54,9 +54,9 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
   public Term makeBooleanImpl(boolean pValue) {
     Term t ;
     if (pValue) {
-      t = theory.TRUE;
+      t = theory.mTrue;
     } else {
-      t = theory.FALSE;
+      t = theory.mFalse;
     }
     return t;
   }

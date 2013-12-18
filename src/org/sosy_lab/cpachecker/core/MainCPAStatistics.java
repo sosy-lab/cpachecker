@@ -31,8 +31,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -43,6 +41,7 @@ import javax.management.JMException;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -92,7 +91,7 @@ class MainCPAStatistics implements Statistics {
   @Option(name="reachedSet.file",
       description="print reached set to text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputFile = Paths.get("reached.txt");
+  private Path outputFile = new Path("reached.txt");
 
   @Option(name="coverage.export",
       description="print coverage info to file")
@@ -101,7 +100,7 @@ class MainCPAStatistics implements Statistics {
   @Option(name="coverage.file",
       description="print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputCoverageFile = Paths.get("coverage.info");
+  private Path outputCoverageFile = new Path("coverage.info");
 
   @Option(name="statistics.memory",
     description="track memory usage of JVM during runtime")
@@ -146,6 +145,16 @@ class MainCPAStatistics implements Statistics {
       logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, some statistics will be missing.");
       programCpuTime = -1;
     }
+    /*
+     * Google App Engine does not allow to use classes from the package java.lang.management.
+     * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+     * CPAChecker from crashing in this case we catch the error and log the event.
+     */
+    catch (NoClassDefFoundError e) {
+      logger.logDebugException(e, "Querying cpu time failed");
+      logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
+      programCpuTime = -1;
+    }
   }
 
   public Collection<Statistics> getSubStatistics() {
@@ -164,6 +173,16 @@ class MainCPAStatistics implements Statistics {
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
       // user was already warned
+      analysisCpuTime = -1;
+    }
+    /*
+     * Google App Engine does not allow to use classes from the package java.lang.management.
+     * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+     * CPAChecker from crashing in this case we catch the error and log the event.
+     */
+    catch (NoClassDefFoundError e) {
+      logger.logDebugException(e, "Querying cpu time failed");
+      logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
       analysisCpuTime = -1;
     }
   }
@@ -185,6 +204,15 @@ class MainCPAStatistics implements Statistics {
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
       // user was already warned
+    }
+    /*
+     * Google App Engine does not allow to use classes from the package java.lang.management.
+     * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+     * CPAChecker from crashing in this case we catch the error and log the event.
+     */
+    catch (NoClassDefFoundError e) {
+      logger.logDebugException(e, "Querying cpu time failed");
+      logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
     }
   }
 

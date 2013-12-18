@@ -32,7 +32,6 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -40,6 +39,7 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -236,7 +236,7 @@ class SmtInterpolEnvironment {
       String logfile = getFilename(smtLogfile);
 
       try {
-        PrintWriter out = new PrintWriter(Files.openOutputFile(Paths.get(logfile)));
+        PrintWriter out = new PrintWriter(Files.openOutputFile(new Path(logfile)));
 
         out.println("(set-option :produce-interpolants true)");
         out.println("(set-option :produce-models true)");

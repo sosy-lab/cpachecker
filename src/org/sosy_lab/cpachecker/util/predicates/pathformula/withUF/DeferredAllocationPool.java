@@ -23,6 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.withUF;
 
+import static com.google.common.base.Predicates.in;
+import static com.google.common.collect.FluentIterable.from;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import org.sosy_lab.common.collect.PersistentLinkedList;
+import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 
 /**
@@ -69,7 +77,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
                          final boolean isZeroing,
                          final CIntegerLiteralExpression size,
                          final String baseVariable) {
-    this(PersistentList.of(pointerVariable), isZeroing, size, PersistentList.of(baseVariable));
+    this(PersistentLinkedList.of(pointerVariable), isZeroing, size, PersistentLinkedList.of(baseVariable));
   }
 
   private DeferredAllocationPool(final DeferredAllocationPool predecessor,
@@ -105,12 +113,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
   }
 
   DeferredAllocationPool mergeWith(final DeferredAllocationPool other) {
-    return new DeferredAllocationPool(PersistentList.merge(this.pointerVariables, other.pointerVariables),
+    return new DeferredAllocationPool(mergeLists(this.pointerVariables, other.pointerVariables),
                                       this.isZeroing && other.isZeroing,
                                       this.size != null && other.size != null ?
                                         this.size.getValue().equals(other.size.getValue()) ? this.size : null :
                                         this.size != null ? this.size : other.size,
-                                      PersistentList.merge(this.baseVariables, other.baseVariables));
+                                      mergeLists(this.baseVariables, other.baseVariables));
   }
 
   @Override
@@ -143,4 +151,34 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
   private final boolean isZeroing;
   private final CIntegerLiteralExpression size;
   private final PersistentList<String> baseVariables;
+
+
+  static <T> PersistentList<T> mergeLists(final PersistentList<T> list1,
+                                          final PersistentList<T> list2) {
+    if (list1 == list2) {
+      return list1;
+    }
+    final int size1 = list1.size();
+    final int size2 = list2.size();
+    if (size1 == size2 && list1.equals(list2)) {
+      return list1;
+    }
+
+    PersistentList<T> smallerList, biggerList;
+    if (size1 > size2) {
+      smallerList = list2;
+      biggerList = list1;
+    } else {
+      smallerList = list1;
+      biggerList = list2;
+    }
+
+    final Set<T> fromBigger = new HashSet<>(biggerList);
+    PersistentList<T> result = biggerList;
+
+    for (final T target : from(smallerList).filter(in(fromBigger))) {
+      result = result.with(target);
+    }
+    return result;
+  }
 }
