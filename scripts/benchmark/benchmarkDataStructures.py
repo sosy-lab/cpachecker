@@ -511,7 +511,7 @@ class Run():
         # here. if this is the case.
         # However, we don't want to forget more specific results like SEGFAULT,
         # so we do this only if the result is a "normal" one like TRUE.
-        if self.status in [result.STR_TRUE, result.STR_FALSE, result.STR_UNKNOWN] and isTimeout:
+        if self.status in result.STR_LIST and isTimeout:
             self.status = "TIMEOUT"
         if returnsignal == 9 \
                 and MEMLIMIT in rlimits \

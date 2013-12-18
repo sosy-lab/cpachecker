@@ -44,15 +44,15 @@ COLOR_ORANGE = "\033[33;1m{0}\033[m"
 COLOR_MAGENTA = "\033[35;1m{0}\033[m"
 COLOR_DEFAULT = "{0}"
 COLOR_DIC = {result.RESULT_CORRECT_TRUE:   COLOR_GREEN,
-             result.RESULT_CORRECT_FALSE:  COLOR_GREEN,
              result.RESULT_UNKNOWN:        COLOR_ORANGE,
              result.RESULT_ERROR:          COLOR_MAGENTA,
-             result.RESULT_WRONG_FALSE:    COLOR_RED,
              result.RESULT_WRONG_TRUE:     COLOR_RED,
              result.CATEGORY_UNKNOWN:      COLOR_DEFAULT,
+             result.RESULT_CORRECT_PROP_LABEL:    COLOR_GREEN,
              result.RESULT_CORRECT_PROP_DEREF:    COLOR_GREEN,
              result.RESULT_CORRECT_PROP_FREE:     COLOR_GREEN,
              result.RESULT_CORRECT_PROP_MEMTRACK: COLOR_GREEN,
+             result.RESULT_WRONG_PROP_LABEL:      COLOR_RED,
              result.RESULT_WRONG_PROP_DEREF:      COLOR_RED,
              result.RESULT_WRONG_PROP_FREE:       COLOR_RED,
              result.RESULT_WRONG_PROP_MEMTRACK:   COLOR_RED,
@@ -614,14 +614,14 @@ class Statistics:
     def printToTerminal(self):
         Util.printOut('\n'.join(['\nStatistics:' + str(self.counter).rjust(13) + ' Files',
                  '    correct:        ' + str(self.dic[result.RESULT_CORRECT_TRUE] +
-                                              self.dic[result.RESULT_CORRECT_FALSE] +
+                                              self.dic[result.RESULT_CORRECT_PROP_LABEL] +
                                               self.dic[result.RESULT_CORRECT_PROP_DEREF] +
                                               self.dic[result.RESULT_CORRECT_PROP_FREE] +
                                               self.dic[result.RESULT_CORRECT_PROP_MEMTRACK]
                                               ).rjust(4),
                  '    unknown:        ' + str(self.dic[result.RESULT_UNKNOWN] + \
                                               self.dic[result.RESULT_ERROR]).rjust(4),
-                 '    false positives:' + str(self.dic[result.RESULT_WRONG_FALSE] +
+                 '    false positives:' + str(self.dic[result.RESULT_WRONG_PROP_LABEL] +
                                               self.dic[result.RESULT_WRONG_PROP_DEREF] +
                                               self.dic[result.RESULT_WRONG_PROP_FREE] +
                                               self.dic[result.RESULT_WRONG_PROP_MEMTRACK]

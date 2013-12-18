@@ -102,7 +102,7 @@ class Tool(benchmark.tools.cpachecker.Tool):
                 if line.startswith('SAFE'):
                     newStatus = result.STR_TRUE
                 elif line.startswith('UNSAFE'):
-                  newStatus = result.STR_FALSE
+                  newStatus = result.STR_PROP_LABEL
                   if memory_leak:
                     newStatus = result.STR_PROP_MEMTRACK
                   if bad_free:

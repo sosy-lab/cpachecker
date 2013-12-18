@@ -1264,7 +1264,7 @@ def formatOptions(str):
 {{for line in body}}
 <tr><td title="Click here to show source code"><a href="{{line.filePath|url}}">{{line.shortFileName}}</a></td>
   {{for runResult in line.results}}
-  {{py:cssClasses = ' '.join(('false' if 'false(valid-' in x else x) for x in runResult.category)}}
+  {{py:cssClasses = ' '.join(('false' if x.startswith('false') else x) for x in runResult.category)}}
   {{for column, value in zip(runResult.columns, runResult.values)}}
   {{if column.title == 'status' and value}}
     {{if runResult.logFile}}
