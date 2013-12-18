@@ -18,4 +18,4 @@ class Tool(benchmark.tools.template.BaseTool):
         return [executable]
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        return result.STR_FALSE
+        return result.STR_FALSE_LABEL

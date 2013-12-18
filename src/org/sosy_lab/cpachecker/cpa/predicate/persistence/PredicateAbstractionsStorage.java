@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -34,6 +33,7 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -118,8 +118,8 @@ public class PredicateAbstractionsStorage {
     Map<Integer, AbstractionNode> resultAbstractions = Maps.newTreeMap();
     Set<Integer> abstractionsWithParents = Sets.newTreeSet();
 
-    String source = abstractionsFile.getFileName().toString();
-    try (BufferedReader reader = java.nio.file.Files.newBufferedReader(abstractionsFile, Charsets.US_ASCII)) {
+    String source = abstractionsFile.toFile().getName().toString();
+    try (BufferedReader reader = abstractionsFile.asCharSource(Charsets.US_ASCII).openBufferedStream()) {
 
       // first, read first section with initial set of function definitions
       Pair<Integer, String> defParsingResult = PredicatePersistenceUtils.parseCommonDefinitions(reader, abstractionsFile.toString());

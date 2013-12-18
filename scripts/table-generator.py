@@ -764,9 +764,9 @@ def getCategoryCount(categoryList):
         counts[category] += 1
 
     return (counts[result.RESULT_CORRECT_TRUE],
-            counts[result.RESULT_CORRECT_FALSE] + counts[result.RESULT_CORRECT_PROP_DEREF] + counts[result.RESULT_CORRECT_PROP_FREE] + counts[result.RESULT_CORRECT_PROP_MEMTRACK],
+            counts[result.RESULT_CORRECT_FALSE_LABEL] + counts[result.RESULT_CORRECT_FALSE_DEREF] + counts[result.RESULT_CORRECT_FALSE_FREE] + counts[result.RESULT_CORRECT_FALSE_MEMTRACK],
             counts[result.RESULT_WRONG_TRUE],
-            counts[result.RESULT_WRONG_FALSE] + counts[result.RESULT_WRONG_PROP_DEREF] + counts[result.RESULT_WRONG_PROP_FREE] + counts[result.RESULT_WRONG_PROP_MEMTRACK]
+            counts[result.RESULT_WRONG_FALSE_LABEL] + counts[result.RESULT_WRONG_FALSE_DEREF] + counts[result.RESULT_WRONG_FALSE_FREE] + counts[result.RESULT_WRONG_FALSE_MEMTRACK]
             )
 
 
@@ -788,10 +788,10 @@ def getStatsOfNumberColumn(values, categoryList, columnTitle):
     return (StatValue.fromList(valueList),
             StatValue.fromList(valuesPerCategory['correct_tmp']),
             StatValue.fromList(valuesPerCategory[result.RESULT_WRONG_TRUE]),
-            StatValue.fromList(valuesPerCategory[result.RESULT_WRONG_FALSE] +
-                               valuesPerCategory[result.RESULT_WRONG_PROP_DEREF] +
-                               valuesPerCategory[result.RESULT_WRONG_PROP_FREE] +
-                               valuesPerCategory[result.RESULT_WRONG_PROP_MEMTRACK]
+            StatValue.fromList(valuesPerCategory[result.RESULT_WRONG_FALSE_LABEL] +
+                               valuesPerCategory[result.RESULT_WRONG_FALSE_DEREF] +
+                               valuesPerCategory[result.RESULT_WRONG_FALSE_FREE] +
+                               valuesPerCategory[result.RESULT_WRONG_FALSE_MEMTRACK]
                                ),
             )
 

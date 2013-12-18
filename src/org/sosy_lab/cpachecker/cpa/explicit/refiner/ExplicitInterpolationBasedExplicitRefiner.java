@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -53,9 +55,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -68,6 +72,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
@@ -86,8 +91,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   @Option(description="whether or not to avoid restarting at assume edges after a refinement")
   private boolean avoidAssumes = false;
 
-  @Option(description="whether to check memory locations in ascending or descending order during interpolation")
-  private boolean descendingOrder = false;
+  @Option(description="whether or not to ignore the semantics of loop-leaving-assume-edges during interpolation - "
+      + "this avoids to have loop-counters in the interpolant")
+  private boolean ignoreAssumptionsInLoops = true;
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
@@ -98,6 +104,16 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    * a reference to the assignment-counting state, to make the precision increment aware of thresholds
    */
   private AssignmentsInPathConditionState assignments = null;
+
+  /**
+   * the set of assume-edges that leave loop structures
+   */
+  private Set<CAssumeEdge> loopLeavingAssumes = new HashSet<CAssumeEdge>();
+
+  /**
+   * the set of memory locations appearing in the loop-leaving-assume-edges
+   */
+  private Set<MemoryLocation> loopLeavingMemoryLocations = new HashSet<MemoryLocation>();
 
   // statistics
   private int numberOfInterpolations        = 0;
@@ -116,6 +132,41 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     logger           = pLogger;
     cfa              = pCfa;
     shutdownNotifier = pShutdownNotifier;
+
+    initializeLoopInformation();
+  }
+
+  /**
+   * This method initializes the loop-information which is used during interpolation.
+   */
+  private void initializeLoopInformation() {
+    for(Loop l : cfa.getLoopStructure().get().values()) {
+      for(CFAEdge currentEdge : l.getOutgoingEdges()) {
+        if(currentEdge instanceof CAssumeEdge) {
+          loopLeavingAssumes.add((CAssumeEdge)currentEdge);
+        }
+      }
+    }
+
+    for(CAssumeEdge assumeEdge : loopLeavingAssumes) {
+      CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
+      assumeEdge.getExpression().accept(collector);
+
+      for (CIdExpression id : collector.getReferencedIdExpressions()) {
+        String scope = ForwardingTransferRelation.isGlobal(id) ? null : assumeEdge.getPredecessor().getFunctionName();
+
+        if(scope == null) {
+          loopLeavingMemoryLocations.add(MemoryLocation.valueOf(id.getName()));
+        } else {
+          loopLeavingMemoryLocations.add(MemoryLocation.valueOf(scope, id.getName(), 0));
+        }
+      }
+    }
+
+    // clear the set of assume edges if the respective option is not set
+    if(!ignoreAssumptionsInLoops) {
+      loopLeavingAssumes.clear();
+    }
   }
 
   protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
@@ -126,7 +177,8 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
         AssignmentsInPathConditionState.class);
 
-    ExplicitInterpolator interpolator     = new ExplicitInterpolator(logger, shutdownNotifier, cfa, descendingOrder);
+    ExplicitInterpolator interpolator             = new ExplicitInterpolator(logger, shutdownNotifier, cfa,
+                                                      loopLeavingAssumes, loopLeavingMemoryLocations);
     Map<MemoryLocation, NumberContainer> currentInterpolant  = new HashMap<>();
     Multimap<CFANode, MemoryLocation> increment   = HashMultimap.create();
 
@@ -134,7 +186,6 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     for(Pair<ARGState, CFAEdge> elem : errorPath) {
       cfaTrace.add(elem.getSecond());
     }
-
     for (int i = 0; i < errorPath.size(); i++) {
       shutdownNotifier.shutdownIfNecessary();
       CFAEdge currentEdge = errorPath.get(i).getSecond();
@@ -186,6 +237,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     }
 
     timerInterpolation.stop();
+
     return increment;
   }
 

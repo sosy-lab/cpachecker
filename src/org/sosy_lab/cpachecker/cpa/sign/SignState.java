@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
+import com.google.common.base.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
@@ -35,12 +36,13 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Sets;
 
 
-
 public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis {
 
   private static final boolean DEBUG = false;
 
   private static SignTargetChecker targetChecker;
+
+  private final Optional<SignState> stateBeforeEnteredFunction;
 
   static void init(Configuration config) throws InvalidConfigurationException {
     targetChecker = new SignTargetChecker(config);
@@ -52,10 +54,16 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
     return signMap;
   }
 
-  public final static SignState TOP = new SignState(ImmutableMap.<String, SIGN> of());
+  public final static SignState TOP = new SignState();
 
-  public SignState(ImmutableMap<String, SIGN> pPossibleSigns) {
-    signMap = new SignMap(pPossibleSigns);
+  private SignState(SignMap pSignMap, Optional<SignState> pStateBeforeEnteredFunction) {
+    signMap = pSignMap;
+    stateBeforeEnteredFunction = pStateBeforeEnteredFunction;
+  }
+
+  private SignState() {
+    signMap = new SignMap(ImmutableMap.<String, SIGN> of());
+    stateBeforeEnteredFunction = Optional.absent();
   }
 
   public SignState union(SignState pToJoin) {
@@ -82,17 +90,29 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
     return true;
   }
 
+  public SignState enterFunction(ImmutableMap<String, SIGN> pArguments) {
+    SignMap resultSignMap = signMap.mergeWith(new SignMap(pArguments));
+    return new SignState(resultSignMap, Optional.of(this));
+  }
+
+  public SignState leaveFunction() {
+      if(stateBeforeEnteredFunction.isPresent()) {
+          return stateBeforeEnteredFunction.get();
+      }
+      throw new IllegalStateException("No function has been entered before");
+  }
+
   public SignState assignSignToVariable(String pVarIdent, SIGN sign) {
     Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
     if (!sign.isAll()) {
       mapBuilder.put(pVarIdent, sign);
     }
-    for (String varIdent : signMap.keySet()) {
-      if (!varIdent.equals(pVarIdent)) {
-        mapBuilder.put(varIdent, signMap.getSignForVariable(varIdent));
+    for (String varId : signMap.keySet()) {
+      if (!varId.equals(pVarIdent)) {
+        mapBuilder.put(varId, signMap.getSignForVariable(varId));
       }
     }
-    return new SignState(mapBuilder.build());
+    return new SignState(new SignMap(mapBuilder.build()), stateBeforeEnteredFunction);
   }
 
   public SignState removeSignAssumptionOfVariable(String pVarIdent) {

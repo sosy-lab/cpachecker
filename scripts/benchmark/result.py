@@ -28,28 +28,25 @@ from __future__ import absolute_import, print_function, unicode_literals
 from . import util
 
 STR_TRUE = 'true'
-STR_FALSE = 'false'
 STR_UNKNOWN = 'unknown'
-STR_PROP_DEREF = 'false(valid-deref)'
-STR_PROP_FREE = 'false(valid-free)'
-STR_PROP_MEMTRACK = 'false(valid-memtrack)'
+STR_FALSE_LABEL = 'false(label)'
+STR_FALSE_DEREF = 'false(valid-deref)'
+STR_FALSE_FREE = 'false(valid-free)'
+STR_FALSE_MEMTRACK = 'false(valid-memtrack)'
+
+STR_LIST = [STR_TRUE, STR_UNKNOWN, STR_FALSE_LABEL, STR_FALSE_DEREF, STR_FALSE_FREE, STR_FALSE_MEMTRACK]
 
 # string searched in filenames to determine correct or incorrect status.
 # use lower case! the dict contains assignments 'filename' --> 'status'
-PROP_SUBSTRINGS ={'_false-valid-deref':   STR_PROP_DEREF,
-                  '_false-valid-free':     STR_PROP_FREE,
-                  '_false-valid-memtrack': STR_PROP_MEMTRACK
+PROP_SUBSTRINGS ={'_false-unreach-label': STR_FALSE_LABEL,
+                  '_false-valid-deref':   STR_FALSE_DEREF,
+                  '_false-valid-free':     STR_FALSE_FREE,
+                  '_false-valid-memtrack': STR_FALSE_MEMTRACK
                   }
 
 assert all('_false' in k for k in PROP_SUBSTRINGS.keys())
 
-FALSE_SUBSTRINGS={'_unsafe':               STR_FALSE, # deprecated, maybe removed soon
-                  '.false.':               STR_FALSE,
-                  '_false':                STR_FALSE
-                  }
-
-TRUE_SUBSTRINGS ={'_safe':                 STR_TRUE, # deprecated, maybe removed soon
-                  '.true.':                STR_TRUE,
+TRUE_SUBSTRINGS ={'.true.':                STR_TRUE,
                   '_true':                 STR_TRUE
                   }
 
@@ -63,19 +60,19 @@ SCORE_WRONG_TRUE = -8
 CATEGORY_UNKNOWN = ('', )
 
 RESULT_CORRECT_TRUE = ('correct', STR_TRUE)
-RESULT_CORRECT_FALSE = ('correct', STR_FALSE)
-RESULT_CORRECT_PROP_DEREF = ('correct', STR_PROP_DEREF)
-RESULT_CORRECT_PROP_FREE = ('correct', STR_PROP_FREE)
-RESULT_CORRECT_PROP_MEMTRACK = ('correct', STR_PROP_MEMTRACK)
+RESULT_CORRECT_FALSE_LABEL = ('correct', STR_FALSE_LABEL)
+RESULT_CORRECT_FALSE_DEREF = ('correct', STR_FALSE_DEREF)
+RESULT_CORRECT_FALSE_FREE = ('correct', STR_FALSE_FREE)
+RESULT_CORRECT_FALSE_MEMTRACK = ('correct', STR_FALSE_MEMTRACK)
 
 RESULT_UNKNOWN = ('unknown', )
 RESULT_ERROR = ('error', )
 
-RESULT_WRONG_FALSE = ('wrong', STR_FALSE)
 RESULT_WRONG_TRUE = ('wrong', STR_TRUE)
-RESULT_WRONG_PROP_DEREF = ('wrong', STR_PROP_DEREF)
-RESULT_WRONG_PROP_FREE = ('wrong', STR_PROP_FREE)
-RESULT_WRONG_PROP_MEMTRACK = ('wrong', STR_PROP_MEMTRACK)
+RESULT_WRONG_FALSE_LABEL = ('wrong', STR_FALSE_LABEL)
+RESULT_WRONG_FALSE_DEREF = ('wrong', STR_FALSE_DEREF)
+RESULT_WRONG_FALSE_FREE = ('wrong', STR_FALSE_FREE)
+RESULT_WRONG_FALSE_MEMTRACK = ('wrong', STR_FALSE_MEMTRACK)
 
 
 def statusOfFile(filename):
@@ -83,18 +80,15 @@ def statusOfFile(filename):
     This function returns the status of a file, 
     this is the property in the filename.
     """
-    # first check PROP, then check FALSE, because it is a substring of PROP
+    # first check PROP/FALSE, because it is a substring of PROP
     for key in PROP_SUBSTRINGS:
         if key in filename.lower():
             return PROP_SUBSTRINGS[key]
-    for key in FALSE_SUBSTRINGS:
-        if key in filename.lower():
-            return FALSE_SUBSTRINGS[key]
     return STR_TRUE # if no hint is given, assume TRUE
 
 
 def fileIsFalse(filename):
-    return util.containsAny(filename, FALSE_SUBSTRINGS.keys())
+    return util.containsAny(filename, PROP_SUBSTRINGS.keys())
 
 def fileIsTrue(filename):
     return util.containsAny(filename, TRUE_SUBSTRINGS.keys())
@@ -107,9 +101,9 @@ def getResultCategory(filename, status):
     '''
     status = status.lower()
 
-    # for backwards-compatibility only
+    # for backwards-compatibility of table-generator only
     if status == 'safe': status = STR_TRUE
-    if status == 'unsafe': status = STR_FALSE
+    if status == 'unsafe': status = STR_FALSE_LABEL
 
     fileStatus = statusOfFile(filename)
 
@@ -118,7 +112,7 @@ def getResultCategory(filename, status):
     else:
         prefix = 'wrong'
 
-    if status in [STR_PROP_DEREF, STR_PROP_FREE, STR_PROP_MEMTRACK, STR_TRUE, STR_FALSE]:
+    if status in [STR_FALSE_LABEL, STR_FALSE_DEREF, STR_FALSE_FREE, STR_FALSE_MEMTRACK, STR_TRUE]:
         return (prefix, status)
     elif status == STR_UNKNOWN:
         return RESULT_UNKNOWN
@@ -129,12 +123,12 @@ def getResultCategory(filename, status):
 def calculateScore(category):
     return {RESULT_CORRECT_TRUE:   SCORE_CORRECT_TRUE,
             RESULT_WRONG_TRUE:     SCORE_WRONG_TRUE,
-            RESULT_CORRECT_FALSE: SCORE_CORRECT_FALSE,
-            RESULT_WRONG_FALSE:   SCORE_WRONG_FALSE,
-            RESULT_CORRECT_PROP_DEREF:    SCORE_CORRECT_FALSE,
-            RESULT_CORRECT_PROP_FREE:     SCORE_CORRECT_FALSE,
-            RESULT_CORRECT_PROP_MEMTRACK: SCORE_CORRECT_FALSE,
-            RESULT_WRONG_PROP_DEREF:      SCORE_WRONG_FALSE,
-            RESULT_WRONG_PROP_FREE:       SCORE_WRONG_FALSE,
-            RESULT_WRONG_PROP_MEMTRACK:   SCORE_WRONG_FALSE,
+            RESULT_CORRECT_FALSE_LABEL:    SCORE_CORRECT_FALSE,
+            RESULT_CORRECT_FALSE_DEREF:    SCORE_CORRECT_FALSE,
+            RESULT_CORRECT_FALSE_FREE:     SCORE_CORRECT_FALSE,
+            RESULT_CORRECT_FALSE_MEMTRACK: SCORE_CORRECT_FALSE,
+            RESULT_WRONG_FALSE_LABEL:      SCORE_WRONG_FALSE,
+            RESULT_WRONG_FALSE_DEREF:      SCORE_WRONG_FALSE,
+            RESULT_WRONG_FALSE_FREE:       SCORE_WRONG_FALSE,
+            RESULT_WRONG_FALSE_MEMTRACK:   SCORE_WRONG_FALSE,
             }.get(category,  SCORE_UNKNOWN)

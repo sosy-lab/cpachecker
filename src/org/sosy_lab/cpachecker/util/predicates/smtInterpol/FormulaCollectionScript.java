@@ -347,6 +347,11 @@ class FormulaCollectionScript implements Script {
   }
 
   @Override
+  public Term[] findImpliedEquality(Term[] pX, Term[] pY) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public void exit() {
     throw new UnsupportedOperationException();
   }

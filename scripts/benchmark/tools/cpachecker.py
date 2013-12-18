@@ -178,7 +178,7 @@ class Tool(benchmark.tools.template.BaseTool):
                 if line.startswith('SAFE'):
                     newStatus = result.STR_TRUE
                 elif line.startswith('UNSAFE'):
-                    newStatus = result.STR_FALSE
+                    newStatus = result.STR_FALSE_LABEL
                     if property:
                         newStatus = newStatus + '(' + property + ')'
                 else:

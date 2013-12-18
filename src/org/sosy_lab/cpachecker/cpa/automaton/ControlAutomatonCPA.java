@@ -26,13 +26,13 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -134,7 +134,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
     if (export && exportFile != null) {
       String fileName = String.format(exportFile.getAbsolutePath(), automaton.getName());
-      try (Writer w = Files.openOutputFile(Paths.get(fileName))) {
+      try (Writer w = Files.openOutputFile(new Path(fileName))) {
         automaton.writeDotFile(w);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
