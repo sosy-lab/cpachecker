@@ -48,14 +48,14 @@ COLOR_DIC = {result.RESULT_CORRECT_TRUE:   COLOR_GREEN,
              result.RESULT_ERROR:          COLOR_MAGENTA,
              result.RESULT_WRONG_TRUE:     COLOR_RED,
              result.CATEGORY_UNKNOWN:      COLOR_DEFAULT,
-             result.RESULT_CORRECT_PROP_LABEL:    COLOR_GREEN,
-             result.RESULT_CORRECT_PROP_DEREF:    COLOR_GREEN,
-             result.RESULT_CORRECT_PROP_FREE:     COLOR_GREEN,
-             result.RESULT_CORRECT_PROP_MEMTRACK: COLOR_GREEN,
-             result.RESULT_WRONG_PROP_LABEL:      COLOR_RED,
-             result.RESULT_WRONG_PROP_DEREF:      COLOR_RED,
-             result.RESULT_WRONG_PROP_FREE:       COLOR_RED,
-             result.RESULT_WRONG_PROP_MEMTRACK:   COLOR_RED,
+             result.RESULT_CORRECT_FALSE_LABEL:    COLOR_GREEN,
+             result.RESULT_CORRECT_FALSE_DEREF:    COLOR_GREEN,
+             result.RESULT_CORRECT_FALSE_FREE:     COLOR_GREEN,
+             result.RESULT_CORRECT_FALSE_MEMTRACK: COLOR_GREEN,
+             result.RESULT_WRONG_FALSE_LABEL:      COLOR_RED,
+             result.RESULT_WRONG_FALSE_DEREF:      COLOR_RED,
+             result.RESULT_WRONG_FALSE_FREE:       COLOR_RED,
+             result.RESULT_WRONG_FALSE_MEMTRACK:   COLOR_RED,
              None: COLOR_DEFAULT}
 
 TERMINAL_TITLE=''
@@ -614,17 +614,17 @@ class Statistics:
     def printToTerminal(self):
         Util.printOut('\n'.join(['\nStatistics:' + str(self.counter).rjust(13) + ' Files',
                  '    correct:        ' + str(self.dic[result.RESULT_CORRECT_TRUE] +
-                                              self.dic[result.RESULT_CORRECT_PROP_LABEL] +
-                                              self.dic[result.RESULT_CORRECT_PROP_DEREF] +
-                                              self.dic[result.RESULT_CORRECT_PROP_FREE] +
-                                              self.dic[result.RESULT_CORRECT_PROP_MEMTRACK]
+                                              self.dic[result.RESULT_CORRECT_FALSE_LABEL] +
+                                              self.dic[result.RESULT_CORRECT_FALSE_DEREF] +
+                                              self.dic[result.RESULT_CORRECT_FALSE_FREE] +
+                                              self.dic[result.RESULT_CORRECT_FALSE_MEMTRACK]
                                               ).rjust(4),
                  '    unknown:        ' + str(self.dic[result.RESULT_UNKNOWN] + \
                                               self.dic[result.RESULT_ERROR]).rjust(4),
-                 '    false positives:' + str(self.dic[result.RESULT_WRONG_PROP_LABEL] +
-                                              self.dic[result.RESULT_WRONG_PROP_DEREF] +
-                                              self.dic[result.RESULT_WRONG_PROP_FREE] +
-                                              self.dic[result.RESULT_WRONG_PROP_MEMTRACK]
+                 '    false positives:' + str(self.dic[result.RESULT_WRONG_FALSE_LABEL] +
+                                              self.dic[result.RESULT_WRONG_FALSE_DEREF] +
+                                              self.dic[result.RESULT_WRONG_FALSE_FREE] +
+                                              self.dic[result.RESULT_WRONG_FALSE_MEMTRACK]
                                               ).rjust(4) + \
                  '        (file is true, result is false)',
                  '    false negatives:' + str(self.dic[result.RESULT_WRONG_TRUE]).rjust(4) + \

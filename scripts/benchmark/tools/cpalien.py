@@ -102,13 +102,13 @@ class Tool(benchmark.tools.cpachecker.Tool):
                 if line.startswith('SAFE'):
                     newStatus = result.STR_TRUE
                 elif line.startswith('UNSAFE'):
-                  newStatus = result.STR_PROP_LABEL
+                  newStatus = result.STR_FALSE_LABEL
                   if memory_leak:
-                    newStatus = result.STR_PROP_MEMTRACK
+                    newStatus = result.STR_FALSE_MEMTRACK
                   if bad_free:
-                    newStatus = result.STR_PROP_FREE
+                    newStatus = result.STR_FALSE_FREE
                   if bad_deref:
-                    newStatus = result.STR_PROP_DEREF
+                    newStatus = result.STR_FALSE_DEREF
                 else:
                     newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
                 if newStatus and not status:
