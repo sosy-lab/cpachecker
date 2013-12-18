@@ -226,7 +226,13 @@ public class CFACreator {
       parser = EclipseParsers.getJavaParser(logger, config);
       break;
     case C:
-      parser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
+      CParser realParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
+      if (usePreprocessor) {
+        CPreprocessor preprocessor = new CPreprocessor(config, logger);
+        parser = new CParserWithPreprocessor(realParser, preprocessor);
+      } else {
+        parser = realParser;
+      }
       break;
     default:
       throw new AssertionError();
@@ -247,82 +253,63 @@ public class CFACreator {
   /**
    * Parse a file and create a CFA, including all post-processing etc.
    *
-   * @param sourceFiles  The file to parse.
+   * @param sourceFiles  The files to parse.
    * @return A representation of the CFA.
    * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    * @throws InterruptedException
    */
-  public CFA parseFileAndCreateCFA(String[] sourceFiles)
+  public CFA parseFileAndCreateCFA(List<String> sourceFiles)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
-    Preconditions.checkArgument(sourceFiles.length > 0, "At least one source file must be provided!");
+    Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
 
     stats.totalTime.start();
     try {
 
       // FIRST, parse file(s) and create CFAs for each function
       logger.log(Level.FINE, "Starting parsing of file");
-      ParseResult c = null;
+      ParseResult c;
 
       if (language == Language.C) {
         checkIfValidFiles(sourceFiles);
       }
 
-      if (language == Language.C) {
-        CPreprocessor preprocessor = new CPreprocessor(config, logger);
-        if(sourceFiles.length == 1) {
-          String program = sourceFiles[0];
-          if (usePreprocessor) {
-            String programCode = preprocessor.preprocess(program);
-            if (programCode.isEmpty()) {
-              throw new CParserException("Preprocessor returned empty program");
-            }
-            c = parser.parseString(programCode);
-          } else {
-            c = parser.parseFile(program);
-          }
+      if (sourceFiles.size() == 1) {
+        c = parser.parseFile(sourceFiles.get(0));
 
-        } else {
-          // when there is more than one file which should be evaluated, the
-          // programdenotations are separated from each other and a prefix for
-          // static variables is generated
-
-          List<Pair<String, String>> programFragments = new ArrayList<>();
-          int counter = 0;
-          String staticVarPrefix;
-          for(String fileName : sourceFiles) {
-            String[] tmp = fileName.split("/");
-            staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
-
-            if (usePreprocessor) {
-              String fileContent = preprocessor.preprocess(fileName);
-              programFragments.add(Pair.of(fileContent, staticVarPrefix));
-              if (fileContent.isEmpty()) {
-                throw new CParserException("Preprocessor returned empty program");
-              }
-            } else {
-              programFragments.add(Pair.of(fileName, staticVarPrefix));
-            }
-          }
-
-          if (usePreprocessor) {
-            c = ((CParser)parser).parseString(programFragments);
-          } else {
-            c = ((CParser)parser).parseFile(programFragments);
-          }
+      } else {
+        // when there is more than one file which should be evaluated, the
+        // programdenotations are separated from each other and a prefix for
+        // static variables is generated
+        if (language != Language.C) {
+          throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
         }
+
+        List<Pair<String, String>> programFragments = new ArrayList<>();
+        int counter = 0;
+        String staticVarPrefix;
+        for (String fileName : sourceFiles) {
+          String[] tmp = fileName.split("/");
+          staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
+
+          programFragments.add(Pair.of(fileName, staticVarPrefix));
+        }
+
+        c = ((CParser)parser).parseFile(programFragments);
       }
 
       logger.log(Level.FINE, "Parser Finished");
 
-      if (c == null || c.isEmpty()) {
+      if (c.isEmpty()) {
         switch (language) {
         case JAVA:
           throw new JParserException("No methods found in program");
         case C:
           throw new CParserException("No functions found in program");
+        default:
+          throw new AssertionError();
         }
       }
 
@@ -458,11 +445,11 @@ public class CFACreator {
     }
   }
 
-  private FunctionEntryNode getJavaMainMethod(String[] sourceFiles, Map<String, FunctionEntryNode> cfas)
+  private FunctionEntryNode getJavaMainMethod(List<String> sourceFiles, Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
 
-    Preconditions.checkArgument(sourceFiles.length == 1, "Multiple input files not supported by 'getJavaMainMethod'");
-    String mainClassName = sourceFiles[0];
+    Preconditions.checkArgument(sourceFiles.size() == 1, "Multiple input files not supported by 'getJavaMainMethod'");
+    String mainClassName = sourceFiles.get(0);
 
     // try specified function
     FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
@@ -488,7 +475,7 @@ public class CFACreator {
     return mainFunction;
   }
 
-  private void checkIfValidFiles(String[] sourceFiles) throws InvalidConfigurationException {
+  private void checkIfValidFiles(List<String> sourceFiles) throws InvalidConfigurationException {
     for (String file : sourceFiles) {
       checkIfValidFile(file);
     }
@@ -504,12 +491,9 @@ public class CFACreator {
     }
   }
 
-  private FunctionEntryNode getCMainFunction(String[] sourceFiles,
+  private FunctionEntryNode getCMainFunction(List<String> sourceFiles,
       final Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
-
-    Preconditions.checkArgument(sourceFiles.length == 1, "Multiple input files not supported by 'getCMainFunction'");
-    String filename = sourceFiles[0];
 
     // try specified function
     FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
@@ -527,7 +511,9 @@ public class CFACreator {
       // only one function available, take this one
       return Iterables.getOnlyElement(cfas.values());
 
-    } else {
+    } else if (sourceFiles.size() == 1) {
+      String filename = sourceFiles.get(0);
+
       // get the AAA part out of a filename like test/program/AAA.cil.c
       filename = (new File(filename)).getName(); // remove directory
 
@@ -536,12 +522,12 @@ public class CFACreator {
 
       // try function with same name as file
       mainFunction = cfas.get(baseFilename);
-
-      if (mainFunction == null) {
-        throw new InvalidConfigurationException("No entry function found, please specify one.");
-      }
-      return mainFunction;
     }
+
+    if (mainFunction == null) {
+      throw new InvalidConfigurationException("No entry function found, please specify one.");
+    }
+    return mainFunction;
   }
 
   private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(MutableCFA cfa) {

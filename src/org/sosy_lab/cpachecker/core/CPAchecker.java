@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.io.Resources;
 
@@ -172,7 +173,7 @@ public class CPAchecker {
 
       if (runCBMCasExternalTool) {
 
-        checkIfValidFile(programDenotation);
+        checkIfOneValidFile(programDenotation);
         algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
 
       } else {
@@ -245,7 +246,7 @@ public class CPAchecker {
     return new CPAcheckerResult(result, reached, stats);
   }
 
-  private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
+  private void checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {
     if (!denotesOneFile(fileDenotation)) {
       throw new InvalidConfigurationException(
         "Exactly one code file has to be given.");
@@ -270,7 +271,8 @@ public class CPAchecker {
     CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
     stats.setCFACreator(cfaCreator);
 
-    CFA cfa = cfaCreator.parseFileAndCreateCFA(fileNamesCommaSeparated.split(","));
+    Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
+    CFA cfa = cfaCreator.parseFileAndCreateCFA(commaSplitter.splitToList(fileNamesCommaSeparated));
     stats.setCFA(cfa);
     return cfa;
   }

@@ -46,8 +46,9 @@ public interface Parser {
    * @return The CFA.
    * @throws IOException If file cannot be read.
    * @throws ParserException If parser or CFA builder cannot handle the  code.
+   * @throws InterruptedException
    */
-  ParseResult parseFile(String filename) throws ParserException, IOException, InvalidConfigurationException;
+  ParseResult parseFile(String filename) throws ParserException, IOException, InvalidConfigurationException, InterruptedException;
 
   /**
    * Parse the content of a String into a CFA.
