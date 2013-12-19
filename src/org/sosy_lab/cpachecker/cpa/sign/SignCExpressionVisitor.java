@@ -204,7 +204,7 @@ public class SignCExpressionVisitor
     if(pLeft == SIGN.PLUS && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)) {
       return SIGN.PLUS0;
     }
-    // Special case: -0 - 1 => 0
+    // Special case: -0 - 1 => -
     if(pLeft == SIGN.MINUS0 && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)) {
       return SIGN.MINUS;
     }
