@@ -206,7 +206,7 @@ public class SignCExpressionVisitor
     }
     // Special case: -0 - 1 => 0
     if(pLeft == SIGN.MINUS0 && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)) {
-      return SIGN.ZERO;
+      return SIGN.MINUS;
     }
     if(pRight == SIGN.ZERO) {
       return pLeft;
