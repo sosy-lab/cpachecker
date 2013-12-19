@@ -56,9 +56,10 @@ public interface CParser extends Parser {
    *                   prefix which will be appended to static variables
    * @return The CFA.
    * @throws IOException If file cannot be read.
+   * @throws InterruptedException
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseFile(List<Pair<String, String>> filenames) throws CParserException, IOException, InvalidConfigurationException;
+  ParseResult parseFile(List<Pair<String, String>> filenames) throws CParserException, IOException, InvalidConfigurationException, InterruptedException;
 
   /**
    * Parse the content of Strings into a single CFA.

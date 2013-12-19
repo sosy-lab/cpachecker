@@ -41,6 +41,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
+import com.google.common.collect.ImmutableList;
+
 // "Formula Manager tester"
 public class FMtester {
 
@@ -70,7 +72,7 @@ public class FMtester {
     try {
       logger = new BasicLogManager(config);
       cfac = new CFACreator(config, logger, shutdownNotifier);
-      CFA cfa = cfac.parseFileAndCreateCFA(new String[]{testfile});
+      CFA cfa = cfac.parseFileAndCreateCFA(ImmutableList.of(testfile));
       root = cfa.getMainFunction();
 
       // construct FormulaManager, and extended one
