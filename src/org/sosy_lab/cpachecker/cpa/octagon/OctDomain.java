@@ -52,7 +52,7 @@ class OctDomain implements AbstractDomain {
       return true;
     }
 
-    int result = OctagonManager.isIncludedInLazy(octState1.getOctagon(), octState2.getOctagon());
+    int result = octState1.isLessOrEquals(octState2);
     if (result == 1) {
       totaltime = totaltime + (System.currentTimeMillis() - start);
       return true;
@@ -86,7 +86,7 @@ class OctDomain implements AbstractDomain {
       octEl1.sizeOfVariables() > octEl2.sizeOfVariables()? octEl1.getVariableToIndexMap() : octEl2.getVariableToIndexMap();
 
       // TODO should it be null
-      return new OctState(newOctagon, newMap, null);
+      return new OctState(newOctagon, newMap);
       // TODO add widening
       //    return LibraryAccess.widening(octEl1, octEl2);
   }
