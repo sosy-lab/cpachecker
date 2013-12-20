@@ -210,7 +210,7 @@ class Benchmark:
             self._requiredFiles.extend(requiredFiles)
 
         # get requirements
-        self.requirements = Requirements(rootTag.findall("require"), self.rlimits, config.cloudCpuModel)
+        self.requirements = Requirements(rootTag.findall("require"), self.rlimits, config.cloudCPUModel)
 
         self.resultFilesPattern = None
         resultFilesTags = rootTag.findall("resultfiles")
@@ -552,7 +552,7 @@ class Requirements:
     If no values are found, at least the limits are used as requirements.
     If the user gives a cpuModel, it overrides the previous cpuModel.
     '''
-    def __init__(self, tags, rlimits, cloudCpuModel):
+    def __init__(self, tags, rlimits, cloudCPUModel):
         
         self.cpuModel = None
         self.memory   = None
@@ -586,8 +586,8 @@ class Requirements:
         if self.memory is None:
             self.memory = rlimits.get(MEMLIMIT, None)
 
-        if cloudCpuModel is not None: # user-given model -> override value
-            self.cpuModel = cloudCpuModel
+        if cloudCPUModel is not None: # user-given model -> override value
+            self.cpuModel = cloudCPUModel
 
         if self.cpuCores is not None and self.cpuCores <= 0:
             raise Exception('Invalid value {} for required CPU cores.'.format(self.cpuCores))

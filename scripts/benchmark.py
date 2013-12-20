@@ -112,8 +112,8 @@ class Worker(threading.Thread):
             except BaseException as e:
                 print(e)
             Worker.workingQueue.task_done()
-            
-            
+
+
     def execute(self, run):
         """
         This function executes the tool with a sourcefile with options.
@@ -613,8 +613,8 @@ def main(argv=None):
                       metavar="PRIORITY",
                       help="Sets the priority for this benchmark used in the cloud. Possible values are IDLE, LOW, HIGH, URGENT.")
 
-    parser.add_argument("--cloudCpuModel",
-                      dest="cloudCpuModel", type=str, default=None,
+    parser.add_argument("--cloudCPUModel",
+                      dest="cloudCPUModel", type=str, default=None,
                       metavar="CPU_MODEL",
                       help="Only execute runs on CPU models that contain the given string.")
 
