@@ -67,6 +67,7 @@ public class SignCPA implements ConfigurableProgramAnalysis {
   private MergeOperator merge;
 
   public SignCPA(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
     logger = pLogger;
     domain = new SignDomain();
     transfer = new SignTransferRelation(logger);
