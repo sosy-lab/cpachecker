@@ -226,7 +226,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         }
       } else {
         targetPath = allStatesTrace;
-        preciseCounterexample = counterexample;
+        preciseCounterexample = pathChecker.checkPath(targetPath.asEdgesList());
       }
 
       CounterexampleInfo cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getModel());

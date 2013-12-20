@@ -36,6 +36,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -55,6 +56,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.Model.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -300,7 +303,8 @@ public class ARGStatistics implements Statistics {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
         ARGUtils.producePathAutomaton(pAppendable, rootState, pathElements,
-                                      "ErrorPath" + cexIndex);
+                                      "ErrorPath" + cexIndex,
+                                      counterexample);
       }
     });
 
@@ -332,18 +336,50 @@ public class ARGStatistics implements Statistics {
       @Override
       public void appendTo(Appendable out) throws IOException {
         // Write edges mixed with assigned values.
+        List<CFAEdge> edgePath = targetPath.asEdgesList();
+        List<Pair<CFAEdge, Collection<Pair<AssignableTerm, Object>>>> exactValuePath;
+        exactValuePath = null;
 
-        for (CFAEdge edge : from(targetPath.asEdgesList()).filter(notNull())) {
+        if (model != null) {
+          exactValuePath = model.getExactVariableValuePath(edgePath);
+        }
+
+        if(exactValuePath != null) {
+          printPreciseValues(out, exactValuePath);
+        } else {
+          printAllValues(out, edgePath);
+        }
+      }
+
+      private void printAllValues(Appendable out, List<CFAEdge> pEdgePath) throws IOException {
+        for (CFAEdge edge : from(pEdgePath).filter(notNull())) {
           out.append(edge.toString());
           out.append(System.lineSeparator());
           if (model != null) {
-            for (Model.AssignableTerm term : model.getAssignedTermsPerEdge().get(edge)) {
+            for (Model.AssignableTerm term : model.getAssignedTermsPerEdge().getAllAssignedTerms(edge)) {
               out.append('\t');
               out.append(term.toString());
               out.append(": ");
               out.append(model.get(term).toString());
               out.append(System.lineSeparator());
             }
+          }
+        }
+      }
+
+      private void printPreciseValues(Appendable out,
+          List<Pair<CFAEdge, Collection<Pair<AssignableTerm, Object>>>> pExactValuePath) throws IOException {
+
+        for (Pair<CFAEdge, Collection<Pair<AssignableTerm, Object>>> edgeValuePair : from(pExactValuePath).filter(notNull())) {
+
+          out.append(edgeValuePair.getFirst().toString());
+          out.append(System.lineSeparator());
+
+          String cCode = CFAPathWithAssignments.getAsCode(edgeValuePair.getSecond(), edgeValuePair.getFirst());
+          if (cCode != null) {
+            out.append('\t');
+            out.append(cCode);
+            out.append(System.lineSeparator());
           }
         }
       }

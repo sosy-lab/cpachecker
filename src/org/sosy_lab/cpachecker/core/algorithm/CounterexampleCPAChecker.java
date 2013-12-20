@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -62,6 +63,8 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   private final CFA cfa;
   private final String filename;
 
+  private final ARGCPA cpa;
+
   @Option(name="config",
       description="configuration file for counterexample checks with CPAchecker")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
@@ -74,6 +77,18 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
     this.filename = pFilename;
+    cpa = null;
+  }
+
+  public CounterexampleCPAChecker(Configuration config, LogManager logger,
+      ShutdownNotifier pShutdownNotifier, CFA pCfa, String pFilename,
+      ARGCPA pCpa) throws InvalidConfigurationException {
+    this.logger = logger;
+    config.inject(this);
+    this.shutdownNotifier = pShutdownNotifier;
+    this.cfa = pCfa;
+    this.filename = pFilename;
+    cpa = pCpa;
   }
 
 
@@ -86,7 +101,8 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     try (DeleteOnCloseFile automatonFile = Files.createTempFile("automaton", ".txt")) {
 
       try (Writer w = Files.openOutputFile(automatonFile.toPath())) {
-        ARGUtils.producePathAutomaton(w, pRootState, pErrorPathStates, "CounterexampleToCheck");
+        ARGUtils.producePathAutomaton(w, pRootState, pErrorPathStates,
+            "CounterexampleToCheck", cpa.getCounterexamples().get(pErrorState));
       }
 
       return checkCounterexample(pRootState, automatonFile.toPath());
