@@ -61,7 +61,7 @@ public class SignCPA implements ConfigurableProgramAnalysis {
 
   @Option(name="stop", toUppercase=true, values={"SEP", "JOIN"},
       description="which stop operator to use for SignCPA")
-  private String stopType = "JOIN";
+  private String stopType = "SEP";
 
   private StopOperator stop;
   private MergeOperator merge;
