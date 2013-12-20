@@ -1176,6 +1176,14 @@ cpa.seplogic.partingstar.pspath = no default value
 cpa.sign.allowedAbstractValue = ALL
   enum:     [EMPTY, PLUS, MINUS, ZERO, PLUSMINUS, PLUS0, MINUS0, ALL]
 
+# which merge operator to use for SignCPA
+cpa.sign.merge = "JOIN"
+  allowed values: [SEP, JOIN]
+
+# which stop operator to use for SignCPA
+cpa.sign.stop = "SEP"
+  allowed values: [SEP, JOIN]
+
 # Variable name of the variable for which should be checked that its value is
 # globally in a certain bound 
 cpa.sign.varName = ""
@@ -1239,10 +1247,6 @@ memorysafety.check = false
 # When checking for memory safety properties, use this configuration file
 # instead of the current one.
 memorysafety.config = no default value
-
-# which merge operator to use for SignCPA
-merge = "JOIN"
-  allowed values: [SEP, JOIN]
 
 # C dialect for parser
 parser.dialect = GNUC
@@ -1320,8 +1324,4 @@ statistics.memory = true
 
 # print statistics to console
 statistics.print = false
-
-# which stop operator to use for SignCPA
-stop = "JOIN"
-  allowed values: [SEP, JOIN]
 

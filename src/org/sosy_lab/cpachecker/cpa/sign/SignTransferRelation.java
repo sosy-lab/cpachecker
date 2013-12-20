@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -68,6 +67,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 
 
 public class SignTransferRelation extends ForwardingTransferRelation<SignState, SingletonPrecision> {
@@ -240,6 +240,10 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       break;
     case EQUALS:
       return Optional.of(new IdentifierValuePair(pIdExp, pResultSign));
+    case NOT_EQUALS:
+      if(pResultSign == SIGN.ZERO){
+        return Optional.of(new IdentifierValuePair(pIdExp, SIGN.PLUSMINUS));
+      }
     }
     return Optional.absent();
   }
@@ -295,7 +299,13 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     Optional<IdentifierValuePair> result = evaluateAssumption((CBinaryExpression)pExpression, pTruthAssumption, pCfaEdge);
     if(result.isPresent()) {
       logger.log(Level.FINE, "Assumption: " + (pTruthAssumption ? pExpression : "!(" + pExpression + ")") + " --> " + result.get().identifier + " = " + result.get().value);
-      return state.assignSignToVariable(getScopedVariableName(result.get().identifier), result.get().value);
+      // assure that does not become more abstract after assumption
+      if (state.getSignMap().getSignForVariable(getScopedVariableName(result.get().identifier))
+          .covers(result.get().value)) { return state.assignSignToVariable(
+          getScopedVariableName(result.get().identifier), result.get().value); }
+      // check if results distinct, then no successor exists
+      if (!result.get().value.intersects(state.getSignMap().getSignForVariable(
+          getScopedVariableName(result.get().identifier)))) { return null; }
     }
     return state;
   }

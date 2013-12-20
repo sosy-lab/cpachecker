@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -90,19 +92,15 @@ class OctState implements AbstractState {
   // mapping from variable name to its identifier
   private BiMap<String, Integer> variableToIndexMap;
 
-  private OctState previousState;
-
   // also top element
   public OctState() {
     octagon = OctagonManager.universe(0);
     variableToIndexMap = HashBiMap.create();
-    previousState = null;
   }
 
-  public OctState(Octagon oct, BiMap<String, Integer> map, OctState previousElement) {
+  public OctState(Octagon oct, BiMap<String, Integer> map) {
     octagon = oct;
     variableToIndexMap = map;
-    this.previousState = previousElement;
   }
 
   @Override
@@ -114,18 +112,28 @@ class OctState implements AbstractState {
     return this.octagon.equals(otherOct.octagon);
   }
 
+  protected int isLessOrEquals(OctState state) {
+    if (variableToIndexMap.equals(state.variableToIndexMap)) {
+      return OctagonManager.isIncludedInLazy(octagon, state.octagon);
+    } else {
+      if (variableToIndexMap.keySet().containsAll(state.variableToIndexMap.keySet())) {
+        Octagon newOct = OctagonManager.copy(octagon);
+        newOct = OctagonManager.removeDimension(newOct, variableToIndexMap.size()-state.variableToIndexMap.size());
+        return OctagonManager.isIncludedInLazy(newOct, state.octagon);
+      } else {
+        return 2;
+      }
+    }
+  }
+
   @Override
   public int hashCode() {
     return octagon.hashCode();
   }
 
-  public void printOctagon() {
-    OctagonManager.print(octagon);
-  }
-
   @Override
   public String toString() {
-    return variableToIndexMap + " [octagon]: " + octagon;
+    return OctagonManager.print(octagon, variableToIndexMap.inverse());
   }
 
   public Octagon getOctagon() {
@@ -134,14 +142,6 @@ class OctState implements AbstractState {
 
   public int sizeOfVariables() {
     return variableToIndexMap.size();
-  }
-
-  public OctState getPreviousState() {
-    return previousState;
-  }
-
-  public void setPreviousState(OctState pPreviousElement) {
-    this.previousState = pPreviousElement;
   }
 
   public BiMap<String, Integer> getVariableToIndexMap() {
@@ -161,7 +161,7 @@ class OctState implements AbstractState {
       newMap.put(e.getKey(), e.getValue());
     }
 
-    return new OctState(newOct, newMap, this.previousState);
+    return new OctState(newOct, newMap);
   }
 
   /**
@@ -172,10 +172,15 @@ class OctState implements AbstractState {
   }
 
   /**
-   * Returns the index of the variable, or null if it is not in the map.
+   * Returns the index of the variable, if the variable is not already in the map
+   * a new variable is declarated and this is index gets returned then.
    */
   protected Integer getVariableIndexFor(String pVariableName) {
     return variableToIndexMap.get(pVariableName);
+  }
+
+  protected boolean existsVariable(String variableName) {
+    return variableToIndexMap.containsKey(variableName);
   }
 
   /**
@@ -184,7 +189,7 @@ class OctState implements AbstractState {
   public void declareVariable(String pVariableName) {
     assert (!variableToIndexMap.containsKey(pVariableName));
     variableToIndexMap.put(pVariableName, sizeOfVariables());
-    octagon = OctagonManager.addDimensionAndEmbed(octagon, 1);
+    octagon = OctagonManager.addDimensionAndProject(octagon, 1);
   }
 
   /**
@@ -319,16 +324,17 @@ class OctState implements AbstractState {
     addGreaterEqConstraint(pVariableName, constantValue);
   }
 
-  // keep sizeOfpreviousElem dimensions at the beginning and remove the rest
-  public void removeLocalVariables(OctState prevState) {
-    int noOfLocalVars = (sizeOfVariables()- prevState.sizeOfVariables());
+  public void removeLocalVars(String functionName) {
 
-    for (int i = sizeOfVariables(); i>prevState.sizeOfVariables(); i--) {
-      String s = variableToIndexMap.inverse().get(i-1);
-      variableToIndexMap.remove(s);
+    List<String> keysToRemove = new ArrayList<>();
+    for (String var : variableToIndexMap.keySet()) {
+      if (var.startsWith(functionName+"::")) {
+        keysToRemove.add(var);
+      }
     }
+    variableToIndexMap.keySet().removeAll(keysToRemove);
 
-    octagon = OctagonManager.removeDimension(octagon, noOfLocalVars);
+    octagon = OctagonManager.removeDimension(octagon, keysToRemove.size());
     assert (OctagonManager.dimension(octagon) == sizeOfVariables());
   }
 
