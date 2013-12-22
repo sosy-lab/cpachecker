@@ -617,6 +617,12 @@ def main(argv=None):
                       dest="cloudCPUModel", type=str, default=None,
                       metavar="CPU_MODEL",
                       help="Only execute runs on CPU models that contain the given string.")
+    
+    # for backward-compatibility only
+    parser.add_argument("--cloudCpuModel",
+                      dest="cloudCPUModel", type=str, default=None,
+                      metavar="CPU_MODEL",
+                      help="Only execute runs on CPU models that contain the given string.")
 
     global config, OUTPUT_PATH
     config = parser.parse_args(argv[1:])
