@@ -21,35 +21,29 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.common;
+package org.sosy_lab.cpachecker.appengine.server;
+
+import static com.googlecode.objectify.ObjectifyService.ofy;
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 
-import com.google.appengine.api.taskqueue.Queue;
-import com.google.appengine.api.taskqueue.QueueFactory;
-import com.google.appengine.api.taskqueue.TaskOptions;
+import com.googlecode.objectify.Key;
 
-
-public class GAETaskQueueJobRunner implements JobRunner {
-
-  public static final String SERVLET_URL = "/workers/run-job";
-
-  /**
-   * Constructs a new instance.
-   * The job submitted via {@link #run(Job)} will be enqueued immediately.
-   */
-  public GAETaskQueueJobRunner() {}
+@SuppressWarnings("serial")
+public class JobRunnerWorker extends HttpServlet {
 
   @Override
-  public Job run(Job job) {
+  protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    Key<Job> jobKey = Key.create(request.getParameter("jobKey"));
+    Job job = ofy().load().key(jobKey).now();
 
-    // TODO use named queue
-    Queue queue = QueueFactory.getDefaultQueue();
-    queue.add(
-        TaskOptions.Builder.withUrl(SERVLET_URL)
-        .param("jobKey", job.getKeyString()));
-
-    return job;
+    // TODO run CPAchecker
   }
-
 }
