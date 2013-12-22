@@ -3,7 +3,9 @@
 
 	<property name="ivy.lib.dir" value="${basedir}/lib/java" />
 	<property name="debuglevel" value="source,lines,vars" />
-	<property name="source.dir" value="src" />
+	<property name="source.dir" value="${basedir}/src" />
+	<property name="specification.dir" value="${basedir}/config/specification"/>
+	<property name="configuration.dir" value="${basedir}/config"/>
 
 	<property name="lib.dir" value="${basedir}/lib" />
 	<property name="lib.dir.gae" value="${lib.dir}/gae" />
@@ -74,8 +76,25 @@
 			</fileset>
 		</copy>
 	</target>
+	
+	<target name="gae-copyspecifications" description="Copies all specifications to the WAR.">
+		<copy todir="war/WEB-INF/specifications" flatten="true">
+			<fileset dir="${specification.dir}">
+				<include name="*.spc"/>
+			</fileset>
+		</copy>
+	</target>
+	
+	<target name="gae-copyconfigurations" description="Copies all configurations to the WAR.">
+		<copy todir="war/WEB-INF/configurations">
+			<fileset dir="${configuration.dir}">
+				<include name="**/*.properties"/>
+				<exclude name="**/*.spc"/>
+			</fileset>
+		</copy>
+	</target>
 
-	<target name="gae-compile" depends="gae-copyjars" description="Compiles Java source and copies other source files to the WAR.">
+	<target name="gae-compile" depends="gae-copyjars,gae-copyspecifications,gae-copyconfigurations" description="Compiles Java source and copies other source files to the WAR.">
 		<mkdir dir="${gae-classes.dir}" />
 		<copy todir="${gae-classes.dir}">
 			<fileset dir="src">

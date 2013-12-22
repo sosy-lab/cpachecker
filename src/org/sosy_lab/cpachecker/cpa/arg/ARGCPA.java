@@ -177,7 +177,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     super.collectStatistics(pStatsCollection);
   }
 
-  Map<ARGState, CounterexampleInfo> getCounterexamples() {
+  public Map<ARGState, CounterexampleInfo> getCounterexamples() {
     return Collections.unmodifiableMap(counterexamples);
   }
 

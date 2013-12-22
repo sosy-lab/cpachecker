@@ -101,7 +101,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     if (checkerName.equals("CBMC")) {
       checker = new CBMCChecker(config, logger, cfa);
     } else if (checkerName.equals("CPACHECKER")) {
-      checker = new CounterexampleCPAChecker(config, logger, pShutdownNotifier, cfa, filename);
+      checker = new CounterexampleCPAChecker(config, logger, pShutdownNotifier, cfa, filename, cpa);
     } else {
       throw new AssertionError();
     }

@@ -125,19 +125,19 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
   /** the function BEFORE the current edge */
   protected String functionName;
 
-  protected CFAEdge getEdge() {
+  public CFAEdge getEdge() {
     return edge;
   }
 
-  protected S getState() {
+  public S getState() {
     return state;
   }
 
-  protected P getPrecision() {
+  public P getPrecision() {
     return precision;
   }
 
-  protected String getFunctionName() {
+  public String getFunctionName() {
     return functionName;
   }
 

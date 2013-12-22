@@ -27,13 +27,17 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.Model.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.Model.Variable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -44,7 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
-import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
@@ -92,23 +96,34 @@ public class PathChecker {
    * Given a model and a path, extract the information when each variable
    * from the model was assigned.
    */
-  private Multimap<CFAEdge, AssignableTerm> extractVariableAssignment(List<CFAEdge> pPath, List<SSAMap> pSsaMaps,
+  private CFAPathWithAssignments extractVariableAssignment(List<CFAEdge> pPath, List<SSAMap> pSsaMaps,
       Model pModel) {
 
-    final Multimap<CFAEdge, AssignableTerm> assignedTermsPerEdge = ArrayListMultimap.create(pPath.size(), 1);
+    // Create a map that holds all AssignableTerms that occured
+    // in the given path.
+    final Multimap<Integer, AssignableTerm> assignedTermsPosition = HashMultimap.create();
 
     for (AssignableTerm term : pModel.keySet()) {
       // Currently we cannot find out this information for UIFs
       // because for lookup in the SSAMap we need the parameter types.
       if (term instanceof Variable) {
-        int index = findFirstOccurrenceOfVariable((Variable)term, pSsaMaps);
+        int index = findFirstOccurrenceOfVariable((Variable) term, pSsaMaps);
         if (index >= 0) {
-          assignedTermsPerEdge.put(pPath.get(index), term);
+          assignedTermsPosition.put(index, term);
         }
       }
     }
 
-    return assignedTermsPerEdge;
+    List<Pair<CFAEdge, Set<AssignableTerm>>> pathWithAssignments = new ArrayList<>(pPath.size());
+
+    for (int index = 0; index < pPath.size(); index++) {
+      Set<AssignableTerm> termSet = new HashSet<>();
+      termSet.addAll(assignedTermsPosition.get(index));
+      Pair<CFAEdge, Set<AssignableTerm>> cfaPair = Pair.of(pPath.get(index), termSet);
+      pathWithAssignments.add(cfaPair);
+    }
+
+    return new CFAPathWithAssignments(pathWithAssignments);
   }
 
   /**
@@ -126,6 +141,15 @@ public class PathChecker {
     // do binary search
     while (true) {
       if (upper-lower <= 0) {
+
+        if (upper - lower == 0) {
+          int ssaIndex = pSsaMaps.get(upper).getIndex(pVar.getName());
+
+          if (ssaIndex == pVar.getSSAIndex()) {
+            result = upper;
+          }
+        }
+
         return result;
       }
 

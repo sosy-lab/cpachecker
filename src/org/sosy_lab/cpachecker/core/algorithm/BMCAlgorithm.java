@@ -588,6 +588,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     // There must not be any target states in real loops
     if (loopStates.anyMatch(IS_TARGET_STATE)) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, target state is contained in the loop");
+      return false;
     }
 
     // get global invariants

@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
@@ -59,8 +58,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -69,7 +66,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -121,8 +117,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
   @Option(description = "if there is an assumption like (x!=0), "
       + "this option sets unknown (uninitialized) variables to 1L, "
-      + "when the true-branch is handled.")
-  private boolean initAssumptionVars = false;
+      + "when the true-branch is handled.") boolean initAssumptionVars = false;
 
   private final Set<String> globalVariables = new HashSet<>();
 
@@ -157,8 +152,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
    */
   private ExplicitState oldState;
 
-  private final MachineModel machineModel;
-  private final LogManager logger;
+  final MachineModel machineModel;
+  final LogManager logger;
   private final Multimap<String, String> addressedVariables;
 
   public ExplicitTransferRelation(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
@@ -355,7 +350,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     if (value == null) {
 
       ExplicitState element = state.clone();
-      AssigningValueVisitor avv = new AssigningValueVisitor(element, truthValue);
+      AssigningValueVisitor avv = new AssigningValueVisitor(this, element, truthValue);
 
       if (expression instanceof JExpression && ! (expression instanceof CExpression)) {
 
@@ -678,182 +673,6 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
   }
 
-  /**
-   * Visitor that derives further information from an assume edge
-   */
-  private class AssigningValueVisitor extends ExplicitExpressionValueVisitor {
-
-    private ExplicitState assignableState;
-    protected boolean truthValue = false;
-
-    public AssigningValueVisitor(ExplicitState assignableState, boolean truthValue) {
-      super(state, functionName, machineModel, logger, edge);
-      this.assignableState = assignableState;
-      this.truthValue = truthValue;
-    }
-
-    private IAExpression unwrap(IAExpression expression) {
-      // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
-
-      if (expression instanceof AUnaryExpression) {
-        AUnaryExpression exp = (AUnaryExpression)expression;
-        if (exp.getOperator() == UnaryOperator.NOT) { // TODO why only C-UnaryOperator?
-          expression = exp.getOperand();
-          truthValue = !truthValue;
-
-          expression = unwrap(expression);
-        }
-      }
-
-      if (expression instanceof CCastExpression) {
-        CCastExpression exp = (CCastExpression)expression;
-        expression = exp.getOperand();
-
-        expression = unwrap(expression);
-      }
-
-      return expression;
-    }
-
-    @Override
-    public NumberContainer visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
-      BinaryOperator binaryOperator   = pE.getOperator();
-
-      CExpression lVarInBinaryExp  = pE.getOperand1();
-
-      lVarInBinaryExp = (CExpression) unwrap(lVarInBinaryExp);
-
-      CExpression rVarInBinaryExp  = pE.getOperand2();
-
-      NumberContainer leftValue                  = lVarInBinaryExp.accept(this);
-      NumberContainer rightValue                 = rVarInBinaryExp.accept(this);
-
-      if ((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue)) {
-        if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
-          MemoryLocation leftVariableLocation = getMemoryLocation(lVarInBinaryExp);
-          assignableState.assignConstant(leftVariableLocation, rightValue);
-        }
-
-        else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
-          MemoryLocation rightVariableName = getMemoryLocation(rVarInBinaryExp);
-          assignableState.assignConstant(rightVariableName, leftValue);
-        }
-      }
-
-      if (initAssumptionVars) {
-        // x is unknown, a binaryOperation (x!=0), true-branch: set x=1L
-        // x is unknown, a binaryOperation (x==0), false-branch: set x=1L
-        if ((binaryOperator == BinaryOperator.NOT_EQUALS && truthValue)
-            || (binaryOperator == BinaryOperator.EQUALS && !truthValue)) {
-          if (leftValue == null &&
-              (rightValue.bigDecimalValue().compareTo(new BigDecimal(0)) == 0)
-              && isAssignable(lVarInBinaryExp)) {
-            MemoryLocation leftVariableName = getMemoryLocation(lVarInBinaryExp);
-            assignableState.assignConstant(leftVariableName, new NumberContainer(1L));
-          }
-
-          else if (rightValue == null &&
-              (leftValue.bigDecimalValue().compareTo(new BigDecimal(0)) == 0)
-              && isAssignable(rVarInBinaryExp)) {
-            MemoryLocation rightVariableName = getMemoryLocation(rVarInBinaryExp);
-            assignableState.assignConstant(rightVariableName, new NumberContainer(1L));
-          }
-        }
-      }
-      return super.visit(pE);
-    }
-
-    @Override
-    public Long visit(JBinaryExpression pE) {
-      JBinaryExpression.BinaryOperator binaryOperator   = pE.getOperator();
-
-      JExpression lVarInBinaryExp  = pE.getOperand1();
-
-      lVarInBinaryExp = (JExpression) unwrap(lVarInBinaryExp);
-
-      JExpression rVarInBinaryExp  = pE.getOperand2();
-
-      Long leftValue                  = lVarInBinaryExp.accept(this);
-      Long rightValue                 = rVarInBinaryExp.accept(this);
-
-      if ((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue) || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
-        if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
-
-          String leftVariableName = getScopedVariableName(lVarInBinaryExp, functionName);
-          // TODO for java
-          //assignableState.assignConstant(leftVariableName, rightValue);
-        } else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
-          String rightVariableName = getScopedVariableName(rVarInBinaryExp, functionName);
-          //assignableState.assignConstant(rightVariableName, leftValue);
-
-        }
-      }
-
-      if (initAssumptionVars) {
-        // x is unknown, a binaryOperation (x!=0), true-branch: set x=1L
-        // x is unknown, a binaryOperation (x==0), false-branch: set x=1L
-        if ((binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && truthValue)
-            || (binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && !truthValue)) {
-          if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
-            String leftVariableName = getScopedVariableName(lVarInBinaryExp, functionName);
-            // TODO for java
-            //assignableState.assignConstant(leftVariableName, 1L);
-
-          }
-
-          else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
-            String rightVariableName = getScopedVariableName(rVarInBinaryExp, functionName);
-            //assignableState.assignConstant(rightVariableName, 1L);
-          }
-        }
-      }
-      return super.visit(pE);
-    }
-
-    protected MemoryLocation getMemoryLocation(CExpression pLValue) throws UnrecognizedCCodeException {
-      ExplicitExpressionValueVisitor v = getVisitor();
-      assert pLValue instanceof CLeftHandSide;
-      return checkNotNull(v.evaluateMemoryLocation(pLValue));
-    }
-
-    protected boolean isAssignable(JExpression expression) {
-
-      boolean result = false;
-
-      if (expression instanceof JIdExpression) {
-
-        JSimpleDeclaration decl = ((JIdExpression) expression).getDeclaration();
-
-        if (decl == null) {
-          result = false;
-        } else if (decl instanceof JFieldDeclaration) {
-          result = ((JFieldDeclaration) decl).isStatic();
-        } else {
-          result = true;
-        }
-      }
-
-      return result;
-    }
-
-
-
-    protected boolean isAssignable(CExpression expression) throws UnrecognizedCCodeException  {
-
-      if (expression instanceof CIdExpression) {
-        return true;
-      }
-
-      if (expression instanceof CFieldReference || expression instanceof CArraySubscriptExpression) {
-        ExplicitExpressionValueVisitor evv = getVisitor();
-        return evv.canBeEvaluated(expression);
-      }
-
-      return false;
-    }
-  }
-
-
   private class SMGAssigningValueVisitor extends AssigningValueVisitor {
 
     private final SMGExplicitCommunicator expressionEvaluator;
@@ -865,7 +684,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         boolean pTruthValue,
         SMGState pSmgState) {
 
-      super(pAssignableState, pTruthValue);
+      super(ExplicitTransferRelation.this, pAssignableState, pTruthValue);
       checkNotNull(pSmgState);
       expressionEvaluator = new SMGExplicitCommunicator(pAssignableState, functionName,
           pSmgState, machineModel, logger, edge);
@@ -1578,7 +1397,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   }
 
   /** returns an initialized, empty visitor */
-  private ExplicitExpressionValueVisitor getVisitor() {
+  ExplicitExpressionValueVisitor getVisitor() {
     return new ExplicitExpressionValueVisitor(state, functionName, machineModel, logger, edge);
   }
 }
