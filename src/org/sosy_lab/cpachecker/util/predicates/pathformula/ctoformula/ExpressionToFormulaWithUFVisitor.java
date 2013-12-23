@@ -31,6 +31,8 @@ import java.util.Map;
 import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -41,14 +43,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression;
@@ -268,13 +274,42 @@ public class ExpressionToFormulaWithUFVisitor
   @Override
   public Value visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
     final CExpression operand = e.getOperand();
+    final CType operandType = PointerTargetSet.simplifyType(operand.getExpressionType());
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
+    final UnaryOperator operator = e.getOperator();
     switch (e.getOperator()) {
     case MINUS:
     case PLUS:
-    case NOT:
-    case TILDE:
-      return Value.ofValue(e.accept(delegate));
+    case TILDE: {
+      // Handle Integer Promotion
+      final CType promoted = conv.getPromotedCType(operandType);
+      Formula operandFormula = asValueFormula(operand.accept(this), operandType);
+      operandFormula = conv.makeCast(operandType, promoted, operandFormula, edge);
+      Formula result;
+      if (operator == UnaryOperator.PLUS) {
+        result = operandFormula;
+      } else if (operator == UnaryOperator.MINUS) {
+        result = conv.fmgr.makeNegate(operandFormula);
+      } else {
+        assert operator == UnaryOperator.TILDE
+              : "This case should be impossible because of switch";
+        result = conv.fmgr.makeNot(operandFormula);
+      }
+
+      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(resultType, pts);
+      assert resultFormulaType == conv.fmgr.getFormulaType(result)
+            : "Returntype and Formulatype do not match in visit(CUnaryExpression)";
+
+      return Value.ofValue(result);
+    }
+
+    case NOT: {
+      final Formula f = asValueFormula(operand.accept(this), operandType);
+      final BooleanFormula term = conv.toBooleanFormula(f);
+      return Value.ofValue(conv.ifTrueThenOneElseZero(conv.getFormulaTypeFromCType(resultType, pts),
+                                                      conv.bfmgr.not(term)));
+    }
+
     case SIZEOF:
       return handleSizeof(e, PointerTargetSet.simplifyType(operand.getExpressionType()));
     case AMPER:
@@ -325,6 +360,171 @@ public class ExpressionToFormulaWithUFVisitor
     final CExpression operand = e.getOperand();
     final CType operandType = PointerTargetSet.simplifyType(operand.getExpressionType());
     return AliasedLocation.ofAddress(asValueFormula(operand.accept(this), operandType));
+  }
+
+  private Formula getPointerTargetSizeLiteral(final CPointerType pointerType, final CType implicitType) {
+    final int pointerTargetSize = pts.getSize(pointerType.getType());
+    return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(implicitType, pts), pointerTargetSize);
+  }
+
+  @Override
+  public Value visit(final CBinaryExpression exp) throws UnrecognizedCCodeException {
+    final BinaryOperator op = exp.getOperator();
+    final CType returnType = PointerTargetSet.simplifyType(exp.getExpressionType());
+    final CType calculationType = PointerTargetSet.simplifyType(exp.getCalculationType());
+
+    // these operators expect numeric arguments
+    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType, pts);
+
+    CExpression e1 = exp.getOperand1();
+    CExpression e2 = exp.getOperand2();
+    e1 = conv.makeCastFromArrayToPointerIfNecessary(e1, returnType);
+    e2 = conv.makeCastFromArrayToPointerIfNecessary(e2, returnType);
+    final CType t1 = e1.getExpressionType();
+    final CType t2 = e2.getExpressionType();
+    Formula f1 = asValueFormula(e1.accept(this), t1);
+    Formula f2 = asValueFormula(e2.accept(this), t2);
+
+    f1 = conv.makeCast(t1, calculationType, f1, edge);
+    f2 = conv.makeCast(t2, calculationType, f2, edge);
+
+    /* FOR SHIFTS:
+     * We would not need to cast the second operand, but we do casting,
+     * because Mathsat assumes 2 bitvectors of same length.
+     *
+     * This could be incorrect in cases of negative shifts and
+     * signed/unsigned conversion, example: 5U<<(-1).
+     * Instead of "undefined value", we return a possible wrong value.
+     *
+     * ISO-C 6.5.7 Bitwise shift operators
+     * If the value of the right operand is negative or is greater than or equal
+     * to the width of the promoted left operand, the behavior is undefined.
+     */
+
+    final boolean signed;
+    if (calculationType instanceof CSimpleType) {
+      signed = conv.machineModel.isSigned((CSimpleType)calculationType);
+    } else {
+      signed = false;
+    }
+
+    // to INT or bigger
+    final CType promT1 = conv.getPromotedCType(t1).getCanonicalType();
+    final CType promT2 = conv.getPromotedCType(t2).getCanonicalType();
+
+    final Formula ret;
+
+    switch (op) {
+    case PLUS:
+      if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just an addition e.g. 6 + 7
+        ret = conv.fmgr.makePlus(f1, f2);
+      } else if (!(promT2 instanceof CPointerType)) {
+        // operand1 is a pointer => we should multiply the second summand by the size of the pointer target
+        ret =  conv.fmgr.makePlus(f1, conv.fmgr.makeMultiply(f2,
+                                                             getPointerTargetSizeLiteral((CPointerType) promT1,
+                                                             calculationType)));
+      } else if (!(promT1 instanceof CPointerType)) {
+        // operand2 is a pointer => we should multiply the first summand by the size of the pointer target
+        ret =  conv.fmgr.makePlus(f2, conv.fmgr.makeMultiply(f1,
+                                                             getPointerTargetSizeLiteral((CPointerType) promT2,
+                                                             calculationType)));
+      } else {
+        throw new UnrecognizedCCodeException("Can't add pointers", edge, exp);
+      }
+      break;
+    case MINUS:
+      if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
+        ret =  conv.fmgr.makeMinus(f1, f2);
+      } else if (!(promT2 instanceof CPointerType)) {
+        // operand1 is a pointer => we should multiply the subtrahend by the size of the pointer target
+        ret =  conv.fmgr.makeMinus(f1, conv.fmgr.makeMultiply(f2,
+                                                              getPointerTargetSizeLiteral((CPointerType) promT1,
+                                                                                            calculationType)));
+      } else if (promT1 instanceof CPointerType) {
+        // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
+        if (promT1.equals(promT2)) {
+          ret = conv.fmgr.makeDivide(conv.fmgr.makeMinus(f1, f2),
+                                     getPointerTargetSizeLiteral((CPointerType) promT1, calculationType),
+                                     true);
+        } else {
+          throw new UnrecognizedCCodeException("Can't subtract pointers of different types", edge, exp);
+        }
+      } else {
+        throw new UnrecognizedCCodeException("Can't subtract a pointer from a non-pointer", edge, exp);
+      }
+      break;
+    case MULTIPLY:
+      ret =  conv.fmgr.makeMultiply(f1, f2);
+      break;
+    case DIVIDE:
+      ret =  conv.fmgr.makeDivide(f1, f2, signed);
+      break;
+    case MODULO:
+      ret =  conv.fmgr.makeModulo(f1, f2, signed);
+      break;
+    case BINARY_AND:
+      ret =  conv.fmgr.makeAnd(f1, f2);
+      break;
+    case BINARY_OR:
+      ret =  conv.fmgr.makeOr(f1, f2);
+      break;
+    case BINARY_XOR:
+      ret =  conv.fmgr.makeXor(f1, f2);
+      break;
+    case SHIFT_LEFT:
+
+      // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
+      ret =  conv.fmgr.makeShiftLeft(f1, f2);
+      break;
+    case SHIFT_RIGHT:
+      // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
+      ret =  conv.fmgr.makeShiftRight(f1, f2, signed);
+      break;
+
+    case GREATER_THAN:
+    case GREATER_EQUAL:
+    case LESS_THAN:
+    case LESS_EQUAL:
+    case EQUALS:
+    case NOT_EQUALS: {
+      BooleanFormula result;
+      switch (op) {
+        case GREATER_THAN:
+          result= conv.fmgr.makeGreaterThan(f1, f2, signed);
+          break;
+        case GREATER_EQUAL:
+          result= conv.fmgr.makeGreaterOrEqual(f1, f2, signed);
+          break;
+        case LESS_THAN:
+          result= conv.fmgr.makeLessThan(f1, f2, signed);
+          break;
+        case LESS_EQUAL:
+          result= conv.fmgr.makeLessOrEqual(f1, f2, signed);
+          break;
+        case EQUALS:
+          result= conv.fmgr.makeEqual(f1, f2);
+          break;
+        case NOT_EQUALS:
+          result= conv.bfmgr.not(conv.fmgr.makeEqual(f1, f2));
+          break;
+        default:
+          throw new AssertionError();
+      }
+      ret = conv.ifTrueThenOneElseZero(returnFormulaType, result);
+      break;
+    }
+    default:
+      throw new UnrecognizedCCodeException("Unknown binary operator", edge, exp);
+
+    }
+
+    // The CalculationType could be different from returnType, so we cast the result.
+    // If the types are equal, the cast returns the Formula unchanged.
+    final Formula castedResult = conv.makeCast(calculationType, returnType, ret, edge);
+
+    assert returnFormulaType == conv.fmgr.getFormulaType(castedResult)
+         : "Returntype and Formulatype do not match in visit(CBinaryExpression): " + exp;
+    return Value.ofValue(castedResult);
   }
 
   ExpressionToFormulaVisitor getDelegate() {
