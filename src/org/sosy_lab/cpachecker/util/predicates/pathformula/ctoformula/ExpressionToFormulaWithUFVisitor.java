@@ -96,7 +96,24 @@ public class ExpressionToFormulaWithUFVisitor
 
   @Override
   public AliasedLocation visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
-    final AliasedLocation base = e.getArrayExpression().accept(this).asAliasedLocation();
+    final CType elementType = PointerTargetSet.simplifyType(e.getExpressionType());
+
+    Location base = e.getArrayExpression().accept(this).asLocation();
+    // There are two distinct kinds of arrays in C:
+    // -- fixed-length arrays for which the aliased location of the first element is returned here
+    // -- pointers implicitly converted to arrays for which either the aliased or unaliased location of the *pointer*
+    //    is returned
+    final CType baseType = PointerTargetSet.simplifyType(e.getArrayExpression().getExpressionType());
+    // Fixed-length arrays
+    // TODO: Check if fixed-sized arrays and pointers can be clearly distinguished this way
+    if (baseType instanceof CArrayType && PointerTargetSet.getArrayLength((CArrayType) baseType) != null) {
+      assert base.isAliased();
+    } else {
+      // The address of the first element is needed i.e. the value of the pointer in the array expression
+      base = AliasedLocation.ofAddress(asValueFormula(base, elementType));
+    }
+    // Now we should always have the aliased location of the first array element
+    assert base.isAliased();
 
     final CExpression subscript = e.getSubscriptExpression();
     final CType subscriptType = PointerTargetSet.simplifyType(subscript.getExpressionType());
@@ -105,10 +122,10 @@ public class ExpressionToFormulaWithUFVisitor
                                         asValueFormula(subscript.accept(this), subscriptType),
                                         edge);
 
-    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
-    final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, pts.getSize(resultType));
+    final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, pts.getSize(elementType));
 
-    return AliasedLocation.ofAddress(conv.fmgr.makePlus(base.getAddress(), conv.fmgr.makeMultiply(coeff, index)));
+    return AliasedLocation.ofAddress(conv.fmgr.makePlus(base.asAliased().getAddress(),
+                                     conv.fmgr.makeMultiply(coeff, index)));
   }
 
   static CFieldReference eliminateArrow(final CFieldReference e, final CFAEdge edge)
