@@ -176,7 +176,7 @@ public class ExpressionToFormulaWithUFVisitor
   }
 
   @Override
-  public Expression visit(final CCastExpression e) throws UnrecognizedCCodeException {
+  public Value visit(final CCastExpression e) throws UnrecognizedCCodeException {
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     final CExpression operand = conv.makeCastFromArrayToPointerIfNecessary(e.getOperand(), resultType);
 
@@ -193,13 +193,8 @@ public class ExpressionToFormulaWithUFVisitor
       }
     }
 
-    if (result.isAliasedLocation()) { // The cast matters when dereferencing, we only return the address
-      return result;
-    } else { // We don't preserve unaliased locations, because ((t) v)=... should never occur
-      final CType operandType = PointerTargetSet.simplifyType(operand.getExpressionType());
-      return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), edge));
-    }
-
+    final CType operandType = PointerTargetSet.simplifyType(operand.getExpressionType());
+    return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), edge));
 // TODO: The following heuristic should be implemented in more generally in the assignment to p
 //    if (operand instanceof CPointerExpression
 //        && !(resultType instanceof CFunctionType)) {

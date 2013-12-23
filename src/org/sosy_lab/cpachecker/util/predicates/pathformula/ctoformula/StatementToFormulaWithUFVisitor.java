@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -218,9 +219,10 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
     final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
     final CIntegerLiteralExpression size = deferredAllocationPool.getSize() != null ?
                                              deferredAllocationPool.getSize() :
-                                             new CIntegerLiteralExpression(null,
-                                                                           CNumericTypes.SIGNED_CHAR,
-                                                                           BigInteger.valueOf(conv.options.defaultAllocationSize()));
+                                             new CIntegerLiteralExpression(
+                                                   null,
+                                                   CNumericTypes.SIGNED_CHAR,
+                                                   BigInteger.valueOf(conv.options.defaultAllocationSize()));
     conv.logger.logfOnce(Level.WARNING,
                          "The void * pointer %s to a deferred allocation escaped form tracking! " +
                            "Allocating array void[%d]. (in the following line(s):\n %s)",
@@ -354,7 +356,9 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
     }
   }
 
-  BooleanFormula handleAssignment(final CLeftHandSide lhs, final CRightHandSide rhs)
+  BooleanFormula handleAssignment(final CLeftHandSide lhs, final CRightHandSide rhs,
+                                  final boolean batchMode,
+                                  final Set<CType> destroyedTypes)
   throws UnrecognizedCCodeException {
     final CType lhsType = PointerTargetSet.simplifyType(lhs.getExpressionType());
     final CType rhsType = rhs != null ? PointerTargetSet.simplifyType(rhs.getExpressionType()) :
@@ -444,8 +448,8 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
                           lhsLocation,
                           rhsExpression,
                           pattern,
-                          false,
-                          null,
+                          batchMode,
+                          destroyedTypes,
                           edge,
                           ssa,
                           constraints,
@@ -504,10 +508,32 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
 
     // Optimization for unused variables and fields
     if (lhs.accept(isRelevantLhsVisitor)) {
-      return handleAssignment(lhs, e.getRightHandSide());
+      return handleAssignment(lhs, e.getRightHandSide(), false, null);
     } else {
       return conv.bfmgr.makeBoolean(true);
     }
+  }
+
+  public BooleanFormula handleInitializationAssignments(final CLeftHandSide variable,
+                                                        final List<CExpressionAssignmentStatement> assignments)
+  throws UnrecognizedCCodeException {
+    final Set<CType> destroyedTypes = new HashSet<>();
+    BooleanFormula result = conv.bfmgr.makeBoolean(true);
+    for (CExpressionAssignmentStatement assignment : assignments) {
+      final CLeftHandSide lhs = assignment.getLeftHandSide();
+      if (lhs.accept(isRelevantLhsVisitor)) {
+        result = conv.bfmgr.and(result, handleAssignment(lhs, assignment.getRightHandSide(), true, destroyedTypes));
+      }
+    }
+    final Location lhsLocation = variable.accept(this).asLocation();
+    if (lhsLocation.isAliased()) {
+      conv.finishAssignments(PointerTargetSet.simplifyType(variable.getExpressionType()),
+                             lhsLocation.asAliased(),
+                             variable.accept(lvalueVisitor),
+                             destroyedTypes,
+                             edge, ssa, constraints, pts);
+    }
+    return result;
   }
 
   public BooleanFormula visitAssume(final CExpression e, final boolean truthAssumtion)

@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 
 
-public class LeftHandSideToPathVisitor
+public class LvalueToPathVisitor
 extends DefaultCExpressionVisitor<PersistentList<CExpression>, RuntimeException> {
 
   @Override

@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -98,7 +99,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Value;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.LeftHandSideToPathVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.LvalueToPathVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Trie;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.FormulaEncodingWithUFOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
@@ -884,8 +885,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return result;
   }
 
-  static CInitializerList stringLiteralToInitializerList(final CStringLiteralExpression e,
-                                                           final CArrayType type) {
+  private static List<CCharLiteralExpression> expandStringLiteral(final CStringLiteralExpression e,
+                                                                  final CArrayType type) {
     Integer length = PointerTargetSet.getArrayLength(type);
     final String s = e.getContentString();
     if (length == null) {
@@ -896,32 +897,65 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     // http://stackoverflow.com/a/6915917
     // As the C99 Draft Specification's 32nd Example in §6.7.8 (p. 130) states
     // char s[] = "abc", t[3] = "abc"; is identical to: char s[] = { 'a', 'b', 'c', '\0' }, t[] = { 'a', 'b', 'c' };
-    final boolean zeroTerminated = length >= s.length() + 1;
-    final List<CInitializer> initializers = new ArrayList<>();
+    final List<CCharLiteralExpression> result = new ArrayList<>();
     for (int i = 0; i < s.length(); i++) {
-      initializers.add(new CInitializerExpression(e.getFileLocation(),
-                                                  new CCharLiteralExpression(e.getFileLocation(),
-                                                  CNumericTypes.SIGNED_CHAR,
-                                                  s.charAt(i))));
+      result.add(new CCharLiteralExpression(e.getFileLocation(), CNumericTypes.SIGNED_CHAR, s.charAt(i)));
     }
 
-    if (zeroTerminated) {
-      // http://stackoverflow.com/questions/10828294/c-and-c-partial-initialization-of-automatic-structure
-      // C99 Standard 6.7.8.21
-      // If there are ... fewer characters in a string literal
-      // used to initialize an array of known size than there are elements in the array,
-      // the remainder of the aggregate shall be initialized implicitly ...
-      for (int i = s.length(); i < length; i++) {
-        initializers.add(new CInitializerExpression(
-        e.getFileLocation(),
-        new CCharLiteralExpression(e.getFileLocation(), CNumericTypes.SIGNED_CHAR, '\0')));
-      }
+
+    // http://stackoverflow.com/questions/10828294/c-and-c-partial-initialization-of-automatic-structure
+    // C99 Standard 6.7.8.21
+    // If there are ... fewer characters in a string literal
+    // used to initialize an array of known size than there are elements in the array,
+    // the remainder of the aggregate shall be initialized implicitly ...
+    for (int i = s.length(); i < length; i++) {
+      result.add(new CCharLiteralExpression(e.getFileLocation(), CNumericTypes.SIGNED_CHAR, '\0'));
     }
 
-    return new CInitializerList(e.getFileLocation(), initializers);
+    return result;
   }
 
-  private static List<CExpression> path(final CLeftHandSide lhs) {
+  private List<CExpressionAssignmentStatement> expandStringLiterals(
+                                                 final List<CExpressionAssignmentStatement> assignments)
+  throws UnrecognizedCCodeException {
+    final List<CExpressionAssignmentStatement> result = new ArrayList<>();
+    for (CExpressionAssignmentStatement assignment : assignments) {
+      final CExpression rhs = assignment.getRightHandSide();
+      if (rhs instanceof CStringLiteralExpression) {
+        final CExpression lhs = assignment.getLeftHandSide();
+        final CType lhsType = lhs.getExpressionType();
+        final CArrayType lhsArrayType;
+        if (lhsType instanceof CArrayType) {
+          lhsArrayType = (CArrayType) lhsType;
+        } else if (lhsType instanceof CPointerType) {
+          lhsArrayType = new CArrayType(false, false, ((CPointerType) lhsType).getType(), null);
+        } else {
+          throw new UnrecognizedCCodeException("Assigning string literal to " + lhsType.toString(), assignment);
+        }
+
+        List<CCharLiteralExpression> chars = expandStringLiteral((CStringLiteralExpression) rhs, lhsArrayType);
+
+        int offset = 0;
+        for (CCharLiteralExpression e : chars) {
+          result.add(new CExpressionAssignmentStatement(
+                       assignment.getFileLocation(),
+                       new CArraySubscriptExpression(lhs.getFileLocation(),
+                                                     lhsArrayType.getType(),
+                                                     lhs,
+                                                     new CIntegerLiteralExpression(lhs.getFileLocation(),
+                                                                                   CNumericTypes.INT,
+                                                                                   BigInteger.valueOf(offset))),
+                       e));
+          offset++;
+        }
+      } else {
+        result.add(assignment);
+      }
+    }
+    return result;
+  }
+
+  private static List<CExpression> toPath(final CLeftHandSide lhs) {
     return lhs.accept(lhsToPathVisitor);
   }
 
@@ -936,7 +970,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                 declaration);
     final Trie<CExpression, CExpression> assignments = new Trie<>();
     for (CExpressionAssignmentStatement statement : explicitAssignments) {
-      assignments.add(path(statement.getLeftHandSide()), statement.getRightHandSide());
+      assignments.add(toPath(statement.getLeftHandSide()), statement.getRightHandSide());
     }
     final List<CExpressionAssignmentStatement> defaultAssignments = new ArrayList<>();
     expandAssignmentList(variableType, lhs, assignments, defaultAssignments);
@@ -980,7 +1014,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final CExpression zero = new CIntegerLiteralExpression(lhs.getFileLocation(),
                                                              CNumericTypes.SIGNED_CHAR,
                                                              BigInteger.ZERO);
-      if (assignments.get(path(lhs)) == null) {
+      if (assignments.get(toPath(lhs)) == null) {
         defaultAssignments.add(new CExpressionAssignmentStatement(lhs.getFileLocation(), lhs, zero));
       }
     }
@@ -1019,14 +1053,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return Pair.of(result, errorConditions);
   }
 
-  private ExpressionToFormulaWithUFVisitor getExpressionToFormulaWithUFVisitor(final CFAEdge cfaEdge,
-                                                                               final String function,
-                                                                               final SSAMapBuilder ssa,
-                                                                               final Constraints constraints,
-                                                                               final ErrorConditions errorConditions,
-                                                                               final PointerTargetSetBuilder pts) {
-    return new ExpressionToFormulaWithUFVisitor(this, cfaEdge, function, ssa, constraints, pts);
-  }
 
   private LvalueToPointerTargetPatternVisitor getLvalueToPointerTargetPatternVisitor(
     final CFAEdge cfaEdge,
@@ -1038,16 +1064,9 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                              final String function,
                                                                              final SSAMapBuilder ssa,
                                                                              final Constraints constraints,
-                                                                             final ErrorConditions errorConditions,
                                                                              final PointerTargetSetBuilder pts) {
-    final ExpressionToFormulaWithUFVisitor delegate = getExpressionToFormulaWithUFVisitor(cfaEdge,
-                                                                                          function,
-                                                                                          ssa,
-                                                                                          constraints,
-                                                                                          errorConditions,
-                                                                                          pts);
     final LvalueToPointerTargetPatternVisitor lvalueVisitor = getLvalueToPointerTargetPatternVisitor(cfaEdge, pts);
-    return new StatementToFormulaWithUFVisitor(delegate, lvalueVisitor, this, pts);
+    return new StatementToFormulaWithUFVisitor(lvalueVisitor, this, cfaEdge, function, ssa, constraints, pts);
   }
 
   protected BooleanFormula makeReturn(final CExpression resultExpression,
@@ -1171,9 +1190,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                initializer);
       }
     }
-    if (initializer instanceof CInitializerExpression || initializer == null) {
-      final CIdExpression lhs =
+
+    // Special handling for string literal initializers -- convert them into character arrays
+    final CIdExpression lhs =
         new CIdExpression(declaration.getFileLocation(), declarationType, declaration.getName(), declaration);
+    if (initializer instanceof CInitializerExpression || initializer == null) {
       final BooleanFormula result;
       if (initializer != null) {
         final CExpressionAssignmentStatement assignment =
@@ -1182,18 +1203,22 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                              ((CInitializerExpression) initializer).getExpression());
         result = assignment.accept(statementVisitor);
       } else if (isRelevantVariable(declaration.getQualifiedName())) {
-        result = statementVisitor.handleAssignment(lhs, null);
+        result = statementVisitor.handleAssignment(lhs, null, false, null);
       } else {
         result = bfmgr.makeBoolean(true);
       }
       statementVisitor.declareSharedBase(declaration, PointerTargetSet.containsArray(declarationType));
       return result;
     } else if (initializer instanceof CInitializerList) {
-      final Object initializerList = statementVisitor.visitInitializer(declarationType,
-                                                                       initializer);
-      assert initializerList instanceof List : "Wrong initializer";
-      return statementVisitor.visitComplexInitialization(declaration,
-                                                         (List<?>) initializerList);
+      List<CExpressionAssignmentStatement> assignments =
+        CInitializers.convertToAssignments(declaration, declarationEdge);
+      if (options.handleStringLiteralInitializers()) {
+        assignments = expandStringLiterals(assignments);
+      }
+      if (options.handleImplicitInitialization()) {
+        assignments = expandAssignmentList(declaration, assignments);
+      }
+      return statementVisitor.handleInitializationAssignments(lhs, assignments);
     } else {
       throw new UnrecognizedCCodeException("Unrecognized initializer", declarationEdge, initializer);
     }
@@ -1313,7 +1338,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     // A new visitor for each edge produces correct log and error messages.
     final StatementToFormulaWithUFVisitor statementVisitor =
-        getStatementToFormulaWithUFVisitor(edge, function, ssa, constraints, errorConditions, pts);
+            getStatementToFormulaWithUFVisitor(edge, function, ssa, constraints, pts);
 
     switch (edge.getEdgeType()) {
     case StatementEdge: {
@@ -1389,5 +1414,5 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
 
-  private static final LeftHandSideToPathVisitor lhsToPathVisitor = new LeftHandSideToPathVisitor();
+  private static final LvalueToPathVisitor lhsToPathVisitor = new LvalueToPathVisitor();
 }
