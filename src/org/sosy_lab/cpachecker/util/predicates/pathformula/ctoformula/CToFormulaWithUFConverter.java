@@ -96,6 +96,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.LeftHandSideToPathVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Trie;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.FormulaEncodingWithUFOptions;
@@ -375,8 +376,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final BooleanFormula initialization = makeAssignment(
         type,
         CNumericTypes.SIGNED_CHAR,
-        Location.ofAddress(result),
-        Expression.ofValue(fmgr.makeNumber(getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR, pts), 0)),
+        AliasedLocation.ofAddress(result),
+        Value.ofValue(fmgr.makeNumber(getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR, pts), 0)),
         new PointerTargetPattern(base, 0, 0),
         true,
         null,
@@ -390,13 +391,13 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return result;
   }
 
-  void addSharingConstraints(final CFAEdge cfaEdge,
-                             final Formula address,
-                             final Variable base,
-                             final List<Pair<CCompositeType, String>> fields,
-                             final SSAMapBuilder ssa,
-                             final Constraints constraints,
-                             final PointerTargetSetBuilder pts) throws UnrecognizedCCodeException {
+  void addValueImportConstraints(final CFAEdge cfaEdge,
+                                 final Formula address,
+                                 final Variable base,
+                                 final List<Pair<CCompositeType, String>> fields,
+                                 final SSAMapBuilder ssa,
+                                 final Constraints constraints,
+                                 final PointerTargetSetBuilder pts) throws UnrecognizedCCodeException {
     final CType baseType = PointerTargetSet.simplifyType(base.getType());
     if (baseType instanceof CArrayType) {
       throw new UnrecognizedCCodeException("Array access can't be encoded as a varaible", cfaEdge);
@@ -412,13 +413,13 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         if (hasIndex(newBase.getName(), newBase.getType(), ssa) &&
             isRelevantField(compositeType, memberName, pts)) {
           fields.add(Pair.of(compositeType, memberName));
-          addSharingConstraints(cfaEdge,
-                                fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset)),
-                                newBase,
-                                fields,
-                                ssa,
-                                constraints,
-                                pts);
+          addValueImportConstraints(cfaEdge,
+                                    fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset)),
+                                    newBase,
+                                    fields,
+                                    ssa,
+                                    constraints,
+                                    pts);
         }
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
           offset += pts.getSize(memberType);
@@ -985,7 +986,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                                final Constraints constraints,
                                                                                final ErrorConditions errorConditions,
                                                                                final PointerTargetSetBuilder pts) {
-    return new ExpressionToFormulaWithUFVisitor(this, cfaEdge, function, ssa, constraints, errorConditions, pts);
+    return new ExpressionToFormulaWithUFVisitor(this, cfaEdge, function, ssa, constraints, pts);
   }
 
   private LvalueToPointerTargetPatternVisitor getLvalueToPointerTargetPatternVisitor(
