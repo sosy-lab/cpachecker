@@ -28,6 +28,8 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
+import com.googlecode.objectify.Key;
+
 
 public class JobDAO {
 
@@ -43,6 +45,11 @@ public class JobDAO {
   public static JobFile save(JobFile jobFile) {
     ofy().save().entity(jobFile).now();
     return jobFile;
+  }
+
+  public static Job load(String keyString) {
+    Key<Job> key = Key.create(keyString);
+    return ofy().load().key(key).now();
   }
 
 }
