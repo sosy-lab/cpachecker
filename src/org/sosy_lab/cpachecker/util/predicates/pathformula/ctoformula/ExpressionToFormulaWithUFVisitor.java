@@ -102,9 +102,7 @@ public class ExpressionToFormulaWithUFVisitor
 
   @Override
   public AliasedLocation visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
-    final CType elementType = PointerTargetSet.simplifyType(e.getExpressionType());
-
-    Location base = e.getArrayExpression().accept(this).asLocation();
+    Expression base = e.getArrayExpression().accept(this);
     // There are two distinct kinds of arrays in C:
     // -- fixed-length arrays for which the aliased location of the first element is returned here
     // -- pointers implicitly converted to arrays for which either the aliased or unaliased location of the *pointer*
@@ -113,14 +111,15 @@ public class ExpressionToFormulaWithUFVisitor
     // Fixed-length arrays
     // TODO: Check if fixed-sized arrays and pointers can be clearly distinguished this way
     if (baseType instanceof CArrayType && PointerTargetSet.getArrayLength((CArrayType) baseType) != null) {
-      assert base.isAliased();
+      assert base.isAliasedLocation();
     } else {
       // The address of the first element is needed i.e. the value of the pointer in the array expression
-      base = AliasedLocation.ofAddress(asValueFormula(base, elementType));
+      base = AliasedLocation.ofAddress(asValueFormula(base, CToFormulaWithUFConverter.implicitCastToPointer(baseType)));
     }
     // Now we should always have the aliased location of the first array element
-    assert base.isAliased();
+    assert base.isAliasedLocation();
 
+    final CType elementType = PointerTargetSet.simplifyType(e.getExpressionType());
     final CExpression subscript = e.getSubscriptExpression();
     final CType subscriptType = PointerTargetSet.simplifyType(subscript.getExpressionType());
     final Formula index = conv.makeCast(subscriptType,
@@ -130,7 +129,7 @@ public class ExpressionToFormulaWithUFVisitor
 
     final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, pts.getSize(elementType));
 
-    return AliasedLocation.ofAddress(conv.fmgr.makePlus(base.asAliased().getAddress(),
+    return AliasedLocation.ofAddress(conv.fmgr.makePlus(base.asAliasedLocation().getAddress(),
                                      conv.fmgr.makeMultiply(coeff, index)));
   }
 
@@ -380,8 +379,8 @@ public class ExpressionToFormulaWithUFVisitor
     CExpression e2 = exp.getOperand2();
     e1 = conv.makeCastFromArrayToPointerIfNecessary(e1, returnType);
     e2 = conv.makeCastFromArrayToPointerIfNecessary(e2, returnType);
-    final CType t1 = e1.getExpressionType();
-    final CType t2 = e2.getExpressionType();
+    final CType t1 = PointerTargetSet.simplifyType(e1.getExpressionType());
+    final CType t2 = PointerTargetSet.simplifyType(e2.getExpressionType());
     Formula f1 = asValueFormula(e1.accept(this), t1);
     Formula f2 = asValueFormula(e2.accept(this), t2);
 

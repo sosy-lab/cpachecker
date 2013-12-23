@@ -675,30 +675,31 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
         return null; // Nondet
       }
 
-      final List<CType> parameterTypes = functionDeclaration.getType().getParameters();
+      final List<CType> formalParameterTypes = functionDeclaration.getType().getParameters();
       // functionName += "{" + parameterTypes.size() + "}";
       // add #arguments to function name to cope with vararg functions
       // TODO: Handled above?
-      if (parameterTypes.size() != parameters.size()) {
+      if (formalParameterTypes.size() != parameters.size()) {
         throw new UnrecognizedCCodeException("Function " + functionDeclaration + " received " +
                                              parameters.size() + " parameters instead of the expected " +
-                                             parameterTypes.size(),
+                                             formalParameterTypes.size(),
                                              edge,
                                              e);
       }
 
       final List<Formula> arguments = new ArrayList<>(parameters.size());
-      final Iterator<CType> parameterTypesIterator = parameterTypes.iterator();
+      final Iterator<CType> formalParameterTypesIterator = formalParameterTypes.iterator();
       final Iterator<CExpression> parametersIterator = parameters.iterator();
-      while (parameterTypesIterator.hasNext() && parametersIterator.hasNext()) {
-        final CType parameterType= parameterTypesIterator.next();
+      while (formalParameterTypesIterator.hasNext() && parametersIterator.hasNext()) {
+        final CType formalParameterType = PointerTargetSet.simplifyType(formalParameterTypesIterator.next());
         CExpression parameter = parametersIterator.next();
-        parameter = conv.makeCastFromArrayToPointerIfNecessary(parameter, parameterType);
+        parameter = conv.makeCastFromArrayToPointerIfNecessary(parameter, formalParameterType);
 
-        final Formula argument = asValueFormula(parameter.accept(this), parameterType);
-        arguments.add(conv.makeCast(parameter.getExpressionType(), parameterType, argument, edge));
+        final CType actualParameterType = PointerTargetSet.simplifyType(parameter.getExpressionType());
+        final Formula argument = asValueFormula(parameter.accept(this), actualParameterType);
+        arguments.add(conv.makeCast(actualParameterType, formalParameterType, argument, edge));
       }
-      assert !parameterTypesIterator.hasNext() && !parametersIterator.hasNext();
+      assert !formalParameterTypesIterator.hasNext() && !parametersIterator.hasNext();
 
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(resultType, pts);
       return Value.ofValue(conv.ffmgr.createFuncAndCall(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName,
