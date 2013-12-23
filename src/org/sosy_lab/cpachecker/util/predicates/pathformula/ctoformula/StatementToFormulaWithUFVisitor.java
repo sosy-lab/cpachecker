@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -37,8 +36,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -47,11 +44,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -73,13 +67,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -95,7 +85,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 
 
 public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
@@ -125,18 +114,6 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   public BooleanFormula visit(final CFunctionCallAssignmentStatement e) throws UnrecognizedCCodeException {
     return visit((CAssignment) e);
   }
-
-//  private static void addBases(final List<Pair<String, CType>> bases, final PointerTargetSetBuilder pts) {
-//    for (final Pair<String, CType> base : bases) {
-//      pts.addBase(base.getFirst(), base.getSecond());
-//    }
-//  }
-//
-//  private static void addFields(final List<Pair<CCompositeType, String>> fields, final PointerTargetSetBuilder pts) {
-//    for (final Pair<CCompositeType, String> field : fields) {
-//      pts.addField(field.getFirst(), field.getSecond());
-//    }
-//  }
 
   private static void addEssentialFields(final List<Pair<CCompositeType, String>> fields,
                                          final PointerTargetSetBuilder pts) {
@@ -602,206 +579,6 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       }
     }
     return new CInitializerList(e.getFileLocation(), initializers);
-  }
-
-  public Object visitInitializer(CType type, CInitializer topInitializer)
-  throws UnrecognizedCCodeException {
-    type = PointerTargetSet.simplifyType(type);
-    final Formula zero = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR, pts), 0);
-    if (type instanceof CArrayType) {
-      if (topInitializer instanceof CInitializerExpression &&
-          ((CArrayType) type).getType() instanceof CSimpleType &&
-          ((CSimpleType) ((CArrayType) type).getType()).getType() == CBasicType.CHAR &&
-          ((CInitializerExpression) topInitializer).getExpression() instanceof CStringLiteralExpression) {
-        topInitializer = stringLiteralToInitializerList(
-          (CStringLiteralExpression) ((CInitializerExpression) topInitializer).getExpression(),
-          (CArrayType) type);
-      }
-      assert topInitializer instanceof CInitializerList : "Wrong array initializer";
-      final CInitializerList initializerList = (CInitializerList) topInitializer;
-      final CType elementType = PointerTargetSet.simplifyType(((CArrayType) type).getType());
-      Integer length = PointerTargetSet.getArrayLength((CArrayType)type);
-      if (length == null) {
-        length = initializerList.getInitializers().size();
-      }
-      if (length == null) {
-        throw new UnrecognizedCCodeException("Can't evaluate array size for initialization", edge, initializerList);
-      }
-      assert length >= initializerList.getInitializers().size() : "Initializer is larger than the array";
-      final List<Object> result = new ArrayList<>(length);
-      final Object zeroInitializer; // Either a formula representing zero value or a list of initializers
-      if (!(elementType instanceof CArrayType) && !(elementType instanceof CCompositeType)) {
-        zeroInitializer = conv.makeCast(CNumericTypes.SIGNED_CHAR, elementType, zero, edge);
-      } else {
-        zeroInitializer = visitInitializer(elementType,
-                                           new CInitializerList(topInitializer.getFileLocation(),
-                                           Collections.<CInitializer>emptyList()));
-      }
-      for (int i = 0; i < length; ++i) {
-        result.add(zeroInitializer);
-      }
-      int index = 0;
-      for (final CInitializer initializer : initializerList.getInitializers()) {
-        if (!(initializer instanceof CDesignatedInitializer)) {
-          result.set(index, visitInitializer(elementType, initializer));
-        } else {
-          final CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) initializer;
-          final List<CDesignator> designators = designatedInitializer.getDesignators();
-          final CDesignator designator;
-          if (designators.size() > 1) {
-            conv.logger.logfOnce(Level.WARNING,
-                                 "Nested designators are unsupported: %s in line %d",
-                                 designatedInitializer,
-                                 designatedInitializer.getFileLocation().getStartingLineNumber());
-            continue;
-          } else {
-            designator = Iterables.getOnlyElement(designators);
-          }
-          final Object rhs = visitInitializer(elementType, designatedInitializer.getRightHandSide());
-          if (designator instanceof CArrayRangeDesignator) {
-            final Integer floor = tryEvaluateExpression(((CArrayRangeDesignator) designator).getFloorExpression());
-            final Integer ceiling = tryEvaluateExpression(((CArrayRangeDesignator) designator).getFloorExpression());
-            if (floor != null && ceiling != null) {
-              for (int i = floor; i <= ceiling; i++) {
-                result.set(i, rhs);
-              }
-              index = ceiling;
-            } else {
-              throw new UnrecognizedCCodeException("Can't evaluate array range designator bounds", edge, designator);
-            }
-          } else if (designator instanceof CArrayDesignator) {
-            final Integer subscript = tryEvaluateExpression(((CArrayDesignator) designator).getSubscriptExpression());
-            if (subscript != null) {
-              index = subscript;
-              result.set(index, rhs);
-            } else {
-              throw new UnrecognizedCCodeException("Can't evaluate array designator subscript", edge, designator);
-            }
-          }
-        }
-        ++index;
-      }
-      return result;
-    } else if (type instanceof CCompositeType && ((CCompositeType) type).getKind() == ComplexTypeKind.STRUCT) {
-      assert topInitializer instanceof CInitializerList : "Wrong structure initializer";
-      final CInitializerList initializerList = (CInitializerList) topInitializer;
-      final CCompositeType compositeType = (CCompositeType) type;
-      final int size = compositeType.getMembers().size();
-      final Map<String, Pair<Integer, CType>> members = new HashMap<>(size);
-      final List<CType> memberTypes = new ArrayList<>(size);
-      int index = 0;
-      for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
-        members.put(memberDeclaration.getName(), Pair.of(index, memberType));
-        memberTypes.add(memberType);
-        index++;
-      }
-      final List<Object> result = new ArrayList<>(size);
-      for (final CType memberType : memberTypes) {
-        if (!(memberType instanceof CArrayType) && !(memberType instanceof CCompositeType)) {
-          result.add(conv.makeCast(CNumericTypes.SIGNED_CHAR, memberType, zero, edge));
-        } else {
-          result.add(visitInitializer(memberType,
-                                      new CInitializerList(topInitializer.getFileLocation(),
-                                      Collections.<CInitializer>emptyList())));
-        }
-      }
-      index = 0;
-      for (final CInitializer initializer : initializerList.getInitializers()) {
-        if (!(initializer instanceof CDesignatedInitializer)) {
-          result.set(index, visitInitializer(memberTypes.get(index), initializer));
-        } else {
-          final CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) initializer;
-          final List<CDesignator> designators = designatedInitializer.getDesignators();
-          final CDesignator designator;
-          if (designators.size() > 1) {
-            conv.logger.logfOnce(Level.WARNING,
-                                 "Nested designators are unsupported: %s in line %d",
-                                 designatedInitializer,
-                                 designatedInitializer.getFileLocation().getStartingLineNumber());
-            continue;
-          } else {
-            designator = Iterables.getOnlyElement(designators);
-          }
-          if (designator instanceof CFieldDesignator) {
-            final Pair<Integer, CType> indexType = members.get(((CFieldDesignator) designator).getFieldName());
-            final Object rhs = visitInitializer(indexType.getSecond(), designatedInitializer.getRightHandSide());
-            result.set(indexType.getFirst(), rhs);
-          } else {
-            throw new UnrecognizedCCodeException("Wrong designator", edge, designator);
-          }
-        }
-        index++;
-      }
-      return result;
-    } else if (type instanceof CCompositeType && ((CCompositeType) type).getKind() == ComplexTypeKind.UNION) {
-      if (topInitializer instanceof CInitializerList  &&
-          ((CInitializerList) topInitializer).getInitializers().size() <= 1) {
-        final CCompositeType compositeType = (CCompositeType) type;
-        final int membersCount = compositeType.getMembers().size();
-        final List<Object> result = new ArrayList<>(membersCount);
-        for (int i = 0; i < membersCount; ++i) {
-          result.add(null);
-        }
-        if (((CInitializerList) topInitializer).getInitializers().size() == 0) {
-          result.set(0, visitInitializer(compositeType.getMembers().get(0).getType(), topInitializer));
-        } else {
-          topInitializer = ((CInitializerList) topInitializer).getInitializers().get(0);
-          if (!(topInitializer instanceof CDesignatedInitializer)) {
-            result.set(0, visitInitializer(compositeType.getMembers().get(0).getType(), topInitializer));
-          } else {
-            final CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) topInitializer;
-            final CDesignator designator = designatedInitializer.getDesignators().get(0);
-            if (designator instanceof CFieldDesignator) {
-              final String fieldName = ((CFieldDesignator) designator).getFieldName();
-              int index = 0;
-              for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-                if (memberDeclaration.getName().equals(fieldName)) {
-                  final CType memberType = PointerTargetSet.simplifyType(memberDeclaration.getType());
-                  final CInitializer newInitializer;
-                  if (designatedInitializer.getDesignators().size() == 1) {
-                    newInitializer = designatedInitializer.getRightHandSide();
-                  } else {
-                    newInitializer = new CDesignatedInitializer(designatedInitializer.getFileLocation(),
-                                                                designatedInitializer.getDesignators().subList(
-                                                                  1,
-                                                                  designatedInitializer.getDesignators().size()),
-                                                                designatedInitializer.getRightHandSide());
-                  }
-                  result.set(index, visitInitializer(memberType, newInitializer));
-                  break;
-                }
-                index++;
-              }
-              if (index >= compositeType.getMembers().size()) {
-                throw new UnrecognizedCCodeException("Unrecognized field designator", edge, designator);
-              }
-            } else {
-              throw new UnrecognizedCCodeException("Wrong designator: field designator expected", edge, designator);
-            }
-          }
-        }
-        return result;
-      } else {
-        throw new UnrecognizedCCodeException("Wrong union initializer: one-element list expected",
-                                             edge,
-                                             topInitializer);
-      }
-    } else {
-      if (topInitializer instanceof CInitializerList &&
-          ((CInitializerList) topInitializer).getInitializers().size() == 0) {
-        topInitializer = new CInitializerExpression(topInitializer.getFileLocation(),
-                                                    new CIntegerLiteralExpression(topInitializer.getFileLocation(),
-                                                                                  CNumericTypes.SIGNED_CHAR,
-                                                                                  BigInteger.ZERO));
-      }
-      assert topInitializer instanceof CInitializerExpression : "Unrecognized initializer";
-      final CExpression initializerExpression = ((CInitializerExpression) topInitializer).getExpression();
-      final Formula initializer = initializerExpression.accept(this);
-      final CType initializerExpressionType = CToFormulaWithUFConverter.implicitCastToPointer(
-                                                                          initializerExpression.getExpressionType());
-      return conv.makeCast(initializerExpressionType, type, initializer, edge);
-    }
   }
 
   private static Integer tryEvaluateExpression(CExpression e) {

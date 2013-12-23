@@ -40,8 +40,10 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -91,6 +93,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.LeftHandSideToPathVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Trie;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.FormulaEncodingWithUFOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
@@ -368,11 +375,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final BooleanFormula initialization = makeAssignment(
         type,
         CNumericTypes.SIGNED_CHAR,
-        result,
-        fmgr.makeNumber(getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR, pts), 0),
+        Location.ofAddress(result),
+        Expression.ofValue(fmgr.makeNumber(getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR, pts), 0)),
         new PointerTargetPattern(base, 0, 0),
-        false,
-        false,
+        true,
         null,
         edge,
         ssa,
@@ -562,159 +568,20 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  /**
-   * Returns a <code>BooleanFormula</code> (equality) representing the specified assignment.
-   * Adds the corresponding memory retention constraints to the <code>constraints</code> argument.
-   * This function can be used for any type of assignment:
-   * structure assignments, structure/array initializations, assignments to pure variables as well as updating
-   * uninterpreted function versions. All these assignments are supported by this function.
-   * @param lvalueType &mdash; type of the left hand side (can be composite e.g. structure/array)
-   * <p>
-   * @param rvalueType &mdash; type of the right hand side (can be composite). The special case is when
-   * <code>rvalueType</code> is simple, but <code>lvalueType</code>
-   * is composite. This is treated as initialization (filling) of left hand side composite with the same simple
-   * value (assigning the same value to every structure field / array element).
-   * </p>
-   * <p>
-   * @param lvalue &mdash; the left hand side. There are two possibilities:
-   * <ul>
-   * <li><code>Formula</code> representing address for assignment;</li>
-   * <li><code>String</code> representing pure variable name prefix (without field name or SSA index)</li>
-   * </ul>
-   * </p>
-   * <p>
-   * @param rvalue &mdash; the right hand side. There are five possibilities:
-   * <ul>
-   * <li><code>null</code> -- a non-determined value</li>
-   * <li>a <code>Formula</code> representing a simple value -- a simple value to assign to the variable or to
-   * initialize the composite with</li>
-   * <li>a <code>Formula</code> representing composite address -- starting address of a composite for structure
-   * assignment
-   * <li>a <code>String</code> representing pure variable name prefix -- for pure structure assignment
-   * <li> nested lists of formulas for structure initialization</li>
-   * </ul>
-   * </p>
-   * @param pattern &mdash; pointer target pattern to match possible tracked addresses that can be represented by the
-   * <code>lvalue</code> formula. Must be <code>null</code> in case of assignment to a pure variable.
-   * @param batch If equal to <code>true</code>, only <code>BooleanFormula</code> representing the assignment
-   * will be returned. The <code>constraints</code> will remain unchanged.
-   * Useful for optimizing independent successive (kind of parallel) assignments.
-   * @param ssa &mdash; the SSA map
-   * @param constraints &mdash; the <code>Constraints</code> object to add resulting constraints if necessary
-   * @param pts &mdash; the pointer target set with all tracked memory addresses
-   * @return The boolean formula (equality) representing the assignment specified
-   */
-
-  static class Expression {
-    static class Location extends Expression {
-      static class AliasedLocation extends Location {
-
-        private AliasedLocation(final Formula address) {
-          this.address = address;
-        }
-
-        public Formula getAddress() {
-          return address;
-        }
-
-        private final Formula address;
-      }
-
-      static class UnaliasedLocation extends Location {
-
-        private UnaliasedLocation(final String variableName) {
-          this.variableName = variableName;
-        }
-
-        public String getVariableName() {
-          return variableName;
-        }
-
-        private final String variableName;
-      }
-
-      public static AliasedLocation ofAddress(final Formula address) {
-        return new AliasedLocation(address);
-      }
-
-      public static UnaliasedLocation ofVariableName(final String variableName) {
-        return new UnaliasedLocation(variableName);
-      }
-
-      public boolean isAliased() {
-        return this instanceof AliasedLocation;
-      }
-
-      public AliasedLocation asAliased() {
-        if (this instanceof AliasedLocation) {
-          return (AliasedLocation) this;
-        } else {
-          return null;
-        }
-      }
-
-      public UnaliasedLocation asUnaliased() {
-        if (this instanceof UnaliasedLocation) {
-          return (UnaliasedLocation) this;
-        } else {
-          return null;
-        }
-      }
-    }
-
-    static class Value extends Expression {
-      private Value(final Formula value) {
-        this.value = value;
-      }
-
-      public Formula getValue() {
-        return value;
-      }
-
-      private final Formula value;
-    }
-
-    public static Value ofValue(final Formula value) {
-      return new Value(value);
-    }
-
-    public boolean isLocation() {
-      return this instanceof Location;
-    }
-
-    public boolean isValue() {
-      return this instanceof Value;
-    }
-
-    public Location asLocation() {
-      if (this instanceof Location) {
-        return (Location) this;
-      } else {
-        return null;
-      }
-    }
-
-    public Value asValue() {
-      if (this instanceof Value) {
-        return (Value) this;
-      } else {
-        return null;
-      }
-    }
-  }
-
   BooleanFormula makeAssignment(@Nonnull CType lvalueType,
-                                @Nonnull CType rvalueType,
-                                final @Nonnull Expression.Location lvalue,
+                                final @Nonnull CType rvalueType,
+                                final @Nonnull Location lvalue,
                                       @Nullable Expression rvalue,
                                 final @Nullable PointerTargetPattern pattern,
+                                final boolean useOldSSAIndices,
+                                      @Nullable Set<CType> destroyedTypes,
                                 final @Nonnull CFAEdge edge,
                                 final @Nonnull SSAMapBuilder ssa,
                                 final @Nonnull Constraints constraints,
                                 final @Nonnull PointerTargetSetBuilder pts)
   throws UnrecognizedCCodeException {
-    final Set<CType> destroyedTypes;
-    if (lvalue.isAliased() && !isSimpleType(lvalueType)) {
+    lvalueType = PointerTargetSet.simplifyType(lvalueType);
+    if (lvalue.isAliased() && !isSimpleType(lvalueType) && destroyedTypes == null) {
       destroyedTypes = new HashSet<>();
     } else {
       destroyedTypes = null;
@@ -728,13 +595,32 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                             edge,
                                                             ssa,
                                                             pts);
-    if (lvalue.isAliased()) {
-      addRetentionForAssignment(lvalueType, result, pattern, destroyedTypes, edge, ssa, constraints, pts);
-    } else { // Unaliased lvalue
-      final String variableName = lvalue.asUnaliased().getVariableName();
-      ssa.setIndex(variableName, lvalueType, ssa.getIndex(variableName));
+    if (!useOldSSAIndices) {
+      if (lvalue.isAliased()) {
+        addRetentionForAssignment(lvalueType,
+                                  lvalue.asAliased().getAddress(),
+                                  pattern, destroyedTypes, edge, ssa, constraints, pts);
+        updateSSA(destroyedTypes, ssa);
+      } else { // Unaliased lvalue
+        final String variableName = lvalue.asUnaliased().getVariableName();
+        ssa.setIndex(variableName, lvalueType, ssa.getIndex(variableName));
+      }
     }
     return result;
+  }
+
+  void finishAssignments(@Nonnull CType lvalueType,
+                         final @Nonnull AliasedLocation lvalue,
+                         final @Nullable PointerTargetPattern pattern,
+                         final @Nonnull Set<CType> destroyedTypes,
+                         final @Nonnull CFAEdge edge,
+                         final @Nonnull SSAMapBuilder ssa,
+                         final @Nonnull Constraints constraints,
+                         final @Nonnull PointerTargetSetBuilder pts) {
+    addRetentionForAssignment(lvalueType,
+                              lvalue.asAliased().getAddress(),
+                              pattern, destroyedTypes, edge, ssa, constraints, pts);
+    updateSSA(destroyedTypes, ssa);
   }
 
   private void addRetentionForAssignment(@Nonnull CType lvalueType,
@@ -783,20 +669,20 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       }
       addSemiexactRetentionConstraints(pattern, lvalueType, startAddress, size, typesToRetain,
                                        ssa, constraints, pts);
-    } else {
+    } else { // Inexact pointer target pattern
       Preconditions.checkArgument(startAddress != null,
                                   "Start address is mandatory for inexact pointer target patterns");
       addInexactRetentionConstraints(startAddress, size, typesToRetain, ssa, constraints, pts);
     }
   }
 
-  private boolean isSimpleType(final CType type) {
+  private static boolean isSimpleType(final CType type) {
     return !(type instanceof CArrayType) && !(type instanceof CCompositeType);
   }
 
   private BooleanFormula makeDestructiveAssignment(@Nonnull CType lvalueType,
                                                    @Nonnull CType rvalueType,
-                                                   final @Nonnull Expression.Location lvalue,
+                                                   final @Nonnull  Location lvalue,
                                                          @Nullable Expression rvalue,
                                                    final boolean useOldSSAIndices,
                                                    final @Nullable Set<CType> destroyedTypes,
@@ -847,14 +733,12 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                       PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType()) :
                                       rvalueType;
         final Formula offsetFormula = fmgr.makeNumber(voidPointerFormulaType, offset);
-        final Expression.Location newLvalue =
-                                    Expression.Location.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(),
-                                                                  offsetFormula));
+        final Location newLvalue = Location.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(),
+                                                      offsetFormula));
         // Support both initialization (with a value) and assignment (from another array location)
         final Expression newRvalue = rvalue.isLocation() ?
-                                       Expression.Location.ofAddress(
-                                         fmgr.makePlus(rvalue.asLocation().asAliased().getAddress(),
-                                         offsetFormula)) :
+                                       Location.ofAddress(fmgr.makePlus(rvalue.asLocation().asAliased().getAddress(),
+                                                          offsetFormula)) :
                                        rvalue;
 
         result = bfmgr.and(result,
@@ -902,19 +786,17 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
           final CType newRvalueType = rvalue.isLocation() ? newLvalueType : rvalueType;
           final Formula offsetFormula = fmgr.makeNumber(voidPointerFormulaType, offset);
           // Support assignment to structures with unaliased members encoded as variables (e.g. struct_var$field)
-          final Expression.Location newLvalue = lvalue.isAliased() ?
-                  Expression.Location.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(), offsetFormula)) :
-                  Expression.Location.ofVariableName(lvalue + FIELD_NAME_SEPARATOR + memberName);
+          final Location newLvalue = lvalue.isAliased() ?
+                           Location.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(), offsetFormula)) :
+                           Location.ofVariableName(lvalue + FIELD_NAME_SEPARATOR + memberName);
           final Expression newRvalue = rvalue.isLocation() && !rvalue.asLocation().isAliased() ? // Unaliased location
-                                         Expression.Location.ofVariableName(
-                                           rvalue.asLocation().asUnaliased().getVariableName() +
-                                           FIELD_NAME_SEPARATOR +
-                                           memberName) :
+                                         Location.ofVariableName(rvalue.asLocation().asUnaliased().getVariableName() +
+                                                                 FIELD_NAME_SEPARATOR +
+                                                                 memberName) :
                                          rvalue.isLocation() ? // Aliased location
-                                            Expression.Location.ofAddress(
-                                              fmgr.makePlus(rvalue.asLocation().asAliased().getAddress(),
-                                                            offsetFormula)) :
-                                            rvalue; // Value
+                                           Location.ofAddress(fmgr.makePlus(rvalue.asLocation().asAliased().getAddress(),
+                                                              offsetFormula)) :
+                                           rvalue; // Value
           result = bfmgr.and(result,
                              makeDestructiveAssignment(newLvalueType,
                                                        newRvalueType,
@@ -946,7 +828,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   private BooleanFormula makeSimpleDestructiveAssignment(@Nonnull CType lvalueType,
                                                          @Nonnull CType rvalueType,
-                                                         final @Nonnull Expression.Location lvalue,
+                                                         final @Nonnull  Location lvalue,
                                                                @Nullable Expression rvalue,
                                                          final boolean useOldSSAIndices,
                                                          final @Nullable Set<CType> destroyedTypes,
@@ -997,6 +879,71 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
 
     return result;
+  }
+
+  private static List<CExpression> path(final CLeftHandSide lhs) {
+    return lhs.accept(lhsToPathVisitor);
+  }
+
+
+  static List<CExpressionAssignmentStatement> expandAssignmentList(
+                                                final CVariableDeclaration declaration,
+                                                final List<CExpressionAssignmentStatement> explicitAssignments) {
+    final CType variableType = PointerTargetSet.simplifyType(declaration.getType());
+    final CLeftHandSide lhs = new CIdExpression(declaration.getFileLocation(),
+                                                variableType,
+                                                declaration.getName(),
+                                                declaration);
+    final Trie<CExpression, CExpression> assignments = new Trie<>();
+    for (CExpressionAssignmentStatement statement : explicitAssignments) {
+      assignments.add(path(statement.getLeftHandSide()), statement.getRightHandSide());
+    }
+    final List<CExpressionAssignmentStatement> defaultAssignments = new ArrayList<>();
+    expandAssignmentList(variableType, lhs, assignments, defaultAssignments);
+    defaultAssignments.addAll(explicitAssignments);
+    return defaultAssignments;
+  }
+
+  private static void expandAssignmentList(CType type,
+                                           final CLeftHandSide lhs,
+                                           final Trie<CExpression, CExpression> assignments,
+                                           final List<CExpressionAssignmentStatement> defaultAssignments) {
+    type = PointerTargetSet.simplifyType(type);
+    if (type instanceof CArrayType) {
+      final CArrayType arrayType = (CArrayType) type;
+      final CType elementType = PointerTargetSet.simplifyType(arrayType.getType());
+      final Integer length = PointerTargetSet.getArrayLength(arrayType);
+      if (length != null) {
+        for (int i = 0; i < length; i++) {
+          final CLeftHandSide newLhs = new CArraySubscriptExpression(
+                                             lhs.getFileLocation(),
+                                             elementType,
+                                             lhs,
+                                             new CIntegerLiteralExpression(lhs.getFileLocation(),
+                                                                           CNumericTypes.INT,
+                                                                           BigInteger.valueOf(i)));
+          expandAssignmentList(elementType, newLhs, assignments, defaultAssignments);
+        }
+      }
+    } else if (type instanceof CCompositeType) {
+      final CCompositeType compositeType = (CCompositeType) type;
+      for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        final CType memberType = memberDeclaration.getType();
+        final CLeftHandSide newLhs = new CFieldReference(lhs.getFileLocation(),
+                                                         memberType,
+                                                         memberDeclaration.getName(),
+                                                         lhs, false);
+        expandAssignmentList(memberType, newLhs, assignments, defaultAssignments);
+      }
+    } else {
+      assert isSimpleType(type);
+      final CExpression zero = new CIntegerLiteralExpression(lhs.getFileLocation(),
+                                                             CNumericTypes.SIGNED_CHAR,
+                                                             BigInteger.ZERO);
+      if (assignments.get(path(lhs)) == null) {
+        defaultAssignments.add(new CExpressionAssignmentStatement(lhs.getFileLocation(), lhs, zero));
+      }
+    }
   }
 
   @Override
@@ -1401,4 +1348,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
+
+  private static final LeftHandSideToPathVisitor lhsToPathVisitor = new LeftHandSideToPathVisitor();
 }
