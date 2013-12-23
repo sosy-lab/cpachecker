@@ -901,9 +901,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                        edge,
                                                        ssa,
                                                        pts));
-          if (lvalueCompositeType.getKind() == ComplexTypeKind.STRUCT) {
-               offset += pts.getSize(memberDeclaration.getType());
-          }
+        }
+
+        if (lvalueCompositeType.getKind() == ComplexTypeKind.STRUCT) {
+          offset += pts.getSize(memberDeclaration.getType());
         }
       }
       return result;
