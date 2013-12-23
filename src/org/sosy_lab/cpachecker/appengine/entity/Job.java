@@ -38,7 +38,7 @@ import com.googlecode.objectify.annotation.Serialize;
 public class Job {
 
   public enum Status {
-    PENDING, RUNNING, ABORTED, TIMEOUT
+    PENDING, RUNNING, DONE, ABORTED, TIMEOUT
   }
 
   @Id private Long id;
