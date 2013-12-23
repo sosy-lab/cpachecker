@@ -101,8 +101,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Value;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.LvalueToPathVisitor;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Trie;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.FormulaEncodingWithUFOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PathFormulaWithUF;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
@@ -1069,11 +1067,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return result;
   }
 
-  private static List<String> toPath(final CLeftHandSide lhs) {
-    return lhs.accept(lhsToPathVisitor).reversed();
-  }
-
-
   static List<CExpressionAssignmentStatement> expandAssignmentList(
                                                 final CVariableDeclaration declaration,
                                                 final List<CExpressionAssignmentStatement> explicitAssignments) {
@@ -1082,19 +1075,19 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                 variableType,
                                                 declaration.getName(),
                                                 declaration);
-    final Trie<String, CExpression> assignments = new Trie<>();
+    final Set<String> alreadyAssigned = new HashSet<>();
     for (CExpressionAssignmentStatement statement : explicitAssignments) {
-      assignments.add(toPath(statement.getLeftHandSide()), statement.getRightHandSide());
+      alreadyAssigned.add(statement.getLeftHandSide().toString());
     }
     final List<CExpressionAssignmentStatement> defaultAssignments = new ArrayList<>();
-    expandAssignmentList(variableType, lhs, assignments, defaultAssignments);
+    expandAssignmentList(variableType, lhs, alreadyAssigned, defaultAssignments);
     defaultAssignments.addAll(explicitAssignments);
     return defaultAssignments;
   }
 
   private static void expandAssignmentList(CType type,
                                            final CLeftHandSide lhs,
-                                           final Trie<String, CExpression> assignments,
+                                           final Set<String> alreadyAssigned,
                                            final List<CExpressionAssignmentStatement> defaultAssignments) {
     type = PointerTargetSet.simplifyType(type);
     if (type instanceof CArrayType) {
@@ -1110,7 +1103,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                              new CIntegerLiteralExpression(lhs.getFileLocation(),
                                                                            CNumericTypes.INT,
                                                                            BigInteger.valueOf(i)));
-          expandAssignmentList(elementType, newLhs, assignments, defaultAssignments);
+          expandAssignmentList(elementType, newLhs, alreadyAssigned, defaultAssignments);
         }
       }
     } else if (type instanceof CCompositeType) {
@@ -1121,14 +1114,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                          memberType,
                                                          memberDeclaration.getName(),
                                                          lhs, false);
-        expandAssignmentList(memberType, newLhs, assignments, defaultAssignments);
+        expandAssignmentList(memberType, newLhs, alreadyAssigned, defaultAssignments);
       }
     } else {
       assert isSimpleType(type);
       final CExpression zero = new CIntegerLiteralExpression(lhs.getFileLocation(),
                                                              CNumericTypes.SIGNED_CHAR,
                                                              BigInteger.ZERO);
-      if (assignments.get(toPath(lhs)) == null) {
+      if (!alreadyAssigned.contains(lhs.toString())) {
         defaultAssignments.add(new CExpressionAssignmentStatement(lhs.getFileLocation(), lhs, zero));
       }
     }
@@ -1543,6 +1536,4 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
-
-  private static final LvalueToPathVisitor lhsToPathVisitor = new LvalueToPathVisitor();
 }

@@ -202,5 +202,5 @@ public abstract class Expression {
 
   public abstract Kind getKind();
 
-  public static enum Kind {ALIASED_LOCATION, UNALIASED_LOCATION, DET_VALUE, NONDET};
+  public static enum Kind {ALIASED_LOCATION, UNALIASED_LOCATION, DET_VALUE, NONDET}
 }
