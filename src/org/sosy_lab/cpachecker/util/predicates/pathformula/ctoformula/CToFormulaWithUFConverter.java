@@ -784,7 +784,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       return Pair.of(rvalue, rvalueType);
     }
     case NONDET: {
-      return Pair.of(Value.nondetValue(), newLvalueType);
+      final CType newRvalueType = isSimpleType(newLvalueType) ? newLvalueType : CNumericTypes.SIGNED_CHAR;
+      return Pair.of(Value.nondetValue(), newRvalueType);
     }
     default: throw new AssertionError();
     }
@@ -944,10 +945,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     final Formula value;
     switch (rvalue.getKind()) {
     case ALIASED_LOCATION:
-      value = makeVariable(rvalue.asLocation().asUnaliased().getVariableName(), rvalueType, ssa, pts);
+      value = makeDereferece(rvalueType, rvalue.asAliasedLocation().getAddress(), ssa, pts);
       break;
     case UNALIASED_LOCATION:
-      value = makeDereferece(rvalueType, rvalue.asLocation().asAliased().getAddress(), ssa, pts);
+      value = makeVariable(rvalue.asUnaliasedLocation().getVariableName(), rvalueType, ssa, pts);
       break;
     case DET_VALUE:
       value = rvalue.asValue().getValue();
@@ -1340,11 +1341,13 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         assignments = expandAssignmentList(declaration, assignments);
       }
 
+      final BooleanFormula result = statementVisitor.handleInitializationAssignments(lhs, assignments);
+
       if (PointerTargetSet.containsArray(declarationType)) {
         addPreFilledBase(declaration.getQualifiedName(), declarationType, true, false, constraints, pts);
       }
 
-      return statementVisitor.handleInitializationAssignments(lhs, assignments);
+      return result;
     } else {
       throw new UnrecognizedCCodeException("Unrecognized initializer", declarationEdge, initializer);
     }

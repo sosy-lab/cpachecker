@@ -878,17 +878,15 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
   public void declareSharedBase(final CDeclaration declaration, final boolean shareImmediately) {
     if (shareImmediately) {
       conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), false, false, constraints, pts);
-    } else if (conv.isAddressedVariable(declaration.getQualifiedName())) {
-      constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(), declaration.getType()));
+    } else if (conv.isAddressedVariable(declaration.getQualifiedName()) ||
+               PointerTargetSet.containsArray(declaration.getType())) {
+      constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(),
+                                                PointerTargetSet.simplifyType(declaration.getType())));
     }
   }
 
   public void declareSharedBase(final CParameterDeclaration declaration, final boolean shareImmediately) {
-    if (shareImmediately) {
-      conv.addPreFilledBase(declaration.getQualifiedName(), declaration.getType(), false, false, constraints, pts);
-    } else if (conv.isAddressedVariable(declaration.getQualifiedName())) {
-      constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(), declaration.getType()));
-    }
+    declareSharedBase(declaration, shareImmediately);
   }
 
   public void declareCompositeType(final CCompositeType compositeType) {
