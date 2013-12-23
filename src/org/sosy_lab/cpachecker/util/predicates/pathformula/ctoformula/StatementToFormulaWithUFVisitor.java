@@ -663,7 +663,8 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
       if (functionDeclaration == null) {
         if (functionNameExpression instanceof CIdExpression) {
           // This happens only if there are undeclared functions.
-          conv.logger.logfOnce(Level.WARNING, "Cannot get declaration of function %s, ignoring calls to it.", functionNameExpression);
+          conv.logger.logfOnce(Level.WARNING, "Cannot get declaration of function %s, ignoring calls to it.",
+                               functionNameExpression);
         }
         return null; // Nondet
       }

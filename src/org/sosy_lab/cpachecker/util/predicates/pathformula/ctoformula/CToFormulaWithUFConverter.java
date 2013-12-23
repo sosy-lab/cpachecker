@@ -296,7 +296,9 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return ffmgr.createFuncAndCall(ufName, index, returnType, ImmutableList.of(address));
   }
 
-  boolean isRelevantField(final CCompositeType compositeType, final String fieldName, final PointerTargetSetBuilder pts) {
+  boolean isRelevantField(final CCompositeType compositeType,
+                          final String fieldName,
+                          final PointerTargetSetBuilder pts) {
     return !variableClassification.isPresent() ||
            !options.ignoreIrrelevantVariables() ||
            pts.getSize(compositeType) <= options.maxPreFilledAllocationSize() ||
@@ -798,8 +800,9 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                  FIELD_NAME_SEPARATOR +
                                                                  memberName) :
                                          rvalue.isLocation() ? // Aliased location
-                                           Location.ofAddress(fmgr.makePlus(rvalue.asLocation().asAliased().getAddress(),
-                                                              offsetFormula)) :
+                                           Location.ofAddress(
+                                             fmgr.makePlus(rvalue.asLocation().asAliased().getAddress(),
+                                                           offsetFormula)) :
                                            rvalue; // Value
           result = bfmgr.and(result,
                              makeDestructiveAssignment(newLvalueType,
@@ -1030,7 +1033,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  private Pair<PathFormula, ErrorConditions> makeAnd(final PathFormulaWithUF oldFormula, final CFAEdge edge) throws CPATransferException {
+  private Pair<PathFormula, ErrorConditions> makeAnd(final PathFormulaWithUF oldFormula, final CFAEdge edge)
+  throws CPATransferException {
     ErrorConditions errorConditions = new ErrorConditions(bfmgr);
 
     if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
