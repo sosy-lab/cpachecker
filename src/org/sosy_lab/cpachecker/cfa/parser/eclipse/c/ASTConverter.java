@@ -826,7 +826,13 @@ class ASTConverter {
       name = declaration.getName(); // may have been renamed
     }
 
-    CType type = typeConverter.convert(e.getExpressionType());
+    CType type;
+    // Use declaration type when possible to fix issues with anonymous composites, problem types etc.
+    if (declaration != null) {
+      type = declaration.getType();
+    } else {
+      type = typeConverter.convert(e.getExpressionType());
+    }
 
     if (declaration instanceof CEnumerator
         && type instanceof CElaboratedType
