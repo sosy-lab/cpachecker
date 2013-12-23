@@ -517,20 +517,23 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
   public BooleanFormula handleInitializationAssignments(final CLeftHandSide variable,
                                                         final List<CExpressionAssignmentStatement> assignments)
   throws UnrecognizedCCodeException {
-    final Set<CType> destroyedTypes = new HashSet<>();
+    final Location lhsLocation = variable.accept(this).asLocation();
+    final Set<CType> updatedTypes = new HashSet<>();
     BooleanFormula result = conv.bfmgr.makeBoolean(true);
     for (CExpressionAssignmentStatement assignment : assignments) {
       final CLeftHandSide lhs = assignment.getLeftHandSide();
       if (lhs.accept(isRelevantLhsVisitor)) {
-        result = conv.bfmgr.and(result, handleAssignment(lhs, assignment.getRightHandSide(), true, destroyedTypes));
+        result = conv.bfmgr.and(result, handleAssignment(lhs,
+                                                         assignment.getRightHandSide(),
+                                                         lhsLocation.isAliased(), // Defer index update for UFs, but not for variables
+                                                         updatedTypes));
       }
     }
-    final Location lhsLocation = variable.accept(this).asLocation();
     if (lhsLocation.isAliased()) {
       conv.finishAssignments(PointerTargetSet.simplifyType(variable.getExpressionType()),
                              lhsLocation.asAliased(),
                              variable.accept(lvalueVisitor),
-                             destroyedTypes,
+                             updatedTypes,
                              edge, ssa, constraints, pts);
     }
     return result;
