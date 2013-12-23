@@ -76,31 +76,15 @@ public class ExpressionToFormulaWithUFVisitor
 
     this.conv = cToFormulaConverter;
     this.edge = cfaEdge;
+    this.function = function;
     this.ssa = ssa;
+    this.constraints = constraints;
     this.pts = pts;
 
     this.baseVisitor = new BaseVisitor(conv, cfaEdge, pts);
   }
 
-  private static boolean isAliased(final Expression e) {
-    return e.isLocation() && e.asLocation().isAliased();
-  }
-
-  private static boolean isUnaliased(final Expression e) {
-    return e.isLocation() && !e.asLocation().isAliased();
-  }
-
-  private static AliasedLocation asAliased(final Expression e) {
-    assert e.isLocation() && e.asLocation().isAliased() : "aliased location expected";
-    return e.asLocation().asAliased();
-  }
-
-  private static Value asValue(final Expression e) {
-    assert e.isValue(): "value expected";
-    return e.asValue();
-  }
-
-  private Formula asFormula(final Expression e, final CType type) {
+  Formula asValueFormula(final Expression e, final CType type) {
     if (e.isValue()) {
       return e.asValue().getValue();
     } else if (e.asLocation().isAliased()) {
@@ -112,13 +96,13 @@ public class ExpressionToFormulaWithUFVisitor
 
   @Override
   public AliasedLocation visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
-    final AliasedLocation base = asAliased(e.getArrayExpression().accept(this));
+    final AliasedLocation base = e.getArrayExpression().accept(this).asAliasedLocation();
 
     final CExpression subscript = e.getSubscriptExpression();
     final CType subscriptType = PointerTargetSet.simplifyType(subscript.getExpressionType());
     final Formula index = conv.makeCast(subscriptType,
                                         CPointerType.POINTER_TO_VOID,
-                                        asFormula(subscript.accept(this), subscriptType),
+                                        asValueFormula(subscript.accept(this), subscriptType),
                                         edge);
 
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
@@ -162,7 +146,7 @@ public class ExpressionToFormulaWithUFVisitor
     } else {
       final CType fieldOwnerType = PointerTargetSet.simplifyType(e.getFieldOwner().getExpressionType());
       if (fieldOwnerType instanceof CCompositeType) {
-        final AliasedLocation base = asAliased(e.getFieldOwner().accept(this));
+        final AliasedLocation base = e.getFieldOwner().accept(this).asAliasedLocation();
 
         final String fieldName = e.getFieldName();
         usedFields.add(Pair.of((CCompositeType) fieldOwnerType, fieldName));
@@ -176,11 +160,11 @@ public class ExpressionToFormulaWithUFVisitor
     }
   }
 
-  static boolean isSimpleTarget(final CExpression e) {
+  static boolean isUnaliasedLocation(final CExpression e) {
     if (e instanceof CIdExpression) {
       return true;
     } else if (e instanceof CFieldReference) {
-      return isSimpleTarget(((CFieldReference) e).getFieldOwner());
+      return isUnaliasedLocation(((CFieldReference) e).getFieldOwner());
     } else {
       return false;
     }
@@ -198,7 +182,8 @@ public class ExpressionToFormulaWithUFVisitor
 
     final Expression result = operand.accept(this);
 
-    if (isRevealingType(resultType) && isSimpleTarget(operand) && isUnaliased(result)) {
+    // TODO: is the second isUnaliasedLocation() check really needed?
+    if (isRevealingType(resultType) && isUnaliasedLocation(operand) && result.isUnaliasedLocation()) {
       final String variableName =  result.asLocation().asUnaliased().getVariableName();
       if (pts.isDeferredAllocationPointer(variableName)) {
         assert usedDeferredAllocationPointers.containsKey(variableName) &&
@@ -208,11 +193,11 @@ public class ExpressionToFormulaWithUFVisitor
       }
     }
 
-    if (isAliased(result)) { // The cast matters when dereferencing
+    if (result.isAliasedLocation()) { // The cast matters when dereferencing, we only return the address
       return result;
     } else { // We don't preserve unaliased locations, because ((t) v)=... should never occur
       final CType operandType = PointerTargetSet.simplifyType(operand.getExpressionType());
-      return Value.ofValue(conv.makeCast(operandType, resultType, asFormula(result, operandType), edge));
+      return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), edge));
     }
 
 // TODO: The following heuristic should be implemented in more generally in the assignment to p
@@ -285,7 +270,7 @@ public class ExpressionToFormulaWithUFVisitor
         final Variable baseVariable = operand.accept(baseVisitor);
         if (baseVariable == null) {
           final int oldUsedFieldsSize = usedFields.size();
-          final AliasedLocation addressExpression = asAliased(operand.accept(this));
+          final AliasedLocation addressExpression = operand.accept(this).asAliasedLocation();
           for (int i = oldUsedFieldsSize; i < usedFields.size(); i++) {
             addressedFields.add(usedFields.get(i));
           }
@@ -316,7 +301,7 @@ public class ExpressionToFormulaWithUFVisitor
           return visit(e);
         }
       } else {
-        return asValue(operand.accept(this));
+        return operand.accept(this).asValue();
       }
       default:
         throw new UnrecognizedCCodeException("Unknown unary operator", edge, e);
@@ -324,10 +309,10 @@ public class ExpressionToFormulaWithUFVisitor
   }
 
   @Override
-  public AliasedLocation visit(CPointerExpression e) throws UnrecognizedCCodeException {
+  public AliasedLocation visit(final CPointerExpression e) throws UnrecognizedCCodeException {
     final CExpression operand = e.getOperand();
     final CType operandType = PointerTargetSet.simplifyType(operand.getExpressionType());
-    return AliasedLocation.ofAddress(asFormula(operand.accept(this), operandType));
+    return AliasedLocation.ofAddress(asValueFormula(operand.accept(this), operandType));
   }
 
   ExpressionToFormulaVisitor getDelegate() {
@@ -335,7 +320,7 @@ public class ExpressionToFormulaWithUFVisitor
   }
 
   @Override
-  protected Value visitDefault(CExpression e) throws UnrecognizedCCodeException {
+  protected Value visitDefault(final CExpression e) throws UnrecognizedCCodeException {
     return Value.ofValue(e.accept(delegate));
   }
 
@@ -367,15 +352,21 @@ public class ExpressionToFormulaWithUFVisitor
     usedDeferredAllocationPointers.clear();
   }
 
-  @SuppressWarnings("hiding")
-  private final CToFormulaWithUFConverter conv;
-  private final CFAEdge edge;
-  private final SSAMapBuilder ssa;
-  private final PointerTargetSetBuilder pts;
+  // The protected fields are inherited by StatementToFormulaWithUFVisitor,
+  // expanding the functionality of this class to statements
+  protected final CToFormulaWithUFConverter conv;
+  protected final CFAEdge edge;
+  protected final String function;
+  protected final SSAMapBuilder ssa;
+  protected final Constraints constraints;
+  protected final PointerTargetSetBuilder pts;
 
   private final BaseVisitor baseVisitor;
-  private final ExpressionToFormulaVisitor delegate;
+  protected final ExpressionToFormulaVisitor delegate;
 
+  // This fields are made private to prevent reading them in StatementToFormulaWIthUFVisitor
+  // The accessors for these fields return the copies of the original collections, these copies can be
+  // safely saved and used later when the collections themselves will be modified
   private final List<Pair<String, CType>> sharedBases = new ArrayList<>();
   private final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>();
   private final List<Pair<CCompositeType, String>> addressedFields = new ArrayList<>();

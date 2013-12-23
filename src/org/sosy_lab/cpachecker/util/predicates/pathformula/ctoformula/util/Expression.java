@@ -23,7 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location.UnaliasedLocation;
 
 public class Expression {
   public static class Location extends Expression {
@@ -53,11 +58,11 @@ public class Expression {
       private final String variableName;
     }
 
-    public static AliasedLocation ofAddress(final Formula address) {
+    public static AliasedLocation ofAddress(final @Nonnull Formula address) {
       return new AliasedLocation(address);
     }
 
-    public static UnaliasedLocation ofVariableName(final String variableName) {
+    public static UnaliasedLocation ofVariableName(final @Nonnull String variableName) {
       return new UnaliasedLocation(variableName);
     }
 
@@ -94,8 +99,8 @@ public class Expression {
     private final Formula value;
   }
 
-  public static Value ofValue(final Formula value) {
-    return new Value(value);
+  public static Value ofValue(final @Nullable Formula value) {
+    return value != null ? new Value(value) : null;
   }
 
   public boolean isLocation() {
@@ -106,9 +111,33 @@ public class Expression {
     return this instanceof Value;
   }
 
+  public boolean isAliasedLocation() {
+    return this.isLocation() && this.asLocation().isAliased();
+  }
+
+  public boolean isUnaliasedLocation() {
+    return this.isLocation() && !this.asLocation().isAliased();
+  }
+
   public Location asLocation() {
     if (this instanceof Location) {
       return (Location) this;
+    } else {
+      return null;
+    }
+  }
+
+  public AliasedLocation asAliasedLocation() {
+    if (this.isLocation()) {
+      return this.asLocation().asAliased();
+    } else {
+      return null;
+    }
+  }
+
+  public UnaliasedLocation asUnaliasedLocation() {
+    if (this.isLocation()) {
+      return this.asLocation().asUnaliased();
     } else {
       return null;
     }

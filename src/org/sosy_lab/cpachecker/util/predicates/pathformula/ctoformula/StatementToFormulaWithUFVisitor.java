@@ -41,30 +41,30 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -77,7 +77,10 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.DeferredAllocationPool;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
@@ -87,21 +90,21 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 
-public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
+public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVisitor
+                                             implements CStatementVisitor<BooleanFormula, UnrecognizedCCodeException>,
+                                                        CRightHandSideVisitor<Expression, UnrecognizedCCodeException> {
 
-  private static final String CALLOC_FUNCTION = "calloc";
-
-  public StatementToFormulaWithUFVisitor(final ExpressionToFormulaWithUFVisitor delegate,
-                                         final LvalueToPointerTargetPatternVisitor lvalueVisitor,
-                                         final CToFormulaWithUFConverter conv,
-                                         final ErrorConditions errorConditions,
+  public StatementToFormulaWithUFVisitor(final LvalueToPointerTargetPatternVisitor lvalueVisitor,
+                                         final CToFormulaWithUFConverter cToFormulaConverter,
+                                         final CFAEdge cfaEdge,
+                                         final String function,
+                                         final SSAMapBuilder ssa,
+                                         final Constraints constraints,
                                          final PointerTargetSetBuilder pts) {
-    super(delegate);
-    this.delegate = delegate;
+    super(cToFormulaConverter, cfaEdge, function, ssa, constraints, pts);
+
+    this.statementDelegate = new StatementToFormulaVisitor(delegate);
     this.lvalueVisitor = lvalueVisitor;
-    this.conv = conv;
-    this.errorConditions = errorConditions;
-    this.pts = pts;
     this.isRelevantLhsVisitor = new IsRelevantLhsVisitor();
   }
 
@@ -113,6 +116,19 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   @Override
   public BooleanFormula visit(final CFunctionCallAssignmentStatement e) throws UnrecognizedCCodeException {
     return visit((CAssignment) e);
+  }
+
+  @Override
+  public BooleanFormula visit(CExpressionStatement s) {
+    return statementDelegate.visit(s);
+  }
+
+  @Override
+  public BooleanFormula visit(CFunctionCallStatement exp) throws UnrecognizedCCodeException {
+    // this is an external call
+    // visit expression in order to print warnings if necessary
+    visit(exp.getFunctionCallExpression());
+    return conv.bfmgr.makeBoolean(true);
   }
 
   private static void addEssentialFields(final List<Pair<CCompositeType, String>> fields,
@@ -183,7 +199,6 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                           edge,
                           ssa,
                           constraints,
-                          errorConditions,
                           pts);
     }
   }
@@ -222,44 +237,47 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                           edge,
                           ssa,
                           constraints,
-                          errorConditions,
                           pts);
     }
   }
 
   private void handleDeferredAllocationsInAssignment(final CLeftHandSide lhs,
                                                      final CRightHandSide rhs,
-                                                     final Object lhsTarget,
-                                                     final Object rhsTarget,
+                                                     final Location lhsLocation,
+                                                     final Expression rhsExpression,
                                                      final Map<String, CType> lhsUsedDeferredAllocationPointers,
                                                      final Map<String, CType> rhsUsedDeferredAllocationPointers)
   throws UnrecognizedCCodeException {
     boolean passed = false;
     for (final Map.Entry<String, CType> usedPointer : rhsUsedDeferredAllocationPointers.entrySet()) {
       boolean handled = false;
-      if (!usedPointer.getValue().equals(CPointerType.POINTER_TO_VOID)) {
+      if (ExpressionToFormulaWithUFVisitor.isRevealingType(usedPointer.getValue())) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
         handled = true;
-      } else if (rhs instanceof CExpression && ExpressionToFormulaWithUFVisitor.isSimpleTarget((CExpression) rhs)) {
-        assert rhsTarget instanceof String &&
-               ((String) rhsTarget).equals(usedPointer.getKey()) &&
+      } else if (rhs instanceof CExpression &&
+                 // TODO: use rhsExpression.isUnaliasedLocation() instead?
+                 ExpressionToFormulaWithUFVisitor.isUnaliasedLocation((CExpression) rhs)) {
+        assert rhsExpression.isUnaliasedLocation() &&
+               rhsExpression.asUnaliasedLocation().getVariableName().equals(usedPointer.getKey()) &&
                rhsUsedDeferredAllocationPointers.size() == 1 :
                "Wrong assumptions on deferred allocations tracking: rhs is not a single pointer";
         final CType lhsType = PointerTargetSet.simplifyType(lhs.getExpressionType());
         if (lhsType.equals(CPointerType.POINTER_TO_VOID) &&
-            ExpressionToFormulaWithUFVisitor.isSimpleTarget(lhs) &&
-            lhsTarget instanceof String) {
+            // TODO: is the following isUnaliasedLocation() check really needed?
+            ExpressionToFormulaWithUFVisitor.isUnaliasedLocation(lhs) &&
+            !lhsLocation.isAliased()) {
           final Map.Entry<String, CType> lhsUsedPointer = !lhsUsedDeferredAllocationPointers.isEmpty() ?
                                                        lhsUsedDeferredAllocationPointers.entrySet().iterator().next() :
                                                        null;
           assert lhsUsedDeferredAllocationPointers.size() <= 1 &&
-                 lhsTarget instanceof String &&
-                 (lhsUsedPointer == null || ((String) lhsTarget).equals(lhsUsedPointer.getKey())) :
+                 rhsExpression.isUnaliasedLocation() &&
+                 (lhsUsedPointer == null ||
+                  (rhsExpression.asUnaliasedLocation().getVariableName()).equals(lhsUsedPointer.getKey())) :
                  "Wrong assumptions on deferred allocations tracking: unrecognized lhs";
           if (lhsUsedPointer != null) {
             handleDeferredAllocationPointerRemoval(lhsUsedPointer.getKey(), false);
           }
-          pts.addDeferredAllocationPointer((String) lhsTarget, usedPointer.getKey());
+          pts.addDeferredAllocationPointer(lhsLocation.asUnaliased().getVariableName(), usedPointer.getKey());
           passed = true;
           handled = true;
         } else if (ExpressionToFormulaWithUFVisitor.isRevealingType(lhsType)) {
@@ -274,9 +292,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     for (final Map.Entry<String, CType> usedPointer : lhsUsedDeferredAllocationPointers.entrySet()) {
       if (!usedPointer.getValue().equals(CPointerType.POINTER_TO_VOID)) {
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
-      } else if (ExpressionToFormulaWithUFVisitor.isSimpleTarget(lhs)) {
-        assert lhsTarget instanceof String &&
-               ((String) lhsTarget).equals(usedPointer.getKey()) &&
+      // TODO: use lhsExpression.isUnaliasedLoation() instead (?)
+      } else if (ExpressionToFormulaWithUFVisitor.isUnaliasedLocation(lhs)) {
+        assert !lhsLocation.isAliased() &&
+               lhsLocation.asUnaliased().getVariableName().equals(usedPointer.getKey()) &&
                lhsUsedDeferredAllocationPointers.size() == 1 :
                "Wrong assumptions on deferred allocations tracking: lhs is not a single pointer";
         if (!passed) {
@@ -339,59 +358,64 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   throws UnrecognizedCCodeException {
     final CType lhsType = PointerTargetSet.simplifyType(lhs.getExpressionType());
     final CType rhsType = rhs != null ? PointerTargetSet.simplifyType(rhs.getExpressionType()) :
-                            CNumericTypes.SIGNED_CHAR;
+                                        CNumericTypes.SIGNED_CHAR;
 
+    // RHS handling
     final ImmutableList<Pair<CCompositeType, String>> rhsUsedFields;
     final ImmutableMap<String, CType> rhsUsedDeferredAllocationPointers;
-    final Formula rhsFormula;
-    delegate.reset();
+    final Expression rhsExpression;
+    reset();
+    // RHS is neither null nor a nondet() function call
     if (rhs != null &&
         (!(rhs instanceof CFunctionCallExpression) ||
          !(((CFunctionCallExpression) rhs).getFunctionNameExpression() instanceof CIdExpression) ||
          !isNondetFunctionName(
             ((CIdExpression)((CFunctionCallExpression) rhs).getFunctionNameExpression()).getName()))) {
-      rhsFormula = rhs.accept(this);
-      // addBases(delegate.getSharedBases(), pts);
-      addEssentialFields(delegate.getInitializedFields(), pts);
-      rhsUsedFields = delegate.getUsedFields();
-      rhsUsedDeferredAllocationPointers = delegate.getUsedDeferredAllocationPointers();
-    } else {
-      rhsFormula = null;
+      rhsExpression = rhs.accept(this);
+      addEssentialFields(getInitializedFields(), pts);
+      rhsUsedFields = getUsedFields();
+      rhsUsedDeferredAllocationPointers = getUsedDeferredAllocationPointers();
+    } else { // RHS is nondet
+      rhsExpression = null;
       rhsUsedFields = ImmutableList.<Pair<CCompositeType,String>>of();
       rhsUsedDeferredAllocationPointers = ImmutableMap.<String, CType>of();
     }
-    final String rhsName = delegate.getLastTarget() instanceof String ? (String) delegate.getLastTarget() : null;
-    final Object rhsObject = !(rhsType instanceof CCompositeType) || rhsName == null ? rhsFormula : rhsName;
 
-    delegate.reset();
-    lhs.accept(delegate);
-    // addBases(delegate.getSharedBases(), pts);
-    addEssentialFields(delegate.getInitializedFields(), pts);
-    final ImmutableList<Pair<CCompositeType, String>> lhsUsedFields = delegate.getUsedFields();
-    final Object lastTarget = delegate.getLastTarget();
-    assert lastTarget instanceof String || lastTarget instanceof Formula;
-    final PointerTargetPattern pattern = lastTarget instanceof String ? null : lhs.accept(lvalueVisitor);
+    // LHS handling
+    reset();
+    final Location lhsLocation = lhs.accept(this).asLocation();
+    addEssentialFields(getInitializedFields(), pts);
+    final ImmutableList<Pair<CCompositeType, String>> lhsUsedFields = getUsedFields();
+    // the pattern matching possibly aliased locations
+    final PointerTargetPattern pattern = lhsLocation.isUnaliasedLocation() ? null : lhs.accept(lvalueVisitor);
 
+    // Handle allocations: reveal the actual type form the LHS type or defer the allocation until later
     boolean isAllocation = false;
     if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) &&
         rhs instanceof CFunctionCallExpression &&
-        rhsObject instanceof Formula) {
-      final Set<String> rhsVariables = conv.fmgr.extractVariables(rhsFormula);
+        rhsExpression.isValue()) {
+      final Set<String> rhsVariables = conv.fmgr.extractVariables(rhsExpression.asValue().getValue());
+      // Actually there is always either 1 variable (just address) or 2 variables (nondet + allocation address)
       for (String variable : rhsVariables) {
         if (PointerTargetSet.isBaseName(variable)) {
           variable = PointerTargetSet.getBase(variable);
         }
         if (pts.isTemporaryDeferredAllocationPointer(variable)) {
           if (!isAllocation) {
+            // We can reveal the type from the LHS
             if (ExpressionToFormulaWithUFVisitor.isRevealingType(lhsType)) {
               handleDeferredAllocationTypeRevelation(variable, lhsType);
+            // We can defer the allocation and start tracking the variable in the LHS
             } else if (lhsType.equals(CPointerType.POINTER_TO_VOID) &&
-                       ExpressionToFormulaWithUFVisitor.isSimpleTarget(lhs) &&
-                       lastTarget instanceof String) {
-              if (pts.isDeferredAllocationPointer((String) lastTarget)) {
-                handleDeferredAllocationPointerRemoval((String) lastTarget, false);
+                       // TODO: remove the double-check (?)
+                       ExpressionToFormulaWithUFVisitor.isUnaliasedLocation(lhs) &&
+                       lhsLocation.isUnaliasedLocation()) {
+              final String variableName = lhsLocation.asUnaliasedLocation().getVariableName();
+              if (pts.isDeferredAllocationPointer(variableName)) {
+                handleDeferredAllocationPointerRemoval(variableName, false);
               }
-              pts.addDeferredAllocationPointer((String) lastTarget, variable);
+              pts.addDeferredAllocationPointer(variableName, variable); // Now we track the LHS
+              // And not the RHS, because the LHS is its only alias
               handleDeferredAllocationPointerRemoval(variable, false);
             } else {
               handleDeferredAllocationPointerEscape(variable);
@@ -404,22 +428,22 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       }
     }
 
+    // Track currently deferred allocations
     if (conv.options.deferUntypedAllocations() && !isAllocation) {
       handleDeferredAllocationsInAssignment(lhs,
                                             rhs,
-                                            lastTarget,
-                                            rhsName,
-                                            delegate.getUsedDeferredAllocationPointers(),
+                                            lhsLocation,
+                                            rhsExpression,
+                                            getUsedDeferredAllocationPointers(),
                                             rhsUsedDeferredAllocationPointers);
     }
 
     final BooleanFormula result =
       conv.makeAssignment(lhsType,
                           rhsType,
-                          lastTarget,
-                          rhsObject,
+                          lhsLocation,
+                          rhsExpression,
                           pattern,
-                          true,
                           false,
                           null,
                           edge,
@@ -475,7 +499,6 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     }
   }
 
-  @Override
   public BooleanFormula visit(final CAssignment e) throws UnrecognizedCCodeException {
     final CLeftHandSide lhs = e.getLeftHandSide();
 
@@ -487,98 +510,25 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     }
   }
 
-  public BooleanFormula visitComplexInitialization(final CDeclaration declaration, final List<?> initializerList)
-  throws UnrecognizedCCodeException {
-    final CType type = PointerTargetSet.simplifyType(declaration.getType());
-    final String lhs = declaration.getQualifiedName();
-    if (!pts.isActualBase(declaration.getQualifiedName()) && !PointerTargetSet.containsArray(type)) {
-      declareSharedBase(declaration, false);
-      return conv.makeAssignment(type,
-                                 type,
-                                 lhs,
-                                 initializerList,
-                                 null,
-                                 true,
-                                 false,
-                                 null,
-                                 edge,
-                                 ssa,
-                                 constraints,
-                                 pts);
-    } else {
-      final PointerTargetPattern pattern = new PointerTargetPattern(lhs, 0, 0);
-      final CType baseType = PointerTargetSet.getBaseType(type);
-      final BooleanFormula result = conv.makeAssignment(type,
-                                                        type,
-                                                        conv.makeConstant(PointerTargetSet.getBaseName(lhs),
-                                                                          baseType,
-                                                                          pts),
-                                                        initializerList,
-                                                        pattern,
-                                                        false,
-                                                        false,
-                                                        null,
-                                                        edge,
-                                                        ssa,
-                                                        constraints,
-                                                        pts);
-      conv.addPreFilledBase(lhs, type, false, true, constraints, pts);
-      return result;
-    }
-  }
-
   public BooleanFormula visitAssume(final CExpression e, final boolean truthAssumtion)
   throws UnrecognizedCCodeException {
-    delegate.reset();
+    reset();
 
-    BooleanFormula result = conv.toBooleanFormula(e.accept(delegate));
+    final CType expressionType = PointerTargetSet.simplifyType(e.getExpressionType());
+    BooleanFormula result = conv.toBooleanFormula(asValueFormula(e.accept(this),
+                                                                 expressionType));
 
     if (conv.options.deferUntypedAllocations()) {
-      handleDeferredAllocationsInAssume(e, delegate.getUsedDeferredAllocationPointers());
+      handleDeferredAllocationsInAssume(e, getUsedDeferredAllocationPointers());
     }
 
     if (!truthAssumtion) {
       result = conv.bfmgr.not(result);
     }
-    // addBases(delegate.getSharedBases(), pts);
-    addEssentialFields(delegate.getInitializedFields(), pts);
-    addEssentialFields(delegate.getUsedFields(), pts);
-    return result;
-  }
 
-  private CInitializerList stringLiteralToInitializerList(final CStringLiteralExpression e,
-                                                          final CArrayType type) {
-    Integer length = PointerTargetSet.getArrayLength(type);
-    final String s = e.getContentString();
-    if (length == null) {
-      length = s.length() + 1;
-    }
-    assert length >= s.length();
-    // http://stackoverflow.com/a/6915917
-    // As the C99 Draft Specification's 32nd Example in §6.7.8 (p. 130) states
-    // char s[] = "abc", t[3] = "abc"; is identical to: char s[] = { 'a', 'b', 'c', '\0' }, t[] = { 'a', 'b', 'c' };
-    final boolean zeroTerminated = length >= s.length() + 1;
-    final List<CInitializer> initializers = new ArrayList<>();
-    for (int i = 0; i < s.length(); i++) {
-      initializers.add(new CInitializerExpression(
-                             e.getFileLocation(),
-                             new CCharLiteralExpression(e.getFileLocation(),
-                                                        CNumericTypes.SIGNED_CHAR,
-                                                        s.charAt(i))));
-    }
-    if (zeroTerminated) {
-      // http://stackoverflow.com/questions/10828294/c-and-c-partial-initialization-of-automatic-structure
-      // C99 Standard 6.7.8.21
-      // If there are ... fewer characters in a string literal
-      // used to initialize an array of known size than there are elements in the array,
-      // the remainder of the aggregate shall be initialized implicitly ...
-      for (int i = s.length(); i < length; i++) {
-        initializers.add(new CInitializerExpression(
-                               e.getFileLocation(),
-                               new CCharLiteralExpression(e.getFileLocation(), CNumericTypes.SIGNED_CHAR, '\0')));
-      }
-    }
-    return new CInitializerList(e.getFileLocation(), initializers);
+    addEssentialFields(getInitializedFields(), pts);
+    addEssentialFields(getUsedFields(), pts);
+    return result;
   }
 
   private static Integer tryEvaluateExpression(CExpression e) {
@@ -613,7 +563,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
   }
 
   @Override
-  public Formula visit(final CFunctionCallExpression e) throws UnrecognizedCCodeException {
+  public Value visit(final CFunctionCallExpression e) throws UnrecognizedCCodeException {
     final CExpression functionNameExpression = e.getFunctionNameExpression();
     final CType returnType = PointerTargetSet.simplifyType(e.getExpressionType());
     final List<CExpression> parameters = e.getParameterExpressions();
@@ -625,24 +575,24 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
       if (functionName.equals(CToFormulaWithUFConverter.ASSUME_FUNCTION_NAME) && parameters.size() == 1) {
         final BooleanFormula condition = visitAssume(parameters.get(0), true);
         constraints.addConstraint(condition);
-        return conv.makeFreshVariable(functionName, returnType, ssa, pts);
+        return Value.ofValue(conv.makeFreshVariable(functionName, returnType, ssa, pts));
 
       } else if ((conv.options.isSuccessfulAllocFunctionName(functionName) ||
                   conv.options.isSuccessfulZallocFunctionName(functionName))) {
-        return handleSucessfulMemoryAllocation(functionName, e);
+        return Value.ofValue(handleSucessfulMemoryAllocation(functionName, e));
 
       } else if ((conv.options.isMemoryAllocationFunction(functionName) ||
                   conv.options.isMemoryAllocationFunctionWithZeroing(functionName))) {
-        return handleMemoryAllocation(e, (CIdExpression)functionNameExpression, functionName);
+        return Value.ofValue(handleMemoryAllocation(e, (CIdExpression)functionNameExpression, functionName));
 
       } else if (conv.options.isMemoryFreeFunction(functionName)) {
-        return handleMemoryFree(e, parameters);
+        return Value.ofValue(handleMemoryFree(e, parameters));
 
       } else if (conv.options.isNondetFunction(functionName)) {
         return null; // Nondet
 
       } else if (conv.options.isExternModelFunction(functionName)) {
-        return handleExternModelFunction(e, parameters);
+        return Value.ofValue(statementDelegate.handleExternModelFunction(e, parameters));
 
       } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
         throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
@@ -665,7 +615,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                            e);
       functionName = "<func>{" +
                      CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(functionNameExpression),
-                                                function) +
+                                                getDelegate().function) +
                      "}";
     }
 
@@ -681,7 +631,7 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     // Now let's handle "normal" functions assumed to be pure
     if (parameters.isEmpty()) {
       // This is a function of arity 0 and we assume its constant.
-      return conv.makeConstant(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName, returnType, pts);
+      return Value.ofValue(conv.makeConstant(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName, returnType, pts));
     } else {
       final CFunctionDeclaration functionDeclaration = e.getDeclaration();
       if (functionDeclaration == null) {
@@ -718,15 +668,15 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
         CExpression parameter = parametersIterator.next();
         parameter = conv.makeCastFromArrayToPointerIfNecessary(parameter, parameterType);
 
-        final Formula argument = parameter.accept(this);
+        final Formula argument = asValueFormula(parameter.accept(this), parameterType);
         arguments.add(conv.makeCast(parameter.getExpressionType(), parameterType, argument, edge));
       }
       assert !parameterTypesIterator.hasNext() && !parametersIterator.hasNext();
 
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(resultType, pts);
-      return conv.ffmgr.createFuncAndCall(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName,
-                                          resultFormulaType,
-                                          arguments);
+      return Value.ofValue(conv.ffmgr.createFuncAndCall(CToFormulaWithUFConverter.UF_NAME_PREFIX + functionName,
+                                                        resultFormulaType,
+                                                        arguments));
     }
   }
 
@@ -793,10 +743,10 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                                     ssa,
                                                     pts);
       return conv.bfmgr.ifThenElse(conv.bfmgr.not(conv.fmgr.makeEqual(nondet, conv.nullPointer)),
-                                    visit(delegateCall),
+                                    visit(delegateCall).asValue().getValue(),
                                     conv.nullPointer);
     } else {
-      return visit(delegateCall);
+      return visit(delegateCall).asValue().getValue();
     }
   }
 
@@ -860,7 +810,6 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
                                  edge,
                                  ssa,
                                  constraints,
-                                 errorConditions,
                                  pts);
     } else {
       final String newBase = conv.makeAllocVariableName(functionName,
@@ -888,16 +837,6 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
           String.format("free() called with %d parameters", parameters.size()), edge, e);
     }
 
-    final Formula operand = parameters.get(0).accept(delegate);
-    BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
-
-    for (String base : pts.getAllBases()) {
-      Formula baseF = conv.makeConstant(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID, pts);
-      validFree = conv.bfmgr.or(validFree,
-          conv.fmgr.makeEqual(operand, baseF)
-          );
-    }
-    errorConditions.addInvalidFreeCondition(conv.bfmgr.not(validFree));
     return null; // free does not return anything, so nondet is ok
   }
 
@@ -925,12 +864,9 @@ public class StatementToFormulaWithUFVisitor extends StatementToFormulaVisitor {
     pts.addCompositeType(compositeType);
   }
 
-  @SuppressWarnings("hiding")
-  private final CToFormulaWithUFConverter conv;
-  private final ErrorConditions errorConditions;
-  private final PointerTargetSetBuilder pts;
-  @SuppressWarnings("hiding")
-  private final ExpressionToFormulaWithUFVisitor delegate;
+  private final StatementToFormulaVisitor statementDelegate;
   private final LvalueToPointerTargetPatternVisitor lvalueVisitor;
   private final IsRelevantLhsVisitor isRelevantLhsVisitor;
+
+  private static final String CALLOC_FUNCTION = "calloc";
 }

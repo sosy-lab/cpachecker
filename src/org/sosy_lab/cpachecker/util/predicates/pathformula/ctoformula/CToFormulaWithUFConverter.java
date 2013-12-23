@@ -41,6 +41,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -367,7 +368,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                          final CFAEdge edge,
                          final SSAMapBuilder ssa,
                          final Constraints constraints,
-                         final ErrorConditions errorConditions,
                          final PointerTargetSetBuilder pts)
   throws UnrecognizedCCodeException {
     final CType baseType = PointerTargetSet.getBaseType(type);
@@ -581,21 +581,23 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                 final @Nonnull Constraints constraints,
                                 final @Nonnull PointerTargetSetBuilder pts)
   throws UnrecognizedCCodeException {
+    // Its a definite value assignment, a nondet assignment (SSA index update) or a nondet assignment among other
+    // assignments to the same UF version (in this case an absense of aliasing should be somehow guaranteed, as in the
+    // case of initialization assignments)
+    assert rvalue != null || !useOldSSAIndices || destroyedTypes != null; // otherwise the call is useless
+
     lvalueType = PointerTargetSet.simplifyType(lvalueType);
     if (lvalue.isAliased() && !isSimpleType(lvalueType) && destroyedTypes == null) {
       destroyedTypes = new HashSet<>();
     } else {
       destroyedTypes = null;
     }
-    final BooleanFormula result = makeDestructiveAssignment(lvalueType,
-                                                            rvalueType,
-                                                            lvalue,
-                                                            rvalue,
-                                                            false,
-                                                            null,
-                                                            edge,
-                                                            ssa,
-                                                            pts);
+    final BooleanFormula result;
+    if (rvalue != null) {
+      result = makeDestructiveAssignment(lvalueType, rvalueType, lvalue, rvalue, false, null, edge, ssa, pts);
+    } else {
+      result = bfmgr.makeBoolean(true);
+    }
     if (!useOldSSAIndices) {
       if (lvalue.isAliased()) {
         addRetentionForAssignment(lvalueType,
@@ -882,6 +884,43 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return result;
   }
 
+  static CInitializerList stringLiteralToInitializerList(final CStringLiteralExpression e,
+                                                           final CArrayType type) {
+    Integer length = PointerTargetSet.getArrayLength(type);
+    final String s = e.getContentString();
+    if (length == null) {
+      length = s.length() + 1;
+    }
+    assert length >= s.length();
+
+    // http://stackoverflow.com/a/6915917
+    // As the C99 Draft Specification's 32nd Example in §6.7.8 (p. 130) states
+    // char s[] = "abc", t[3] = "abc"; is identical to: char s[] = { 'a', 'b', 'c', '\0' }, t[] = { 'a', 'b', 'c' };
+    final boolean zeroTerminated = length >= s.length() + 1;
+    final List<CInitializer> initializers = new ArrayList<>();
+    for (int i = 0; i < s.length(); i++) {
+      initializers.add(new CInitializerExpression(e.getFileLocation(),
+                                                  new CCharLiteralExpression(e.getFileLocation(),
+                                                  CNumericTypes.SIGNED_CHAR,
+                                                  s.charAt(i))));
+    }
+
+    if (zeroTerminated) {
+      // http://stackoverflow.com/questions/10828294/c-and-c-partial-initialization-of-automatic-structure
+      // C99 Standard 6.7.8.21
+      // If there are ... fewer characters in a string literal
+      // used to initialize an array of known size than there are elements in the array,
+      // the remainder of the aggregate shall be initialized implicitly ...
+      for (int i = s.length(); i < length; i++) {
+        initializers.add(new CInitializerExpression(
+        e.getFileLocation(),
+        new CCharLiteralExpression(e.getFileLocation(), CNumericTypes.SIGNED_CHAR, '\0')));
+      }
+    }
+
+    return new CInitializerList(e.getFileLocation(), initializers);
+  }
+
   private static List<CExpression> path(final CLeftHandSide lhs) {
     return lhs.accept(lhsToPathVisitor);
   }
@@ -1008,7 +1047,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                                                           errorConditions,
                                                                                           pts);
     final LvalueToPointerTargetPatternVisitor lvalueVisitor = getLvalueToPointerTargetPatternVisitor(cfaEdge, pts);
-    return new StatementToFormulaWithUFVisitor(delegate, lvalueVisitor, this, errorConditions, pts);
+    return new StatementToFormulaWithUFVisitor(delegate, lvalueVisitor, this, pts);
   }
 
   protected BooleanFormula makeReturn(final CExpression resultExpression,
