@@ -28,6 +28,7 @@ import org.restlet.ext.wadl.WadlApplication;
 import org.restlet.routing.Router;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.server.resource.JobServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobsServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource;
 
@@ -45,6 +46,7 @@ public class CPAcheckerApplication extends WadlApplication {
     // latest API
     router.attach("/", RootServerResource.class);
     router.attach("/jobs", JobsServerResource.class);
+    router.attach("/jobs/{jobKey}", JobServerResource.class);
 
     // v1 API
 
