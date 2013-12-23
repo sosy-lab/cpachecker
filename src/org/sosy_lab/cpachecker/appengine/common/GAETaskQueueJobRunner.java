@@ -32,7 +32,7 @@ import com.google.appengine.api.taskqueue.TaskOptions;
 
 public class GAETaskQueueJobRunner implements JobRunner {
 
-  public static final String SERVLET_URL = "/workers/run-job";
+  public static final String WORKER_URL = "/workers/run-job";
 
   /**
    * Constructs a new instance.
@@ -46,7 +46,7 @@ public class GAETaskQueueJobRunner implements JobRunner {
     // TODO use named queue
     Queue queue = QueueFactory.getDefaultQueue();
     queue.add(
-        TaskOptions.Builder.withUrl(SERVLET_URL)
+        TaskOptions.Builder.withUrl(WORKER_URL)
         .param("jobKey", job.getKeyString()));
 
     return job;
