@@ -380,7 +380,7 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
       rhsUsedFields = getUsedFields();
       rhsUsedDeferredAllocationPointers = getUsedDeferredAllocationPointers();
     } else { // RHS is nondet
-      rhsExpression = null;
+      rhsExpression = Value.nondetValue();
       rhsUsedFields = ImmutableList.<Pair<CCompositeType,String>>of();
       rhsUsedDeferredAllocationPointers = ImmutableMap.<String, CType>of();
     }
@@ -397,7 +397,7 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
     boolean isAllocation = false;
     if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) &&
         rhs instanceof CFunctionCallExpression &&
-        rhsExpression != null && rhsExpression.isValue()) {
+        !rhsExpression.isNondetValue() && rhsExpression.isValue()) {
       final Set<String> rhsVariables = conv.fmgr.extractVariables(rhsExpression.asValue().getValue());
       // Actually there is always either 1 variable (just address) or 2 variables (nondet + allocation address)
       for (String variable : rhsVariables) {
@@ -615,10 +615,10 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
         return Value.ofValue(handleMemoryAllocation(e, (CIdExpression)functionNameExpression, functionName));
 
       } else if (conv.options.isMemoryFreeFunction(functionName)) {
-        return Value.ofValue(handleMemoryFree(e, parameters));
+        return handleMemoryFree(e, parameters);
 
       } else if (conv.options.isNondetFunction(functionName)) {
-        return null; // Nondet
+        return Value.nondetValue();
 
       } else if (conv.options.isExternModelFunction(functionName)) {
         return Value.ofValue(statementDelegate.handleExternModelFunction(e, parameters));
@@ -648,13 +648,13 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
                      "}";
     }
 
-    // Pure functions returning composites are unsupported, return null that'll be interpreted as nondet
+    // Pure functions returning composites are unsupported, return a nondet value
     final CType resultType = PointerTargetSet.simplifyType(conv.getReturnType(e, edge));
     if (resultType instanceof CCompositeType ||
         PointerTargetSet.containsArray(resultType)) {
       conv.logger.logfOnce(Level.WARNING,
                            "Pure function %s returning a composite is treated as nondet.", e);
-      return null;
+      return Value.nondetValue();
     }
 
     // Now let's handle "normal" functions assumed to be pure
@@ -669,13 +669,13 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
           conv.logger.logfOnce(Level.WARNING, "Cannot get declaration of function %s, ignoring calls to it.",
                                functionNameExpression);
         }
-        return null; // Nondet
+        return Value.nondetValue();
       }
 
       if (functionDeclaration.getType().takesVarArgs()) {
         // Return nondet instead of an UF for vararg functions.
         // This is sound but slightly more imprecise (we loose the UF axioms).
-        return null; // Nondet
+        return Value.nondetValue();
       }
 
       final List<CType> formalParameterTypes = functionDeclaration.getType().getParameters();
@@ -861,14 +861,14 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
   /**
    * Handle calls to free()
    */
-  private Formula handleMemoryFree(final CFunctionCallExpression e,
+  private Value handleMemoryFree(final CFunctionCallExpression e,
       final List<CExpression> parameters) throws UnrecognizedCCodeException {
     if (parameters.size() != 1) {
       throw new UnrecognizedCCodeException(
           String.format("free() called with %d parameters", parameters.size()), edge, e);
     }
 
-    return null; // free does not return anything, so nondet is ok
+    return Value.nondetValue(); // free does not return anything, so nondet is ok
   }
 
   public String getFuncitonName() {

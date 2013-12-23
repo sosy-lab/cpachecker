@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location.UnaliasedLocation;
 
-public class Expression {
-  public static class Location extends Expression {
+public abstract class Expression {
+  public static abstract class Location extends Expression {
     public static class AliasedLocation extends Location {
 
       private AliasedLocation(final Formula address) {
@@ -40,6 +40,11 @@ public class Expression {
 
       public Formula getAddress() {
         return address;
+      }
+
+      @Override
+      public Kind getKind() {
+        return Kind.ALIASED_LOCATION;
       }
 
       private final Formula address;
@@ -53,6 +58,11 @@ public class Expression {
 
       public String getVariableName() {
         return variableName;
+      }
+
+      @Override
+      public Kind getKind() {
+        return Kind.UNALIASED_LOCATION;
       }
 
       private final String variableName;
@@ -88,6 +98,27 @@ public class Expression {
   }
 
   public static class Value extends Expression {
+    public static class Nondet extends Value {
+      private Nondet() {
+        super(null);
+      }
+
+      @Override
+      public Formula getValue() {
+        return null;
+      }
+
+      @Override
+      public boolean isNondet() {
+        return true;
+      }
+
+      @Override
+      public Kind getKind() {
+        return Kind.NONDET;
+      }
+    }
+
     private Value(final Formula value) {
       this.value = value;
     }
@@ -96,11 +127,25 @@ public class Expression {
       return value;
     }
 
+    public boolean isNondet() {
+      return false;
+    }
+
+    @Override
+    public Kind getKind() {
+      return Kind.DET_VALUE;
+    }
+
     private final Formula value;
+    private static final Value nondet = new Nondet();
   }
 
   public static Value ofValue(final @Nullable Formula value) {
     return value != null ? new Value(value) : null;
+  }
+
+  public static Value nondetValue() {
+    return Value.nondet;
   }
 
   public boolean isLocation() {
@@ -109,6 +154,10 @@ public class Expression {
 
   public boolean isValue() {
     return this instanceof Value;
+  }
+
+  public boolean isNondetValue() {
+    return this == Value.nondet;
   }
 
   public boolean isAliasedLocation() {
@@ -150,4 +199,8 @@ public class Expression {
       return null;
     }
   }
+
+  public abstract Kind getKind();
+
+  public static enum Kind {ALIASED_LOCATION, UNALIASED_LOCATION, DET_VALUE, NONDET};
 }
