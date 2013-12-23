@@ -51,6 +51,15 @@ public class Job {
   private String configuration;
   private Ref<JobFile> program;
 
+  // FIXME remove this stuff. It's only here for debugging just now.
+  private String log;
+  public void setLog(String pLog) {
+    log = pLog;
+  }
+  public String getLog() {
+    return log;
+  }
+
   @Ignore
   private Map<String, String> defaultOptions;
 
