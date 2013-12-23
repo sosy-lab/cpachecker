@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -551,7 +552,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
-  private void updateSSA(final Set<CType> types, final SSAMapBuilder ssa) {
+  private void updateSSA(final @Nonnull Set<CType> types, final SSAMapBuilder ssa) {
     for (final CType type : types) {
       final String ufName = getUFName(type);
       final int newIndex = getIndex(ufName, type, ssa) + 1;
@@ -606,10 +607,14 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
         addRetentionForAssignment(lvalueType,
                                   lvalue.asAliased().getAddress(),
                                   pattern, destroyedTypes, edge, ssa, constraints, pts);
+        if (destroyedTypes == null) {
+          assert isSimpleType(lvalueType) : "Should be impossible due to the first if statement";
+          destroyedTypes = Collections.singleton(lvalueType);
+        }
         updateSSA(destroyedTypes, ssa);
       } else { // Unaliased lvalue
         final String variableName = lvalue.asUnaliased().getVariableName();
-        ssa.setIndex(variableName, lvalueType, ssa.getIndex(variableName));
+        ssa.setIndex(variableName, lvalueType, getIndex(variableName, lvalueType, ssa) + 1);
       }
     }
     return result;
@@ -877,7 +882,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       final Formula lhs = ffmgr.createFuncAndCall(targetName,
                                                   newIndex,
                                                   targetType,
-                                                  ImmutableList.of((Formula) lvalue));
+                                                  ImmutableList.of(lvalue.asAliased().getAddress()));
       result = fmgr.makeEqual(lhs, rhs);
     }
 
