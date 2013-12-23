@@ -31,8 +31,6 @@ import java.util.Map;
 import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -78,37 +76,6 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     this.baseVisitor = new BaseVisitor(conv, cfaEdge, pts);
   }
 
-  private void addEqualBaseAdressConstraint(Formula p1, Formula p2) {
-    constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(p1),
-                                                  conv.makeBaseAddressOfTerm(p2)));
-  }
-  @Override
-  public Formula visit(CBinaryExpression pExp) throws UnrecognizedCCodeException {
-    if (pExp.getOperator() != BinaryOperator.PLUS
-        && pExp.getOperator() != BinaryOperator.MINUS) {
-      return super.visit(pExp);
-    }
-
-    // potentially pointer arithmetic
-    CType t1 = PointerTargetSet.simplifyType(pExp.getOperand1().getExpressionType());
-    CType t2 = PointerTargetSet.simplifyType(pExp.getOperand2().getExpressionType());
-
-    final Formula result = super.visit(pExp);
-    final Object savedLastTarget = lastTarget;
-    if (t1 instanceof CPointerType) {
-      if (!(t2 instanceof CPointerType)) {
-        Formula operand1 = pExp.getOperand1().accept(this);
-        addEqualBaseAdressConstraint(result, operand1);
-      }
-    } else if (t2 instanceof CPointerType) {
-      Formula operand2 = pExp.getOperand1().accept(this);
-      addEqualBaseAdressConstraint(result, operand2);
-    }
-    lastTarget = savedLastTarget;
-
-    return result;
-  }
-
   @Override
   public Formula visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
     final Formula base = e.getArrayExpression().accept(this);
@@ -117,13 +84,12 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     final Formula index = conv.makeCast(subscriptType, CPointerType.POINTER_TO_VOID, subscript.accept(this), edge);
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     final int size = pts.getSize(resultType);
-    final Formula coeff = conv.fmgr.makeNumber(conv.pointerType, size);
+    final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, size);
     final Formula offset = conv.fmgr.makeMultiply(coeff, index);
     final Formula address = conv.fmgr.makePlus(base, offset);
     lastTarget = address;
-    addEqualBaseAdressConstraint(base, address);
     return conv.isCompositeType(resultType) ? address :
-           conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
+           conv.makeDereferece(resultType, address, ssa, pts);
   }
 
   static CFieldReference eliminateArrow(final CFieldReference e, final CFAEdge edge)
@@ -166,13 +132,12 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         final Formula base = e.getFieldOwner().accept(this);
         final String fieldName = e.getFieldName();
         usedFields.add(Pair.of((CCompositeType) fieldOwnerType, fieldName));
-        final Formula offset = conv.fmgr.makeNumber(conv.pointerType,
+        final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
                                                     pts.getOffset((CCompositeType) fieldOwnerType, fieldName));
         final Formula address = conv.fmgr.makePlus(base, offset);
         lastTarget = address;
-        addEqualBaseAdressConstraint(base, address);
         return conv.isCompositeType(resultType) ? address :
-               conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
+               conv.makeDereferece(resultType, address, ssa, pts);
       } else {
         throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
       }
@@ -218,7 +183,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
       final Formula address = pointer.accept(this);
       lastTarget = address;
       return conv.isCompositeType(resultType) ? address :
-             conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
+             conv.makeDereferece(resultType, address, ssa, pts);
     }
 
     return result;
@@ -246,7 +211,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
                                                 pts);
       lastTarget = address;
       return conv.isCompositeType(resultType) ? address :
-             conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
+             conv.makeDereferece(resultType, address, ssa, pts);
     }
   }
 
@@ -306,10 +271,9 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
               final CPointerType pointerType = (CPointerType)PointerTargetSet.simplifyType(fieldOwner.getExpressionType());
               final CCompositeType compositeType = (CCompositeType)PointerTargetSet.simplifyType(pointerType.getType());
               usedFields.add(Pair.of(compositeType, fieldName));
-              final Formula offset = conv.fmgr.makeNumber(conv.pointerType,
+              final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
                                                           pts.getOffset(compositeType, fieldName));
               lastTarget = addressExpression = conv.fmgr.makePlus(base, offset);
-              addEqualBaseAdressConstraint(base, addressExpression);
             }
           }
 
@@ -369,7 +333,7 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
       final Formula address = operand.accept(this);
       lastTarget = address;
       return conv.isCompositeType(resultType) ? address :
-             conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
+             conv.makeDereferece(resultType, address, ssa, pts);
     } else {
       lastTarget = null;
       return operand.accept(this);
