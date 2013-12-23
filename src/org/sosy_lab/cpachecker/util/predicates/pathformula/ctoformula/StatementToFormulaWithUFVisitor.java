@@ -397,7 +397,7 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
     boolean isAllocation = false;
     if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) &&
         rhs instanceof CFunctionCallExpression &&
-        rhsExpression.isValue()) {
+        rhsExpression != null && rhsExpression.isValue()) {
       final Set<String> rhsVariables = conv.fmgr.extractVariables(rhsExpression.asValue().getValue());
       // Actually there is always either 1 variable (just address) or 2 variables (nondet + allocation address)
       for (String variable : rhsVariables) {

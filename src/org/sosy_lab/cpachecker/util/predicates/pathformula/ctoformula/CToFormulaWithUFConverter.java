@@ -799,7 +799,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
           // Support assignment to structures with unaliased members encoded as variables (e.g. struct_var$field)
           final Location newLvalue = lvalue.isAliased() ?
                            Location.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(), offsetFormula)) :
-                           Location.ofVariableName(lvalue + FIELD_NAME_SEPARATOR + memberName);
+                           Location.ofVariableName(lvalue.asUnaliased().getVariableName() +
+                                                     FIELD_NAME_SEPARATOR + memberName);
           final Expression newRvalue = rvalue.isLocation() && !rvalue.asLocation().isAliased() ? // Unaliased location
                                          Location.ofVariableName(rvalue.asLocation().asUnaliased().getVariableName() +
                                                                  FIELD_NAME_SEPARATOR +
@@ -850,6 +851,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   throws UnrecognizedCCodeException {
     lvalueType = PointerTargetSet.simplifyType(lvalueType);
     rvalueType = PointerTargetSet.simplifyType(rvalueType);
+    rvalueType = implicitCastToPointer(rvalueType); // Arrays and functions are implicitly converted to pointers
+
     Preconditions.checkArgument(isSimpleType(lvalueType),
                                 "To assign to/from arrays/structures/unions use makeDestructiveAssignment");
     Preconditions.checkArgument(isSimpleType(rvalueType),
