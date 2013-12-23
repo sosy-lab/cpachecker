@@ -46,7 +46,7 @@ public class Trie<K, V> {
 
   private void add(final FluentIterable<K> path, final V value) {
     if (path.isEmpty()) {
-      Preconditions.checkState(value  == null, "Trie key collision");
+      Preconditions.checkState(this.value  == null, "Trie key collision");
       this.value = value;
     } else {
       final K key = path.first().get();

@@ -34,30 +34,30 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 
 
 public class LvalueToPathVisitor
-extends DefaultCExpressionVisitor<PersistentList<CExpression>, RuntimeException> {
+extends DefaultCExpressionVisitor<PersistentList<String>, RuntimeException> {
 
   @Override
-  public PersistentList<CExpression> visit(final CArraySubscriptExpression e) {
+  public PersistentList<String> visit(final CArraySubscriptExpression e) {
     return e.getArrayExpression().accept(this).withAll(e.getSubscriptExpression().accept(this));
   }
 
   @Override
-  public PersistentList<CExpression> visit(final CCastExpression e) {
+  public PersistentList<String> visit(final CCastExpression e) {
     return e.getOperand().accept(this);
   }
 
   @Override
-  public PersistentList<CExpression> visit(final CComplexCastExpression e) {
+  public PersistentList<String> visit(final CComplexCastExpression e) {
    return e.getOperand().accept(this);
   }
 
   @Override
-  public PersistentList<CExpression> visit(final CFieldReference e) {
-    return e.getFieldOwner().accept(this).with(e);
+  public PersistentList<String> visit(final CFieldReference e) {
+    return e.getFieldOwner().accept(this).with(e.toString());
   }
 
   @Override
-  protected PersistentList<CExpression> visitDefault(final CExpression e) {
-    return PersistentLinkedList.of(e);
+  protected PersistentList<String> visitDefault(final CExpression e) {
+    return PersistentLinkedList.of(e.toString());
   }
 }

@@ -732,7 +732,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       return Pair.of(rvalue, rvalueType);
     }
     case NONDET: {
-      return Pair.of(Value.nondetValue(), lvalueElementType);
+      final CType newLvalueType = isSimpleType(lvalueElementType) ? lvalueElementType : CNumericTypes.SIGNED_CHAR;
+      return Pair.of(Value.nondetValue(), newLvalueType);
     }
     case UNALIASED_LOCATION: {
       throw new AssertionError("Array locations should always be aliased");
@@ -1068,8 +1069,8 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return result;
   }
 
-  private static List<CExpression> toPath(final CLeftHandSide lhs) {
-    return lhs.accept(lhsToPathVisitor);
+  private static List<String> toPath(final CLeftHandSide lhs) {
+    return lhs.accept(lhsToPathVisitor).reversed();
   }
 
 
@@ -1081,7 +1082,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                                 variableType,
                                                 declaration.getName(),
                                                 declaration);
-    final Trie<CExpression, CExpression> assignments = new Trie<>();
+    final Trie<String, CExpression> assignments = new Trie<>();
     for (CExpressionAssignmentStatement statement : explicitAssignments) {
       assignments.add(toPath(statement.getLeftHandSide()), statement.getRightHandSide());
     }
@@ -1093,7 +1094,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   private static void expandAssignmentList(CType type,
                                            final CLeftHandSide lhs,
-                                           final Trie<CExpression, CExpression> assignments,
+                                           final Trie<String, CExpression> assignments,
                                            final List<CExpressionAssignmentStatement> defaultAssignments) {
     type = PointerTargetSet.simplifyType(type);
     if (type instanceof CArrayType) {
