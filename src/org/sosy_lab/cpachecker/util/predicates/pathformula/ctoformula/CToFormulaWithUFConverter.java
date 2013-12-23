@@ -27,7 +27,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -391,7 +390,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                              final List<Pair<CCompositeType, String>> fields,
                              final SSAMapBuilder ssa,
                              final Constraints constraints,
-                             final ErrorConditions errorConditions,
                              final PointerTargetSetBuilder pts) throws UnrecognizedCCodeException {
     final CType baseType = PointerTargetSet.simplifyType(base.getType());
     if (baseType instanceof CArrayType) {
@@ -414,7 +412,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                 fields,
                                 ssa,
                                 constraints,
-                                errorConditions,
                                 pts);
         }
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
@@ -607,254 +604,404 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
    * @param pts &mdash; the pointer target set with all tracked memory addresses
    * @return The boolean formula (equality) representing the assignment specified
    */
+
+  static class Expression {
+    static class Location extends Expression {
+      static class AliasedLocation extends Location {
+
+        private AliasedLocation(final Formula address) {
+          this.address = address;
+        }
+
+        public Formula getAddress() {
+          return address;
+        }
+
+        private final Formula address;
+      }
+
+      static class UnaliasedLocation extends Location {
+
+        private UnaliasedLocation(final String variableName) {
+          this.variableName = variableName;
+        }
+
+        public String getVariableName() {
+          return variableName;
+        }
+
+        private final String variableName;
+      }
+
+      public static AliasedLocation ofAddress(final Formula address) {
+        return new AliasedLocation(address);
+      }
+
+      public static UnaliasedLocation ofVariableName(final String variableName) {
+        return new UnaliasedLocation(variableName);
+      }
+
+      public boolean isAliased() {
+        return this instanceof AliasedLocation;
+      }
+
+      public AliasedLocation asAliased() {
+        if (this instanceof AliasedLocation) {
+          return (AliasedLocation) this;
+        } else {
+          return null;
+        }
+      }
+
+      public UnaliasedLocation asUnaliased() {
+        if (this instanceof UnaliasedLocation) {
+          return (UnaliasedLocation) this;
+        } else {
+          return null;
+        }
+      }
+    }
+
+    static class Value extends Expression {
+      private Value(final Formula value) {
+        this.value = value;
+      }
+
+      public Formula getValue() {
+        return value;
+      }
+
+      private final Formula value;
+    }
+
+    public static Value ofValue(final Formula value) {
+      return new Value(value);
+    }
+
+    public boolean isLocation() {
+      return this instanceof Location;
+    }
+
+    public boolean isValue() {
+      return this instanceof Value;
+    }
+
+    public Location asLocation() {
+      if (this instanceof Location) {
+        return (Location) this;
+      } else {
+        return null;
+      }
+    }
+
+    public Value asValue() {
+      if (this instanceof Value) {
+        return (Value) this;
+      } else {
+        return null;
+      }
+    }
+  }
+
   BooleanFormula makeAssignment(@Nonnull CType lvalueType,
                                 @Nonnull CType rvalueType,
-                                final @Nonnull Object lvalue,
-                                      @Nullable Object rvalue,
+                                final @Nonnull Expression.Location lvalue,
+                                      @Nullable Expression rvalue,
                                 final @Nullable PointerTargetPattern pattern,
-                                final boolean update,
-                                final boolean batch,
-                                Set<CType> types,
                                 final @Nonnull CFAEdge edge,
                                 final @Nonnull SSAMapBuilder ssa,
                                 final @Nonnull Constraints constraints,
                                 final @Nonnull PointerTargetSetBuilder pts)
   throws UnrecognizedCCodeException {
-    Preconditions.checkArgument(lvalue instanceof Formula || lvalue instanceof String, "Illegal left hand side");
-    Preconditions.checkArgument(rvalue == null || rvalue instanceof String || rvalue instanceof Formula ||
-                                rvalue instanceof List,
-                                "Illegal right hand side");
-    lvalueType = PointerTargetSet.simplifyType(lvalueType);
-    rvalueType = PointerTargetSet.simplifyType(rvalueType);
-    BooleanFormula result;
-    if (lvalueType instanceof CArrayType) {
-      Preconditions.checkArgument(lvalue instanceof Formula && pattern != null,
-                                  "Array elements can't be represented as variables, but pure LHS is given");
-      Preconditions.checkArgument(rvalue == null || rvalue instanceof Formula || rvalue instanceof List,
-                                  "Array elements can't be represented as variables, but pure RHS is given");
-      final CArrayType lvalueArrayType = (CArrayType) lvalueType;
-      final CType lvalueElementType = PointerTargetSet.simplifyType(lvalueArrayType.getType());
-      if (!(rvalueType instanceof CArrayType) ||
-          PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType()).equals(lvalueElementType)) {
-        Integer length = PointerTargetSet.getArrayLength(lvalueArrayType);
-        if (length == null) {
-          if (rvalue instanceof List && ((List<?>) rvalue).size() <= options.maxArrayLength()) {
-            length = ((List<?>) rvalue).size();
-          } else {
-            length = options.defaultArrayLength();
-          }
-        } else if (length > options.maxArrayLength()) {
-          if (rvalue instanceof List && ((List<?>) rvalue).size() <= options.maxArrayLength()) {
-            length = ((List<?>) rvalue).size();
-          } else {
-            length = options.maxArrayLength();
-          }
-        }
-        if (!(rvalue instanceof List) || ((List<?>) rvalue).size() >= length) {
-          final Iterator<?> rvalueIterator = rvalue instanceof List ? ((List<?>) rvalue).iterator() : null;
-          if (update && !batch) {
-            types = new HashSet<>();
-          }
-          result = bfmgr.makeBoolean(true);
-          int offset = 0;
-          for (int i = 0; i < length; ++i) {
-            final CType newRvalueType = rvalueType instanceof CArrayType ?
-                                          PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType()) :
-                                          rvalueType;
-            final Formula offsetFormula = fmgr.makeNumber(voidPointerFormulaType, offset);
-            final Formula newLvalue = fmgr.makePlus((Formula) lvalue, offsetFormula);
-                  Object newRvalue = rvalue == null ? null :
-                                     rvalue instanceof Formula ?
-                                       rvalueType instanceof CArrayType ?
-                                         fmgr.makePlus((Formula) rvalue, offsetFormula) :
-                                         rvalue :
-                                     rvalueIterator.next();
-            if (rvalue instanceof Formula && rvalueType instanceof CArrayType &&
-                !(newRvalueType instanceof CArrayType) && !(newRvalueType instanceof CCompositeType)) {
-              newRvalue = makeDereferece(newRvalueType, (Formula) newRvalue, ssa, pts);
-            }
-            result = bfmgr.and(result,
-                               makeAssignment(lvalueElementType,
-                                              newRvalueType,
-                                              newLvalue,
-                                              newRvalue,
-                                              pattern,
-                                              update,
-                                              true,
-                                              types,
-                                              edge,
-                                              ssa,
-                                              constraints,
-                                              pts));
-            offset += pts.getSize(lvalueArrayType.getType());
-          }
-          if (update && !batch) {
-            if (pattern.isExact()) {
-              pattern.setRange(offset);
-              for (final CType type : types) {
-                final String ufName = getUFName(type);
-                final int oldIndex = getIndex(ufName, type, ssa);
-                final int newIndex = oldIndex + 1;
-                final FormulaType<?> returnType = getFormulaTypeFromCType(type, pts);
-                addRetentionConstraints(pattern, type, ufName, oldIndex, newIndex, returnType, null, constraints, pts);
-              }
-            } else if (pattern.isSemiexact()) {
-              addSemiexactRetentionConstraints(pattern, lvalueElementType, (Formula) lvalue, offset, types, ssa,
-                                               constraints, pts);
-            } else {
-              addInexactRetentionConstraints((Formula) lvalue, offset, types, ssa, constraints, pts);
-            }
-            updateSSA(types, ssa);
-          }
-          return result;
-        } else {
-          throw new IllegalArgumentException("Wrong array initializer");
-        }
-      } else {
-        throw new IllegalArgumentException("Assigning incompatible array");
-      }
-    } else if (lvalueType instanceof CCompositeType) {
-      final CCompositeType lvalueCompositeType = (CCompositeType) lvalueType;
-      assert lvalueCompositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + lvalueCompositeType;
-      if (!(rvalueType instanceof CCompositeType) ||
-          PointerTargetSet.simplifyType(rvalueType).equals(PointerTargetSet.simplifyType(lvalueType))) {
-        if (!(rvalue instanceof List) || ((List<?>) rvalue).size() >= lvalueCompositeType.getMembers().size()) {
-          final Iterator<?> rvalueIterator = rvalue instanceof List ? ((List<?>) rvalue).iterator() : null;
-          if (update && !batch) {
-            types = new HashSet<>();
-          }
-          result = bfmgr.makeBoolean(true);
-          int offset = 0;
-          for (final CCompositeTypeMemberDeclaration memberDeclaration : lvalueCompositeType.getMembers()) {
-            final String memberName = memberDeclaration.getName();
-            final CType newLvalueType = PointerTargetSet.simplifyType(memberDeclaration.getType());
-            // Optimizing away the assignments from uninitialized fields
-            if (lvalue instanceof String || // Assignment is pure i.e. surely not big, let's just add it
-                isRelevantField(lvalueCompositeType, memberName, pts) &&
-                // That's not a simple assignment, check the nested composite
-                (newLvalueType instanceof CCompositeType ||
-                 !(rvalueType instanceof CCompositeType) || // We're not assigning from a composite, nothing to check
-                 rvalue instanceof List || // It's initialization, need to assign anyway
-                 pts.tracksField(lvalueCompositeType, memberName) || // The field is essential for shared variables
-                 rvalue instanceof String && // The field of a pure structure was used somewhere (i.e. has SSA index)
-                 hasIndex(rvalue + FIELD_NAME_SEPARATOR + memberName, newLvalueType, ssa))) {
-              final CType newRvalueType = rvalueType instanceof CCompositeType ? newLvalueType : rvalueType;
-              final Formula offsetFormula = fmgr.makeNumber(voidPointerFormulaType, offset);
-              final Object newLvalue = lvalue instanceof Formula ?
-                                         fmgr.makePlus((Formula) lvalue, offsetFormula) :
-                                         lvalue + FIELD_NAME_SEPARATOR + memberName;
-                    Object newRvalue = rvalue == null ? null:
-                                       rvalue instanceof String ? rvalue + FIELD_NAME_SEPARATOR + memberName :
-                                       rvalue instanceof Formula ?
-                                         rvalueType instanceof CCompositeType ?
-                                           fmgr.makePlus((Formula) rvalue, offsetFormula) :
-                                           rvalue :
-                                       rvalueIterator.next();
-              if (rvalue instanceof Formula && rvalueType instanceof CCompositeType &&
-                  !(newRvalueType instanceof CArrayType) && !(newRvalueType instanceof CCompositeType)) {
-                newRvalue = makeDereferece(newRvalueType, (Formula) newRvalue, ssa, pts);
-              }
-              result = bfmgr.and(result,
-                                 makeAssignment(newLvalueType,
-                                                newRvalueType,
-                                                newLvalue,
-                                                newRvalue,
-                                                pattern,
-                                                update,
-                                                lvalue instanceof Formula,
-                                                types,
-                                                edge,
-                                                ssa,
-                                                constraints,
-                                                pts));
-            } else if (rvalue instanceof List) {
-              rvalueIterator.next();
-            }
-            if (lvalueCompositeType.getKind() == ComplexTypeKind.STRUCT) {
-              offset += pts.getSize(memberDeclaration.getType());
-            }
-          }
-          if (update && !batch && pattern != null) {
-            if (pattern.isExact()) {
-              pattern.setRange(offset);
-              for (final CType type : types) {
-                final String ufName = getUFName(type);
-                final int oldIndex = getIndex(ufName, type, ssa);
-                final int newIndex = oldIndex + 1;
-                final FormulaType<?> returnType = getFormulaTypeFromCType(type, pts);
-                addRetentionConstraints(pattern, type, ufName, oldIndex, newIndex, returnType, null, constraints, pts);
-              }
-            } else if (pattern.isSemiexact()) {
-              addSemiexactRetentionConstraints(pattern,
-                                               PointerTargetSet.simplifyType(
-                                                 lvalueCompositeType.getMembers().get(0).getType()),
-                                               (Formula) lvalue,
-                                               offset,
-                                               types,
-                                               ssa,
-                                               constraints,
-                                               pts);
-            } else {
-              addInexactRetentionConstraints((Formula) lvalue, offset, types, ssa, constraints, pts);
-            }
-            updateSSA(types, ssa);
-          }
-          return result;
-        } else {
-          throw new IllegalArgumentException("Wrong composite initializer");
-        }
-      } else {
-        throw new IllegalArgumentException("Assigning incompatible composite");
-      }
+    final Set<CType> destroyedTypes;
+    if (lvalue.isAliased() && !isSimpleType(lvalueType)) {
+      destroyedTypes = new HashSet<>();
     } else {
-      // This happens within recursive call for pure structure field assignment
-      if (rvalue instanceof String) {
-        assert ((String) rvalue).contains("$");
-        rvalue = makeVariable((String) rvalue, rvalueType, ssa, pts);
-      }
-      assert rvalue == null || rvalue instanceof Formula : "Illegal right hand side";
-      assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
-      final String targetName = lvalue instanceof String ? (String) lvalue : getUFName(lvalueType);
+      destroyedTypes = null;
+    }
+    final BooleanFormula result = makeDestructiveAssignment(lvalueType,
+                                                            rvalueType,
+                                                            lvalue,
+                                                            rvalue,
+                                                            false,
+                                                            null,
+                                                            edge,
+                                                            ssa,
+                                                            pts);
+    if (lvalue.isAliased()) {
+      addRetentionForAssignment(lvalueType, result, pattern, destroyedTypes, edge, ssa, constraints, pts);
+    } else { // Unaliased lvalue
+      final String variableName = lvalue.asUnaliased().getVariableName();
+      ssa.setIndex(variableName, lvalueType, ssa.getIndex(variableName));
+    }
+    return result;
+  }
+
+  private void addRetentionForAssignment(@Nonnull CType lvalueType,
+                                         final @Nullable Formula startAddress,
+                                         final @Nonnull PointerTargetPattern pattern,
+                                         final Set<CType> typesToRetain,
+                                         final @Nonnull CFAEdge edge,
+                                         final @Nonnull SSAMapBuilder ssa,
+                                         final @Nonnull Constraints constraints,
+                                         final @Nonnull PointerTargetSetBuilder pts) {
+    lvalueType = PointerTargetSet.simplifyType(lvalueType);
+    final int size = pts.getSize(lvalueType);
+    if (isSimpleType(lvalueType)) {
+      Preconditions.checkArgument(startAddress != null,
+                                  "Start address is mandatory for assigning to lvalues of simple types");
+      final String ufName = getUFName(lvalueType);
+      final int oldIndex = getIndex(ufName, lvalueType, ssa);
+      final int newIndex = oldIndex + 1;
       final FormulaType<?> targetType = getFormulaTypeFromCType(lvalueType, pts);
-      final int oldIndex = getIndex(targetName, lvalueType, ssa);
-      final int newIndex = update ? oldIndex + 1 : oldIndex;
-      if (rvalue != null) {
-        rvalueType = implicitCastToPointer(rvalueType);
-        final Formula rhs = makeCast(rvalueType, lvalueType, (Formula) rvalue, edge);
-        if (lvalue instanceof String) {
-          result = fmgr.makeEqual(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
-        } else {
-          final Formula lhs = ffmgr.createFuncAndCall(targetName,
-                                                      newIndex,
-                                                      targetType,
-                                                      ImmutableList.of((Formula) lvalue));
-          result = fmgr.makeEqual(lhs, rhs);
-        }
-      } else {
-        result = bfmgr.makeBoolean(true);
+      addRetentionConstraints(pattern,
+                              lvalueType,
+                              ufName,
+                              oldIndex,
+                              newIndex,
+                              targetType,
+                              startAddress,
+                              constraints,
+                              pts);
+    } else if (pattern.isExact()) {
+      pattern.setRange(size);
+      for (final CType type : typesToRetain) {
+        final String ufName = getUFName(type);
+        final int oldIndex = getIndex(ufName, type, ssa);
+        final int newIndex = oldIndex + 1;
+        final FormulaType<?> targetType = getFormulaTypeFromCType(type, pts);
+        addRetentionConstraints(pattern, type, ufName, oldIndex, newIndex, targetType, null, constraints, pts);
       }
-      if (update && !batch) {
-        if (lvalue instanceof Formula) {
-          addRetentionConstraints(pattern,
-                                  lvalueType,
-                                  targetName,
-                                  oldIndex,
-                                  newIndex,
-                                  targetType,
-                                  (Formula) lvalue,
-                                  constraints,
-                                  pts);
-        }
-        ssa.setIndex(targetName, lvalueType, newIndex);
-      } else if (update) {
-        types.add(lvalueType);
+    } else if (pattern.isSemiexact()) {
+      Preconditions.checkArgument(startAddress != null,
+                                  "Start address is mandatory for semiexact pointer target patterns");
+      // For semiexact retention constraints we need the first element type of the composite
+      if (lvalueType instanceof CArrayType) {
+        lvalueType = PointerTargetSet.simplifyType(((CArrayType) lvalueType).getType());
+      } else { // CCompositeType
+        lvalueType = PointerTargetSet.simplifyType(((CCompositeType) lvalueType).getMembers().get(0).getType());
       }
-      return result;
+      addSemiexactRetentionConstraints(pattern, lvalueType, startAddress, size, typesToRetain,
+                                       ssa, constraints, pts);
+    } else {
+      Preconditions.checkArgument(startAddress != null,
+                                  "Start address is mandatory for inexact pointer target patterns");
+      addInexactRetentionConstraints(startAddress, size, typesToRetain, ssa, constraints, pts);
     }
   }
 
+  private boolean isSimpleType(final CType type) {
+    return !(type instanceof CArrayType) && !(type instanceof CCompositeType);
+  }
+
+  private BooleanFormula makeDestructiveAssignment(@Nonnull CType lvalueType,
+                                                   @Nonnull CType rvalueType,
+                                                   final @Nonnull Expression.Location lvalue,
+                                                         @Nullable Expression rvalue,
+                                                   final boolean useOldSSAIndices,
+                                                   final @Nullable Set<CType> destroyedTypes,
+                                                   final @Nonnull CFAEdge edge,
+                                                   final @Nonnull SSAMapBuilder ssa,
+                                                   final @Nonnull PointerTargetSetBuilder pts)
+  throws UnrecognizedCCodeException {
+    lvalueType = PointerTargetSet.simplifyType(lvalueType);
+    rvalueType = PointerTargetSet.simplifyType(rvalueType);
+    BooleanFormula result;
+
+    if (lvalueType instanceof CArrayType) {
+      Preconditions.checkArgument(lvalue.isAliased(),
+                                  "Array elements are always aliased (i.e. can't be encoded with variables)");
+      final CArrayType lvalueArrayType = (CArrayType) lvalueType;
+      final CType lvalueElementType = PointerTargetSet.simplifyType(lvalueArrayType.getType());
+
+      // There are only two cases of assignment to an array
+      Preconditions.checkArgument(
+        // Initializing array with a value (useful for memset implementation)
+        rvalue.isValue() && isSimpleType(rvalueType) ||
+        // Array assignment (needed for structure assignment implementation)
+        // Only possible from another array of the same type
+        rvalue.asLocation().isAliased() &&
+        rvalueType instanceof CArrayType &&
+        PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType()).equals(lvalueElementType),
+        "Array assignment only possible from an array of the same type");
+
+      Integer length = PointerTargetSet.getArrayLength(lvalueArrayType);
+      // Try to fix the length if it's unknown (or too big)
+      // Also ignore the tail part of very long arrays to avoid very large formulae (imprecise!)
+      if (length == null || length > options.maxArrayLength()) {
+        final Integer rLength;
+        if (rvalue.isLocation() &&
+            (rLength = PointerTargetSet.getArrayLength((CArrayType) rvalueType)) != null &&
+            rLength <= options.maxArrayLength()) {
+          length = rLength;
+        } else {
+          length = options.defaultArrayLength();
+        }
+      }
+
+      result = bfmgr.makeBoolean(true);
+      int offset = 0;
+      for (int i = 0; i < length; ++i) {
+        // Support both initialization (with a value) and assignment (from another array location)
+        final CType newRvalueType = rvalue.isLocation() ?
+                                      PointerTargetSet.simplifyType(((CArrayType) rvalueType).getType()) :
+                                      rvalueType;
+        final Formula offsetFormula = fmgr.makeNumber(voidPointerFormulaType, offset);
+        final Expression.Location newLvalue =
+                                    Expression.Location.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(),
+                                                                  offsetFormula));
+        // Support both initialization (with a value) and assignment (from another array location)
+        final Expression newRvalue = rvalue.isLocation() ?
+                                       Expression.Location.ofAddress(
+                                         fmgr.makePlus(rvalue.asLocation().asAliased().getAddress(),
+                                         offsetFormula)) :
+                                       rvalue;
+
+        result = bfmgr.and(result,
+                           makeDestructiveAssignment(lvalueElementType,
+                                                     newRvalueType,
+                                                     newLvalue,
+                                                     newRvalue,
+                                                     useOldSSAIndices,
+                                                     destroyedTypes,
+                                                     edge,
+                                                     ssa,
+                                                     pts));
+         offset += pts.getSize(lvalueArrayType.getType());
+      }
+      return result;
+    } else if (lvalueType instanceof CCompositeType) {
+      final CCompositeType lvalueCompositeType = (CCompositeType) lvalueType;
+      assert lvalueCompositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + lvalueCompositeType;
+      // There are two cases of assignment to a structure/union
+      Preconditions.checkArgument(
+          // Initialization with a value (useful for memset implementation)
+          rvalue.isValue() && isSimpleType(rvalueType) ||
+          // Structure assignment
+          PointerTargetSet.simplifyType(rvalueType).equals(lvalueType),
+          "Structure assignment only possible from a structure of the same type");
+      result = bfmgr.makeBoolean(true);
+      int offset = 0;
+      for (final CCompositeTypeMemberDeclaration memberDeclaration : lvalueCompositeType.getMembers()) {
+        final String memberName = memberDeclaration.getName();
+        final CType newLvalueType = PointerTargetSet.simplifyType(memberDeclaration.getType());
+        // Optimizing away the assignments from uninitialized fields
+        if (!lvalue.isAliased() || // Assignment to a variable, no profit in optimizing it
+            isRelevantField(lvalueCompositeType, memberName, pts) &&
+              (!isSimpleType(newLvalueType) || // That's not a simple assignment, check the nested composite
+               rvalue.isValue() || // This is initialization, so the assignment is mandatory
+               pts.tracksField(lvalueCompositeType, memberName) || // The field is tracked as essential
+               // The variable representing the RHS was used somewhere (i.e. has SSA index)
+               !rvalue.asLocation().isAliased() &&
+                 hasIndex(rvalue.asLocation().asUnaliased().getVariableName() +
+                            FIELD_NAME_SEPARATOR +
+                            memberName,
+                          newLvalueType,
+                          ssa))) {
+          // Support both structure assignment and initialization with a value
+          final CType newRvalueType = rvalue.isLocation() ? newLvalueType : rvalueType;
+          final Formula offsetFormula = fmgr.makeNumber(voidPointerFormulaType, offset);
+          // Support assignment to structures with unaliased members encoded as variables (e.g. struct_var$field)
+          final Expression.Location newLvalue = lvalue.isAliased() ?
+                  Expression.Location.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(), offsetFormula)) :
+                  Expression.Location.ofVariableName(lvalue + FIELD_NAME_SEPARATOR + memberName);
+          final Expression newRvalue = rvalue.isLocation() && !rvalue.asLocation().isAliased() ? // Unaliased location
+                                         Expression.Location.ofVariableName(
+                                           rvalue.asLocation().asUnaliased().getVariableName() +
+                                           FIELD_NAME_SEPARATOR +
+                                           memberName) :
+                                         rvalue.isLocation() ? // Aliased location
+                                            Expression.Location.ofAddress(
+                                              fmgr.makePlus(rvalue.asLocation().asAliased().getAddress(),
+                                                            offsetFormula)) :
+                                            rvalue; // Value
+          result = bfmgr.and(result,
+                             makeDestructiveAssignment(newLvalueType,
+                                                       newRvalueType,
+                                                       newLvalue,
+                                                       newRvalue,
+                                                       useOldSSAIndices,
+                                                       destroyedTypes,
+                                                       edge,
+                                                       ssa,
+                                                       pts));
+          if (lvalueCompositeType.getKind() == ComplexTypeKind.STRUCT) {
+               offset += pts.getSize(memberDeclaration.getType());
+          }
+        }
+      }
+      return result;
+    } else { // Simple assignment
+      return makeSimpleDestructiveAssignment(lvalueType,
+                                             rvalueType,
+                                             lvalue,
+                                             rvalue,
+                                             useOldSSAIndices,
+                                             destroyedTypes,
+                                             edge,
+                                             ssa,
+                                             pts);
+    }
+  }
+
+  private BooleanFormula makeSimpleDestructiveAssignment(@Nonnull CType lvalueType,
+                                                         @Nonnull CType rvalueType,
+                                                         final @Nonnull Expression.Location lvalue,
+                                                               @Nullable Expression rvalue,
+                                                         final boolean useOldSSAIndices,
+                                                         final @Nullable Set<CType> destroyedTypes,
+                                                         final @Nonnull CFAEdge edge,
+                                                         final @Nonnull SSAMapBuilder ssa,
+                                                         final @Nonnull PointerTargetSetBuilder pts)
+  throws UnrecognizedCCodeException {
+    lvalueType = PointerTargetSet.simplifyType(lvalueType);
+    rvalueType = PointerTargetSet.simplifyType(rvalueType);
+    Preconditions.checkArgument(isSimpleType(lvalueType),
+                                "To assign to/from arrays/structures/unions use makeDestructiveAssignment");
+    Preconditions.checkArgument(isSimpleType(rvalueType),
+                                "To assign to/from arrays/structures/unions use makeDestructiveAssignment");
+
+    final Formula value;
+    if (rvalue.isLocation()) { // Location
+      if (!rvalue.asLocation().isAliased()) { // Unaliased location
+        value = makeVariable(rvalue.asLocation().asUnaliased().getVariableName(), rvalueType, ssa, pts);
+      } else { // Aliased location
+        value = makeDereferece(rvalueType, rvalue.asLocation().asAliased().getAddress(), ssa, pts);
+      }
+    } else { // Value
+      value = rvalue.asValue().getValue();
+    }
+
+    assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
+
+    final String targetName = !lvalue.isAliased() ? lvalue.asUnaliased().getVariableName() : getUFName(lvalueType);
+    final FormulaType<?> targetType = getFormulaTypeFromCType(lvalueType, pts);
+    final int oldIndex = getIndex(targetName, lvalueType, ssa);
+    final int newIndex = !useOldSSAIndices ? oldIndex + 1 : oldIndex;
+    final BooleanFormula result;
+
+    rvalueType = implicitCastToPointer(rvalueType);
+    final Formula rhs = makeCast(rvalueType, lvalueType, value, edge);
+    if (!lvalue.isAliased()) { // Unaliased LHS
+      result = fmgr.makeEqual(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
+    } else { // Aliased LHS
+      final Formula lhs = ffmgr.createFuncAndCall(targetName,
+                                                  newIndex,
+                                                  targetType,
+                                                  ImmutableList.of((Formula) lvalue));
+      result = fmgr.makeEqual(lhs, rhs);
+    }
+
+    if (destroyedTypes != null) {
+      destroyedTypes.add(lvalueType);
+    }
+
+    return result;
+  }
+
   @Override
-  public Pair<PathFormula, ErrorConditions> makeAnd(final PathFormula oldFormula, final CFAEdge edge) throws CPATransferException {
+  public Pair<PathFormula, ErrorConditions> makeAnd(final PathFormula oldFormula, final CFAEdge edge)
+  throws CPATransferException {
     if (oldFormula instanceof PathFormulaWithUF) {
       return makeAnd((PathFormulaWithUF) oldFormula, edge);
     } else {
@@ -1004,6 +1151,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     // if there is an initializer associated to this variable,
     // take it into account
     final CInitializer initializer = declaration.getInitializer();
+
     // Fixing unsized array declarations
     if (declarationType instanceof CArrayType && ((CArrayType) declarationType).getLength() == null) {
       final Integer actualLength;
