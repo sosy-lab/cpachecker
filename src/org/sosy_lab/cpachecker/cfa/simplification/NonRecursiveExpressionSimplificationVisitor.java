@@ -42,8 +42,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
@@ -146,7 +146,8 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
     }
 
     // TODO ExplicitFloat: handle values of non-simple type
-    final NumberContainer valueToCast = new NumberContainer((CSimpleType) expr.getExpressionType(), v);
+    //final NumberContainer valueToCast = new NumberContainer((CSimpleType) expr.getExpressionType(), v);
+    final NumberContainer valueToCast = new NumberContainer(CNumericTypes.LONG_INT, v);
     final NumberContainer castedValue = ExplicitExpressionValueVisitor.castCValue(
         valueToCast, expr.getExpressionType(), machineModel, logger, null);
 
