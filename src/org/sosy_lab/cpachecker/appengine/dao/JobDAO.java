@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
+import com.googlecode.objectify.VoidWork;
 
 
 public class JobDAO {
@@ -49,9 +50,17 @@ public class JobDAO {
     return ofy().load().key(jobKey).now();
   }
 
-  public static void delete(String key) {
-    Key<JobDAO> jobKey = Key.create(key);
-    ofy().delete().key(jobKey).now();
+  public static void delete(final String key) {
+    ofy().transact(new VoidWork() {
+
+      @Override
+      public void vrun() {
+        Key<Job> jobKey = Key.create(key);
+        Job job = ofy().load().key(jobKey).now();
+
+        ofy().delete().entities(job.getProgram(), job).now();
+      }
+    });
   }
 
   public static String key(Job job) {
