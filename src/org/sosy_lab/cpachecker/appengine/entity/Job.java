@@ -27,7 +27,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.googlecode.objectify.Key;
 import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
@@ -104,10 +103,6 @@ public class Job {
     creationDate = new Date();
   }
 
-  public String getKeyString() {
-    return Key.create(Job.class, id).getString();
-  }
-
   public Map<String, String> getDefaultOptions() {
     return defaultOptions;
   }
@@ -175,6 +170,11 @@ public class Job {
 
   public Long getId() {
     return id;
+  }
+
+
+  public void setId(Long pId) {
+    id = pId;
   }
 
 
