@@ -80,6 +80,23 @@ public class Job {
     defaultOptions.put("statistics.memory", "false");
     defaultOptions.put("limits.time.cpu", "-1");
     defaultOptions.put("limits.time.wall", "-1");
+    defaultOptions.put("cpa.conditions.global.time.wall", "-1");
+    defaultOptions.put("cpa.conditions.global.memory.heap", "-1");
+    defaultOptions.put("cpa.conditions.global.memory.process", "-1");
+    defaultOptions.put("cpa.conditions.global.reached.size", "-1");
+    defaultOptions.put("cpa.conditions.global.time.cpu", "-1");
+    defaultOptions.put("cpa.conditions.global.time.cpu.hardlimit", "-1");
+    defaultOptions.put("cpa.conditions.global.time.wall", "-1");
+    defaultOptions.put("cpa.conditions.global.time.wall.hardlimit", "-1");
+    defaultOptions.put("cpa.conditions.path.assignments.threshold", "-1");
+    defaultOptions.put("cpa.conditions.path.assumeedges.limit", "-1");
+    defaultOptions.put("cpa.conditions.path.length.limit", "-1");
+    defaultOptions.put("cpa.conditions.path.repetitions.limit", "-1");
+    defaultOptions.put("cpa.monitor.limit", "0");
+    defaultOptions.put("cpa.monitor.pathcomputationlimit", "0");
+    defaultOptions.put("cpa.predicate.refinement.timelimit", "0");
+    defaultOptions.put("limits.time.cpu", "-1");
+    defaultOptions.put("limits.time.wall", "-1");
 
     status = Status.PENDING;
     creationDate = new Date();
