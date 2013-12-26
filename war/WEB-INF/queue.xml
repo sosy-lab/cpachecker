@@ -1,0 +1,7 @@
+<queue-entries>
+	<queue>
+		<name>cpachecker</name>
+		<mode>push</mode>
+		<rate>5/s</rate>
+	</queue>
+</queue-entries>
