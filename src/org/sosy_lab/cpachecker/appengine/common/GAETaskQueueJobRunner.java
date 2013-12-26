@@ -45,11 +45,14 @@ public class GAETaskQueueJobRunner implements JobRunner {
 
   @Override
   public Job run(Job job) {
+    String jobKey = JobDAO.key(job);
 
     Queue queue = QueueFactory.getQueue(QUEUE_NAME);
     TaskHandle task = queue.add(
-        TaskOptions.Builder.withUrl(WORKER_PATH)
-        .param("jobKey", job.getKeyString()));
+        TaskOptions.Builder
+        .withUrl(WORKER_PATH)
+        .taskName("job-"+jobKey)
+        .param("jobKey", jobKey));
 
     job.setQueueName(task.getQueueName());
     job.setTaskName(task.getName());
