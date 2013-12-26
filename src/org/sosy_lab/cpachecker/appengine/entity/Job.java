@@ -50,6 +50,8 @@ public class Job {
   private String specification;
   private String configuration;
   private Ref<JobFile> program;
+  private String queueName;
+  private String taskName;
 
   // FIXME remove this stuff. It's only here for debugging just now.
   private String log;
@@ -188,5 +190,21 @@ public class Job {
 
   public void setProgram(JobFile pProgram) {
     program = Ref.create(pProgram);
+  }
+
+  public String getQueueName() {
+    return queueName;
+  }
+
+  public void setQueueName(String pQueueName) {
+    queueName = pQueueName;
+  }
+
+  public String getTaskName() {
+    return taskName;
+  }
+
+  public void setTaskName(String pTaskName) {
+    taskName = pTaskName;
   }
 }
