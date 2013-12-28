@@ -96,8 +96,7 @@ public class Job {
     defaultOptions.put("cpa.monitor.limit", "0");
     defaultOptions.put("cpa.monitor.pathcomputationlimit", "0");
     defaultOptions.put("cpa.predicate.refinement.timelimit", "0");
-    defaultOptions.put("limits.time.cpu", "-1");
-    defaultOptions.put("limits.time.wall", "-1");
+    defaultOptions.put("analysis.useProofCheckAlgorithm", "false");
 
     status = Status.PENDING;
     creationDate = new Date();
