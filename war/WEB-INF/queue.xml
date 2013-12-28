@@ -3,5 +3,8 @@
 		<name>cpachecker</name>
 		<mode>push</mode>
 		<rate>5/s</rate>
+		<retry-parameters>
+      		<task-retry-limit>0</task-retry-limit>
+    	</retry-parameters>
 	</queue>
 </queue-entries>
