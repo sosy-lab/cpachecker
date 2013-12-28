@@ -26,13 +26,32 @@ package org.sosy_lab.cpachecker.appengine.server;
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.logging.Handler;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Path;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.Configuration.Builder;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.cpachecker.appengine.common.GAELogHandler;
+import org.sosy_lab.cpachecker.appengine.common.GAELogManager;
+import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
+import org.sosy_lab.cpachecker.appengine.entity.Job.Status;
+import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
 
 import com.googlecode.objectify.Key;
 
@@ -44,6 +63,92 @@ public class JobRunnerWorker extends HttpServlet {
     Key<Job> jobKey = Key.create(request.getParameter("jobKey"));
     Job job = ofy().load().key(jobKey).now();
 
-    // TODO run CPAchecker
+    job.setExecutionDate(new Date());
+    job.setStatus(Status.RUNNING);
+    JobDAO.save(job);
+
+    // TODO use default spec if none is provided
+    Path specificationFile = new Path("WEB-INF/specifications/", job.getSpecification());
+    Path configurationFile = new Path("WEB-INF/configurations/", job.getConfiguration());
+
+    Builder configBuilder = Configuration.builder();
+    try {
+      configBuilder.loadFromFile(configurationFile.toFile());
+    } catch (InvalidConfigurationException e) {
+      // TODO handle correctly
+      e.printStackTrace();
+    }
+
+    configBuilder
+      .setOptions(job.getOptions())
+      .setOptions(job.getDefaultOptions())
+      .setOption("specification", specificationFile.getOriginalPath());
+
+    Configuration configuration = null;
+    try {
+      configuration = configBuilder.build();
+    } catch (InvalidConfigurationException e) {
+      // TODO set error state on job and return appropriate HTTP response
+      e.printStackTrace();
+    }
+
+    FileTypeConverter fileTypeConverter = null;
+    try {
+      fileTypeConverter = new FileTypeConverter(configuration);
+    } catch (InvalidConfigurationException e) {
+      // TODO handle correctly
+      e.printStackTrace();
+    }
+
+    Configuration config = null;
+    try {
+      config = Configuration.builder()
+                .copyFrom(configuration)
+                .addConverter(FileOption.class, fileTypeConverter)
+                .build();
+    } catch (InvalidConfigurationException e) {
+      // TODO handle correctly
+      e.printStackTrace();
+    }
+
+    Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
+
+    List<String> logMessages = new ArrayList<>();
+    Handler handler = new GAELogHandler(logMessages);
+    LogManager logManager = new GAELogManager(handler);
+
+    // TODO use and register appropriate notifier
+    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
+
+    // TODO use only one try block for all InvalidConfigException
+    CPAchecker cpaChecker = null;
+    try {
+      cpaChecker = new CPAchecker(config, logManager, shutdownNotifier);
+    } catch (InvalidConfigurationException e) {
+      // TODO handle correctly
+      e.printStackTrace();
+    }
+
+    ProofGenerator proofGenerator = null;
+    try {
+      proofGenerator = new ProofGenerator(config, logManager, shutdownNotifier);
+    } catch (InvalidConfigurationException e) {
+      // TODO handle correctly
+      e.printStackTrace();
+    }
+
+    // FIXME use submitted code file
+    CPAcheckerResult result = cpaChecker.run("WEB-INF/test/example.c");
+    System.out.println(result.getResult());
+
+    // disabled for now due to file system writes
+//    proofGenerator.generateProof(result);
+
+    // TODO save result.status in job entity
+
+    job.setTerminationDate(new Date());
+    job.setStatus(Status.DONE);
+    job.setLog(logMessages.toString());
+    JobDAO.save(job);
   }
 }
