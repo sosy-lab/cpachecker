@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
@@ -124,18 +123,18 @@ public class PredicateMapParser {
    * @throws IOException If the file cannot be read.
    * @throws PredicateParsingFailedException If there is a syntax error in the file.
    */
-  public PredicatePrecision parsePredicates(File file)
+  public PredicatePrecision parsePredicates(Path file)
           throws IOException, PredicateParsingFailedException {
 
     Files.checkReadableFile(file);
 
-    try (BufferedReader reader = Path.fromFile(file).asCharSource(Charsets.US_ASCII).openBufferedStream()) {
-      return parsePredicates(reader, file.getName());
+    try (BufferedReader reader = file.asCharSource(Charsets.US_ASCII).openBufferedStream()) {
+      return parsePredicates(reader, file.getFileName());
     }
   }
 
   /**
-   * @see #parsePredicates(File, CFA, Collection, FormulaManager, AbstractionManager, LogManager)
+   * @see #parsePredicates(Path, CFA, Collection, FormulaManager, AbstractionManager, LogManager)
    * Instead of reading from a file, this method reads from a BufferedReader
    * (available primarily for testing).
    */

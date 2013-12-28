@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Collection;
@@ -34,6 +33,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -94,7 +94,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
 
   @Option(description="get an initial precison from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private File initialPrecisionFile = null;
+  private Path initialPrecisionFile = null;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ExplicitCPA.class);

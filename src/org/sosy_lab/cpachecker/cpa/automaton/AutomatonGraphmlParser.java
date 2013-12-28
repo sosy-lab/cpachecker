@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Writer;
 import java.util.Collections;
 import java.util.List;
@@ -62,14 +61,14 @@ public class AutomatonGraphmlParser {
   /**
   * Parses a Specification File and returns the Automata found in the file.
   */
-  public static List<Automaton> parseAutomatonFile(File pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
+  public static List<Automaton> parseAutomatonFile(Path pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
     //CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
 
-    try (FileInputStream input = new FileInputStream(pInputFile)) {
+    try (InputStream input = pInputFile.asByteSource().openStream()) {
       // Parse the XML document ----
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-      Document doc = docBuilder.parse(pInputFile);
+      Document doc = docBuilder.parse(input);
       doc.getDocumentElement().normalize();
 
       // (The one) root node of the graph ----

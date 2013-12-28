@@ -138,13 +138,13 @@ public class EclipseJavaParser implements Parser {
     LinkedList<String> resultList = new LinkedList<>();
 
     for (String path : pSourcepaths) {
-      File directory = new File(path);
+      Path directory = new Path(path);
       if (!directory.exists()) {
         logger.log(Level.WARNING, "Path " + directory + " could not be found.");
       } else if (!directory.canRead()) {
         logger.log(Level.WARNING, "Path " + directory + " can not be read.");
       } else {
-        resultList.add(directory.getAbsolutePath());
+        resultList.add(directory.toAbsolutePath().getPath());
       }
     }
 
@@ -169,7 +169,7 @@ public class EclipseJavaParser implements Parser {
    */
   @Override
   public ParseResult parseFile(String mainClassName) throws JParserException {
-    File mainClassFile = getMainClassFile(mainClassName);
+    Path mainClassFile = getMainClassFile(mainClassName);
     Scope scope = prepareScope(mainClassName);
     ParseResult result = buildCFA(parse(mainClassFile), scope);
     exportTypeHierarchy(scope);
@@ -190,9 +190,9 @@ public class EclipseJavaParser implements Parser {
     }
   }
 
-  private File getMainClassFile(String mainClassName) throws JParserException  {
+  private Path getMainClassFile(String mainClassName) throws JParserException  {
 
-     File mainClass = searchForClassFile(mainClassName);
+     Path mainClass = searchForClassFile(mainClassName);
      if (mainClass == null) {
        throw new JParserException("Could not find main class in the specified paths");
      }
@@ -210,11 +210,11 @@ public class EclipseJavaParser implements Parser {
   }
 
   private List<JavaFileAST> getASTsOfProgram() throws JParserException {
-    Set<File> sourceFileToBeParsed = getJavaFilesInSourcePaths();
+    Set<Path> sourceFileToBeParsed = getJavaFilesInSourcePaths();
     List<JavaFileAST> astsOfFoundFiles = new LinkedList<>();
 
-    for (File file : sourceFileToBeParsed) {
-      String fileName = file.getName();
+    for (Path file : sourceFileToBeParsed) {
+      String fileName = file.getFileName();
       CompilationUnit ast = parse(file, IGNORE_METHOD_BODY);
       astsOfFoundFiles.add(new JavaFileAST(fileName, ast));
     }
@@ -222,9 +222,9 @@ public class EclipseJavaParser implements Parser {
     return astsOfFoundFiles;
   }
 
-  private Set<File> getJavaFilesInSourcePaths() throws JParserException {
+  private Set<Path> getJavaFilesInSourcePaths() throws JParserException {
 
-    Set<File> sourceFileToBeParsed = new HashSet<>();
+    Set<Path> sourceFileToBeParsed = new HashSet<>();
 
     for (String path : javaSourcePaths) {
       sourceFileToBeParsed.addAll(getJavaFilesInPath(path));
@@ -235,21 +235,21 @@ public class EclipseJavaParser implements Parser {
     return sourceFileToBeParsed;
   }
 
-  private Set<File> getJavaFilesInPath(String path) throws JParserException {
+  private Set<Path> getJavaFilesInPath(String path) throws JParserException {
 
-    File mainDirectory = new File(path);
+    Path mainDirectory = new Path(path);
 
     assert mainDirectory.isDirectory() : "Could not find directory at" + path;
 
-    Set<File> sourceFileToBeParsed = new HashSet<>();
-    Queue<File> directorysToBeSearched = new LinkedList<>();
-    Set<File> directorysReached = new HashSet<>();
+    Set<Path> sourceFileToBeParsed = new HashSet<>();
+    Queue<Path> directorysToBeSearched = new LinkedList<>();
+    Set<Path> directorysReached = new HashSet<>();
 
     addDirectory(mainDirectory, directorysToBeSearched, directorysReached);
 
     while (!directorysToBeSearched.isEmpty()) {
 
-      File directory = directorysToBeSearched.poll();
+      Path directory = directorysToBeSearched.poll();
 
       if (directory.exists() && directory.canRead()) {
         for (String fileName : directory.list()) {
@@ -262,11 +262,11 @@ public class EclipseJavaParser implements Parser {
     return sourceFileToBeParsed;
   }
 
-  private void addFileWhereAppropriate(String fileName, File directory,
-      Set<File> sourceFileToBeParsed, Queue<File> directorysToBeSearched, Set<File> pDirectorysReached) {
+  private void addFileWhereAppropriate(String fileName, Path directory,
+      Set<Path> sourceFileToBeParsed, Queue<Path> directorysToBeSearched, Set<Path> pDirectorysReached) {
 
-    File file =
-        new File(directory.getAbsolutePath() + File.separatorChar + fileName);
+    Path file =
+        new Path(directory.toAbsolutePath().getPath(), fileName);
 
     if (fileName.matches(JAVA_SOURCE_FILE_REGEX)) {
       addJavaFile(file, sourceFileToBeParsed);
@@ -275,21 +275,21 @@ public class EclipseJavaParser implements Parser {
     }
   }
 
-  private void addDirectory(File file, Queue<File> directorysToBeSearched, Set<File> directorysReached) {
+  private void addDirectory(Path file, Queue<Path> directorysToBeSearched, Set<Path> directorysReached) {
     if (file.exists() && file.canRead() && !directorysReached.contains(file)) {
       directorysToBeSearched.add(file);
       directorysReached.add(file);
     } else {
-      logger.log(Level.WARNING, "No permission to read directory " + file.getName() + ".");
+      logger.log(Level.WARNING, "No permission to read directory " + file.getFileName() + ".");
     }
   }
 
-  private void addJavaFile(File file, Set<File> sourceFileToBeParsed) {
+  private void addJavaFile(Path file, Set<Path> sourceFileToBeParsed) {
     if (file.exists() && file.canRead() && !sourceFileToBeParsed.contains(file)) {
       sourceFileToBeParsed.add(file);
     } else {
       logger.log(Level.WARNING, "No permission to read java file ");
-      logger.log(Level.WARNING, file.getName());
+      logger.log(Level.WARNING, file.getFileName());
       logger.log(Level.WARNING, ".");
     }
   }
@@ -300,11 +300,11 @@ public class EclipseJavaParser implements Parser {
     throw new JParserException("Function not yet implemented");
   }
 
-  private CompilationUnit parse(File file) throws JParserException {
+  private CompilationUnit parse(Path file) throws JParserException {
     return parse(file, PARSE_METHOD_BODY);
   }
 
-  private CompilationUnit parse(File file, boolean ignoreMethodBody) throws JParserException {
+  private CompilationUnit parse(Path file, boolean ignoreMethodBody) throws JParserException {
 
     final String[] encodingList = getEncodings();
 
@@ -363,7 +363,7 @@ public class EclipseJavaParser implements Parser {
 
       while (nextClassToBeParsed != null) {
 
-        File classFile = searchForClassFile(nextClassToBeParsed);
+        Path classFile = searchForClassFile(nextClassToBeParsed);
 
         if (classFile != null) {
 
@@ -389,12 +389,12 @@ public class EclipseJavaParser implements Parser {
     }
   }
 
-  private File searchForClassFile(String nextClassToBeParsed) {
+  private Path searchForClassFile(String nextClassToBeParsed) {
 
     String classFilePathPart = nextClassToBeParsed.replace('.', File.separatorChar) + ".java";
 
     for (String sourcePath : javaSourcePaths) {
-      File file = new File(sourcePath + File.separatorChar + classFilePathPart);
+      Path file = new Path(sourcePath, classFilePathPart);
 
       if (file.exists()) {
         return file;

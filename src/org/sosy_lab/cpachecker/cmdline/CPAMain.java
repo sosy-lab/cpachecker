@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import static org.sosy_lab.common.DuplicateOutputStream.mergeStreams;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -36,6 +35,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -150,7 +150,7 @@ public class CPAMain {
         description="When checking for memory safety properties, "
             + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
-    private File memsafetyConfig = null;
+    private Path memsafetyConfig = null;
   }
 
   @Options
@@ -163,7 +163,7 @@ public class CPAMain {
     @Option(name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private File configurationOutputFile = new File("UsedConfiguration.properties");
+    private Path configurationOutputFile = new Path("UsedConfiguration.properties");
 
     @Option(name="statistics.export", description="write some statistics to disk")
     private boolean exportStatistics = true;
@@ -171,7 +171,7 @@ public class CPAMain {
     @Option(name="statistics.file",
         description="write some statistics to disk")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private File exportStatisticsFile = new File("Statistics.txt");
+    private Path exportStatisticsFile = new Path("Statistics.txt");
 
     @Option(name="statistics.print", description="print statistics to console")
     private boolean printStatistics = false;

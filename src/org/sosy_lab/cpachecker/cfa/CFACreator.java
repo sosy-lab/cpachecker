@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.findLoops;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -482,7 +481,7 @@ public class CFACreator {
   }
 
   private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
-    File file = new File(fileDenotation);
+    Path file = new Path(fileDenotation);
 
     try {
       org.sosy_lab.common.Files.checkReadableFile(file);
@@ -515,7 +514,7 @@ public class CFACreator {
       String filename = sourceFiles.get(0);
 
       // get the AAA part out of a filename like test/program/AAA.cil.c
-      filename = (new File(filename)).getName(); // remove directory
+      filename = (new Path(filename)).getFileName(); // remove directory
 
       int indexOfDot = filename.indexOf('.');
       String baseFilename = indexOfDot >= 1 ? filename.substring(0, indexOfDot) : filename;

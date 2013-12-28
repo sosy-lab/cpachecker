@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Collection;
@@ -80,7 +79,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Option(name="dotExportFile",
       description="file for saving the automaton in DOT format (%s will be replaced with automaton name)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File exportFile = new File("%s.dot");
+  private Path exportFile = new Path("%s.dot");
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
@@ -89,7 +88,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Option(required=false,
       description="file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private File inputFile = null;
+  private Path inputFile = null;
 
   @Option(description="signal the analysis to break in case of reached error state")
   private boolean breakOnTargetState = true;
@@ -121,10 +120,10 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     } else {
       List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger, cfa.getMachineModel());
       if (lst.isEmpty()) {
-        throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.getAbsolutePath());
+        throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.toAbsolutePath());
       } else if (lst.size() > 1) {
         throw new InvalidConfigurationException("Found " + lst.size()
-            + " automata in the File " + inputFile.getAbsolutePath()
+            + " automata in the File " + inputFile.toAbsolutePath()
             + " The CPA can only handle ONE Automaton!");
       }
 
@@ -133,7 +132,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
 
     if (export && exportFile != null) {
-      String fileName = String.format(exportFile.getAbsolutePath(), automaton.getName());
+      String fileName = String.format(exportFile.toAbsolutePath().getPath(), automaton.getName());
       try (Writer w = Files.openOutputFile(new Path(fileName))) {
         automaton.writeDotFile(w);
       } catch (IOException e) {

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -106,7 +105,7 @@ class SmtInterpolEnvironment {
 
   @Option(name="logfile", description="Export solver queries in Smtlib format into a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File smtLogfile = new File("smtinterpol.%03d.smt2");
+  private Path smtLogfile = new Path("smtinterpol.%03d.smt2");
 
   /** this is a counter to get distinct logfiles for distinct environments. */
   private static int logfileCounter = 0;
@@ -226,8 +225,8 @@ class SmtInterpolEnvironment {
 
   /**  This function creates a filename with following scheme:
        first filename is unchanged, then a number is appended */
-  private String getFilename(final File oldFilename) {
-    String filename = oldFilename.getAbsolutePath();
+  private String getFilename(final Path oldFilename) {
+    String filename = oldFilename.toAbsolutePath().getPath();
     return String.format(filename, logfileCounter++);
   }
 

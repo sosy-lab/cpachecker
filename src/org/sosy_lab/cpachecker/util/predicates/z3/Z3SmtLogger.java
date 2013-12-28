@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,7 +52,7 @@ public class Z3SmtLogger {
 
   @Option(name = "logfile", description = "Export solver queries in Smtlib2 format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File basicLogfile = new File("z3smtlog.%d.smt2");
+  private Path basicLogfile = new Path("z3smtlog.%d.smt2");
   private static int logfileCounter = 0;
 
   @Option(description = "Export solver queries in Smtlib2 format, " +
@@ -61,7 +61,7 @@ public class Z3SmtLogger {
       values = { Z3, MATHSAT5 }, toUppercase = true)
   private String target = Z3;
 
-  private File logfile;
+  private Path logfile;
 
   private final long z3context;
   private final HashSet<Long> declarations = Sets.newHashSet();
@@ -81,12 +81,12 @@ public class Z3SmtLogger {
     initLogfile(original.basicLogfile);
   }
 
-  private void initLogfile(File basicLogfile) {
+  private void initLogfile(Path basicLogfile) {
     if (basicLogfile == null) { // option noout
       this.logfile = null;
     } else {
-      String filename = String.format(basicLogfile.getAbsolutePath(), logfileCounter++);
-      this.logfile = new File(filename);
+      String filename = String.format(basicLogfile.toAbsolutePath().getPath(), logfileCounter++);
+      this.logfile = new Path(filename);
       log("", false); // create or clean the file
     }
   }

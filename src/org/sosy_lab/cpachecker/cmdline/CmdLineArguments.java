@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cmdline;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -177,7 +176,7 @@ class CmdLineArguments {
       } else if (arg.equals("-help") || arg.equals("-h")) {
         printHelp();
 
-      } else if (arg.startsWith("-") && !(new File(arg).exists())) {
+      } else if (arg.startsWith("-") && !(new Path(arg).exists())) {
         String argName = arg.substring(1); // remove "-"
 
         if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
@@ -225,7 +224,7 @@ class CmdLineArguments {
       String newValue = argsIt.next();
 
       // replace "predicateAnalysis" with config/predicateAnalysis.properties etc.
-      if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches() && !(new File(newValue).exists())) {
+      if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches() && !(new Path(newValue).exists())) {
         Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, newValue);
 
         if (configFile != null) {
@@ -345,7 +344,7 @@ class CmdLineArguments {
           else if(PROPERTY_FILE_PATTERN.matcher(newValue).matches()) {
             Path propertyFile = new Path(newValue);
             if (propertyFile.toFile().exists()) {
-              PropertyFileParser parser = new PropertyFileParser(propertyFile.toFile());
+              PropertyFileParser parser = new PropertyFileParser(propertyFile);
               parser.parse();
               putIfNotExistent(options, "analysis.entryFunction", parser.entryFunction);
 
@@ -435,7 +434,7 @@ class CmdLineArguments {
    * and maps the proposition to a file from where to read the specification automaton.
    */
   private static class PropertyFileParser {
-    private final File propertyFile;
+    private final Path propertyFile;
 
     private String entryFunction;
     private final EnumSet<PropertyType> properties = EnumSet.noneOf(PropertyType.class);
@@ -443,13 +442,13 @@ class CmdLineArguments {
     private static final Pattern PROPERTY_PATTERN =
         Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
 
-    private PropertyFileParser(final File pPropertyFile) {
+    private PropertyFileParser(final Path pPropertyFile) {
       propertyFile = pPropertyFile;
     }
 
     private void parse() throws InvalidCmdlineArgumentException {
       String rawProperty = null;
-      try (BufferedReader br = Path.fromFile(propertyFile).asCharSource(Charset.defaultCharset()).openBufferedStream()) {
+      try (BufferedReader br = propertyFile.asCharSource(Charset.defaultCharset()).openBufferedStream()) {
         while ((rawProperty = br.readLine()) != null) {
           if (!rawProperty.isEmpty()) {
             properties.add(parsePropertyLine(rawProperty));

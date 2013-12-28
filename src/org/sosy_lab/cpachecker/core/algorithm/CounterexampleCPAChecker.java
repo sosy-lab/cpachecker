@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Set;
@@ -68,7 +67,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   @Option(name="config",
       description="configuration file for counterexample checks with CPAchecker")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private File configFile = new File("config/explicitAnalysis-no-cbmc.properties");
+  private Path configFile = new Path("config/explicitAnalysis-no-cbmc.properties");
 
   public CounterexampleCPAChecker(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA pCfa, String pFilename) throws InvalidConfigurationException {

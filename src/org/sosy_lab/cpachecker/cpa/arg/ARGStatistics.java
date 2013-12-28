@@ -28,7 +28,6 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -321,9 +320,9 @@ public class ARGStatistics implements Statistics {
         writeErrorPathFile(errorPathAssignment, cexIndex, counterexample.getTargetPathModel());
       }
 
-      for (Pair<Object, File> info : counterexample.getAllFurtherInformation()) {
+      for (Pair<Object, Path> info : counterexample.getAllFurtherInformation()) {
         if (info.getSecond() != null) {
-          writeErrorPathFile(Path.fromFile(info.getSecond()), cexIndex, info.getFirst());
+          writeErrorPathFile(info.getSecond(), cexIndex, info.getFirst());
         }
       }
     }

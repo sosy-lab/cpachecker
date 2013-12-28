@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -40,6 +39,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -115,7 +115,7 @@ public class SMGTransferRelation implements TransferRelation {
 
   @Option(name = "exportSMG.file", description = "Filename format for SMG graph dumps")
   @FileOption(Type.OUTPUT_FILE)
-  private File exportSMGFilePattern = new File("smg-%s.dot");
+  private Path exportSMGFilePattern = new Path("smg-%s.dot");
 
   @Option(description = "with this option enabled, a check for unreachable memory occurs whenever a function returns, and not only at the end of the main function")
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
@@ -196,7 +196,7 @@ public class SMGTransferRelation implements TransferRelation {
           }
         }
         name = name.replace("\"", "");
-        File outputFile = getOutputFile(exportSMGFilePattern, name);
+        Path outputFile = getOutputFile(exportSMGFilePattern, name);
         try {
           String dot = getDot(currentState, name, location);
           Files.writeFile(outputFile, dot);
@@ -206,8 +206,8 @@ public class SMGTransferRelation implements TransferRelation {
       }
     }
 
-    protected File getOutputFile(File pExportSMGFilePattern, String pName) {
-      return new File(String.format(pExportSMGFilePattern.getAbsolutePath(), pName));
+    protected Path getOutputFile(Path pExportSMGFilePattern, String pName) {
+      return new Path(String.format(pExportSMGFilePattern.toAbsolutePath().getPath(), pName));
     }
 
     protected String getDot(SMGState pCurrentState, String pName, String pLocation) {
@@ -1852,8 +1852,8 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    protected File getOutputFile(File pExportSMGFilePattern, String pName) {
-      return new File(String.format(exportSMGFilePattern.getAbsolutePath(), "Explicit_" + pName));
+    protected Path getOutputFile(Path pExportSMGFilePattern, String pName) {
+      return new Path(String.format(exportSMGFilePattern.toAbsolutePath().getPath(), "Explicit_" + pName));
     }
 
     @Override

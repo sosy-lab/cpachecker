@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
-import java.io.File;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -34,6 +33,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -71,7 +71,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> impleme
 
     @Option(description = "Export solver queries in Smtlib format into a file (for Mathsat5).")
     @FileOption(Type.OUTPUT_FILE)
-    private File logfile = new File("mathsat5.%03d.smt2");
+    private Path logfile = new Path("mathsat5.%03d.smt2");
 
     private final ImmutableMap<String, String> furtherOptionsMap ;
 
@@ -216,7 +216,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> impleme
     }
 
     if (settings.logAllQueries && settings.logfile != null) {
-      String filename = String.format(settings.logfile.getAbsolutePath(), logfileCounter.getAndIncrement());
+      String filename = String.format(settings.logfile.toAbsolutePath().getPath(), logfileCounter.getAndIncrement());
 
       msat_set_option_checked(cfg, "debug.api_call_trace", "1");
       msat_set_option_checked(cfg, "debug.api_call_trace_filename", filename);
