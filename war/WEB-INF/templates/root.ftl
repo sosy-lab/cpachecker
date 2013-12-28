@@ -26,7 +26,7 @@
 
     <p>
       <label for="programFile">${msg.programFile}</label><br>
-      <input type="file" id="programFile">
+      <input type="file" name="programFile" id="programFile">
     </p>
 
     <p>
