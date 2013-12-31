@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
@@ -45,6 +44,8 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -93,7 +94,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @Option(
       description="where to dump the counterexample formula in case the error location is reached")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File dumpCounterexampleFile = new File("ErrorPath.%d.smt2");
+  private Path dumpCounterexampleFile = Paths.get("ErrorPath.%d.smt2");
 
   // the previously analyzed counterexample to detect repeated counterexamples
   private List<BooleanFormula> lastErrorPath = null;

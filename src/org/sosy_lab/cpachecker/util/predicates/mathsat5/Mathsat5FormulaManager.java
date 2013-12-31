@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
-import java.io.File;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -40,6 +39,8 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -71,7 +72,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> impleme
 
     @Option(description = "Export solver queries in Smtlib format into a file (for Mathsat5).")
     @FileOption(Type.OUTPUT_FILE)
-    private File logfile = new File("mathsat5.%03d.smt2");
+    private Path logfile = Paths.get("mathsat5.%03d.smt2");
 
     private final ImmutableMap<String, String> furtherOptionsMap ;
 

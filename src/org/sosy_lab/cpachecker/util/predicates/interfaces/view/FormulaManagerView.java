@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
@@ -42,7 +41,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -50,6 +48,9 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -109,7 +110,7 @@ public class FormulaManagerView {
 
   @Option(name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File formulaDumpFile = new File("%s%04d-%s%03d.smt2");
+  private Path formulaDumpFile = Paths.get("%s%04d-%s%03d.smt2");
   private String formulaDumpFilePattern;
 
   @Option(description="try to add some useful static-learning-like axioms for "
@@ -170,15 +171,15 @@ public class FormulaManagerView {
     this(DEFAULTMANAGERS, wrapped);
   }
 
-  public File formatFormulaOutputFile(String function, int call, String formula, int index) {
+  public Path formatFormulaOutputFile(String function, int call, String formula, int index) {
     if (formulaDumpFilePattern == null) {
       return null;
     }
 
-    return new File(String.format(formulaDumpFilePattern, function, call, formula, index));
+    return Paths.get(String.format(formulaDumpFilePattern, function, call, formula, index));
   }
 
-  public void dumpFormulaToFile(BooleanFormula f, File outputFile) {
+  public void dumpFormulaToFile(BooleanFormula f, Path outputFile) {
     if (outputFile != null) {
       try {
         Files.writeFile(outputFile, this.dumpFormula(f));
