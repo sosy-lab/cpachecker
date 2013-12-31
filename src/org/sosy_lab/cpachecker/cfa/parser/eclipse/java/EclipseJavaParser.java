@@ -39,13 +39,14 @@ import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
@@ -53,7 +54,6 @@ import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.base.Charsets;
-import com.google.common.io.Files;
 
 
 /**
@@ -88,7 +88,7 @@ public class EclipseJavaParser implements Parser {
   @Option(name="java.typeHierarchyFile",
       description="export TypeHierarchy as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportTypeHierarchyFile = new Path("typeHierarchy.dot");
+  private Path exportTypeHierarchyFile = Paths.get("typeHierarchy.dot");
 
   private final ASTParser parser = ASTParser.newParser(AST.JLS4);
 
@@ -138,7 +138,7 @@ public class EclipseJavaParser implements Parser {
     LinkedList<String> resultList = new LinkedList<>();
 
     for (String path : pSourcepaths) {
-      Path directory = new Path(path);
+      Path directory = Paths.get(path);
       if (!directory.exists()) {
         logger.log(Level.WARNING, "Path " + directory + " could not be found.");
       } else if (!directory.canRead()) {
@@ -180,7 +180,7 @@ public class EclipseJavaParser implements Parser {
 
     // write CFA to file
     if (exportTypeHierarchy) {
-      try (Writer w = Files.newWriter(exportTypeHierarchyFile.toFile(), Charsets.UTF_8)) {
+      try (Writer w = exportTypeHierarchyFile.asCharSink(Charsets.UTF_8).openStream()) {
         THDotBuilder.generateDOT(w, pScope);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
@@ -214,7 +214,7 @@ public class EclipseJavaParser implements Parser {
     List<JavaFileAST> astsOfFoundFiles = new LinkedList<>();
 
     for (Path file : sourceFileToBeParsed) {
-      String fileName = file.getFileName();
+      String fileName = file.getName();
       CompilationUnit ast = parse(file, IGNORE_METHOD_BODY);
       astsOfFoundFiles.add(new JavaFileAST(fileName, ast));
     }
@@ -237,7 +237,7 @@ public class EclipseJavaParser implements Parser {
 
   private Set<Path> getJavaFilesInPath(String path) throws JParserException {
 
-    Path mainDirectory = new Path(path);
+    Path mainDirectory = Paths.get(path);
 
     assert mainDirectory.isDirectory() : "Could not find directory at" + path;
 
@@ -266,7 +266,7 @@ public class EclipseJavaParser implements Parser {
       Set<Path> sourceFileToBeParsed, Queue<Path> directorysToBeSearched, Set<Path> pDirectorysReached) {
 
     Path file =
-        new Path(directory.toAbsolutePath().getPath(), fileName);
+        Paths.get(directory.getAbsolutePath(), fileName);
 
     if (fileName.matches(JAVA_SOURCE_FILE_REGEX)) {
       addJavaFile(file, sourceFileToBeParsed);
@@ -323,7 +323,7 @@ public class EclipseJavaParser implements Parser {
     String source;
 
     try {
-      source = Files.toString(file, Charsets.UTF_8);
+      source = file.asCharSource(Charsets.UTF_8).read();
       parser.setUnitName(file.getCanonicalPath());
       parser.setSource(source.toCharArray());
       parser.setIgnoreMethodBodies(ignoreMethodBody);
@@ -394,7 +394,7 @@ public class EclipseJavaParser implements Parser {
     String classFilePathPart = nextClassToBeParsed.replace('.', File.separatorChar) + ".java";
 
     for (String sourcePath : javaSourcePaths) {
-      Path file = new Path(sourcePath, classFilePathPart);
+      Path file = Paths.get(sourcePath, classFilePathPart);
 
       if (file.exists()) {
         return file;

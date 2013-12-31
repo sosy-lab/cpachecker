@@ -30,11 +30,11 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -118,7 +118,7 @@ public class PredicateAbstractionsStorage {
     Map<Integer, AbstractionNode> resultAbstractions = Maps.newTreeMap();
     Set<Integer> abstractionsWithParents = Sets.newTreeSet();
 
-    String source = abstractionsFile.toFile().getName().toString();
+    String source = abstractionsFile.getName();
     try (BufferedReader reader = abstractionsFile.asCharSource(Charsets.US_ASCII).openBufferedStream()) {
 
       // first, read first section with initial set of function definitions

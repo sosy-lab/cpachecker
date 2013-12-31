@@ -37,12 +37,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.Configuration.Builder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.appengine.common.GAELogHandler;
 import org.sosy_lab.cpachecker.appengine.common.GAELogManager;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
@@ -68,12 +69,12 @@ public class JobRunnerWorker extends HttpServlet {
     JobDAO.save(job);
 
     // TODO use default spec if none is provided
-    Path specificationFile = new Path("WEB-INF/specifications/", job.getSpecification());
-    Path configurationFile = new Path("WEB-INF/configurations/", job.getConfiguration());
+    Path specificationFile = Paths.get("WEB-INF/specifications/", job.getSpecification());
+    Path configurationFile = Paths.get("WEB-INF/configurations/", job.getConfiguration());
 
     Builder configBuilder = Configuration.builder();
     try {
-      configBuilder.loadFromFile(configurationFile.toFile());
+      configBuilder.loadFromFile(configurationFile);
     } catch (InvalidConfigurationException e) {
       // TODO handle correctly
       e.printStackTrace();
@@ -139,7 +140,6 @@ public class JobRunnerWorker extends HttpServlet {
 
     // FIXME use submitted code file
     CPAcheckerResult result = cpaChecker.run("WEB-INF/test/example.c");
-    System.out.println(result.getResult());
 
     // disabled for now due to file system writes
 //    proofGenerator.generateProof(result);

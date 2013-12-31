@@ -38,16 +38,17 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -150,12 +151,12 @@ public class CFACreator {
   @Option(name="cfa.callgraph.file",
       description="file name for call graph as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportFunctionCallsFile = new Path("functionCalls.dot");
+  private Path exportFunctionCallsFile = Paths.get("functionCalls.dot");
 
   @Option(name="cfa.file",
       description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportCfaFile = new Path("cfa.dot");
+  private Path exportCfaFile = Paths.get("cfa.dot");
 
   @Option(name="cfa.checkNullPointers",
       description="while this option is activated, before each use of a "
@@ -481,10 +482,10 @@ public class CFACreator {
   }
 
   private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
-    Path file = new Path(fileDenotation);
+    Path file = Paths.get(fileDenotation);
 
     try {
-      org.sosy_lab.common.Files.checkReadableFile(file);
+      Files.checkReadableFile(file);
     } catch (FileNotFoundException e) {
       throw new InvalidConfigurationException(e.getMessage());
     }
@@ -514,7 +515,7 @@ public class CFACreator {
       String filename = sourceFiles.get(0);
 
       // get the AAA part out of a filename like test/program/AAA.cil.c
-      filename = (new Path(filename)).getFileName(); // remove directory
+      filename = (Paths.get(filename)).getName(); // remove directory
 
       int indexOfDot = filename.indexOf('.');
       String baseFilename = indexOfDot >= 1 ? filename.substring(0, indexOfDot) : filename;

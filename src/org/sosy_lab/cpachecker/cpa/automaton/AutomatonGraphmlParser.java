@@ -36,11 +36,12 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchEdgeTokens;
 import org.w3c.dom.Document;
@@ -139,7 +140,7 @@ public class AutomatonGraphmlParser {
       Automaton automaton = new Automaton(automatonName, automatonVariables, automatonStates, initialStateName);
       result.add(automaton);
 
-      try (Writer w = Files.openOutputFile(new Path("autom_test.dot"))) {
+      try (Writer w = Files.openOutputFile(Paths.get("autom_test.dot"))) {
         automaton.writeDotFile(w);
       } catch (IOException e) {
         //logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
