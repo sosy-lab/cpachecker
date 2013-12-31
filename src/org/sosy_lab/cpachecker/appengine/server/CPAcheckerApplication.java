@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.appengine.server;
 import org.restlet.Restlet;
 import org.restlet.ext.wadl.WadlApplication;
 import org.restlet.routing.Router;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.cpachecker.appengine.common.GAEPath;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobServerResource;
@@ -38,6 +40,10 @@ public class CPAcheckerApplication extends WadlApplication {
 
   @Override
   public Restlet createInboundRoot() {
+
+    Paths.setEnvironment(Paths.Environment.APP_ENGINE);
+    Paths.registerImplementation(Paths.Environment.APP_ENGINE, GAEPath.class);
+
     getTunnelService().setExtensionsTunnel(true);
     getEncoderService().setEnabled(true);
 
