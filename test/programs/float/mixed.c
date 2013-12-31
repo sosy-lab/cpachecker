@@ -38,7 +38,8 @@ int main() {
    } else {
       i = 5;
    }
-   if ((125.2 - h) > 0.0) {
+   double x = 125.2 - h;
+   if (x > 0.0) {
       goto Error;
    } else {
       i = 6;

@@ -43,87 +43,94 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location.UnaliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.PointerTargetSet.PointerTargetSetBuilder;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor {
+public class ExpressionToFormulaWithUFVisitor
+       extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException> {
 
   public ExpressionToFormulaWithUFVisitor(final CToFormulaWithUFConverter cToFormulaConverter,
                                           final CFAEdge cfaEdge,
                                           final String function,
                                           final SSAMapBuilder ssa,
                                           final Constraints constraints,
-                                          final ErrorConditions errorConditions,
                                           final PointerTargetSetBuilder pts) {
 
-    super(cToFormulaConverter, cfaEdge, function, ssa, constraints);
+    delegate = new ExpressionToFormulaVisitor(cToFormulaConverter, cfaEdge, function, ssa, constraints);
 
     this.conv = cToFormulaConverter;
-    this.errorConditions = errorConditions;
+    this.edge = cfaEdge;
+    this.function = function;
+    this.ssa = ssa;
+    this.constraints = constraints;
     this.pts = pts;
 
     this.baseVisitor = new BaseVisitor(conv, cfaEdge, pts);
   }
 
-  private void addEqualBaseAdressConstraint(Formula p1, Formula p2) {
-    constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(p1),
-                                                  conv.makeBaseAddressOfTerm(p2)));
-  }
-  @Override
-  public Formula visit(CBinaryExpression pExp) throws UnrecognizedCCodeException {
-    if (pExp.getOperator() != BinaryOperator.PLUS
-        && pExp.getOperator() != BinaryOperator.MINUS) {
-      return super.visit(pExp);
+  Formula asValueFormula(final Expression e, final CType type) {
+    if (e.isValue()) {
+      return e.asValue().getValue();
+    } else if (e.asLocation().isAliased()) {
+      return conv.makeDereferece(type, e.asLocation().asAliased().getAddress(), ssa, pts);
+    } else { // Unaliased location
+      return conv.makeVariable(e.asLocation().asUnaliased().getVariableName(), type, ssa, pts);
     }
-
-    // potentially pointer arithmetic
-    CType t1 = PointerTargetSet.simplifyType(pExp.getOperand1().getExpressionType());
-    CType t2 = PointerTargetSet.simplifyType(pExp.getOperand2().getExpressionType());
-
-    final Formula result = super.visit(pExp);
-    final Object savedLastTarget = lastTarget;
-    if (t1 instanceof CPointerType) {
-      if (!(t2 instanceof CPointerType)) {
-        Formula operand1 = pExp.getOperand1().accept(this);
-        addEqualBaseAdressConstraint(result, operand1);
-      }
-    } else if (t2 instanceof CPointerType) {
-      Formula operand2 = pExp.getOperand1().accept(this);
-      addEqualBaseAdressConstraint(result, operand2);
-    }
-    lastTarget = savedLastTarget;
-
-    return result;
   }
 
   @Override
-  public Formula visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
-    final Formula base = e.getArrayExpression().accept(this);
+  public AliasedLocation visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
+    Expression base = e.getArrayExpression().accept(this);
+    // There are two distinct kinds of arrays in C:
+    // -- fixed-length arrays for which the aliased location of the first element is returned here
+    // -- pointers implicitly converted to arrays for which either the aliased or unaliased location of the *pointer*
+    //    is returned
+    final CType baseType = PointerTargetSet.simplifyType(e.getArrayExpression().getExpressionType());
+    // Fixed-length arrays
+    // TODO: Check if fixed-sized arrays and pointers can be clearly distinguished this way
+    if (baseType instanceof CArrayType && PointerTargetSet.getArrayLength((CArrayType) baseType) != null) {
+      assert base.isAliasedLocation();
+    } else {
+      // The address of the first element is needed i.e. the value of the pointer in the array expression
+      base = AliasedLocation.ofAddress(asValueFormula(base, CToFormulaWithUFConverter.implicitCastToPointer(baseType)));
+    }
+    // Now we should always have the aliased location of the first array element
+    assert base.isAliasedLocation();
+
+    final CType elementType = PointerTargetSet.simplifyType(e.getExpressionType());
     final CExpression subscript = e.getSubscriptExpression();
     final CType subscriptType = PointerTargetSet.simplifyType(subscript.getExpressionType());
-    final Formula index = conv.makeCast(subscriptType, CPointerType.POINTER_TO_VOID, subscript.accept(this), edge);
-    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
-    final int size = pts.getSize(resultType);
-    final Formula coeff = conv.fmgr.makeNumber(conv.pointerType, size);
-    final Formula offset = conv.fmgr.makeMultiply(coeff, index);
-    final Formula address = conv.fmgr.makePlus(base, offset);
-    lastTarget = address;
-    addEqualBaseAdressConstraint(base, address);
-    return conv.isCompositeType(resultType) ? address :
-           conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
+    final Formula index = conv.makeCast(subscriptType,
+                                        CPointerType.POINTER_TO_VOID,
+                                        asValueFormula(subscript.accept(this), subscriptType),
+                                        edge);
+
+    final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, pts.getSize(elementType));
+
+    return AliasedLocation.ofAddress(conv.fmgr.makePlus(base.asAliasedLocation().getAddress(),
+                                     conv.fmgr.makeMultiply(coeff, index)));
   }
 
   static CFieldReference eliminateArrow(final CFieldReference e, final CFAEdge edge)
@@ -147,43 +154,39 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
   }
 
   @Override
-  public Formula visit(CFieldReference e) throws UnrecognizedCCodeException {
+  public Location visit(CFieldReference e) throws UnrecognizedCCodeException {
 
     e = eliminateArrow(e, edge);
 
     final Variable variable = e.accept(baseVisitor);
-    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     if (variable != null) {
       final String variableName = variable.getName();
-      lastTarget = variableName;
       if (pts.isDeferredAllocationPointer(variableName)) {
         usedDeferredAllocationPointers.put(variableName, CPointerType.POINTER_TO_VOID);
       }
-      return conv.makeVariable(variable, ssa, pts);
+      return UnaliasedLocation.ofVariableName(variableName);
     } else {
       final CType fieldOwnerType = PointerTargetSet.simplifyType(e.getFieldOwner().getExpressionType());
       if (fieldOwnerType instanceof CCompositeType) {
-        final Formula base = e.getFieldOwner().accept(this);
+        final AliasedLocation base = e.getFieldOwner().accept(this).asAliasedLocation();
+
         final String fieldName = e.getFieldName();
         usedFields.add(Pair.of((CCompositeType) fieldOwnerType, fieldName));
-        final Formula offset = conv.fmgr.makeNumber(conv.pointerType,
+        final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
                                                     pts.getOffset((CCompositeType) fieldOwnerType, fieldName));
-        final Formula address = conv.fmgr.makePlus(base, offset);
-        lastTarget = address;
-        addEqualBaseAdressConstraint(base, address);
-        return conv.isCompositeType(resultType) ? address :
-               conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
+
+        return AliasedLocation.ofAddress(conv.fmgr.makePlus(base.getAddress(), offset));
       } else {
         throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
       }
     }
   }
 
-  static boolean isSimpleTarget(final CExpression e) {
+  static boolean isUnaliasedLocation(final CExpression e) {
     if (e instanceof CIdExpression) {
       return true;
     } else if (e instanceof CFieldReference) {
-      return isSimpleTarget(((CFieldReference) e).getFieldOwner());
+      return isUnaliasedLocation(((CFieldReference) e).getFieldOwner());
     } else {
       return false;
     }
@@ -195,63 +198,59 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
   }
 
   @Override
-  public Formula visit(final CCastExpression e) throws UnrecognizedCCodeException {
-    final CExpression operand = e.getOperand();
-    final Formula result = super.visit(e);
+  public Value visit(final CCastExpression e) throws UnrecognizedCCodeException {
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
-    if (isRevealingType(resultType) && isSimpleTarget(operand) &&
-        lastTarget instanceof String &&
-        pts.isDeferredAllocationPointer(((String) lastTarget))) {
-      assert usedDeferredAllocationPointers.containsKey(lastTarget) &&
-             usedDeferredAllocationPointers.get(lastTarget).equals(CPointerType.POINTER_TO_VOID) :
-             "Wrong assumptions on deferred allocations tracking: unknown pointer encountered";
-      usedDeferredAllocationPointers.put((String) lastTarget, resultType);
+    final CExpression operand = conv.makeCastFromArrayToPointerIfNecessary(e.getOperand(), resultType);
+
+    final Expression result = operand.accept(this);
+
+    // TODO: is the second isUnaliasedLocation() check really needed?
+    if (isRevealingType(resultType) && isUnaliasedLocation(operand) && result.isUnaliasedLocation()) {
+      final String variableName =  result.asLocation().asUnaliased().getVariableName();
+      if (pts.isDeferredAllocationPointer(variableName)) {
+        assert usedDeferredAllocationPointers.containsKey(variableName) &&
+               usedDeferredAllocationPointers.get(variableName).equals(CPointerType.POINTER_TO_VOID) :
+              "Wrong assumptions on deferred allocations tracking: unknown pointer encountered";
+        usedDeferredAllocationPointers.put(variableName, resultType);
+      }
     }
 
-    if (operand instanceof CPointerExpression
-        && !(resultType instanceof CFunctionType)) {
-      // Heuristic:
-      // When there is (t)*p, we treat it like *((*t)p)
-      // This means the UF for type t get's used instead of the UF for actual type of p.
-      final CExpression pointer = ((CPointerExpression)operand).getOperand();
-
-      final Formula address = pointer.accept(this);
-      lastTarget = address;
-      return conv.isCompositeType(resultType) ? address :
-             conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
-    }
-
-    return result;
+    final CType operandType = PointerTargetSet.simplifyType(operand.getExpressionType());
+    return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), edge));
+// TODO: The following heuristic should be implemented in more generally in the assignment to p
+//    if (operand instanceof CPointerExpression
+//        && !(resultType instanceof CFunctionType)) {
+//      // Heuristic:
+//      // When there is (t)*p, we treat it like *((*t)p)
+//      // This means the UF for type t get's used instead of the UF for actual type of p.
+//    }
   }
 
   @Override
-  public Formula visit(final CIdExpression e) throws UnrecognizedCCodeException {
+  public Expression visit(final CIdExpression e) throws UnrecognizedCCodeException {
     Variable variable = e.accept(baseVisitor);
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     if (variable != null) {
       if (!(e.getDeclaration() instanceof CFunctionDeclaration)) {
         final String variableName = variable.getName();
-        lastTarget = variableName;
         if (pts.isDeferredAllocationPointer(variableName)) {
           usedDeferredAllocationPointers.put(variableName, CPointerType.POINTER_TO_VOID);
         }
-        return conv.makeVariable(variable, ssa, pts);
+        return UnaliasedLocation.ofVariableName(variableName);
       } else {
-        return conv.makeConstant(variable, pts);
+        return Value.ofValue(conv.makeConstant(variable, pts));
       }
     } else {
-      variable = conv.scopedIfNecessary(e, ssa, function);
+      variable = conv.scopedIfNecessary(e, ssa, delegate.function);
       final Formula address = conv.makeConstant(PointerTargetSet.getBaseName(variable.getName()),
                                                 PointerTargetSet.getBaseType(resultType),
                                                 pts);
-      lastTarget = address;
-      return conv.isCompositeType(resultType) ? address :
-             conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
+      return AliasedLocation.ofAddress(address);
     }
   }
 
   @Override
-  public Formula visit(final CTypeIdExpression e) throws UnrecognizedCCodeException {
+  public Expression visit(final CTypeIdExpression e) throws UnrecognizedCCodeException {
     if (e.getOperator() == TypeIdOperator.SIZEOF) {
       return handleSizeof(e, e.getType());
     } else {
@@ -259,27 +258,57 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     }
   }
 
-  private Formula handleSizeof(final CExpression e, final CType type) throws UnrecognizedCCodeException {
-    return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(PointerTargetSet.simplifyType(e.getExpressionType()),
-                                                             pts),
-                                pts.getSize(type));
+  private Value handleSizeof(final CExpression e, final CType type) throws UnrecognizedCCodeException {
+    return Value.ofValue(
+             conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(PointerTargetSet.simplifyType(e.getExpressionType()),
+                                                               pts),
+                                  pts.getSize(type)));
   }
 
   @Override
-  public Formula visit(CTypeIdInitializerExpression e) throws UnrecognizedCCodeException {
+  public Expression visit(CTypeIdInitializerExpression e) throws UnrecognizedCCodeException {
     throw new UnrecognizedCCodeException("Unhandled initializer", edge, e);
   }
 
   @Override
-  public Formula visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
+  public Value visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
     final CExpression operand = e.getOperand();
+    final CType operandType = PointerTargetSet.simplifyType(operand.getExpressionType());
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
+    final UnaryOperator operator = e.getOperator();
     switch (e.getOperator()) {
     case MINUS:
     case PLUS:
-    case NOT:
-    case TILDE:
-      return super.visit(e);
+    case TILDE: {
+      // Handle Integer Promotion
+      final CType promoted = conv.getPromotedCType(operandType);
+      Formula operandFormula = asValueFormula(operand.accept(this), operandType);
+      operandFormula = conv.makeCast(operandType, promoted, operandFormula, edge);
+      Formula result;
+      if (operator == UnaryOperator.PLUS) {
+        result = operandFormula;
+      } else if (operator == UnaryOperator.MINUS) {
+        result = conv.fmgr.makeNegate(operandFormula);
+      } else {
+        assert operator == UnaryOperator.TILDE
+              : "This case should be impossible because of switch";
+        result = conv.fmgr.makeNot(operandFormula);
+      }
+
+      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(resultType, pts);
+      assert resultFormulaType == conv.fmgr.getFormulaType(result)
+            : "Returntype and Formulatype do not match in visit(CUnaryExpression)";
+
+      return Value.ofValue(result);
+    }
+
+    case NOT: {
+      final Formula f = asValueFormula(operand.accept(this), operandType);
+      final BooleanFormula term = conv.toBooleanFormula(f);
+      return Value.ofValue(conv.ifTrueThenOneElseZero(conv.getFormulaTypeFromCType(resultType, pts),
+                                                      conv.bfmgr.not(term)));
+    }
+
     case SIZEOF:
       return handleSizeof(e, PointerTargetSet.simplifyType(operand.getExpressionType()));
     case AMPER:
@@ -287,59 +316,24 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
         final Variable baseVariable = operand.accept(baseVisitor);
         if (baseVariable == null) {
           final int oldUsedFieldsSize = usedFields.size();
-          Formula addressExpression = null;
-
-          if (operand instanceof CFieldReference) {
-            // for &(s->f) and &((*s).f) do special case because the pointer is
-            // not actually dereferenced and thus we don't want to add error conditions
-            // for invalid-deref
-            CFieldReference field = (CFieldReference)operand;
-            CExpression fieldOwner = field.getFieldOwner();
-            boolean isDeref = field.isPointerDereference();
-            if (!isDeref && fieldOwner instanceof CPointerExpression) {
-              fieldOwner = ((CPointerExpression)fieldOwner).getOperand();
-              isDeref = true;
-            }
-            if (isDeref) {
-              final Formula base = fieldOwner.accept(this);
-              final String fieldName = field.getFieldName();
-              final CPointerType pointerType = (CPointerType)PointerTargetSet.simplifyType(fieldOwner.getExpressionType());
-              final CCompositeType compositeType = (CCompositeType)PointerTargetSet.simplifyType(pointerType.getType());
-              usedFields.add(Pair.of(compositeType, fieldName));
-              final Formula offset = conv.fmgr.makeNumber(conv.pointerType,
-                                                          pts.getOffset(compositeType, fieldName));
-              lastTarget = addressExpression = conv.fmgr.makePlus(base, offset);
-              addEqualBaseAdressConstraint(base, addressExpression);
-            }
-          }
-
-          if (addressExpression == null) {
-            addressExpression = operand.accept(this);
-          }
+          final AliasedLocation addressExpression = operand.accept(this).asAliasedLocation();
           for (int i = oldUsedFieldsSize; i < usedFields.size(); i++) {
             addressedFields.add(usedFields.get(i));
           }
-          if (!conv.isCompositeType(PointerTargetSet.simplifyType(operand.getExpressionType()))) {
-            addressExpression = (Formula) lastTarget;
-            lastTarget = null;
-            return addressExpression;
-          } else {
-            return addressExpression;
-          }
+          return Value.ofValue(addressExpression.getAddress());
         } else {
           final Variable oldBaseVariable = baseVisitor.getLastBase();
           final Variable newBaseVariable = oldBaseVariable.withType(
             PointerTargetSet.getBaseType(oldBaseVariable.getType()));
           final Formula baseAddress = conv.makeConstant(
             newBaseVariable.withName(PointerTargetSet.getBaseName(oldBaseVariable.getName())), pts);
-          conv.addSharingConstraints(edge,
-                                     baseAddress,
-                                     oldBaseVariable,
-                                     initializedFields,
-                                     ssa,
-                                     constraints,
-                                     errorConditions,
-                                     pts);
+          conv.addValueImportConstraints(edge,
+                                         baseAddress,
+                                         oldBaseVariable,
+                                         initializedFields,
+                                         ssa,
+                                         delegate.constraints,
+                                         pts);
           if (ssa.getIndex(oldBaseVariable.getName()) != CToFormulaWithUFConverter.VARIABLE_UNSET) {
             ssa.deleteVariable(oldBaseVariable.getName());
           }
@@ -347,14 +341,13 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
                                 oldBaseVariable.getType(),
                                 pts.isPreparedBase(newBaseVariable.getName()),
                                 false,
-                                constraints,
+                                delegate.constraints,
                                 pts);
           sharedBases.add(Pair.of(newBaseVariable.getName(), oldBaseVariable.getType()));
           return visit(e);
         }
       } else {
-        lastTarget = null;
-        return operand.accept(this);
+        return operand.accept(this).asValue();
       }
       default:
         throw new UnrecognizedCCodeException("Unknown unary operator", edge, e);
@@ -362,144 +355,184 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
   }
 
   @Override
-  public Formula visit(CPointerExpression e) throws UnrecognizedCCodeException {
+  public AliasedLocation visit(final CPointerExpression e) throws UnrecognizedCCodeException {
     final CExpression operand = e.getOperand();
-    final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
-    if (!(resultType instanceof CFunctionType)) {
-      final Formula address = operand.accept(this);
-      lastTarget = address;
-      return conv.isCompositeType(resultType) ? address :
-             conv.makeDereferece(resultType, address, ssa, errorConditions, pts);
-    } else {
-      lastTarget = null;
-      return operand.accept(this);
-    }
+    final CType operandType = PointerTargetSet.simplifyType(operand.getExpressionType());
+    return AliasedLocation.ofAddress(asValueFormula(operand.accept(this), operandType));
   }
 
-//  @Override
-//  public Formula visit(final CBinaryExpression e) throws UnrecognizedCCodeException {
-//    final BinaryOperator operator = e.getOperator();
-//
-//    // these operators expect numeric arguments
-//    final CType resultType = e.getExpressionType();
-//    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(resultType, pts);
-//
-//    final CExpression operand1Expression = conv.makeCastFromArrayToPointerIfNecessary(e.getOperand1(), resultType);
-//    final CExpression operand2Expression = conv.makeCastFromArrayToPointerIfNecessary(e.getOperand2(), resultType);
-//
-//    final CType operand1Type = operand1Expression.getExpressionType();
-//    final CType operand2Type = operand2Expression.getExpressionType();
-//
-//    final CType operand1PromotedType = conv.getPromotedCType(operand1Type);
-//    Formula operand1 = conv.makeCast(operand1Type,
-//                                     operand1PromotedType,
-//                                     operand1Expression.accept(this));
-//    final CType operand2PromotedType = conv.getPromotedCType(operand2Type);
-//    Formula operand2 = conv.makeCast(operand2Type,
-//                                     operand2PromotedType,
-//                                     operand2Expression.accept(this));
-//
-//    final CType implicitType;
-//    // FOR SHIFTS: The type of the result is that of the promoted left operand. (6.5.7 3)
-//    if (operator == BinaryOperator.SHIFT_LEFT || operator == BinaryOperator.SHIFT_RIGHT) {
-//      implicitType = operand1PromotedType;
-//      // TODO: This is probably not correct as we only need the right formula-type but not a cast
-//      operand2 = conv.makeCast(operand2PromotedType, operand1PromotedType, operand2);
-//      // TODO: UNDEFINED: When the right side is negative the result is not defined
-//    } else {
-//      implicitType = conv.getImplicitCType(operand1PromotedType, operand2PromotedType);
-//      operand1 = conv.makeCast(operand1PromotedType, implicitType, operand1);
-//      operand2 = conv.makeCast(operand2PromotedType, implicitType, operand2);
-//    }
-//
-//    final boolean isSignedOperation = CtoFormulaTypeUtils.isSignedType(implicitType);
-//
-//    Formula result;
-//    switch (operator) {
-//    case PLUS:
-//      result = conv.fmgr.makePlus(operand1, operand2);
-//      break;
-//    case MINUS:
-//      result =  conv.fmgr.makeMinus(operand1, operand2);
-//      break;
-//    case MULTIPLY:
-//      result =  conv.fmgr.makeMultiply(operand1, operand2);
-//      break;
-//    case DIVIDE:
-//      result =  conv.fmgr.makeDivide(operand1, operand2, isSignedOperation);
-//      break;
-//    case MODULO:
-//      result =  conv.fmgr.makeModulo(operand1, operand2, isSignedOperation);
-//      break;
-//    case BINARY_AND:
-//      result =  conv.fmgr.makeAnd(operand1, operand2);
-//      break;
-//    case BINARY_OR:
-//      result =  conv.fmgr.makeOr(operand1, operand2);
-//      break;
-//    case BINARY_XOR:
-//      result =  conv.fmgr.makeXor(operand1, operand2);
-//      break;
-//    case SHIFT_LEFT:
-//      // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
-//      result =  conv.fmgr.makeShiftLeft(operand1, operand2);
-//      break;
-//    case SHIFT_RIGHT:
-//      // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
-//      result =  conv.fmgr.makeShiftRight(operand1, operand2, isSignedOperation);
-//      break;
-//
-//    case GREATER_THAN:
-//    case GREATER_EQUAL:
-//    case LESS_THAN:
-//    case LESS_EQUAL:
-//    case EQUALS:
-//    case NOT_EQUALS: {
-//      final BooleanFormula booleanResult;
-//      switch (operator) {
-//        case GREATER_THAN:
-//          booleanResult = conv.fmgr.makeGreaterThan(operand1, operand2, isSignedOperation);
-//          break;
-//        case GREATER_EQUAL:
-//          booleanResult = conv.fmgr.makeGreaterOrEqual(operand1, operand2, isSignedOperation);
-//          break;
-//        case LESS_THAN:
-//          booleanResult = conv.fmgr.makeLessThan(operand1, operand2, isSignedOperation);
-//          break;
-//        case LESS_EQUAL:
-//          booleanResult = conv.fmgr.makeLessOrEqual(operand1, operand2, isSignedOperation);
-//          break;
-//        case EQUALS:
-//          booleanResult = conv.fmgr.makeEqual(operand1, operand2);
-//          break;
-//        case NOT_EQUALS:
-//          booleanResult = conv.bfmgr.not(conv.fmgr.makeEqual(operand1, operand2));
-//          break;
-//        default:
-//          throw new AssertionError();
-//      }
-//      result = conv.ifTrueThenOneElseZero(returnFormulaType, booleanResult);
-//      break;
-//    }
-//    default:
-//      throw new UnrecognizedCCodeException("Unknown binary operator", edge, e);
-//    }
-//
-//    if (returnFormulaType != conv.fmgr.getFormulaType(result)) {
-//      // Could be because both types got promoted
-//      if (!areEqual(operand1PromotedType, operand1Type) && !areEqual(operand2PromotedType, operand2Type)) {
-//        // We have to cast back to the return type
-//        result = conv.makeCast(implicitType, resultType, result);
-//      }
-//    }
-//
-//    assert returnFormulaType == conv.fmgr.getFormulaType(result)
-//           : "Returntype and Formulatype do not match in visit(CBinaryExpression)";
-//    return result;
-//  }
+  private Formula getPointerTargetSizeLiteral(final CPointerType pointerType, final CType implicitType) {
+    final int pointerTargetSize = pts.getSize(pointerType.getType());
+    return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(implicitType, pts), pointerTargetSize);
+  }
 
-  public Object getLastTarget() {
-    return lastTarget;
+  @Override
+  public Value visit(final CBinaryExpression exp) throws UnrecognizedCCodeException {
+    final BinaryOperator op = exp.getOperator();
+    final CType returnType = PointerTargetSet.simplifyType(exp.getExpressionType());
+    final CType calculationType = PointerTargetSet.simplifyType(exp.getCalculationType());
+
+    // these operators expect numeric arguments
+    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType, pts);
+
+    CExpression e1 = exp.getOperand1();
+    CExpression e2 = exp.getOperand2();
+    e1 = conv.makeCastFromArrayToPointerIfNecessary(e1, returnType);
+    e2 = conv.makeCastFromArrayToPointerIfNecessary(e2, returnType);
+    final CType t1 = PointerTargetSet.simplifyType(e1.getExpressionType());
+    final CType t2 = PointerTargetSet.simplifyType(e2.getExpressionType());
+    Formula f1 = asValueFormula(e1.accept(this), t1);
+    Formula f2 = asValueFormula(e2.accept(this), t2);
+
+    f1 = conv.makeCast(t1, calculationType, f1, edge);
+    f2 = conv.makeCast(t2, calculationType, f2, edge);
+
+    /* FOR SHIFTS:
+     * We would not need to cast the second operand, but we do casting,
+     * because Mathsat assumes 2 bitvectors of same length.
+     *
+     * This could be incorrect in cases of negative shifts and
+     * signed/unsigned conversion, example: 5U<<(-1).
+     * Instead of "undefined value", we return a possible wrong value.
+     *
+     * ISO-C 6.5.7 Bitwise shift operators
+     * If the value of the right operand is negative or is greater than or equal
+     * to the width of the promoted left operand, the behavior is undefined.
+     */
+
+    final boolean signed;
+    if (calculationType instanceof CSimpleType) {
+      signed = conv.machineModel.isSigned((CSimpleType)calculationType);
+    } else {
+      signed = false;
+    }
+
+    // to INT or bigger
+    final CType promT1 = conv.getPromotedCType(t1).getCanonicalType();
+    final CType promT2 = conv.getPromotedCType(t2).getCanonicalType();
+
+    final Formula ret;
+
+    switch (op) {
+    case PLUS:
+      if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just an addition e.g. 6 + 7
+        ret = conv.fmgr.makePlus(f1, f2);
+      } else if (!(promT2 instanceof CPointerType)) {
+        // operand1 is a pointer => we should multiply the second summand by the size of the pointer target
+        ret =  conv.fmgr.makePlus(f1, conv.fmgr.makeMultiply(f2,
+                                                             getPointerTargetSizeLiteral((CPointerType) promT1,
+                                                             calculationType)));
+      } else if (!(promT1 instanceof CPointerType)) {
+        // operand2 is a pointer => we should multiply the first summand by the size of the pointer target
+        ret =  conv.fmgr.makePlus(f2, conv.fmgr.makeMultiply(f1,
+                                                             getPointerTargetSizeLiteral((CPointerType) promT2,
+                                                             calculationType)));
+      } else {
+        throw new UnrecognizedCCodeException("Can't add pointers", edge, exp);
+      }
+      break;
+    case MINUS:
+      if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
+        ret =  conv.fmgr.makeMinus(f1, f2);
+      } else if (!(promT2 instanceof CPointerType)) {
+        // operand1 is a pointer => we should multiply the subtrahend by the size of the pointer target
+        ret =  conv.fmgr.makeMinus(f1, conv.fmgr.makeMultiply(f2,
+                                                              getPointerTargetSizeLiteral((CPointerType) promT1,
+                                                                                            calculationType)));
+      } else if (promT1 instanceof CPointerType) {
+        // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
+        if (promT1.equals(promT2)) {
+          ret = conv.fmgr.makeDivide(conv.fmgr.makeMinus(f1, f2),
+                                     getPointerTargetSizeLiteral((CPointerType) promT1, calculationType),
+                                     true);
+        } else {
+          throw new UnrecognizedCCodeException("Can't subtract pointers of different types", edge, exp);
+        }
+      } else {
+        throw new UnrecognizedCCodeException("Can't subtract a pointer from a non-pointer", edge, exp);
+      }
+      break;
+    case MULTIPLY:
+      ret =  conv.fmgr.makeMultiply(f1, f2);
+      break;
+    case DIVIDE:
+      ret =  conv.fmgr.makeDivide(f1, f2, signed);
+      break;
+    case MODULO:
+      ret =  conv.fmgr.makeModulo(f1, f2, signed);
+      break;
+    case BINARY_AND:
+      ret =  conv.fmgr.makeAnd(f1, f2);
+      break;
+    case BINARY_OR:
+      ret =  conv.fmgr.makeOr(f1, f2);
+      break;
+    case BINARY_XOR:
+      ret =  conv.fmgr.makeXor(f1, f2);
+      break;
+    case SHIFT_LEFT:
+
+      // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
+      ret =  conv.fmgr.makeShiftLeft(f1, f2);
+      break;
+    case SHIFT_RIGHT:
+      // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
+      ret =  conv.fmgr.makeShiftRight(f1, f2, signed);
+      break;
+
+    case GREATER_THAN:
+    case GREATER_EQUAL:
+    case LESS_THAN:
+    case LESS_EQUAL:
+    case EQUALS:
+    case NOT_EQUALS: {
+      BooleanFormula result;
+      switch (op) {
+        case GREATER_THAN:
+          result= conv.fmgr.makeGreaterThan(f1, f2, signed);
+          break;
+        case GREATER_EQUAL:
+          result= conv.fmgr.makeGreaterOrEqual(f1, f2, signed);
+          break;
+        case LESS_THAN:
+          result= conv.fmgr.makeLessThan(f1, f2, signed);
+          break;
+        case LESS_EQUAL:
+          result= conv.fmgr.makeLessOrEqual(f1, f2, signed);
+          break;
+        case EQUALS:
+          result= conv.fmgr.makeEqual(f1, f2);
+          break;
+        case NOT_EQUALS:
+          result= conv.bfmgr.not(conv.fmgr.makeEqual(f1, f2));
+          break;
+        default:
+          throw new AssertionError();
+      }
+      ret = conv.ifTrueThenOneElseZero(returnFormulaType, result);
+      break;
+    }
+    default:
+      throw new UnrecognizedCCodeException("Unknown binary operator", edge, exp);
+
+    }
+
+    // The CalculationType could be different from returnType, so we cast the result.
+    // If the types are equal, the cast returns the Formula unchanged.
+    final Formula castedResult = conv.makeCast(calculationType, returnType, ret, edge);
+
+    assert returnFormulaType == conv.fmgr.getFormulaType(castedResult)
+         : "Returntype and Formulatype do not match in visit(CBinaryExpression): " + exp;
+    return Value.ofValue(castedResult);
+  }
+
+  ExpressionToFormulaVisitor getDelegate() {
+    return delegate;
+  }
+
+  @Override
+  protected Value visitDefault(final CExpression e) throws UnrecognizedCCodeException {
+    return Value.ofValue(e.accept(delegate));
   }
 
   public ImmutableList<Pair<CCompositeType, String>> getUsedFields() {
@@ -523,7 +556,6 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
   }
 
   public void reset() {
-    lastTarget = null;
     sharedBases.clear();
     usedFields.clear();
     addressedFields.clear();
@@ -531,14 +563,21 @@ public class ExpressionToFormulaWithUFVisitor extends ExpressionToFormulaVisitor
     usedDeferredAllocationPointers.clear();
   }
 
-  @SuppressWarnings("hiding")
-  private final CToFormulaWithUFConverter conv;
-  private final ErrorConditions errorConditions;
-  private final PointerTargetSetBuilder pts;
+  // The protected fields are inherited by StatementToFormulaWithUFVisitor,
+  // expanding the functionality of this class to statements
+  protected final CToFormulaWithUFConverter conv;
+  protected final CFAEdge edge;
+  protected final String function;
+  protected final SSAMapBuilder ssa;
+  protected final Constraints constraints;
+  protected final PointerTargetSetBuilder pts;
 
   private final BaseVisitor baseVisitor;
+  protected final ExpressionToFormulaVisitor delegate;
 
-  private Object lastTarget;
+  // This fields are made private to prevent reading them in StatementToFormulaWIthUFVisitor
+  // The accessors for these fields return the copies of the original collections, these copies can be
+  // safely saved and used later when the collections themselves will be modified
   private final List<Pair<String, CType>> sharedBases = new ArrayList<>();
   private final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>();
   private final List<Pair<CCompositeType, String>> addressedFields = new ArrayList<>();

@@ -338,8 +338,10 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
     switch (op) {
     case PLUS:
+      System.out.println("l: " + l + " r: " + r + " l+r: " + (l + r));
       return l + r;
     case MINUS:
+      System.out.println("l: " + l + " r: " + r + " l-r: " + (l - r));
       return l - r;
     case DIVIDE:
       if (r == 0) {
@@ -373,8 +375,10 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
     switch (op) {
     case PLUS:
+      System.out.println("l: " + l + " r: " + r + " l+r: " + (l + r));
       return l + r;
     case MINUS:
+      System.out.println("l: " + l + " r: " + r + " l-r: " + (l - r));
       return l - r;
     case DIVIDE:
       if (r == 0) {
@@ -984,6 +988,29 @@ public abstract class AbstractExplicitExpressionValueVisitor
       }
 
       case FLOAT:
+      {
+        // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
+        // TODO: check for overflow(source larger than the highest number we can store in target etc.)
+
+        float floatValue = value.floatValue();
+        NumberContainer result = null;
+
+        final int bitPerByte = machineModel.getSizeofCharInBits();
+        final int numBytes = machineModel.getSizeof(st);
+        final int size = bitPerByte * numBytes;
+
+        if(size == 32) {
+          // 32 bit means Java float
+          result = new NumberContainer(st, floatValue);
+        } else if(size == 64) {
+          // 64 bit means Java double
+          result = new NumberContainer(st, floatValue);
+        } else {
+          throw new AssertionError("Trying to cast to unsupported floating point type: "+st);
+        }
+
+        return result;
+      }
       case DOUBLE: {
         // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
         // TODO: check for overflow(source larger than the highest number we can store in target etc.)

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.appengine.server.resource;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.fileupload.util.Streams;
+import org.apache.commons.io.IOUtils;
 import org.restlet.ext.servlet.ServletUtils;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
@@ -44,9 +46,8 @@ import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 import org.sosy_lab.cpachecker.appengine.server.common.JobsResource;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
-import com.googlecode.objectify.Key;
-import com.googlecode.objectify.ObjectifyService;
 
 
 public class JobsServerResource extends WadlServerResource implements JobsResource {
@@ -55,10 +56,9 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
 
   @Override
   public void createJobAndRedirectToJob(Representation input) {
-    // TODO move key-gen into DAO
-    Key<Job> jobKey = ObjectifyService.factory().allocateId(Job.class);
-    Job job = new Job(jobKey.getId());
+    Job job = new Job(JobDAO.allocateKey().getId());
     Map<String, String> options = new HashMap<>();
+    JobFile program = new JobFile(DEFAULT_PROGRAM_NAME);
 
     ServletFileUpload upload = new ServletFileUpload();
     try {
@@ -66,8 +66,8 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
       while (iter.hasNext()) {
         FileItemStream item = iter.next();
         InputStream stream = item.openStream();
-        String value = Streams.asString(stream);
         if (item.isFormField()) {
+          String value = Streams.asString(stream);
           switch (item.getFieldName()) {
           case "specification":
             job.setSpecification(value);
@@ -80,24 +80,30 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
             options.put(parts.get(0), parts.get(1));
             break;
           case "programText":
-            // TODO make this prettier
-            JobFile program = new JobFile(DEFAULT_PROGRAM_NAME);
-            program.setContent(value);
-            program.setJob(job);
-            JobDAO.save(program);
-            job.setProgram(program);
+            if (program.getContent() == null || program.getContent().isEmpty()) {
+              program.setContent(value);
+            }
             break;
           default:
             break;
           }
         } else {
-          // TODO save file
+          if (program.getContent() == null || program.getContent().isEmpty()) {
+            // files will always be treated as text/plain
+            StringWriter writer = new StringWriter();
+            IOUtils.copy(stream, writer, Charsets.UTF_8);
+            program.setContent(writer.toString());
+          }
         }
       }
     } catch (FileUploadException | IOException e) {
       e.printStackTrace();
       // TODO handle errors
     }
+
+    program.setJob(job);
+    JobDAO.save(program);
+    job.setProgram(program);
 
     // TODO validate!
     options.putAll(job.getDefaultOptions());
@@ -107,7 +113,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
     JobRunner jobRunner = new GAETaskQueueJobRunner();
     job = jobRunner.run(job);
 
-    getResponse().redirectSeeOther("/jobs/"+job.getKeyString());
+    getResponse().redirectSeeOther("/jobs/"+JobDAO.key(job));
   }
 
 }

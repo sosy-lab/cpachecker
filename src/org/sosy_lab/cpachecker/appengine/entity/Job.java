@@ -27,7 +27,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.googlecode.objectify.Key;
 import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
@@ -38,7 +37,7 @@ import com.googlecode.objectify.annotation.Serialize;
 public class Job {
 
   public enum Status {
-    PENDING, RUNNING, ABORTED, TIMEOUT
+    PENDING, RUNNING, DONE, ABORTED, TIMEOUT
   }
 
   @Id private Long id;
@@ -50,6 +49,17 @@ public class Job {
   private String specification;
   private String configuration;
   private Ref<JobFile> program;
+  private String queueName;
+  private String taskName;
+
+  // FIXME remove this stuff. It's only here for debugging just now.
+  private String log;
+  public void setLog(String pLog) {
+    log = pLog;
+  }
+  public String getLog() {
+    return log;
+  }
 
   @Ignore
   private Map<String, String> defaultOptions;
@@ -71,13 +81,25 @@ public class Job {
     defaultOptions.put("statistics.memory", "false");
     defaultOptions.put("limits.time.cpu", "-1");
     defaultOptions.put("limits.time.wall", "-1");
+    defaultOptions.put("cpa.conditions.global.time.wall", "-1");
+    defaultOptions.put("cpa.conditions.global.memory.heap", "-1");
+    defaultOptions.put("cpa.conditions.global.memory.process", "-1");
+    defaultOptions.put("cpa.conditions.global.reached.size", "-1");
+    defaultOptions.put("cpa.conditions.global.time.cpu", "-1");
+    defaultOptions.put("cpa.conditions.global.time.cpu.hardlimit", "-1");
+    defaultOptions.put("cpa.conditions.global.time.wall", "-1");
+    defaultOptions.put("cpa.conditions.global.time.wall.hardlimit", "-1");
+    defaultOptions.put("cpa.conditions.path.assignments.threshold", "-1");
+    defaultOptions.put("cpa.conditions.path.assumeedges.limit", "-1");
+    defaultOptions.put("cpa.conditions.path.length.limit", "-1");
+    defaultOptions.put("cpa.conditions.path.repetitions.limit", "-1");
+    defaultOptions.put("cpa.monitor.limit", "0");
+    defaultOptions.put("cpa.monitor.pathcomputationlimit", "0");
+    defaultOptions.put("cpa.predicate.refinement.timelimit", "0");
+    defaultOptions.put("analysis.useProofCheckAlgorithm", "false");
 
     status = Status.PENDING;
     creationDate = new Date();
-  }
-
-  public String getKeyString() {
-    return Key.create(Job.class, id).getString();
   }
 
   public Map<String, String> getDefaultOptions() {
@@ -150,6 +172,11 @@ public class Job {
   }
 
 
+  public void setId(Long pId) {
+    id = pId;
+  }
+
+
   public Date getCreationDate() {
     return creationDate;
   }
@@ -162,5 +189,21 @@ public class Job {
 
   public void setProgram(JobFile pProgram) {
     program = Ref.create(pProgram);
+  }
+
+  public String getQueueName() {
+    return queueName;
+  }
+
+  public void setQueueName(String pQueueName) {
+    queueName = pQueueName;
+  }
+
+  public String getTaskName() {
+    return taskName;
+  }
+
+  public void setTaskName(String pTaskName) {
+    taskName = pTaskName;
   }
 }

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.appengine.server.resource;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.util.Map;
 
 import org.restlet.ext.wadl.WadlServerResource;
@@ -42,10 +43,24 @@ public class RootServerResource extends WadlServerResource implements RootResour
     Map<String, String> defaultOptions = job.getDefaultOptions();
 
     Path specificationDir = new Path("WEB-INF/specifications");
-    File[] specifications = specificationDir.toFile().listFiles();
+    File[] specifications = specificationDir.toFile().listFiles(new FilenameFilter() {
+
+      @Override
+      public boolean accept(File pDir, String pName) {
+        // exclude directories from the list
+        return pName.endsWith(".spc");
+      }
+    });
 
     Path configurationDir = new Path("WEB-INF/configurations");
-    File[] configurations = configurationDir.toFile().listFiles();
+    File[] configurations = configurationDir.toFile().listFiles(new FilenameFilter() {
+
+      @Override
+      public boolean accept(File pDir, String pName) {
+        // exclude directories from the list
+        return pName.endsWith(".properties");
+      }
+    });
 
     return FreemarkerUtil.templateBuilder()
         .context(getContext())

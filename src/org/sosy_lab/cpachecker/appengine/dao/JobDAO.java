@@ -28,12 +28,12 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
+import com.googlecode.objectify.Key;
+import com.googlecode.objectify.ObjectifyService;
+import com.googlecode.objectify.VoidWork;
+
 
 public class JobDAO {
-
-  // TODO use transactions
-
-  // TODO simplify
 
   public static Job save(Job job) {
     ofy().save().entity(job).now();
@@ -43,6 +43,32 @@ public class JobDAO {
   public static JobFile save(JobFile jobFile) {
     ofy().save().entity(jobFile).now();
     return jobFile;
+  }
+
+  public static Job load(String key) {
+    Key<Job> jobKey = Key.create(key);
+    return ofy().load().key(jobKey).now();
+  }
+
+  public static void delete(final String key) {
+    ofy().transact(new VoidWork() {
+
+      @Override
+      public void vrun() {
+        Key<Job> jobKey = Key.create(key);
+        Job job = ofy().load().key(jobKey).now();
+
+        ofy().delete().entities(job.getProgram(), job).now();
+      }
+    });
+  }
+
+  public static String key(Job job) {
+    return Key.create(Job.class, job.getId()).getString();
+  }
+
+  public static Key<Job> allocateKey() {
+    return ObjectifyService.factory().allocateId(Job.class);
   }
 
 }

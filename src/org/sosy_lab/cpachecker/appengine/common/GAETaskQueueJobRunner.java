@@ -23,16 +23,19 @@
  */
 package org.sosy_lab.cpachecker.appengine.common;
 
+import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 
 import com.google.appengine.api.taskqueue.Queue;
 import com.google.appengine.api.taskqueue.QueueFactory;
+import com.google.appengine.api.taskqueue.TaskHandle;
 import com.google.appengine.api.taskqueue.TaskOptions;
 
 
 public class GAETaskQueueJobRunner implements JobRunner {
 
-  public static final String SERVLET_URL = "/workers/run-job";
+  public static final String QUEUE_NAME = "cpachecker";
+  public static final String WORKER_PATH = "/workers/run-job";
 
   /**
    * Constructs a new instance.
@@ -42,12 +45,18 @@ public class GAETaskQueueJobRunner implements JobRunner {
 
   @Override
   public Job run(Job job) {
+    String jobKey = JobDAO.key(job);
 
-    // TODO use named queue
-    Queue queue = QueueFactory.getDefaultQueue();
-    queue.add(
-        TaskOptions.Builder.withUrl(SERVLET_URL)
-        .param("jobKey", job.getKeyString()));
+    Queue queue = QueueFactory.getQueue(QUEUE_NAME);
+    TaskHandle task = queue.add(
+        TaskOptions.Builder
+        .withUrl(WORKER_PATH)
+        .taskName("job-"+jobKey)
+        .param("jobKey", jobKey));
+
+    job.setQueueName(task.getQueueName());
+    job.setTaskName(task.getName());
+    JobDAO.save(job);
 
     return job;
   }

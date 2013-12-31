@@ -27,13 +27,13 @@ int main() {
   int* ptrI = &i;
   int* ptrj = &j;
   int** tmphelper = (int**)tmp;
-  int* tmpfst =  *tmphelper; //*((int**)tmp);
-  int* tmpsnd = *(tmphelper + 1); //*(((int**)tmp) + 1);
-  tmpfst = ptrI;
-  tmpsnd = ptrj;
+  int** tmpfst =  tmphelper; // (int**) tmp
+  int** tmpsnd = tmphelper + 1; // ((int**)tmp) + 1
+  *tmpfst = ptrI;
+  *tmpsnd = ptrj;
   int** other = (int**)tmp;
   int* snd = *(other + 1);
-  if (*tmpfst == 3 && *tmpsnd == 4 && *snd == 4){
+  if (**tmpfst == 3 && **tmpsnd == 4 && *snd == 4){
     return 0;
   }
 

@@ -1,30 +1,33 @@
 # 1 "./structproblem_advanced_safe.c"
-# 1 "<eingebaut>"
-# 1 "<Kommandozeile>"
+# 1 "<built-in>"
+# 1 "<command-line>"
 # 1 "./structproblem_advanced_safe.c"
 # 1 "/usr/include/stdlib.h" 1 3 4
 # 25 "/usr/include/stdlib.h" 3 4
 # 1 "/usr/include/features.h" 1 3 4
-# 358 "/usr/include/features.h" 3 4
-# 1 "/usr/include/sys/cdefs.h" 1 3 4
-# 378 "/usr/include/sys/cdefs.h" 3 4
-# 1 "/usr/include/bits/wordsize.h" 1 3 4
-# 379 "/usr/include/sys/cdefs.h" 2 3 4
-# 359 "/usr/include/features.h" 2 3 4
-# 382 "/usr/include/features.h" 3 4
-# 1 "/usr/include/gnu/stubs.h" 1 3 4
+# 324 "/usr/include/features.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/predefs.h" 1 3 4
+# 325 "/usr/include/features.h" 2 3 4
+# 357 "/usr/include/features.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/sys/cdefs.h" 1 3 4
+# 378 "/usr/include/x86_64-linux-gnu/sys/cdefs.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/wordsize.h" 1 3 4
+# 379 "/usr/include/x86_64-linux-gnu/sys/cdefs.h" 2 3 4
+# 358 "/usr/include/features.h" 2 3 4
+# 389 "/usr/include/features.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/gnu/stubs.h" 1 3 4
 
 
 
-# 1 "/usr/include/bits/wordsize.h" 1 3 4
-# 5 "/usr/include/gnu/stubs.h" 2 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/wordsize.h" 1 3 4
+# 5 "/usr/include/x86_64-linux-gnu/gnu/stubs.h" 2 3 4
 
 
 
 
-# 1 "/usr/include/gnu/stubs-64.h" 1 3 4
-# 10 "/usr/include/gnu/stubs.h" 2 3 4
-# 383 "/usr/include/features.h" 2 3 4
+# 1 "/usr/include/x86_64-linux-gnu/gnu/stubs-64.h" 1 3 4
+# 10 "/usr/include/x86_64-linux-gnu/gnu/stubs.h" 2 3 4
+# 390 "/usr/include/features.h" 2 3 4
 # 26 "/usr/include/stdlib.h" 2 3 4
 
 
@@ -33,10 +36,10 @@
 
 
 
-# 1 "/usr/lib/gcc/x86_64-pc-linux-gnu/4.6.3/include/stddef.h" 1 3 4
-# 212 "/usr/lib/gcc/x86_64-pc-linux-gnu/4.6.3/include/stddef.h" 3 4
+# 1 "/usr/lib/gcc/x86_64-linux-gnu/4.6/include/stddef.h" 1 3 4
+# 212 "/usr/lib/gcc/x86_64-linux-gnu/4.6/include/stddef.h" 3 4
 typedef long unsigned int size_t;
-# 324 "/usr/lib/gcc/x86_64-pc-linux-gnu/4.6.3/include/stddef.h" 3 4
+# 324 "/usr/lib/gcc/x86_64-linux-gnu/4.6/include/stddef.h" 3 4
 typedef int wchar_t;
 # 34 "/usr/include/stdlib.h" 2 3 4
 
@@ -47,21 +50,21 @@ typedef int wchar_t;
 
 
 
-# 1 "/usr/include/bits/waitflags.h" 1 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/waitflags.h" 1 3 4
 # 43 "/usr/include/stdlib.h" 2 3 4
-# 1 "/usr/include/bits/waitstatus.h" 1 3 4
-# 65 "/usr/include/bits/waitstatus.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/waitstatus.h" 1 3 4
+# 65 "/usr/include/x86_64-linux-gnu/bits/waitstatus.h" 3 4
 # 1 "/usr/include/endian.h" 1 3 4
 # 37 "/usr/include/endian.h" 3 4
-# 1 "/usr/include/bits/endian.h" 1 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/endian.h" 1 3 4
 # 38 "/usr/include/endian.h" 2 3 4
 # 61 "/usr/include/endian.h" 3 4
-# 1 "/usr/include/bits/byteswap.h" 1 3 4
-# 28 "/usr/include/bits/byteswap.h" 3 4
-# 1 "/usr/include/bits/wordsize.h" 1 3 4
-# 29 "/usr/include/bits/byteswap.h" 2 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/byteswap.h" 1 3 4
+# 28 "/usr/include/x86_64-linux-gnu/bits/byteswap.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/wordsize.h" 1 3 4
+# 29 "/usr/include/x86_64-linux-gnu/bits/byteswap.h" 2 3 4
 # 62 "/usr/include/endian.h" 2 3 4
-# 66 "/usr/include/bits/waitstatus.h" 2 3 4
+# 66 "/usr/include/x86_64-linux-gnu/bits/waitstatus.h" 2 3 4
 
 union wait
   {
@@ -222,14 +225,14 @@ extern long int a64l (__const char *__s)
 
 
 
-# 1 "/usr/include/sys/types.h" 1 3 4
-# 28 "/usr/include/sys/types.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/sys/types.h" 1 3 4
+# 28 "/usr/include/x86_64-linux-gnu/sys/types.h" 3 4
 
 
-# 1 "/usr/include/bits/types.h" 1 3 4
-# 28 "/usr/include/bits/types.h" 3 4
-# 1 "/usr/include/bits/wordsize.h" 1 3 4
-# 29 "/usr/include/bits/types.h" 2 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/types.h" 1 3 4
+# 28 "/usr/include/x86_64-linux-gnu/bits/types.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/wordsize.h" 1 3 4
+# 29 "/usr/include/x86_64-linux-gnu/bits/types.h" 2 3 4
 
 
 typedef unsigned char __u_char;
@@ -256,9 +259,9 @@ typedef unsigned long int __uint64_t;
 
 typedef long int __quad_t;
 typedef unsigned long int __u_quad_t;
-# 131 "/usr/include/bits/types.h" 3 4
-# 1 "/usr/include/bits/typesizes.h" 1 3 4
-# 132 "/usr/include/bits/types.h" 2 3 4
+# 131 "/usr/include/x86_64-linux-gnu/bits/types.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/typesizes.h" 1 3 4
+# 132 "/usr/include/x86_64-linux-gnu/bits/types.h" 2 3 4
 
 
 typedef unsigned long int __dev_t;
@@ -320,7 +323,7 @@ typedef long int __intptr_t;
 
 
 typedef unsigned int __socklen_t;
-# 31 "/usr/include/sys/types.h" 2 3 4
+# 31 "/usr/include/x86_64-linux-gnu/sys/types.h" 2 3 4
 
 
 
@@ -340,7 +343,7 @@ typedef __loff_t loff_t;
 
 
 typedef __ino_t ino_t;
-# 61 "/usr/include/sys/types.h" 3 4
+# 61 "/usr/include/x86_64-linux-gnu/sys/types.h" 3 4
 typedef __dev_t dev_t;
 
 
@@ -368,7 +371,7 @@ typedef __uid_t uid_t;
 
 
 typedef __off_t off_t;
-# 99 "/usr/include/sys/types.h" 3 4
+# 99 "/usr/include/x86_64-linux-gnu/sys/types.h" 3 4
 typedef __pid_t pid_t;
 
 
@@ -394,7 +397,7 @@ typedef __caddr_t caddr_t;
 
 
 typedef __key_t key_t;
-# 133 "/usr/include/sys/types.h" 3 4
+# 133 "/usr/include/x86_64-linux-gnu/sys/types.h" 3 4
 # 1 "/usr/include/time.h" 1 3 4
 # 58 "/usr/include/time.h" 3 4
 
@@ -414,17 +417,17 @@ typedef __time_t time_t;
 typedef __clockid_t clockid_t;
 # 104 "/usr/include/time.h" 3 4
 typedef __timer_t timer_t;
-# 134 "/usr/include/sys/types.h" 2 3 4
-# 147 "/usr/include/sys/types.h" 3 4
-# 1 "/usr/lib/gcc/x86_64-pc-linux-gnu/4.6.3/include/stddef.h" 1 3 4
-# 148 "/usr/include/sys/types.h" 2 3 4
+# 134 "/usr/include/x86_64-linux-gnu/sys/types.h" 2 3 4
+# 147 "/usr/include/x86_64-linux-gnu/sys/types.h" 3 4
+# 1 "/usr/lib/gcc/x86_64-linux-gnu/4.6/include/stddef.h" 1 3 4
+# 148 "/usr/include/x86_64-linux-gnu/sys/types.h" 2 3 4
 
 
 
 typedef unsigned long int ulong;
 typedef unsigned short int ushort;
 typedef unsigned int uint;
-# 195 "/usr/include/sys/types.h" 3 4
+# 195 "/usr/include/x86_64-linux-gnu/sys/types.h" 3 4
 typedef int int8_t __attribute__ ((__mode__ (__QI__)));
 typedef int int16_t __attribute__ ((__mode__ (__HI__)));
 typedef int int32_t __attribute__ ((__mode__ (__SI__)));
@@ -437,18 +440,18 @@ typedef unsigned int u_int32_t __attribute__ ((__mode__ (__SI__)));
 typedef unsigned int u_int64_t __attribute__ ((__mode__ (__DI__)));
 
 typedef int register_t __attribute__ ((__mode__ (__word__)));
-# 220 "/usr/include/sys/types.h" 3 4
-# 1 "/usr/include/sys/select.h" 1 3 4
-# 31 "/usr/include/sys/select.h" 3 4
-# 1 "/usr/include/bits/select.h" 1 3 4
-# 23 "/usr/include/bits/select.h" 3 4
-# 1 "/usr/include/bits/wordsize.h" 1 3 4
-# 24 "/usr/include/bits/select.h" 2 3 4
-# 32 "/usr/include/sys/select.h" 2 3 4
+# 220 "/usr/include/x86_64-linux-gnu/sys/types.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/sys/select.h" 1 3 4
+# 31 "/usr/include/x86_64-linux-gnu/sys/select.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/select.h" 1 3 4
+# 23 "/usr/include/x86_64-linux-gnu/bits/select.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/wordsize.h" 1 3 4
+# 24 "/usr/include/x86_64-linux-gnu/bits/select.h" 2 3 4
+# 32 "/usr/include/x86_64-linux-gnu/sys/select.h" 2 3 4
 
 
-# 1 "/usr/include/bits/sigset.h" 1 3 4
-# 24 "/usr/include/bits/sigset.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/sigset.h" 1 3 4
+# 24 "/usr/include/x86_64-linux-gnu/bits/sigset.h" 3 4
 typedef int __sig_atomic_t;
 
 
@@ -458,7 +461,7 @@ typedef struct
   {
     unsigned long int __val[(1024 / (8 * sizeof (unsigned long int)))];
   } __sigset_t;
-# 35 "/usr/include/sys/select.h" 2 3 4
+# 35 "/usr/include/x86_64-linux-gnu/sys/select.h" 2 3 4
 
 
 
@@ -475,16 +478,16 @@ struct timespec
     __time_t tv_sec;
     long int tv_nsec;
   };
-# 45 "/usr/include/sys/select.h" 2 3 4
+# 45 "/usr/include/x86_64-linux-gnu/sys/select.h" 2 3 4
 
-# 1 "/usr/include/bits/time.h" 1 3 4
-# 31 "/usr/include/bits/time.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/time.h" 1 3 4
+# 31 "/usr/include/x86_64-linux-gnu/bits/time.h" 3 4
 struct timeval
   {
     __time_t tv_sec;
     __suseconds_t tv_usec;
   };
-# 47 "/usr/include/sys/select.h" 2 3 4
+# 47 "/usr/include/x86_64-linux-gnu/sys/select.h" 2 3 4
 
 
 typedef __suseconds_t suseconds_t;
@@ -494,7 +497,7 @@ typedef __suseconds_t suseconds_t;
 
 
 typedef long int __fd_mask;
-# 65 "/usr/include/sys/select.h" 3 4
+# 65 "/usr/include/x86_64-linux-gnu/sys/select.h" 3 4
 typedef struct
   {
 
@@ -514,26 +517,26 @@ typedef struct
 
 
 typedef __fd_mask fd_mask;
-# 97 "/usr/include/sys/select.h" 3 4
+# 97 "/usr/include/x86_64-linux-gnu/sys/select.h" 3 4
 
-# 107 "/usr/include/sys/select.h" 3 4
+# 107 "/usr/include/x86_64-linux-gnu/sys/select.h" 3 4
 extern int select (int __nfds, fd_set *__restrict __readfds,
      fd_set *__restrict __writefds,
      fd_set *__restrict __exceptfds,
      struct timeval *__restrict __timeout);
-# 119 "/usr/include/sys/select.h" 3 4
+# 119 "/usr/include/x86_64-linux-gnu/sys/select.h" 3 4
 extern int pselect (int __nfds, fd_set *__restrict __readfds,
       fd_set *__restrict __writefds,
       fd_set *__restrict __exceptfds,
       const struct timespec *__restrict __timeout,
       const __sigset_t *__restrict __sigmask);
-# 132 "/usr/include/sys/select.h" 3 4
+# 132 "/usr/include/x86_64-linux-gnu/sys/select.h" 3 4
 
-# 221 "/usr/include/sys/types.h" 2 3 4
+# 221 "/usr/include/x86_64-linux-gnu/sys/types.h" 2 3 4
 
 
-# 1 "/usr/include/sys/sysmacros.h" 1 3 4
-# 30 "/usr/include/sys/sysmacros.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/sys/sysmacros.h" 1 3 4
+# 30 "/usr/include/x86_64-linux-gnu/sys/sysmacros.h" 3 4
 
 
 __extension__
@@ -546,9 +549,9 @@ __extension__
 extern unsigned long long int gnu_dev_makedev (unsigned int __major,
             unsigned int __minor)
      __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-# 64 "/usr/include/sys/sysmacros.h" 3 4
+# 64 "/usr/include/x86_64-linux-gnu/sys/sysmacros.h" 3 4
 
-# 224 "/usr/include/sys/types.h" 2 3 4
+# 224 "/usr/include/x86_64-linux-gnu/sys/types.h" 2 3 4
 
 
 
@@ -570,12 +573,12 @@ typedef __fsblkcnt_t fsblkcnt_t;
 
 
 typedef __fsfilcnt_t fsfilcnt_t;
-# 271 "/usr/include/sys/types.h" 3 4
-# 1 "/usr/include/bits/pthreadtypes.h" 1 3 4
-# 23 "/usr/include/bits/pthreadtypes.h" 3 4
-# 1 "/usr/include/bits/wordsize.h" 1 3 4
-# 24 "/usr/include/bits/pthreadtypes.h" 2 3 4
-# 50 "/usr/include/bits/pthreadtypes.h" 3 4
+# 271 "/usr/include/x86_64-linux-gnu/sys/types.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h" 1 3 4
+# 23 "/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h" 3 4
+# 1 "/usr/include/x86_64-linux-gnu/bits/wordsize.h" 1 3 4
+# 24 "/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h" 2 3 4
+# 50 "/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h" 3 4
 typedef unsigned long int pthread_t;
 
 
@@ -592,7 +595,7 @@ typedef struct __pthread_internal_list
   struct __pthread_internal_list *__prev;
   struct __pthread_internal_list *__next;
 } __pthread_list_t;
-# 76 "/usr/include/bits/pthreadtypes.h" 3 4
+# 76 "/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h" 3 4
 typedef union
 {
   struct __pthread_mutex_s
@@ -609,7 +612,7 @@ typedef union
 
     int __spins;
     __pthread_list_t __list;
-# 101 "/usr/include/bits/pthreadtypes.h" 3 4
+# 101 "/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h" 3 4
   } __data;
   char __size[40];
   long int __align;
@@ -678,7 +681,7 @@ typedef union
 
     unsigned int __flags;
   } __data;
-# 187 "/usr/include/bits/pthreadtypes.h" 3 4
+# 187 "/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h" 3 4
   char __size[56];
   long int __align;
 } pthread_rwlock_t;
@@ -709,7 +712,7 @@ typedef union
   char __size[4];
   int __align;
 } pthread_barrierattr_t;
-# 272 "/usr/include/sys/types.h" 2 3 4
+# 272 "/usr/include/x86_64-linux-gnu/sys/types.h" 2 3 4
 
 
 
@@ -892,7 +895,7 @@ extern void cfree (void *__ptr) __attribute__ ((__nothrow__ , __leaf__));
 
 # 1 "/usr/include/alloca.h" 1 3 4
 # 25 "/usr/include/alloca.h" 3 4
-# 1 "/usr/lib/gcc/x86_64-pc-linux-gnu/4.6.3/include/stddef.h" 1 3 4
+# 1 "/usr/lib/gcc/x86_64-linux-gnu/4.6/include/stddef.h" 1 3 4
 # 26 "/usr/include/alloca.h" 2 3 4
 
 
@@ -1165,13 +1168,13 @@ int main() {
   int* ptrI = &i;
   int* ptrj = &j;
   int** tmphelper = (int**)tmp;
-  int* tmpfst = *tmphelper;
-  int* tmpsnd = *(tmphelper + 1);
-  tmpfst = ptrI;
-  tmpsnd = ptrj;
+  int** tmpfst = tmphelper;
+  int** tmpsnd = tmphelper + 1;
+  *tmpfst = ptrI;
+  *tmpsnd = ptrj;
   int** other = (int**)tmp;
   int* snd = *(other + 1);
-  if (*tmpfst == 3 && *tmpsnd == 4 && *snd == 4){
+  if (**tmpfst == 3 && **tmpsnd == 4 && *snd == 4){
     return 0;
   }
 
