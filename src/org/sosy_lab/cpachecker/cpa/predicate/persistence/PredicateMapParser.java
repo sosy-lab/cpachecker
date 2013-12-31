@@ -33,14 +33,14 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -129,7 +129,7 @@ public class PredicateMapParser {
     Files.checkReadableFile(file);
 
     try (BufferedReader reader = file.asCharSource(Charsets.US_ASCII).openBufferedStream()) {
-      return parsePredicates(reader, file.getFileName());
+      return parsePredicates(reader, file.getName());
     }
   }
 

@@ -38,9 +38,10 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Files;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.OptionCollector;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -176,7 +177,7 @@ class CmdLineArguments {
       } else if (arg.equals("-help") || arg.equals("-h")) {
         printHelp();
 
-      } else if (arg.startsWith("-") && !(new Path(arg).exists())) {
+      } else if (arg.startsWith("-") && !(Paths.get(arg).exists())) {
         String argName = arg.substring(1); // remove "-"
 
         if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
@@ -224,7 +225,7 @@ class CmdLineArguments {
       String newValue = argsIt.next();
 
       // replace "predicateAnalysis" with config/predicateAnalysis.properties etc.
-      if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches() && !(new Path(newValue).exists())) {
+      if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches() && !(Paths.get(newValue).exists())) {
         Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, newValue);
 
         if (configFile != null) {
@@ -342,7 +343,7 @@ class CmdLineArguments {
           // handle property files, as demanded by SV-COMP, which are just mapped to an explicit entry function and
           // the respective specification definition
           else if(PROPERTY_FILE_PATTERN.matcher(newValue).matches()) {
-            Path propertyFile = new Path(newValue);
+            Path propertyFile = Paths.get(newValue);
             if (propertyFile.toFile().exists()) {
               PropertyFileParser parser = new PropertyFileParser(propertyFile);
               parser.parse();
@@ -410,7 +411,7 @@ class CmdLineArguments {
   private static Path findFile(final String template, final String name) {
     final String fileName = String.format(template, name);
 
-    Path file = new Path(fileName);
+    Path file = Paths.get(fileName);
 
     // look in current directory first
     if (file.toFile().exists()) {
@@ -418,7 +419,7 @@ class CmdLineArguments {
     }
 
     // look relative to code location second
-    Path codeLocation = new Path(CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+    Path codeLocation = Paths.get(CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().getPath());
     Path baseDir = codeLocation.getParent();
 
     file = baseDir.resolve(fileName);

@@ -30,12 +30,13 @@ import java.util.Map;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
@@ -58,7 +59,7 @@ public class AutomatonTest {
         "analysis.stopAfterError",        "FALSE"
       );
 
-      Path tmpSpc = new Path("test/config/automata/tmpSpecification.spc");
+      Path tmpSpc = Paths.get("test/config/automata/tmpSpecification.spc");
       String content = "#include UninitializedVariablesTestAutomaton.txt \n" +
       "#include tmpSpecification.spc \n";
       Files.writeFile(tmpSpc, content);

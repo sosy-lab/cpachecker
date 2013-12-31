@@ -37,14 +37,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
@@ -105,7 +106,7 @@ class SmtInterpolEnvironment {
 
   @Option(name="logfile", description="Export solver queries in Smtlib format into a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path smtLogfile = new Path("smtinterpol.%03d.smt2");
+  private Path smtLogfile = Paths.get("smtinterpol.%03d.smt2");
 
   /** this is a counter to get distinct logfiles for distinct environments. */
   private static int logfileCounter = 0;
@@ -235,7 +236,7 @@ class SmtInterpolEnvironment {
       String logfile = getFilename(smtLogfile);
 
       try {
-        PrintWriter out = new PrintWriter(Files.openOutputFile(new Path(logfile)));
+        PrintWriter out = new PrintWriter(Files.openOutputFile(Paths.get(logfile)));
 
         out.println("(set-option :produce-interpolants true)");
         out.println("(set-option :produce-models true)");

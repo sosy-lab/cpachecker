@@ -39,13 +39,14 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -169,7 +170,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(description="dump counterexample formula to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path dumpCounterexampleFormula = new Path("ErrorPath.%d.smt2");
+  private Path dumpCounterexampleFormula = Paths.get("ErrorPath.%d.smt2");
 
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;

@@ -36,11 +36,12 @@ import java_cup.runtime.Symbol;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
@@ -61,7 +62,7 @@ public class AutomatonInternalTest {
   private final LogManager logger;
   private final CParser parser;
 
-  private static final Path defaultSpec = new Path("test/config/automata/defaultSpecification.spc");
+  private static final Path defaultSpec = Paths.get("test/config/automata/defaultSpecification.spc");
 
   public AutomatonInternalTest() throws InvalidConfigurationException {
     config = Configuration.builder()

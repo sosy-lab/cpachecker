@@ -37,15 +37,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -115,7 +116,7 @@ public class SMGTransferRelation implements TransferRelation {
 
   @Option(name = "exportSMG.file", description = "Filename format for SMG graph dumps")
   @FileOption(Type.OUTPUT_FILE)
-  private Path exportSMGFilePattern = new Path("smg-%s.dot");
+  private Path exportSMGFilePattern = Paths.get("smg-%s.dot");
 
   @Option(description = "with this option enabled, a check for unreachable memory occurs whenever a function returns, and not only at the end of the main function")
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
@@ -207,7 +208,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     protected Path getOutputFile(Path pExportSMGFilePattern, String pName) {
-      return new Path(String.format(pExportSMGFilePattern.toAbsolutePath().getPath(), pName));
+      return Paths.get(String.format(pExportSMGFilePattern.toAbsolutePath().getPath(), pName));
     }
 
     protected String getDot(SMGState pCurrentState, String pName, String pLocation) {
@@ -1853,7 +1854,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     @Override
     protected Path getOutputFile(Path pExportSMGFilePattern, String pName) {
-      return new Path(String.format(exportSMGFilePattern.toAbsolutePath().getPath(), "Explicit_" + pName));
+      return Paths.get(String.format(exportSMGFilePattern.toAbsolutePath().getPath(), "Explicit_" + pName));
     }
 
     @Override

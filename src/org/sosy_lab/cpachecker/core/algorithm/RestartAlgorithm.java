@@ -38,7 +38,6 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,6 +45,8 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -195,7 +196,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       try {
         Path singleConfigFileName = configFilesIterator.next();
         // extract first part out of file name
-        singleConfigFileName = new Path(CONFIG_FILE_CONDITION_SPLITTER.split(singleConfigFileName.toString()).iterator().next());
+        singleConfigFileName = Paths.get(CONFIG_FILE_CONDITION_SPLITTER.split(singleConfigFileName.toString()).iterator().next());
 
         try {
           Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg = createNextAlgorithm(singleConfigFileName, mainFunction, singleShutdownNotifier);

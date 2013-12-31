@@ -41,15 +41,16 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -109,7 +110,7 @@ public class FormulaManagerView {
 
   @Option(name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path formulaDumpFile = new Path("%s%04d-%s%03d.smt2");
+  private Path formulaDumpFile = Paths.get("%s%04d-%s%03d.smt2");
   private String formulaDumpFilePattern;
 
   @Option(description="try to add some useful static-learning-like axioms for "
@@ -175,7 +176,7 @@ public class FormulaManagerView {
       return null;
     }
 
-    return new Path(String.format(formulaDumpFilePattern, function, call, formula, index));
+    return Paths.get(String.format(formulaDumpFilePattern, function, call, formula, index));
   }
 
   public void dumpFormulaToFile(BooleanFormula f, Path outputFile) {

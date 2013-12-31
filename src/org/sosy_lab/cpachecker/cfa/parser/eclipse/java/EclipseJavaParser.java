@@ -280,7 +280,7 @@ public class EclipseJavaParser implements Parser {
       directorysToBeSearched.add(file);
       directorysReached.add(file);
     } else {
-      logger.log(Level.WARNING, "No permission to read directory " + file.getFileName() + ".");
+      logger.log(Level.WARNING, "No permission to read directory " + file.getName() + ".");
     }
   }
 
@@ -289,7 +289,7 @@ public class EclipseJavaParser implements Parser {
       sourceFileToBeParsed.add(file);
     } else {
       logger.log(Level.WARNING, "No permission to read java file ");
-      logger.log(Level.WARNING, file.getFileName());
+      logger.log(Level.WARNING, file.getName());
       logger.log(Level.WARNING, ".");
     }
   }

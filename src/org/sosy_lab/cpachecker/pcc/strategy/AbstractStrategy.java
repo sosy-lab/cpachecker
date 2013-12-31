@@ -38,7 +38,6 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -46,6 +45,8 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -64,7 +65,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       name = "pcc.proofFile",
       description = "file in which proof representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  protected Path file = new Path("arg.obj");
+  protected Path file = Paths.get("arg.obj");
 
   @Option(
       name = "pcc.useCores",

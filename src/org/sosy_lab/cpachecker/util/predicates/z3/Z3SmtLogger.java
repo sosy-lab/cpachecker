@@ -31,17 +31,18 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.io.Files;
+import com.google.common.io.FileWriteMode;
 
 @Options(prefix = "cpa.predicate.solver.z3.logger")
 public class Z3SmtLogger {
@@ -52,7 +53,7 @@ public class Z3SmtLogger {
 
   @Option(name = "logfile", description = "Export solver queries in Smtlib2 format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path basicLogfile = new Path("z3smtlog.%d.smt2");
+  private Path basicLogfile = Paths.get("z3smtlog.%d.smt2");
   private static int logfileCounter = 0;
 
   @Option(description = "Export solver queries in Smtlib2 format, " +
@@ -86,7 +87,7 @@ public class Z3SmtLogger {
       this.logfile = null;
     } else {
       String filename = String.format(basicLogfile.toAbsolutePath().getPath(), logfileCounter++);
-      this.logfile = new Path(filename);
+      this.logfile = Paths.get(filename);
       log("", false); // create or clean the file
     }
   }
@@ -197,9 +198,9 @@ public class Z3SmtLogger {
   private synchronized void log(String s, boolean append) {
     try {
       if (append) {
-        Files.append(s, logfile, Charset.defaultCharset());
+        logfile.asCharSink(Charset.defaultCharset(), FileWriteMode.APPEND).write(s);
       } else {
-        Files.write(s, logfile, Charset.defaultCharset());
+        logfile.asCharSink(Charset.defaultCharset()).write(s);
       }
     } catch (IOException e) {
       throw new AssertionError("IO-Error in smtlogfile");

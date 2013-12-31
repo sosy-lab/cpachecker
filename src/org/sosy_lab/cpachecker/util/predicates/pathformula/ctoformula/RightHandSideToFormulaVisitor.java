@@ -30,7 +30,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Path;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -159,7 +160,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
     assert (parameters.size()>0): "No external model given!";
     // the parameter comes in C syntax (with ")
     String filename = parameters.get(0).toASTString().replaceAll("\"", "");
-    Path modelFile = new Path(filename);
+    Path modelFile = Paths.get(filename);
     BooleanFormula externalModel = loadExternalFormula(modelFile);
     FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(fexp.getExpressionType());
     return conv.ifTrueThenOneElseZero(returnFormulaType, externalModel);
@@ -174,7 +175,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
    * @return BooleanFormula
    */
   private BooleanFormula loadExternalFormula(Path pModelFile) {
-    if (! pModelFile.getFileName().endsWith(".dimacs")) {
+    if (! pModelFile.getName().endsWith(".dimacs")) {
       throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
     }
     try (BufferedReader br =  pModelFile.asCharSource(Charsets.UTF_8).openBufferedStream()) {
