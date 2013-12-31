@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,9 +31,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.Files;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.objects.SMGObject;
@@ -117,9 +116,9 @@ class SMGNodeDotVisitor implements SMGObjectVisitor {
 
 public final class SMGPlotter {
   static final public void debuggingPlot(CLangSMG pSmg, String pId, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) throws IOException {
-    Path exportSMGFilePattern = Paths.get("smg-debug-%s.dot");
+    File exportSMGFilePattern = new File("smg-debug-%s.dot");
     pId = pId.replace("\"", "");
-    Path outputFile = Paths.get(String.format(exportSMGFilePattern.getAbsolutePath(), pId));
+    File outputFile = new File(String.format(exportSMGFilePattern.getAbsolutePath(), pId));
     SMGPlotter plotter = new SMGPlotter();
 
     Files.writeFile(outputFile, plotter.smgAsDot(pSmg, pId, "debug plot", explicitValues));

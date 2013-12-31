@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.NotSerializableException;
@@ -45,8 +48,6 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -65,7 +66,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       name = "pcc.proofFile",
       description = "file in which proof representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  protected Path file = Paths.get("arg.obj");
+  protected File file = new File("arg.obj");
 
   @Option(
       name = "pcc.useCores",
@@ -87,7 +88,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
     OutputStream fos = null;
     try {
-      fos = file.asByteSink().openStream();
+      fos = new FileOutputStream(file);
       ZipOutputStream zos = new ZipOutputStream(fos);
       zos.setLevel(9);
 
@@ -132,7 +133,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     InputStream fis = null;
     try {
 
-      fis = file.asByteSource().openStream();
+      fis = new FileInputStream(file);
       ZipInputStream zis = new ZipInputStream(fis);
 
       ZipEntry entry = zis.getNextEntry();
@@ -154,7 +155,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       zis.close();
       fis.close();
 
-      fis = file.asByteSource().openStream();
+      fis = new FileInputStream(file);
       zis = new ZipInputStream(fis);
       entry = zis.getNextEntry();
       assert entry.getName().equals("Proof");

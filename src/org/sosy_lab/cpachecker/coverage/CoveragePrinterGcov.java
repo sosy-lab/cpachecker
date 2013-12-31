@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.coverage;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import org.sosy_lab.common.io.Paths;
 
 /**
  * Generate coverage information in Gcov format
@@ -92,7 +91,7 @@ public class CoveragePrinterGcov implements CoveragePrinter {
   public void print(Appendable out, String originFile) throws IOException {
     //Convert ./test.c -> /full/path/test.c
     out.append(TEXTNAME + "\n");
-    out.append(SOURCEFILE + Paths.get(originFile).getAbsolutePath() + "\n");
+    out.append(SOURCEFILE + new File(originFile).getAbsolutePath() + "\n");
 
     for (FunctionInfo info : allFunctions) {
       out.append(FUNCTION + info.firstLine + "," + info.name + "\n");

@@ -24,14 +24,14 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -46,8 +46,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-
-import com.google.common.base.Charsets;
 
 class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula, UnrecognizedCCodeException>
                                      implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
@@ -160,7 +158,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
     assert (parameters.size()>0): "No external model given!";
     // the parameter comes in C syntax (with ")
     String filename = parameters.get(0).toASTString().replaceAll("\"", "");
-    Path modelFile = Paths.get(filename);
+    File modelFile = new File(filename);
     BooleanFormula externalModel = loadExternalFormula(modelFile);
     FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(fexp.getExpressionType());
     return conv.ifTrueThenOneElseZero(returnFormulaType, externalModel);
@@ -174,11 +172,11 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
    * @param pModelFile File with the dimacs model.
    * @return BooleanFormula
    */
-  private BooleanFormula loadExternalFormula(Path pModelFile) {
+  private BooleanFormula loadExternalFormula(File pModelFile) {
     if (! pModelFile.getName().endsWith(".dimacs")) {
       throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
     }
-    try (BufferedReader br =  pModelFile.asCharSource(Charsets.UTF_8).openBufferedStream()) {
+    try (BufferedReader br = new BufferedReader(new FileReader(pModelFile))) {
        ArrayList<String> predicates = new ArrayList<>(10000);
        //var ids in dimacs files start with 1, so we want the first var at position 1
        predicates.add("RheinDummyVar");
