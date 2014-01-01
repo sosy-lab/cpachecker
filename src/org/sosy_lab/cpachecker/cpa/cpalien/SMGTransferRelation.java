@@ -91,6 +91,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -2068,7 +2069,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     public boolean isUnknown();
 
-    public BigInteger getValue();
+    public NumberContainer getValue();
 
     public int getAsInt();
 
@@ -2274,7 +2275,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     @Override
     public SMGExplicitValue negate() {
-      return valueOf(getValue().negate());
+      return valueOf(new NumberContainer(getValue().getType(), getValue().bigDecimalValue().negate()));
     }
 
     @Override
@@ -2282,7 +2283,15 @@ public class SMGTransferRelation implements TransferRelation {
 
       if (pRVal.isUnknown()) { return SMGUnknownValue.getInstance(); }
 
-      return valueOf(getValue().xor(pRVal.getValue()));
+      // This operation does not work with floating point numbers
+      if ((getValue().getType().getType() == CBasicType.FLOAT)
+          || (getValue().getType().getType() == CBasicType.DOUBLE)) {
+        return SMGUnknownValue.getInstance();
+      }
+
+      BigInteger lVal = getValue().bigDecimalValue().toBigInteger();
+      BigInteger result = lVal.xor(new BigInteger(String.valueOf(pRVal.getValue().getNumber().longValue())));
+      return valueOf(new NumberContainer(result.longValue()));
     }
 
     @Override
@@ -2290,7 +2299,15 @@ public class SMGTransferRelation implements TransferRelation {
 
       if (pRVal.isUnknown()) { return SMGUnknownValue.getInstance(); }
 
-      return valueOf(getValue().or(pRVal.getValue()));
+      // This operation does not work with floating point numbers
+      if ((getValue().getType().getType() == CBasicType.FLOAT)
+          || (getValue().getType().getType() == CBasicType.DOUBLE)) {
+        return SMGUnknownValue.getInstance();
+      }
+
+      BigInteger lVal = getValue().bigDecimalValue().toBigInteger();
+      BigInteger result = lVal.or(new BigInteger(String.valueOf(pRVal.getValue().getNumber().longValue())));
+      return valueOf(new NumberContainer(result.longValue()));
     }
 
     @Override
@@ -2298,15 +2315,30 @@ public class SMGTransferRelation implements TransferRelation {
 
       if (pRVal.isUnknown()) { return SMGUnknownValue.getInstance(); }
 
-      return valueOf(getValue().and(pRVal.getValue()));
+      // This operation does not work with floating point numbers
+      if ((getValue().getType().getType() == CBasicType.FLOAT)
+          || (getValue().getType().getType() == CBasicType.DOUBLE)) {
+        return SMGUnknownValue.getInstance();
+      }
+
+      BigInteger lVal = getValue().bigDecimalValue().toBigInteger();
+      BigInteger result = lVal.and(new BigInteger(String.valueOf(pRVal.getValue().getNumber().longValue())));
+      return valueOf(new NumberContainer(result.longValue()));
     }
 
     @Override
     public SMGExplicitValue shiftLeft(SMGExplicitValue pRVal) {
 
       if (pRVal.isUnknown()) { return SMGUnknownValue.getInstance(); }
+      // This operation does not work with floating point numbers
+      if ((getValue().getType().getType() == CBasicType.FLOAT)
+          || (getValue().getType().getType() == CBasicType.DOUBLE)) {
+        return SMGUnknownValue.getInstance();
+      }
 
-      return valueOf(getValue().shiftLeft(pRVal.getAsInt()));
+      BigInteger lVal = getValue().bigDecimalValue().toBigInteger();
+      BigInteger result = lVal.shiftLeft(pRVal.getAsInt());
+      return valueOf(new NumberContainer(result.longValue()));
     }
 
     @Override
@@ -2314,7 +2346,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       if (pRVal.isUnknown()) { return SMGUnknownValue.getInstance(); }
 
-      return valueOf(getValue().multiply(pRVal.getValue()));
+      return valueOf(new NumberContainer(getValue().getType(), (getValue().bigDecimalValue().multiply(new BigDecimal(String.valueOf(pRVal.getValue().getNumber()))))));
     }
 
     @Override
@@ -2322,7 +2354,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       if (pRVal.isUnknown()) { return SMGUnknownValue.getInstance(); }
 
-      return valueOf(getValue().divide(pRVal.getValue()));
+      return valueOf(new NumberContainer(getValue().getType(), (getValue().bigDecimalValue().divide(new BigDecimal(String.valueOf(pRVal.getValue().getNumber()))))));
     }
 
     @Override
@@ -2330,7 +2362,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       if (pRVal.isUnknown()) { return SMGUnknownValue.getInstance(); }
 
-      return valueOf(getValue().subtract(pRVal.getValue()));
+      return valueOf(new NumberContainer(getValue().getType(), (getValue().bigDecimalValue().subtract(new BigDecimal(String.valueOf(pRVal.getValue().getNumber()))))));
     }
 
     @Override
@@ -2338,7 +2370,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       if (pRVal.isUnknown()) { return SMGUnknownValue.getInstance(); }
 
-      return valueOf(getValue().add(pRVal.getValue()));
+      return valueOf(new NumberContainer(getValue().getType(), (getValue().bigDecimalValue().add(new BigDecimal(String.valueOf(pRVal.getValue().getNumber()))))));
     }
 
     public static final SMGKnownExpValue valueOf(int pValue) {
@@ -2406,7 +2438,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    public BigInteger getValue() {
+    public NumberContainer getValue() {
       throw new IllegalStateException("Can't get Value of an Unknown Value.");
     }
 
