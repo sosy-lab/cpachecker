@@ -63,6 +63,7 @@ public class AutomatonGraphmlParser {
   * Parses a Specification File and returns the Automata found in the file.
   */
   public static List<Automaton> parseAutomatonFile(File pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
+
     //CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
 
     try (FileInputStream input = new FileInputStream(pInputFile)) {
@@ -149,7 +150,7 @@ public class AutomatonGraphmlParser {
       return result;
 
     } catch (FileNotFoundException e) {
-      throw new InvalidConfigurationException("Invalid automaton file provided! File not found!");
+      throw new InvalidConfigurationException("Invalid automaton file provided! File not found!: " + pInputFile.getPath());
     } catch (IOException | ParserConfigurationException | SAXException e) {
       throw new InvalidConfigurationException("Error while accessing automaton file!", e);
     } catch (InvalidAutomatonException e) {
