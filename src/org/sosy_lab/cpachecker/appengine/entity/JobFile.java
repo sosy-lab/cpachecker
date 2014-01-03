@@ -23,10 +23,22 @@
  */
 package org.sosy_lab.cpachecker.appengine.entity;
 
-import com.googlecode.objectify.Key;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+
+import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
+
 import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
+import com.googlecode.objectify.annotation.Ignore;
+import com.googlecode.objectify.annotation.OnSave;
 import com.googlecode.objectify.annotation.Parent;
 
 @Entity
@@ -36,16 +48,13 @@ public class JobFile {
   @Parent Ref<Job> job;
   private String name;
   private String content;
-
+  @Ignore private Writer contentWriter;
+  @Ignore private ByteArrayOutputStream contentOutputStream;
 
   public JobFile() {}
 
   public JobFile(String name) {
     this.name = name;
-  }
-
-  public String getKeyString() {
-    return Key.create(job.getKey(), JobFile.class, id).getString();
   }
 
   public Long getId() {
@@ -60,7 +69,16 @@ public class JobFile {
     job = Ref.create(pJob);
   }
 
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String pName) {
+    name = pName;
+  }
+
   public String getContent() {
+    flushOuputStream();
     return content;
   }
 
@@ -68,7 +86,62 @@ public class JobFile {
     content = pContent;
   }
 
-  public String getName() {
-    return name;
+  /**
+   * @see #getContentOutputStream()
+   *
+   * @param charset The charset to use for writing.
+   * @return A Writer instance to write this instance's content
+   */
+  public Writer getContentWriter(Charset charset) {
+    if (contentWriter == null) {
+      contentWriter = new BufferedWriter(new OutputStreamWriter(getContentOutputStream(), charset));
+    }
+
+    return contentWriter;
+  }
+
+  /**
+   * Returns an OutputStream to write the file's content.
+   * If an output stream is used and something is actually written to it,
+   * then anything set via {@link #setContent(String)} will be overwritten by the writer's contents
+   * upon saving or retrieving the content via {@link #getContent()}.
+   *
+   * @return An OutputStream instance to write this instance's content.
+   */
+  public OutputStream getContentOutputStream() {
+    if (contentOutputStream == null) {
+      contentOutputStream = new SaveOnCloseByteArrayOutputStream(this);
+    }
+
+    return contentOutputStream;
+  }
+
+  /**
+   * Flushes the content output stream before saving and sets the content to its contents.
+   */
+  @OnSave void flushOuputStream() {
+    if (contentOutputStream != null && contentOutputStream.size() > 0) {
+      content = Arrays.toString(contentOutputStream.toByteArray());
+    }
+  }
+
+  /**
+   * A ByteArrayOuputStream that save the given JobFile instance on calling close()
+   */
+  public class SaveOnCloseByteArrayOutputStream extends ByteArrayOutputStream {
+
+    private JobFile file;
+
+    public SaveOnCloseByteArrayOutputStream(JobFile file) {
+      this.file = file;
+    }
+
+    @Override
+    public void close() throws IOException {
+      super.close();
+      JobDAO.save(file);
+      file.getJob().addFile(file);
+      JobDAO.save(file.getJob());
+    }
   }
 }
