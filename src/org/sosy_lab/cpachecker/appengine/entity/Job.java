@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.appengine.entity;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.googlecode.objectify.Ref;
@@ -49,6 +51,7 @@ public class Job {
   private String specification;
   private String configuration;
   private Ref<JobFile> program;
+  private List<Ref<JobFile>> files;
   private String queueName;
   private String taskName;
 
@@ -97,6 +100,8 @@ public class Job {
     defaultOptions.put("cpa.monitor.pathcomputationlimit", "0");
     defaultOptions.put("cpa.predicate.refinement.timelimit", "0");
     defaultOptions.put("analysis.useProofCheckAlgorithm", "false");
+
+    files = new ArrayList<>();
 
     status = Status.PENDING;
     creationDate = new Date();
@@ -189,6 +194,18 @@ public class Job {
 
   public void setProgram(JobFile pProgram) {
     program = Ref.create(pProgram);
+  }
+
+  public List<Ref<JobFile>> getFiles() {
+    return files;
+  }
+
+  public void addFile(JobFile file) {
+    files.add(Ref.create(file));
+  }
+
+  public void removeFile(JobFile file) {
+    files.remove(Ref.create(file));
   }
 
   public String getQueueName() {
