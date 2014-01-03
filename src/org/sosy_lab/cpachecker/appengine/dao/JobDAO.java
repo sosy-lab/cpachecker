@@ -63,6 +63,20 @@ public class JobDAO {
     });
   }
 
+  public static void delete(final JobFile file) {
+    final Job parent = file.getJob();
+    parent.removeFile(file);
+
+    ofy().transact(new VoidWork() {
+
+      @Override
+      public void vrun() {
+        ofy().save().entity(parent).now();
+        ofy().delete().entity(file).now();
+      }
+    });
+  }
+
   public static String key(Job job) {
     return Key.create(Job.class, job.getId()).getString();
   }
