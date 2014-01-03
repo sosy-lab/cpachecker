@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Configuration.Builder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.io.AbstractPathFactory;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.appengine.common.GAELogHandler;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.appengine.common.GAELogManager;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.Job.Status;
+import org.sosy_lab.cpachecker.appengine.io.GAEPathFactory;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -63,6 +65,9 @@ public class JobRunnerWorker extends HttpServlet {
   protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
     Key<Job> jobKey = Key.create(request.getParameter("jobKey"));
     Job job = ofy().load().key(jobKey).now();
+
+    AbstractPathFactory pathFactory = new GAEPathFactory(job);
+    Paths.setFactory(pathFactory);
 
     job.setExecutionDate(new Date());
     job.setStatus(Status.RUNNING);
