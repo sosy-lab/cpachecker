@@ -24,14 +24,14 @@
 package org.sosy_lab.cpachecker.appengine.entity;
 
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 
-import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 
 import com.googlecode.objectify.Ref;
@@ -46,15 +46,28 @@ public class JobFile {
 
   @Id Long id;
   @Parent Ref<Job> job;
-  private String name;
+  private String path;
   private String content;
   @Ignore private Writer contentWriter;
   @Ignore private ByteArrayOutputStream contentOutputStream;
 
-  public JobFile() {}
+  public JobFile() {
+    init();
+  }
 
-  public JobFile(String name) {
-    this.name = name;
+  public JobFile(String path) {
+    this.path = path;
+    init();
+  }
+
+  public JobFile(String path, Job job) {
+    this.path = path;
+    this.job = Ref.create(job);
+    init();
+  }
+
+  private void init() {
+    content = "";
   }
 
   public Long getId() {
@@ -70,11 +83,15 @@ public class JobFile {
   }
 
   public String getName() {
-    return name;
+    return Paths.get(path).getName();
   }
 
-  public void setName(String pName) {
-    name = pName;
+  public String getPath() {
+    return path;
+  }
+
+  public void setPath(String pPath) {
+    path = pPath;
   }
 
   public String getContent() {
@@ -121,7 +138,7 @@ public class JobFile {
    */
   @OnSave void flushOuputStream() {
     if (contentOutputStream != null && contentOutputStream.size() > 0) {
-      content = Arrays.toString(contentOutputStream.toByteArray());
+      content = contentOutputStream.toString();
     }
   }
 

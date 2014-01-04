@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.appengine.io;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 
 import javax.annotation.Nullable;
@@ -47,8 +49,18 @@ public class GAEPathFactory implements AbstractPathFactory {
 
   @Override
   public Path getTempPath(String prefix, @Nullable String suffix) throws IOException {
-    // TODO create temp path (with memcache??)
-    return null;
+    checkNotNull(prefix);
+    if (prefix.length() < 3) {
+      throw new IllegalArgumentException("The prefix must at least be three characters long.");
+    }
+
+    if (suffix == null) {
+      suffix = ".tmp";
+    }
+
+    String filename = prefix + suffix;
+
+    return getPath(filename);
   }
 
 }

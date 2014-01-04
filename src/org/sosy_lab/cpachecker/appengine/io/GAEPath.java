@@ -44,12 +44,10 @@ public class GAEPath extends FileSystemPath {
   public GAEPath(String path, Job job, String... more) {
     super(path, more);
 
-    jobFile = new JobFile(getPath());
-    jobFile.setJob(job);
-    jobFile.setContent("");
-
-    // TODO load jobfile from DS
-    // TODO if jobFile == null it must be created prior of writing/reading
+    jobFile = job.getFile(getPath());
+    if (jobFile == null) {
+      jobFile = new JobFile(getPath(), job);
+    }
   }
 
   @Override

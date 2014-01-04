@@ -52,6 +52,7 @@ public class Job {
   private String configuration;
   private Ref<JobFile> program;
   private List<Ref<JobFile>> files;
+  @Ignore private Map<String, JobFile> fileLookupTable;
   private String queueName;
   private String taskName;
 
@@ -78,7 +79,7 @@ public class Job {
 
   private void init() {
     defaultOptions = new HashMap<>();
-    defaultOptions.put("output.disable", "true");
+//    defaultOptions.put("output.disable", "true");
     defaultOptions.put("cpa.predicate.solver", "smtinterpol");
     defaultOptions.put("statistics.export", "false");
     defaultOptions.put("statistics.memory", "false");
@@ -102,6 +103,7 @@ public class Job {
     defaultOptions.put("analysis.useProofCheckAlgorithm", "false");
 
     files = new ArrayList<>();
+    fileLookupTable = new HashMap<>();
 
     status = Status.PENDING;
     creationDate = new Date();
@@ -200,12 +202,39 @@ public class Job {
     return files;
   }
 
+  /**
+   * Returns the file with an ID of the given path.
+   *
+   * @param path The file's path.
+   * @return The file or null if the file cannot be found
+   */
+  public JobFile getFile(String path) {
+    if (fileLookupTable.containsKey(path)) {
+      return fileLookupTable.get(path);
+    } else if (fileLookupTable.size() == files.size()) {
+      return null;
+    }
+
+    for (Ref<JobFile> ref : files) {
+      JobFile file = ref.get();
+      fileLookupTable.put(file.getPath(), file);
+
+      if ((file.getPath().equals(path))) {
+        return  file;
+      }
+    }
+
+    return null;
+  }
+
   public void addFile(JobFile file) {
     files.add(Ref.create(file));
+    fileLookupTable.put(file.getPath(), file);
   }
 
   public void removeFile(JobFile file) {
     files.remove(Ref.create(file));
+    fileLookupTable.remove(file.getPath());
   }
 
   public String getQueueName() {
