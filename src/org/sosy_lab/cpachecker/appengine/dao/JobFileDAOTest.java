@@ -21,36 +21,26 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.io;
+package org.sosy_lab.cpachecker.appengine.dao;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.StringWriter;
+import static org.junit.Assert.*;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
-import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
+import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 
 
-public class GAEPathTest {
+public class JobFileDAOTest {
 
   private final LocalServiceTestHelper helper = new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig());
-
   private Job job;
-  private JobFile file;
-  private Path path;
 
   static {
     ObjectifyService.register(Job.class);
@@ -61,16 +51,8 @@ public class GAEPathTest {
   public void setUp() {
     helper.setUp();
 
-    job = new Job(1L);
-    file = new JobFile("test");
-    file.setContent("lorem ipsum dolor sit amet");
-
-    file.setJob(job);
-    JobFileDAO.save(file);
-    job.addFile(file);
+    job = new Job();
     JobDAO.save(job);
-
-    path = new GAEPath("test", job);
   }
 
   @After
@@ -79,36 +61,32 @@ public class GAEPathTest {
   }
 
   @Test
+  public void shouldLoadFile() throws Exception {
+    JobFile file = new JobFile("test", job);
+    JobFileDAO.save(file);
+    JobFile loaded = JobFileDAO.load(Key.create(file));
+
+    assertEquals(file, loaded);
+  }
+
+  @Test
+  public void shouldSaveFile() throws Exception {
+    JobFile file = new JobFile("test", job);
+    JobFileDAO.save(file);
+
+    assertTrue(file.getId() != null);
+  }
+
+  @Test
   public void shouldDeleteFile() throws Exception {
-    Path path = new GAEPath("test", job);
-    path.delete();
+    JobFile file = new JobFile("test", job);
+    JobFileDAO.save(file);
+    job.addFile(file);
+    JobDAO.save(job);
+    Key<JobFile> key = Key.create(file);
+    JobFileDAO.delete(file);
 
-    assertEquals(0, job.getFiles().size());
-  }
-
-  @Test
-  public void shouldReturnByteSource() throws Exception {
-    InputStream in = path.asByteSource().openStream();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-    int b;
-    while ((b = in.read()) != -1) {
-      out.write(b);
-    }
-
-    assertEquals(file.getContent(), out.toString());
-  }
-
-  @Test
-  public void shouldReturnCharSource() throws Exception {
-    Reader reader = path.asCharSource(null).openStream();
-    StringWriter w = new StringWriter();
-
-    int c;
-    while ((c = reader.read()) != -1) {
-      w.write(c);
-    }
-
-    assertEquals(file.getContent(), w.toString());
+    assertTrue(JobFileDAO.load(key) == null);
+    assertTrue(job.getFiles().size() == 0);
   }
 }

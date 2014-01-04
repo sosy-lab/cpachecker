@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.appengine.io;
 import java.nio.charset.Charset;
 
 import org.sosy_lab.common.io.FileSystemPath;
-import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
+import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
@@ -83,7 +83,7 @@ public class GAEPath extends FileSystemPath {
    */
   @Override
   public boolean delete() {
-    JobDAO.delete(jobFile);
+    JobFileDAO.delete(jobFile);
     return true;
   }
 

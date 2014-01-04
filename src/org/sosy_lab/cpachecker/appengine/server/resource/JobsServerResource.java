@@ -42,6 +42,7 @@ import org.restlet.representation.Representation;
 import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner;
 import org.sosy_lab.cpachecker.appengine.common.JobRunner;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
+import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 import org.sosy_lab.cpachecker.appengine.server.common.JobsResource;
@@ -100,7 +101,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
       // TODO handle errors
     }
 
-    JobDAO.save(program);
+    JobFileDAO.save(program);
     job.addFile(program);
 
     // TODO validate!

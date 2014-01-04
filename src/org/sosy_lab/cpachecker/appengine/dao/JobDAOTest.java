@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.appengine.dao;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import org.junit.After;
 import org.junit.Before;
@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
+import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 
 
@@ -56,18 +57,34 @@ public class JobDAOTest {
   }
 
   @Test
-  public void shouldDeleteFile() throws Exception {
-    Job job = new Job(1L);
-    JobFile file = new JobFile("test");
-
-    file.setJob(job);
-    JobDAO.save(file);
-    job.addFile(file);
+  public void shouldSaveJob() {
+    Job job = new Job();
     JobDAO.save(job);
 
-    JobDAO.delete(file);
+    assertTrue(job.getId() != null);
+  }
 
-    Job jobAfterDelete = JobDAO.load(JobDAO.key(job));
-    assertEquals(0, jobAfterDelete.getFiles().size());
+  @Test
+  public void shouldLoadJob() throws Exception {
+    Job job = new Job();
+    JobDAO.save(job);
+    Job loaded = JobDAO.load(JobDAO.key(job));
+
+    assertEquals(job, loaded);
+  }
+
+  @Test
+  public void shouldDeleteJob() throws Exception {
+    Job job = new Job(1L);
+    JobFile file = new JobFile("", job);
+    JobFileDAO.save(file);
+    job.addFile(file);
+    JobDAO.save(job);
+    Key<Job> jobKey = Key.create(job);
+    Key<JobFile> fileKey = Key.create(file);
+    JobDAO.delete(job);
+
+    assertTrue(JobDAO.load(jobKey) == null);
+    assertTrue(JobFileDAO.load(fileKey) == null);
   }
 }
