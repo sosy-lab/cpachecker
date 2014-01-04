@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.appengine.io;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringWriter;
+import java.io.Writer;
+import java.nio.charset.Charset;
 
 import org.junit.After;
 import org.junit.Before;
@@ -41,6 +44,7 @@ import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
+import com.google.common.io.FileWriteMode;
 import com.googlecode.objectify.ObjectifyService;
 
 
@@ -62,15 +66,13 @@ public class GAEPathTest {
     helper.setUp();
 
     job = new Job(1L);
-    file = new JobFile("test");
+    file = new JobFile("test.tmp", job);
     file.setContent("lorem ipsum dolor sit amet");
-
-    file.setJob(job);
     JobFileDAO.save(file);
     job.addFile(file);
     JobDAO.save(job);
 
-    path = new GAEPath("test", job);
+    path = new GAEPath("test.tmp", job);
   }
 
   @After
@@ -80,14 +82,13 @@ public class GAEPathTest {
 
   @Test
   public void shouldDeleteFile() throws Exception {
-    Path path = new GAEPath("test", job);
     path.delete();
 
     assertEquals(0, job.getFiles().size());
   }
 
   @Test
-  public void shouldReturnByteSource() throws Exception {
+  public void shouldReturnWorkingByteSource() throws Exception {
     InputStream in = path.asByteSource().openStream();
     ByteArrayOutputStream out = new ByteArrayOutputStream();
 
@@ -100,7 +101,7 @@ public class GAEPathTest {
   }
 
   @Test
-  public void shouldReturnCharSource() throws Exception {
+  public void shouldReturnWorkingCharSource() throws Exception {
     Reader reader = path.asCharSource(null).openStream();
     StringWriter w = new StringWriter();
 
@@ -110,5 +111,55 @@ public class GAEPathTest {
     }
 
     assertEquals(file.getContent(), w.toString());
+  }
+
+  @Test
+  public void shouldReturnWorkingByteSink() throws Exception {
+    OutputStream out = path.asByteSink().openStream();
+    out.write(new String("test").getBytes());
+
+    assertEquals("test", file.getContent());
+  }
+
+  @Test
+  public void shouldReturnWorkingCharSink() throws Exception {
+    Writer writer = path.asCharSink(Charset.defaultCharset()).openStream();
+    writer.write("test");
+    writer.close();
+
+    assertEquals("test", file.getContent());
+  }
+
+  @Test
+  public void shouldAppendWithByteSink() throws Exception {
+    String oldContent = file.getContent();
+    OutputStream out = path.asByteSink(FileWriteMode.APPEND).openStream();
+    out.write(new String("test").getBytes());
+
+    assertEquals(oldContent+"test", file.getContent());
+  }
+
+  @Test
+  public void shouldAppendWithCharSink() throws Exception {
+    String oldContent = file.getContent();
+    Writer writer = path.asCharSink(Charset.defaultCharset(), FileWriteMode.APPEND).openStream();
+    writer.write("test");
+    writer.close();
+
+    assertEquals(oldContent+"test", file.getContent());
+  }
+
+  @Test
+  public void shouldBeFile() throws Exception {
+    Path path = new GAEPath("foo.bar", job);
+
+    assertTrue(path.isFile());
+  }
+
+  @Test
+  public void shouldNotBeFile() throws Exception {
+    Path path = new GAEPath("foo", job);
+
+    assertFalse(path.isFile());
   }
 }
