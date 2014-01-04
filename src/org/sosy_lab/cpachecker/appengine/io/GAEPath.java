@@ -96,4 +96,20 @@ public class GAEPath extends FileSystemPath {
   public boolean mkdirs() {
     return true;
   }
+
+  @Override
+  public boolean exists() {
+    return true;
+  }
+
+  @Override
+  public boolean canRead() {
+    return true;
+  }
+
+  @Override
+  public boolean isFile() {
+    // assume a file always has an extension
+    return getPath().matches(".*\\..*$");
+  }
 }
