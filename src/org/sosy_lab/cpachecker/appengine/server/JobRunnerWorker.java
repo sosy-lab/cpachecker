@@ -126,6 +126,8 @@ public class JobRunnerWorker extends HttpServlet {
     // TODO use and register appropriate notifier
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
 
+    // TODO dump configuration
+
     // TODO use only one try block for all InvalidConfigException
     CPAchecker cpaChecker = null;
     try {
@@ -143,8 +145,7 @@ public class JobRunnerWorker extends HttpServlet {
       e.printStackTrace();
     }
 
-    // FIXME use submitted code file
-    CPAcheckerResult result = cpaChecker.run("WEB-INF/test/example.c");
+    CPAcheckerResult result = cpaChecker.run("program.c");
 
     // disabled for now due to file system writes
 //    proofGenerator.generateProof(result);
