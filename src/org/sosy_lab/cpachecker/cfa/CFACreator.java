@@ -29,6 +29,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -277,8 +278,12 @@ public class CFACreator {
       }
 
       if (sourceFiles.size() == 1) {
-        c = parser.parseFile(sourceFiles.get(0));
-
+        /*
+         * The program file has to parsed as String since Google App Engine does not allow
+         * writes to the file system and therefore the input file is stored elsewhere.
+         */
+        String code = Paths.get(sourceFiles.get(0)).asCharSource(Charset.defaultCharset()).read();
+        c = parser.parseString(code);
       } else {
         // when there is more than one file which should be evaluated, the
         // programdenotations are separated from each other and a prefix for
@@ -294,7 +299,12 @@ public class CFACreator {
           String[] tmp = fileName.split("/");
           staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
 
-          programFragments.add(Pair.of(fileName, staticVarPrefix));
+          /*
+           * The program file has to parsed as String since Google App Engine does not allow
+           * writes to the file system and therefore the input file is stored elsewhere.
+           */
+          String code = Paths.get(fileName).asCharSource(Charset.defaultCharset()).read();
+          programFragments.add(Pair.of(code, staticVarPrefix));
         }
 
         c = ((CParser)parser).parseFile(programFragments);
