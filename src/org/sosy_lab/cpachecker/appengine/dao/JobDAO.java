@@ -58,7 +58,8 @@ public class JobDAO {
         Key<Job> jobKey = Key.create(key);
         Job job = ofy().load().key(jobKey).now();
 
-        ofy().delete().entities(job.getProgram(), job).now();
+        ofy().delete().entities(job).now();
+        // TODO delete all associated files
       }
     });
   }

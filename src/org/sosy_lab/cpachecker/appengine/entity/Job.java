@@ -50,7 +50,6 @@ public class Job {
   @Serialize private Map<String, String> options; // serialize to avoid problems with '.' in the keys
   private String specification;
   private String configuration;
-  private Ref<JobFile> program;
   private List<Ref<JobFile>> files;
   @Ignore private Map<String, JobFile> fileLookupTable;
   private String queueName;
@@ -186,16 +185,6 @@ public class Job {
 
   public Date getCreationDate() {
     return creationDate;
-  }
-
-
-  public JobFile getProgram() {
-    return program.get();
-  }
-
-
-  public void setProgram(JobFile pProgram) {
-    program = Ref.create(pProgram);
   }
 
   public List<Ref<JobFile>> getFiles() {

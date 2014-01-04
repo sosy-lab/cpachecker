@@ -52,13 +52,11 @@ import com.google.common.base.Splitter;
 
 public class JobsServerResource extends WadlServerResource implements JobsResource {
 
-  private static final String DEFAULT_PROGRAM_NAME = "program.c";
-
   @Override
   public void createJobAndRedirectToJob(Representation input) {
     Job job = new Job(JobDAO.allocateKey().getId());
     Map<String, String> options = new HashMap<>();
-    JobFile program = new JobFile(DEFAULT_PROGRAM_NAME);
+    JobFile program = new JobFile("program.c", job);
 
     ServletFileUpload upload = new ServletFileUpload();
     try {
@@ -87,7 +85,8 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
           default:
             break;
           }
-        } else {
+        }
+        else {
           if (program.getContent() == null || program.getContent().isEmpty()) {
             // files will always be treated as text/plain
             StringWriter writer = new StringWriter();
@@ -101,9 +100,8 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
       // TODO handle errors
     }
 
-    program.setJob(job);
     JobDAO.save(program);
-    job.setProgram(program);
+    job.addFile(program);
 
     // TODO validate!
     options.putAll(job.getDefaultOptions());
