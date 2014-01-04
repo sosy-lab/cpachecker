@@ -48,6 +48,9 @@ public class DataStoreCharSink extends CharSink {
 
   @Override
   public Writer openStream() throws IOException {
+    if (charset == null) {
+      charset = Charset.defaultCharset();
+    }
 
     Writer writer = file.getContentWriter(charset);
 
