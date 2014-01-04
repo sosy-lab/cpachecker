@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.appengine.io;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringReader;
+import java.nio.charset.Charset;
 
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
@@ -35,14 +37,19 @@ import com.google.common.io.CharSource;
 public class DataStoreCharSource extends CharSource {
 
   private JobFile file;
+  private Charset charset;
 
-  public DataStoreCharSource(JobFile file) {
+  public DataStoreCharSource(JobFile file, Charset charset) {
     this.file = file;
+    this.charset = charset;
   }
 
   @Override
   public Reader openStream() throws IOException {
-    return new StringReader(file.getContent());
+    if (charset == null) {
+      charset = Charset.defaultCharset();
+    }
+    return new InputStreamReader(new ByteArrayInputStream(file.getContent().getBytes()), charset);
   }
 
 }

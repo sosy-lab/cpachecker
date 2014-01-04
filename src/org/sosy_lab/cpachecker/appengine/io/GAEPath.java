@@ -75,8 +75,7 @@ public class GAEPath extends FileSystemPath {
       return super.asCharSource(charset);
     }
 
-    // TODO charset
-    return new DataStoreCharSource(jobFile);
+    return new DataStoreCharSource(jobFile, charset);
   }
 
   /**
