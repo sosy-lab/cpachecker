@@ -33,6 +33,7 @@ import java.util.logging.Level;
 
 import javax.management.JMException;
 
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -78,7 +79,7 @@ public final class ResourceLimitChecker {
     } else {
       Runnable runnable = new ResourceLimitCheckRunnable(shutdownNotifier, limits);
 
-      thread = new Thread(runnable, "Resource limit checker");
+      thread = Threads.newThread(runnable, "Resource limit checker");
       thread.setDaemon(true);
     }
   }
