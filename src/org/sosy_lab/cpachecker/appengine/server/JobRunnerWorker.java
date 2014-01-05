@@ -37,6 +37,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.Configuration.Builder;
 import org.sosy_lab.common.configuration.FileOption;
@@ -56,6 +57,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
 
+import com.google.appengine.api.ThreadManager;
 import com.googlecode.objectify.Key;
 
 @SuppressWarnings("serial")
@@ -68,6 +70,8 @@ public class JobRunnerWorker extends HttpServlet {
 
     AbstractPathFactory pathFactory = new GAEPathFactory(job);
     Paths.setFactory(pathFactory);
+
+    Threads.setThreadFactory(ThreadManager.currentRequestThreadFactory());
 
     job.setExecutionDate(new Date());
     job.setStatus(Status.RUNNING);
