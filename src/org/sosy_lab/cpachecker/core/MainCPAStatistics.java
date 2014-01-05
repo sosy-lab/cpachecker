@@ -39,15 +39,16 @@ import java.util.logging.Level;
 
 import javax.management.JMException;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -91,7 +92,7 @@ class MainCPAStatistics implements Statistics {
   @Option(name="reachedSet.file",
       description="print reached set to text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputFile = new Path("reached.txt");
+  private Path outputFile = Paths.get("reached.txt");
 
   @Option(name="coverage.export",
       description="print coverage info to file")
@@ -100,7 +101,7 @@ class MainCPAStatistics implements Statistics {
   @Option(name="coverage.file",
       description="print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputCoverageFile = new Path("coverage.info");
+  private Path outputCoverageFile = Paths.get("coverage.info");
 
   @Option(name="statistics.memory",
     description="track memory usage of JVM during runtime")

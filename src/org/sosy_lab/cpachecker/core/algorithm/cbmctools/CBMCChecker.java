@@ -36,10 +36,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.Files;
-import org.sosy_lab.common.Files.DeleteOnCloseFile;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -47,6 +44,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -152,7 +152,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       cbmcArgs.add("--function");
       cbmcArgs.add(mainFunctionName + "_0");
 
-      cbmcArgs.add(cFile.toAbsolutePath().toString());
+      cbmcArgs.add(cFile.getAbsolutePath());
 
       cbmc = new CBMCExecutor(logger, cbmcArgs);
       exitCode = cbmc.join(timelimit);

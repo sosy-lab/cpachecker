@@ -104,6 +104,7 @@
 		<javac debug="true" debuglevel="${debuglevel}" includeAntRuntime="false" destdir="${gae-classes.dir}" encoding="UTF-8">
 			<src path="${source.dir}" />
 			<classpath refid="gae.classpath" />
+			<exclude name="**/*Test.java"/>
 		</javac>
 	</target>
 

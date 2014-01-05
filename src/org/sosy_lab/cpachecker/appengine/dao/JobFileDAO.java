@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,56 +25,43 @@ package org.sosy_lab.cpachecker.appengine.dao;
 
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
 import com.googlecode.objectify.Key;
-import com.googlecode.objectify.ObjectifyService;
-import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.VoidWork;
 
 
-public class JobDAO {
+public class JobFileDAO {
 
-  public static Job load(String key) {
-    Key<Job> jobKey = Key.create(key);
-    return load(jobKey);
+  public static JobFile load(String key) {
+    Key<JobFile> fileKey = Key.create(key);
+    return load(fileKey);
   }
 
-  public static Job load(Key<Job> key) {
+  public static JobFile load(Key<JobFile> key) {
     return ofy().load().key(key).now();
   }
 
-  public static Job save(Job job) {
-    ofy().save().entity(job).now();
-    return job;
+  public static void save(JobFile file) {
+    ofy().save().entity(file).now();
   }
 
-  public static void delete(final Job job) {
+  public static void delete(final JobFile file) {
+    final Job parent = file.getJob();
+    parent.removeFile(file);
+
     ofy().transact(new VoidWork() {
 
       @Override
       public void vrun() {
-        List<Key<JobFile>> keys = new ArrayList<>();
-        for (Ref<JobFile> file : job.getFiles()) {
-          keys.add(file.getKey());
-        }
-
-        ofy().delete().keys(keys).now();
-        ofy().delete().entities(job).now();
+        ofy().save().entity(parent).now();
+        ofy().delete().entity(file).now();
       }
     });
   }
 
-  public static String key(Job job) {
-    return Key.create(Job.class, job.getId()).getString();
+  public static String key(JobFile file) {
+    return Key.create(JobFile.class, file.getId()).getString();
   }
-
-  public static Key<Job> allocateKey() {
-    return ObjectifyService.factory().allocateId(Job.class);
-  }
-
 }
