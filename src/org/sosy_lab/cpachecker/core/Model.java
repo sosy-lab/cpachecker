@@ -509,7 +509,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
     private static String handleReturnStatement(IAExpression pExpression,
         Collection<Pair<AssignableTerm, Object>> pAssumptionSet) {
 
-      if (pAssumptionSet.size() < 1) {
+      if ( pExpression != null && pAssumptionSet.size() == 1) {
         return "return " + getFirstValue(pAssumptionSet).toString();
       }
 
