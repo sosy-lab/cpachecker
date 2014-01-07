@@ -98,19 +98,19 @@ public class AutomatonGraphmlParser {
         List<AutomatonBoolExpr> assertions = Collections.emptyList();
         List<AutomatonAction> actions = Collections.emptyList();
 
-        AutomatonTransition transition;
-        if (targetStateId.equalsIgnoreCase(SINK_NODE_ID)) {
-          transition = new AutomatonTransition(trigger, assertions, actions, AutomatonInternalState.BOTTOM);
-        } else {
-          transition = new AutomatonTransition(trigger, assertions, actions, targetStateId);
-        }
-
         List<AutomatonTransition> transitions = stateTransitions.get(sourceStateId);
         if (transitions == null) {
           transitions = Lists.newArrayList();
           stateTransitions.put(sourceStateId, transitions);
         }
-        transitions.add(transition);
+
+        if (targetStateId.equalsIgnoreCase(SINK_NODE_ID)) {
+          transitions.add(new AutomatonTransition(trigger, assertions, actions, AutomatonInternalState.BOTTOM));
+        } else {
+          transitions.add(new AutomatonTransition(trigger, assertions, actions, targetStateId));
+          transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM));
+        }
+
       }
 
       // Create states ----
@@ -131,7 +131,7 @@ public class AutomatonGraphmlParser {
         }
 
         // TODO: use all possible transitions?
-        AutomatonInternalState state = new AutomatonInternalState(stateId, transitions, false, false);
+        AutomatonInternalState state = new AutomatonInternalState(stateId, transitions, false, true);
         automatonStates.add(state);
       }
 
