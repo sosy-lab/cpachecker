@@ -106,6 +106,7 @@ public class AutomatonGraphmlParser {
 
         if (targetStateId.equalsIgnoreCase(SINK_NODE_ID)) {
           transitions.add(new AutomatonTransition(trigger, assertions, actions, AutomatonInternalState.BOTTOM));
+          transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM));
         } else {
           transitions.add(new AutomatonTransition(trigger, assertions, actions, targetStateId));
           transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM));
@@ -123,14 +124,9 @@ public class AutomatonGraphmlParser {
 
         List<AutomatonTransition> transitions = stateTransitions.get(stateId);
         if (transitions == null) {
-          transitions = Lists.newArrayList(new AutomatonTransition(
-                AutomatonBoolExpr.TRUE,
-                Collections.<AutomatonBoolExpr>emptyList(),
-                Collections.<AutomatonAction>emptyList(),
-                stateId));
+          transitions = Collections.emptyList();
         }
 
-        // TODO: use all possible transitions?
         AutomatonInternalState state = new AutomatonInternalState(stateId, transitions, false, true);
         automatonStates.add(state);
       }
