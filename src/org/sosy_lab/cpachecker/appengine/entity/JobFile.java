@@ -35,6 +35,7 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 
+import com.googlecode.objectify.Key;
 import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
@@ -70,6 +71,10 @@ public class JobFile {
 
   private void init() {
     content = "";
+  }
+
+  public String getKey() {
+    return Key.create(job.getKey(), JobFile.class, getId()).getString();
   }
 
   public Long getId() {

@@ -31,6 +31,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 
+import com.googlecode.objectify.Key;
 import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.annotation.EmbedMap;
 import com.googlecode.objectify.annotation.Entity;
@@ -106,6 +107,10 @@ public class Job {
 
     status = Status.PENDING;
     creationDate = new Date();
+  }
+
+  public String getKey() {
+    return Key.create(Job.class, getId()).getString();
   }
 
   public Map<String, String> getDefaultOptions() {

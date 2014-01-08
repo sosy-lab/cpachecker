@@ -112,7 +112,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
     JobRunner jobRunner = new GAETaskQueueJobRunner();
     job = jobRunner.run(job);
 
-    getResponse().redirectSeeOther("/jobs/"+JobDAO.key(job));
+    getResponse().redirectSeeOther("/jobs/"+job.getKey());
   }
 
 }

@@ -64,8 +64,4 @@ public class JobFileDAO {
       }
     });
   }
-
-  public static String key(JobFile file) {
-    return Key.create(JobFile.class, file.getId()).getString();
-  }
 }

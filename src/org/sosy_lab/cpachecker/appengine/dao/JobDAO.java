@@ -69,10 +69,6 @@ public class JobDAO {
     });
   }
 
-  public static String key(Job job) {
-    return Key.create(Job.class, job.getId()).getString();
-  }
-
   public static Key<Job> allocateKey() {
     return ObjectifyService.factory().allocateId(Job.class);
   }
