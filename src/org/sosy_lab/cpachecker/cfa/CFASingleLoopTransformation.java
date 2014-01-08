@@ -372,40 +372,6 @@ public class CFASingleLoopTransformation {
 
   }
 
-  private static Iterable<CFANode> getPredecessors(final CFANode pNode) {
-    return new Iterable<CFANode>() {
-
-      @Override
-      public Iterator<CFANode> iterator() {
-        return new Iterator<CFANode>() {
-
-          private int index = 0;
-
-          @Override
-          public boolean hasNext() {
-            return index >= 0 && index < pNode.getNumEnteringEdges();
-          }
-
-          @Override
-          public CFANode next() {
-            if (!hasNext()) {
-              throw new NoSuchElementException();
-            }
-            CFANode next = pNode.getEnteringEdge(index).getPredecessor();
-            ++index;
-            return next;
-          }
-
-          @Override
-          public void remove() {
-            throw new UnsupportedOperationException();
-          }
-
-        };
-      }
-    };
-  }
-
   private static int getLastIndex(List<?> pList) {
     return pList.size() - 1;
   }
