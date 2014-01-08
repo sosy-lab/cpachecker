@@ -40,6 +40,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
 
+import com.google.appengine.api.ThreadManager;
 import com.google.common.base.Charsets;
 
 @SuppressWarnings("serial")
@@ -66,6 +68,8 @@ public class JobRunnerWorker extends HttpServlet {
 
   @Override
   protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    Threads.setThreadFactory(ThreadManager.currentRequestThreadFactory());
+
     Job job = JobDAO.load(request.getParameter("jobKey"));
 
     AbstractPathFactory pathFactory = new GAEPathFactory(job);
