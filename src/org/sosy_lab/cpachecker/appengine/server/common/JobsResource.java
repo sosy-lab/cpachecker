@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.appengine.server.common;
 
 import org.restlet.representation.Representation;
+import org.restlet.resource.Get;
 import org.restlet.resource.Post;
 
 
@@ -31,4 +32,7 @@ public interface JobsResource {
 
   @Post("multipart:html")
   public void createJobAndRedirectToJob(Representation input);
+
+  @Get("html")
+  public Representation jobsAsHtml();
 }
