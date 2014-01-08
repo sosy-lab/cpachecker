@@ -27,6 +27,7 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.util.Date;
@@ -123,6 +124,10 @@ public class JobRunnerWorker extends HttpServlet {
 
     saveResult(result, job);
 
+    if (!outputDisabled) {
+      dumpStatistics(result, config);
+    }
+
     // disabled for now due to file system writes
     //    proofGenerator.generateProof(result);
 
@@ -147,6 +152,29 @@ public class JobRunnerWorker extends HttpServlet {
     if (configurationDumpFile != null) {
       configurationDumpFile.asCharSink(Charsets.UTF_8).write(config.asPropertiesString());
     }
+  }
+
+  /**
+   * Writes the statistics to the file specified in statistics.file
+   * Only writes the statistics if statistics.export is set to true.
+   *
+   * @param result The result containing the statistics.
+   * @param config The configuration.
+   *
+   * @throws IOException
+   */
+  private void dumpStatistics(CPAcheckerResult result, Configuration config) throws IOException {
+    if (config.getProperty("statistics.export").equals("false")) {
+      return;
+    }
+
+    Path statisticsDumpFile = Paths.get(config.getProperty("statistics.file"));
+    OutputStream out = statisticsDumpFile.asByteSink().openBufferedStream();
+    PrintStream stream = new PrintStream(out);
+    result.printStatistics(stream);
+
+    stream.flush();
+    out.close();
   }
 
   /**
