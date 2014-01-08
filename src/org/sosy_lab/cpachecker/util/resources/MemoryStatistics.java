@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.resources;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.io.PrintStream;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -101,7 +99,7 @@ import com.google.common.base.Strings;
  * GC is still running. I still haven't found a way how to reliably detect
  * that an OutOfMemoryError would come soon.
  */
-public class MemoryStatistics extends Thread {
+public class MemoryStatistics implements Runnable {
 
   private static final long MEMORY_CHECK_INTERVAL = 100; // milliseconds
 
@@ -137,7 +135,7 @@ public class MemoryStatistics extends Thread {
    * You need to call {@link Thread#start()} afterwards to start measuring.
    */
   public MemoryStatistics(LogManager pLogger) {
-    super("CPAchecker memory statistics collector");
+//    super("CPAchecker memory statistics collector");
 
     logger = pLogger;
     memory = ManagementFactory.getMemoryMXBean();
@@ -211,7 +209,7 @@ public class MemoryStatistics extends Thread {
       }
 
       try {
-        sleep(MEMORY_CHECK_INTERVAL);
+        Thread.sleep(MEMORY_CHECK_INTERVAL);
       } catch (InterruptedException e) {
         return; // force thread exit
       }
@@ -223,7 +221,7 @@ public class MemoryStatistics extends Thread {
    * This method may only be called when this thread has finished!
    */
   public void printStatistics(PrintStream out) {
-    checkState(!this.isAlive());
+//    checkState(!this.isAlive());
 
     long heapPeak = 0;
     long nonHeapPeak = 0;
