@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.appengine.entity;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 
 import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.annotation.EmbedMap;
@@ -51,11 +53,10 @@ public class Job {
   private Status status;
   private String specification;
   private String configuration;
-  private List<Ref<JobFile>> files;
-  @Ignore private Map<String, JobFile> fileLookupTable;
   private String queueName;
   private String taskName;
   @EmbedMap private Map<String, String> options;
+  private List<Ref<JobFile>> files = new CopyOnWriteArrayList<>();
 
   // FIXME remove this stuff. It's only here for debugging just now.
   private String log;
@@ -102,9 +103,6 @@ public class Job {
     defaultOptions.put("cpa.monitor.pathcomputationlimit", "0");
     defaultOptions.put("cpa.predicate.refinement.timelimit", "0");
     defaultOptions.put("analysis.useProofCheckAlgorithm", "false");
-
-    files = new ArrayList<>();
-    fileLookupTable = new HashMap<>();
 
     status = Status.PENDING;
     creationDate = new Date();
@@ -222,32 +220,15 @@ public class Job {
    * @return The file or null if the file cannot be found
    */
   public JobFile getFile(String path) {
-    if (fileLookupTable.containsKey(path)) {
-      return fileLookupTable.get(path);
-    } else if (fileLookupTable.size() == files.size()) {
-      return null;
-    }
-
-    for (Ref<JobFile> ref : files) {
-      JobFile file = ref.get();
-      fileLookupTable.put(file.getPath(), file);
-
-      if ((file.getPath().equals(path))) {
-        return  file;
-      }
-    }
-
-    return null;
+    return JobFileDAO.loadByPath(path, this);
   }
 
   public void addFile(JobFile file) {
     files.add(Ref.create(file));
-    fileLookupTable.put(file.getPath(), file);
   }
 
   public void removeFile(JobFile file) {
     files.remove(Ref.create(file));
-    fileLookupTable.remove(file.getPath());
   }
 
   public String getQueueName() {

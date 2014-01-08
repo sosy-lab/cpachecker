@@ -39,6 +39,7 @@ import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Ignore;
+import com.googlecode.objectify.annotation.Index;
 import com.googlecode.objectify.annotation.OnSave;
 import com.googlecode.objectify.annotation.Parent;
 
@@ -47,7 +48,7 @@ public class JobFile {
 
   @Id Long id;
   @Parent Ref<Job> job;
-  private String path;
+  @Index private String path;
   private String content;
   @Ignore private Writer contentWriter;
   @Ignore private ByteArrayOutputStream contentOutputStream;

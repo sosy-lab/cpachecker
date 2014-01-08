@@ -43,6 +43,10 @@ public class JobFileDAO {
     return ofy().load().key(key).now();
   }
 
+  public static JobFile loadByPath(String path, Job parent) {
+    return ofy().load().type(JobFile.class).ancestor(parent).filter("path", path).first().now();
+  }
+
   public static void save(JobFile file) {
     ofy().save().entity(file).now();
   }
