@@ -310,6 +310,11 @@ cfa.simplifyConstExpressions = false
 # rightHandSide
 cfa.simplifyPointerExpressions = false
 
+# This option causes the control flow automaton to be transformed into the
+# automaton of an equivalent program with one single loop and an artificial
+# program counter.
+cfa.transformIntoSingleLoop = false
+
 # combine sequences of simple edges into a single edge
 cfa.useMultiEdges = false
 

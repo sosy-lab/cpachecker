@@ -169,6 +169,12 @@ public class CFACreator {
           + "create a series of if-else edges with explicit indizes instead.")
   private boolean expandFunctionPointerArrayAssignments = false;
 
+  @Option(name="cfa.transformIntoSingleLoop",
+      description="This option causes the control flow automaton to be "
+        + "transformed into the automaton of an equivalent program with one "
+        + "single loop and an artificial program counter.")
+  private boolean transformIntoSingleLoop = false;
+
   @Option(description="C or Java?")
   private Language language = Language.C;
 
@@ -427,7 +433,15 @@ public class CFACreator {
 
       stats.processingTime.stop();
 
-      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
+      final ImmutableCFA immutableCFA;
+
+      if (transformIntoSingleLoop) {
+        stats.processingTime.start();
+        immutableCFA = new CFASingleLoopTransformation(logger, config).apply(cfa);
+        stats.processingTime.stop();
+      } else {
+        immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
+      }
 
       // check the super CFA starting at the main function
       stats.checkTime.start();
