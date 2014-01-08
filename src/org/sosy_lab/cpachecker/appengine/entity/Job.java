@@ -58,7 +58,7 @@ public class Job {
   private String taskName;
   private Result resultOutcome;
   private String resultMessage;
-  @EmbedMap private Map<String, String> options;
+  @EmbedMap private Map<String, String> options = new HashMap<>();
   private List<Ref<JobFile>> files = new CopyOnWriteArrayList<>();
 
   public Job() {
