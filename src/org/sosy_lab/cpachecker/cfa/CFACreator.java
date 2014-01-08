@@ -232,16 +232,19 @@ public class CFACreator {
       parser = EclipseParsers.getJavaParser(logger, config);
       break;
     case C:
-      CParser realParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
-      if (usePreprocessor || transformTokensToLines) {
-        CPreprocessor preprocessor = new CPreprocessor(config, logger);
-        if (transformTokensToLines) {
-          realParser = new CParserWithTokenizer(realParser);
-        }
-        parser = new CParserWithPreprocessor(realParser, preprocessor);
-      } else {
-        parser = realParser;
+      CParser outerParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
+
+      if (transformTokensToLines) {
+        outerParser = new CParserWithTokenizer(outerParser);
       }
+
+      if (usePreprocessor) {
+        CPreprocessor preprocessor = new CPreprocessor(config, logger);
+        outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
+      }
+
+      parser = outerParser;
+
       break;
     default:
       throw new AssertionError();

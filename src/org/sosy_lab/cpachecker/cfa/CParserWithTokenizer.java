@@ -54,7 +54,8 @@ class CParserWithTokenizer implements CParser {
 
   @Override
   public ParseResult parseFile(String pFilename) throws ParserException, IOException, InvalidConfigurationException, InterruptedException {
-    throw new UnsupportedOperationException();
+    StringBuilder tokenizedCode = tokenizeSourcefile(pFilename);
+    return realParser.parseString(tokenizedCode.toString());
   }
 
   private StringBuilder tokenizeSourcefile(String pFilename) throws CParserException {
@@ -76,16 +77,28 @@ class CParserWithTokenizer implements CParser {
     StringBuilder tokenizedCode = new StringBuilder();
 
     LexerOptions options = new LexerOptions();
-    ILexerLog log = null;
+    ILexerLog log = ILexerLog.NULL;
     Object source = null;
     Lexer lx = new Lexer(pCode, options, log, source);
 
     try {
+      boolean skipAllOnLine = false;
       Token token = lx.nextToken();
+
       while (token.getType() != Token.tEND_OF_INPUT) {
-        tokenizedCode.append(token);
-        tokenizedCode.append(System.lineSeparator());
+        if (token.getImage().equals("#")) {
+          skipAllOnLine = true;
+        }
+
+        if (!skipAllOnLine) {
+          tokenizedCode.append(token);
+          tokenizedCode.append(System.lineSeparator());
+        }
+
         token = lx.nextToken();
+        if (lx.currentTokenIsFirstOnLine()) {
+          skipAllOnLine = false;
+        }
       }
     } catch (OffsetLimitReachedException e) {
       throw new CParserException("Tokenizing failed", e);
