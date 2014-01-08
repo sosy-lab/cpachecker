@@ -48,6 +48,10 @@ public class JobDAO {
     return ofy().load().key(key).now();
   }
 
+  public static List<Job> jobs() {
+    return ofy().load().type(Job.class).list();
+  }
+
   public static Job save(Job job) {
     ofy().save().entity(job).now();
     return job;
