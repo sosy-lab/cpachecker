@@ -105,7 +105,7 @@ public class CFASingleLoopTransformation {
     this.config = pConfig;
   }
 
-  public ImmutableCFA apply(CFA pInputCFA) throws InvalidConfigurationException { // TODO: Fix this for programs with multiple functions
+  public ImmutableCFA apply(CFA pInputCFA) throws InvalidConfigurationException {
     // Create new main function entry initializing the program counter
     FunctionEntryNode oldMainFunctionEntryNode = pInputCFA.getMainFunction();
     AFunctionDeclaration mainFunctionDeclaration = oldMainFunctionEntryNode.getFunctionDefinition();
@@ -115,8 +115,6 @@ public class CFASingleLoopTransformation {
         new CFunctionEntryNode(0, (CFunctionDeclaration) mainFunctionDeclaration, oldMainFunctionEntryNode.getExitNode(), oldMainFunctionEntryNode.getFunctionParameterNames()) :
         new JMethodEntryNode(0, (JMethodDeclaration) mainFunctionDeclaration, oldMainFunctionEntryNode.getExitNode(), oldMainFunctionEntryNode.getFunctionParameterNames());
     CFANode loopHead = new CFANode(0, mainFunctionName);
-    CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(pInputCFA.getMachineModel(), logger);
-    Set<CFAEdge> edges = new HashSet<>();
 
     // Declare program counter and initialize it to 0
     String pcVarName = "___pc";
@@ -127,7 +125,6 @@ public class CFASingleLoopTransformation {
     CFAEdge pcDeclarationEdge = new CDeclarationEdge(String.format("int %s = %d;", pcVarName, pc), 0, start, loopHead, pcDeclaration);
     start.addLeavingEdge(pcDeclarationEdge);
     loopHead.addEnteringEdge(pcDeclarationEdge);
-    edges.add(pcDeclarationEdge);
 
     Queue<CFANode> nodes = new ArrayDeque<>(getAllNodes(pInputCFA));
 
@@ -135,8 +132,6 @@ public class CFASingleLoopTransformation {
 
     Map<Integer, CFANode> newTargetToPCMapping = new HashMap<>();
 
-    CFANode decisionTreeNode = loopHead;
-    List<CAssumeEdge> toAdd = new ArrayList<>();
     // Create new nodes and assume edges based on program counter values leading to the new nodes
     Set<CFANode> visited = new HashSet<>();
     Map<CFANode, CFANode> unconnectedTails = new HashMap<>();
@@ -156,7 +151,6 @@ public class CFASingleLoopTransformation {
       if (isOldMainEntryNode) {
         subgraphRoot = new CFANode(subgraphRoot.getLineNumber(), subgraphRoot.getFunctionName());
         replaceInStructure(oldMainFunctionEntryNode, subgraphRoot);
-        pcToOldNodeMapping.put(subgraphRoot, 0);
       }
 
       // Get an acyclic sub graph
@@ -212,7 +206,6 @@ public class CFASingleLoopTransformation {
           CFAEdge newEdge = copyCFAEdgeWithNewNodes(oldEdge, newToOld);
           newEdge.getPredecessor().addLeavingEdge(newEdge);
           newEdge.getSuccessor().addEnteringEdge(newEdge);
-          edges.add(newEdge);
         }
       }
       for (CFANode unconnected : unconnectedTailNodes) {
@@ -225,11 +218,8 @@ public class CFASingleLoopTransformation {
         Collection<CFANode> predecessors = FluentIterable.from(getPredecessors(node)).toList();
         if (isOldMainEntryNode && node == subgraphRoot || predecessors.contains(node) || !subgraph.containsAll(predecessors)) {
           // Node is an entry node
-          Integer pcToSet = pcToOldNodeMapping.get(node);
-          if (pcToSet == null) {
-              pcToSet = isOldMainEntryNode && node == subgraphRoot ? 0 : ++pc;
-              pcToOldNodeMapping.put(node, pcToSet);
-          }
+          int pcToSet = isOldMainEntryNode && node == subgraphRoot ? 0 : ++pc;
+          pcToOldNodeMapping.put(node, pcToSet);
           newTargetToPCMapping.put(pcToSet, newNode);
         }
       }
@@ -251,23 +241,96 @@ public class CFASingleLoopTransformation {
           statement, oldSubgraphPredecessor.getLineNumber(), subgraphPredecessor, loopHead);
       edgeToLoopHead.getPredecessor().addLeavingEdge(edgeToLoopHead);
       edgeToLoopHead.getSuccessor().addEnteringEdge(edgeToLoopHead);
-      edges.add(edgeToLoopHead);
     }
 
-    // Connect all subgraphs to the loop header assuming the corresponding
-    // program counter value
+    // The old main function start is always used
     usedPCValues.add(0);
-    for (Integer pcToSet : usedPCValues) {
-      CFANode newNode = newTargetToPCMapping.get(pcToSet);
+
+    // Connect the subgraph entry nodes
+    connectSubgraphsEntryNodesToLoopHead(usedPCValues, newTargetToPCMapping, loopHead, pcIdExpression, mainLocation,
+        new CBinaryExpressionBuilder(pInputCFA.getMachineModel(), logger));
+
+    // Collect all functions and map all nodes to their function names
+    Map<String, FunctionEntryNode> functions = new HashMap<>();
+    SortedSetMultimap<String, CFANode> allNodes = TreeMultimap.create();
+    Queue<CFANode> waitlist = new ArrayDeque<>();
+    waitlist.add(start);
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      String functionName = current.getFunctionName();
+      if (allNodes.put(functionName, current)) {
+        waitlist.addAll(FluentIterable.from(getSuccessors(current)).toList());
+        if (current instanceof FunctionEntryNode) {
+          functions.put(functionName, (FunctionEntryNode) current);
+        }
+      }
+    }
+
+    // Instantiate the transformed graph in a preliminary form
+    MutableCFA cfa = new MutableCFA(pInputCFA.getMachineModel(), functions, allNodes, start, pInputCFA.getLanguage());
+
+    // Assign reverse post order ids to the control flow nodes
+    Collection<CFANode> nodesWithNoIdAssigned = getAllNodes(cfa);
+    for (CFANode n : nodesWithNoIdAssigned) {
+      n.setReversePostorderId(-1);
+    }
+    while (!nodesWithNoIdAssigned.isEmpty()) {
+      CFAReversePostorder sorter = new CFAReversePostorder();
+      sorter.assignSorting(nodesWithNoIdAssigned.iterator().next());
+      nodesWithNoIdAssigned = FluentIterable.from(nodesWithNoIdAssigned).filter(new Predicate<CFANode>() {
+
+        @Override
+        public boolean apply(@Nullable CFANode pArg0) {
+          if (pArg0 == null) {
+            return false;
+          }
+          return pArg0.getReversePostorderId() < 0;
+        }
+
+      }).toList();
+    }
+
+    // Get information about the loop structure
+    Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(mainFunctionName, new TreeSet<>(allNodes.values()), pInputCFA.getLanguage(), logger);
+
+    // Get information about variables, required by some analyses
+    final Optional<VariableClassification> varClassification
+        = loopStructure.isPresent()
+        ? Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()))
+        : Optional.<VariableClassification>absent();
+
+    // Finalize the transformed CFA
+    return cfa.makeImmutableCFA(loopStructure, varClassification);
+  }
+
+  /**
+   * Connects subgraph entry nodes to the loop head via program counter value assume edges.
+   *
+   * @param pUsedPCValues the program counter values used.
+   * @param pNewTargetToPCMapping the mapping of subgraph entry nodes to the
+   *  corresponding program counter values.
+   * @param pLoopHead the loop head.
+   * @param pPCIdExpression the CIdExpression used for the program counter variable.
+   * @param pMainLocation the location of the main function.
+   * @param pExpressionBuilder the CExpressionBuilder used to build the assume edges.
+   */
+  private static void connectSubgraphsEntryNodesToLoopHead(Set<Integer> pUsedPCValues,
+      Map<Integer, CFANode> pNewTargetToPCMapping, CFANode pLoopHead,
+      CIdExpression pPCIdExpression, FileLocation pMainLocation,
+      CBinaryExpressionBuilder pExpressionBuilder) {
+    List<CAssumeEdge> toAdd = new ArrayList<>();
+    CFANode decisionTreeNode = pLoopHead;
+    for (Integer pcToSet : pUsedPCValues) {
+      CFANode newNode = pNewTargetToPCMapping.get(pcToSet);
       // Connect the sequence to the loop header assuming the program counter value
       CFANode newDecisionTreeNode = new CFANode(0, decisionTreeNode.getFunctionName());
-      CExpression assumePCExpression = expressionBuilder.buildBinaryExpression(
-          pcIdExpression,
-          new CIntegerLiteralExpression(mainLocation, CNumericTypes.INT, BigInteger.valueOf(pcToSet)),
+      CExpression assumePCExpression = pExpressionBuilder.buildBinaryExpression(
+          pPCIdExpression,
+          new CIntegerLiteralExpression(pMainLocation, CNumericTypes.INT, BigInteger.valueOf(pcToSet)),
           BinaryOperator.EQUALS);
-      CAssumeEdge toSequence = new CAssumeEdge(String.format("%s == %d",  pcVarName, pcToSet), 0, decisionTreeNode,
+      CAssumeEdge toSequence = new CAssumeEdge(String.format("%s == %d",  pPCIdExpression.getName(), pcToSet), 0, decisionTreeNode,
           newNode, assumePCExpression, true);
-      CAssumeEdge toNewDecisionTreeNode = new CAssumeEdge(String.format("!(%s == %d)",  pcVarName, pcToSet),
+      CAssumeEdge toNewDecisionTreeNode = new CAssumeEdge(String.format("!(%s == %d)",  pPCIdExpression.getName(), pcToSet),
           0, decisionTreeNode, newDecisionTreeNode,
           assumePCExpression, false);
       toAdd.add(toSequence);
@@ -293,79 +356,17 @@ public class CFASingleLoopTransformation {
             secondToLastFalseEdge.getExpression(), false);
         toAdd.add(newLastEdge);
       } else {
-        BlankEdge edge = new BlankEdge("", 0, loopHead, lastTrueEdge.getSuccessor(), "");
+        BlankEdge edge = new BlankEdge("", 0, pLoopHead, lastTrueEdge.getSuccessor(), "");
         edge.getPredecessor().addLeavingEdge(edge);
         edge.getSuccessor().addEnteringEdge(edge);
-        edges.add(edge);
       }
     }
     // Add the edges connecting the real nodes with the loop head
     for (CFAEdge edge : toAdd) {
       edge.getPredecessor().addLeavingEdge(edge);
       edge.getSuccessor().addEnteringEdge(edge);
-      edges.add(edge);
     }
 
-    // Collect all nodes of the transformed graph
-    Set<CFANode> nodesToAdd = new HashSet<>();
-    for (CFAEdge edge : edges) {
-      if (edge.getPredecessor().getNumEnteringEdges() == 0) {
-        nodesToAdd.add(edge.getPredecessor());
-      }
-      nodesToAdd.add(edge.getSuccessor());
-    }
-
-    // Collect all functions and map all nodes to their function names
-    Map<String, FunctionEntryNode> functions = new HashMap<>();
-    SortedSetMultimap<String, CFANode> allNodes = TreeMultimap.create();
-    Queue<CFANode> waitlist = new ArrayDeque<>();
-    waitlist.add(start);
-    while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.poll();
-      String functionName = current.getFunctionName();
-      if (allNodes.put(functionName, current)) {
-        waitlist.addAll(FluentIterable.from(getSuccessors(current)).toList());
-        if (current instanceof FunctionEntryNode) {
-          functions.put(functionName, (FunctionEntryNode) current);
-        }
-      }
-    }
-
-    // Instantiate the transformed graph in a preliminary form
-    MutableCFA cfa = new MutableCFA(pInputCFA.getMachineModel(), functions, allNodes, start, pInputCFA.getLanguage());
-
-    Collection<CFANode> nodesWithNoIdAssigned = getAllNodes(cfa);
-    for (CFANode n : nodesWithNoIdAssigned) {
-      n.setReversePostorderId(-1);
-    }
-    while (!nodesWithNoIdAssigned.isEmpty()) {
-      CFAReversePostorder sorter = new CFAReversePostorder();
-      sorter.assignSorting(nodesWithNoIdAssigned.iterator().next());
-      nodesWithNoIdAssigned = FluentIterable.from(nodesWithNoIdAssigned).filter(new Predicate<CFANode>() {
-
-        @Override
-        public boolean apply(@Nullable CFANode pArg0) {
-          if (pArg0 == null) {
-            return false;
-          }
-          return pArg0.getReversePostorderId() < 0;
-        }
-
-      }).toList();
-    }
-
-    // Get information about the loop structure
-    Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(mainFunctionName, new TreeSet<>(allNodes.values()), pInputCFA.getLanguage(), logger);
-    //Optional<ImmutableMultimap<String, Loop>> loopStructure = Optional.absent();
-
-    // Get information about variables, required by some analyses
-    final Optional<VariableClassification> varClassification
-        = loopStructure.isPresent()
-        ? Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()))
-        : Optional.<VariableClassification>absent();
-
-    // Finalize the transformed CFA
-    return cfa.makeImmutableCFA(loopStructure, varClassification);
   }
 
   private static Iterable<CFANode> getPredecessors(final CFANode pNode) {
