@@ -229,6 +229,7 @@ public class OctagonManager {
     StringBuilder str = new StringBuilder();
     int size = dimension(oct);
     long pointer = oct.getOctId();
+    str.append(map.values() + "\n");
     str.append("octagon (id: " + pointer + ") (size: " + size + ")\n");
     if (isEmpty(oct)) {
       str.append("[Empty]\n");

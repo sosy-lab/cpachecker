@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.appengine.entity;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -54,6 +55,11 @@ public class Job {
   private Status status;
   private String specification;
   private String configuration;
+<<<<<<< .working
+=======
+  private List<Ref<JobFile>> files;
+  @Ignore private Map<String, JobFile> fileLookupTable;
+>>>>>>> .merge-right.r10286
   private String queueName;
   private String taskName;
   private Result resultOutcome;
@@ -71,6 +77,36 @@ public class Job {
   }
 
   private void init() {
+<<<<<<< .working
+=======
+    defaultOptions = new HashMap<>();
+//    defaultOptions.put("output.disable", "true");
+    defaultOptions.put("cpa.predicate.solver", "smtinterpol");
+    defaultOptions.put("statistics.export", "false");
+    defaultOptions.put("statistics.memory", "false");
+    defaultOptions.put("limits.time.cpu", "-1");
+    defaultOptions.put("limits.time.wall", "-1");
+    defaultOptions.put("cpa.conditions.global.time.wall", "-1");
+    defaultOptions.put("cpa.conditions.global.memory.heap", "-1");
+    defaultOptions.put("cpa.conditions.global.memory.process", "-1");
+    defaultOptions.put("cpa.conditions.global.reached.size", "-1");
+    defaultOptions.put("cpa.conditions.global.time.cpu", "-1");
+    defaultOptions.put("cpa.conditions.global.time.cpu.hardlimit", "-1");
+    defaultOptions.put("cpa.conditions.global.time.wall", "-1");
+    defaultOptions.put("cpa.conditions.global.time.wall.hardlimit", "-1");
+    defaultOptions.put("cpa.conditions.path.assignments.threshold", "-1");
+    defaultOptions.put("cpa.conditions.path.assumeedges.limit", "-1");
+    defaultOptions.put("cpa.conditions.path.length.limit", "-1");
+    defaultOptions.put("cpa.conditions.path.repetitions.limit", "-1");
+    defaultOptions.put("cpa.monitor.limit", "0");
+    defaultOptions.put("cpa.monitor.pathcomputationlimit", "0");
+    defaultOptions.put("cpa.predicate.refinement.timelimit", "0");
+    defaultOptions.put("analysis.useProofCheckAlgorithm", "false");
+
+>>>>>>> .merge-right.r10286
+    files = new ArrayList<>();
+    fileLookupTable = new HashMap<>();
+
     status = Status.PENDING;
     creationDate = new Date();
   }
@@ -180,6 +216,7 @@ public class Job {
     return files;
   }
 
+<<<<<<< .working
   /**
    * Returns the file with an ID of the given path.
    *
@@ -188,14 +225,52 @@ public class Job {
    */
   public JobFile getFile(String path) {
     return JobFileDAO.loadByPath(path, this);
+=======
+  /**
+   * Returns the file with an ID of the given path.
+   *
+   * @param path The file's path.
+   * @return The file or null if the file cannot be found
+   */
+  public JobFile getFile(String path) {
+    if (fileLookupTable.containsKey(path)) {
+      return fileLookupTable.get(path);
+    } else if (fileLookupTable.size() == files.size()) {
+      return null;
+    }
+
+    for (Ref<JobFile> ref : files) {
+      JobFile file = ref.get();
+      fileLookupTable.put(file.getPath(), file);
+
+      if ((file.getPath().equals(path))) {
+        return  file;
+      }
+    }
+
+    return null;
+>>>>>>> .merge-right.r10286
   }
 
+<<<<<<< .working
   public List<JobFile> getFilesLoaded() {
     return JobFileDAO.files(this);
   }
-
+=======
   public void addFile(JobFile file) {
     files.add(Ref.create(file));
+    fileLookupTable.put(file.getPath(), file);
+  }
+>>>>>>> .merge-right.r10286
+
+<<<<<<< .working
+  public void addFile(JobFile file) {
+    files.add(Ref.create(file));
+=======
+  public void removeFile(JobFile file) {
+    files.remove(Ref.create(file));
+    fileLookupTable.remove(file.getPath());
+>>>>>>> .merge-right.r10286
   }
 
   public void removeFile(JobFile file) {

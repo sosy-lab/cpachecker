@@ -42,7 +42,14 @@ public class RootServerResource extends WadlServerResource implements RootResour
 
   @Override
   public Representation getRootHtml() {
+<<<<<<< .working
     Path specificationDir = Paths.get("WEB-INF/specifications");
+=======
+    Job job = new Job();
+    Map<String, String> defaultOptions = job.getDefaultOptions();
+
+    Path specificationDir = Paths.get("WEB-INF/specifications");
+>>>>>>> .merge-right.r10286
     File[] specifications = specificationDir.toFile().listFiles(new FilenameFilter() {
 
       @Override
