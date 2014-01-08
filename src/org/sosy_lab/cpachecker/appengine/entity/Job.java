@@ -36,7 +36,6 @@ import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.annotation.EmbedMap;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
-import com.googlecode.objectify.annotation.Ignore;
 import com.googlecode.objectify.annotation.OnLoad;
 import com.googlecode.objectify.annotation.OnSave;
 
@@ -68,9 +67,6 @@ public class Job {
     return log;
   }
 
-  @Ignore
-  private Map<String, String> defaultOptions;
-
   public Job() {
     init();
   }
@@ -81,40 +77,12 @@ public class Job {
   }
 
   private void init() {
-    defaultOptions = new HashMap<>();
-//    defaultOptions.put("output.disable", "true");
-    defaultOptions.put("cpa.predicate.solver", "smtinterpol");
-    defaultOptions.put("statistics.export", "false");
-    defaultOptions.put("statistics.memory", "false");
-    defaultOptions.put("limits.time.cpu", "-1");
-    defaultOptions.put("limits.time.wall", "-1");
-    defaultOptions.put("cpa.conditions.global.time.wall", "-1");
-    defaultOptions.put("cpa.conditions.global.memory.heap", "-1");
-    defaultOptions.put("cpa.conditions.global.memory.process", "-1");
-    defaultOptions.put("cpa.conditions.global.reached.size", "-1");
-    defaultOptions.put("cpa.conditions.global.time.cpu", "-1");
-    defaultOptions.put("cpa.conditions.global.time.cpu.hardlimit", "-1");
-    defaultOptions.put("cpa.conditions.global.time.wall", "-1");
-    defaultOptions.put("cpa.conditions.global.time.wall.hardlimit", "-1");
-    defaultOptions.put("cpa.conditions.path.assignments.threshold", "-1");
-    defaultOptions.put("cpa.conditions.path.assumeedges.limit", "-1");
-    defaultOptions.put("cpa.conditions.path.length.limit", "-1");
-    defaultOptions.put("cpa.conditions.path.repetitions.limit", "-1");
-    defaultOptions.put("cpa.monitor.limit", "0");
-    defaultOptions.put("cpa.monitor.pathcomputationlimit", "0");
-    defaultOptions.put("cpa.predicate.refinement.timelimit", "0");
-    defaultOptions.put("analysis.useProofCheckAlgorithm", "false");
-
     status = Status.PENDING;
     creationDate = new Date();
   }
 
   public String getKey() {
     return Key.create(Job.class, getId()).getString();
-  }
-
-  public Map<String, String> getDefaultOptions() {
-    return defaultOptions;
   }
 
 

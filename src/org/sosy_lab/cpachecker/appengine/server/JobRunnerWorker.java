@@ -38,12 +38,10 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.Configuration.Builder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.AbstractPathFactory;
-import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.appengine.common.GAELogHandler;
 import org.sosy_lab.cpachecker.appengine.common.GAELogManager;
@@ -73,51 +71,7 @@ public class JobRunnerWorker extends HttpServlet {
     job.setStatus(Status.RUNNING);
     JobDAO.save(job);
 
-    // TODO use default spec if none is provided
-    Path specificationFile = Paths.get("WEB-INF/specifications/", job.getSpecification());
-    Path configurationFile = Paths.get("WEB-INF/configurations/", job.getConfiguration());
-
-    Builder configBuilder = Configuration.builder();
-    try {
-      configBuilder.loadFromFile(configurationFile);
-    } catch (InvalidConfigurationException e) {
-      // TODO handle correctly
-      e.printStackTrace();
-    }
-
-    configBuilder
-      .setOptions(job.getOptions())
-      .setOptions(job.getDefaultOptions())
-      .setOption("specification", specificationFile.getOriginalPath());
-
-    Configuration configuration = null;
-    try {
-      configuration = configBuilder.build();
-    } catch (InvalidConfigurationException e) {
-      // TODO set error state on job and return appropriate HTTP response
-      e.printStackTrace();
-    }
-
-    FileTypeConverter fileTypeConverter = null;
-    try {
-      fileTypeConverter = new FileTypeConverter(configuration);
-    } catch (InvalidConfigurationException e) {
-      // TODO handle correctly
-      e.printStackTrace();
-    }
-
-    Configuration config = null;
-    try {
-      config = Configuration.builder()
-                .copyFrom(configuration)
-                .addConverter(FileOption.class, fileTypeConverter)
-                .build();
-    } catch (InvalidConfigurationException e) {
-      // TODO handle correctly
-      e.printStackTrace();
-    }
-
-    Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
+    Configuration config = buildConfiguration(job);
 
     List<String> logMessages = new ArrayList<>();
     Handler handler = new GAELogHandler(logMessages);
@@ -148,7 +102,7 @@ public class JobRunnerWorker extends HttpServlet {
     CPAcheckerResult result = cpaChecker.run("program.c");
 
     // disabled for now due to file system writes
-//    proofGenerator.generateProof(result);
+    //    proofGenerator.generateProof(result);
 
     // TODO save result.status in job entity
 
@@ -156,5 +110,48 @@ public class JobRunnerWorker extends HttpServlet {
     job.setStatus(Status.DONE);
     job.setLog(logMessages.toString());
     JobDAO.save(job);
+  }
+
+  /**
+   * Returns the necessary configuration to run CPAchecker for the given job.
+   *
+   * @param job The job to build the configuration for
+   * @return The configuration
+   *
+   * @throws IOException
+   */
+  private Configuration buildConfiguration(Job job) throws IOException {
+    String specificationFile =
+        (job.getSpecification() == null) ? "default.spc" : job.getSpecification();
+
+    Configuration configuration = null;
+    try {
+      configuration = Configuration.builder()
+          .setOption("specification", "WEB-INF/specifications/" + specificationFile)
+          .loadFromFile(Paths.get("WEB-INF", "configurations", job.getConfiguration()))
+          .loadFromFile(Paths.get("WEB-INF", "default-options.properties"))
+          .setOptions(job.getOptions())
+          .build();
+    } catch (InvalidConfigurationException e) {
+      // TODO set error state on job and return appropriate HTTP response
+      e.printStackTrace();
+    }
+
+    Configuration config = null;
+    try {
+      FileTypeConverter fileTypeConverter = new FileTypeConverter(configuration);
+
+      config = Configuration.builder()
+          .copyFrom(configuration)
+          .addConverter(FileOption.class, fileTypeConverter)
+          .build();
+
+      Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
+    } catch (InvalidConfigurationException e) {
+      // TODO handle correctly
+      e.printStackTrace();
+    }
+
+    return config;
   }
 }

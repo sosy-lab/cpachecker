@@ -105,7 +105,6 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
     job.addFile(program);
 
     // TODO validate!
-    options.putAll(job.getDefaultOptions());
     job.setOptions(options);
     JobDAO.save(job);
 
