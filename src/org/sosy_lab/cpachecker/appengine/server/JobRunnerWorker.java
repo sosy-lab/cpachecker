@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.appengine.server;
 
-import static com.googlecode.objectify.ObjectifyService.ofy;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -62,15 +60,13 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
 
 import com.google.common.base.Charsets;
-import com.googlecode.objectify.Key;
 
 @SuppressWarnings("serial")
 public class JobRunnerWorker extends HttpServlet {
 
   @Override
   protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-    Key<Job> jobKey = Key.create(request.getParameter("jobKey"));
-    Job job = ofy().load().key(jobKey).now();
+    Job job = JobDAO.load(request.getParameter("jobKey"));
 
     AbstractPathFactory pathFactory = new GAEPathFactory(job);
     Paths.setFactory(pathFactory);
