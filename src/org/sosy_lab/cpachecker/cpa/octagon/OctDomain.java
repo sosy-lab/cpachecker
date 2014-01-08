@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
@@ -37,7 +38,13 @@ import com.google.common.collect.BiMap;
 
 class OctDomain implements AbstractDomain {
 
-  static long totaltime = 0;
+  private static long totaltime = 0;
+  private LogManager logger;
+
+
+  public OctDomain(LogManager log) {
+    logger = log;
+  }
 
   @Override
   public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
@@ -86,7 +93,7 @@ class OctDomain implements AbstractDomain {
       octEl1.sizeOfVariables() > octEl2.sizeOfVariables()? octEl1.getVariableToIndexMap() : octEl2.getVariableToIndexMap();
 
       // TODO should it be null
-      return new OctState(newOctagon, newMap);
+      return new OctState(newOctagon, newMap, logger);
       // TODO add widening
       //    return LibraryAccess.widening(octEl1, octEl2);
   }

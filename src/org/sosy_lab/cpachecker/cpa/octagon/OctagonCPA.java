@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -61,12 +62,14 @@ public class OctagonCPA implements ConfigurableProgramAnalysis {
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
+  private final LogManager logger;
 
-  private OctagonCPA(Configuration config) throws InvalidConfigurationException {
+  private OctagonCPA(Configuration config, LogManager log) throws InvalidConfigurationException {
     config.inject(this);
-    OctDomain octagonDomain = new OctDomain();
+    logger = log;
+    OctDomain octagonDomain = new OctDomain(logger);
 
-    this.transferRelation = new OctTransferRelation();
+    this.transferRelation = new OctTransferRelation(logger);
 
     MergeOperator octagonMergeOp = null;
     if (mergeType.equals("sep")) {
@@ -115,7 +118,7 @@ public class OctagonCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    return new OctState();
+    return new OctState(logger);
   }
 
   @Override
