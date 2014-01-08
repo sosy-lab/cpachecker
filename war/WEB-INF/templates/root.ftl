@@ -1,66 +1,101 @@
 <#include "_header.ftl">
 
-<form action="/jobs" method="POST" enctype="multipart/form-data">
-	<fieldset>
-		<legend>${msg.settings}</legend>
+<div class="container">
 
-    <p>
-      <label for="specification">${msg.specification}</label><br>
-      <select name="specification" id="specification">
-        <#list specifications as specification>
-          <#assign name = specification?substring(specification?last_index_of("/")+1)>
-          <option value="${name}">${name}</option>
-        </#list>
-      </select>
-    </p>
+<div class="row">
+  <form action="/jobs" method="POST" enctype="multipart/form-data">
+    <div class="col-md-6">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <div class="panel-title">${msg.settings}</div>
+        </div>
+        <div class="panel-body">
+          <div class="form-group">
+            <label for="specification">${msg.specification}</label>
+            <select name="specification" id="specification" class="form-control">
+              <#list specifications as specification>
+                <#assign name = specification?substring(specification?last_index_of("/")+1)>
+                <option value="${name}">${name}</option>
+              </#list>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="configuration">${msg.configuration}</label>
+            <select name="configuration" id="configuration" class="form-control">
+              <#list configurations as configuration>
+                <#assign name = configuration?substring(configuration?last_index_of("/")+1)>
+                <option value="${name}">${name}</option>
+              </#list>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="programFile">${msg.programFile}</label>
+            <input type="file" name="programFile" id="programFile">
+          </div>
+          <div class="form-group">
+            <label for="programText">${msg.programText}</label>
+            <textarea name="programText" id="programText" rows="3" class="form-control"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">${msg.submitJob}</button>
+        </div>
+      </div>
+    </div>
 
-    <p>
-      <label for="configuration">${msg.configuration}</label><br>
-      <select name="configuration" id="configuration">
-        <#list configurations as configuration>
-          <#assign name = configuration?substring(configuration?last_index_of("/")+1)>
-          <option value="${name}">${name}</option>
-        </#list>
-      </select>
-    </p>
+    <div class="col-md-6">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <div class="panel-title">${msg.options}</div>
+        </div>
+        <div class="panel-body">
+          <div class="checkbox">
+            <label for="enableOutput">
+              <input type="checkbox" name="enableOutput" id="enableOutput" value="output.disable" checked> ${msg.enableOutput}
+            </label>
+          </div>
+          <div class="checkbox">
+            <label for="statisticsExport">
+              <input type="checkbox" name="statisticsExport" id="statisticsExport" value="statistics.export" checked> ${msg.statisticsExport}
+            </label>
+          </div>
+          <div class="checkbox">
+            <label for="logUsedOptions">
+              <input type="checkbox" value="log.usedOptions.export"> ${msg.logUsedOptions}
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="logLevel">${msg.logLevel}
+            <select name="logLevel" id="logLevel">
+              <option value="ALL">ALL</option>
+              <option value="FINEST" selected>FINEST</option>
+              <option value="FINER">FINER</option>
+              <option value="FINE">FINE</option>
+              <option value="INFO">INFO</option>
+              <option value="WARNING">WARNING</option>
+              <option value="SEVERE">SEVERE</option>
+              <option value="OFF">OFF</option>
+            </select>
+            </label>
+          </div>
+        </div>
+      </div>
 
-    <p>
-      <label for="programFile">${msg.programFile}</label><br>
-      <input type="file" name="programFile" id="programFile">
-    </p>
-
-    <p>
-      <label for="programText">${msg.programText}</label><br>
-      <textarea name="programText" id="programText" cols="30" rows="10"></textarea>
-    </p>
-	</fieldset>
-	
-	<fieldset>
-		<legend>${msg.options}</legend>
-
-    <p>
-      <label for="foo">Foo</label>
-      <select name="options[]" id="foo">
-        <option value="foo=bar">bar</option>
-        <option value="foo=baz">baz</option>
-      </select>
-    </p>
-    <p>
-      <label for="foobar">Foobar</label>
-      <select name="options[]" id="foobar">
-        <option value="foobar=barbaz">barbaz</option>
-        <option value="foobar=foo">foo</option>
-      </select>
-    </p>
-
-    <ul>
-    <#list defaultOptions?keys as option>
-      <li>${option}: ${defaultOptions[option]}</li>
-    </#list>
-    </ul>
-	</fieldset>
-
-  <input type="submit" value="${msg.submitJob}">
-</form>
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <div class="panel-title">${msg.presetOptions}</div>
+        </div>
+        <div class="panel-body">
+          <p>
+            Following options cannot be set or overridden. They are mandatory for CPAchecker to run flawlessly on App Engine.
+          </p>
+          <ul class="list-unstyled">
+          <#list defaultOptions?keys as option>
+            <li>${option} = ${defaultOptions[option]}</li>
+          </#list>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
 
 <#include "_footer.ftl">
