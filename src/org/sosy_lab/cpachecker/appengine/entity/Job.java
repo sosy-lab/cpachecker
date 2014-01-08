@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.Ref;
@@ -55,6 +56,8 @@ public class Job {
   private String configuration;
   private String queueName;
   private String taskName;
+  private Result resultOutcome;
+  private String resultMessage;
   @EmbedMap private Map<String, String> options;
   private List<Ref<JobFile>> files = new CopyOnWriteArrayList<>();
 
@@ -209,5 +212,21 @@ public class Job {
 
   public void setTaskName(String pTaskName) {
     taskName = pTaskName;
+  }
+
+  public Result getResultOutcome() {
+    return resultOutcome;
+  }
+
+  public void setResultOutcome(Result pResultOutcome) {
+    resultOutcome = pResultOutcome;
+  }
+
+  public String getResultMessage() {
+    return resultMessage;
+  }
+
+  public void setResultMessage(String pResultMessage) {
+    resultMessage = pResultMessage;
   }
 }

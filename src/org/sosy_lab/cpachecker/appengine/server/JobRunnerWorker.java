@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.appengine.server;
 
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.Writer;
 import java.util.Date;
 import java.util.logging.Formatter;
@@ -116,16 +118,33 @@ public class JobRunnerWorker extends HttpServlet {
 
     CPAcheckerResult result = cpaChecker.run("program.c");
 
+    saveResult(result, job);
+
     // disabled for now due to file system writes
     //    proofGenerator.generateProof(result);
-
-    // TODO save result.status in job entity
 
     // close log file to make sure it will be saved
     logHandler.flushAndClose();
 
     job.setTerminationDate(new Date());
     job.setStatus(Status.DONE);
+    JobDAO.save(job);
+  }
+
+  /**
+   * Saves the outcome of a checker run to the job entity.
+   *
+   * @param result The result.
+   * @param job The job.
+   */
+  private void saveResult(CPAcheckerResult result, Job job) {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    PrintStream stream = new PrintStream(out);
+    result.printResult(stream);
+    stream.flush();
+
+    job.setResultMessage(new String(out.toByteArray()));
+    job.setResultOutcome(result.getResult());
     JobDAO.save(job);
   }
 
