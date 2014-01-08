@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.appengine.server.resource;
 
-import org.restlet.data.MediaType;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
@@ -37,7 +36,7 @@ public class JobServerResource extends WadlServerResource implements JobResource
   @Override
   public Representation jobAsHtml() {
     Job job = JobDAO.load(getAttribute("jobKey"));
-    return new StringRepresentation("Status: "+job.getStatus()+"<br><br><pre>"+job.getLog()+"</pre>", MediaType.TEXT_HTML);
+    return new StringRepresentation("Status: "+job.getStatus());
   }
 
 }

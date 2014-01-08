@@ -26,10 +26,12 @@ package org.sosy_lab.cpachecker.appengine.server;
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.io.Writer;
 import java.util.Date;
-import java.util.List;
+import java.util.logging.Formatter;
 import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -43,6 +45,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.AbstractPathFactory;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.FileLogFormatter;
 import org.sosy_lab.cpachecker.appengine.common.GAELogHandler;
 import org.sosy_lab.cpachecker.appengine.common.GAELogManager;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
@@ -54,6 +57,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
 
+import com.google.common.base.Charsets;
 import com.googlecode.objectify.Key;
 
 @SuppressWarnings("serial")
@@ -72,10 +76,21 @@ public class JobRunnerWorker extends HttpServlet {
     JobDAO.save(job);
 
     Configuration config = buildConfiguration(job);
+    Boolean outputDisabled = Boolean.valueOf(config.getProperty("output.disable"));
 
-    List<String> logMessages = new ArrayList<>();
-    Handler handler = new GAELogHandler(logMessages);
-    LogManager logManager = new GAELogManager(handler);
+    // setup logging
+    Writer logFileWriter = Paths.get("CPALog.txt").asCharSink(Charsets.UTF_8).openBufferedStream();
+    Formatter fileLogFormatter = new FileLogFormatter();
+    Level logLevel = Level.parse(config.getProperty("log.level"));
+    GAELogHandler logHandler = new GAELogHandler(logFileWriter, fileLogFormatter, logLevel);
+
+    LogManager logManager = null;
+    try {
+        logManager = new GAELogManager(config, new DummyHandler(), logHandler);
+    } catch (InvalidConfigurationException e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
+    }
 
     // TODO use and register appropriate notifier
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
@@ -106,9 +121,11 @@ public class JobRunnerWorker extends HttpServlet {
 
     // TODO save result.status in job entity
 
+    // close log file to make sure it will be saved
+    logHandler.flushAndClose();
+
     job.setTerminationDate(new Date());
     job.setStatus(Status.DONE);
-    job.setLog(logMessages.toString());
     JobDAO.save(job);
   }
 
@@ -153,5 +170,14 @@ public class JobRunnerWorker extends HttpServlet {
     }
 
     return config;
+  }
+
+  private class DummyHandler extends Handler {
+    @Override
+    public void publish(LogRecord pRecord) {}
+    @Override
+    public void flush() {}
+    @Override
+    public void close() throws SecurityException {}
   }
 }

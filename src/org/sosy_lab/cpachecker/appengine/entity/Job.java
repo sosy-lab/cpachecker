@@ -58,15 +58,6 @@ public class Job {
   @EmbedMap private Map<String, String> options;
   private List<Ref<JobFile>> files = new CopyOnWriteArrayList<>();
 
-  // FIXME remove this stuff. It's only here for debugging just now.
-  private String log;
-  public void setLog(String pLog) {
-    log = pLog;
-  }
-  public String getLog() {
-    return log;
-  }
-
   public Job() {
     init();
   }

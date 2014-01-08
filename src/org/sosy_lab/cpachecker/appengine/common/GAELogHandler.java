@@ -23,28 +23,87 @@
  */
 package org.sosy_lab.cpachecker.appengine.common;
 
-import java.util.List;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.logging.ErrorManager;
+import java.util.logging.Formatter;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.LogRecord;
+import java.util.logging.StreamHandler;
 
-
+/**
+ * A log handler implementation that uses a {@link Writer} to save log records.
+ * This handler is very similar to {@link StreamHandler} but circumvents calls
+ * to a {@link SecurityManager} to avoid problems with setting log level, setting formatter, closing
+ * and flushing.
+ */
 public class GAELogHandler extends Handler {
 
-  private List<String> messages;
+  private Level level;
+  private Formatter formatter;
+  private Writer writer;
+  private boolean headIsWritten = false;
 
-  public GAELogHandler(List<String> messageCollection) {
-    messages = messageCollection;
+  public GAELogHandler(Writer writer, Formatter formatter, Level level) {
+    this.writer = writer;
+    this.formatter = formatter;
+    this.level = level;
   }
 
   @Override
-  public void publish(LogRecord pRecord) {
-    messages.add(pRecord.getMessage());
+  public synchronized void publish(LogRecord record) {
+    if (!isLoggable(record)) { return; }
+
+    if (record.getLevel().intValue() >= level.intValue()) {
+      String msg = formatter.format(record);
+      try {
+        if (!headIsWritten) {
+          writer.write(formatter.getHead(this));
+          headIsWritten = true;
+        }
+        writer.write(msg);
+      } catch (IOException e) {
+        reportError(null, e, ErrorManager.WRITE_FAILURE);
+      }
+    }
   }
 
   @Override
-  public void flush() { }
+  public boolean isLoggable(LogRecord record) {
+    return (writer != null && record != null);
+  }
 
+  /**
+   * Flushes and closes the writer.
+   * Use this method to actually write the log.
+   */
+  public void flushAndClose() {
+    if (writer != null) {
+      try {
+        if (!headIsWritten) {
+          writer.write(formatter.getHead(this));
+          headIsWritten = true;
+        }
+        writer.write(formatter.getTail(this));
+        writer.flush();
+        writer.close();
+      } catch (Exception e) {
+        reportError(null, e, ErrorManager.CLOSE_FAILURE);
+      }
+      writer = null;
+    }
+  }
+
+  /**
+   * Does nothing.
+   */
   @Override
-  public void close() throws SecurityException { }
+  public void flush() {}
 
+  /**
+   * Does nothing.
+   */
+  @Override
+  public void close() throws SecurityException {}
 }
