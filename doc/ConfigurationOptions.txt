@@ -480,6 +480,18 @@ cpa.callstack.skipRecursion = false
 # unsound).
 cpa.callstack.skipVoidRecursion = false
 
+# firing relation to be used in the precision adjustment operator
+cpa.chc.firingRelation = "Always"
+  allowed values: [Always, Maxcoeff, Sumcoeff, Homeocoeff]
+
+# generalization operator to be used in the precision adjustment operator
+cpa.chc.generalizationOperator = "Widen"
+  allowed values: [Top, Widen, WidenMax, WidenSum]
+
+# merge operator to be used
+cpa.chc.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
 # inform Composite CPA if it is run in a predicated analysis because then it
 # mustbehave differntly during merge.
 cpa.composite.inPredicatedAnalysis = false
@@ -872,6 +884,10 @@ cpa.predicate.handleFieldAccess = false
 # Handle field aliasing formulas.
 cpa.predicate.handleFieldAliasing = false
 
+# If disabled, all implicitly initialized fields and elements are treated as
+# non-dets
+cpa.predicate.handleImplicitInitialization = false
+
 # Handle pointer aliasing for pointers with unknown values (coming from
 # uninitialized variables or external function calls). This is slow and
 # provides little benefit.
@@ -880,6 +896,11 @@ cpa.predicate.handleNondetPointerAliasing = false
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
+
+# When a string literal initializer is encountered, initialize the contents
+# of the char array with the contents of the string literal instead of just
+# assigning a fresh non-det address to it
+cpa.predicate.handleStringLiteralInitializers = false
 
 # Allows to ignore Concat and Extract Calls when Bitvector theory was
 # replaced.
@@ -1256,7 +1277,7 @@ parser.dialect = GNUC
 # arguments, but won't be expanded by a shell. The source file name will be
 # appended to this string. The preprocessor needs to print the output to
 # stdout.
-parser.preprocessor = "cpp"
+parser.preprocessor = "cpp -P"
 
 # Preprocess the given C files before parsing: Put every single token onto a
 # new line. Then the line number corresponds to the token number.

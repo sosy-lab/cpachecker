@@ -227,8 +227,11 @@ public class CFACreator {
       break;
     case C:
       CParser realParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
-      if (usePreprocessor) {
+      if (usePreprocessor || transformTokensToLines) {
         CPreprocessor preprocessor = new CPreprocessor(config, logger);
+        if (transformTokensToLines) {
+          realParser = new CParserWithTokenizer(realParser);
+        }
         parser = new CParserWithPreprocessor(realParser, preprocessor);
       } else {
         parser = realParser;
