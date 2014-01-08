@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.AbstractPathFactory;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.FileLogFormatter;
 import org.sosy_lab.cpachecker.appengine.common.GAELogHandler;
@@ -97,7 +98,9 @@ public class JobRunnerWorker extends HttpServlet {
     // TODO use and register appropriate notifier
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
 
-    // TODO dump configuration
+    if (!outputDisabled) {
+      dumpConfiguration(config);
+    }
 
     // TODO use only one try block for all InvalidConfigException
     CPAchecker cpaChecker = null;
@@ -129,6 +132,21 @@ public class JobRunnerWorker extends HttpServlet {
     job.setTerminationDate(new Date());
     job.setStatus(Status.DONE);
     JobDAO.save(job);
+  }
+
+  /**
+   * Writes the configuration to the file specified in configuration.dumpFile
+   * Only writes the file if configuration.dumpFile is not null.
+   *
+   * @param config The configuration to dump.
+   *
+   * @throws IOException
+   */
+  private void dumpConfiguration(Configuration config) throws IOException {
+    Path configurationDumpFile = Paths.get(config.getProperty("configuration.dumpFile"));
+    if (configurationDumpFile != null) {
+      configurationDumpFile.asCharSink(Charsets.UTF_8).write(config.asPropertiesString());
+    }
   }
 
   /**
