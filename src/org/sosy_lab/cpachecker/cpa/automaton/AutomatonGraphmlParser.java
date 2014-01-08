@@ -98,19 +98,20 @@ public class AutomatonGraphmlParser {
         List<AutomatonBoolExpr> assertions = Collections.emptyList();
         List<AutomatonAction> actions = Collections.emptyList();
 
-        AutomatonTransition transition;
-        if (targetStateId.equalsIgnoreCase(SINK_NODE_ID)) {
-          transition = new AutomatonTransition(trigger, assertions, actions, AutomatonInternalState.BOTTOM);
-        } else {
-          transition = new AutomatonTransition(trigger, assertions, actions, targetStateId);
-        }
-
         List<AutomatonTransition> transitions = stateTransitions.get(sourceStateId);
         if (transitions == null) {
           transitions = Lists.newArrayList();
           stateTransitions.put(sourceStateId, transitions);
         }
-        transitions.add(transition);
+
+        if (targetStateId.equalsIgnoreCase(SINK_NODE_ID)) {
+          transitions.add(new AutomatonTransition(trigger, assertions, actions, AutomatonInternalState.BOTTOM));
+          transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM));
+        } else {
+          transitions.add(new AutomatonTransition(trigger, assertions, actions, targetStateId));
+          transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM));
+        }
+
       }
 
       // Create states ----
@@ -123,15 +124,10 @@ public class AutomatonGraphmlParser {
 
         List<AutomatonTransition> transitions = stateTransitions.get(stateId);
         if (transitions == null) {
-          transitions = Lists.newArrayList(new AutomatonTransition(
-                AutomatonBoolExpr.TRUE,
-                Collections.<AutomatonBoolExpr>emptyList(),
-                Collections.<AutomatonAction>emptyList(),
-                stateId));
+          transitions = Collections.emptyList();
         }
 
-        // TODO: use all possible transitions?
-        AutomatonInternalState state = new AutomatonInternalState(stateId, transitions, false, false);
+        AutomatonInternalState state = new AutomatonInternalState(stateId, transitions, false, true);
         automatonStates.add(state);
       }
 
@@ -141,11 +137,11 @@ public class AutomatonGraphmlParser {
       Automaton automaton = new Automaton(automatonName, automatonVariables, automatonStates, initialStateName);
       result.add(automaton);
 
-      try (Writer w = Files.openOutputFile(Paths.get("autom_test.dot"))) {
-        automaton.writeDotFile(w);
-      } catch (IOException e) {
-        //logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
-      }
+//      try (Writer w = Files.openOutputFile(Paths.get("autom_test.dot"))) {
+//        automaton.writeDotFile(w);
+//      } catch (IOException e) {
+//        //logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+//      }
 
       return result;
 

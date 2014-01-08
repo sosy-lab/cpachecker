@@ -103,7 +103,7 @@ public class CFACreator {
   @Option(name="parser.transformTokensToLines",
       description="Preprocess the given C files before parsing: Put every single token onto a new line. "
       + "Then the line number corresponds to the token number.")
-  private boolean transformTokensToLines = true;
+  private boolean transformTokensToLines = false;
 
   @Option(name="analysis.entryFunction", regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
       description="entry function")
@@ -170,6 +170,12 @@ public class CFACreator {
           + "create a series of if-else edges with explicit indizes instead.")
   private boolean expandFunctionPointerArrayAssignments = false;
 
+  @Option(name="cfa.transformIntoSingleLoop",
+      description="This option causes the control flow automaton to be "
+        + "transformed into the automaton of an equivalent program with one "
+        + "single loop and an artificial program counter.")
+  private boolean transformIntoSingleLoop = false;
+
   @Option(description="C or Java?")
   private Language language = Language.C;
 
@@ -227,13 +233,19 @@ public class CFACreator {
       parser = EclipseParsers.getJavaParser(logger, config);
       break;
     case C:
-      CParser realParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
+      CParser outerParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
+
+      if (transformTokensToLines) {
+        outerParser = new CParserWithTokenizer(outerParser);
+      }
+
       if (usePreprocessor) {
         CPreprocessor preprocessor = new CPreprocessor(config, logger);
-        parser = new CParserWithPreprocessor(realParser, preprocessor);
-      } else {
-        parser = realParser;
+        outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
       }
+
+      parser = outerParser;
+
       break;
     default:
       throw new AssertionError();
@@ -434,7 +446,15 @@ public class CFACreator {
 
       stats.processingTime.stop();
 
-      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
+      final ImmutableCFA immutableCFA;
+
+      if (transformIntoSingleLoop) {
+        stats.processingTime.start();
+        immutableCFA = new CFASingleLoopTransformation(logger, config).apply(cfa);
+        stats.processingTime.stop();
+      } else {
+        immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
+      }
 
       // check the super CFA starting at the main function
       stats.checkTime.start();
