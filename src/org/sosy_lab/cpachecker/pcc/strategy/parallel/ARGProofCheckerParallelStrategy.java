@@ -38,6 +38,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -99,12 +100,14 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
     try {
 
       StateCheckingHelper helper[] = new StateCheckingHelper[numThreads - 1];
+      Thread helperThreads[] = new Thread[numThreads - 1];
       CyclicBarrier barrier = new CyclicBarrier(numThreads);
       CommonResult result = new CommonResult(numThreads);
 
       for (int i = 0; i < helper.length; i++) {
         helper[i] = new StateCheckingHelper(barrier, result, propChecker, checker);
-        helper[i].start();
+        helperThreads[i] = Threads.newThread(helper[i]);
+        helperThreads[i].start();
       }
 
       //check ABMARG blocks
@@ -178,7 +181,7 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
 
       // wait for every Thread to finish
       for (int j = 0; j < helper.length; j++) {
-        helper[j].join();
+        helperThreads[j].join();
         if (!result.isSuccess()) { return false; }
       }
       returnNodes = result.getResult();
@@ -413,7 +416,7 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
     return result;
   }
 
-  private static class StateCheckingHelper extends Thread {
+  private static class StateCheckingHelper implements Runnable {
 
     private boolean lastRound;
     private int startCheck;

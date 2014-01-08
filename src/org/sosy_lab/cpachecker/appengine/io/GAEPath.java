@@ -93,6 +93,11 @@ public class GAEPath extends FileSystemPath {
   }
 
   @Override
+  public boolean isDirectory() {
+    return !isFile();
+  }
+
+  @Override
   public boolean mkdirs() {
     return true;
   }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,18 +21,23 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.server.common;
+package org.sosy_lab.cpachecker.appengine.server.resource;
 
+import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
-import org.restlet.resource.Get;
-import org.restlet.resource.Post;
+import org.restlet.representation.StringRepresentation;
+import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
+import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.server.common.JobFileResource;
 
 
-public interface JobsResource {
+public class JobFileServerResource extends WadlServerResource implements JobFileResource {
 
-  @Post("multipart:html")
-  public void createJobAndRedirectToJob(Representation input);
+  @Override
+  public Representation fileAsHtml() {
+    JobFile file = JobFileDAO.load(getAttribute("fileKey"));
 
-  @Get("html")
-  public Representation jobsAsHtml();
+    return new StringRepresentation(file.getContent());
+  }
+
 }

@@ -48,6 +48,10 @@ public class JobDAO {
     return ofy().load().key(key).now();
   }
 
+  public static List<Job> jobs() {
+    return ofy().load().type(Job.class).list();
+  }
+
   public static Job save(Job job) {
     ofy().save().entity(job).now();
     return job;
@@ -67,10 +71,6 @@ public class JobDAO {
         ofy().delete().entities(job).now();
       }
     });
-  }
-
-  public static String key(Job job) {
-    return Key.create(Job.class, job.getId()).getString();
   }
 
   public static Key<Job> allocateKey() {

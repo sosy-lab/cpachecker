@@ -35,10 +35,12 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 
+import com.googlecode.objectify.Key;
 import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Ignore;
+import com.googlecode.objectify.annotation.Index;
 import com.googlecode.objectify.annotation.OnSave;
 import com.googlecode.objectify.annotation.Parent;
 
@@ -47,7 +49,7 @@ public class JobFile {
 
   @Id Long id;
   @Parent Ref<Job> job;
-  private String path;
+  @Index private String path;
   private String content;
   @Ignore private Writer contentWriter;
   @Ignore private ByteArrayOutputStream contentOutputStream;
@@ -69,6 +71,10 @@ public class JobFile {
 
   private void init() {
     content = "";
+  }
+
+  public String getKey() {
+    return Key.create(job.getKey(), JobFile.class, getId()).getString();
   }
 
   public Long getId() {

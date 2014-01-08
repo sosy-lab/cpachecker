@@ -39,6 +39,7 @@ import org.apache.commons.io.IOUtils;
 import org.restlet.ext.servlet.ServletUtils;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
+import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
 import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner;
 import org.sosy_lab.cpachecker.appengine.common.JobRunner;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
@@ -105,14 +106,24 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
     job.addFile(program);
 
     // TODO validate!
-    options.putAll(job.getDefaultOptions());
     job.setOptions(options);
     JobDAO.save(job);
 
     JobRunner jobRunner = new GAETaskQueueJobRunner();
     job = jobRunner.run(job);
 
-    getResponse().redirectSeeOther("/jobs/"+JobDAO.key(job));
+    getResponse().redirectSeeOther("/jobs/"+job.getKey());
+  }
+
+  @Override
+  public Representation jobsAsHtml() {
+    List<Job> jobs = JobDAO.jobs();
+
+    return FreemarkerUtil.templateBuilder()
+        .context(getContext())
+        .templateName("jobs.ftl")
+        .addData("jobs", jobs)
+        .build();
   }
 
 }

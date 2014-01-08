@@ -51,6 +51,7 @@ import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -193,7 +194,7 @@ public final class InterpolationManager {
       executor = null;
     } else {
       // important to use daemon threads here, because we never have the chance to stop the executor
-      executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
+      executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setThreadFactory(Threads.threadFactory()).setDaemon(true).build());
     }
 
     if (reuseInterpolationEnvironment) {

@@ -23,67 +23,25 @@
  */
 package org.sosy_lab.cpachecker.appengine.common;
 
+import java.util.List;
+import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.Level;
-import java.util.logging.LogRecord;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.BasicLogManager;
 
-import com.google.common.base.Joiner;
 
+public class GAELogManager extends BasicLogManager {
 
-public class GAELogManager implements LogManager {
-
-  private Handler handler;
-
-  public GAELogManager(Handler handler) {
-    this.handler = handler;
+  public GAELogManager(Configuration config, Handler consoleOutputHandler, Handler fileOutputHandler)
+      throws InvalidConfigurationException {
+    super(config, consoleOutputHandler, fileOutputHandler);
   }
 
   @Override
-  public boolean wouldBeLogged(Level pPriority) {
-    return true;
+  protected void setupHandler(Handler pHandler, Formatter pFormatter, Level pLevel, List<Level> pExcludeLevels) {
+    logger.addHandler(pHandler);
   }
-
-  @Override
-  public void log(Level pPriority, Object... pArgs) {
-    Joiner joiner = Joiner.on(" ").skipNulls();
-    handler.publish(new LogRecord(pPriority, joiner.join(pArgs)));
-  }
-
-  @Override
-  public void logf(Level pPriority, String pFormat, Object... pArgs) {
-    handler.publish(new LogRecord(pPriority, String.format(pFormat, pArgs)));
-  }
-
-  @Override
-  public void logUserException(Level pPriority, Throwable pE, String pAdditionalMessage) {
-    handler.publish(new LogRecord(pPriority, pE.getMessage()+" "+pAdditionalMessage));
-  }
-
-  @Override
-  public void logDebugException(Throwable pE, String pAdditionalMessage) {
-    handler.publish(new LogRecord(Level.ALL ,pE.getMessage()+" "+pAdditionalMessage));
-  }
-
-  @Override
-  public void logDebugException(Throwable pE) {
-    handler.publish(new LogRecord(Level.ALL ,pE.getMessage()));
-  }
-
-  @Override
-  public void logException(Level pPriority, Throwable pE, String pAdditionalMessage) {
-    handler.publish(new LogRecord(Level.ALL ,pE.getMessage()+" "+pAdditionalMessage));
-  }
-
-  @Override
-  public void flush() {
-    handler.flush();
-  }
-
-  @Override
-  public void close() {
-    handler.close();
-  }
-
 }

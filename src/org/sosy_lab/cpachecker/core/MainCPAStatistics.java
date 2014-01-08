@@ -41,6 +41,7 @@ import javax.management.JMException;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -111,6 +112,7 @@ class MainCPAStatistics implements Statistics {
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final MemoryStatistics memStats;
+  private Thread memStatsThread;
 
   private final Timer programTime = new Timer();
   final Timer creationTime = new Timer();
@@ -132,8 +134,9 @@ class MainCPAStatistics implements Statistics {
 
     if (monitorMemoryUsage) {
       memStats = new MemoryStatistics(pLogger);
-      memStats.setDaemon(true);
-      memStats.start();
+      memStatsThread = Threads.newThread(memStats, "CPAchecker memory statistics collector");
+      memStatsThread.setDaemon(true);
+      memStatsThread.start();
     } else {
       memStats = null;
     }
@@ -231,7 +234,7 @@ class MainCPAStatistics implements Statistics {
       programTime.stop();
     }
     if (memStats != null) {
-      memStats.interrupt(); // stop memory statistics collection
+      memStatsThread.interrupt(); // stop memory statistics collection
     }
 
     if (result != Result.NOT_YET_STARTED) {
@@ -509,16 +512,18 @@ class MainCPAStatistics implements Statistics {
   }
 
   private void printMemoryStatistics(PrintStream out) {
-    MemoryStatistics.printGcStatistics(out);
+    if (monitorMemoryUsage) {
+      MemoryStatistics.printGcStatistics(out);
 
-    if (memStats != null) {
-      try {
-        memStats.join(); // thread should have terminated already,
-                         // but wait for it to ensure memory visibility
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
+      if (memStats != null) {
+        try {
+          memStatsThread.join(); // thread should have terminated already,
+                                 // but wait for it to ensure memory visibility
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+        memStats.printStatistics(out);
       }
-      memStats.printStatistics(out);
     }
   }
 

@@ -23,17 +23,22 @@
  */
 package org.sosy_lab.cpachecker.appengine.entity;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+
+import com.googlecode.objectify.Key;
 import com.googlecode.objectify.Ref;
+import com.googlecode.objectify.annotation.EmbedMap;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
-import com.googlecode.objectify.annotation.Ignore;
-import com.googlecode.objectify.annotation.Serialize;
+import com.googlecode.objectify.annotation.OnLoad;
+import com.googlecode.objectify.annotation.OnSave;
 
 @Entity
 public class Job {
@@ -47,25 +52,14 @@ public class Job {
   private Date executionDate;
   private Date terminationDate;
   private Status status;
-  @Serialize private Map<String, String> options; // serialize to avoid problems with '.' in the keys
   private String specification;
   private String configuration;
-  private List<Ref<JobFile>> files;
-  @Ignore private Map<String, JobFile> fileLookupTable;
   private String queueName;
   private String taskName;
-
-  // FIXME remove this stuff. It's only here for debugging just now.
-  private String log;
-  public void setLog(String pLog) {
-    log = pLog;
-  }
-  public String getLog() {
-    return log;
-  }
-
-  @Ignore
-  private Map<String, String> defaultOptions;
+  private Result resultOutcome;
+  private String resultMessage;
+  @EmbedMap private Map<String, String> options = new HashMap<>();
+  private List<Ref<JobFile>> files = new CopyOnWriteArrayList<>();
 
   public Job() {
     init();
@@ -77,39 +71,12 @@ public class Job {
   }
 
   private void init() {
-    defaultOptions = new HashMap<>();
-//    defaultOptions.put("output.disable", "true");
-    defaultOptions.put("cpa.predicate.solver", "smtinterpol");
-    defaultOptions.put("statistics.export", "false");
-    defaultOptions.put("statistics.memory", "false");
-    defaultOptions.put("limits.time.cpu", "-1");
-    defaultOptions.put("limits.time.wall", "-1");
-    defaultOptions.put("cpa.conditions.global.time.wall", "-1");
-    defaultOptions.put("cpa.conditions.global.memory.heap", "-1");
-    defaultOptions.put("cpa.conditions.global.memory.process", "-1");
-    defaultOptions.put("cpa.conditions.global.reached.size", "-1");
-    defaultOptions.put("cpa.conditions.global.time.cpu", "-1");
-    defaultOptions.put("cpa.conditions.global.time.cpu.hardlimit", "-1");
-    defaultOptions.put("cpa.conditions.global.time.wall", "-1");
-    defaultOptions.put("cpa.conditions.global.time.wall.hardlimit", "-1");
-    defaultOptions.put("cpa.conditions.path.assignments.threshold", "-1");
-    defaultOptions.put("cpa.conditions.path.assumeedges.limit", "-1");
-    defaultOptions.put("cpa.conditions.path.length.limit", "-1");
-    defaultOptions.put("cpa.conditions.path.repetitions.limit", "-1");
-    defaultOptions.put("cpa.monitor.limit", "0");
-    defaultOptions.put("cpa.monitor.pathcomputationlimit", "0");
-    defaultOptions.put("cpa.predicate.refinement.timelimit", "0");
-    defaultOptions.put("analysis.useProofCheckAlgorithm", "false");
-
-    files = new ArrayList<>();
-    fileLookupTable = new HashMap<>();
-
     status = Status.PENDING;
     creationDate = new Date();
   }
 
-  public Map<String, String> getDefaultOptions() {
-    return defaultOptions;
+  public String getKey() {
+    return Key.create(Job.class, getId()).getString();
   }
 
 
@@ -152,6 +119,28 @@ public class Job {
     options = pOptions;
   }
 
+  /**
+   * Since dots (.) must not be part of a key they are escaped upon saving.
+   */
+  @OnSave void escapeOptionKeys() {
+    Map<String, String> escapedMap = new HashMap<>();
+    for (String key : options.keySet()) {
+      escapedMap.put(key.replace(".", "\\"), options.get(key));
+    }
+    setOptions(escapedMap);
+  }
+
+  /**
+   * Since dots (.) must not be part of a key they were escaped upon saving
+   * and therefore need to be unescaped after loading.
+   */
+  @OnLoad void unescapeOptionKeys() {
+    Map<String, String> unescapedMap = new HashMap<>();
+    for (String key : options.keySet()) {
+      unescapedMap.put(key.replace("\\", "."), options.get(key));
+    }
+    setOptions(unescapedMap);
+  }
 
   public String getSpecification() {
     return specification;
@@ -198,32 +187,19 @@ public class Job {
    * @return The file or null if the file cannot be found
    */
   public JobFile getFile(String path) {
-    if (fileLookupTable.containsKey(path)) {
-      return fileLookupTable.get(path);
-    } else if (fileLookupTable.size() == files.size()) {
-      return null;
-    }
+    return JobFileDAO.loadByPath(path, this);
+  }
 
-    for (Ref<JobFile> ref : files) {
-      JobFile file = ref.get();
-      fileLookupTable.put(file.getPath(), file);
-
-      if ((file.getPath().equals(path))) {
-        return  file;
-      }
-    }
-
-    return null;
+  public List<JobFile> getFilesLoaded() {
+    return JobFileDAO.files(this);
   }
 
   public void addFile(JobFile file) {
     files.add(Ref.create(file));
-    fileLookupTable.put(file.getPath(), file);
   }
 
   public void removeFile(JobFile file) {
     files.remove(Ref.create(file));
-    fileLookupTable.remove(file.getPath());
   }
 
   public String getQueueName() {
@@ -240,5 +216,21 @@ public class Job {
 
   public void setTaskName(String pTaskName) {
     taskName = pTaskName;
+  }
+
+  public Result getResultOutcome() {
+    return resultOutcome;
+  }
+
+  public void setResultOutcome(Result pResultOutcome) {
+    resultOutcome = pResultOutcome;
+  }
+
+  public String getResultMessage() {
+    return resultMessage;
+  }
+
+  public void setResultMessage(String pResultMessage) {
+    resultMessage = pResultMessage;
   }
 }

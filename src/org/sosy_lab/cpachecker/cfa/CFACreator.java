@@ -42,6 +42,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -701,7 +702,7 @@ public class CFACreator {
 
   private void exportCFAAsync(final CFA cfa) {
     // execute asynchronously, this may take several seconds for large programs on slow disks
-    new Thread(new Runnable() {
+    Threads.newThread(new Runnable() {
       @Override
       public void run() {
         // running the following in parallel is thread-safe

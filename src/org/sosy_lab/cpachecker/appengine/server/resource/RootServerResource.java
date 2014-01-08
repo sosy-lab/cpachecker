@@ -25,14 +25,16 @@ package org.sosy_lab.cpachecker.appengine.server.resource;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.server.common.RootResource;
 
 
@@ -40,9 +42,6 @@ public class RootServerResource extends WadlServerResource implements RootResour
 
   @Override
   public Representation getRootHtml() {
-    Job job = new Job();
-    Map<String, String> defaultOptions = job.getDefaultOptions();
-
     Path specificationDir = Paths.get("WEB-INF/specifications");
     File[] specifications = specificationDir.toFile().listFiles(new FilenameFilter() {
 
@@ -63,6 +62,18 @@ public class RootServerResource extends WadlServerResource implements RootResour
       }
     });
 
+    Map<String, String> defaultOptions = new HashMap<>();
+    Properties defaultProperties = new Properties();
+    try {
+      defaultProperties.load(Paths.get("WEB-INF", "default-options.properties").asByteSource().openStream());
+    } catch (IOException e) {
+      // TODO handle this correctly
+      e.printStackTrace();
+    }
+
+    for (String key : defaultProperties.stringPropertyNames()) {
+      defaultOptions.put(key, defaultProperties.getProperty(key));
+    }
     return FreemarkerUtil.templateBuilder()
         .context(getContext())
         .addData("defaultOptions", defaultOptions)

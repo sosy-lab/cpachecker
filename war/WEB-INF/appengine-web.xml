@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
-    <application>ba-lab</application>
+    <application>ba-cpa-lab</application>
     <version>dev</version>
     <threadsafe>false</threadsafe>
 </appengine-web-app>

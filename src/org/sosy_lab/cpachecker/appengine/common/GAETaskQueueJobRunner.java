@@ -45,7 +45,7 @@ public class GAETaskQueueJobRunner implements JobRunner {
 
   @Override
   public Job run(Job job) {
-    String jobKey = JobDAO.key(job);
+    String jobKey = job.getKey();
 
     Queue queue = QueueFactory.getQueue(QUEUE_NAME);
     TaskHandle task = queue.add(

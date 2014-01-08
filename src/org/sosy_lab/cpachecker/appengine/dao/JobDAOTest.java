@@ -68,7 +68,7 @@ public class JobDAOTest {
   public void shouldLoadJob() throws Exception {
     Job job = new Job();
     JobDAO.save(job);
-    Job loaded = JobDAO.load(JobDAO.key(job));
+    Job loaded = JobDAO.load(job.getKey());
 
     assertEquals(job, loaded);
   }
