@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -42,6 +41,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -76,7 +76,7 @@ public class CPABuilder {
       description="comma-separated list of files with specifications that should be checked"
         + "\n(see config/specification/ for examples)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private List<File> specificationFiles = null;
+  private List<Path> specificationFiles = null;
 
   private final Configuration config;
   private final LogManager logger;
@@ -100,7 +100,7 @@ public class CPABuilder {
     if (specificationFiles != null) {
       cpas = new ArrayList<>();
 
-      for (File specFile : specificationFiles) {
+      for (Path specFile : specificationFiles) {
         List<Automaton> automata = Collections.emptyList();
         if (specFile.getPath().endsWith(".graphml")) {
           automata = AutomatonGraphmlParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel());

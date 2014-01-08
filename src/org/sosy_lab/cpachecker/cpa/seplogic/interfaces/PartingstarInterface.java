@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.seplogic.interfaces;
 
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +36,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cpa.seplogic.SeplogicState.SeplogicQueryUnsuccessful;
 
 
@@ -82,17 +82,17 @@ public class PartingstarInterface {
   @Option(name="pspath", required=true,
       description="path to partingstar command")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private File psPath = null;
+  private Path psPath = null;
 
   @Option(name="logicsfile", required=true,
       description="path to a file with logic rules")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private File logicsFile = null;
+  private Path logicsFile = null;
 
   @Option(name="abstractionfile", required=true,
       description="path to a file with abstraction rules")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private File abstractionFile = null;
+  private Path abstractionFile = null;
 
 
   public Timer getCreationTimer() {
@@ -166,8 +166,8 @@ public class PartingstarInterface {
     config.inject(this, PartingstarInterface.class);
     try {
       psProcess = createProcess();
-      loadRules(logicsFile.getAbsolutePath(), false);
-      loadRules(abstractionFile.getAbsolutePath(), true);
+      loadRules(logicsFile.toAbsolutePath().getPath(), false);
+      loadRules(abstractionFile.toAbsolutePath().getPath(), true);
     } catch (IOException e) {
       throw generateExc("Could not start Partingstar process", e);
     }
@@ -175,7 +175,7 @@ public class PartingstarInterface {
 
 
   private Process createProcess() throws IOException {
-    return Runtime.getRuntime().exec(new String[] { psPath.getAbsolutePath(),
+    return Runtime.getRuntime().exec(new String[] { psPath.toAbsolutePath().getPath(),
         });
   }
 

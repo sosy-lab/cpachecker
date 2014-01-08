@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,6 +35,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -55,7 +55,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   @Option(name="abstraction.initialPredicates",
       description="get an initial map of predicates from a list of files (see source doc/examples/predmap.txt for an example)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private List<File> predicatesFiles = ImmutableList.of();
+  private List<Path> predicatesFiles = ImmutableList.of();
 
   @Option(description="always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
@@ -93,7 +93,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     if (!predicatesFiles.isEmpty()) {
       PredicateMapParser parser = new PredicateMapParser(config, cfa, logger, formulaManagerView, abstractionManager);
 
-      for (File predicatesFile : predicatesFiles) {
+      for (Path predicatesFile : predicatesFiles) {
         try {
           result = result.mergeWith(parser.parsePredicates(predicatesFile));
 

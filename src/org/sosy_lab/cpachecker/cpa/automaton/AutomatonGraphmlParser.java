@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.Writer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +39,9 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchEdgeTokens;
 import org.w3c.dom.Document;
@@ -59,15 +62,15 @@ public class AutomatonGraphmlParser {
   /**
   * Parses a Specification File and returns the Automata found in the file.
   */
-  public static List<Automaton> parseAutomatonFile(File pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
+  public static List<Automaton> parseAutomatonFile(Path pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
 
     //CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
 
-    try (FileInputStream input = new FileInputStream(pInputFile)) {
+    try (InputStream input = pInputFile.asByteSource().openStream()) {
       // Parse the XML document ----
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-      Document doc = docBuilder.parse(pInputFile);
+      Document doc = docBuilder.parse(input);
       doc.getDocumentElement().normalize();
 
       // (The one) root node of the graph ----
@@ -134,7 +137,7 @@ public class AutomatonGraphmlParser {
       Automaton automaton = new Automaton(automatonName, automatonVariables, automatonStates, initialStateName);
       result.add(automaton);
 
-//      try (Writer w = Files.openOutputFile(new Path("autom_test.dot"))) {
+//      try (Writer w = Files.openOutputFile(Paths.get("autom_test.dot"))) {
 //        automaton.writeDotFile(w);
 //      } catch (IOException e) {
 //        //logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");

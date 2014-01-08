@@ -37,17 +37,20 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.Configuration.Builder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.io.AbstractPathFactory;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.appengine.common.GAELogHandler;
 import org.sosy_lab.cpachecker.appengine.common.GAELogManager;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.Job.Status;
+import org.sosy_lab.cpachecker.appengine.io.GAEPathFactory;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -63,17 +66,20 @@ public class JobRunnerWorker extends HttpServlet {
     Key<Job> jobKey = Key.create(request.getParameter("jobKey"));
     Job job = ofy().load().key(jobKey).now();
 
+    AbstractPathFactory pathFactory = new GAEPathFactory(job);
+    Paths.setFactory(pathFactory);
+
     job.setExecutionDate(new Date());
     job.setStatus(Status.RUNNING);
     JobDAO.save(job);
 
     // TODO use default spec if none is provided
-    Path specificationFile = new Path("WEB-INF/specifications/", job.getSpecification());
-    Path configurationFile = new Path("WEB-INF/configurations/", job.getConfiguration());
+    Path specificationFile = Paths.get("WEB-INF/specifications/", job.getSpecification());
+    Path configurationFile = Paths.get("WEB-INF/configurations/", job.getConfiguration());
 
     Builder configBuilder = Configuration.builder();
     try {
-      configBuilder.loadFromFile(configurationFile.toFile());
+      configBuilder.loadFromFile(configurationFile);
     } catch (InvalidConfigurationException e) {
       // TODO handle correctly
       e.printStackTrace();
@@ -120,6 +126,8 @@ public class JobRunnerWorker extends HttpServlet {
     // TODO use and register appropriate notifier
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
 
+    // TODO dump configuration
+
     // TODO use only one try block for all InvalidConfigException
     CPAchecker cpaChecker = null;
     try {
@@ -137,9 +145,7 @@ public class JobRunnerWorker extends HttpServlet {
       e.printStackTrace();
     }
 
-    // FIXME use submitted code file
-    CPAcheckerResult result = cpaChecker.run("WEB-INF/test/example.c");
-    System.out.println(result.getResult());
+    CPAcheckerResult result = cpaChecker.run("program.c");
 
     // disabled for now due to file system writes
 //    proofGenerator.generateProof(result);
