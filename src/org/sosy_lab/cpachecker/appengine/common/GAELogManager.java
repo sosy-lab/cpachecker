@@ -35,8 +35,6 @@ import org.sosy_lab.common.log.BasicLogManager;
 
 public class GAELogManager extends BasicLogManager {
 
-  private Handler handler;
-
   public GAELogManager(Configuration config, Handler consoleOutputHandler, Handler fileOutputHandler)
       throws InvalidConfigurationException {
     super(config, consoleOutputHandler, fileOutputHandler);
@@ -44,6 +42,6 @@ public class GAELogManager extends BasicLogManager {
 
   @Override
   protected void setupHandler(Handler pHandler, Formatter pFormatter, Level pLevel, List<Level> pExcludeLevels) {
-    logger.addHandler(handler);
+    logger.addHandler(pHandler);
   }
 }
