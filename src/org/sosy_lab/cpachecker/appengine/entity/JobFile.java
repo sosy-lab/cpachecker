@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.appengine.entity;
 
-<<<<<<< .working
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -37,31 +36,12 @@ import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 
 import com.googlecode.objectify.Key;
-=======
-import java.io.BufferedWriter;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.nio.charset.Charset;
-
-import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
-import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
-
->>>>>>> .merge-right.r10286
 import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
-<<<<<<< .working
 import com.googlecode.objectify.annotation.Ignore;
 import com.googlecode.objectify.annotation.Index;
 import com.googlecode.objectify.annotation.OnSave;
-=======
-import com.googlecode.objectify.annotation.Ignore;
-import com.googlecode.objectify.annotation.OnSave;
->>>>>>> .merge-right.r10286
 import com.googlecode.objectify.annotation.Parent;
 
 @Entity
@@ -69,11 +49,7 @@ public class JobFile {
 
   @Id Long id;
   @Parent Ref<Job> job;
-<<<<<<< .working
   @Index private String path;
-=======
-  private String path;
->>>>>>> .merge-right.r10286
   private String content;
   @Ignore private Writer contentWriter;
   @Ignore private ByteArrayOutputStream contentOutputStream;

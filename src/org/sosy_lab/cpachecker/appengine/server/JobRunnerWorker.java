@@ -40,24 +40,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sosy_lab.common.LogManager;
-<<<<<<< .working
 import org.sosy_lab.common.concurrency.Threads;
-=======
->>>>>>> .merge-right.r10286
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-<<<<<<< .working
 import org.sosy_lab.common.io.AbstractPathFactory;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.FileLogFormatter;
-=======
-import org.sosy_lab.common.io.AbstractPathFactory;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
->>>>>>> .merge-right.r10286
 import org.sosy_lab.cpachecker.appengine.common.GAELogHandler;
 import org.sosy_lab.cpachecker.appengine.common.GAELogManager;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
@@ -79,29 +70,17 @@ public class JobRunnerWorker extends HttpServlet {
   protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
     Threads.setThreadFactory(ThreadManager.currentRequestThreadFactory());
 
-<<<<<<< .working
     Job job = JobDAO.load(request.getParameter("jobKey"));
 
     AbstractPathFactory pathFactory = new GAEPathFactory(job);
     Paths.setFactory(pathFactory);
 
-=======
-    AbstractPathFactory pathFactory = new GAEPathFactory(job);
-    Paths.setFactory(pathFactory);
-
->>>>>>> .merge-right.r10286
     job.setExecutionDate(new Date());
     job.setStatus(Status.RUNNING);
     JobDAO.save(job);
 
-<<<<<<< .working
     Configuration config = buildConfiguration(job);
     Boolean outputDisabled = Boolean.valueOf(config.getProperty("output.disable"));
-=======
-    // TODO use default spec if none is provided
-    Path specificationFile = Paths.get("WEB-INF/specifications/", job.getSpecification());
-    Path configurationFile = Paths.get("WEB-INF/configurations/", job.getConfiguration());
->>>>>>> .merge-right.r10286
 
     // setup logging
     Writer logFileWriter = Paths.get("CPALog.txt").asCharSink(Charsets.UTF_8).openBufferedStream();
@@ -111,17 +90,10 @@ public class JobRunnerWorker extends HttpServlet {
 
     LogManager logManager = null;
     try {
-<<<<<<< .working
         logManager = new GAELogManager(config, new DummyHandler(), logHandler);
     } catch (InvalidConfigurationException e1) {
       // TODO Auto-generated catch block
       e1.printStackTrace();
-=======
-      configBuilder.loadFromFile(configurationFile);
-    } catch (InvalidConfigurationException e) {
-      // TODO handle correctly
-      e.printStackTrace();
->>>>>>> .merge-right.r10286
     }
 
     // TODO use and register appropriate notifier
@@ -156,7 +128,6 @@ public class JobRunnerWorker extends HttpServlet {
       dumpStatistics(result, config);
     }
 
-<<<<<<< .working
     // disabled for now due to file system writes
     //    proofGenerator.generateProof(result);
 
@@ -236,12 +207,6 @@ public class JobRunnerWorker extends HttpServlet {
         (job.getSpecification() == null) ? "default.spc" : job.getSpecification();
 
     Configuration configuration = null;
-=======
-    // TODO dump configuration
-
-    // TODO use only one try block for all InvalidConfigException
-    CPAchecker cpaChecker = null;
->>>>>>> .merge-right.r10286
     try {
       configuration = Configuration.builder()
           .setOption("specification", "WEB-INF/specifications/" + specificationFile)
@@ -269,12 +234,8 @@ public class JobRunnerWorker extends HttpServlet {
       e.printStackTrace();
     }
 
-<<<<<<< .working
     return config;
   }
-=======
-    CPAcheckerResult result = cpaChecker.run("program.c");
->>>>>>> .merge-right.r10286
 
   private class DummyHandler extends Handler {
     @Override

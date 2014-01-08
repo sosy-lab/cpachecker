@@ -46,7 +46,7 @@ public class Octagon {
       return false;
     }
     Octagon otherOct = (Octagon) pObj;
-    return OctagonManager.isEqual(this, otherOct);
+    return this.octId == otherOct.octId;
   }
 
   @Override
