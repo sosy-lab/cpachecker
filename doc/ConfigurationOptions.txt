@@ -1286,7 +1286,7 @@ parser.preprocessor = "cpp -P"
 
 # Preprocess the given C files before parsing: Put every single token onto a
 # new line. Then the line number corresponds to the token number.
-parser.transformTokensToLines = true
+parser.transformTokensToLines = false
 
 # For C files, run the preprocessor on them before parsing. Note that all
 # file numbers printed by CPAchecker will refer to the pre-processed file,

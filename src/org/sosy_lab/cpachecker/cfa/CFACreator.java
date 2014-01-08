@@ -102,7 +102,7 @@ public class CFACreator {
   @Option(name="parser.transformTokensToLines",
       description="Preprocess the given C files before parsing: Put every single token onto a new line. "
       + "Then the line number corresponds to the token number.")
-  private boolean transformTokensToLines = true;
+  private boolean transformTokensToLines = false;
 
   @Option(name="analysis.entryFunction", regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
       description="entry function")
