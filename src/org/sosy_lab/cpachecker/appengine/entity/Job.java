@@ -30,10 +30,12 @@ import java.util.List;
 import java.util.Map;
 
 import com.googlecode.objectify.Ref;
+import com.googlecode.objectify.annotation.EmbedMap;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Ignore;
-import com.googlecode.objectify.annotation.Serialize;
+import com.googlecode.objectify.annotation.OnLoad;
+import com.googlecode.objectify.annotation.OnSave;
 
 @Entity
 public class Job {
@@ -47,13 +49,13 @@ public class Job {
   private Date executionDate;
   private Date terminationDate;
   private Status status;
-  @Serialize private Map<String, String> options; // serialize to avoid problems with '.' in the keys
   private String specification;
   private String configuration;
   private List<Ref<JobFile>> files;
   @Ignore private Map<String, JobFile> fileLookupTable;
   private String queueName;
   private String taskName;
+  @EmbedMap private Map<String, String> options;
 
   // FIXME remove this stuff. It's only here for debugging just now.
   private String log;
@@ -152,6 +154,28 @@ public class Job {
     options = pOptions;
   }
 
+  /**
+   * Since dots (.) must not be part of a key they are escaped upon saving.
+   */
+  @OnSave void escapeOptionKeys() {
+    Map<String, String> escapedMap = new HashMap<>();
+    for (String key : options.keySet()) {
+      escapedMap.put(key.replace(".", "\\"), options.get(key));
+    }
+    setOptions(escapedMap);
+  }
+
+  /**
+   * Since dots (.) must not be part of a key they were escaped upon saving
+   * and therefore need to be unescaped after loading.
+   */
+  @OnLoad void unescapeOptionKeys() {
+    Map<String, String> unescapedMap = new HashMap<>();
+    for (String key : options.keySet()) {
+      unescapedMap.put(key.replace("\\", "."), options.get(key));
+    }
+    setOptions(unescapedMap);
+  }
 
   public String getSpecification() {
     return specification;
