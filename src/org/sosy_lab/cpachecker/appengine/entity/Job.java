@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.appengine.entity;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.googlecode.objectify.Ref;
@@ -48,7 +50,8 @@ public class Job {
   @Serialize private Map<String, String> options; // serialize to avoid problems with '.' in the keys
   private String specification;
   private String configuration;
-  private Ref<JobFile> program;
+  private List<Ref<JobFile>> files;
+  @Ignore private Map<String, JobFile> fileLookupTable;
   private String queueName;
   private String taskName;
 
@@ -75,7 +78,7 @@ public class Job {
 
   private void init() {
     defaultOptions = new HashMap<>();
-    defaultOptions.put("output.disable", "true");
+//    defaultOptions.put("output.disable", "true");
     defaultOptions.put("cpa.predicate.solver", "smtinterpol");
     defaultOptions.put("statistics.export", "false");
     defaultOptions.put("statistics.memory", "false");
@@ -97,6 +100,9 @@ public class Job {
     defaultOptions.put("cpa.monitor.pathcomputationlimit", "0");
     defaultOptions.put("cpa.predicate.refinement.timelimit", "0");
     defaultOptions.put("analysis.useProofCheckAlgorithm", "false");
+
+    files = new ArrayList<>();
+    fileLookupTable = new HashMap<>();
 
     status = Status.PENDING;
     creationDate = new Date();
@@ -181,14 +187,43 @@ public class Job {
     return creationDate;
   }
 
-
-  public JobFile getProgram() {
-    return program.get();
+  public List<Ref<JobFile>> getFiles() {
+    return files;
   }
 
+  /**
+   * Returns the file with an ID of the given path.
+   *
+   * @param path The file's path.
+   * @return The file or null if the file cannot be found
+   */
+  public JobFile getFile(String path) {
+    if (fileLookupTable.containsKey(path)) {
+      return fileLookupTable.get(path);
+    } else if (fileLookupTable.size() == files.size()) {
+      return null;
+    }
 
-  public void setProgram(JobFile pProgram) {
-    program = Ref.create(pProgram);
+    for (Ref<JobFile> ref : files) {
+      JobFile file = ref.get();
+      fileLookupTable.put(file.getPath(), file);
+
+      if ((file.getPath().equals(path))) {
+        return  file;
+      }
+    }
+
+    return null;
+  }
+
+  public void addFile(JobFile file) {
+    files.add(Ref.create(file));
+    fileLookupTable.put(file.getPath(), file);
+  }
+
+  public void removeFile(JobFile file) {
+    files.remove(Ref.create(file));
+    fileLookupTable.remove(file.getPath());
   }
 
   public String getQueueName() {

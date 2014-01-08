@@ -29,7 +29,8 @@ import java.util.Map;
 
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
-import org.sosy_lab.common.Path;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.server.common.RootResource;
@@ -42,7 +43,7 @@ public class RootServerResource extends WadlServerResource implements RootResour
     Job job = new Job();
     Map<String, String> defaultOptions = job.getDefaultOptions();
 
-    Path specificationDir = new Path("WEB-INF/specifications");
+    Path specificationDir = Paths.get("WEB-INF/specifications");
     File[] specifications = specificationDir.toFile().listFiles(new FilenameFilter() {
 
       @Override
@@ -52,7 +53,7 @@ public class RootServerResource extends WadlServerResource implements RootResour
       }
     });
 
-    Path configurationDir = new Path("WEB-INF/configurations");
+    Path configurationDir = Paths.get("WEB-INF/configurations");
     File[] configurations = configurationDir.toFile().listFiles(new FilenameFilter() {
 
       @Override

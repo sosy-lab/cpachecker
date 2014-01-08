@@ -25,15 +25,12 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import static org.sosy_lab.common.DuplicateOutputStream.mergeStreams;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -43,6 +40,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
@@ -150,7 +150,7 @@ public class CPAMain {
         description="When checking for memory safety properties, "
             + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
-    private File memsafetyConfig = null;
+    private Path memsafetyConfig = null;
   }
 
   @Options
@@ -163,7 +163,7 @@ public class CPAMain {
     @Option(name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private File configurationOutputFile = new File("UsedConfiguration.properties");
+    private Path configurationOutputFile = Paths.get("UsedConfiguration.properties");
 
     @Option(name="statistics.export", description="write some statistics to disk")
     private boolean exportStatistics = true;
@@ -171,7 +171,7 @@ public class CPAMain {
     @Option(name="statistics.file",
         description="write some statistics to disk")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private File exportStatisticsFile = new File("Statistics.txt");
+    private Path exportStatisticsFile = Paths.get("Statistics.txt");
 
     @Option(name="statistics.print", description="print statistics to console")
     private boolean printStatistics = false;
@@ -261,12 +261,12 @@ public class CPAMain {
 
     // setup output streams
     PrintStream console = options.printStatistics ? System.out : null;
-    FileOutputStream file = null;
+    OutputStream file = null;
 
     if (options.exportStatistics && options.exportStatisticsFile != null) {
       try {
-        com.google.common.io.Files.createParentDirs(options.exportStatisticsFile);
-        file = new FileOutputStream(options.exportStatisticsFile);
+        Files.createParentDirs(options.exportStatisticsFile);
+        file = options.exportStatisticsFile.asByteSink().openStream();
       } catch (IOException e) {
         logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
       }

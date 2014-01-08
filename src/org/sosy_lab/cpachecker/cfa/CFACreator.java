@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.findLoops;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -39,16 +39,17 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -151,12 +152,12 @@ public class CFACreator {
   @Option(name="cfa.callgraph.file",
       description="file name for call graph as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportFunctionCallsFile = new Path("functionCalls.dot");
+  private Path exportFunctionCallsFile = Paths.get("functionCalls.dot");
 
   @Option(name="cfa.file",
       description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportCfaFile = new Path("cfa.dot");
+  private Path exportCfaFile = Paths.get("cfa.dot");
 
   @Option(name="cfa.checkNullPointers",
       description="while this option is activated, before each use of a "
@@ -289,8 +290,12 @@ public class CFACreator {
       }
 
       if (sourceFiles.size() == 1) {
-        c = parser.parseFile(sourceFiles.get(0));
-
+        /*
+         * The program file has to parsed as String since Google App Engine does not allow
+         * writes to the file system and therefore the input file is stored elsewhere.
+         */
+        String code = Paths.get(sourceFiles.get(0)).asCharSource(Charset.defaultCharset()).read();
+        c = parser.parseString(code);
       } else {
         // when there is more than one file which should be evaluated, the
         // programdenotations are separated from each other and a prefix for
@@ -306,7 +311,12 @@ public class CFACreator {
           String[] tmp = fileName.split("/");
           staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
 
-          programFragments.add(Pair.of(fileName, staticVarPrefix));
+          /*
+           * The program file has to parsed as String since Google App Engine does not allow
+           * writes to the file system and therefore the input file is stored elsewhere.
+           */
+          String code = Paths.get(fileName).asCharSource(Charset.defaultCharset()).read();
+          programFragments.add(Pair.of(code, staticVarPrefix));
         }
 
         c = ((CParser)parser).parseFile(programFragments);
@@ -502,10 +512,10 @@ public class CFACreator {
   }
 
   private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
-    File file = new File(fileDenotation);
+    Path file = Paths.get(fileDenotation);
 
     try {
-      org.sosy_lab.common.Files.checkReadableFile(file);
+      Files.checkReadableFile(file);
     } catch (FileNotFoundException e) {
       throw new InvalidConfigurationException(e.getMessage());
     }
@@ -535,7 +545,7 @@ public class CFACreator {
       String filename = sourceFiles.get(0);
 
       // get the AAA part out of a filename like test/program/AAA.cil.c
-      filename = (new File(filename)).getName(); // remove directory
+      filename = (Paths.get(filename)).getName(); // remove directory
 
       int indexOfDot = filename.indexOf('.');
       String baseFilename = indexOfDot >= 1 ? filename.substring(0, indexOfDot) : filename;
