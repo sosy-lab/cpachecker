@@ -41,10 +41,6 @@ class OctWideningControl {
       nodeId = id;
     }
 
-    public void incrementIteration() {
-      iterationCount++;
-    }
-
     public boolean exceedThreshold() {
       return iterationCount > OctConstants.wideningThreshold;
     }
@@ -53,9 +49,9 @@ class OctWideningControl {
       if (isWideningUsed) {
         return true;
       } else {
-        incrementIteration();
+        iterationCount++;
         if (exceedThreshold()) {
-          switchToWideningUsed();
+          isWideningUsed = true;
         }
       }
       return isWideningUsed;
