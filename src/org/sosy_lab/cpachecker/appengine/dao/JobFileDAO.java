@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.appengine.dao;
 
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
@@ -45,6 +47,10 @@ public class JobFileDAO {
 
   public static JobFile loadByPath(String path, Job parent) {
     return ofy().load().type(JobFile.class).ancestor(parent).filter("path", path).first().now();
+  }
+
+  public static List<JobFile> files(Job parent) {
+    return ofy().load().type(JobFile.class).ancestor(parent).list();
   }
 
   public static void save(JobFile file) {

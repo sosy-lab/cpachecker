@@ -190,6 +190,10 @@ public class Job {
     return JobFileDAO.loadByPath(path, this);
   }
 
+  public List<JobFile> getFilesLoaded() {
+    return JobFileDAO.files(this);
+  }
+
   public void addFile(JobFile file) {
     files.add(Ref.create(file));
   }
