@@ -37,6 +37,12 @@ import org.sosy_lab.cpachecker.appengine.server.common.JobResource;
 public class JobServerResource extends WadlServerResource implements JobResource {
 
   @Override
+  public void deleteJob() {
+    JobDAO.delete(getAttribute("jobKey"));
+    getResponse().redirectSeeOther("/jobs");
+  }
+
+  @Override
   public Representation jobAsHtml() {
     Job job = JobDAO.load(getAttribute("jobKey"));
     List<JobFile> files = job.getFilesLoaded();

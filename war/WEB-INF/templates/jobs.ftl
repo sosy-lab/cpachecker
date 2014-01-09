@@ -37,6 +37,10 @@
               <span class="label label-success">${job.resultOutcome}</span>
             </#if>
             </#if>
+            
+            <form action="/jobs/${job.key}?method=delete" method="post" style="display:inline">
+            	<button type="submit" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-trash"></span></button>
+            </form>
           </li>
         </#list>
         </ul>

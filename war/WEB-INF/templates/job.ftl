@@ -84,17 +84,11 @@
           <td>Task Name</td>
           <td>${job.taskName}</td>
         </tr>
-        <tr>
-          <td>Options</td>
-          <td>
-            <ul class="list-unstyled">
-              <#list job.options?keys as option>
-                <li>${option} = ${job.options[option]}</li>
-              </#list>
-            </ul>
-          </td>
-        </tr>
       </table>
+      <hr />
+      <form action="/jobs/${job.key}?method=delete" method="post" style="display:inline">
+      	<button type="submit" class="btn btn-sm btn-danger"><span class="glyphicon glyphicon-trash"></span> Delete</button>
+      </form>
     </div>
   </div>
 </div>

@@ -25,15 +25,12 @@ package org.sosy_lab.cpachecker.appengine.dao;
 
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
-import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.VoidWork;
 
 
@@ -62,15 +59,19 @@ public class JobDAO {
 
       @Override
       public void vrun() {
-        List<Key<JobFile>> keys = new ArrayList<>();
-        for (Ref<JobFile> file : job.getFiles()) {
-          keys.add(file.getKey());
-        }
-
-        ofy().delete().keys(keys).now();
+        ofy().delete().entities(job.getFiles()).now();
         ofy().delete().entities(job).now();
       }
     });
+  }
+
+  public static void delete(String key) {
+    Key<Job> jobKey = Key.create(key);
+    delete(jobKey);
+  }
+
+  public static void delete(Key<Job> key) {
+    delete(load(key));
   }
 
   public static Key<Job> allocateKey() {
