@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -189,15 +190,29 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   static class MatchEdgeTokens implements AutomatonBoolExpr {
 
     private final Set<Integer> matchTokens;
+    private final Optional<Boolean> matchNegatedSemantics;
 
-    public MatchEdgeTokens(Set<Integer> pTokens) {
+    public MatchEdgeTokens(Set<Integer> pTokens, Optional<Boolean> pMatchNegatedSemantics) {
       matchTokens = pTokens;
+      matchNegatedSemantics = pMatchNegatedSemantics;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       Set<Integer> edgeTokens = CFAUtils.getTokensFromCFAEdge(pArgs.getCfaEdge());
       boolean match = edgeTokens.equals(matchTokens);
+
+      if (match && matchNegatedSemantics.isPresent()) {
+        if (pArgs.getCfaEdge() instanceof AssumeEdge) {
+          AssumeEdge a = (AssumeEdge) pArgs.getCfaEdge();
+          if (matchNegatedSemantics.get() && a.getTruthAssumption()) {
+            match = false;
+          }
+        } else {
+          throw new IllegalStateException("Matching of negative semantics only possible for assume edges!");
+        }
+      }
+
       return match ? CONST_TRUE : CONST_FALSE;
     }
 

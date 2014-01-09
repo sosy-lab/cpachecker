@@ -49,6 +49,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -93,8 +94,14 @@ public class AutomatonGraphmlParser {
         String targetStateId = getAttributeValue(stateTransitionNode, "target", "Every transition needs a target!");
         String tokenString = getAttributeValue(stateTransitionNode, "tokens", "Every transition has to specify the set of tokens!");
 
+        Optional<Boolean> matchNegativeSemantics = Optional.absent();
+        switch(getAttributeValueWithDefault(stateTransitionNode, "negation", "").toLowerCase()) {
+          case "true": matchNegativeSemantics = Optional.of(true); break;
+          case "false": matchNegativeSemantics = Optional.of(false); break;
+        }
+
         Set<Integer> matchTokens = parseTokens(tokenString);
-        AutomatonBoolExpr trigger = new MatchEdgeTokens(matchTokens);
+        AutomatonBoolExpr trigger = new MatchEdgeTokens(matchTokens, matchNegativeSemantics);
         List<AutomatonBoolExpr> assertions = Collections.emptyList();
         List<AutomatonAction> actions = Collections.emptyList();
 
@@ -174,11 +181,21 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
+  static String getAttributeValueWithDefault(Node of, String attributeName, String defaultValue) {
+    Node attribute = of.getAttributes().getNamedItem(attributeName);
+    if (attribute == null) {
+      return defaultValue;
+    } else {
+      return attribute.getTextContent();
+    }
+  }
+
   static String getAttributeValue(Node of, String attributeName, String exceptionMessage) {
     Node attribute = of.getAttributes().getNamedItem(attributeName);
     Preconditions.checkNotNull(attribute, exceptionMessage);
     return attribute.getTextContent();
   }
+
 
 
 }

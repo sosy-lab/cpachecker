@@ -139,6 +139,10 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path errorPathAutomatonGraphmlFile = Paths.get("ErrorPath.%d.graphml");
 
+  @Option(name="errorPath.graphml.pathUntilNonAssumeToSink",
+      description="include path branches to the first non-assume edge to identify sinks")
+  private boolean pathUntilNonAssumeToSink = false;
+
   private final ARGCPA cpa;
 
   private Writer refinementGraphUnderlyingWriter = null;
@@ -311,8 +315,9 @@ public class ARGStatistics implements Statistics {
     writeErrorPathFile(errorPathAutomatonGraphmlFile, cexIndex, new Appender() {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
-        ARGPathExport.producePathAutomatonGraphMl(pAppendable, rootState, pathElements,
-                                      "ErrorPath" + cexIndex);
+        ARGPathExport exporter = new ARGPathExport();
+        exporter.producePathAutomatonGraphMl(pAppendable, rootState, pathElements,
+                                      "ErrorPath" + cexIndex, pathUntilNonAssumeToSink);
       }
     });
 
