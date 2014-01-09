@@ -9,6 +9,12 @@
       <div class="panel-title">${msg.status}</div>
     </div>
     <div class="panel-body">
+    
+    	<#if error??>
+    	<div class="alert alert-danger">
+    		${msg[error]}
+        </div>
+        </#if>
 
       <table class="table-condensed">
         <tr>

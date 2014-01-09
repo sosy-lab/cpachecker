@@ -29,6 +29,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
+import org.sosy_lab.cpachecker.appengine.entity.Job.Status;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
@@ -76,6 +77,7 @@ public class JobDAOTest {
   @Test
   public void shouldDeleteJob() throws Exception {
     Job job = new Job(1L);
+    job.setStatus(Status.DONE);
     JobFile file = new JobFile("", job);
     JobFileDAO.save(file);
     job.addFile(file);
@@ -86,5 +88,13 @@ public class JobDAOTest {
 
     assertTrue(JobDAO.load(jobKey) == null);
     assertTrue(JobFileDAO.load(fileKey) == null);
+  }
+
+  @Test
+  public void shouldNotDeleteRunningJob() throws Exception {
+    Job job = new Job();
+    job.setStatus(Status.RUNNING);
+
+    assertFalse(JobDAO.delete(job));
   }
 }

@@ -34,5 +34,5 @@ public interface JobResource {
   public Representation jobAsHtml();
 
   @Delete
-  public void deleteJob();
+  public Representation deleteJob();
 }

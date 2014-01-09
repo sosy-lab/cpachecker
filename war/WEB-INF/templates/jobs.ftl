@@ -9,6 +9,13 @@
         <div class="panel-title">${msg.allJobs}</div>
       </div>
       <div class="panel-body">
+      
+      	<#if error??>
+    	<div class="alert alert-danger">
+    		${msg[error]}
+        </div>
+        </#if>
+      
         <ul>
         <#list jobs as job>
           <li>

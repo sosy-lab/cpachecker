@@ -45,7 +45,7 @@ import com.googlecode.objectify.annotation.OnSave;
 public class Job {
 
   public enum Status {
-    PENDING, RUNNING, DONE, ABORTED, TIMEOUT
+    PENDING, RUNNING, DONE, TIMEOUT
   }
 
   @Id private Long id;
