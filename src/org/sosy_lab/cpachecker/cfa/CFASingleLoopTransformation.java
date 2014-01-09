@@ -196,9 +196,11 @@ public class CFASingleLoopTransformation {
             // Cut off the edge leaving the subgraph
             removeFromNodes(edge);
 
-            CFANode connectionNode = new CFANode(next.getLineNumber(), next.getFunctionName());
+            Map<CFANode, CFANode> tmpNewToOld = new HashMap<>();
+            tmpNewToOld.put(next, next);
+            CFAEdge connectionEdge = copyCFAEdgeWithNewNodes(edge, globalNewToOld);
+            CFANode connectionNode = connectionEdge.getPredecessor();
 
-            CFAEdge connectionEdge = copyCFAEdgeWithNewNodes(edge, connectionNode, next, globalNewToOld);
             addToNodes(connectionEdge);
             entryNodeConnectors.put(next, connectionNode);
 
