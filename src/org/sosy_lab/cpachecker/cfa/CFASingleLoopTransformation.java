@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
@@ -619,7 +620,10 @@ public class CFASingleLoopTransformation {
         throw new IllegalArgumentException("The predecessor of a function return edge must be a function exit node.");
       }
       CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) pEdge;
-      return new CFunctionReturnEdge(lineNumber, (FunctionExitNode) pNewPredecessor, pNewSuccessor, functionReturnEdge.getSummaryEdge());
+      CFunctionSummaryEdge functionSummaryEdge = (CFunctionSummaryEdge) copyCFAEdgeWithNewNodes(functionReturnEdge.getSummaryEdge(), pNewToOldMapping);
+      functionSummaryEdge.getPredecessor().addLeavingSummaryEdge(functionSummaryEdge);
+      functionSummaryEdge.getSuccessor().addEnteringSummaryEdge(functionSummaryEdge);
+      return new CFunctionReturnEdge(lineNumber, (FunctionExitNode) pNewPredecessor, pNewSuccessor, functionSummaryEdge);
     case MultiEdge:
       MultiEdge multiEdge = (MultiEdge) pEdge;
       return new MultiEdge(pNewPredecessor, pNewSuccessor, FluentIterable.from(multiEdge.getEdges()).transform(new Function<CFAEdge, CFAEdge>() {
@@ -640,11 +644,14 @@ public class CFASingleLoopTransformation {
         throw new IllegalArgumentException("The successor of a return statement edge must be a function exit node.");
       }
       CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) pEdge;
-      Optional<CReturnStatement> cReturnsStatement = returnStatementEdge.getRawAST();
-      return new CReturnStatementEdge(rawStatement, cReturnsStatement.orNull(), lineNumber, pNewPredecessor, (FunctionExitNode) pNewSuccessor);
+      Optional<CReturnStatement> cReturnStatement = returnStatementEdge.getRawAST();
+      return new CReturnStatementEdge(rawStatement, cReturnStatement.orNull(), lineNumber, pNewPredecessor, (FunctionExitNode) pNewSuccessor);
     case StatementEdge:
       CStatementEdge statementEdge = (CStatementEdge) pEdge;
       return new CStatementEdge(rawStatement, statementEdge.getStatement(), lineNumber, pNewPredecessor, pNewSuccessor);
+    case CallToReturnEdge:
+      CFunctionSummaryEdge cFunctionSummaryEdge = (CFunctionSummaryEdge) pEdge;
+      return new CFunctionSummaryEdge(rawStatement, lineNumber, pNewPredecessor, pNewSuccessor, cFunctionSummaryEdge.getExpression());
     default:
       throw new IllegalArgumentException("Unsupported edge type: " + pEdge.getEdgeType());
     }
