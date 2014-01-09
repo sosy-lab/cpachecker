@@ -95,7 +95,12 @@ public class CParserWithTokenizer implements CParser {
       while (token.getType() != Token.tEND_OF_INPUT) {
         if (!token.getImage().trim().isEmpty()) {
           if (token.getImage().equals("#")) {
-            skipAllOnLine = true;
+            Token ppDirect = lx.nextToken();
+            if (ppDirect.getImage().equals("pragma")) {
+              skipAllOnLine = true;
+            } else {
+              throw new CParserException("Tokenizing does not work on all preprocessor directives! Run a preprocessor first!");
+            }
           }
 
           if (!skipAllOnLine) {
