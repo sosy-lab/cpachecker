@@ -132,7 +132,9 @@ public class JobRunnerWorker extends HttpServlet {
     //    proofGenerator.generateProof(result);
 
     // close log file to make sure it will be saved
-    logHandler.flushAndClose();
+    if (!outputDisabled) {
+      logHandler.flushAndClose();
+    }
 
     job.setTerminationDate(new Date());
     job.setStatus(Status.DONE);
@@ -210,6 +212,7 @@ public class JobRunnerWorker extends HttpServlet {
     try {
       configuration = Configuration.builder()
           .setOption("specification", "WEB-INF/specifications/" + specificationFile)
+          // TODO only load file if config is set
           .loadFromFile(Paths.get("WEB-INF", "configurations", job.getConfiguration()))
           .loadFromFile(Paths.get("WEB-INF", "default-options.properties"))
           .setOptions(job.getOptions())
