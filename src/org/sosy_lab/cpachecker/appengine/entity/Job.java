@@ -37,6 +37,7 @@ import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.annotation.EmbedMap;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
+import com.googlecode.objectify.annotation.Ignore;
 import com.googlecode.objectify.annotation.OnLoad;
 import com.googlecode.objectify.annotation.OnSave;
 
@@ -60,6 +61,8 @@ public class Job {
   private String resultMessage;
   @EmbedMap private Map<String, String> options = new HashMap<>();
   private List<Ref<JobFile>> files = new CopyOnWriteArrayList<>();
+
+  @Ignore private boolean optionsEscaped = false;
 
   public Job() {
     init();
@@ -111,6 +114,9 @@ public class Job {
 
 
   public Map<String, String> getOptions() {
+    if (optionsEscaped) {
+      unescapeOptions();
+    }
     return options;
   }
 
@@ -128,6 +134,7 @@ public class Job {
       escapedMap.put(key.replace(".", "\\"), options.get(key));
     }
     setOptions(escapedMap);
+    optionsEscaped = true;
   }
 
   /**
@@ -135,11 +142,16 @@ public class Job {
    * and therefore need to be unescaped after loading.
    */
   @OnLoad void unescapeOptionKeys() {
+    unescapeOptions();
+  }
+
+  private void unescapeOptions() {
     Map<String, String> unescapedMap = new HashMap<>();
     for (String key : options.keySet()) {
       unescapedMap.put(key.replace("\\", "."), options.get(key));
     }
     setOptions(unescapedMap);
+    optionsEscaped = false;
   }
 
   public String getSpecification() {
