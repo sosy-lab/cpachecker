@@ -160,6 +160,9 @@ public class SignCExpressionVisitor
   }
 
   private static SIGN evaluateUnaryExpression(UnaryOperator operator, SIGN operand) {
+    if(operand == SIGN.ZERO) {
+      return SIGN.ZERO;
+    }
     if(operator == UnaryOperator.PLUS && operand == SIGN.MINUS
         || operator == UnaryOperator.MINUS && operand == SIGN.PLUS) {
       return SIGN.MINUS;
