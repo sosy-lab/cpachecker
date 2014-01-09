@@ -42,6 +42,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.Configuration.Builder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
@@ -205,18 +206,19 @@ public class JobRunnerWorker extends HttpServlet {
    * @throws IOException
    */
   private Configuration buildConfiguration(Job job) throws IOException {
-    String specificationFile =
-        (job.getSpecification() == null) ? "default.spc" : job.getSpecification();
-
+    Builder configurationBuilder = Configuration.builder();
     Configuration configuration = null;
     try {
-      configuration = Configuration.builder()
-          .setOption("specification", "WEB-INF/specifications/" + specificationFile)
-          // TODO only load file if config is set
-          .loadFromFile(Paths.get("WEB-INF", "configurations", job.getConfiguration()))
-          .loadFromFile(Paths.get("WEB-INF", "default-options.properties"))
-          .setOptions(job.getOptions())
-          .build();
+      if (job.getSpecification() != null) {
+        configurationBuilder.setOption("specification", "WEB-INF/specifications/" + job.getSpecification());
+      }
+      if (job.getConfiguration() != null) {
+        configurationBuilder.loadFromFile(Paths.get("WEB-INF", "configurations", job.getConfiguration()));
+      }
+      configurationBuilder
+        .loadFromFile(Paths.get("WEB-INF", "default-options.properties"))
+        .setOptions(job.getOptions());
+      configuration = configurationBuilder.build();
     } catch (InvalidConfigurationException e) {
       // TODO set error state on job and return appropriate HTTP response
       e.printStackTrace();

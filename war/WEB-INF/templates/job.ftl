@@ -68,14 +68,18 @@
           <td>${job.terminationDate?datetime}</td>
         </tr>
         </#if>
+        <#if job.specification??>
         <tr>
           <td>${msg.specification}</td>
           <td>${job.specification}</td>
         </tr>
+        </#if>
+        <#if job.configuration??>
         <tr>
           <td>${msg.configuration}</td>
           <td>${job.configuration}</td>
         </tr>
+        </#if>
         <tr>
           <td>${msg.queueName}</td>
           <td>${job.queueName}</td>
@@ -84,6 +88,18 @@
           <td>${msg.taskName}</td>
           <td>${job.taskName}</td>
         </tr>
+        <#if job.options?? >
+        <tr>
+          <td>${msg.options}</td>
+          <td>
+          	<ul class="list-unstyled">
+          	<#list job.options?keys as option>
+          		<li>${option} = ${job.options[option]}</li>
+          	</#list>
+          	</ul>
+          </td>
+        </tr>
+        </#if>
       </table>
       <hr />
       <form action="/jobs/${job.key}?method=delete" method="post" style="display:inline">

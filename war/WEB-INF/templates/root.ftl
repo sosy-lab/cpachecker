@@ -13,6 +13,8 @@
           <div class="form-group">
             <label for="specification">${msg.specification}</label>
             <select name="specification" id="specification" class="form-control">
+              <option value="">${msg.noSpec}</option>
+              <option value="" disabled>-------------------</option>
               <#list specifications as specification>
                 <#assign name = specification?substring(specification?last_index_of("/")+1)>
                 <option value="${name}">${name}</option>
@@ -22,6 +24,8 @@
           <div class="form-group">
             <label for="configuration">${msg.configuration}</label>
             <select name="configuration" id="configuration" class="form-control">
+              <option value="">${msg.noConfig}</option>
+              <option value="" disabled>-------------------</option>
               <#list configurations as configuration>
                 <#assign name = configuration?substring(configuration?last_index_of("/")+1)>
                 <option value="${name}">${name}</option>
@@ -53,13 +57,13 @@
             </label>
           </div>
           <div class="checkbox">
-            <label for="statisticsExport">
-              <input type="checkbox" name="statisticsExport" id="statisticsExport" value="statistics.export" checked> ${msg.statisticsExport}
+            <label for="exportStatistics">
+              <input type="checkbox" name="exportStatistics" id="exportStatistics" value="statistics.export" checked> ${msg.statisticsExport}
             </label>
           </div>
           <div class="checkbox">
             <label for="logUsedOptions">
-              <input type="checkbox" value="log.usedOptions.export"> ${msg.logUsedOptions}
+              <input type="checkbox" name="logUsedOptions" id="logUsedOptions" value="log.usedOptions.export"> ${msg.logUsedOptions}
             </label>
           </div>
           <div class="form-group">

@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 import org.sosy_lab.cpachecker.appengine.server.common.JobsResource;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Splitter;
 
 
 public class JobsServerResource extends WadlServerResource implements JobsResource {
@@ -57,8 +56,13 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
   @Override
   public void createJobAndRedirectToJob(Representation input) {
     Job job = new Job(JobDAO.allocateKey().getId());
-    Map<String, String> options = new HashMap<>();
     JobFile program = new JobFile("program.c", job);
+
+    Map<String, String> options = new HashMap<>();
+    options.put("output.disable", "true");
+    options.put("statistics.export", "false");
+    options.put("log.usedOptions.export", "false");
+
 
     ServletFileUpload upload = new ServletFileUpload();
     try {
@@ -70,14 +74,24 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
           String value = Streams.asString(stream);
           switch (item.getFieldName()) {
           case "specification":
+            value = (value.equals("")) ? null : value;
             job.setSpecification(value);
             break;
           case "configuration":
+            value = (value.equals("")) ? null : value;
             job.setConfiguration(value);
             break;
-          case "options[]":
-            List<String> parts = Splitter.on('=').splitToList(value);
-            options.put(parts.get(0), parts.get(1));
+          case "enableOutput":
+            options.put("output.disable", "false");
+            break;
+          case "exportStatistics":
+            options.put("statistics.export", "true");
+            break;
+          case "logUsedOptions":
+            options.put("log.usedOptions.export", "true");
+            break;
+          case "logLevel":
+            options.put("log.level", value);
             break;
           case "programText":
             if (program.getContent() == null || program.getContent().isEmpty()) {
@@ -106,6 +120,12 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
     job.addFile(program);
 
     // TODO validate!
+
+    // TODO move into validation
+    if (job.getSpecification() == null && job.getConfiguration() == null) {
+      // TODO error: at least spec or config
+    }
+
     job.setOptions(options);
     JobDAO.save(job);
 
