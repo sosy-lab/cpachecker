@@ -27,9 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.apache.commons.fileupload.FileItemIterator;
@@ -47,6 +45,7 @@ import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner;
 import org.sosy_lab.cpachecker.appengine.common.JobRunner;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
+import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 import org.sosy_lab.cpachecker.appengine.server.common.JobsResource;
@@ -57,16 +56,12 @@ import com.google.common.base.Charsets;
 public class JobsServerResource extends WadlServerResource implements JobsResource {
 
   @Override
-  public Representation createJobAndRedirectToJob(Representation input) {
+  public Representation createJobAndRedirectToJob(Representation input) throws IOException {
     Job job = new Job(JobDAO.allocateKey().getId());
     JobFile program = new JobFile("program.c", job);
 
-    Map<String, String> options = new HashMap<>();
-    options.put("output.disable", "true");
-    options.put("statistics.export", "false");
-    options.put("log.usedOptions.export", "false");
-
     List<String> errors = new ArrayList<>();
+    DefaultOptions options = new DefaultOptions();
 
     ServletFileUpload upload = new ServletFileUpload();
     try {
@@ -85,17 +80,23 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
             value = (value.equals("")) ? null : value;
             job.setConfiguration(value);
             break;
-          case "enableOutput":
-            options.put("output.disable", "false");
+          case "disableOutput":
+            options.setOption("output.disable", "true");
             break;
-          case "exportStatistics":
-            options.put("statistics.export", "true");
+          case "disableExportStatistics":
+            options.setOption("statistics.export", "false");
             break;
           case "logUsedOptions":
-            options.put("log.usedOptions.export", "true");
+            options.setOption("log.usedOptions.export", "true");
             break;
+//          case "usePreprocessor":
+//            options.setOption("parser.usePreprocessor", "true");
+//            break;
           case "logLevel":
-            options.put("log.level", value);
+            options.setOption("log.level", value);
+            break;
+          case "machineModel":
+            options.setOption("analysis.machineModel", value);
             break;
           case "programText":
             if (program.getContent() == null || program.getContent().isEmpty()) {
@@ -120,7 +121,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
       errors.add("error.couldNotUpload");
     }
 
-    job.setOptions(options);
+    job.setOptions(options.getUsedOptions());
 
     if (job.getSpecification() == null && job.getConfiguration() == null) {
       errors.add("error.specOrConfigMissing");
@@ -148,9 +149,9 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
         .context(getContext())
         .addData("job", job)
         .addData("errors", errors)
-        .addData("defaultOptions", new HashMap<String, String>())
-        .addData("specifications", new ArrayList<String>())
-        .addData("configurations", new ArrayList<String>())
+        .addData("defaultOptions", DefaultOptions.getImmutableOptions())
+        .addData("specifications", DefaultOptions.getSpecifications())
+        .addData("configurations", DefaultOptions.getConfigurations())
         .templateName("root.ftl")
         .build();
   }

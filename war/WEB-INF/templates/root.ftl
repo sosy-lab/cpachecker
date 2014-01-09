@@ -79,13 +79,13 @@
         </div>
         <div class="panel-body">
           <div class="checkbox">
-            <label for="enableOutput" class="control-label">
-              <input type="checkbox" name="enableOutput" id="enableOutput" value="output.disable" checked> ${msg.enableOutput}
+            <label for="disableOutput" class="control-label">
+              <input type="checkbox" name="disableOutput" id="disableOutput" value="output.disable"> ${msg.disableOutput}
             </label>
           </div>
           <div class="checkbox">
-            <label for="exportStatistics" class="control-label">
-              <input type="checkbox" name="exportStatistics" id="exportStatistics" value="statistics.export" checked> ${msg.statisticsExport}
+            <label for="disableExportStatistics" class="control-label">
+              <input type="checkbox" name="disableExportStatistics" id="disableExportStatistics" value="statistics.export"> ${msg.disableStatisticsExport}
             </label>
           </div>
           <div class="checkbox">
@@ -93,19 +93,32 @@
               <input type="checkbox" name="logUsedOptions" id="logUsedOptions" value="log.usedOptions.export"> ${msg.logUsedOptions}
             </label>
           </div>
+<#--
+          <div class="checkbox">
+            <label for="usePreprocessor" class="control-label">
+              <input type="checkbox" name="usePreprocessor" id="usePreprocessor" value="parser.usePreprocessor"> ${msg.usePreprocessor}
+            </label>
+          </div>
+-->
           <div class="form-group">
-            <label for="logLevel" class="control-label">${msg.logLevel}
-            <select name="logLevel" id="logLevel">
+            <label for="logLevel" class="control-label">${msg.logLevel}</label>
+            <select name="logLevel" id="logLevel" class="form-control input-sm">
               <option value="ALL">ALL</option>
-              <option value="FINEST" selected>FINEST</option>
+              <option value="FINEST">FINEST</option>
               <option value="FINER">FINER</option>
               <option value="FINE">FINE</option>
               <option value="INFO">INFO</option>
               <option value="WARNING">WARNING</option>
               <option value="SEVERE">SEVERE</option>
-              <option value="OFF">OFF</option>
+              <option value="OFF" selected>OFF</option>
             </select>
-            </label>
+          </div>
+          <div class="form-group">
+            <label for="machineModel" class="control-label">${msg.machineModel}</label>
+            <select name="machineModel" id="machineModel" class="form-control input-sm">
+              <option value="Linux32 selected">Linux32</option>
+              <option value="Linux64">Linux64</option>
+            </select>
           </div>
         </div>
       </div>
