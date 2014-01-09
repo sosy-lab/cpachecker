@@ -6,13 +6,13 @@
 <div class="col-md-6">
   <div class="panel panel-default">
     <div class="panel-heading">
-      <div class="panel-title">Status</div>
+      <div class="panel-title">${msg.status}</div>
     </div>
     <div class="panel-body">
 
       <table class="table-condensed">
         <tr>
-          <td>Status</td>
+          <td>${msg.status}</td>
           <td>
             <#if job.status == "PENDING">
             <span class="label label-default">${job.status}</span>
@@ -26,13 +26,13 @@
             <span class="label label-success">${job.status}</span>
             </#if>
             <#if job.status != "DONE">
-            <a href="/jobs/${job.key}">Refresh to get status update</a>
+            <a href="/jobs/${job.key}">${msg.statusRefresh}</a>
             </#if>
           </td>
         </tr>
         <#if job.resultOutcome??>
         <tr>
-          <td>Outcome</td>
+          <td>${msg.outcome}</td>
           <td>
             <#if job.resultOutcome == "NOT_YET_STARTED">
             <span class="label label-default">${job.resultOutcome}</span>
@@ -48,46 +48,46 @@
         </#if>
         <#if job.resultMessage??>
         <tr>
-          <td>Message</td>
+          <td>${msg.message}</td>
           <td>${job.resultMessage}</td>
         </tr>
         </#if>
         <tr>
-          <td>Creation Date</td>
+          <td>${msg.creationDate}</td>
           <td>${job.creationDate?datetime}</td>
         </tr>
         <#if job.executionDate??>
         <tr>
-          <td>Execution Date</td>
+          <td>${msg.executionDate}</td>
           <td>${job.executionDate?datetime}</td>
         </tr>
         </#if>
         <#if job.terminationDate??>
         <tr>
-          <td>Termination Date</td>
+          <td>${msg.terminationDate}</td>
           <td>${job.terminationDate?datetime}</td>
         </tr>
         </#if>
         <tr>
-          <td>Specification</td>
+          <td>${msg.specification}</td>
           <td>${job.specification}</td>
         </tr>
         <tr>
-          <td>Configuration</td>
+          <td>${msg.configuration}</td>
           <td>${job.configuration}</td>
         </tr>
         <tr>
-          <td>Queue Name</td>
+          <td>${msg.queueName}</td>
           <td>${job.queueName}</td>
         </tr>
         <tr>
-          <td>Task Name</td>
+          <td>${msg.taskName}</td>
           <td>${job.taskName}</td>
         </tr>
       </table>
       <hr />
       <form action="/jobs/${job.key}?method=delete" method="post" style="display:inline">
-      	<button type="submit" class="btn btn-sm btn-danger"><span class="glyphicon glyphicon-trash"></span> Delete</button>
+      	<button type="submit" class="btn btn-sm btn-danger"><span class="glyphicon glyphicon-trash"></span> ${msg.delete}</button>
       </form>
     </div>
   </div>
@@ -96,7 +96,7 @@
 <div class="col-md-6">
   <div class="panel panel-default">
     <div class="panel-heading">
-      <div class="panel-title">Files</div>
+      <div class="panel-title">${msg.files}</div>
     </div>
     <div class="panel-body">
       <ul>

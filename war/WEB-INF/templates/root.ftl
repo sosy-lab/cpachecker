@@ -84,9 +84,7 @@
           <div class="panel-title">${msg.presetOptions}</div>
         </div>
         <div class="panel-body">
-          <p>
-            Following options cannot be set or overridden. They are mandatory for CPAchecker to run flawlessly on App Engine.
-          </p>
+          <p>${msg.presetOptionsDescription}</p>
           <ul class="list-unstyled">
           <#list defaultOptions?keys as option>
             <li>${option} = ${defaultOptions[option]}</li>

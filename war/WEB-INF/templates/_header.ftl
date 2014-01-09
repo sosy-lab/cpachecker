@@ -21,8 +21,8 @@
   </div>
   <div class="collapse navbar-collapse">
     <ul class="nav navbar-nav">
-      <li><a href="/">Home</a></li>
-      <li><a href="/jobs">All Jobs</a></li>
+      <li><a href="/">${msg.home}</a></li>
+      <li><a href="/jobs">${msg.allJobs}</a></li>
     </ul>
   </div>
 </nav>

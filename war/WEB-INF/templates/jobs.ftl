@@ -6,7 +6,7 @@
   <div class="col-md-12">
     <div class="panel panel-default">
       <div class="panel-heading">
-        <div class="panel-title">All Jobs</div>
+        <div class="panel-title">${msg.allJobs}</div>
       </div>
       <div class="panel-body">
         <ul>
