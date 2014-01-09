@@ -26,9 +26,11 @@ package org.sosy_lab.cpachecker.appengine.server.resource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
@@ -36,6 +38,7 @@ import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.io.IOUtils;
+import org.restlet.data.Status;
 import org.restlet.ext.servlet.ServletUtils;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
@@ -54,7 +57,7 @@ import com.google.common.base.Charsets;
 public class JobsServerResource extends WadlServerResource implements JobsResource {
 
   @Override
-  public void createJobAndRedirectToJob(Representation input) {
+  public Representation createJobAndRedirectToJob(Representation input) {
     Job job = new Job(JobDAO.allocateKey().getId());
     JobFile program = new JobFile("program.c", job);
 
@@ -63,6 +66,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
     options.put("statistics.export", "false");
     options.put("log.usedOptions.export", "false");
 
+    List<String> errors = new ArrayList<>();
 
     ServletFileUpload upload = new ServletFileUpload();
     try {
@@ -112,27 +116,43 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
         }
       }
     } catch (FileUploadException | IOException e) {
-      e.printStackTrace();
-      // TODO handle errors
-    }
-
-    JobFileDAO.save(program);
-    job.addFile(program);
-
-    // TODO validate!
-
-    // TODO move into validation
-    if (job.getSpecification() == null && job.getConfiguration() == null) {
-      // TODO error: at least spec or config
+      getLogger().log(Level.SEVERE, "Could not upload program file.", e);
+      errors.add("error.couldNotUpload");
     }
 
     job.setOptions(options);
-    JobDAO.save(job);
 
-    JobRunner jobRunner = new GAETaskQueueJobRunner();
-    job = jobRunner.run(job);
+    if (job.getSpecification() == null && job.getConfiguration() == null) {
+      errors.add("error.specOrConfigMissing");
+    }
 
-    getResponse().redirectSeeOther("/jobs/"+job.getKey());
+    if (program.getContent() == null || program.getContent().equals("")) {
+      errors.add("error.noProgram");
+    }
+
+    if (errors.size() == 0) {
+      JobFileDAO.save(program);
+      job.addFile(program);
+      JobDAO.save(job);
+
+      JobRunner jobRunner = new GAETaskQueueJobRunner();
+      job = jobRunner.run(job);
+
+      getResponse().setStatus(Status.SUCCESS_CREATED);
+      redirectSeeOther("/jobs/"+job.getKey());
+      return getResponseEntity();
+    }
+
+    getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
+    return FreemarkerUtil.templateBuilder()
+        .context(getContext())
+        .addData("job", job)
+        .addData("errors", errors)
+        .addData("defaultOptions", new HashMap<String, String>())
+        .addData("specifications", new ArrayList<String>())
+        .addData("configurations", new ArrayList<String>())
+        .templateName("root.ftl")
+        .build();
   }
 
   @Override

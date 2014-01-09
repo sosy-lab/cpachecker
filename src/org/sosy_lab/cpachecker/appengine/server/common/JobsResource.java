@@ -31,7 +31,7 @@ import org.restlet.resource.Post;
 public interface JobsResource {
 
   @Post("multipart:html")
-  public void createJobAndRedirectToJob(Representation input);
+  public Representation createJobAndRedirectToJob(Representation input);
 
   @Get("html")
   public Representation jobsAsHtml();
