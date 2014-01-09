@@ -30,7 +30,7 @@
             <select name="specification" id="specification" class="form-control">
               <option value="">${msg.noSpec}</option>
               <option value="" disabled>-------------------</option>
-              <#list specifications as specification>
+              <#list specifications?sort as specification>
                 <#assign name = specification?substring(specification?last_index_of("/")+1)>
                 <option value="${name}">${name}</option>
               </#list>
@@ -45,7 +45,7 @@
             <select name="configuration" id="configuration" class="form-control">
               <option value="">${msg.noConfig}</option>
               <option value="" disabled>-------------------</option>
-              <#list configurations as configuration>
+              <#list configurations?sort as configuration>
                 <#assign name = configuration?substring(configuration?last_index_of("/")+1)>
                 <option value="${name}">${name}</option>
               </#list>
