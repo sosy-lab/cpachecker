@@ -174,17 +174,14 @@ public class CFASingleLoopTransformation {
 
           // Eliminate a direct self edge by introducing a dummy node in between
           if (next == current) {
-            edge.getPredecessor().removeLeavingEdge(edge);
-            edge.getSuccessor().removeEnteringEdge(edge);
+            removeFromNodes(edge);
 
             CFANode dummy = new CFANode(current.getLineNumber(), current.getFunctionName());
             BlankEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), current, dummy, "");
-            dummyEdge.getPredecessor().addLeavingEdge(dummyEdge);
-            dummyEdge.getSuccessor().addEnteringEdge(dummyEdge);
+            addToNodes(dummyEdge);
 
             CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(edge, dummy, next, globalNewToOld);
-            replacementEdge.getPredecessor().addLeavingEdge(replacementEdge);
-            replacementEdge.getSuccessor().addEnteringEdge(replacementEdge);
+            addToNodes(replacementEdge);
 
             next = dummy;
             nodes.add(dummy);
@@ -197,19 +194,16 @@ public class CFASingleLoopTransformation {
             waitlist.add(next);
           } else if (!subgraph.contains(next)) {
             // Cut off the edge leaving the subgraph
-            edge.getPredecessor().removeLeavingEdge(edge);
-            edge.getSuccessor().removeEnteringEdge(edge);
+            removeFromNodes(edge);
 
             CFANode connectionNode = new CFANode(next.getLineNumber(), next.getFunctionName());
 
             CFAEdge connectionEdge = copyCFAEdgeWithNewNodes(edge, connectionNode, next, globalNewToOld);
-            connectionEdge.getPredecessor().addLeavingEdge(connectionEdge);
-            connectionEdge.getSuccessor().addEnteringEdge(connectionEdge);
+            addToNodes(connectionEdge);
             entryNodeConnectors.put(next, connectionNode);
 
             CFAEdge newConnectionEdge = copyCFAEdgeWithNewNodes(connectionEdge, getOrCreateNewFromOld(connectionNode, globalNewToOld), getOrCreateNewFromOld(next, globalNewToOld), globalNewToOld);
-            newConnectionEdge.getPredecessor().addLeavingEdge(newConnectionEdge);
-            newConnectionEdge.getSuccessor().addEnteringEdge(newConnectionEdge);
+            addToNodes(newConnectionEdge);
 
             int pcToSuccessor = ++pc;
             pcToOldSuccessorMapping.put(connectionNode, pcToSuccessor);
@@ -263,17 +257,36 @@ public class CFASingleLoopTransformation {
         new CBinaryExpressionBuilder(pInputCFA.getMachineModel(), logger));
 
     // Collect all functions and map all nodes to their function names
-    Map<String, FunctionEntryNode> functions = new HashMap<>();
-    SortedSetMultimap<String, CFANode> allNodes = TreeMultimap.create();
-    Queue<CFANode> waitlist = new ArrayDeque<>();
-    waitlist.add(start);
-    while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.poll();
-      String functionName = current.getFunctionName();
-      if (allNodes.put(functionName, current)) {
-        waitlist.addAll(FluentIterable.from(getSuccessors(current)).toList());
-        if (current instanceof FunctionEntryNode) {
-          functions.put(functionName, (FunctionEntryNode) current);
+    Map<String, FunctionEntryNode> functions = null;
+    SortedSetMultimap<String, CFANode> allNodes = null;
+    boolean changed = true;
+    while (changed) {
+      changed = false;
+      functions = new HashMap<>();
+      allNodes = TreeMultimap.create();
+      Queue<CFANode> waitlist = new ArrayDeque<>();
+      waitlist.add(start);
+      while (!waitlist.isEmpty()) {
+        CFANode current = waitlist.poll();
+        String functionName = current.getFunctionName();
+        if (allNodes.put(functionName, current)) {
+          waitlist.addAll(FluentIterable.from(getSuccessors(current)).toList());
+          if (current instanceof FunctionEntryNode) {
+            functions.put(functionName, (FunctionEntryNode) current);
+          }
+        }
+      }
+
+      Set<String> functionsToRemove = new HashSet<>();
+      for (String function : allNodes.keys()) {
+        if (!functions.containsKey(function)) {
+          changed = true;
+          functionsToRemove.add(function);
+        }
+      }
+      for (String function : functionsToRemove) {
+        for (CFANode removed : allNodes.removeAll(function)) {
+          removeFromGraph(removed);
         }
       }
     }
@@ -313,6 +326,25 @@ public class CFASingleLoopTransformation {
 
     // Finalize the transformed CFA
     return cfa.makeImmutableCFA(loopStructure, varClassification);
+  }
+
+  private void removeFromGraph(CFANode pToRemove) {
+    while (pToRemove.getNumEnteringEdges() > 0) {
+      removeFromNodes(pToRemove.getEnteringEdge(0));
+    }
+    while (pToRemove.getNumLeavingEdges() > 0) {
+      removeFromNodes(pToRemove.getLeavingEdge(0));
+    }
+  }
+
+  private static void removeFromNodes(CFAEdge pEdge) {
+    pEdge.getPredecessor().removeLeavingEdge(pEdge);
+    pEdge.getSuccessor().removeEnteringEdge(pEdge);
+  }
+
+  private static void addToNodes(CFAEdge pEdge) {
+    pEdge.getPredecessor().addLeavingEdge(pEdge);
+    pEdge.getSuccessor().addEnteringEdge(pEdge);
   }
 
   private static Set<CFANode> getNodesBetween(CFANode source, CFANode target, Set<CFANode> subgraph) {
@@ -400,8 +432,7 @@ public class CFASingleLoopTransformation {
     }
     // Add the edges connecting the real nodes with the loop head
     for (CFAEdge edge : toAdd) {
-      edge.getPredecessor().addLeavingEdge(edge);
-      edge.getSuccessor().addEnteringEdge(edge);
+      addToNodes(edge);
     }
 
   }
@@ -446,6 +477,7 @@ public class CFASingleLoopTransformation {
    * @return all nodes of the given control flow automaton.
    */
   private static Set<CFANode> getAllNodes(CFA pInputCFA) {
+
     // First, determine reachable functions
     final Set<String> functionNames = new HashSet<>();
     Set<CFANode> nodes = new LinkedHashSet<>();
