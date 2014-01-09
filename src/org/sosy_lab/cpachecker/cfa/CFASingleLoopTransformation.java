@@ -337,24 +337,6 @@ public class CFASingleLoopTransformation {
     return result;
   }
 
-  private static boolean isReachableFrom(CFANode target, CFANode source) {
-    Set<CFANode> visited = new HashSet<>();
-    Queue<CFANode> waitlist = new ArrayDeque<>();
-    waitlist.add(source);
-    while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.poll();
-      if (current.equals(target)) {
-        return true;
-      }
-      if (visited.add(current)) {
-        for (CFANode successor : getSuccessors(current)) {
-          waitlist.add(successor);
-        }
-      }
-    }
-    return false;
-  }
-
   /**
    * Connects subgraph entry nodes to the loop head via program counter value assume edges.
    *
