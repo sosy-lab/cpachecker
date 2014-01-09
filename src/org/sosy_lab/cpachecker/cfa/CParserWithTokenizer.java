@@ -44,12 +44,19 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 /**
  * Encapsulates a {@link CParser} instance and tokenizes all files first.
  */
-class CParserWithTokenizer implements CParser {
+public class CParserWithTokenizer implements CParser {
 
   private final CParser realParser;
 
   public CParserWithTokenizer(CParser pRealParser) {
     realParser = pRealParser;
+  }
+
+  public static void main(String[] args) throws CParserException {
+    String sourceFileName = args[0];
+    CParserWithTokenizer t = new CParserWithTokenizer(null);
+    StringBuilder tokenized = t.tokenizeSourcefile(sourceFileName);
+    System.out.append(tokenized.toString());
   }
 
   @Override
@@ -86,13 +93,15 @@ class CParserWithTokenizer implements CParser {
       Token token = lx.nextToken();
 
       while (token.getType() != Token.tEND_OF_INPUT) {
-        if (token.getImage().equals("#")) {
-          skipAllOnLine = true;
-        }
+        if (!token.getImage().trim().isEmpty()) {
+          if (token.getImage().equals("#")) {
+            skipAllOnLine = true;
+          }
 
-        if (!skipAllOnLine) {
-          tokenizedCode.append(token);
-          tokenizedCode.append(System.lineSeparator());
+          if (!skipAllOnLine) {
+            tokenizedCode.append(token);
+            tokenizedCode.append(System.lineSeparator());
+          }
         }
 
         token = lx.nextToken();
