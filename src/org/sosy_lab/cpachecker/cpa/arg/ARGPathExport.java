@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -38,6 +41,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -49,6 +53,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
@@ -231,8 +237,6 @@ public class ARGPathExport {
           assert !child.isCovered();
         }
 
-        // Only proceed with this state if the path states contains the child
-
         String childStateId = getStateIdent(child);
         CFANode childLoc = AbstractStates.extractLocation(child);
         CFAEdge edgeToNextState = loc.getEdgeTo(childLoc);
@@ -263,6 +267,7 @@ public class ARGPathExport {
           edgeToNextState = edges.get(edges.size()-1);
         }
 
+        // Only proceed with this state if the path states contains the child
         if (pPathStates.contains(child)) {
           // Child belongs to the path!
           appendNewEdge(doc, sb, prevStateId, childStateId, edgeToNextState);
@@ -335,6 +340,131 @@ public class ARGPathExport {
         pathUntilNonAssumeToSink(doc, target, newPrevStateId, e, pathStates);
       }
     }
+  }
+
+
+  public void writePath(Appendable sb,
+      final ARGState rootState,
+      final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
+      final Predicate<? super ARGState> displayedElements,
+      final Predicate<? super Pair<ARGState, ARGState>> pathEdges,
+      final boolean pathUntilNonAssumeToSink)
+      throws IOException {
+
+    Set<ARGState> processed = new HashSet<>();
+    Deque<ARGState> worklist = new ArrayDeque<>();
+    worklist.add(rootState);
+
+    GraphType graphType = GraphType.PROGRAMPATH;
+
+    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilder docBuilder;
+    try {
+      docBuilder = docFactory.newDocumentBuilder();
+    } catch (ParserConfigurationException e) {
+      return;
+    }
+
+    // Root of document
+    Document doc = docBuilder.newDocument();
+
+    // TODO: Full schema details
+    // Version of format..
+    // TODO! (we could use the version of a XML schema)
+
+    // ...
+    String entryStateNodeId = getStateIdent(rootState);
+    boolean sinkNodeWritten = false;
+    int multiEdgeCount = 0; // see below
+
+
+    appendDocHeader(sb);
+    appendKeyDefinitions(doc, sb, graphType);
+    appendGraphHeader(doc, sb, graphType, entryStateNodeId);
+
+    while (!worklist.isEmpty()) {
+      ARGState s = worklist.removeLast();
+
+      if (!displayedElements.apply(s)) {
+        continue;
+      }
+      if (!processed.add(s)) {
+        continue;
+      }
+
+      // Location of the state
+      CFANode loc = AbstractStates.extractLocation(s);
+
+      // Write the state
+      String sourceStateNodeId = getStateIdent(s);
+      appendNewNode(doc, sb, sourceStateNodeId, NodeType.ONPATH);
+
+
+      for (ARGState child : successorFunction.apply(s)) {
+
+        // The child might be covered by another state
+        // --> switch to the covering state
+        if (child.isCovered()) {
+          child = child.getCoveringState();
+          assert !child.isCovered();
+        }
+
+        String childStateId = getStateIdent(child);
+        CFANode childLoc = AbstractStates.extractLocation(child);
+        CFAEdge edgeToNextState = loc.getEdgeTo(childLoc);
+        String prevStateId = sourceStateNodeId;
+
+        if (edgeToNextState instanceof MultiEdge) {
+          // The successor state might have several incoming MultiEdges.
+          // In this case the state names like ARG<successor>_0 would occur
+          // several times.
+          // So we add this counter to the state names to make them unique.
+          multiEdgeCount++;
+
+          // Write out a long linear chain of pseudo-states (one state encodes multiple edges)
+          // because the AutomatonCPA also iterates through the MultiEdge.
+          List<CFAEdge> edges = ((MultiEdge)edgeToNextState).getEdges();
+
+          // inner part (without last edge)
+          for (int i = 0; i < edges.size()-1; i++) {
+            CFAEdge innerEdge = edges.get(i);
+            String pseudoStateId = getPseudoStateIdent(child, i, multiEdgeCount);
+
+            appendNewNode(doc, sb, pseudoStateId, NodeType.ONPATH);
+            appendNewEdge(doc, sb, prevStateId, pseudoStateId, innerEdge);
+            prevStateId = pseudoStateId;
+          }
+
+          // last edge connecting it with the real successor
+          edgeToNextState = edges.get(edges.size()-1);
+        }
+
+        // Only proceed with this state if the path states contains the child
+        boolean isEdgeOnPath = pathEdges.apply(Pair.of(s, child));
+        if (s.getChildren().contains(child)) {
+          if (isEdgeOnPath) {
+            // Child belongs to the path!
+            appendNewEdge(doc, sb, prevStateId, childStateId, edgeToNextState);
+          } else {
+            // Child does not belong to the path --> add a branch to the SINK node!
+            if (!sinkNodeWritten) {
+              sinkNodeWritten = true;
+              appendNewNode(doc, sb, SINK_NODE_ID, NodeType.SINKNODE);
+            }
+
+            // Path to the first non-assumption edge
+//            if (pathUntilNonAssumeToSink) {
+//              pathUntilNonAssumeToSink(doc, sb, prevStateId, edgeToNextState, pPathStates);
+//            }
+          }
+        }
+
+        worklist.add(child);
+      }
+    }
+
+    appendGraphFooter(sb);
+    appendDocFooter(sb);
   }
 
 

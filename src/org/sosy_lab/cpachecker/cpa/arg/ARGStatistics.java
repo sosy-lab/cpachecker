@@ -139,6 +139,11 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path errorPathAutomatonGraphmlFile = Paths.get("ErrorPath.%d.graphml");
 
+  @Option(name="errorPathOld.graphml",
+      description="export error path to file as an automaton to a graphml file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path errorPathAutomatonGraphmlFileOld = Paths.get("ErrorPathOld.%d.graphml");
+
   @Option(name="errorPath.graphml.pathUntilNonAssumeToSink",
       description="include path branches to the first non-assume edge to identify sinks")
   private boolean pathUntilNonAssumeToSink = false;
@@ -312,12 +317,24 @@ public class ARGStatistics implements Statistics {
       }
     });
 
-    writeErrorPathFile(errorPathAutomatonGraphmlFile, cexIndex, new Appender() {
+    writeErrorPathFile(errorPathAutomatonGraphmlFileOld, cexIndex, new Appender() {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
         ARGPathExport exporter = new ARGPathExport();
         exporter.producePathAutomatonGraphMl(pAppendable, rootState, pathElements,
                                       "ErrorPath" + cexIndex, pathUntilNonAssumeToSink);
+      }
+    });
+
+    writeErrorPathFile(errorPathAutomatonGraphmlFile, cexIndex, new Appender() {
+      @Override
+      public void appendTo(Appendable pAppendable) throws IOException {
+        ARGPathExport exporter = new ARGPathExport();
+        exporter.writePath(pAppendable, rootState,
+            ARGUtils.CHILDREN_OF_STATE,
+            Predicates.in(pathElements),
+            isTargetPathEdge,
+            pathUntilNonAssumeToSink);
       }
     });
 
