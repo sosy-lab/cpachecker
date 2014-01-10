@@ -93,8 +93,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.SetMultimap;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 
@@ -133,8 +131,8 @@ public class CFASingleLoopTransformation {
 
     Queue<CFANode> nodes = new ArrayDeque<>(getAllNodes(pInputCFA));
 
-    SetMultimap<Integer, CFANode> newPredecessorsToPC = LinkedHashMultimap.create();
-    Map<Integer, CFANode> newSuccessorToPC = new LinkedHashMap<>();
+    Map<Integer, CFANode> newPredecessorsToPC = new LinkedHashMap<>();
+    Map<Integer, CFANode> newSuccessorsToPC = new LinkedHashMap<>();
     Map<CFANode, CFANode> globalNewToOld = new HashMap<>();
     Map<CFANode, CFANode> entryNodeConnectors = new HashMap<>();
     globalNewToOld.put(oldMainFunctionEntryNode, start);
@@ -159,7 +157,7 @@ public class CFASingleLoopTransformation {
       if (isOldMainEntryNode) {
         subgraphRoot = new CFANode(subgraphRoot.getLineNumber(), subgraphRoot.getFunctionName());
         replaceInStructure(oldMainFunctionEntryNode, subgraphRoot);
-        newSuccessorToPC.put(0, getOrCreateNewFromOld(subgraphRoot, globalNewToOld));
+        newSuccessorsToPC.put(0, getOrCreateNewFromOld(subgraphRoot, globalNewToOld));
       }
 
       // Get an acyclic sub graph
@@ -219,7 +217,7 @@ public class CFASingleLoopTransformation {
 
             // Compute the program counter for the replaced edge and map the nodes to it
             int pcToSuccessor = ++pc;
-            newSuccessorToPC.put(pcToSuccessor, getOrCreateNewFromOld(connectionNode, globalNewToOld));
+            newSuccessorsToPC.put(pcToSuccessor, getOrCreateNewFromOld(connectionNode, globalNewToOld));
             newPredecessorsToPC.put(pcToSuccessor, getOrCreateNewFromOld(current, globalNewToOld));
           }
         }
@@ -249,7 +247,7 @@ public class CFASingleLoopTransformation {
     connectSubgraphLeavingNodesToLoopHead(loopHead, newPredecessorsToPC, pcIdExpression, mainLocation);
 
     // Connect the subgraph entry nodes by assuming the program counter values
-    connectLoopHeadToSubgraphEntryNodes(loopHead, newSuccessorToPC, pcIdExpression, mainLocation,
+    connectLoopHeadToSubgraphEntryNodes(loopHead, newSuccessorsToPC, pcIdExpression, mainLocation,
         new CBinaryExpressionBuilder(pInputCFA.getMachineModel(), logger));
 
     // Build the CFA from the syntactically reachable nodes
@@ -372,10 +370,10 @@ public class CFASingleLoopTransformation {
   }
 
   private static void connectSubgraphLeavingNodesToLoopHead(CFANode pLoopHead,
-      SetMultimap<Integer, CFANode> pNewPredecessorsToPC,
+      Map<Integer, CFANode> pNewPredecessorsToPC,
       CIdExpression pPCIdExpression,
       FileLocation pMainLocation) {
-    for (Map.Entry<Integer, CFANode> newPredecessorToPC : pNewPredecessorsToPC.entries()) {
+    for (Map.Entry<Integer, CFANode> newPredecessorToPC : pNewPredecessorsToPC.entrySet()) {
       int pcToSet = newPredecessorToPC.getKey();
       CFANode subgraphPredecessor = newPredecessorToPC.getValue();
       CStatement statement = new CExpressionAssignmentStatement(pMainLocation, pPCIdExpression,
