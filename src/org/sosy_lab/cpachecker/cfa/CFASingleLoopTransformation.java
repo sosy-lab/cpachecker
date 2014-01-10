@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -259,6 +260,10 @@ public class CFASingleLoopTransformation {
         new CBinaryExpressionBuilder(pInputCFA.getMachineModel(), logger));
 
     // Collect all functions and map all nodes to their function names
+    return buildCFA(start, pInputCFA.getMachineModel(), pInputCFA.getLanguage());
+  }
+
+  private ImmutableCFA buildCFA(FunctionEntryNode pStartNode, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException {
     Map<String, FunctionEntryNode> functions = null;
     SortedSetMultimap<String, CFANode> allNodes = null;
     boolean changed = true;
@@ -267,7 +272,7 @@ public class CFASingleLoopTransformation {
       functions = new HashMap<>();
       allNodes = TreeMultimap.create();
       Queue<CFANode> waitlist = new ArrayDeque<>();
-      waitlist.add(start);
+      waitlist.add(pStartNode);
       while (!waitlist.isEmpty()) {
         CFANode current = waitlist.poll();
         String functionName = current.getFunctionName();
@@ -294,7 +299,7 @@ public class CFASingleLoopTransformation {
     }
 
     // Instantiate the transformed graph in a preliminary form
-    MutableCFA cfa = new MutableCFA(pInputCFA.getMachineModel(), functions, allNodes, start, pInputCFA.getLanguage());
+    MutableCFA cfa = new MutableCFA(pMachineModel, functions, allNodes, pStartNode, pLanguage);
 
     // Assign reverse post order ids to the control flow nodes
     Collection<CFANode> nodesWithNoIdAssigned = getAllNodes(cfa);
@@ -318,7 +323,8 @@ public class CFASingleLoopTransformation {
     }
 
     // Get information about the loop structure
-    Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(mainFunctionName, new TreeSet<>(allNodes.values()), pInputCFA.getLanguage(), logger);
+    Optional<ImmutableMultimap<String, Loop>> loopStructure =
+        getLoopStructure(pStartNode.getFunctionName(), new TreeSet<>(allNodes.values()), pLanguage, logger);
 
     // Get information about variables, required by some analyses
     final Optional<VariableClassification> varClassification
