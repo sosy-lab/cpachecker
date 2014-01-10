@@ -27,13 +27,10 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
@@ -114,16 +111,7 @@ public class PathChecker {
       }
     }
 
-    List<Pair<CFAEdge, Set<AssignableTerm>>> pathWithAssignments = new ArrayList<>(pPath.size());
-
-    for (int index = 0; index < pPath.size(); index++) {
-      Set<AssignableTerm> termSet = new HashSet<>();
-      termSet.addAll(assignedTermsPosition.get(index));
-      Pair<CFAEdge, Set<AssignableTerm>> cfaPair = Pair.of(pPath.get(index), termSet);
-      pathWithAssignments.add(cfaPair);
-    }
-
-    return new CFAPathWithAssignments(pathWithAssignments);
+    return new CFAPathWithAssignments(pPath, assignedTermsPosition, pModel);
   }
 
   /**

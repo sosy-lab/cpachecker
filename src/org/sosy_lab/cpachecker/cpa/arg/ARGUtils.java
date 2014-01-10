@@ -47,8 +47,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.Model;
-import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.Model.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.Model.CFAPathWithAssignments.CFAEdgeWithAssignments;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -59,7 +59,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
@@ -455,7 +454,7 @@ public class ARGUtils {
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name, CounterexampleInfo pCounterExample) throws IOException {
 
-    Multimap<ARGState, Pair<AssignableTerm, Object>> valueMap = null;
+    Map<ARGState, CFAEdgeWithAssignments> valueMap = null;
 
     if (pCounterExample != null) {
       Model model = pCounterExample.getTargetPathModel();
@@ -529,7 +528,7 @@ public class ARGUtils {
           if (child.isTarget()) {
             sb.append("ERROR");
           } else {
-            String assumption = getAssumption(valueMap, s, edge);
+            String assumption = getAssumption(valueMap, s);
             sb.append(assumption + "GOTO ARG" + child.getStateId());
           }
           sb.append(";\n");
@@ -540,14 +539,15 @@ public class ARGUtils {
     sb.append("END AUTOMATON\n");
   }
 
-  private static String getAssumption(Multimap<ARGState, Pair<AssignableTerm, Object>> pValueMap, ARGState pState, CFAEdge cfaEdge) {
+  private static String getAssumption(Map<ARGState, CFAEdgeWithAssignments> pValueMap, ARGState pState) {
 
     String assumption = "";
 
-    if (pValueMap != null) {
-      Collection<Pair<AssignableTerm, Object>> assumptionSet = pValueMap.get(pState);
+    if (pValueMap != null && pValueMap.containsKey(pState)) {
 
-      String code = CFAPathWithAssignments.getAsCode(assumptionSet, cfaEdge);
+      CFAEdgeWithAssignments cfaEdgeWithAssignments = pValueMap.get(pState);
+
+      String code = cfaEdgeWithAssignments.getAsCode();
 
       if(code != null) {
         assumption = "ASSUME \"" + code + "\"";

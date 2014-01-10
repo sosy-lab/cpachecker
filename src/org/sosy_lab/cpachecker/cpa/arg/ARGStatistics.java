@@ -56,8 +56,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.Model;
-import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.Model.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.Model.CFAPathWithAssignments.CFAEdgeWithAssignments;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -359,7 +359,7 @@ public class ARGStatistics implements Statistics {
       public void appendTo(Appendable out) throws IOException {
         // Write edges mixed with assigned values.
         List<CFAEdge> edgePath = targetPath.asEdgesList();
-        List<Pair<CFAEdge, Collection<Pair<AssignableTerm, Object>>>> exactValuePath;
+        CFAPathWithAssignments exactValuePath;
         exactValuePath = null;
 
         if (model != null) {
@@ -390,14 +390,14 @@ public class ARGStatistics implements Statistics {
       }
 
       private void printPreciseValues(Appendable out,
-          List<Pair<CFAEdge, Collection<Pair<AssignableTerm, Object>>>> pExactValuePath) throws IOException {
+          CFAPathWithAssignments pExactValuePath) throws IOException {
 
-        for (Pair<CFAEdge, Collection<Pair<AssignableTerm, Object>>> edgeValuePair : from(pExactValuePath).filter(notNull())) {
+        for (CFAEdgeWithAssignments edgeWithAssignments : from(pExactValuePath).filter(notNull())) {
 
-          out.append(edgeValuePair.getFirst().toString());
+          out.append(edgeWithAssignments.getCFAEdge().toString());
           out.append(System.lineSeparator());
 
-          String cCode = CFAPathWithAssignments.getAsCode(edgeValuePair.getSecond(), edgeValuePair.getFirst());
+          String cCode = edgeWithAssignments.getAsCode();
           if (cCode != null) {
             out.append('\t');
             out.append(cCode);
