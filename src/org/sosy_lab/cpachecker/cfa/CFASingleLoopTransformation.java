@@ -32,7 +32,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -85,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -175,12 +175,15 @@ public class CFASingleLoopTransformation {
           if (next == current) {
             removeFromNodes(edge);
 
-            CFANode dummy = new CFANode(current.getLineNumber(), current.getFunctionName());
+            Map<CFANode, CFANode> tmpMap = new HashMap<>();
+            CFANode dummy = getOrCreateNewFromOld(next, tmpMap);
+
+            tmpMap.put(next, next);
+            CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(edge, dummy, next, tmpMap);
+            addToNodes(replacementEdge);
+
             BlankEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), current, dummy, "");
             addToNodes(dummyEdge);
-
-            CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(edge, dummy, next, globalNewToOld);
-            addToNodes(replacementEdge);
 
             next = dummy;
             nodes.add(dummy);
@@ -199,9 +202,9 @@ public class CFASingleLoopTransformation {
              * Copy the old edge but connect it to a new successor which will
              * become part of the subgraph
              */
-            Map<CFANode, CFANode> tmpNewToOld = new HashMap<>();
-            tmpNewToOld.put(next, next);
-            CFAEdge connectionEdge = copyCFAEdgeWithNewNodes(edge, tmpNewToOld);
+            Map<CFANode, CFANode> tmpMap = new HashMap<>();
+            tmpMap.put(next, next);
+            CFAEdge connectionEdge = copyCFAEdgeWithNewNodes(edge, tmpMap);
             CFANode connectionNode = connectionEdge.getPredecessor();
             addToNodes(connectionEdge);
 
@@ -254,6 +257,18 @@ public class CFASingleLoopTransformation {
     return buildCFA(start, pInputCFA.getMachineModel(), pInputCFA.getLanguage());
   }
 
+  /**
+   * Builds a CFA by collecting the nodes syntactically reachable from the
+   * start node. Any nodes belonging to functions with unreachable entry nodes
+   * are also omitted.
+   *
+   * @param pStartNode the start node.
+   * @param pMachineModel the machine model.
+   * @param pLanguage the programming language.
+   * @return the CFA represented by the nodes reachable from the start node.
+   *
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   */
   private ImmutableCFA buildCFA(FunctionEntryNode pStartNode, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException {
     Map<String, FunctionEntryNode> functions = null;
     SortedSetMultimap<String, CFANode> allNodes = null;
@@ -268,13 +283,14 @@ public class CFASingleLoopTransformation {
         CFANode current = waitlist.poll();
         String functionName = current.getFunctionName();
         if (allNodes.put(functionName, current)) {
-          waitlist.addAll(FluentIterable.from(getSuccessors(current)).toList());
+          waitlist.addAll(getSuccessors(current).toList());
           if (current instanceof FunctionEntryNode) {
             functions.put(functionName, (FunctionEntryNode) current);
           }
         }
       }
 
+      // Remove nodes belonging to unreachable functions
       Set<String> functionsToRemove = new HashSet<>();
       for (String function : allNodes.keys()) {
         if (!functions.containsKey(function)) {
@@ -327,6 +343,14 @@ public class CFASingleLoopTransformation {
     return cfa.makeImmutableCFA(loopStructure, varClassification);
   }
 
+  /**
+   * Removes the given node from its graph by removing all its entering edges
+   * from its predecessors and all its leaving edges from its successors.
+   *
+   * All these edges are also removed from the node itself, of course.
+   *
+   * @param pToRemove the node to be removed.
+   */
   private void removeFromGraph(CFANode pToRemove) {
     while (pToRemove.getNumEnteringEdges() > 0) {
       removeFromNodes(pToRemove.getEnteringEdge(0));
@@ -336,16 +360,39 @@ public class CFASingleLoopTransformation {
     }
   }
 
+  /**
+   * Removes the given edge from its nodes.
+   *
+   * @param pEdge the edge to remove.
+   */
   private static void removeFromNodes(CFAEdge pEdge) {
     pEdge.getPredecessor().removeLeavingEdge(pEdge);
     pEdge.getSuccessor().removeEnteringEdge(pEdge);
   }
 
+  /**
+   * Adds the given edge as a leaving edge to its predecessor and as an
+   * entering edge to its successor.
+   *
+   * @param pEdge the edge to add.
+   */
   private static void addToNodes(CFAEdge pEdge) {
     pEdge.getPredecessor().addLeavingEdge(pEdge);
     pEdge.getSuccessor().addEnteringEdge(pEdge);
   }
 
+  /**
+   * Gets all nodes between the given source and target on paths that do not
+   * leave the given subgraph. Source and target itself will also be a part of
+   * the result.
+   *
+   * @param source the source node of the search.
+   * @param target the search target.
+   * @param subgraph the subgraph that must not be left.
+   *
+   * @return all nodes between the given source and target on paths that do not
+   * leave the given subgraph.
+   */
   private static Set<CFANode> getNodesBetween(CFANode source, CFANode target, Set<CFANode> subgraph) {
     Set<CFANode> visited = new HashSet<>();
     Set<CFANode> result = new HashSet<>();
@@ -369,6 +416,18 @@ public class CFASingleLoopTransformation {
     return result;
   }
 
+  /**
+   * Connects the nodes leaving a subgraph to the loop head using assignment
+   * edges setting the program counter to the value required for reaching the
+   * correct successor in the next loop iteration.
+   *
+   * @param pLoopHead the loop head.
+   * @param pNewPredecessorsToPC the nodes that represent gates for leaving
+   * their subgraph mapped to the program counter values corresponding to the
+   * correct successor states.
+   * @param pPCIdExpression the CIdExpression used for the program counter variable.
+   * @param pMainLocation the location of the main function.
+   */
   private static void connectSubgraphLeavingNodesToLoopHead(CFANode pLoopHead,
       Map<Integer, CFANode> pNewPredecessorsToPC,
       CIdExpression pPCIdExpression,
@@ -388,21 +447,21 @@ public class CFASingleLoopTransformation {
   /**
    * Connects subgraph entry nodes to the loop head via program counter value assume edges.
    *
-   * @param pPcToNewSuccessorMapping the mapping of subgraph entry nodes to the
-   *  corresponding program counter values.
    * @param pLoopHead the loop head.
+   * @param newSuccessorToPCMapping the mapping of subgraph entry nodes to the
+   * corresponding program counter values.
    * @param pPCIdExpression the CIdExpression used for the program counter variable.
    * @param pMainLocation the location of the main function.
    * @param pExpressionBuilder the CExpressionBuilder used to build the assume edges.
    */
   private static void connectLoopHeadToSubgraphEntryNodes(CFANode pLoopHead,
-      Map<Integer, CFANode> pPcToNewSuccessorMapping,
+      Map<Integer, CFANode> newSuccessorToPCMapping,
       CIdExpression pPCIdExpression,
       FileLocation pMainLocation,
       CBinaryExpressionBuilder pExpressionBuilder) {
     List<CAssumeEdge> toAdd = new ArrayList<>();
     CFANode decisionTreeNode = pLoopHead;
-    for (Entry<Integer, CFANode> pcToNewSuccessorMapping : pPcToNewSuccessorMapping.entrySet()) {
+    for (Entry<Integer, CFANode> pcToNewSuccessorMapping : newSuccessorToPCMapping.entrySet()) {
       CFANode newSuccessor = pcToNewSuccessorMapping.getValue();
       int pcToSet = pcToNewSuccessorMapping.getKey();
       // Connect thKeyequence to the loop header assuming the program counter value
@@ -504,7 +563,7 @@ public class CFASingleLoopTransformation {
       CFANode current = waitlist.poll();
       if (nodes.add(current)) {
         functionNames.add(current.getFunctionName());
-        waitlist.addAll(FluentIterable.from(getSuccessors(current)).toList());
+        waitlist.addAll(getSuccessors(current).toList());
       }
     }
 
@@ -523,12 +582,21 @@ public class CFASingleLoopTransformation {
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
       if (nodes.add(current)) {
-        waitlist.addAll(FluentIterable.from(getSuccessors(current)).toList());
+        waitlist.addAll(getSuccessors(current).toList());
       }
     }
     return nodes;
   }
 
+  /**
+   * Checks whether or not the given collection contains any of the given
+   * elements.
+   *
+   * @param pCollection the collection to check.
+   * @param pElements the elements to loop for.
+   * @return <code>true</code> if any of the given elements is contained in the
+   * collection, <code>false</code> otherwise.
+   */
   private static <T> boolean containsAny(Collection<T> pCollection, Iterable<T> pElements) {
     for (T element : pElements) {
       if (pCollection.contains(element)) {
@@ -538,70 +606,107 @@ public class CFASingleLoopTransformation {
     return false;
   }
 
-  private static Iterable<CFANode> getSuccessors(final CFANode pNode) {
-    return new Iterable<CFANode>() {
+  /**
+   * Gets the successor nodes of the given node.
+   *
+   * @param pNode the node for which to retrieve the successors.
+   * @return the successor nodes of the given node.
+   */
+  private static FluentIterable<CFANode> getSuccessors(final CFANode pNode) {
+    return CFAUtils.allLeavingEdges(pNode).transform(new Function<CFAEdge, CFANode>() {
 
       @Override
-      public Iterator<CFANode> iterator() {
-        return new Iterator<CFANode>() {
-
-          private int index = 0;
-
-          @Override
-          public boolean hasNext() {
-            return index >= 0 && index < pNode.getNumLeavingEdges();
-          }
-
-          @Override
-          public CFANode next() {
-            if (!hasNext()) {
-              throw new NoSuchElementException();
-            }
-            CFANode next = pNode.getLeavingEdge(index).getSuccessor();
-            ++index;
-            return next;
-          }
-
-          @Override
-          public void remove() {
-            throw new UnsupportedOperationException();
-          }
-
-        };
+      @Nullable
+      public CFANode apply(@Nullable CFAEdge pArg0) {
+        return pArg0 == null ? null : pArg0.getSuccessor();
       }
-    };
+
+    });
   }
 
-  private void replaceInStructure(CFANode pOldNode, CFANode pNewNode) {
+  /**
+   * Replaces the given old node by the given new node in its structure by
+   * removing all edges leading to and from the old node and copying them so
+   * that the leave or lead to the new node.
+   *
+   * @param pOldNode the node to remove the edges from.
+   * @param pNewNode the node to add the edges to.
+   */
+  private static void replaceInStructure(CFANode pOldNode, CFANode pNewNode) {
     Map<CFANode, CFANode> newToOld = new HashMap<>();
     newToOld.put(pOldNode, pNewNode);
-    List<CFAEdge> edgesToAdd = new ArrayList<>();
-    List<CFAEdge> edgesToRemove = new ArrayList<>();
-    for (int i = 0; i < pOldNode.getNumLeavingEdges(); ++i) {
-      CFAEdge oldEdge = pOldNode.getLeavingEdge(i);
-      newToOld.put(oldEdge.getSuccessor(), oldEdge.getSuccessor());
+    CFAEdge oldEdge;
+    while ((oldEdge = removeNextEnteringEdge(pOldNode)) != null && constantTrue(newToOld.put(oldEdge.getPredecessor(), oldEdge.getPredecessor()))
+        || (oldEdge = removeNextLeavingEdge(pOldNode)) != null && constantTrue(newToOld.put(oldEdge.getSuccessor(), oldEdge.getSuccessor()))) {
       CFAEdge newEdge = copyCFAEdgeWithNewNodes(oldEdge, newToOld);
-      edgesToAdd.add(newEdge);
-      edgesToRemove.add(oldEdge);
-    }
-    for (int i = 0; i < pOldNode.getNumEnteringEdges(); ++i) {
-      CFAEdge oldEdge = pOldNode.getEnteringEdge(i);
-      newToOld.put(oldEdge.getPredecessor(), oldEdge.getPredecessor());
-      CFAEdge newEdge = copyCFAEdgeWithNewNodes(oldEdge, newToOld);
-      edgesToAdd.add(newEdge);
-      edgesToRemove.add(oldEdge);
-    }
-    for (CFAEdge edge : edgesToRemove) {
-      edge.getPredecessor().removeLeavingEdge(edge);
-      edge.getSuccessor().removeEnteringEdge(edge);
-    }
-    for (CFAEdge edge : edgesToAdd) {
-      edge.getPredecessor().addLeavingEdge(edge);
-      edge.getSuccessor().addEnteringEdge(edge);
+      addToNodes(newEdge);
     }
   }
 
-  private CFANode getOrCreateNewFromOld(CFANode pNode, Map<CFANode, CFANode> pNewToOldMapping) {
+  /**
+   * Returns <code>true</code>, no matter what is passed.
+   *
+   * @param pParam this argument is ignored.
+   * @return <code>true</code>
+   */
+  private static boolean constantTrue(Object pParam) {
+    return true;
+  }
+
+  /**
+   * Removes the next entering edge from the given node and the predecessor of
+   * the edge.
+   *
+   * @param pCfaNode the node to remove an edge from.
+   *
+   * @return the removed edge.
+   */
+  @Nullable
+  private static CFAEdge removeNextEnteringEdge(CFANode pCfaNode) {
+    int numberOfEnteringEdges = pCfaNode.getNumEnteringEdges();
+    if (numberOfEnteringEdges <= 0) {
+      return null;
+    }
+    CFAEdge result = pCfaNode.getEnteringEdge(numberOfEnteringEdges - 1);
+    removeFromNodes(result);
+    return result;
+  }
+
+  /**
+   * Removes the next leaving edge from the given node and the successor of
+   * the edge.
+   *
+   * @param pCfaNode the node to remove an edge from.
+   *
+   * @return the removed edge.
+   */
+  @Nullable
+  private static CFAEdge removeNextLeavingEdge(CFANode pCfaNode) {
+    int numberOfLeavingEdges = pCfaNode.getNumLeavingEdges();
+    if (numberOfLeavingEdges <= 0) {
+      return null;
+    }
+    CFAEdge result = pCfaNode.getLeavingEdge(numberOfLeavingEdges - 1);
+    removeFromNodes(result);
+    return result;
+  }
+
+  /**
+   * Given a node and a mapping of nodes of one graph to nodes of a different
+   * graph, assumes that the given node belongs to the first graph and checks
+   * if a node of the second graph is mapped to it. If so, the node of the
+   * second graph mapped to the given node is returned. Otherwise, the given
+   * node is copied <strong>without edges</strong> and recorded in the mapping
+   * before it is returned.
+   *
+   * @param pNode the node to get or create a partner for in the second graph.
+   * @param pNewToOldMapping the mapping between the first graph to the second
+   * graph.
+   *
+   * @return a copy of the given node, possibly reused from the provided
+   * mapping.
+   */
+  private static CFANode getOrCreateNewFromOld(CFANode pNode, Map<CFANode, CFANode> pNewToOldMapping) {
     CFANode result = pNewToOldMapping.get(pNode);
     if (result != null) {
       return result;
@@ -645,7 +750,21 @@ public class CFASingleLoopTransformation {
     return result;
   }
 
-  private CFAEdge copyCFAEdgeWithNewNodes(CFAEdge pEdge, CFANode pNewPredecessor, CFANode pNewSuccessor, final Map<CFANode, CFANode> pNewToOldMapping) {
+  /**
+   * Copies the given control flow edge using the given new predecessor and
+   * successor. Any additionally required nodes are taken from the given
+   * mapping by using the corresponding node of the old edge as a key or, if
+   * no node is mapped to this key, by copying the key and recording the result
+   * in the mapping.
+   *
+   * @param pEdge the edge to copy.
+   * @param pNewPredecessor the new predecessor.
+   * @param pNewSuccessor the new successor.
+   * @param pNewToOldMapping a mapping of old nodes to new nodes.
+   *
+   * @return a new edge with the given predecessor and successor.
+   */
+  private static CFAEdge copyCFAEdgeWithNewNodes(CFAEdge pEdge, CFANode pNewPredecessor, CFANode pNewSuccessor, final Map<CFANode, CFANode> pNewToOldMapping) {
     String rawStatement = pEdge.getRawStatement();
     int lineNumber = pEdge.getLineNumber();
     switch (pEdge.getEdgeType()) {
@@ -706,12 +825,33 @@ public class CFASingleLoopTransformation {
     }
   }
 
-  private CFAEdge copyCFAEdgeWithNewNodes(CFAEdge pEdge, final Map<CFANode, CFANode> pNewToOldMapping) {
+  /**
+   * Copies the given control flow edge Predecessor, successor and any
+   * additionally required nodes are taken from the given mapping by using the
+   * corresponding node of the old edge as a key or, if no node is mapped to
+   * this key, by copying the key and recording the result in the mapping.
+   *
+   * @param pEdge the edge to copy.
+   * @param pNewToOldMapping a mapping of old nodes to new nodes.
+   *
+   * @return a new edge with the given predecessor and successor.
+   */
+  private static CFAEdge copyCFAEdgeWithNewNodes(CFAEdge pEdge, final Map<CFANode, CFANode> pNewToOldMapping) {
     CFANode newPredecessor = getOrCreateNewFromOld(pEdge.getPredecessor(), pNewToOldMapping);
     CFANode newSuccessor = getOrCreateNewFromOld(pEdge.getSuccessor(), pNewToOldMapping);
     return copyCFAEdgeWithNewNodes(pEdge, newPredecessor, newSuccessor, pNewToOldMapping);
   }
 
+  /**
+   * Gets the loop structure of a control flow automaton.
+   *
+   * @param pMainFunctionName the name of the main function.
+   * @param pAllNodes the nodes mapped to their function names.
+   * @param pLanguage the programming language.
+   * @param pLogger the logger.
+   *
+   * @return the loop structure of the control flow automaton.
+   */
   private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(String pMainFunctionName, SortedSet<CFANode> pAllNodes, Language pLanguage, LogManager pLogger) {
     try {
       ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
