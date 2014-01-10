@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -91,13 +92,17 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
+import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 
 
 public class CFASingleLoopTransformation {
+
+  private static final String DUMMY_EDGE = "DummyEdge";
 
   private final LogManager logger;
 
@@ -132,9 +137,10 @@ public class CFASingleLoopTransformation {
     Queue<CFANode> nodes = new ArrayDeque<>(getAllNodes(pInputCFA));
 
     Map<Integer, CFANode> newPredecessorsToPC = new LinkedHashMap<>();
-    Map<Integer, CFANode> newSuccessorsToPC = new LinkedHashMap<>();
+    BiMap<Integer, CFANode> newSuccessorsToPC = HashBiMap.create();
     Map<CFANode, CFANode> globalNewToOld = new HashMap<>();
     Map<CFANode, CFANode> entryNodeConnectors = new HashMap<>();
+    Set<Integer> replaceablePCValues = new HashSet<>();
     globalNewToOld.put(oldMainFunctionEntryNode, start);
 
     // Create new nodes and assume edges based on program counter values leading to the new nodes
@@ -165,6 +171,8 @@ public class CFASingleLoopTransformation {
       Queue<CFANode> waitlist = new ArrayDeque<>();
       waitlist.add(subgraphRoot);
       subgraph.add(subgraphRoot);
+      Set<CFAEdge> dummyEdges = new HashSet<>();
+      Set<Integer> pcValuesOutOfSubgraph = new HashSet<>();
       while (!waitlist.isEmpty()) {
         CFANode current = waitlist.poll();
         for (int i = 0; i < current.getNumLeavingEdges(); ++i) {
@@ -182,7 +190,8 @@ public class CFASingleLoopTransformation {
             CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(edge, dummy, next, tmpMap);
             addToNodes(replacementEdge);
 
-            BlankEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), current, dummy, "");
+            BlankEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), current, dummy, DUMMY_EDGE);
+            dummyEdges.add(dummyEdge);
             addToNodes(dummyEdge);
 
             next = dummy;
@@ -197,12 +206,38 @@ public class CFASingleLoopTransformation {
           } else if (!subgraph.contains(next)) {
             // Cut off the edge leaving the subgraph
             removeFromNodes(edge);
+            Map<CFANode, CFANode> tmpMap = new HashMap<>();
 
             /*
-             * Copy the old edge but connect it to a new successor which will
-             * become part of the subgraph
+             * Assume edges should stay with their original predecessor, thus a
+             * dummy successor is introduced between the edge and the original
+             * successor
              */
-            Map<CFANode, CFANode> tmpMap = new HashMap<>();
+            if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+
+              tmpMap.put(current, current);
+              CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(edge, tmpMap);
+              addToNodes(replacementEdge);
+
+              // Create the dummy edge, but do not add it to the nodes!
+              CFANode dummy = replacementEdge.getSuccessor();
+              CFAEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), dummy, next, DUMMY_EDGE);
+
+              /*
+               * Adjust the values: Current becomes the dummy, which is also
+               * part of the subgraph now and the edge that is cut off is now
+               * the dummy edge.
+               */
+              current = dummy;
+              subgraph.add(dummy);
+              edge = dummyEdge;
+              tmpMap.clear();
+            }
+
+            /*
+             * Copy the old edge but connect it to a new predecessor which will
+             * become part of the linked subgraph
+             */
             tmpMap.put(next, next);
             CFAEdge connectionEdge = copyCFAEdgeWithNewNodes(edge, tmpMap);
             CFANode connectionNode = connectionEdge.getPredecessor();
@@ -222,9 +257,12 @@ public class CFASingleLoopTransformation {
             int pcToSuccessor = ++pc;
             newSuccessorsToPC.put(pcToSuccessor, getOrCreateNewFromOld(connectionNode, globalNewToOld));
             newPredecessorsToPC.put(pcToSuccessor, getOrCreateNewFromOld(current, globalNewToOld));
+            pcValuesOutOfSubgraph.add(pcToSuccessor);
           }
         }
       }
+
+      boolean hasRelevantEdges = false;
 
       // Copy the subgraph
       Set<CFANode> newSubgraph = new LinkedHashSet<>();
@@ -235,13 +273,35 @@ public class CFASingleLoopTransformation {
       for (CFANode oldNode : subgraph) {
         for (int leavingEdgeIndex = 0; leavingEdgeIndex < oldNode.getNumLeavingEdges(); ++leavingEdgeIndex) {
           CFAEdge oldEdge = oldNode.getLeavingEdge(leavingEdgeIndex);
+          hasRelevantEdges |= !dummyEdges.contains(oldEdge);
           assert subgraph.contains(oldEdge.getSuccessor()) : "None of the nodes in the subgraph must have an edge leaving the subgraph at this point";
           CFAEdge newEdge = copyCFAEdgeWithNewNodes(oldEdge, globalNewToOld);
           newEdge.getPredecessor().addLeavingEdge(newEdge);
           newEdge.getSuccessor().addEnteringEdge(newEdge);
         }
       }
+      // If there are no relevant edges and this subgraph has exactly one
+      // successor subgraph, all predecessors of this subgraph may directly
+      // connect to the successor subgraph
+      if (!hasRelevantEdges && pcValuesOutOfSubgraph.size() == 1) {
+        replaceablePCValues.addAll(pcValuesOutOfSubgraph);
+      }
     }
+
+    /*
+    // Remove trivial dummy subgraphs
+    for (int replaceablePCValue : replaceablePCValues) {
+      CFANode newSuccessor = newSuccessorsToPC.remove(replaceablePCValue);
+      CFANode tailOfRedundantSubgraph = newPredecessorsToPC.get(replaceablePCValue);
+      CFANode subgraphRoot = tailOfRedundantSubgraph;
+      Integer precedingPCValue = null;
+      Map<CFANode, Integer> pcToNewSuccessors = newSuccessorsToPC.inverse();
+      while ((precedingPCValue = pcToNewSuccessors.get(subgraphRoot)) == null) {
+        assert subgraphRoot.getNumEnteringEdges() == 1 : "Subgraph should be trivial linear sequence";
+        subgraphRoot = subgraphRoot.getEnteringEdge(0).getPredecessor();
+      }
+      newSuccessorsToPC.put(precedingPCValue, newSuccessor);
+    }*/
 
     /*
      * Connect the subgraph tails to their successors via the loop head by
