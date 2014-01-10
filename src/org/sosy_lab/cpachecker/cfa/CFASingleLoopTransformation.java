@@ -133,9 +133,7 @@ public class CFASingleLoopTransformation {
 
     Queue<CFANode> nodes = new ArrayDeque<>(getAllNodes(pInputCFA));
 
-    SetMultimap<Integer, CFANode> oldPredecessorsToPC = LinkedHashMultimap.create();
     SetMultimap<Integer, CFANode> newPredecessorsToPC = LinkedHashMultimap.create();
-    Map<CFANode, Integer> pcToOldSuccessorMapping = new LinkedHashMap<>();
     Map<Integer, CFANode> newSuccessorToPC = new LinkedHashMap<>();
     Map<CFANode, CFANode> globalNewToOld = new HashMap<>();
     Map<CFANode, CFANode> entryNodeConnectors = new HashMap<>();
@@ -159,7 +157,7 @@ public class CFASingleLoopTransformation {
       if (isOldMainEntryNode) {
         subgraphRoot = new CFANode(subgraphRoot.getLineNumber(), subgraphRoot.getFunctionName());
         replaceInStructure(oldMainFunctionEntryNode, subgraphRoot);
-        pcToOldSuccessorMapping.put(subgraphRoot, 0);
+        newSuccessorToPC.put(0, getOrCreateNewFromOld(subgraphRoot, globalNewToOld));
       }
 
       // Get an acyclic sub graph
@@ -209,8 +207,8 @@ public class CFASingleLoopTransformation {
             addToNodes(newConnectionEdge);
 
             int pcToSuccessor = ++pc;
-            pcToOldSuccessorMapping.put(connectionNode, pcToSuccessor);
-            oldPredecessorsToPC.put(pcToSuccessor, current);
+            newSuccessorToPC.put(pcToSuccessor, getOrCreateNewFromOld(connectionNode, globalNewToOld));
+            newPredecessorsToPC.put(pcToSuccessor, getOrCreateNewFromOld(current, globalNewToOld));
           }
         }
       }
@@ -224,20 +222,12 @@ public class CFASingleLoopTransformation {
       for (CFANode oldNode : subgraph) {
         for (int leavingEdgeIndex = 0; leavingEdgeIndex < oldNode.getNumLeavingEdges(); ++leavingEdgeIndex) {
           CFAEdge oldEdge = oldNode.getLeavingEdge(leavingEdgeIndex);
-          if (subgraph.contains(oldEdge.getSuccessor())) {
-            CFAEdge newEdge = copyCFAEdgeWithNewNodes(oldEdge, globalNewToOld);
-            newEdge.getPredecessor().addLeavingEdge(newEdge);
-            newEdge.getSuccessor().addEnteringEdge(newEdge);
-          }
+          assert subgraph.contains(oldEdge.getSuccessor()) : "None of the nodes in the subgraph must have an edge leaving the subgraph at this point";
+          CFAEdge newEdge = copyCFAEdgeWithNewNodes(oldEdge, globalNewToOld);
+          newEdge.getPredecessor().addLeavingEdge(newEdge);
+          newEdge.getSuccessor().addEnteringEdge(newEdge);
         }
       }
-    }
-
-    for (Entry<CFANode, Integer> pcToOldSuccessor : pcToOldSuccessorMapping.entrySet()) {
-      newSuccessorToPC.put(pcToOldSuccessor.getValue(), getOrCreateNewFromOld(pcToOldSuccessor.getKey(), globalNewToOld));
-    }
-    for (Entry<Integer, CFANode> oldPredecessorToPC : oldPredecessorsToPC.entries()) {
-      newPredecessorsToPC.put(oldPredecessorToPC.getKey(), getOrCreateNewFromOld(oldPredecessorToPC.getValue(), globalNewToOld));
     }
 
     /*
