@@ -295,8 +295,13 @@ public class CFACreator {
          * The program file has to parsed as String since Google App Engine does not allow
          * writes to the file system and therefore the input file is stored elsewhere.
          */
-        String code = Paths.get(sourceFiles.get(0)).asCharSource(Charset.defaultCharset()).read();
-        c = parser.parseString(code);
+        String sourceFileName = sourceFiles.get(0);
+        if (usePreprocessor) {
+          c = parser.parseFile(sourceFileName);
+        } else {
+          String code = Paths.get(sourceFileName).asCharSource(Charset.defaultCharset()).read();
+          c = parser.parseString(code);
+        }
       } else {
         // when there is more than one file which should be evaluated, the
         // programdenotations are separated from each other and a prefix for
