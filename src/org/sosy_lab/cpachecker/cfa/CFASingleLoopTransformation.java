@@ -199,7 +199,7 @@ public class CFASingleLoopTransformation {
 
             Map<CFANode, CFANode> tmpNewToOld = new HashMap<>();
             tmpNewToOld.put(next, next);
-            CFAEdge connectionEdge = copyCFAEdgeWithNewNodes(edge, globalNewToOld);
+            CFAEdge connectionEdge = copyCFAEdgeWithNewNodes(edge, tmpNewToOld);
             CFANode connectionNode = connectionEdge.getPredecessor();
 
             addToNodes(connectionEdge);
