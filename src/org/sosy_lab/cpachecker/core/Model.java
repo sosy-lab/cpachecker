@@ -355,7 +355,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
    * the class {@link PathChecker}.
    *
    */
-  public static class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> {
+  public static class CFAPathWithAssignments implements Iterable<Model.CFAPathWithAssignments.CFAEdgeWithAssignments> {
 
     private final List<CFAEdgeWithAssignments> pathWithAssignments;
     private final Multimap<CFAEdge, AssignableTerm> assignableTerms;
