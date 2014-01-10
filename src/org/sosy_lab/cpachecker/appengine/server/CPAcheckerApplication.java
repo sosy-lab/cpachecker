@@ -35,12 +35,20 @@ import org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource;
 
 import com.googlecode.objectify.ObjectifyService;
 
+import freemarker.log.Logger;
+
 public class CPAcheckerApplication extends WadlApplication {
 
   @Override
   public Restlet createInboundRoot() {
     getTunnelService().setExtensionsTunnel(true);
     getEncoderService().setEnabled(true);
+
+    try {
+      Logger.selectLoggerLibrary(Logger.LIBRARY_JAVA);
+    } catch (ClassNotFoundException _) {
+      // ignored
+    }
 
     Router router = new Router(getContext());
 
