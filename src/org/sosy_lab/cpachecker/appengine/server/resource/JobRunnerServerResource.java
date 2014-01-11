@@ -120,7 +120,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     // set status OK to pretend everything went fine so that the task will not be retried.
     getResponse().setStatus(org.restlet.data.Status.SUCCESS_OK);
 
-    switch (e.getClass().getSimpleName()) {
+    switch (e.getCause().getClass().getSimpleName()) {
     case "DeadlineExceededException":
       job.setStatus(Status.TIMEOUT);
       job.setStatusMessage("The task timed out. Results may be available however.");
@@ -137,9 +137,10 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     default:
       job.setStatusMessage("An error occured.");
       log(Level.WARNING, "There was an error", e.getCause());
-      if (job.getStatus() != Status.TIMEOUT) {
-        job.setStatus(Status.ERROR);
-      }
+    }
+
+    if (job.getStatus() != Status.TIMEOUT) {
+      job.setStatus(Status.ERROR);
     }
 
     try {
