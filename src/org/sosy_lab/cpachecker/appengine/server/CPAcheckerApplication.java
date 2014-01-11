@@ -29,10 +29,10 @@ import org.restlet.routing.Router;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobFileServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.JobRunnerServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobsServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource;
-import org.sosy_lab.cpachecker.appengine.server.resource.JobRunnerServerResource;
 
 import com.googlecode.objectify.ObjectifyService;
 
@@ -58,12 +58,12 @@ public class CPAcheckerApplication extends WadlApplication {
     router.attach("/jobs", JobsServerResource.class);
     router.attach("/jobs/{jobKey}", JobServerResource.class);
     router.attach("/jobs/{jobKey}/files/{fileKey}", JobFileServerResource.class);
-
     router.attach("/workers/run-job", JobRunnerServerResource.class);
 
-    // v1 API
+    CapabilitiesFilter capabilitiesFilter = new CapabilitiesFilter(getContext());
+    capabilitiesFilter.setNext(router);
 
-    return router;
+    return capabilitiesFilter;
   }
 
   static {
