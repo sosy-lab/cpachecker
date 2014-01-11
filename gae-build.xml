@@ -11,6 +11,8 @@
 	<property name="lib.dir.gae" value="${lib.dir}/gae" />
 	<mkdir dir="${lib.dir.gae}"/>
 
+	<property name="class.dir" value="war/WEB-INF/classes" />
+
 	<property name="gae-sdk.dir" location="${lib.dir}/appengine-java-sdk-1.8.8" />
 	<property name="gae-classes.dir" location="war/WEB-INF/classes" />
 	<property name="gae-dev.port" value="8888" />
@@ -19,14 +21,38 @@
 	<import file="${gae-sdk.dir}/config/user/ant-macros.xml" optional="true"/>
 
 	<path id="gae.classpath">
-		<pathelement path="war/WEB-INF/classes" />
+		<pathelement path="${class.dir}" />
 		<fileset dir="war/WEB-INF/lib">
 			<include name="**/*.jar" />
 		</fileset>
 		<fileset dir="${gae-sdk.dir}/lib">
 			<include name="shared/**/*.jar" />
 		</fileset>
+		<fileset dir="${lib.dir}/appengine-java-sdk-1.8.8">
+			<include name="lib/impl/appengine-api*.jar" />
+		</fileset>
+		<fileset dir="${lib.dir}/appengine-java-sdk-1.8.8">
+			<include name="lib/testing/appengine-testing.jar" />
+		</fileset>
 	</path>
+
+	<target name="gae-tests" depends="gae-compile" description="Runs all JUnit tests.">
+		<property name="test.report.dir" value="output"/>
+		<mkdir dir="${test.report.dir}"/>
+		<junit fork="true" printSummary="true" showOutput="false" haltonfailure="true">
+			<assertions>
+				<enable />
+			</assertions>
+			<formatter type="plain"/>
+			<classpath refid="gae.classpath"/>
+			<batchtest fork="true" todir="${test.report.dir}">
+				<fileset dir="${class.dir}">
+					<include name="**/appengine/**/*Test.*"/>
+					<exclude name="**/*$*Test.*"/>
+				</fileset>
+			</batchtest>
+		</junit>
+  </target>
 
 	<target name="gae-install" depends="gae-getjars,gae-getsdk,gae-unzipsdk" description="Downloads all necessary files and setup the classpath." />
 
