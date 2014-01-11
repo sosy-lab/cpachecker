@@ -163,7 +163,9 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       o.close();
       zis.close();
     } finally {
-      fis.close();
+      if (fis != null) {
+        fis.close();
+      }
     }
   }
 
