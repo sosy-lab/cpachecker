@@ -63,25 +63,27 @@ public class JobDAO {
    * @param job The job to delete.
    */
   public static void delete(final Job job) {
-    ofy().transact(new VoidWork() {
-      @Override
-      public void vrun() {
-        try {
-          Queue queue = QueueFactory.getQueue(job.getQueueName());
-          queue.deleteTask(job.getTaskName());
-        } catch (Exception _) {
-          /*
-           * it does not matter if the task could be deleted or not
-           * since it will disappear anyway after it's been run.
-           */
-        }
+    if (job != null) {
+      ofy().transact(new VoidWork() {
+        @Override
+        public void vrun() {
+          try {
+            Queue queue = QueueFactory.getQueue(job.getQueueName());
+            queue.deleteTask(job.getTaskName());
+          } catch (Exception _) {
+            /*
+             * it does not matter if the task could be deleted or not
+             * since it will disappear anyway after it's been run.
+             */
+          }
 
-        if (job.getFiles() != null && job.getFiles().size() > 0) {
-          ofy().delete().entities(job.getFiles()).now();
+          if (job.getFiles() != null && job.getFiles().size() > 0) {
+            ofy().delete().entities(job.getFiles()).now();
+          }
+          ofy().delete().entities(job).now();
         }
-        ofy().delete().entities(job).now();
-      }
-    });
+      });
+    }
   }
 
   public static void delete(String key) {
