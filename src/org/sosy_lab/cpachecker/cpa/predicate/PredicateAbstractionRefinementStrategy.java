@@ -173,7 +173,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private class Stats implements Statistics {
     @Override
     public String getName() {
-      return "Predicate Abstraction Refiner";
+      return "Predicate-Abstraction Refiner";
     }
 
     @Override
