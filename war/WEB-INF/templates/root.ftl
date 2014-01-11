@@ -116,7 +116,7 @@
           <div class="form-group">
             <label for="machineModel" class="control-label">${msg.machineModel}</label>
             <select name="machineModel" id="machineModel" class="form-control input-sm">
-              <option value="Linux32 selected">Linux32</option>
+              <option value="Linux32" selected>Linux32</option>
               <option value="Linux64">Linux64</option>
             </select>
           </div>
