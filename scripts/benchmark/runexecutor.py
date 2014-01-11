@@ -361,7 +361,7 @@ class RunExecutor():
         return (cpuTime, memUsage)
 
 
-    def executeRun(self, args, rlimits, outputFileName, myCpuIndex=None, environments={}, runningDir=None):
+    def executeRun(self, args, rlimits, outputFileName, myCpuIndex=None, environments={}, runningDir=None, maxLogfileSize=-1):
         """
         This function executes a given command with resource limits,
         and writes the output to a file.
@@ -390,11 +390,16 @@ class RunExecutor():
 
         logging.debug("executeRun: reading output.")
         outputFile = open(outputFileName, 'rt') # re-open file for reading output
-        output = list(map(Util.decodeToString, outputFile.readlines()[6:])) # first 6 lines are for logging, rest is output of subprocess
+        output = list(map(Util.decodeToString, outputFile.readlines()))
         outputFile.close()
 
         logging.debug("executeRun: analysing output for crash-info.")
         getDebugOutputAfterCrash(output, outputFileName)
+
+        output = reduceFileSize(outputFileName, output, maxLogfileSize)
+        
+        output = output[6:] # first 6 lines are for logging, rest is output of subprocess
+
 
         logging.debug("executeRun: Run execution returns with code {0}, walltime={1}, cputime={2}, memory={3}"
                       .format(returnvalue, wallTime, cpuTime, memUsage))
@@ -407,6 +412,36 @@ class RunExecutor():
         with self.SUB_PROCESSES_LOCK:
             for process in self.SUB_PROCESSES:
                 _killSubprocess(process)
+
+def reduceFileSize(outputFileName, output, maxLogfileSize=-1):
+    """
+    This function shrinks the logfile-content and returns the modified content.
+    We remove only the middle part of a file,
+    the file-start and the file-end remain unchanged.
+    """
+    if maxLogfileSize == -1: return output # disabled, nothing to do
+
+    rest = maxLogfileSize * 1000 * 1000 # as MB, we assume: #char == #byte
+
+    if sum(len(line) for line in output) < rest: return output # too small, nothing to do
+
+    logging.warning("Logfile '{0}' too big. Removing lines.".format(outputFileName))
+
+    half = len(output)/2
+    newOutput = ([],[])
+    # iterate parallel from start and end
+    for lineFront, lineEnd in zip(output[:half], reversed(output[half:])):
+        if len(lineFront) > rest: break
+        newOutput[0].append(lineFront)
+        if len(lineEnd) > rest: break
+        newOutput[1].insert(0,lineEnd)
+        rest = rest - len(lineFront) - len(lineEnd)
+
+    # build new content and write to file
+    output = newOutput[0] + ["\n\n\nWARNING: YOUR LOGFILE WAS TOO LONG, SOME LINES IN THE MIDDLE WERE REMOVED.\n\n\n"] + newOutput[1]
+    writeFile(''.join(output).encode('utf-8'), outputFileName)
+
+    return output
 
 
 def getDebugOutputAfterCrash(output, outputFileName):
