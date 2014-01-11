@@ -103,6 +103,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
   private final StatTimer totalRefinement = new StatTimer("Time for refinement");
   private final StatTimer errorPathProcessing = new StatTimer("Error path post-processing");
+  private final StatTimer getFormulasForPathTime = new StatTimer("Path-formulas extraction");
+  private final StatTimer buildCounterexampeTraceTime = new StatTimer("Building the counterexample trace");
+  private final StatTimer preciseCouterexampleTime = new StatTimer("Extracting precise counterexample");
 
   class Stats extends AbstractStatistics {
 
@@ -121,6 +124,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         formulaManager.printStatistics(out, result, reached);
 
         w0.beginLevel().put(errorPathProcessing);
+        w0.beginLevel().put(getFormulasForPathTime);
+        w0.beginLevel().put(buildCounterexampeTraceTime);
+        w0.beginLevel().put(preciseCouterexampleTime);
       }
 
       statistics.printStatistics(out, result, reached);
@@ -165,7 +171,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   public final CounterexampleInfo performRefinement(final ARGReachedSet pReached, final ARGPath allStatesTrace) throws CPAException, InterruptedException {
     totalRefinement.start();
 
+
     Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(allStatesTrace.getLast().getFirst());
+
 
     boolean branchingOccurred = true;
     if (elementsOnPath.size() == allStatesTrace.size()) {
@@ -176,7 +184,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
 
     logger.log(Level.FINEST, "Starting interpolation-based refinement");
-
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
     final List<ARGState> abstractionStatesTrace = transformPath(allStatesTrace);
@@ -188,8 +195,11 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     final List<BooleanFormula> formulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirst().getFirst());
     assert abstractionStatesTrace.size() == formulas.size();
 
+
     // build the counterexample
+    buildCounterexampeTraceTime.start();
     final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath, strategy.needsInterpolants());
+    buildCounterexampeTraceTime.stop();
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -209,6 +219,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       final ARGPath targetPath;
       final CounterexampleTraceInfo preciseCounterexample;
 
+      preciseCouterexampleTime.start();
       if (branchingOccurred) {
         Pair<ARGPath, CounterexampleTraceInfo> preciseInfo = findPreciseErrorPath(allStatesTrace, counterexample);
 
@@ -229,9 +240,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         targetPath = allStatesTrace;
         preciseCounterexample = pathChecker.checkPath(targetPath.asEdgesList());
       }
+      preciseCouterexampleTime.stop();
 
       CounterexampleInfo cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getModel());
-
       cex.addFurtherInformation(formulaManager.dumpCounterexample(preciseCounterexample),
           dumpCounterexampleFile);
 
@@ -279,21 +290,25 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
    */
   protected List<BooleanFormula> getFormulasForPath(List<ARGState> path, ARGState initialState)
       throws CPATransferException {
-    if (sliceBlockFormulas) {
-      BlockFormulaSlicer bfs = new BlockFormulaSlicer(pfmgr);
-      return bfs.sliceFormulasForPath(path, initialState);
-    } else {
-      return from(path)
-          .transform(toState(PredicateAbstractState.class))
-          .transform(GET_BLOCK_FORMULA)
-          .toList();
+    getFormulasForPathTime.start();
+    try {
+      if (sliceBlockFormulas) {
+        BlockFormulaSlicer bfs = new BlockFormulaSlicer(pfmgr);
+        return bfs.sliceFormulasForPath(path, initialState);
+      } else {
+        return from(path)
+            .transform(toState(PredicateAbstractState.class))
+            .transform(GET_BLOCK_FORMULA)
+            .toList();
+      }
+    } finally {
+      getFormulasForPathTime.stop();
     }
   }
 
   private Pair<ARGPath, CounterexampleTraceInfo> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo counterexample) throws InterruptedException {
     errorPathProcessing.start();
     try {
-
       Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
       if (preds.isEmpty()) {
         logger.log(Level.WARNING, "No information about ARG branches available!");
