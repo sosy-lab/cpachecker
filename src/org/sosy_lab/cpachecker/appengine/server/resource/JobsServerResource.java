@@ -89,9 +89,6 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
           case "logUsedOptions":
             options.setOption("log.usedOptions.export", "true");
             break;
-//          case "usePreprocessor":
-//            options.setOption("parser.usePreprocessor", "true");
-//            break;
           case "logLevel":
             options.setOption("log.level", value);
             break;
