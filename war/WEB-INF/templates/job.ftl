@@ -9,33 +9,31 @@
       <div class="panel-title">${msg.status}</div>
     </div>
     <div class="panel-body">
-    
-    	<#if error??>
-    	<div class="alert alert-danger">
-    		${msg[error]}
-        </div>
-        </#if>
-
       <table class="table-condensed">
         <tr>
           <td>${msg.status}</td>
           <td>
             <#if job.status == "PENDING">
             <span class="label label-default">${job.status}</span>
+            <a href="/jobs/${job.key}">${msg.statusRefresh}</a>
             <#elseif job.status == "RUNNING">
             <span class="label label-info">${job.status}</span>
-            <#elseif job.status == "ABORTED">
-            <span class="label label-warning">${job.status}</span>
+            <a href="/jobs/${job.key}">${msg.statusRefresh}</a>
             <#elseif job.status == "TIMEOUT">
+            <span class="label label-danger">${job.status}</span>
+            <#elseif job.status == "ERROR">
             <span class="label label-danger">${job.status}</span>
             <#else>
             <span class="label label-success">${job.status}</span>
             </#if>
-            <#if job.status != "DONE">
-            <a href="/jobs/${job.key}">${msg.statusRefresh}</a>
-            </#if>
           </td>
         </tr>
+        <#if job.statusMessage??>
+        <tr>
+        	<td>${msg.statusMessage}</td>
+        	<td>${job.statusMessage}</td>
+        </tr>
+        </#if>
         <#if job.resultOutcome??>
         <tr>
           <td>${msg.outcome}</td>
@@ -86,14 +84,6 @@
           <td>${job.configuration}</td>
         </tr>
         </#if>
-        <tr>
-          <td>${msg.queueName}</td>
-          <td>${job.queueName}</td>
-        </tr>
-        <tr>
-          <td>${msg.taskName}</td>
-          <td>${job.taskName}</td>
-        </tr>
         <#if job.options?? >
         <tr>
           <td>${msg.options}</td>

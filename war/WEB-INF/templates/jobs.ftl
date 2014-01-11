@@ -9,13 +9,6 @@
         <div class="panel-title">${msg.allJobs}</div>
       </div>
       <div class="panel-body">
-      
-      	<#if error??>
-    	<div class="alert alert-danger">
-    		${msg[error]}
-        </div>
-        </#if>
-      
         <ul>
         <#list jobs as job>
           <li>
@@ -28,6 +21,8 @@
             <#elseif job.status == "ABORTED">
               <span class="label label-warning">${job.status}</span>
             <#elseif job.status == "TIMEOUT">
+              <span class="label label-danger">${job.status}</span>
+            <#elseif job.status == "ERROR">
               <span class="label label-danger">${job.status}</span>
             <#else>
               <span class="label label-success">${job.status}</span>

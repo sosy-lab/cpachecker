@@ -89,12 +89,4 @@ public class JobDAOTest {
     assertTrue(JobDAO.load(jobKey) == null);
     assertTrue(JobFileDAO.load(fileKey) == null);
   }
-
-  @Test
-  public void shouldNotDeleteRunningJob() throws Exception {
-    Job job = new Job();
-    job.setStatus(Status.RUNNING);
-
-    assertFalse(JobDAO.delete(job));
-  }
 }

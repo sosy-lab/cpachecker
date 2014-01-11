@@ -29,7 +29,6 @@ import org.restlet.data.Status;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
 import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
-import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil.TemplateBuilder;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
@@ -40,32 +39,11 @@ public class JobServerResource extends WadlServerResource implements JobResource
 
   @Override
   public Representation deleteJob() {
-    boolean couldDelete = JobDAO.delete(getAttribute("jobKey"));
+    JobDAO.delete(getAttribute("jobKey"));
 
-    if (!couldDelete) {
-      getResponse().setStatus(Status.CLIENT_ERROR_CONFLICT, "The job could not be deleted. Probably the task is already running or could not be stopped.");
-
-      TemplateBuilder builder = FreemarkerUtil.templateBuilder();
-      if (getRequest().getReferrerRef().getPath().equals("/jobs")) {
-        builder
-            .templateName("jobs.ftl")
-            .addData("jobs", JobDAO.jobs());
-      } else {
-        Job job = JobDAO.load(getAttribute("jobKey"));
-        builder
-            .templateName("job.ftl")
-            .addData("job", job)
-            .addData("files", job.getFilesLoaded());
-      }
-      return builder
-          .context(getContext())
-          .addData("error", "error.couldNotDeleteJob")
-          .build();
-    } else {
-      getResponse().setStatus(Status.SUCCESS_OK);
-      getResponse().redirectSeeOther("/jobs");
-      return getResponseEntity();
-    }
+    getResponse().setStatus(Status.SUCCESS_OK);
+    getResponse().redirectSeeOther("/jobs");
+    return getResponseEntity();
   }
 
   @Override
