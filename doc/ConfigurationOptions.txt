@@ -394,6 +394,9 @@ cpa.arg.errorPath.graphml.pathUntilNonAssumeToSink = false
 cpa.arg.errorPath.json = "ErrorPath.%d.json"
 cpa.arg.errorPath.source = "ErrorPath.%d.c"
 
+# export error path to file as an automaton to a graphml file
+cpa.arg.errorPathOld.graphml = "ErrorPathOld.%d.graphml"
+
 # export final ARG as .dot file
 cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
@@ -1321,6 +1324,9 @@ reachedSet.file = "reached.txt"
 # configuration will only be used if the previous configuration ended with a
 # matching condition.
 restartAlgorithm.configFiles = no default value
+
+# Consider the negative semantics of tokens provided with path automatons.
+spec.considerNegativeSemanticsAttribute = true
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)

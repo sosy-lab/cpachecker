@@ -103,7 +103,8 @@ public class CPABuilder {
       for (Path specFile : specificationFiles) {
         List<Automaton> automata = Collections.emptyList();
         if (specFile.getPath().endsWith(".graphml")) {
-          automata = AutomatonGraphmlParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel());
+          AutomatonGraphmlParser graphmlParser = new AutomatonGraphmlParser(config, logger, cfa.getMachineModel());
+          automata = graphmlParser.parseAutomatonFile(specFile);
         } else {
           automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel());
         }

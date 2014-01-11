@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Writer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -39,9 +38,9 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchEdgeTokens;
 import org.w3c.dom.Document;
@@ -56,14 +55,23 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 
+@Options
 public class AutomatonGraphmlParser {
 
   private final static String SINK_NODE_ID = "sink";
 
+  @Option(name="spec.considerNegativeSemanticsAttribute",
+      description="Consider the negative semantics of tokens provided with path automatons.")
+  private boolean considerNegativeSemanticsAttribute = true;
+
+  public AutomatonGraphmlParser(Configuration pConfig, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
+    pConfig.inject(this);
+  }
+
   /**
   * Parses a Specification File and returns the Automata found in the file.
   */
-  public static List<Automaton> parseAutomatonFile(Path pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
+  public List<Automaton> parseAutomatonFile(Path pInputFile) throws InvalidConfigurationException {
 
     //CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
 
@@ -95,9 +103,11 @@ public class AutomatonGraphmlParser {
         String tokenString = getAttributeValue(stateTransitionNode, "tokens", "Every transition has to specify the set of tokens!");
 
         Optional<Boolean> matchNegativeSemantics = Optional.absent();
-        switch(getAttributeValueWithDefault(stateTransitionNode, "negation", "").toLowerCase()) {
-          case "true": matchNegativeSemantics = Optional.of(true); break;
-          case "false": matchNegativeSemantics = Optional.of(false); break;
+        if (considerNegativeSemanticsAttribute) {
+          switch(getAttributeValueWithDefault(stateTransitionNode, "negation", "").toLowerCase()) {
+            case "true": matchNegativeSemantics = Optional.of(true); break;
+            case "false": matchNegativeSemantics = Optional.of(false); break;
+          }
         }
 
         Set<Integer> matchTokens = parseTokens(tokenString);
@@ -161,7 +171,7 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  static Set<Integer> parseTokens(final String tokenString) {
+  Set<Integer> parseTokens(final String tokenString) {
     Set<Integer> result = Sets.newTreeSet();
     String[] ranges = tokenString.trim().split(",");
     for (String range : ranges) {
@@ -181,7 +191,7 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
-  static String getAttributeValueWithDefault(Node of, String attributeName, String defaultValue) {
+  String getAttributeValueWithDefault(Node of, String attributeName, String defaultValue) {
     Node attribute = of.getAttributes().getNamedItem(attributeName);
     if (attribute == null) {
       return defaultValue;
@@ -190,7 +200,7 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  static String getAttributeValue(Node of, String attributeName, String exceptionMessage) {
+  String getAttributeValue(Node of, String attributeName, String exceptionMessage) {
     Node attribute = of.getAttributes().getNamedItem(attributeName);
     Preconditions.checkNotNull(attribute, exceptionMessage);
     return attribute.getTextContent();
