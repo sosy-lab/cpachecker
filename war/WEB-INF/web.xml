@@ -12,15 +12,7 @@
         	<param-value>org.sosy_lab.cpachecker.appengine.server.CPAcheckerApplication</param-value>
         </init-param>
     </servlet>
-    <servlet>
-    	<servlet-name>job-runner-worker</servlet-name>
-    	<servlet-class>org.sosy_lab.cpachecker.appengine.server.JobRunnerWorker</servlet-class>
-    </servlet>
-    
-    <servlet-mapping>
-    	<servlet-name>job-runner-worker</servlet-name>
-    	<url-pattern>/workers/run-job</url-pattern>
-    </servlet-mapping>
+
     <servlet-mapping>
         <servlet-name>CPAcheckerApplication</servlet-name>
         <url-pattern>/*</url-pattern>

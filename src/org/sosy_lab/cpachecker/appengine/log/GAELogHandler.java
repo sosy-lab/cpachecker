@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.appengine.log;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.logging.ErrorManager;
 import java.util.logging.Formatter;
@@ -45,8 +47,8 @@ public class GAELogHandler extends Handler {
   private Writer writer;
   private boolean headIsWritten = false;
 
-  public GAELogHandler(Writer writer, Formatter formatter, Level level) {
-    this.writer = writer;
+  public GAELogHandler(OutputStream out, Formatter formatter, Level level) {
+    this.writer = new OutputStreamWriter(out);
     this.formatter = formatter;
     this.level = level;
   }

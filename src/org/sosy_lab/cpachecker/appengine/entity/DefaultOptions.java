@@ -39,13 +39,14 @@ import org.sosy_lab.common.io.Paths;
  * to crash or not behave as intended.
  *
  * The class also provides static methods to retrieve the following:
+ * - default options: All allowed options and their default value
  * - immutable options: Options that will always precede any other options
  * - specifications: A list of available specifications
  * - configurations: A list of available configurations
  */
 public class DefaultOptions {
 
-  private Map<String, String> allowedOptions = new HashMap<>();
+  private static final Map<String, String> allowedOptions = new HashMap<>();
   private Map<String, String> usedOptions = new HashMap<>();
 
   public DefaultOptions() {
@@ -93,13 +94,9 @@ public class DefaultOptions {
    * Returns the default value for a given key.
    *
    * @param option The option for which the default will be retrieved
-   * @return The default value. null if the option is not allowed.
+   * @return The default value. null if the option does not exist.
    */
   public String getDefaultValue(String option) {
-    if (!isAllowed(option)) {
-      return null;
-    }
-
     return allowedOptions.get(option);
   }
 
@@ -113,6 +110,17 @@ public class DefaultOptions {
 
   public Map<String, String> getAllowedOptions() {
     return allowedOptions;
+  }
+
+  /**
+   * Returns the allowed options and their default values.
+   */
+  public static Map<String, String> getDefaultOptions() {
+    return allowedOptions;
+  }
+
+  public static String getDefault(String key) {
+    return allowedOptions.get(key);
   }
 
   /**

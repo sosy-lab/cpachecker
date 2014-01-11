@@ -45,7 +45,26 @@ import com.googlecode.objectify.annotation.OnSave;
 public class Job {
 
   public enum Status {
-    PENDING, RUNNING, DONE, TIMEOUT
+    /**
+     * The job has not yet been started.
+     */
+    PENDING,
+    /**
+     * The job is currently being run.
+     */
+    RUNNING,
+    /**
+     * The job has successfully been run.
+     */
+    DONE,
+    /**
+     * The execution of the job timed out.
+     */
+    TIMEOUT,
+    /**
+     * An error has occurred while running the job.
+     */
+    ERROR
   }
 
   @Id private Long id;
@@ -53,6 +72,7 @@ public class Job {
   private Date executionDate;
   private Date terminationDate;
   private Status status;
+  private String statusMessage;
   private String specification;
   private String configuration;
   private String queueName;
@@ -112,6 +132,16 @@ public class Job {
     status = pStatus;
   }
 
+
+
+  public String getStatusMessage() {
+    return statusMessage;
+  }
+
+
+  public void setStatusMessage(String pStatusMessage) {
+    statusMessage = pStatusMessage;
+  }
 
   public Map<String, String> getOptions() {
     if (optionsEscaped) {
