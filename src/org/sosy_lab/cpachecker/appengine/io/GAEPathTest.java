@@ -33,37 +33,26 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.cpachecker.appengine.common.DatabaseTest;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
-import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
-import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.google.common.io.FileWriteMode;
-import com.googlecode.objectify.ObjectifyService;
 
 
-public class GAEPathTest {
-
-  private final LocalServiceTestHelper helper = new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig());
+public class GAEPathTest extends DatabaseTest {
 
   private Job job;
   private JobFile file;
   private Path path;
 
-  static {
-    ObjectifyService.register(Job.class);
-    ObjectifyService.register(JobFile.class);
-  }
-
-  @Before
+  @Override
   public void setUp() {
-    helper.setUp();
+    super.setUp();
 
     job = new Job(1L);
     file = new JobFile("test.tmp", job);
@@ -73,11 +62,6 @@ public class GAEPathTest {
     JobDAO.save(job);
 
     path = new GAEPath("test.tmp", job);
-  }
-
-  @After
-  public void tearDown() {
-    helper.tearDown();
   }
 
   @Test

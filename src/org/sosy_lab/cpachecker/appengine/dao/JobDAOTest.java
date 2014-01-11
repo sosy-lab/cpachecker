@@ -25,37 +25,16 @@ package org.sosy_lab.cpachecker.appengine.dao;
 
 import static org.junit.Assert.*;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.appengine.common.DatabaseTest;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.Job.Status;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
-import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
-import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.googlecode.objectify.Key;
-import com.googlecode.objectify.ObjectifyService;
 
 
-public class JobDAOTest {
-
-  private final LocalServiceTestHelper helper = new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig());
-
-  static {
-    ObjectifyService.register(Job.class);
-    ObjectifyService.register(JobFile.class);
-  }
-
-  @Before
-  public void setUp() {
-    helper.setUp();
-  }
-
-  @After
-  public void tearDown() {
-    helper.tearDown();
-  }
+public class JobDAOTest extends DatabaseTest {
 
   @Test
   public void shouldSaveJob() {
