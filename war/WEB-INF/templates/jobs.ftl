@@ -10,7 +10,7 @@
       </div>
       <div class="panel-body">
         <ul>
-        <#list jobs as job>
+        <#list jobs?sort_by("creationDate")?reverse as job>
           <li>
             <a href="/jobs/${job.key}">${job.creationDate?datetime}</a>
 
