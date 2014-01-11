@@ -112,6 +112,9 @@ public class GAEPath extends FileSystemPath {
     return true;
   }
 
+  /**
+   * Assumes a file always has an extension.
+   */
   @Override
   public boolean isFile() {
     // assume a file always has an extension

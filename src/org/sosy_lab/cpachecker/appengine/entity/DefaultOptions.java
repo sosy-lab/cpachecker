@@ -100,14 +100,30 @@ public class DefaultOptions {
     return allowedOptions.get(option);
   }
 
+  /**
+   * Returns all options that were previously set.
+   *
+   * @return The used options
+   */
   public Map<String, String> getUsedOptions() {
     return usedOptions;
   }
 
+  /**
+   * Returns the value of a previously set option.
+   *
+   * @param option The name of the option
+   * @return The value
+   */
   public String getUsedOption(String option) {
     return usedOptions.get(option);
   }
 
+  /**
+   * Returns all allowed options and their default values.
+   *
+   * @return The allowed options
+   */
   public Map<String, String> getAllowedOptions() {
     return allowedOptions;
   }
@@ -119,6 +135,12 @@ public class DefaultOptions {
     return allowedOptions;
   }
 
+  /**
+   * Returns the default value of an option.
+   *
+   * @param key The name of the option.
+   * @return The default value
+   */
   public static String getDefault(String key) {
     return allowedOptions.get(key);
   }

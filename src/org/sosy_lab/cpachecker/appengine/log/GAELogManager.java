@@ -40,8 +40,11 @@ public class GAELogManager extends BasicLogManager {
     super(config, consoleOutputHandler, fileOutputHandler);
   }
 
+  /**
+   * Ignores the given Formatter, Level and List<Level>
+   */
   @Override
-  protected void setupHandler(Handler pHandler, Formatter pFormatter, Level pLevel, List<Level> pExcludeLevels) {
+  protected void setupHandler(Handler pHandler, Formatter _, Level __, List<Level> ___) {
     logger.addHandler(pHandler);
   }
 }

@@ -56,12 +56,6 @@ public class JobDAO {
     return job;
   }
 
-  /**
-   * Tries to delete a job and indicates if it was possible.
-   * Also deletes all associated files.
-   *
-   * @param job The job to delete.
-   */
   public static void delete(final Job job) {
     if (job != null) {
       ofy().transact(new VoidWork() {
