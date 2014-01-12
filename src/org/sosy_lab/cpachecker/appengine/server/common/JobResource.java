@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.appengine.server.common;
 
 import org.restlet.representation.Representation;
+import org.restlet.representation.Variant;
 import org.restlet.resource.Delete;
 import org.restlet.resource.Get;
 
@@ -34,5 +35,5 @@ public interface JobResource {
   public Representation jobAsHtml();
 
   @Delete
-  public Representation deleteJob();
+  public Representation deleteJob(Variant variant);
 }

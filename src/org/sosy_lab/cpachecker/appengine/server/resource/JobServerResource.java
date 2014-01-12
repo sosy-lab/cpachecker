@@ -25,9 +25,11 @@ package org.sosy_lab.cpachecker.appengine.server.resource;
 
 import java.util.List;
 
+import org.restlet.data.MediaType;
 import org.restlet.data.Status;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
+import org.restlet.representation.Variant;
 import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
@@ -36,15 +38,6 @@ import org.sosy_lab.cpachecker.appengine.server.common.JobResource;
 
 
 public class JobServerResource extends WadlServerResource implements JobResource {
-
-  @Override
-  public Representation deleteJob() {
-    JobDAO.delete(getAttribute("jobKey"));
-
-    getResponse().setStatus(Status.SUCCESS_OK);
-    getResponse().redirectSeeOther("/jobs");
-    return getResponseEntity();
-  }
 
   @Override
   public Representation jobAsHtml() {
@@ -57,6 +50,18 @@ public class JobServerResource extends WadlServerResource implements JobResource
         .addData("files", files)
         .templateName("job.ftl")
         .build();
+  }
+
+  @Override
+  public Representation deleteJob(Variant variant) {
+    JobDAO.delete(getAttribute("jobKey"));
+    getResponse().setStatus(Status.SUCCESS_OK);
+
+    // only send redirect if it is a browser call
+    if (variant == null || !variant.getMediaType().equals(MediaType.APPLICATION_JSON)) {
+      getResponse().redirectSeeOther("/jobs");
+    }
+    return getResponseEntity();
   }
 
 }

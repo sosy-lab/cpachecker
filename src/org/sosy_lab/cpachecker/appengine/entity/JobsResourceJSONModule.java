@@ -63,7 +63,7 @@ public class JobsResourceJSONModule extends SimpleModule {
       gen.writeStringField("key", job.getKey());
       gen.writeStringField("status", job.getStatus().name());
       if (job.getResultOutcome() != null) {
-        gen.writeStringField("outcome", job.getResultOutcome().name());
+        gen.writeStringField("result", job.getResultOutcome().name());
       }
       gen.writeStringField("creationDate", utcDateFormat.format(job.getCreationDate()));
       if (job.getExecutionDate() != null) {
