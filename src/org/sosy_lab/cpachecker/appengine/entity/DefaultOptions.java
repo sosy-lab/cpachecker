@@ -81,6 +81,18 @@ public class DefaultOptions {
   }
 
   /**
+   * Sets a batch of options.
+   * Comfort method for {@link #setOption(String, String)}
+   *
+   * @param options The options to set
+   */
+  public void setOptions(Map<String, String> options) {
+    for (String option : options.keySet()) {
+      setOption(option, options.get(option));
+    }
+  }
+
+  /**
    * Indicates whether setting the given option is allowed.
    *
    * @param option The option to check

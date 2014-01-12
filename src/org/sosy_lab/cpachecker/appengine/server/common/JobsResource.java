@@ -32,9 +32,15 @@ import org.restlet.resource.Post;
 
 public interface JobsResource {
 
-  @Post("multipart:html")
-  public Representation createJobAndRedirectToJob(Representation input) throws IOException;
-
   @Get("html")
   public Representation jobsAsHtml();
+
+  @Post("multipart:html")
+  public Representation createJobFromHtml(Representation input) throws IOException;
+
+  @Get("json")
+  public Representation jobsAsJson();
+
+  @Post("json")
+  public Representation createJobFromJson(Representation input);
 }
