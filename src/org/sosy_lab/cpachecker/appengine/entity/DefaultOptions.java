@@ -46,17 +46,24 @@ import org.sosy_lab.common.io.Paths;
  */
 public class DefaultOptions {
 
-  private static final Map<String, String> allowedOptions = new HashMap<>();
+  private static Map<String, String> allowedOptions;
   private Map<String, String> usedOptions = new HashMap<>();
 
-  public DefaultOptions() {
-    allowedOptions.put("analysis.machineModel", "Linux32");
+  /**
+   * Returns the allowed options and their default values.
+   */
+  public static Map<String, String> getDefaultOptions() {
+    if (allowedOptions == null) {
+      allowedOptions = new HashMap<>();
+      allowedOptions.put("analysis.machineModel", "Linux32");
 //    allowedOptions.put("parser.usePreprocessor", "false");
-    allowedOptions.put("output.disable", "false");
-    allowedOptions.put("statistics.export", "true");
-    allowedOptions.put("log.usedOptions.export", "false");
-    allowedOptions.put("log.level", "OFF");
-    allowedOptions.put("log.truncateSize", "10000");
+      allowedOptions.put("output.disable", "false");
+      allowedOptions.put("statistics.export", "true");
+      allowedOptions.put("log.usedOptions.export", "false");
+      allowedOptions.put("log.level", "OFF");
+      allowedOptions.put("log.truncateSize", "10000");
+    }
+    return allowedOptions;
   }
 
   /**
@@ -93,58 +100,12 @@ public class DefaultOptions {
   }
 
   /**
-   * Indicates whether setting the given option is allowed.
-   *
-   * @param option The option to check
-   * @return True, if the option may be set, false otherwise.
-   */
-  public boolean isAllowed(String option) {
-    return allowedOptions.containsKey(option);
-  }
-
-  /**
-   * Returns the default value for a given key.
-   *
-   * @param option The option for which the default will be retrieved
-   * @return The default value. null if the option does not exist.
-   */
-  public String getDefaultValue(String option) {
-    return allowedOptions.get(option);
-  }
-
-  /**
    * Returns all options that were previously set.
    *
    * @return The used options
    */
   public Map<String, String> getUsedOptions() {
     return usedOptions;
-  }
-
-  /**
-   * Returns the value of a previously set option.
-   *
-   * @param option The name of the option
-   * @return The value
-   */
-  public String getUsedOption(String option) {
-    return usedOptions.get(option);
-  }
-
-  /**
-   * Returns all allowed options and their default values.
-   *
-   * @return The allowed options
-   */
-  public Map<String, String> getAllowedOptions() {
-    return allowedOptions;
-  }
-
-  /**
-   * Returns the allowed options and their default values.
-   */
-  public static Map<String, String> getDefaultOptions() {
-    return allowedOptions;
   }
 
   /**

@@ -231,7 +231,9 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
     JobFile program = new JobFile("program.c", createdJob);
     createdJob.setSpecification((String) settings.get("specification"));
     createdJob.setConfiguration((String) settings.get("configuration"));
-    createdJob.setOptions((Map<String, String>) settings.get("options"));
+    if (settings.get("options") != null) {
+      createdJob.setOptions((Map<String, String>) settings.get("options"));
+    }
     program.setContent((String) settings.get("programText"));
 
     if (createdJob.getSpecification() == null && createdJob.getConfiguration() == null) {
@@ -244,6 +246,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
 
     if (errors.size() == 0) {
       JobFileDAO.save(program);
+      createdJob.addFile(program);
       JobDAO.save(createdJob);
       JobRunner jobRunner = new GAETaskQueueJobRunner();
       createdJob = jobRunner.run(createdJob);
