@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.appengine.entity;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -75,11 +76,11 @@ public class DefaultOptions {
    * @return True, if the option will be used, false otherwise.
    */
   public boolean setOption(String key, String value) {
-    if (!allowedOptions.containsKey(key)) {
+    if (!getDefaultOptions().containsKey(key)) {
       return false;
     }
 
-    if (!allowedOptions.get(key).equals(value)) {
+    if (!getDefaultOptions().get(key).equals(value)) {
       usedOptions.put(key, value);
       return true;
     }
@@ -115,7 +116,7 @@ public class DefaultOptions {
    * @return The default value
    */
   public static String getDefault(String key) {
-    return allowedOptions.get(key);
+    return getDefaultOptions().get(key);
   }
 
   /**
@@ -127,7 +128,10 @@ public class DefaultOptions {
   public static Map<String, String> getImmutableOptions() throws IOException {
     Map<String, String> options = new HashMap<>();
     Properties properties = new Properties();
-    properties.load(Paths.get("WEB-INF", "default-options.properties").asByteSource().openStream());
+    try (InputStream in = Paths.get("WEB-INF", "default-options.properties").asByteSource().openStream()) {
+      properties.load(in);
+    }
+
 
     for (String key : properties.stringPropertyNames()) {
       options.put(key, properties.getProperty(key));
