@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.findLoops;
-
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -39,9 +37,6 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
@@ -83,7 +78,6 @@ import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -312,7 +306,7 @@ public class CFASingleLoopTransformation {
             newSuccessorsToPC.put(precedingPCValue, newSuccessor);
           }
         } else {
-          roots.addAll(getPredecessors(subgraphRoot).toList());
+          roots.addAll(CFAUtils.predecessorsOf(subgraphRoot).toList());
         }
       }
     }
@@ -328,9 +322,23 @@ public class CFASingleLoopTransformation {
         new CBinaryExpressionBuilder(pInputCFA.getMachineModel(), logger));
 
     // Build the CFA from the syntactically reachable nodes
-    return buildCFA(start, pInputCFA.getMachineModel(), pInputCFA.getLanguage());
+    return buildCFA(start, loopHead, pInputCFA.getMachineModel(), pInputCFA.getLanguage());
   }
 
+  /**
+   * Checks if the given subgraph will contain a loop if the given node is
+   * added to the subgraph. It is assumed that the given subgraph does not yet
+   * contain a loop.
+   *
+   * The result of the function is undefined if the given subgraph already
+   * contains a loop - this may or may not be detected leading to arbitrary
+   * results.
+   *
+   * @param pSubgraph the subgraph that would potentially contain the loop.
+   * @param pSuccessor the node that would potentially introduce the loop.
+   * @return <code>true</code> if the given node would introduce a loop if
+   * added to the subgraph, <code>false</code> otherwise.
+   */
   private boolean becomesLoop(Set<CFANode> pSubgraph, CFANode pSuccessor) {
     Set<CFANode> visited = new HashSet<>();
     Queue<CFANode> waitlist = new ArrayDeque<>();
@@ -338,7 +346,7 @@ public class CFASingleLoopTransformation {
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
       if (visited.add(current)) {
-        for (CFANode succ : getSuccessors(current)) {
+        for (CFANode succ : CFAUtils.successorsOf(current)) {
           if (succ.equals(pSuccessor)) {
             return true;
           } else if (pSubgraph.contains(succ)) {
@@ -356,13 +364,14 @@ public class CFASingleLoopTransformation {
    * are also omitted.
    *
    * @param pStartNode the start node.
+   * @param pLoopHead the single loop head.
    * @param pMachineModel the machine model.
    * @param pLanguage the programming language.
    * @return the CFA represented by the nodes reachable from the start node.
    *
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
-  private ImmutableCFA buildCFA(FunctionEntryNode pStartNode, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException {
+  private ImmutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException {
     Map<String, FunctionEntryNode> functions = null;
     SortedSetMultimap<String, CFANode> allNodes = null;
     boolean changed = true;
@@ -376,7 +385,7 @@ public class CFASingleLoopTransformation {
         CFANode current = waitlist.poll();
         String functionName = current.getFunctionName();
         if (allNodes.put(functionName, current)) {
-          waitlist.addAll(getSuccessors(current).toList());
+          waitlist.addAll(CFAUtils.successorsOf(current).toList());
           if (current instanceof FunctionEntryNode) {
             functions.put(functionName, (FunctionEntryNode) current);
           }
@@ -424,7 +433,8 @@ public class CFASingleLoopTransformation {
 
     // Get information about the loop structure
     Optional<ImmutableMultimap<String, Loop>> loopStructure =
-        getLoopStructure(pStartNode.getFunctionName(), new TreeSet<>(allNodes.values()), pLanguage, logger);
+        getLoopStructure(pLoopHead);
+    //    getLoopStructure(pStartNode.getFunctionName(), new TreeSet<>(allNodes.values()), pLanguage, logger);
 
     // Get information about variables, required by some analyses
     final Optional<VariableClassification> varClassification
@@ -611,7 +621,7 @@ public class CFASingleLoopTransformation {
       CFANode current = waitlist.poll();
       if (nodes.add(current)) {
         functionNames.add(current.getFunctionName());
-        waitlist.addAll(getSuccessors(current).toList());
+        waitlist.addAll(CFAUtils.successorsOf(current).toList());
       }
     }
 
@@ -630,46 +640,10 @@ public class CFASingleLoopTransformation {
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
       if (nodes.add(current)) {
-        waitlist.addAll(getSuccessors(current).toList());
+        waitlist.addAll(CFAUtils.successorsOf(current).toList());
       }
     }
     return nodes;
-  }
-
-  /**
-   * Gets the successor nodes of the given node.
-   *
-   * @param pNode the node for which to retrieve the successors.
-   * @return the successor nodes of the given node.
-   */
-  private static FluentIterable<CFANode> getSuccessors(final CFANode pNode) {
-    return CFAUtils.allLeavingEdges(pNode).transform(new Function<CFAEdge, CFANode>() {
-
-      @Override
-      @Nullable
-      public CFANode apply(@Nullable CFAEdge pArg0) {
-        return pArg0 == null ? null : pArg0.getSuccessor();
-      }
-
-    });
-  }
-
-  /**
-   * Gets the predecessor nodes of the given node.
-   *
-   * @param pNode the node for which to retrieve the predecessors.
-   * @return the predecessor nodes of the given node.
-   */
-  private static FluentIterable<CFANode> getPredecessors(final CFANode pNode) {
-    return CFAUtils.allEnteringEdges(pNode).transform(new Function<CFAEdge, CFANode>() {
-
-      @Override
-      @Nullable
-      public CFANode apply(@Nullable CFAEdge pArg0) {
-        return pArg0 == null ? null : pArg0.getPredecessor();
-      }
-
-    });
   }
 
   /**
@@ -909,30 +883,42 @@ public class CFASingleLoopTransformation {
   }
 
   /**
-   * Gets the loop structure of a control flow automaton.
+   * Gets the loop structure of a control flow automaton with one single loop.
    *
-   * @param pMainFunctionName the name of the main function.
-   * @param pAllNodes the nodes mapped to their function names.
-   * @param pLanguage the programming language.
-   * @param pLogger the logger.
+   * @param pSingleLoopHead the loop head of the single loop.
    *
    * @return the loop structure of the control flow automaton.
    */
-  private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(String pMainFunctionName, SortedSet<CFANode> pAllNodes, Language pLanguage, LogManager pLogger) {
-    try {
-      ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
-      loops.putAll(pMainFunctionName, findLoops(pAllNodes, pLanguage));
-      return Optional.of(loops.build());
-
-    } catch (ParserException e) {
-      // don't abort here, because if the analysis doesn't need the loop information, we can continue
-      pLogger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program.");
-
-    } catch (OutOfMemoryError e) {
-      pLogger.logUserException(Level.WARNING, e,
-          "Could not analyze loop structure of program due to memory problems");
+  private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(CFANode pSingleLoopHead) {
+    Queue<CFANode> waitlist = new ArrayDeque<>();
+    Set<CFANode> reachableSuccessors = new HashSet<>();
+    Set<CFANode> visited = new HashSet<>();
+    waitlist.offer(pSingleLoopHead);
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      reachableSuccessors.add(current);
+      for (CFANode successor : CFAUtils.successorsOf(current)) {
+        if (visited.add(successor)) {
+          waitlist.add(successor);
+        }
+      }
     }
-    return Optional.absent();
+    visited.clear();
+    waitlist.offer(pSingleLoopHead);
+    Set<CFANode> loopNodes = new HashSet<>();
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      if (reachableSuccessors.contains(current)) {
+        loopNodes.add(current);
+        for (CFANode predecessor : CFAUtils.predecessorsOf(current)) {
+          if (visited.add(predecessor)) {
+            waitlist.add(predecessor);
+          }
+        }
+      }
+    }
+    String loopFunction = pSingleLoopHead.getFunctionName();
+    return Optional.of(ImmutableMultimap.<String, Loop>builder().put(loopFunction, new Loop(pSingleLoopHead, loopNodes)).build());
   }
 
 }
