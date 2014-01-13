@@ -29,7 +29,6 @@ import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -136,6 +135,34 @@ public class CFASingleLoopTransformation {
 
     Queue<CFANode> nodes = new ArrayDeque<>(getAllNodes(pInputCFA));
 
+    // Eliminate self loops
+    Set<CFAEdge> dummyEdges = new HashSet<>();
+    List<CFANode> toAdd = new ArrayList<>();
+    for (CFANode node : nodes) {
+      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+        CFANode successor = edge.getSuccessor();
+        // Eliminate a direct self edge by introducing a dummy node in between
+        if (successor == node) {
+          removeFromNodes(edge);
+
+          Map<CFANode, CFANode> tmpMap = new HashMap<>();
+          CFANode dummy = getOrCreateNewFromOld(successor, tmpMap);
+
+          tmpMap.put(successor, successor);
+          CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(edge, dummy, successor, tmpMap);
+          addToNodes(replacementEdge);
+
+          BlankEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), node, dummy, DUMMY_EDGE);
+          dummyEdges.add(dummyEdge);
+          addToNodes(dummyEdge);
+
+          successor = dummy;
+          toAdd.add(dummy);
+        }
+      }
+    }
+    nodes.addAll(toAdd);
+
     Map<Integer, CFANode> newPredecessorsToPC = new LinkedHashMap<>();
     BiMap<Integer, CFANode> newSuccessorsToPC = HashBiMap.create();
     Map<CFANode, CFANode> globalNewToOld = new HashMap<>();
@@ -167,39 +194,20 @@ public class CFASingleLoopTransformation {
       }
 
       // Get an acyclic sub graph
-      Set<CFANode> subgraph = new LinkedHashSet<>();
+      final Set<CFANode> subgraph = new LinkedHashSet<>();
       Queue<CFANode> waitlist = new ArrayDeque<>();
       waitlist.add(subgraphRoot);
       subgraph.add(subgraphRoot);
-      Set<CFAEdge> dummyEdges = new HashSet<>();
       Set<Integer> pcValuesOutOfSubgraph = new HashSet<>();
       while (!waitlist.isEmpty()) {
         CFANode current = waitlist.poll();
         for (CFAEdge edge : CFAUtils.leavingEdges(current).toList()) {
           CFANode next = edge.getSuccessor();
 
-          // Eliminate a direct self edge by introducing a dummy node in between
-          if (next == current) {
-            removeFromNodes(edge);
-
-            Map<CFANode, CFANode> tmpMap = new HashMap<>();
-            CFANode dummy = getOrCreateNewFromOld(next, tmpMap);
-
-            tmpMap.put(next, next);
-            CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(edge, dummy, next, tmpMap);
-            addToNodes(replacementEdge);
-
-            BlankEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), current, dummy, DUMMY_EDGE);
-            dummyEdges.add(dummyEdge);
-            addToNodes(dummyEdge);
-
-            next = dummy;
-            nodes.add(dummy);
-            edge = dummyEdge;
-          }
+          assert current != next : "Self-loops must be eliminated previously";
 
           // Add a node to the subgraph if no cycle is introduced by it
-          if (!containsAny(getNodesBetween(subgraphRoot, current, subgraph), getSuccessors(next)) && visited.add(next)) {
+          if (!becomesLoop(subgraph, next) && visited.add(next)) {
             subgraph.add(next);
             waitlist.add(next);
           } else if (!subgraph.contains(next)) {
@@ -289,7 +297,7 @@ public class CFASingleLoopTransformation {
     }
 
 
-    // Remove trivial dummy subgraphs // TODO MORE TESTING! MIGHT BE BUGGY!
+    // Remove trivial dummy subgraphs
     for (int replaceablePCValue : replaceablePCValues) {
       CFANode newSuccessor = newSuccessorsToPC.remove(replaceablePCValue);
       CFANode tailOfRedundantSubgraph = newPredecessorsToPC.get(replaceablePCValue);
@@ -321,6 +329,25 @@ public class CFASingleLoopTransformation {
 
     // Build the CFA from the syntactically reachable nodes
     return buildCFA(start, pInputCFA.getMachineModel(), pInputCFA.getLanguage());
+  }
+
+  private boolean becomesLoop(Set<CFANode> pSubgraph, CFANode pSuccessor) {
+    Set<CFANode> visited = new HashSet<>();
+    Queue<CFANode> waitlist = new ArrayDeque<>();
+    waitlist.offer(pSuccessor);
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      if (visited.add(current)) {
+        for (CFANode succ : getSuccessors(current)) {
+          if (succ.equals(pSuccessor)) {
+            return true;
+          } else if (pSubgraph.contains(succ)) {
+            waitlist.add(succ);
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /**
@@ -454,41 +481,6 @@ public class CFASingleLoopTransformation {
   }
 
   /**
-   * Gets all nodes between the given source and target on paths that do not
-   * leave the given subgraph. Source and target itself will also be a part of
-   * the result.
-   *
-   * @param source the source node of the search.
-   * @param target the search target.
-   * @param subgraph the subgraph that must not be left.
-   *
-   * @return all nodes between the given source and target on paths that do not
-   * leave the given subgraph.
-   */
-  private static Set<CFANode> getNodesBetween(CFANode source, CFANode target, Set<CFANode> subgraph) {
-    Set<CFANode> visited = new HashSet<>();
-    Set<CFANode> result = new HashSet<>();
-    Queue<List<CFANode>> waitlist = new ArrayDeque<>();
-    waitlist.add(Collections.singletonList(source));
-    while (!waitlist.isEmpty()) {
-      List<CFANode> current = waitlist.poll();
-      CFANode head = getLast(current);
-      if (subgraph.contains(head) && visited.add(head)) {
-        if (head.equals(target)) {
-          result.addAll(current);
-        } else {
-          for (CFANode successor : getSuccessors(head)) {
-            List<CFANode> succ = new ArrayList<>(current);
-            succ.add(successor);
-            waitlist.add(succ);
-          }
-        }
-      }
-    }
-    return result;
-  }
-
-  /**
    * Connects the nodes leaving a subgraph to the loop head using assignment
    * edges setting the program counter to the value required for reaching the
    * correct successor in the next loop iteration.
@@ -586,22 +578,6 @@ public class CFASingleLoopTransformation {
   }
 
   /**
-   * Gets the last element of a list.
-   *
-   * @param pList the list to get the element from.
-   * @return the last element of the list.
-   *
-   * @throws NoSuchElementException if the list is empty.
-   */
-  private static <T> T getLast(List<T> pList) {
-    int index = pList.size() - 1;
-    if (index < 0) {
-      throw new NoSuchElementException();
-    }
-    return pList.get(index);
-  }
-
-  /**
    * Removes the last element of a list.
    *
    * @param pList the list to get the element from.
@@ -658,24 +634,6 @@ public class CFASingleLoopTransformation {
       }
     }
     return nodes;
-  }
-
-  /**
-   * Checks whether or not the given collection contains any of the given
-   * elements.
-   *
-   * @param pCollection the collection to check.
-   * @param pElements the elements to loop for.
-   * @return <code>true</code> if any of the given elements is contained in the
-   * collection, <code>false</code> otherwise.
-   */
-  private static <T> boolean containsAny(Collection<T> pCollection, Iterable<T> pElements) {
-    for (T element : pElements) {
-      if (pCollection.contains(element)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   /**
