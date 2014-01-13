@@ -44,7 +44,6 @@ import javax.xml.transform.stream.StreamResult;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -63,8 +62,6 @@ import com.google.common.collect.TreeRangeSet;
 public class ARGPathExport {
 
   private final static String SINK_NODE_ID = "sink";
-
-  private static int NODE_ID_SEQUENCE = 0;
 
   public enum GraphType {
     PROGRAMPATH("path"),
@@ -190,7 +187,7 @@ public class ARGPathExport {
   }
 
   public void producePathAutomatonGraphMl(Appendable sb, ARGState pRootState,
-      Set<ARGState> pPathStates, String name, boolean pathUntilNonAssumeToSink) throws IOException {
+      Set<ARGState> pPathStates, String name) throws IOException {
 
     GraphType graphType = GraphType.PROGRAMPATH;
 
@@ -277,11 +274,6 @@ public class ARGPathExport {
             sinkNodeWritten = true;
             appendNewNode(doc, sb, SINK_NODE_ID, NodeType.SINKNODE);
           }
-
-          // Path to the first non-assumption edge
-          if (pathUntilNonAssumeToSink) {
-            pathUntilNonAssumeToSink(doc, sb, prevStateId, edgeToNextState, pPathStates);
-          }
         }
       }
     }
@@ -324,31 +316,11 @@ public class ARGPathExport {
     }
   }
 
-  private void pathUntilNonAssumeToSink(Document doc, Appendable target, String prevStateId,
-      CFAEdge startWith, Set<ARGState> pathStates) throws IOException {
-
-    if (startWith.getEdgeType() != CFAEdgeType.AssumeEdge) {
-      appendNewEdge(doc, target, prevStateId, SINK_NODE_ID, startWith);
-    } else {
-      CFANode successorLoc = startWith.getSuccessor();
-      String newPrevStateId = "X" + NODE_ID_SEQUENCE++;
-      appendNewNode(doc, target, newPrevStateId, NodeType.ONPATH);
-      appendNewEdge(doc, target, prevStateId, newPrevStateId, startWith);
-
-      for (CFAEdge e : CFAUtils.allLeavingEdges(successorLoc)) {
-        // Recursive!
-        pathUntilNonAssumeToSink(doc, target, newPrevStateId, e, pathStates);
-      }
-    }
-  }
-
-
   public void writePath(Appendable sb,
       final ARGState rootState,
       final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
       final Predicate<? super ARGState> displayedElements,
-      final Predicate<? super Pair<ARGState, ARGState>> pathEdges,
-      final boolean pathUntilNonAssumeToSink)
+      final Predicate<? super Pair<ARGState, ARGState>> pathEdges)
       throws IOException {
 
     Set<ARGState> processed = new HashSet<>();
@@ -451,11 +423,6 @@ public class ARGPathExport {
               sinkNodeWritten = true;
               appendNewNode(doc, sb, SINK_NODE_ID, NodeType.SINKNODE);
             }
-
-            // Path to the first non-assumption edge
-//            if (pathUntilNonAssumeToSink) {
-//              pathUntilNonAssumeToSink(doc, sb, prevStateId, edgeToNextState, pPathStates);
-//            }
           }
         }
 

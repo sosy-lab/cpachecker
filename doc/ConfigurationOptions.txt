@@ -387,15 +387,9 @@ cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
 # export error path to file as an automaton to a graphml file
 cpa.arg.errorPath.graphml = "ErrorPath.%d.graphml"
 
-# include path branches to the first non-assume edge to identify sinks
-cpa.arg.errorPath.graphml.pathUntilNonAssumeToSink = false
-
 # export error path to file, if one is found
 cpa.arg.errorPath.json = "ErrorPath.%d.json"
 cpa.arg.errorPath.source = "ErrorPath.%d.c"
-
-# export error path to file as an automaton to a graphml file
-cpa.arg.errorPathOld.graphml = "ErrorPathOld.%d.graphml"
 
 # export final ARG as .dot file
 cpa.arg.export = true
