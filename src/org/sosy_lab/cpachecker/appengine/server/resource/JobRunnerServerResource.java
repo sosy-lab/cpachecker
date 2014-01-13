@@ -170,12 +170,11 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
   }
 
   private void saveStackTrace(Throwable e) throws IOException {
-    OutputStream out = errorPath.asByteSink(FileWriteMode.APPEND).openStream();
-    PrintStream ps = new PrintStream(out);
-    e.printStackTrace(ps);
-    ps.flush();
-    out.flush();
-    out.close();
+    try (OutputStream out = errorPath.asByteSink(FileWriteMode.APPEND).openStream()) {
+      PrintStream ps = new PrintStream(out);
+      e.printStackTrace(ps);
+      ps.flush();
+    }
   }
 
   private void dumpLog() {

@@ -73,43 +73,44 @@ public class GAEPathTest extends DatabaseTest {
 
   @Test
   public void shouldReturnWorkingByteSource() throws Exception {
-    InputStream in = path.asByteSource().openStream();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    try (InputStream in = path.asByteSource().openStream();
+        ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+      int b;
+      while ((b = in.read()) != -1) {
+        out.write(b);
+      }
 
-    int b;
-    while ((b = in.read()) != -1) {
-      out.write(b);
+      assertEquals(file.getContent(), out.toString());
     }
-
-    assertEquals(file.getContent(), out.toString());
   }
 
   @Test
   public void shouldReturnWorkingCharSource() throws Exception {
-    Reader reader = path.asCharSource(null).openStream();
-    StringWriter w = new StringWriter();
+    try (Reader reader = path.asCharSource(null).openStream();
+        StringWriter w = new StringWriter()) {
+      int c;
+      while ((c = reader.read()) != -1) {
+        w.write(c);
+      }
 
-    int c;
-    while ((c = reader.read()) != -1) {
-      w.write(c);
+      assertEquals(file.getContent(), w.toString());
     }
-
-    assertEquals(file.getContent(), w.toString());
   }
 
   @Test
   public void shouldReturnWorkingByteSink() throws Exception {
-    OutputStream out = path.asByteSink().openStream();
-    out.write(new String("test").getBytes());
+    try (OutputStream out = path.asByteSink().openStream()) {
+      out.write(new String("test").getBytes());
+    }
 
     assertEquals("test", file.getContent());
   }
 
   @Test
   public void shouldReturnWorkingCharSink() throws Exception {
-    Writer writer = path.asCharSink(Charset.defaultCharset()).openStream();
-    writer.write("test");
-    writer.close();
+    try (Writer writer = path.asCharSink(Charset.defaultCharset()).openStream()) {
+      writer.write("test");
+    }
 
     assertEquals("test", file.getContent());
   }
@@ -117,8 +118,9 @@ public class GAEPathTest extends DatabaseTest {
   @Test
   public void shouldAppendWithByteSink() throws Exception {
     String oldContent = file.getContent();
-    OutputStream out = path.asByteSink(FileWriteMode.APPEND).openStream();
-    out.write(new String("test").getBytes());
+    try (OutputStream out = path.asByteSink(FileWriteMode.APPEND).openStream()) {
+      out.write(new String("test").getBytes());
+    }
 
     assertEquals(oldContent+"test", file.getContent());
   }
@@ -126,9 +128,9 @@ public class GAEPathTest extends DatabaseTest {
   @Test
   public void shouldAppendWithCharSink() throws Exception {
     String oldContent = file.getContent();
-    Writer writer = path.asCharSink(Charset.defaultCharset(), FileWriteMode.APPEND).openStream();
-    writer.write("test");
-    writer.close();
+    try (Writer writer = path.asCharSink(Charset.defaultCharset(), FileWriteMode.APPEND).openStream()) {
+      writer.write("test");
+    }
 
     assertEquals(oldContent+"test", file.getContent());
   }
