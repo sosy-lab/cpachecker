@@ -124,6 +124,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
@@ -758,6 +759,19 @@ class ASTConverter {
 
 
     if (functionName instanceof CIdExpression) {
+      // this function is a gcc extension which checks if the given parameter is
+      // a constant value. We can easily provide this functionality by checking
+      // if the parameter is a literal expression.
+      // We only do check it if the function is not declared.
+      if (((CIdExpression) functionName).getName().equals("__builtin_constant_p")
+          && params.size() == 1
+          && scope.lookupFunction("__builtin_constant_p") == null) {
+        if (params.get(0) instanceof CLiteralExpression) {
+          return CNumericTypes.ONE;
+        } else {
+          return CNumericTypes.ZERO;
+        }
+      }
       CSimpleDeclaration d = ((CIdExpression)functionName).getDeclaration();
       if (d instanceof CFunctionDeclaration) {
         // it may also be a variable declaration, when a function pointer is called
