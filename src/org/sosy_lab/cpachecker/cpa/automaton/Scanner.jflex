@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.Reader;
-import java.nio.charset.Charset;
 import java_cup.runtime.*;
 import java_cup.runtime.ComplexSymbolFactory.Location;
 import org.sosy_lab.common.io.Files;
@@ -10,6 +9,7 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import java.io.FileNotFoundException;
+import java.io.InputStreamReader;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.ArrayList;
@@ -114,7 +114,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
         "#include" {InputCharacter}+ 
         { Path file = getFile(yytext()); 
           if (file != null) {
-            yypushStream(file.asCharSource(Charset.defaultCharset()).openStream());
+            yypushStream(new InputStreamReader(file.asByteSource().openStream()));
           }
         }
 <YYINITIAL> ";"                 { return symbol(";", AutomatonSym.SEMICOLON); }
