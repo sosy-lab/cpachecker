@@ -625,12 +625,6 @@ def main(argv=None):
                       dest="maxLogfileSize", type=int, default=20,
                       metavar="SIZE",
                       help="Shrink logfiles to SIZE in MB, if they are too big. (-1 to disable, default value: 20 MB).")
-    
-    # for backward-compatibility only
-    parser.add_argument("--cloudCpuModel",
-                      dest="cloudCPUModel", type=str, default=None,
-                      metavar="CPU_MODEL",
-                      help="Only execute runs on CPU models that contain the given string.")
 
     global config, OUTPUT_PATH
     config = parser.parse_args(argv[1:])
