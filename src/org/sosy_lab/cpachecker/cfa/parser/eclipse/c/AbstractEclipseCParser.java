@@ -283,7 +283,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
       // parse them as functions.
       macrosBuilder.put("__builtin_va_arg", "__builtin_va_arg");
       macrosBuilder.put("__builtin_constant_p", "__builtin_constant_p");
-      macrosBuilder.put("__builtin_types_compatible_p", "__builtin_types_compatible_p");
+      macrosBuilder.put("__builtin_types_compatible_p(t1,t2)", "__builtin_types_compatible_p(\"t1\",\"t2\")");
       macrosBuilder.put("__offsetof__", "__offsetof__");
 
       macrosBuilder.put("__func__", "\"__func__\"");
