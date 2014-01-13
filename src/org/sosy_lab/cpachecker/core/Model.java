@@ -611,7 +611,6 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
         }
 
         Joiner joiner = Joiner.on(", ");
-
         String arguments = "(" + joiner.join(parameterValuesAsCode) + ")";
 
         return functionName + arguments + ";";
@@ -621,8 +620,13 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
 
         if (pExpression != null && assignments.size() == 1) {
 
-          Object value = getFirstValue(assignments);
           Type expectedType = pExpression.getExpressionType();
+          Object value = getValueObject(pExpression.toASTString());
+
+          if (value == null) {
+            return null;
+          }
+
           String valueAsCode = getValueAsCode(value, expectedType);
 
           if (valueAsCode == null) {
@@ -639,12 +643,13 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
       @Nullable
       private String handleAssignment(IAssignment assignment) {
 
-        if (assignments.size() != 1) {
+        IALeftHandSide leftHandSide = assignment.getLeftHandSide();
+        Object value = getValueObject(leftHandSide.toASTString());
+
+        if (value == null) {
           return null;
         }
 
-        IALeftHandSide leftHandSide = assignment.getLeftHandSide();
-        Object value = getFirstValue(assignments);
         Type expectedType = leftHandSide.getExpressionType();
         String valueAsCode = getValueAsCode(value, expectedType);
 
@@ -653,6 +658,45 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
         }
 
         return leftHandSide.toASTString() + " = " + valueAsCode + ";";
+      }
+
+      @Nullable
+      private Object getValueObject(String pExpressionAst) {
+
+
+        //If their is only one value, its the one we search
+        if (assignments.size() == 1) {
+          return assignments.iterator().next().getValue();
+        }
+
+        Object value = null;
+
+        for (Assignment assignment : assignments) {
+
+          String termName = assignment.getTerm().getName();
+          String[] termFunctionAndVariableName = termName.split("::");
+
+          String termVariableName;
+
+          if (termFunctionAndVariableName.length == 1) {
+            termVariableName = termFunctionAndVariableName[0];
+          } else if(termFunctionAndVariableName.length == 2) {
+            termVariableName = termFunctionAndVariableName[1];
+          } else {
+            return null;
+          }
+
+          if (termVariableName.equals(pExpressionAst)) {
+            if (value == null) {
+              value = assignment.getValue();
+            } else {
+              // More than one value found.
+              return null;
+            }
+          }
+        }
+
+        return value;
       }
 
       @Nullable
@@ -684,19 +728,16 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
         return null;
       }
 
-      private  Object getFirstValue(Set<Assignment> pAssumptionSet) {
-        return pAssumptionSet.iterator().next().getValue().toString();
-      }
-
       private String handleDeclaration(IADeclaration dcl) {
 
         if (dcl instanceof CVariableDeclaration) {
 
-          if (assignments.size() != 1) {
+          Object value = getValueObject(dcl.getName());
+
+          if (value == null) {
             return null;
           }
 
-          Object value = getFirstValue(assignments);
           Type dclType = dcl.getType();
           String valueAsCode = getValueAsCode(value, dclType);
 
@@ -704,7 +745,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
             return null;
           }
 
-          return dclType.toASTString(dcl.getOrigName()) + " = "
+          return dclType.toASTString(dcl.getName()) + " = "
               + valueAsCode + ";";
         }
 
@@ -752,9 +793,21 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
           //TODO Check length in given constraints.
           String value = this.value.toString();
 
-          return value.matches("\\d*") ? value : null;
-        }
+          if (value.matches("\\d*")) {
+            return value;
+          } else {
+            String[] numberParts = value.split("\\.");
 
+            if (numberParts.length == 2 &&
+                numberParts[1].matches("0*") &&
+                numberParts[0].matches("\\d*")) {
+
+              return numberParts[0];
+            }
+          }
+
+          return null;
+        }
       }
 
       public static class Assignment {
