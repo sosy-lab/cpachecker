@@ -572,7 +572,7 @@ class ASTConverter {
       return new CComplexCastExpression(loc, type, operand, castType, true);
     }
 
-    assert type.getCanonicalType().equals(castType.getCanonicalType()) : "wrong casttype: " + type + "vs " + castType;
+    assert type.getCanonicalType().equals(castType.getCanonicalType()) : "wrong casttype: " + type + " vs " + castType + " in line: " + loc.getStartingLineNumber();
 
     if (e.getOperand() instanceof IASTFieldReference && ((IASTFieldReference)e.getOperand()).isPointerDereference()) {
       return createInitializedTemporaryVariable(loc, type, new CCastExpression(loc, type, operand));
