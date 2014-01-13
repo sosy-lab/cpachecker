@@ -175,8 +175,7 @@ public class CFASingleLoopTransformation {
       Set<Integer> pcValuesOutOfSubgraph = new HashSet<>();
       while (!waitlist.isEmpty()) {
         CFANode current = waitlist.poll();
-        for (int i = 0; i < current.getNumLeavingEdges(); ++i) {
-          CFAEdge edge = current.getLeavingEdge(i);
+        for (CFAEdge edge : CFAUtils.leavingEdges(current).toList()) {
           CFANode next = edge.getSuccessor();
 
           // Eliminate a direct self edge by introducing a dummy node in between
@@ -206,6 +205,7 @@ public class CFASingleLoopTransformation {
           } else if (!subgraph.contains(next)) {
             // Cut off the edge leaving the subgraph
             removeFromNodes(edge);
+
             Map<CFANode, CFANode> tmpMap = new HashMap<>();
 
             /*
@@ -288,20 +288,26 @@ public class CFASingleLoopTransformation {
       }
     }
 
-    /*
-    // Remove trivial dummy subgraphs
+
+    // Remove trivial dummy subgraphs // TODO MORE TESTING! MIGHT BE BUGGY!
     for (int replaceablePCValue : replaceablePCValues) {
       CFANode newSuccessor = newSuccessorsToPC.remove(replaceablePCValue);
       CFANode tailOfRedundantSubgraph = newPredecessorsToPC.get(replaceablePCValue);
-      CFANode subgraphRoot = tailOfRedundantSubgraph;
-      Integer precedingPCValue = null;
       Map<CFANode, Integer> pcToNewSuccessors = newSuccessorsToPC.inverse();
-      while ((precedingPCValue = pcToNewSuccessors.get(subgraphRoot)) == null) {
-        assert subgraphRoot.getNumEnteringEdges() == 1 : "Subgraph should be trivial linear sequence";
-        subgraphRoot = subgraphRoot.getEnteringEdge(0).getPredecessor();
+      Queue<CFANode> roots = new ArrayDeque<>();
+      roots.add(tailOfRedundantSubgraph);
+      while (!roots.isEmpty()) {
+        CFANode subgraphRoot = roots.poll();
+        Integer precedingPCValue = pcToNewSuccessors.get(subgraphRoot);
+        if (precedingPCValue != null) {
+          if (roots.isEmpty()) {
+            newSuccessorsToPC.put(precedingPCValue, newSuccessor);
+          }
+        } else {
+          roots.addAll(getPredecessors(subgraphRoot).toList());
+        }
       }
-      newSuccessorsToPC.put(precedingPCValue, newSuccessor);
-    }*/
+    }
 
     /*
      * Connect the subgraph tails to their successors via the loop head by
@@ -415,8 +421,14 @@ public class CFASingleLoopTransformation {
     while (pToRemove.getNumEnteringEdges() > 0) {
       removeFromNodes(pToRemove.getEnteringEdge(0));
     }
+    if (pToRemove.getEnteringSummaryEdge() != null) {
+      pToRemove.removeEnteringSummaryEdge(pToRemove.getEnteringSummaryEdge());
+    }
     while (pToRemove.getNumLeavingEdges() > 0) {
       removeFromNodes(pToRemove.getLeavingEdge(0));
+    }
+    if (pToRemove.getLeavingSummaryEdge() != null) {
+      pToRemove.removeLeavingSummaryEdge(pToRemove.getLeavingSummaryEdge());
     }
   }
 
@@ -685,6 +697,24 @@ public class CFASingleLoopTransformation {
   }
 
   /**
+   * Gets the predecessor nodes of the given node.
+   *
+   * @param pNode the node for which to retrieve the predecessors.
+   * @return the predecessor nodes of the given node.
+   */
+  private static FluentIterable<CFANode> getPredecessors(final CFANode pNode) {
+    return CFAUtils.allEnteringEdges(pNode).transform(new Function<CFAEdge, CFANode>() {
+
+      @Override
+      @Nullable
+      public CFANode apply(@Nullable CFAEdge pArg0) {
+        return pArg0 == null ? null : pArg0.getPredecessor();
+      }
+
+    });
+  }
+
+  /**
    * Replaces the given old node by the given new node in its structure by
    * removing all edges leading to and from the old node and copying them so
    * that the leave or lead to the new node.
@@ -724,11 +754,16 @@ public class CFASingleLoopTransformation {
   @Nullable
   private static CFAEdge removeNextEnteringEdge(CFANode pCfaNode) {
     int numberOfEnteringEdges = pCfaNode.getNumEnteringEdges();
-    if (numberOfEnteringEdges <= 0) {
-      return null;
+    CFAEdge result = null;
+    if (numberOfEnteringEdges > 0) {
+      result = pCfaNode.getEnteringEdge(numberOfEnteringEdges - 1);
     }
-    CFAEdge result = pCfaNode.getEnteringEdge(numberOfEnteringEdges - 1);
-    removeFromNodes(result);
+    if (result == null) {
+      result = pCfaNode.getEnteringSummaryEdge();
+    }
+    if (result != null) {
+      removeFromNodes(result);
+    }
     return result;
   }
 
@@ -743,11 +778,16 @@ public class CFASingleLoopTransformation {
   @Nullable
   private static CFAEdge removeNextLeavingEdge(CFANode pCfaNode) {
     int numberOfLeavingEdges = pCfaNode.getNumLeavingEdges();
-    if (numberOfLeavingEdges <= 0) {
-      return null;
+    CFAEdge result = null;
+    if (numberOfLeavingEdges > 0) {
+      result = pCfaNode.getLeavingEdge(numberOfLeavingEdges - 1);
     }
-    CFAEdge result = pCfaNode.getLeavingEdge(numberOfLeavingEdges - 1);
-    removeFromNodes(result);
+    if (result == null) {
+      result = pCfaNode.getLeavingSummaryEdge();
+    }
+    if (result != null) {
+      removeFromNodes(result);
+    }
     return result;
   }
 
@@ -849,6 +889,14 @@ public class CFASingleLoopTransformation {
       }
       CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) pEdge;
       CFunctionSummaryEdge functionSummaryEdge = (CFunctionSummaryEdge) copyCFAEdgeWithNewNodes(functionReturnEdge.getSummaryEdge(), pNewToOldMapping);
+      CFANode summaryEdgePredecessor = functionSummaryEdge.getPredecessor();
+      CFANode summaryEdgeSuccessor = functionSummaryEdge.getSuccessor();
+      if (summaryEdgePredecessor.getLeavingSummaryEdge() != null) {
+        summaryEdgePredecessor.removeLeavingSummaryEdge(summaryEdgePredecessor.getLeavingSummaryEdge());
+      }
+      if (summaryEdgeSuccessor.getEnteringSummaryEdge() != null) {
+        summaryEdgeSuccessor.removeEnteringSummaryEdge(summaryEdgeSuccessor.getEnteringSummaryEdge());
+      }
       functionSummaryEdge.getPredecessor().addLeavingSummaryEdge(functionSummaryEdge);
       functionSummaryEdge.getSuccessor().addEnteringSummaryEdge(functionSummaryEdge);
       return new CFunctionReturnEdge(lineNumber, (FunctionExitNode) pNewPredecessor, pNewSuccessor, functionSummaryEdge);
