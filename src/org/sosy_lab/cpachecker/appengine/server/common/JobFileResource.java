@@ -32,4 +32,7 @@ public interface JobFileResource {
   @Get("html")
   public Representation fileAsHtml();
 
+  @Get("json")
+  public Representation fileAsJson();
+
 }
