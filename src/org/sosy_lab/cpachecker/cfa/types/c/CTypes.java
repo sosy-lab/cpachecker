@@ -44,43 +44,70 @@ public final class CTypes {
       return type;
     }
     @SuppressWarnings("unchecked") // Visitor always creates instances of exact same class
-    T result = (T)type.accept(WithoutConstVisitor.INSTANCE);
+    T result = (T)type.accept(ForceConstVisitor.FALSE);
     return result;
   }
 
-  private static enum WithoutConstVisitor implements CTypeVisitor<CType, RuntimeException> {
-    INSTANCE;
+  /**
+   * Return a copy of a given type that has the "const" flag set.
+   * If the given type is already a const type, it is returned unchanged.
+   *
+   * This method only adds the outer-most const flag, if it is not present,
+   * i.e., it does not change a const pointer to a non-const int.
+   */
+  public static <T extends CType> T withConst(T type) {
+    if (type instanceof CProblemType) {
+      return type;
+    }
+
+    if (type.isConst()) {
+      return type;
+    }
+    @SuppressWarnings("unchecked") // Visitor always creates instances of exact same class
+    T result = (T)type.accept(ForceConstVisitor.TRUE);
+    return result;
+  }
+
+  private static enum ForceConstVisitor implements CTypeVisitor<CType, RuntimeException> {
+    FALSE(false),
+    TRUE(true);
+
+    private final boolean constValue;
+
+    private ForceConstVisitor(boolean pConstValue) {
+      constValue = pConstValue;
+    }
 
     // Make sure to always return instances of exactly the same classes!
 
     @Override
     public CArrayType visit(CArrayType t) {
-      return new CArrayType(false, t.isVolatile(), t.getType(), t.getLength());
+      return new CArrayType(constValue, t.isVolatile(), t.getType(), t.getLength());
     }
 
     @Override
     public CCompositeType visit(CCompositeType t) {
-      return new CCompositeType(false, t.isVolatile(), t.getKind(), t.getMembers(), t.getName());
+      return new CCompositeType(constValue, t.isVolatile(), t.getKind(), t.getMembers(), t.getName());
     }
 
     @Override
     public CElaboratedType visit(CElaboratedType t) {
-      return new CElaboratedType(false, t.isVolatile(), t.getKind(), t.getName(), t.getRealType());
+      return new CElaboratedType(constValue, t.isVolatile(), t.getKind(), t.getName(), t.getRealType());
     }
 
     @Override
     public CEnumType visit(CEnumType t) {
-      return new CEnumType(false, t.isVolatile(), t.getEnumerators(), t.getName());
+      return new CEnumType(constValue, t.isVolatile(), t.getEnumerators(), t.getName());
     }
 
     @Override
     public CFunctionType visit(CFunctionType t) {
-      return new CFunctionType(false, t.isVolatile(), t.getReturnType(), t.getParameters(), t.takesVarArgs());
+      return new CFunctionType(constValue, t.isVolatile(), t.getReturnType(), t.getParameters(), t.takesVarArgs());
     }
 
     @Override
     public CPointerType visit(CPointerType t) {
-      return new CPointerType(false, t.isVolatile(), t.getType());
+      return new CPointerType(constValue, t.isVolatile(), t.getType());
     }
 
     @Override
@@ -90,12 +117,12 @@ public final class CTypes {
 
     @Override
     public CSimpleType visit(CSimpleType t) {
-      return new CSimpleType(false, t.isVolatile(), t.getType(), t.isLong(), t.isShort(), t.isSigned(), t.isUnsigned(), t.isComplex(), t.isImaginary(), t.isLongLong());
+      return new CSimpleType(constValue, t.isVolatile(), t.getType(), t.isLong(), t.isShort(), t.isSigned(), t.isUnsigned(), t.isComplex(), t.isImaginary(), t.isLongLong());
     }
 
     @Override
     public CTypedefType visit(CTypedefType t) {
-      return new CTypedefType(false, t.isVolatile(), t.getName(), t.getRealType());
+      return new CTypedefType(constValue, t.isVolatile(), t.getName(), t.getRealType());
     }
   }
 }
