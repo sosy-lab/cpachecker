@@ -52,7 +52,8 @@ import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
-import org.sosy_lab.cpachecker.appengine.entity.JobsResourceJSONModule;
+import org.sosy_lab.cpachecker.appengine.json.JobMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.json.JobsResourceJSONModule;
 import org.sosy_lab.cpachecker.appengine.server.common.JobsResource;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -204,11 +205,11 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
   public Representation jobsAsJson() {
     ObjectMapper mapper = new ObjectMapper();
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
-    mapper.registerModule(new JobsResourceJSONModule());
+    mapper.addMixInAnnotations(Job.class, JobMixinAnnotations.Minimal.class);
+
     try {
       return new StringRepresentation(mapper.writeValueAsString(JobDAO.jobs()), MediaType.APPLICATION_JSON);
     } catch (JsonProcessingException e) {
-      // ignore
       return null;
     }
   }

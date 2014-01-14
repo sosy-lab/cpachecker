@@ -21,24 +21,20 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.entity;
+package org.sosy_lab.cpachecker.appengine.json;
 
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TimeZone;
 
-import com.fasterxml.jackson.core.JsonGenerator;
+import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
+
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonParser.Feature;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 
@@ -48,35 +44,7 @@ public class JobsResourceJSONModule extends SimpleModule {
 
   public JobsResourceJSONModule() {
     super();
-    addSerializer(new JobSerializer());
     addDeserializer(Map.class, new SettingsDeserializer());
-  }
-
-  private class JobSerializer extends JsonSerializer<Job> {
-    @Override
-    public void serialize(Job job, JsonGenerator gen, SerializerProvider pArg2) throws IOException,
-        JsonProcessingException {
-      DateFormat utcDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-      utcDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-
-      gen.writeStartObject();
-      gen.writeStringField("key", job.getKey());
-      gen.writeStringField("status", job.getStatus().name());
-      if (job.getResultOutcome() != null) {
-        gen.writeStringField("result", job.getResultOutcome().name());
-      }
-      gen.writeStringField("creationDate", utcDateFormat.format(job.getCreationDate()));
-      if (job.getExecutionDate() != null) {
-        gen.writeStringField("executionDate", utcDateFormat.format(job.getExecutionDate()));
-      }
-      if (job.getTerminationDate() != null) {
-        gen.writeStringField("terminationDate", utcDateFormat.format(job.getTerminationDate()));
-      }
-      gen.writeEndObject();
-    }
-
-    @Override
-    public Class<Job> handledType() {return Job.class;}
   }
 
   private class SettingsDeserializer extends JsonDeserializer<Map<String, Object>> {
