@@ -120,7 +120,7 @@ class CmdLineArguments {
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
           || handleArgument1("-config",        CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
-          || handleArgument1("-timelimit",     "cpa.conditions.global.time.wall", arg, argsIt, properties)
+          || handleArgument1("-timelimit",     "limits.time.cpu", arg, argsIt, properties)
           || handleArgument1("-sourcepath",    "java.sourcepath",         arg, argsIt, properties)
           || handleArgument1("-cp",            "java.classpath",          arg, argsIt, properties)
           || handleArgument1("-classpath",     "java.classpath",          arg, argsIt, properties)
