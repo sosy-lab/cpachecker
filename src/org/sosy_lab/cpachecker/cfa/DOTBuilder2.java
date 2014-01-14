@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,7 +83,7 @@ public final class DOTBuilder2 {
       dotter.writeFunctionFile(entryNode.getFunctionName(), outdir);
     }
     dotter.writeGlobalFiles(outdir);
-    JSON.writeJSONString(jsoner.getJSON(), outdir.resolve("cfainfo.json"), Charset.defaultCharset());
+    JSON.writeJSONString(jsoner.getJSON(), outdir.resolve("cfainfo.json"));
   }
 
   private static String getEdgeText(CFAEdge edge) {
@@ -197,8 +196,8 @@ public final class DOTBuilder2 {
     }
 
     void writeGlobalFiles(Path outdir) throws IOException {
-      JSON.writeJSONString(node2combo, outdir.resolve("combinednodes.json"), Charset.defaultCharset());
-      JSON.writeJSONString(virtFuncCallEdges, outdir.resolve("fcalledges.json"), Charset.defaultCharset());
+      JSON.writeJSONString(node2combo, outdir.resolve("combinednodes.json"));
+      JSON.writeJSONString(virtFuncCallEdges, outdir.resolve("fcalledges.json"));
     }
 
     private String edgeToDot(CFAEdge edge) {
