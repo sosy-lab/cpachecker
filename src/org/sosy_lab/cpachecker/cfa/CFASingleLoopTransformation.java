@@ -92,20 +92,53 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 
-
+/**
+ * Instances of this class are used to apply single loop transformation to
+ * control flow automata.
+ */
 public class CFASingleLoopTransformation {
 
+  /**
+   * The name of the program counter variable introduced by the transformation.
+   */
+  public static final String PROGRAM_COUNTER_VAR_NAME = "___pc";
+
+  /**
+   * The description of the dummy edges used.
+   */
   private static final String DUMMY_EDGE = "DummyEdge";
 
+  /**
+   * The log manager.
+   */
   private final LogManager logger;
 
+  /**
+   * The configuration used.
+   */
   private final Configuration config;
 
+  /**
+   * Creates a new single loop transformer.
+   *
+   * @param pLogger the log manager to be used.
+   * @param pConfig the configuration used.
+   *
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   */
   public CFASingleLoopTransformation(LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
     this.logger = pLogger;
     this.config = pConfig;
   }
 
+  /**
+   * Applies the single loop transformation to the given CFA.
+   *
+   * @param pInputCFA the control flow automaton to be transformed.
+   *
+   * @return a new CFA with at most one loop.
+   * @throws InvalidConfigurationException
+   */
   public ImmutableCFA apply(CFA pInputCFA) throws InvalidConfigurationException {
     // Create new main function entry initializing the program counter
     FunctionEntryNode oldMainFunctionEntryNode = pInputCFA.getMainFunction();
@@ -118,7 +151,7 @@ public class CFASingleLoopTransformation {
     CFANode loopHead = new CFANode(0, mainFunctionName);
 
     // Declare program counter and initialize it to 0
-    String pcVarName = "___pc";
+    String pcVarName = PROGRAM_COUNTER_VAR_NAME;
     int pc = 0;
     CDeclaration pcDeclaration = new CVariableDeclaration(mainLocation, true, CStorageClass.AUTO, CNumericTypes.INT, pcVarName, pcVarName, pcVarName,
         new CInitializerExpression(mainLocation, new CIntegerLiteralExpression(mainLocation, CNumericTypes.INT, BigInteger.valueOf(pc))));
@@ -285,6 +318,7 @@ public class CFASingleLoopTransformation {
       Map<CFANode, Integer> pcToNewSuccessors = newSuccessorsToPC.inverse();
       Integer precedingPCValue;
       CFAEdge dummyEdge;
+      // If a subgraph consists only of a dummy edge, eliminate it completely
       if (tailOfRedundantSubgraph.getNumEnteringEdges() == 1
           && isDummyEdge(dummyEdge = tailOfRedundantSubgraph.getEnteringEdge(0))
           && dummyEdge.getPredecessor().getNumEnteringEdges() == 0
@@ -293,6 +327,7 @@ public class CFASingleLoopTransformation {
         newSuccessorsToPC.remove(precedingPCValue);
         newSuccessorsToPC.put(precedingPCValue, newSuccessor);
       } else {
+        // Eliminate dummy edges from other subgraphs
         Queue<CFANode> waitlist = new ArrayDeque<>();
         waitlist.add(tailOfRedundantSubgraph);
         while (!waitlist.isEmpty()) {
@@ -301,15 +336,24 @@ public class CFASingleLoopTransformation {
             if (isDummyEdge(edge)) {
               removeFromNodes(edge);
               CFANode predecessor = edge.getPredecessor();
+              /*
+               * If the subgraph is entered by a dummy edge adjust the program
+               * counter successor.
+               */
               if (predecessor.getNumEnteringEdges() == 0
                   && (precedingPCValue = pcToNewSuccessors.get(predecessor)) != null) {
                 pcToNewSuccessors.remove(predecessor);
                 newSuccessorsToPC.remove(precedingPCValue);
                 newSuccessorsToPC.put(precedingPCValue, edge.getSuccessor());
               } else {
+                /*
+                 * If the dummy edge is somewhere in between replace its
+                 * predecessor by its successor in the graph.
+                 */
                 for (CFAEdge edgeEnteringPredecessor : CFAUtils.enteringEdges(predecessor)) {
                   removeFromNodes(edgeEnteringPredecessor);
-                  edgeEnteringPredecessor = copyCFAEdgeWithNewNodes(edgeEnteringPredecessor, edgeEnteringPredecessor.getPredecessor(), node, globalNewToOld);
+                  edgeEnteringPredecessor =
+                      copyCFAEdgeWithNewNodes(edgeEnteringPredecessor, edgeEnteringPredecessor.getPredecessor(), node, globalNewToOld);
                   addToNodes(edgeEnteringPredecessor);
                 }
               }
