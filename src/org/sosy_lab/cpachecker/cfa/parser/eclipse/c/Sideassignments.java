@@ -25,10 +25,11 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
-import java.util.Stack;
 
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.sosy_lab.common.Pair;
@@ -40,17 +41,17 @@ import com.google.common.base.Preconditions;
 
 public class Sideassignments {
 
-  private final Stack<List<CAstNode>> preSideAssignments;
-  private final Stack<List<CAstNode>> postSideAssignments;
-  private final Stack<List<Pair<IASTExpression, CIdExpression>>> conditionalExpressions;
+  private final Deque<List<CAstNode>> preSideAssignments;
+  private final Deque<List<CAstNode>> postSideAssignments;
+  private final Deque<List<Pair<IASTExpression, CIdExpression>>> conditionalExpressions;
 
   public Sideassignments() {
-    preSideAssignments = new Stack<>();
-    postSideAssignments = new Stack<>();
-    conditionalExpressions = new Stack<>();
+    preSideAssignments = new ArrayDeque<>();
+    postSideAssignments = new ArrayDeque<>();
+    conditionalExpressions = new ArrayDeque<>();
   }
 
-  public Sideassignments(Stack<List<CAstNode>> preSideAssignments, Stack<List<CAstNode>> postSideAssignments, Stack<List<Pair<IASTExpression, CIdExpression>>> conditionalExpressions) {
+  public Sideassignments(Deque<List<CAstNode>> preSideAssignments, Deque<List<CAstNode>> postSideAssignments, Deque<List<Pair<IASTExpression, CIdExpression>>> conditionalExpressions) {
     this.preSideAssignments = preSideAssignments;
     this.postSideAssignments = postSideAssignments;
     this.conditionalExpressions = conditionalExpressions;
