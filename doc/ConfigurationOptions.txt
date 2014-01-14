@@ -450,6 +450,10 @@ cpa.bdd.initPartitions = true
 # declare partitions ordered
 cpa.bdd.initPartitionsOrdered = true
 
+# whether the precision is initially empty (this should be set to true when
+# refinement is used)
+cpa.bdd.initiallyEmptyPrecision = false
+
 # Dump tracked variables to a file.
 cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 
