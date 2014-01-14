@@ -191,7 +191,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
    * @return true, if refinement is enabled, but abstraction is not available, else false
    */
   private boolean refinementWithoutAbstraction(Configuration config) {
-    return Boolean.parseBoolean(config.getProperty("analysis.useRefinement")) &&
+    return Boolean.parseBoolean(config.getProperty("analysis.algorithm.CEGAR")) &&
             !config.getProperty("cpa.composite.precAdjust").equals("COMPONENT");
   }
 

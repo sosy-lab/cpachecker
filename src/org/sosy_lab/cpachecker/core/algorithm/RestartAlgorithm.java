@@ -317,26 +317,26 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   @Options
   private static class RestartAlgorithmOptions {
 
-    @Option(name="analysis.useAssumptionCollector",
+    @Option(name="analysis.collectAssumptions",
         description="use assumption collecting algorithm")
-        boolean useAssumptionCollector = false;
+        boolean collectAssumptions = false;
 
-    @Option(name = "analysis.useRefinement",
+    @Option(name = "analysis.algorithm.CEGAR",
         description = "use CEGAR algorithm for lazy counter-example guided analysis"
           + "\nYou need to specify a refiner with the cegar.refiner option."
           + "\nCurrently all refiner require the use of the ARGCPA.")
-          boolean useRefinement = false;
+          boolean useCEGAR = false;
 
-    @Option(name="analysis.useCBMC",
-        description="use CBMC to double-check counter-examples")
-        boolean useCBMC = false;
+    @Option(name="analysis.checkCounterexamples",
+        description="use a second model checking run (e.g., with CBMC or a different CPAchecker configuration) to double-check counter-examples")
+        boolean checkCounterexamples = false;
 
-    @Option(name="analysis.useBMC",
+    @Option(name="analysis.algorithm.BMC",
         description="use a BMC like algorithm that checks for satisfiability "
           + "after the analysis has finished, works only with PredicateCPA")
           boolean useBMC = false;
 
-    @Option(name="analysis.externalCBMC",
+    @Option(name="analysis.algorithm.CBMC",
         description="use CBMC as an external tool from CPAchecker")
         boolean runCBMCasExternalTool = false;
 
@@ -413,7 +413,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     Algorithm algorithm = new CPAAlgorithm(cpa, logger, pConfig, singleShutdownNotifier);
 
-    if (pOptions.useRefinement) {
+    if (pOptions.useCEGAR) {
       algorithm = new CEGARAlgorithm(algorithm, cpa, pConfig, logger);
     }
 
@@ -421,11 +421,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       algorithm = new BMCAlgorithm(algorithm, cpa, pConfig, logger, singleReachedSetFactory, singleShutdownNotifier, cfa);
     }
 
-    if (pOptions.useCBMC) {
+    if (pOptions.checkCounterexamples) {
       algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, pConfig, logger, singleShutdownNotifier, cfa, filename);
     }
 
-    if (pOptions.useAssumptionCollector) {
+    if (pOptions.collectAssumptions) {
       algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, pConfig, logger);
     }
 

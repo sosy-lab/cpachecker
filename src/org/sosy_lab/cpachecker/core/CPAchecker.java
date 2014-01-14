@@ -107,7 +107,7 @@ public class CPAchecker {
       description="stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
 
-  @Option(name="externalCBMC",
+  @Option(name="algorithm.CBMC",
       description="use CBMC as an external tool from CPAchecker")
   private boolean runCBMCasExternalTool = false;
 

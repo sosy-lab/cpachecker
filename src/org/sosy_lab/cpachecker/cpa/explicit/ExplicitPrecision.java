@@ -96,7 +96,7 @@ public class ExplicitPrecision implements Precision {
     blackListPattern = Pattern.compile(variableBlacklist);
     this.varClass = vc;
 
-    if (Boolean.parseBoolean(config.getProperty("analysis.useRefinement"))) {
+    if (Boolean.parseBoolean(config.getProperty("analysis.algorithm.CEGAR"))) {
       refinablePrecision = createInstance();
     }
     else {

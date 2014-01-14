@@ -12,7 +12,7 @@
 
 <rundefinition name="PureReachDef">
 	<option name="-reachingdef-explicit"/>
-	<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+	<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
@@ -26,7 +26,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -35,7 +35,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -44,7 +44,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -53,7 +53,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -62,7 +62,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -78,7 +78,7 @@
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
@@ -87,7 +87,7 @@
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
@@ -96,7 +96,7 @@
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
@@ -105,7 +105,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -114,7 +114,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -123,7 +123,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -132,7 +132,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -141,7 +141,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -150,7 +150,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -165,7 +165,7 @@
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
@@ -174,7 +174,7 @@
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
@@ -183,7 +183,7 @@
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
@@ -192,7 +192,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -201,7 +201,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -210,7 +210,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -219,7 +219,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -228,7 +228,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -237,7 +237,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -255,7 +255,7 @@
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
@@ -264,7 +264,7 @@
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
@@ -273,7 +273,7 @@
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
@@ -282,7 +282,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -291,7 +291,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -300,7 +300,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -309,7 +309,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -318,7 +318,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -327,7 +327,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -343,7 +343,7 @@
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
@@ -352,7 +352,7 @@
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
@@ -361,7 +361,7 @@
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
@@ -370,7 +370,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -379,7 +379,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -388,7 +388,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -397,7 +397,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -406,7 +406,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -415,7 +415,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -429,7 +429,7 @@
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -437,7 +437,7 @@
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -445,7 +445,7 @@
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -453,7 +453,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -461,7 +461,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -469,7 +469,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -477,7 +477,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -485,7 +485,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -493,7 +493,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
 </rundefinition>
@@ -507,7 +507,7 @@
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -515,7 +515,7 @@
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -523,7 +523,7 @@
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -531,7 +531,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -539,7 +539,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -547,7 +547,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -555,7 +555,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -563,7 +563,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -571,7 +571,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
 </rundefinition>
@@ -585,7 +585,7 @@
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -593,7 +593,7 @@
 <include>../programs/nestedLocks/test_locks_while_seq_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/nestedLocks/test_locks_while_seq_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -601,7 +601,7 @@
 <include>../programs/nestedLocks/test_locks_while_mix_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/nestedLocks/test_locks_while_mix_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -609,7 +609,7 @@
 <include>../programs/nestedLocks/test_locks_while_nest_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/nestedLocks/test_locks_while_nest_5_safe.c</include>
 </sourcefiles>
 </rundefinition>
@@ -622,7 +622,7 @@
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -630,7 +630,7 @@
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -638,7 +638,7 @@
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -646,7 +646,7 @@
 <include>../programs/benchmarks/locks/test_locks_8_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_8_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -654,7 +654,7 @@
 <include>../programs/benchmarks/locks/test_locks_9_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_9_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -662,7 +662,7 @@
 <include>../programs/benchmarks/locks/test_locks_10_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_10_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -670,7 +670,7 @@
 <include>../programs/benchmarks/locks/test_locks_11_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_11_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -678,7 +678,7 @@
 <include>../programs/benchmarks/locks/test_locks_12_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_12_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -686,7 +686,7 @@
 <include>../programs/benchmarks/locks/test_locks_13_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_13_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -694,7 +694,7 @@
 <include>../programs/benchmarks/locks/test_locks_14_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_14_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -702,7 +702,7 @@
 <include>../programs/benchmarks/locks/test_locks_15_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_15_true.c</include>
 </sourcefiles>
 </rundefinition>-->

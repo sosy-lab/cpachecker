@@ -109,7 +109,7 @@ class CmdLineArguments {
 
     while (argsIt.hasNext()) {
       String arg = argsIt.next();
-      if (   handleArgument0("-cbmc",    "analysis.useCBMC", "true",            arg, properties)
+      if (   handleArgument0("-cbmc",    "analysis.checkCounterexamples", "true", arg, properties)
           || handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
           || handleArgument0("-noout",   "output.disable",   "true",            arg, properties)
           || handleArgument0("-java",    "language",         "JAVA",            arg, properties)

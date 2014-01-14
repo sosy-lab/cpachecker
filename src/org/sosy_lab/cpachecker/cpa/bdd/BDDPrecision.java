@@ -161,7 +161,7 @@ public class BDDPrecision implements Precision {
     private CegarPrecision(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
 
-      if (Boolean.parseBoolean(config.getProperty("analysis.useRefinement"))) {
+      if (Boolean.parseBoolean(config.getProperty("analysis.algorithm.CEGAR"))) {
         mapping = HashMultimap.create();
       }
     }

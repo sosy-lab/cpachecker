@@ -53,14 +53,49 @@ rootDirectory = "."
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
+# use a BMC like algorithm that checks for satisfiability after the analysis
+# has finished, works only with PredicateCPA
+analysis.algorithm.BMC = false
+
+# use CBMC as an external tool from CPAchecker
+analysis.algorithm.CBMC = false
+
+# use CEGAR algorithm for lazy counter-example guided analysis
+# You need to specify a refiner with the cegar.refiner option.
+# Currently all refiner require the use of the ARGCPA.
+analysis.algorithm.CEGAR = false
+
+# use adjustable conditions algorithm
+analysis.algorithm.conditionAdjustment = false
+
+# Use McMillan's Impact algorithm for lazy interpolation
+analysis.algorithm.impact = false
+
+# use a proof check algorithm to validate a previously generated proof
+analysis.algorithm.proofCheck = false
+
+# do analysis and then check if reached set fulfills property specified by
+# ConfigurableProgramAnalysisWithPropertyChecker
+analysis.algorithm.propertyCheck = false
+
+# use a second model checking run (e.g., with CBMC or a different CPAchecker
+# configuration) to double-check counter-examples
+analysis.checkCounterexamples = false
+
+# use counterexample check and the BDDCPA Restriction option
+analysis.checkCounterexamplesWithBDDCPARestriction = false
+
+# do analysis and then check analysis result
+analysis.checkProof = false
+
+# use assumption collecting algorithm
+analysis.collectAssumptions = false
+
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
 
 # entry function
 analysis.entryFunction = "main"
-
-# use CBMC as an external tool from CPAchecker
-analysis.externalCBMC = false
 
 # create all potential function pointer call edges
 analysis.functionPointerCalls = true
@@ -93,7 +128,7 @@ analysis.programNames = no default value
 analysis.reachedSet = PARTITIONED
   enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED]
 
-# restart the algorithm using a different CPA after unknown result
+# restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
 # simplify pure numeral expressions like '1+2' to '3'
@@ -130,42 +165,8 @@ analysis.traversal.useTopsort = false
 # Do not report unknown if analysis terminated, report true (UNSOUND!).
 analysis.unknownAsTrue = false
 
-# use adjustable conditions algorithm
-analysis.useAdjustableConditions = false
-
-# use assumption collecting algorithm
-analysis.useAssumptionCollector = false
-
-# use CBMC and the BDDCPA Restriction option
-analysis.useBDDCPARestriction = false
-
-# use a BMC like algorithm that checks for satisfiability after the analysis
-# has finished, works only with PredicateCPA
-analysis.useBMC = false
-
-# use CBMC to double-check counter-examples
-analysis.useCBMC = false
-
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
-
-# Use McMillan's Impact algorithm for lazy interpolation
-analysis.useImpactAlgorithm = false
-
-# use a proof check algorithm to validate a previously generated proof
-analysis.useProofCheckAlgorithm = false
-
-# do analysis and then check if reached set fulfills property specified by
-# ConfigurableProgramAnalysisWithPropertyChecker
-analysis.usePropertyCheckingAlgorithm = false
-
-# use CEGAR algorithm for lazy counter-example guided analysis
-# You need to specify a refiner with the cegar.refiner option.
-# Currently all refiner require the use of the ARGCPA.
-analysis.useRefinement = false
-
-# do analysis and then check analysis result
-analysis.useResultCheckAlgorithm = false
 
 # Add a threshold to the automaton, after so many branches on a path the
 # automaton will be ignored (0 to disable)
