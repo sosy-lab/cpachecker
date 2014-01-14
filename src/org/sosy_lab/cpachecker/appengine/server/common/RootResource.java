@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.appengine.server.common;
 
+import java.io.IOException;
+
 import org.restlet.representation.Representation;
 import org.restlet.resource.Get;
 
@@ -30,5 +32,5 @@ import org.restlet.resource.Get;
 public interface RootResource {
 
   @Get("html")
-  public Representation getRootHtml();
+  public Representation getRootHtml() throws IOException;
 }

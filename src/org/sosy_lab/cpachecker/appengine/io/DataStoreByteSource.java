@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,30 +21,28 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.common;
+package org.sosy_lab.cpachecker.appengine.io;
 
-import java.util.List;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
+import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+
+import com.google.common.io.ByteSource;
 
 
-public class GAELogHandler extends Handler {
+public class DataStoreByteSource extends ByteSource {
 
-  private List<String> messages;
+  private JobFile file;
 
-  public GAELogHandler(List<String> messageCollection) {
-    messages = messageCollection;
+  public DataStoreByteSource(JobFile file) {
+    this.file = file;
   }
 
   @Override
-  public void publish(LogRecord pRecord) {
-    messages.add(pRecord.getMessage());
+  public InputStream openStream() throws IOException {
+    return new ByteArrayInputStream(file.getContent().getBytes());
   }
-
-  @Override
-  public void flush() { }
-
-  @Override
-  public void close() throws SecurityException { }
 
 }

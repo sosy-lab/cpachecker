@@ -25,9 +25,12 @@ package org.sosy_lab.cpachecker.appengine.dao;
 
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import java.util.List;
 
+import org.sosy_lab.cpachecker.appengine.entity.Job;
+
+import com.google.appengine.api.taskqueue.Queue;
+import com.google.appengine.api.taskqueue.QueueFactory;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
@@ -35,36 +38,55 @@ import com.googlecode.objectify.VoidWork;
 
 public class JobDAO {
 
+  public static Job load(String key) {
+    Key<Job> jobKey = Key.create(key);
+    return load(jobKey);
+  }
+
+  public static Job load(Key<Job> key) {
+    return ofy().load().key(key).now();
+  }
+
+  public static List<Job> jobs() {
+    return ofy().load().type(Job.class).list();
+  }
+
   public static Job save(Job job) {
     ofy().save().entity(job).now();
     return job;
   }
 
-  public static JobFile save(JobFile jobFile) {
-    ofy().save().entity(jobFile).now();
-    return jobFile;
+  public static void delete(final Job job) {
+    if (job != null) {
+      ofy().transact(new VoidWork() {
+        @Override
+        public void vrun() {
+          try {
+            Queue queue = QueueFactory.getQueue(job.getQueueName());
+            queue.deleteTask(job.getTaskName());
+          } catch (Exception _) {
+            /*
+             * it does not matter if the task could be deleted or not
+             * since it will disappear anyway after it's been run.
+             */
+          }
+
+          if (job.getFiles() != null && job.getFiles().size() > 0) {
+            ofy().delete().entities(job.getFiles()).now();
+          }
+          ofy().delete().entities(job).now();
+        }
+      });
+    }
   }
 
-  public static Job load(String key) {
+  public static void delete(String key) {
     Key<Job> jobKey = Key.create(key);
-    return ofy().load().key(jobKey).now();
+    delete(jobKey);
   }
 
-  public static void delete(final String key) {
-    ofy().transact(new VoidWork() {
-
-      @Override
-      public void vrun() {
-        Key<Job> jobKey = Key.create(key);
-        Job job = ofy().load().key(jobKey).now();
-
-        ofy().delete().entities(job.getProgram(), job).now();
-      }
-    });
-  }
-
-  public static String key(Job job) {
-    return Key.create(Job.class, job.getId()).getString();
+  public static void delete(Key<Job> key) {
+    delete(load(key));
   }
 
   public static Key<Job> allocateKey() {

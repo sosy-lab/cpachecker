@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 
 import com.google.common.base.Joiner;
@@ -82,7 +83,7 @@ class ForceTerminationOnShutdown implements Runnable {
           logger.log(Level.WARNING, "Shutdown requested",
               "(" + pReason + "),",
               "waiting for termination.");
-          Thread t = new Thread(new ForceTerminationOnShutdown(logger,
+          Thread t = Threads.newThread(new ForceTerminationOnShutdown(logger,
                                                                mainThread,
                                                                shutdownHook),
                                 "ForceTerminationOnShutdown");

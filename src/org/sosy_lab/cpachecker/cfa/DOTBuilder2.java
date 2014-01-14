@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.JSON;
-import org.sosy_lab.common.Path;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;

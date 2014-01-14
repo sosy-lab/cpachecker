@@ -23,50 +23,24 @@
  */
 package org.sosy_lab.cpachecker.appengine.server.resource;
 
-import java.io.File;
-import java.io.FilenameFilter;
-import java.util.Map;
+import java.io.IOException;
 
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
+import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.server.common.RootResource;
 
 
 public class RootServerResource extends WadlServerResource implements RootResource {
 
   @Override
-  public Representation getRootHtml() {
-    Job job = new Job();
-    Map<String, String> defaultOptions = job.getDefaultOptions();
-
-    Path specificationDir = new Path("WEB-INF/specifications");
-    File[] specifications = specificationDir.toFile().listFiles(new FilenameFilter() {
-
-      @Override
-      public boolean accept(File pDir, String pName) {
-        // exclude directories from the list
-        return pName.endsWith(".spc");
-      }
-    });
-
-    Path configurationDir = new Path("WEB-INF/configurations");
-    File[] configurations = configurationDir.toFile().listFiles(new FilenameFilter() {
-
-      @Override
-      public boolean accept(File pDir, String pName) {
-        // exclude directories from the list
-        return pName.endsWith(".properties");
-      }
-    });
-
+  public Representation getRootHtml() throws IOException {
     return FreemarkerUtil.templateBuilder()
         .context(getContext())
-        .addData("defaultOptions", defaultOptions)
-        .addData("specifications", specifications)
-        .addData("configurations", configurations)
+        .addData("defaultOptions", DefaultOptions.getImmutableOptions())
+        .addData("specifications", DefaultOptions.getSpecifications())
+        .addData("configurations", DefaultOptions.getConfigurations())
         .templateName("root.ftl")
         .build();
   }

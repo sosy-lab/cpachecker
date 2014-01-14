@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.NotSerializableException;
@@ -48,6 +45,8 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -66,7 +65,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       name = "pcc.proofFile",
       description = "file in which proof representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  protected File file = new File("arg.obj");
+  protected Path file = Paths.get("arg.obj");
 
   @Option(
       name = "pcc.useCores",
@@ -88,7 +87,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
     OutputStream fos = null;
     try {
-      fos = new FileOutputStream(file);
+      fos = file.asByteSink().openStream();
       ZipOutputStream zos = new ZipOutputStream(fos);
       zos.setLevel(9);
 
@@ -133,7 +132,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     InputStream fis = null;
     try {
 
-      fis = new FileInputStream(file);
+      fis = file.asByteSource().openStream();
       ZipInputStream zis = new ZipInputStream(fis);
 
       ZipEntry entry = zis.getNextEntry();
@@ -155,7 +154,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       zis.close();
       fis.close();
 
-      fis = new FileInputStream(file);
+      fis = file.asByteSource().openStream();
       zis = new ZipInputStream(fis);
       entry = zis.getNextEntry();
       assert entry.getName().equals("Proof");
@@ -164,7 +163,9 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       o.close();
       zis.close();
     } finally {
-      fis.close();
+      if (fis != null) {
+        fis.close();
+      }
     }
   }
 

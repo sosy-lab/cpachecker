@@ -1,13 +1,15 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.FileReader;
-import java.io.File;
+import java.io.Reader;
 import java_cup.runtime.*;
 import java_cup.runtime.ComplexSymbolFactory.Location;
-import org.sosy_lab.common.Files;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import java.io.FileNotFoundException;
+import java.io.InputStreamReader;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.ArrayList;
@@ -29,10 +31,10 @@ import java.util.logging.Level;
   private ComplexSymbolFactory sf;
   private Configuration config;
   private LogManager logger;
-  private final List<File> scannedFiles = new ArrayList<File>();
-  private final Deque<File> filesStack = new ArrayDeque<File>();
+  private final List<Path> scannedFiles = new ArrayList<Path>();
+  private final Deque<Path> filesStack = new ArrayDeque<Path>();
 
-  public AutomatonScanner(java.io.InputStream r, File file, Configuration config, LogManager logger, ComplexSymbolFactory sf) {
+  public AutomatonScanner(java.io.InputStream r, Path file, Configuration config, LogManager logger, ComplexSymbolFactory sf) {
     this(r);
     filesStack.push(file);
     this.sf = sf;
@@ -40,14 +42,14 @@ import java.util.logging.Level;
     this.logger = logger;
   }
    
-  private File getFile(String pYytext) throws FileNotFoundException {
+  private Path getFile(String pYytext) throws FileNotFoundException {
     assert pYytext.startsWith("#include ");
     String fileName = pYytext.replaceFirst("#include ", "").trim();
     
-    File file = new File(fileName);
+    Path file = Paths.get(fileName);
     if (!file.isAbsolute()) {
-      File currentFile = filesStack.peek();
-      file = new File(currentFile.getParentFile(), file.getPath());    
+      Path currentFile = filesStack.peek();
+      file = Paths.get(currentFile.getParent().getPath(), file.getPath());    
     }
 
     if (scannedFiles.contains(file)) {
@@ -110,9 +112,9 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 /* keywords */
 <YYINITIAL>
         "#include" {InputCharacter}+ 
-        { File file = getFile(yytext()); 
+        { Path file = getFile(yytext()); 
           if (file != null) {
-            yypushStream(new FileReader(file));
+            yypushStream(new InputStreamReader(file.asByteSource().openStream()));
           }
         }
 <YYINITIAL> ";"                 { return symbol(";", AutomatonSym.SEMICOLON); }

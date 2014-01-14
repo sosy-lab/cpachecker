@@ -23,11 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.Writer;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -37,11 +35,12 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchEdgeTokens;
 import org.w3c.dom.Document;
@@ -49,27 +48,38 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 
+@Options
 public class AutomatonGraphmlParser {
 
   private final static String SINK_NODE_ID = "sink";
 
+  @Option(name="spec.considerNegativeSemanticsAttribute",
+      description="Consider the negative semantics of tokens provided with path automatons.")
+  private boolean considerNegativeSemanticsAttribute = true;
+
+  public AutomatonGraphmlParser(Configuration pConfig, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
+    pConfig.inject(this);
+  }
+
   /**
   * Parses a Specification File and returns the Automata found in the file.
   */
-  public static List<Automaton> parseAutomatonFile(File pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
+  public List<Automaton> parseAutomatonFile(Path pInputFile) throws InvalidConfigurationException {
+
     //CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
 
-    try (FileInputStream input = new FileInputStream(pInputFile)) {
+    try (InputStream input = pInputFile.asByteSource().openStream()) {
       // Parse the XML document ----
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-      Document doc = docBuilder.parse(pInputFile);
+      Document doc = docBuilder.parse(input);
       doc.getDocumentElement().normalize();
 
       // (The one) root node of the graph ----
@@ -92,24 +102,33 @@ public class AutomatonGraphmlParser {
         String targetStateId = getAttributeValue(stateTransitionNode, "target", "Every transition needs a target!");
         String tokenString = getAttributeValue(stateTransitionNode, "tokens", "Every transition has to specify the set of tokens!");
 
+        Optional<Boolean> matchNegativeSemantics = Optional.absent();
+        if (considerNegativeSemanticsAttribute) {
+          switch(getAttributeValueWithDefault(stateTransitionNode, "negation", "").toLowerCase()) {
+            case "true": matchNegativeSemantics = Optional.of(true); break;
+            case "false": matchNegativeSemantics = Optional.of(false); break;
+          }
+        }
+
         Set<Integer> matchTokens = parseTokens(tokenString);
-        AutomatonBoolExpr trigger = new MatchEdgeTokens(matchTokens);
+        AutomatonBoolExpr trigger = new MatchEdgeTokens(matchTokens, matchNegativeSemantics);
         List<AutomatonBoolExpr> assertions = Collections.emptyList();
         List<AutomatonAction> actions = Collections.emptyList();
-
-        AutomatonTransition transition;
-        if (targetStateId.equalsIgnoreCase(SINK_NODE_ID)) {
-          transition = new AutomatonTransition(trigger, assertions, actions, AutomatonInternalState.BOTTOM);
-        } else {
-          transition = new AutomatonTransition(trigger, assertions, actions, targetStateId);
-        }
 
         List<AutomatonTransition> transitions = stateTransitions.get(sourceStateId);
         if (transitions == null) {
           transitions = Lists.newArrayList();
           stateTransitions.put(sourceStateId, transitions);
         }
-        transitions.add(transition);
+
+        if (targetStateId.equalsIgnoreCase(SINK_NODE_ID)) {
+          transitions.add(new AutomatonTransition(trigger, assertions, actions, AutomatonInternalState.BOTTOM));
+          transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM));
+        } else {
+          transitions.add(new AutomatonTransition(trigger, assertions, actions, targetStateId));
+          transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM));
+        }
+
       }
 
       // Create states ----
@@ -122,15 +141,10 @@ public class AutomatonGraphmlParser {
 
         List<AutomatonTransition> transitions = stateTransitions.get(stateId);
         if (transitions == null) {
-          transitions = Lists.newArrayList(new AutomatonTransition(
-                AutomatonBoolExpr.TRUE,
-                Collections.<AutomatonBoolExpr>emptyList(),
-                Collections.<AutomatonAction>emptyList(),
-                stateId));
+          transitions = Collections.emptyList();
         }
 
-        // TODO: use all possible transitions?
-        AutomatonInternalState state = new AutomatonInternalState(stateId, transitions, false, false);
+        AutomatonInternalState state = new AutomatonInternalState(stateId, transitions, false, true);
         automatonStates.add(state);
       }
 
@@ -140,16 +154,16 @@ public class AutomatonGraphmlParser {
       Automaton automaton = new Automaton(automatonName, automatonVariables, automatonStates, initialStateName);
       result.add(automaton);
 
-      try (Writer w = Files.openOutputFile(new Path("autom_test.dot"))) {
-        automaton.writeDotFile(w);
-      } catch (IOException e) {
-        //logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
-      }
+//      try (Writer w = Files.openOutputFile(Paths.get("autom_test.dot"))) {
+//        automaton.writeDotFile(w);
+//      } catch (IOException e) {
+//        //logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+//      }
 
       return result;
 
     } catch (FileNotFoundException e) {
-      throw new InvalidConfigurationException("Invalid automaton file provided! File not found!");
+      throw new InvalidConfigurationException("Invalid automaton file provided! File not found!: " + pInputFile.getPath());
     } catch (IOException | ParserConfigurationException | SAXException e) {
       throw new InvalidConfigurationException("Error while accessing automaton file!", e);
     } catch (InvalidAutomatonException e) {
@@ -157,7 +171,7 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  static Set<Integer> parseTokens(final String tokenString) {
+  Set<Integer> parseTokens(final String tokenString) {
     Set<Integer> result = Sets.newTreeSet();
     String[] ranges = tokenString.trim().split(",");
     for (String range : ranges) {
@@ -177,11 +191,21 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
-  static String getAttributeValue(Node of, String attributeName, String exceptionMessage) {
+  String getAttributeValueWithDefault(Node of, String attributeName, String defaultValue) {
+    Node attribute = of.getAttributes().getNamedItem(attributeName);
+    if (attribute == null) {
+      return defaultValue;
+    } else {
+      return attribute.getTextContent();
+    }
+  }
+
+  String getAttributeValue(Node of, String attributeName, String exceptionMessage) {
     Node attribute = of.getAttributes().getNamedItem(attributeName);
     Preconditions.checkNotNull(attribute, exceptionMessage);
     return attribute.getTextContent();
   }
+
 
 
 }

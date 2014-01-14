@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cmdline;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -39,9 +38,10 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Files;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.OptionCollector;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -177,7 +177,7 @@ class CmdLineArguments {
       } else if (arg.equals("-help") || arg.equals("-h")) {
         printHelp();
 
-      } else if (arg.startsWith("-") && !(new File(arg).exists())) {
+      } else if (arg.startsWith("-") && !(Paths.get(arg).exists())) {
         String argName = arg.substring(1); // remove "-"
 
         if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
@@ -225,7 +225,7 @@ class CmdLineArguments {
       String newValue = argsIt.next();
 
       // replace "predicateAnalysis" with config/predicateAnalysis.properties etc.
-      if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches() && !(new File(newValue).exists())) {
+      if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches() && !(Paths.get(newValue).exists())) {
         Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, newValue);
 
         if (configFile != null) {
@@ -343,9 +343,9 @@ class CmdLineArguments {
           // handle property files, as demanded by SV-COMP, which are just mapped to an explicit entry function and
           // the respective specification definition
           else if(PROPERTY_FILE_PATTERN.matcher(newValue).matches()) {
-            Path propertyFile = new Path(newValue);
+            Path propertyFile = Paths.get(newValue);
             if (propertyFile.toFile().exists()) {
-              PropertyFileParser parser = new PropertyFileParser(propertyFile.toFile());
+              PropertyFileParser parser = new PropertyFileParser(propertyFile);
               parser.parse();
               putIfNotExistent(options, "analysis.entryFunction", parser.entryFunction);
 
@@ -411,7 +411,7 @@ class CmdLineArguments {
   private static Path findFile(final String template, final String name) {
     final String fileName = String.format(template, name);
 
-    Path file = new Path(fileName);
+    Path file = Paths.get(fileName);
 
     // look in current directory first
     if (file.toFile().exists()) {
@@ -419,7 +419,7 @@ class CmdLineArguments {
     }
 
     // look relative to code location second
-    Path codeLocation = new Path(CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+    Path codeLocation = Paths.get(CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().getPath());
     Path baseDir = codeLocation.getParent();
 
     file = baseDir.resolve(fileName);
@@ -435,7 +435,7 @@ class CmdLineArguments {
    * and maps the proposition to a file from where to read the specification automaton.
    */
   private static class PropertyFileParser {
-    private final File propertyFile;
+    private final Path propertyFile;
 
     private String entryFunction;
     private final EnumSet<PropertyType> properties = EnumSet.noneOf(PropertyType.class);
@@ -443,13 +443,13 @@ class CmdLineArguments {
     private static final Pattern PROPERTY_PATTERN =
         Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
 
-    private PropertyFileParser(final File pPropertyFile) {
+    private PropertyFileParser(final Path pPropertyFile) {
       propertyFile = pPropertyFile;
     }
 
     private void parse() throws InvalidCmdlineArgumentException {
       String rawProperty = null;
-      try (BufferedReader br = Path.fromFile(propertyFile).asCharSource(Charset.defaultCharset()).openBufferedStream()) {
+      try (BufferedReader br = propertyFile.asCharSource(Charset.defaultCharset()).openBufferedStream()) {
         while ((rawProperty = br.readLine()) != null) {
           if (!rawProperty.isEmpty()) {
             properties.add(parsePropertyLine(rawProperty));

@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -207,11 +206,6 @@ public class CHCTransferRelation implements TransferRelation {
         } else {
           throw new AssertionError("unhandled assignment: " + cfaEdge.getRawStatement());
         }
-      // call to external function without assignment
-      } else if (statement instanceof CFunctionCallStatement) {
-        // TODO
-      } else {
-        throw new AssertionError("unhandled statement: " + cfaEdge.getRawStatement());
       }
     return newState;
   }

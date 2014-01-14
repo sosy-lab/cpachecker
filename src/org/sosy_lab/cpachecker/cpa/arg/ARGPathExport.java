@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -35,19 +38,22 @@ import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
@@ -90,16 +96,15 @@ public class ARGPathExport {
     }
   }
 
-  private static Element appendNewNode(Document doc, Element target, String nodeId, NodeType nodeType) throws IOException {
+  private void appendNewNode(Document doc, Appendable target, String nodeId, NodeType nodeType) throws IOException {
     Element result = doc.createElement("node");
     result.setAttribute("id", nodeId);
     result.setAttribute("type", nodeType.toString());
 
-    target.appendChild(result);
-    return result;
+    appendToAppendable(target, result);
   }
 
-  private static Element appendNewEdge(Document doc, Element target, String from, String to, CFAEdge edge) throws IOException {
+  private void appendNewEdge(Document doc, Appendable target, String from, String to, CFAEdge edge) throws IOException {
     Set<Integer> tokens = CFAUtils.getTokensFromCFAEdge(edge);
     String tokensText = tokensToText(tokens);
 
@@ -108,17 +113,22 @@ public class ARGPathExport {
     result.setAttribute("target", to);
     result.setAttribute("tokens", tokensText);
 
+    if (edge instanceof AssumeEdge) {
+      AssumeEdge a = (AssumeEdge) edge;
+      result.setAttribute("negation", a.getTruthAssumption() ? "false" : "true");
+    }
+
     Element data = doc.createElement("data");
     data.setAttribute("key", "sourcecode");
     data.setAttribute("lang", "C");
     data.setTextContent(edge.getCode());
     result.appendChild(data);
 
-    target.appendChild(result);
-    return result;
+    appendToAppendable(target, result);
   }
 
-  private static void appendKeyDefinitions(Document doc, Element target, GraphType graphType) {
+  private void appendKeyDefinitions(Document doc, Appendable target, GraphType graphType) {
+    // GraphML keys
     if (graphType == GraphType.CONDITION) {
       appendNewKeyDef(doc, target, "assumption", "node", "assumption", "string");
       appendNewKeyDef(doc, target, "invariant", "node", "invariant", "string");
@@ -128,17 +138,7 @@ public class ARGPathExport {
     appendNewKeyDef(doc, target, "sourcecode", "node", "sourcecode", "string");
   }
 
-  private static Element createAndAppendGraphRoot(Document doc, Element target, GraphType type, String entryStateNodeId) {
-    Element result = doc.createElement("graph");
-    result.setAttribute("edgedefault", "directed");
-    result.setAttribute("entrynode", entryStateNodeId);
-    result.setAttribute("type", GraphType.PROGRAMPATH.toString());
-
-    target.appendChild(result);
-    return result;
-  }
-
-  private static String tokensToText(Set<Integer> tokens) {
+  private String tokensToText(Set<Integer> tokens) {
     StringBuilder result = new StringBuilder();
     RangeSet<Integer> tokenRanges = TreeRangeSet.create();
     for (Integer token: tokens) {
@@ -162,31 +162,31 @@ public class ARGPathExport {
     return result.toString();
   }
 
-  private static void appendNewKeyDef(Document doc, Element target, String id, String keyFor, String attrName, String attrType) {
-    Element keyElement = doc.createElement("key");
+  private void appendNewKeyDef(Document doc, Appendable target, String id, String keyFor, String attrName, String attrType) {
+    Element result = doc.createElement("key");
 
-    keyElement.setAttribute("id", id);
-    keyElement.setAttribute("for", keyFor);
-    keyElement.setAttribute("attr.name", attrName);
-    keyElement.setAttribute("attr.type", attrType);
+    result.setAttribute("id", id);
+    result.setAttribute("for", keyFor);
+    result.setAttribute("attr.name", attrName);
+    result.setAttribute("attr.type", attrType);
 
-    target.appendChild(keyElement);
+    appendToAppendable(target, result);
   }
 
-  private static String getStateIdent(ARGState state) {
+  private String getStateIdent(ARGState state) {
     return getStateIdent(state, "");
   }
 
-  private static String getStateIdent(ARGState state, String identPostfix) {
-    return String.format("ARG%d%s", state.getStateId(), identPostfix);
+  private String getStateIdent(ARGState state, String identPostfix) {
+    return String.format("A%d%s", state.getStateId(), identPostfix);
   }
 
-  private static String getPseudoStateIdent(ARGState state, int subStateNo, int subStateCount)
+  private String getPseudoStateIdent(ARGState state, int subStateNo, int subStateCount)
   {
     return getStateIdent(state, String.format("_%d_%d", subStateNo, subStateCount));
   }
 
-  public static void producePathAutomatonGraphMl(Appendable sb, ARGState pRootState,
+  public void producePathAutomatonGraphMl(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name) throws IOException {
 
     GraphType graphType = GraphType.PROGRAMPATH;
@@ -201,32 +201,29 @@ public class ARGPathExport {
 
     // Root of document
     Document doc = docBuilder.newDocument();
-    Element root = doc.createElementNS("http://graphml.graphdrawing.org/xmlns", "graphml");
-    root.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-    doc.appendChild(root);
-    // TODO: Full schema details
 
+    // TODO: Full schema details
     // Version of format..
     // TODO! (we could use the version of a XML schema)
 
-    // GraphML keys
-    appendKeyDefinitions(doc, root, graphType);
-
-    // Root of graph
-    String entryStateNodeId = getStateIdent(pRootState);
-    Element graph = createAndAppendGraphRoot(doc, root, graphType, entryStateNodeId);
-
-    Element sinkNode = null;
-
     // ...
+    String entryStateNodeId = getStateIdent(pRootState);
+    boolean sinkNodeWritten = false;
     int multiEdgeCount = 0; // see below
+
+
+    appendDocHeader(sb);
+    appendKeyDefinitions(doc, sb, graphType);
+    appendGraphHeader(doc, sb, graphType, entryStateNodeId);
+
+
     for (ARGState s : pPathStates) {
       // Location of the state
       CFANode loc = AbstractStates.extractLocation(s);
 
       // Write the state
       String sourceStateNodeId = getStateIdent(s);
-      appendNewNode(doc, graph, sourceStateNodeId, NodeType.ONPATH);
+      appendNewNode(doc, sb, sourceStateNodeId, NodeType.ONPATH);
 
       // For each child (successor) of the state do ...
       for (ARGState child : s.getChildren()) {
@@ -236,8 +233,6 @@ public class ARGPathExport {
           child = child.getCoveringState();
           assert !child.isCovered();
         }
-
-        // Only proceed with this state if the path states contains the child
 
         String childStateId = getStateIdent(child);
         CFANode childLoc = AbstractStates.extractLocation(child);
@@ -260,8 +255,8 @@ public class ARGPathExport {
             CFAEdge innerEdge = edges.get(i);
             String pseudoStateId = getPseudoStateIdent(child, i, multiEdgeCount);
 
-            appendNewNode(doc, graph, pseudoStateId, NodeType.ONPATH);
-            appendNewEdge(doc, graph, prevStateId, pseudoStateId, innerEdge);
+            appendNewNode(doc, sb, pseudoStateId, NodeType.ONPATH);
+            appendNewEdge(doc, sb, prevStateId, pseudoStateId, innerEdge);
             prevStateId = pseudoStateId;
           }
 
@@ -269,59 +264,175 @@ public class ARGPathExport {
           edgeToNextState = edges.get(edges.size()-1);
         }
 
+        // Only proceed with this state if the path states contains the child
         if (pPathStates.contains(child)) {
-          appendNewEdge(doc, graph, prevStateId, childStateId, edgeToNextState);
+          // Child belongs to the path!
+          appendNewEdge(doc, sb, prevStateId, childStateId, edgeToNextState);
         } else {
-          if (sinkNode == null) {
-            sinkNode = appendNewNode(doc, graph, SINK_NODE_ID, NodeType.SINKNODE);
+          // Child does not belong to the path --> add a branch to the SINK node!
+          if (!sinkNodeWritten) {
+            sinkNodeWritten = true;
+            appendNewNode(doc, sb, SINK_NODE_ID, NodeType.SINKNODE);
           }
-
-          // Path to non-assumption edge (this becomes the sink)
-          exportUntilNonAssume(doc, graph, prevStateId, edgeToNextState, pPathStates);
         }
       }
     }
 
-    writeXmlToAppendable(sb, doc);
+    appendGraphFooter(sb);
+    appendDocFooter(sb);
   }
 
-  private static void writeXmlToAppendable(Appendable sb, Document doc) throws TransformerFactoryConfigurationError,
-      IOException {
+  private void appendDocHeader(Appendable sb) throws IOException {
+    sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
+    sb.append("<graphml xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://graphml.graphdrawing.org/xmlns\">\n");
+  }
+
+  private void appendGraphHeader(Document pDoc, Appendable sb, GraphType pGraphType, String pEntryStateNodeId) throws IOException {
+    sb.append(String.format("<graph edgedefault=\"directed\" type=\"path\" entrynode=\"%s\">", pEntryStateNodeId));
+  }
+
+  private void appendGraphFooter(Appendable sb) throws IOException {
+    sb.append("</graph>\n");
+  }
+
+  private void appendDocFooter(Appendable sb) throws IOException {
+    sb.append("</graphml>\n");
+  }
+
+  private void appendToAppendable(Appendable sb, Node n) {
     try {
       StringWriter sw = new StringWriter();
       TransformerFactory tf = TransformerFactory.newInstance();
       Transformer transformer = tf.newTransformer();
-      transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+      transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
       transformer.setOutputProperty(OutputKeys.METHOD, "xml");
       transformer.setOutputProperty(OutputKeys.INDENT, "yes");
       transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
 
-      transformer.transform(new DOMSource(doc), new StreamResult(sw));
+      transformer.transform(new DOMSource(n), new StreamResult(sw));
       sb.append(sw.toString());
-    } catch (TransformerException ex) {
+    } catch (TransformerException | IOException ex) {
         throw new RuntimeException("Error while dumping program path", ex);
     }
   }
 
-  private static void exportUntilNonAssume(Document doc, Element graph, String prevStateId,
-      CFAEdge startWith, Set<ARGState> pathStates) throws IOException {
+  public void writePath(Appendable sb,
+      final ARGState rootState,
+      final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
+      final Predicate<? super ARGState> displayedElements,
+      final Predicate<? super Pair<ARGState, ARGState>> pathEdges)
+      throws IOException {
 
-    if (startWith.getEdgeType() != CFAEdgeType.AssumeEdge) {
-      appendNewEdge(doc, graph, prevStateId, SINK_NODE_ID, startWith);
-    } else {
-      CFANode successorLoc = startWith.getSuccessor();
-      String newPrevStateId = prevStateId + "_" + successorLoc.getNodeNumber();
-      appendNewNode(doc, graph, newPrevStateId, NodeType.ONPATH);
-      appendNewEdge(doc, graph, prevStateId, newPrevStateId, startWith);
+    Set<ARGState> processed = new HashSet<>();
+    Deque<ARGState> worklist = new ArrayDeque<>();
+    worklist.add(rootState);
 
-      for (CFAEdge e : CFAUtils.allLeavingEdges(successorLoc)) {
-        // Recursive!
-        exportUntilNonAssume(doc, graph, newPrevStateId, e, pathStates);
+    GraphType graphType = GraphType.PROGRAMPATH;
+
+    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilder docBuilder;
+    try {
+      docBuilder = docFactory.newDocumentBuilder();
+    } catch (ParserConfigurationException e) {
+      return;
+    }
+
+    // Root of document
+    Document doc = docBuilder.newDocument();
+
+    // TODO: Full schema details
+    // Version of format..
+    // TODO! (we could use the version of a XML schema)
+
+    // ...
+    String entryStateNodeId = getStateIdent(rootState);
+    boolean sinkNodeWritten = false;
+    int multiEdgeCount = 0; // see below
+
+
+    appendDocHeader(sb);
+    appendKeyDefinitions(doc, sb, graphType);
+    appendGraphHeader(doc, sb, graphType, entryStateNodeId);
+
+    while (!worklist.isEmpty()) {
+      ARGState s = worklist.removeLast();
+
+      if (!displayedElements.apply(s)) {
+        continue;
+      }
+      if (!processed.add(s)) {
+        continue;
+      }
+
+      // Location of the state
+      CFANode loc = AbstractStates.extractLocation(s);
+
+      // Write the state
+      String sourceStateNodeId = getStateIdent(s);
+      appendNewNode(doc, sb, sourceStateNodeId, NodeType.ONPATH);
+
+
+      for (ARGState child : successorFunction.apply(s)) {
+
+        // The child might be covered by another state
+        // --> switch to the covering state
+        if (child.isCovered()) {
+          child = child.getCoveringState();
+          assert !child.isCovered();
+        }
+
+        String childStateId = getStateIdent(child);
+        CFANode childLoc = AbstractStates.extractLocation(child);
+        CFAEdge edgeToNextState = loc.getEdgeTo(childLoc);
+        String prevStateId = sourceStateNodeId;
+
+        if (edgeToNextState instanceof MultiEdge) {
+          // The successor state might have several incoming MultiEdges.
+          // In this case the state names like ARG<successor>_0 would occur
+          // several times.
+          // So we add this counter to the state names to make them unique.
+          multiEdgeCount++;
+
+          // Write out a long linear chain of pseudo-states (one state encodes multiple edges)
+          // because the AutomatonCPA also iterates through the MultiEdge.
+          List<CFAEdge> edges = ((MultiEdge)edgeToNextState).getEdges();
+
+          // inner part (without last edge)
+          for (int i = 0; i < edges.size()-1; i++) {
+            CFAEdge innerEdge = edges.get(i);
+            String pseudoStateId = getPseudoStateIdent(child, i, multiEdgeCount);
+
+            appendNewNode(doc, sb, pseudoStateId, NodeType.ONPATH);
+            appendNewEdge(doc, sb, prevStateId, pseudoStateId, innerEdge);
+            prevStateId = pseudoStateId;
+          }
+
+          // last edge connecting it with the real successor
+          edgeToNextState = edges.get(edges.size()-1);
+        }
+
+        // Only proceed with this state if the path states contains the child
+        boolean isEdgeOnPath = pathEdges.apply(Pair.of(s, child));
+        if (s.getChildren().contains(child)) {
+          if (isEdgeOnPath) {
+            // Child belongs to the path!
+            appendNewEdge(doc, sb, prevStateId, childStateId, edgeToNextState);
+          } else {
+            // Child does not belong to the path --> add a branch to the SINK node!
+            if (!sinkNodeWritten) {
+              sinkNodeWritten = true;
+              appendNewNode(doc, sb, SINK_NODE_ID, NodeType.SINKNODE);
+            }
+          }
+        }
+
+        worklist.add(child);
       }
     }
+
+    appendGraphFooter(sb);
+    appendDocFooter(sb);
   }
-
-
 
 
 }

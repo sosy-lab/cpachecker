@@ -36,14 +36,15 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -77,7 +78,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
     @Option(description="file for exporting final predicate map",
             name="predmap.file")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path predmapFile = new Path("predmap.txt");
+    private Path predmapFile = Paths.get("predmap.txt");
 
     @Option(description="export final loop invariants",
             name="invariants.export")
@@ -90,17 +91,17 @@ class PredicateCPAStatistics extends AbstractStatistics {
     @Option(description="file for exporting final loop invariants",
             name="invariants.file")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path invariantsFile = new Path("invariants.txt");
+    private Path invariantsFile = Paths.get("invariants.txt");
 
     @Option(description="file for precision that consists of invariants.",
             name="invariants.precisionFile")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path invariantPrecisionsFile = new Path("invariantPrecs.txt");
+    private Path invariantPrecisionsFile = Paths.get("invariantPrecs.txt");
 
     @Option(description="file that consists of one abstraction formula for each abstraction state",
         name="abstractions.file")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path abstractionsFile = new Path("abstractions.txt");
+    private Path abstractionsFile = Paths.get("abstractions.txt");
 
     private final PredicateCPA cpa;
     private final BlockOperator blk;
