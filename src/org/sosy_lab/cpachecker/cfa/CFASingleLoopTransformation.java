@@ -937,7 +937,9 @@ public class CFASingleLoopTransformation {
       }
     }
     String loopFunction = pSingleLoopHead.getFunctionName();
-    return Optional.of(ImmutableMultimap.<String, Loop>builder().put(loopFunction, new Loop(pSingleLoopHead, loopNodes)).build());
+    return Optional.of(loopNodes.size() <= 1 // A size of one means only the loop head is contained
+        ? ImmutableMultimap.<String, Loop>of()
+        : ImmutableMultimap.<String, Loop>builder().put(loopFunction, new Loop(pSingleLoopHead, loopNodes)).build());
   }
 
 }
