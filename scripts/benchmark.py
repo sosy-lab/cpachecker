@@ -504,6 +504,8 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
         Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
                                      config.commitMessage+'\n\n'+outputHandler.description)
 
+    return returnCode
+
 
 def executeBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile, config, OUTPUT_PATH)
@@ -513,10 +515,9 @@ def executeBenchmark(benchmarkFile):
             repr(benchmarkFile), len(benchmark.runSets)))
 
     if config.cloud:
-        executeBenchmarkInCloud(benchmark, outputHandler)
+        return executeBenchmarkInCloud(benchmark, outputHandler)
     else:
-        executeBenchmarkLocaly(benchmark, outputHandler)
-
+        return executeBenchmarkLocaly(benchmark, outputHandler)
 
 def main(argv=None):
 
@@ -653,13 +654,16 @@ def main(argv=None):
         except OSError:
             pass # this does not work on Windows
 
+    returnCode = 0
     for arg in config.files:
         if STOPPED_BY_INTERRUPT: break
         logging.debug("Benchmark {0} is started.".format(repr(arg)))
-        executeBenchmark(arg)
+        rc = executeBenchmark(arg)
+        returnCode = returnCode or rc
         logging.debug("Benchmark {0} is done.".format(repr(arg)))
 
     logging.debug("I think my job is done. Have a nice day!")
+    return returnCode
 
 
 def killScriptLocal():
