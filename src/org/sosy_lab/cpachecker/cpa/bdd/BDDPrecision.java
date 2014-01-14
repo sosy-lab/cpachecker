@@ -60,7 +60,7 @@ public class BDDPrecision implements Precision {
   private String forceTrackingPatternStr = "";
 
   private final Pattern forceTrackingPattern;
-  private CegarPrecision cegarPrecision;
+  private final CegarPrecision cegarPrecision;
 
   private final Optional<VariableClassification> varClass;
 
@@ -84,9 +84,7 @@ public class BDDPrecision implements Precision {
     this.trackBoolean = original.trackBoolean;
     this.trackIntEqual = original.trackIntEqual;
     this.trackIntAdd = original.trackIntAdd;
-    this.cegarPrecision = new CegarPrecision(original.cegarPrecision);
-
-    cegarPrecision.addToMapping(increment);
+    this.cegarPrecision = original.cegarPrecision.withAdditionalMappings(increment);
   }
 
   public boolean isDisabled() {
@@ -152,7 +150,7 @@ public class BDDPrecision implements Precision {
 
     /** the collection that determines which variables are tracked at
      *  a specific location - if it is null, all variables are tracked */
-    private HashMultimap<CFANode, MemoryLocation> mapping = null;
+    private final Multimap<CFANode, MemoryLocation> mapping;
 
     @Option(description = "whether or not to add newly-found variables " +
         "only to the exact program location or to the whole scope of the variable.")
@@ -163,15 +161,16 @@ public class BDDPrecision implements Precision {
 
       if (Boolean.parseBoolean(config.getProperty("analysis.algorithm.CEGAR"))) {
         mapping = HashMultimap.create();
+      } else {
+        mapping = null;
       }
     }
 
     /** copy constructor */
-    private CegarPrecision(CegarPrecision original) {
-      if (original.mapping != null) {
-        mapping = HashMultimap.create(original.mapping);
-        useScopedInterpolation = original.useScopedInterpolation;
-      }
+    private CegarPrecision(Multimap<CFANode, MemoryLocation> pMapping,
+        boolean pUseScopedInterpolation) {
+      mapping = HashMultimap.create(pMapping);
+      useScopedInterpolation = pUseScopedInterpolation;
     }
 
     /** returns, if nothing should be tracked. */
@@ -213,8 +212,14 @@ public class BDDPrecision implements Precision {
      *
      * @param additionalMapping to be added to the current mapping
      */
-    public void addToMapping(Multimap<CFANode, MemoryLocation> additionalMapping) {
-      mapping.putAll(additionalMapping);
+    private CegarPrecision withAdditionalMappings(Multimap<CFANode, MemoryLocation> additionalMapping) {
+      if (mapping == null) {
+        // all variables are tracked anyway
+        return this;
+      }
+      CegarPrecision result = new CegarPrecision(mapping, useScopedInterpolation);
+      result.mapping.putAll(additionalMapping);
+      return result;
     }
   }
 }
