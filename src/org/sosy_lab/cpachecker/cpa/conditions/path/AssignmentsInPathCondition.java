@@ -69,9 +69,13 @@ import com.google.common.collect.Multimap;
 @Options(prefix="cpa.conditions.path.assignments")
 public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
-  @Option(description="maximum number of assignments (-1 for infinite)")
+  @Option(description="(soft) threshold for assignments (-1 for infinite)")
   @IntegerOption(min=-1)
-  private int threshold = -1;
+  private int softThreshold = -1;
+
+  @Option(description="(hard) threshold for assignments (-1 for infinite)")
+  @IntegerOption(min=-1)
+  private int hardThreshold = -1;
 
   @Option(description="whether or not to track unique assignments only")
   private boolean demandUniqueness = true;
@@ -174,7 +178,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
   @Override
   public boolean adjustPrecision() {
-    threshold *= 2;
+    softThreshold *= 2;
     return true;
   }
 
@@ -185,7 +189,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reachedSet) {
-    out.println("Threshold value: " + threshold);
+    out.println("Threshold value: " + softThreshold);
     out.println("max. number of assignments: " + maxNumberOfAssignments);
 
     if (extendedStatsFile != null) {
@@ -262,16 +266,24 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
     @Override
     public boolean mustDumpAssumptionForAvoidance() {
-      return threshold != -1 && maximum > AssignmentsInPathCondition.this.threshold;
+      return softThreshold != -1 && maximum > AssignmentsInPathCondition.this.softThreshold;
     }
 
     /**
-    * This method decides if the number of assignments for the given variable exceeds the threshold.
+    * This method decides if the number of assignments for the given variable exceeds the soft threshold.
     *
     * @param variableName the variable to check
-    * @return true, if the number of assignments for the given variable exceeds the threshold, else false
+    * @return true, if the number of assignments for the given variable exceeds the soft threshold, else false
     */
-    abstract public boolean variableExceedsThreshold(String variableName);
+    abstract public boolean variableExceedsSoftThreshold(String variableName);
+
+    /**
+    * This method decides if the number of assignments for the given variable exceeds the hard threshold.
+    *
+    * @param variableName the variable to check
+    * @return true, if the number of assignments for the given variable exceeds the hard threshold, else false
+    */
+    abstract public boolean variableExceedsHardThreshold(String variableName);
 
     /**
      * This method returns the current number of assignments per variable.
@@ -325,8 +337,13 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
 
     @Override
-    public boolean variableExceedsThreshold(String variableName) {
-      return threshold > -1 && mapping.containsKey(variableName) && mapping.get(variableName) > threshold;
+    public boolean variableExceedsSoftThreshold(String variableName) {
+      return softThreshold > -1 && mapping.containsKey(variableName) && mapping.get(variableName) > softThreshold;
+    }
+
+    @Override
+    public boolean variableExceedsHardThreshold(String variableName) {
+      return hardThreshold > -1 && mapping.containsKey(variableName) && mapping.get(variableName) > hardThreshold;
     }
 
     @Override
@@ -376,8 +393,13 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
 
     @Override
-    public boolean variableExceedsThreshold(String variableName) {
-      return threshold > -1 && mapping.containsKey(variableName) && mapping.get(variableName).size() > threshold;
+    public boolean variableExceedsSoftThreshold(String variableName) {
+      return softThreshold > -1 && mapping.containsKey(variableName) && mapping.get(variableName).size() > softThreshold;
+    }
+
+    @Override
+    public boolean variableExceedsHardThreshold(String variableName) {
+      return hardThreshold > -1 && mapping.containsKey(variableName) && mapping.get(variableName).size() > hardThreshold;
     }
 
     @Override

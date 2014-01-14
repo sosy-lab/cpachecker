@@ -552,8 +552,11 @@ cpa.conditions.path.assignments.demandUniqueness = true
 # file name where to put the extended stats file
 cpa.conditions.path.assignments.extendedStatsFile = no default value
 
-# maximum number of assignments (-1 for infinite)
-cpa.conditions.path.assignments.threshold = -1
+# (hard) threshold for assignments (-1 for infinite)
+cpa.conditions.path.assignments.hardThreshold = -1
+
+# (soft) threshold for assignments (-1 for infinite)
+cpa.conditions.path.assignments.softThreshold = -1
 
 # maximum number of assume edges length (-1 for infinite)
 cpa.conditions.path.assumeedges.limit = -1
