@@ -29,12 +29,19 @@ import org.restlet.data.MediaType;
 import org.restlet.data.Status;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
+import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
 import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.json.JobFileMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.json.JobMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.server.common.JobResource;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 
 public class JobServerResource extends WadlServerResource implements JobResource {
@@ -62,6 +69,22 @@ public class JobServerResource extends WadlServerResource implements JobResource
       getResponse().redirectSeeOther("/jobs");
     }
     return getResponseEntity();
+  }
+
+  @Override
+  public Representation jobAsJson() {
+    Job job = JobDAO.load(getAttribute("jobKey"));
+
+    ObjectMapper mapper = new ObjectMapper();
+    mapper.enable(SerializationFeature.INDENT_OUTPUT);
+    mapper.addMixInAnnotations(Job.class, JobMixinAnnotations.Full.class);
+    mapper.addMixInAnnotations(JobFile.class, JobFileMixinAnnotations.Minimal.class);
+
+    try {
+      return new StringRepresentation(mapper.writeValueAsString(job), MediaType.APPLICATION_JSON);
+    } catch (JsonProcessingException e) {
+      return null;
+    }
   }
 
 }
