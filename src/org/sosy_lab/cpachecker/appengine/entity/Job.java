@@ -25,20 +25,46 @@ package org.sosy_lab.cpachecker.appengine.entity;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.Ref;
+import com.googlecode.objectify.annotation.EmbedMap;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Ignore;
-import com.googlecode.objectify.annotation.Serialize;
+import com.googlecode.objectify.annotation.OnLoad;
+import com.googlecode.objectify.annotation.OnSave;
 
 @Entity
 public class Job {
 
   public enum Status {
-    PENDING, RUNNING, DONE, ABORTED, TIMEOUT
+    /**
+     * The job has not yet been started.
+     */
+    PENDING,
+    /**
+     * The job is currently being run.
+     */
+    RUNNING,
+    /**
+     * The job has successfully been run.
+     */
+    DONE,
+    /**
+     * The execution of the job timed out.
+     */
+    TIMEOUT,
+    /**
+     * An error has occurred while running the job.
+     */
+    ERROR
   }
 
   @Id private Long id;
@@ -46,22 +72,17 @@ public class Job {
   private Date executionDate;
   private Date terminationDate;
   private Status status;
-  @Serialize private Map<String, String> options; // serialize to avoid problems with '.' in the keys
+  private String statusMessage;
   private String specification;
   private String configuration;
-  private Ref<JobFile> program;
+  private String queueName;
+  private String taskName;
+  private Result resultOutcome;
+  private String resultMessage;
+  @EmbedMap private Map<String, String> options = new HashMap<>();
+  private List<Ref<JobFile>> files = new CopyOnWriteArrayList<>();
 
-  // FIXME remove this stuff. It's only here for debugging just now.
-  private String log;
-  public void setLog(String pLog) {
-    log = pLog;
-  }
-  public String getLog() {
-    return log;
-  }
-
-  @Ignore
-  private Map<String, String> defaultOptions;
+  @Ignore private boolean optionsEscaped = false;
 
   public Job() {
     init();
@@ -73,24 +94,12 @@ public class Job {
   }
 
   private void init() {
-    defaultOptions = new HashMap<>();
-    defaultOptions.put("output.disable", "true");
-    defaultOptions.put("cpa.predicate.solver", "smtinterpol");
-    defaultOptions.put("statistics.export", "false");
-    defaultOptions.put("statistics.memory", "false");
-    defaultOptions.put("limits.time.cpu", "-1");
-    defaultOptions.put("limits.time.wall", "-1");
-
     status = Status.PENDING;
     creationDate = new Date();
   }
 
-  public String getKeyString() {
-    return Key.create(Job.class, id).getString();
-  }
-
-  public Map<String, String> getDefaultOptions() {
-    return defaultOptions;
+  public String getKey() {
+    return Key.create(Job.class, getId()).getString();
   }
 
 
@@ -124,7 +133,20 @@ public class Job {
   }
 
 
+
+  public String getStatusMessage() {
+    return statusMessage;
+  }
+
+
+  public void setStatusMessage(String pStatusMessage) {
+    statusMessage = pStatusMessage;
+  }
+
   public Map<String, String> getOptions() {
+    if (optionsEscaped) {
+      unescapeOptions();
+    }
     return options;
   }
 
@@ -133,6 +155,34 @@ public class Job {
     options = pOptions;
   }
 
+  /**
+   * Since dots (.) must not be part of a key they are escaped upon saving.
+   */
+  @OnSave void escapeOptionKeys() {
+    Map<String, String> escapedMap = new HashMap<>();
+    for (String key : options.keySet()) {
+      escapedMap.put(key.replace(".", "\\"), options.get(key));
+    }
+    setOptions(escapedMap);
+    optionsEscaped = true;
+  }
+
+  /**
+   * Since dots (.) must not be part of a key they were escaped upon saving
+   * and therefore need to be unescaped after loading.
+   */
+  @OnLoad void unescapeOptionKeys() {
+    unescapeOptions();
+  }
+
+  private void unescapeOptions() {
+    Map<String, String> unescapedMap = new HashMap<>();
+    for (String key : options.keySet()) {
+      unescapedMap.put(key.replace("\\", "."), options.get(key));
+    }
+    setOptions(unescapedMap);
+    optionsEscaped = false;
+  }
 
   public String getSpecification() {
     return specification;
@@ -159,17 +209,70 @@ public class Job {
   }
 
 
+  public void setId(Long pId) {
+    id = pId;
+  }
+
+
   public Date getCreationDate() {
     return creationDate;
   }
 
-
-  public JobFile getProgram() {
-    return program.get();
+  public List<Ref<JobFile>> getFiles() {
+    return files;
   }
 
+  /**
+   * Returns the file with an ID of the given path.
+   *
+   * @param path The file's path.
+   * @return The file or null if the file cannot be found
+   */
+  public JobFile getFile(String path) {
+    return JobFileDAO.loadByPath(path, this);
+  }
 
-  public void setProgram(JobFile pProgram) {
-    program = Ref.create(pProgram);
+  public List<JobFile> getFilesLoaded() {
+    return JobFileDAO.files(this);
+  }
+
+  public void addFile(JobFile file) {
+    files.add(Ref.create(file));
+  }
+
+  public void removeFile(JobFile file) {
+    files.remove(Ref.create(file));
+  }
+
+  public String getQueueName() {
+    return queueName;
+  }
+
+  public void setQueueName(String pQueueName) {
+    queueName = pQueueName;
+  }
+
+  public String getTaskName() {
+    return taskName;
+  }
+
+  public void setTaskName(String pTaskName) {
+    taskName = pTaskName;
+  }
+
+  public Result getResultOutcome() {
+    return resultOutcome;
+  }
+
+  public void setResultOutcome(Result pResultOutcome) {
+    resultOutcome = pResultOutcome;
+  }
+
+  public String getResultMessage() {
+    return resultMessage;
+  }
+
+  public void setResultMessage(String pResultMessage) {
+    resultMessage = pResultMessage;
   }
 }

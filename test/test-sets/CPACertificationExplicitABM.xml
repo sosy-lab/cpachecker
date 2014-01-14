@@ -295,7 +295,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -303,7 +303,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -311,7 +311,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -319,7 +319,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -327,7 +327,7 @@
 <include>../programs/benchmarks/ldv-regression/nested_structure_noptr.c_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-regression/nested_structure_noptr.c_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -335,7 +335,7 @@
 <include>../programs/benchmarks/ldv-regression/nested_structure_noptr_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-regression/nested_structure_noptr_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -343,7 +343,7 @@
 <include>../programs/benchmarks/ldv-regression/oomInt.c_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-regression/oomInt.c_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -351,7 +351,7 @@
 <include>../programs/benchmarks/ldv-regression/oomInt.c_true_1.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-regression/oomInt.c_true_1.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -359,7 +359,7 @@
 <include>../programs/benchmarks/ldv-regression/rule60_list2.c_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-regression/rule60_list2.c_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -367,7 +367,7 @@
 <include>../programs/benchmarks/ldv-regression/sizeofparameters_test.c_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-regression/sizeofparameters_test.c_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -375,7 +375,7 @@
 <include>../programs/benchmarks/ldv-regression/test_cut_trace.c_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-regression/test_cut_trace.c_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -383,7 +383,7 @@
 <include>../programs/benchmarks/ldv-regression/test_overflow.c_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-regression/test_overflow.c_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -391,7 +391,7 @@
 <include>../programs/benchmarks/ldv-regression/test_union.c_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-regression/test_union.c_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -399,7 +399,7 @@
 <include>../programs/benchmarks/ldv-regression/test_union_cast-1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-regression/test_union_cast-1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -407,7 +407,7 @@
 <include>../programs/benchmarks/ldv-regression/test_union_cast.c_true_1.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-regression/test_union_cast.c_true_1.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -415,7 +415,7 @@
 <include>../programs/benchmarks/locks/test_locks_10_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_10_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -423,7 +423,7 @@
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -431,7 +431,7 @@
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -439,7 +439,7 @@
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -447,7 +447,7 @@
 <include>../programs/benchmarks/locks/test_locks_8_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_8_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -455,7 +455,7 @@
 <include>../programs/benchmarks/locks/test_locks_9_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/locks/test_locks_9_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -463,7 +463,7 @@
 <include>../programs/benchmarks/ntdrivers/floppy2_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ntdrivers/floppy2_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -471,7 +471,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -479,7 +479,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -487,7 +487,7 @@
 <include>../programs/benchmarks/ssh/s3_clnt.blast.01_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_clnt.blast.01_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -495,7 +495,7 @@
 <include>../programs/benchmarks/ssh/s3_clnt.blast.02_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_clnt.blast.02_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -503,7 +503,7 @@
 <include>../programs/benchmarks/ssh/s3_clnt.blast.03_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_clnt.blast.03_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -511,7 +511,7 @@
 <include>../programs/benchmarks/ssh/s3_clnt.blast.04_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_clnt.blast.04_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -519,7 +519,7 @@
 <include>../programs/benchmarks/ssh/s3_srvr.blast.01_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_srvr.blast.01_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -527,7 +527,7 @@
 <include>../programs/benchmarks/ssh/s3_srvr.blast.02_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_srvr.blast.02_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -535,7 +535,7 @@
 <include>../programs/benchmarks/ssh/s3_srvr.blast.06_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_srvr.blast.06_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -543,7 +543,7 @@
 <include>../programs/benchmarks/ssh/s3_srvr.blast.07_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_srvr.blast.07_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -551,7 +551,7 @@
 <include>../programs/benchmarks/ssh/s3_srvr.blast.08_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_srvr.blast.08_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -559,7 +559,7 @@
 <include>../programs/benchmarks/ssh/s3_srvr.blast.09_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_srvr.blast.09_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -567,7 +567,7 @@
 <include>../programs/benchmarks/ssh/s3_srvr.blast.10_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_srvr.blast.10_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -575,7 +575,7 @@
 <include>../programs/benchmarks/ssh/s3_srvr.blast.11_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_srvr.blast.11_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -583,7 +583,7 @@
 <include>../programs/benchmarks/ssh/s3_srvr.blast.12_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_srvr.blast.12_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -591,7 +591,7 @@
 <include>../programs/benchmarks/ssh/s3_srvr.blast.13_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_srvr.blast.13_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -599,7 +599,7 @@
 <include>../programs/benchmarks/ssh/s3_srvr.blast.14_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_srvr.blast.14_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -607,7 +607,7 @@
 <include>../programs/benchmarks/ssh/s3_srvr.blast.15_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_srvr.blast.15_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -615,7 +615,7 @@
 <include>../programs/benchmarks/ssh/s3_srvr.blast.16_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh/s3_srvr.blast.16_true.i.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -623,7 +623,7 @@
 <include>../programs/benchmarks/ssh-simplified/s3_clnt_1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh-simplified/s3_clnt_1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -631,7 +631,7 @@
 <include>../programs/benchmarks/ssh-simplified/s3_clnt_2_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh-simplified/s3_clnt_2_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -639,7 +639,7 @@
 <include>../programs/benchmarks/ssh-simplified/s3_clnt_3.cil_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh-simplified/s3_clnt_3.cil_true.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -647,7 +647,7 @@
 <include>../programs/benchmarks/ssh-simplified/s3_clnt_3_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh-simplified/s3_clnt_3_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -655,7 +655,7 @@
 <include>../programs/benchmarks/ssh-simplified/s3_clnt_4_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh-simplified/s3_clnt_4_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -663,7 +663,7 @@
 <include>../programs/benchmarks/ssh-simplified/s3_srvr_1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh-simplified/s3_srvr_1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -671,7 +671,7 @@
 <include>../programs/benchmarks/ssh-simplified/s3_srvr_1a_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh-simplified/s3_srvr_1a_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -679,7 +679,7 @@
 <include>../programs/benchmarks/ssh-simplified/s3_srvr_1b_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh-simplified/s3_srvr_1b_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -687,7 +687,7 @@
 <include>../programs/benchmarks/ssh-simplified/s3_srvr_2_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh-simplified/s3_srvr_2_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -695,7 +695,7 @@
 <include>../programs/benchmarks/ssh-simplified/s3_srvr_6_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh-simplified/s3_srvr_6_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -703,7 +703,7 @@
 <include>../programs/benchmarks/ssh-simplified/s3_srvr_7_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh-simplified/s3_srvr_7_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -711,7 +711,7 @@
 <include>../programs/benchmarks/ssh-simplified/s3_srvr_8_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ssh-simplified/s3_srvr_8_true.cil.c</include>
 </sourcefiles>
 </rundefinition>
@@ -723,7 +723,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-atm-eni.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-atm-eni.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -731,7 +731,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -739,7 +739,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-paride-pt.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-paride-pt.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -747,7 +747,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-char-ipmi-ipmi_watchdog.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-char-ipmi-ipmi_watchdog.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -755,7 +755,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-gpu-drm-i915-i915.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-gpu-drm-i915-i915.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -763,7 +763,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-hwmon-it87.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-hwmon-it87.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -771,7 +771,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-atl1c-atl1c.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-atl1c-atl1c.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -779,7 +779,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-sis900.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-sis900.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -787,7 +787,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-scsi-megaraid.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-scsi-megaraid.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -795,7 +795,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-staging-et131x-et131x.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-staging-et131x-et131x.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -803,7 +803,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-media-video-c-qcam.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-media-video-c-qcam.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -811,7 +811,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-media-video-msp3400.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-media-video-msp3400.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -819,7 +819,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-misc-c2port-core.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-misc-c2port-core.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -827,7 +827,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-scsi-dc395x.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-scsi-dc395x.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -835,7 +835,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-vhost-vhost_net.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-vhost-vhost_net.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -843,7 +843,7 @@
 <include>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-video-arkfb.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-video-arkfb.ko_true.cil.out.i.pp.cil.c</include>
 </sourcefiles>
 
@@ -853,7 +853,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--acpi--container.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--acpi--container.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -861,7 +861,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--acpi--ec_sys.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--acpi--ec_sys.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -869,7 +869,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--acpi--fan.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--acpi--fan.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -877,7 +877,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--atm--adummy.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--atm--adummy.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -885,7 +885,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--auxdisplay--cfag12864b.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--auxdisplay--cfag12864b.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -893,7 +893,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--auxdisplay--ks0108.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--auxdisplay--ks0108.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -901,7 +901,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--block--paride--bpck.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--block--paride--bpck.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -909,7 +909,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--block--paride--epat.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--block--paride--epat.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -917,7 +917,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--block--paride--friq.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--block--paride--friq.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -925,7 +925,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--block--paride--frpw.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--block--paride--frpw.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -933,7 +933,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--block--paride--kbic.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--block--paride--kbic.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -941,7 +941,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--block--paride--on20.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--block--paride--on20.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -949,7 +949,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--block--paride--on26.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--block--paride--on26.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -957,7 +957,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--firmware--google--gsmi.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--firmware--google--gsmi.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -965,7 +965,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--hwmon--asus_atk0110.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--hwmon--asus_atk0110.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -973,7 +973,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--hwmon--smsc47b397.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--hwmon--smsc47b397.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -981,7 +981,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--ide--cmd640.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--ide--cmd640.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -989,7 +989,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--input--gameport--lightning.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--input--gameport--lightning.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -997,7 +997,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--input--serio--ct82c710.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--input--serio--ct82c710.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1005,7 +1005,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--isdn--hardware--avm--b1pcmcia.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--isdn--hardware--avm--b1pcmcia.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1013,7 +1013,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--isdn--hardware--eicon--divadidd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--isdn--hardware--eicon--divadidd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1021,7 +1021,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--leds--leds-bd2802.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--leds--leds-bd2802.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1029,7 +1029,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--macintosh--mac_hid.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--macintosh--mac_hid.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1037,7 +1037,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--common--tuners--tda8290.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--common--tuners--tda8290.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1045,7 +1045,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--bt8xx--dvb-bt8xx.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--bt8xx--dvb-bt8xx.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1053,7 +1053,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--dvb-usb--dvb-usb-az6027.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--dvb-usb--dvb-usb-az6027.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1061,7 +1061,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--dvb-usb--dvb-usb-mxl111sf.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--dvb-usb--dvb-usb-mxl111sf.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1069,7 +1069,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--dvb-usb--dvb-usb-mxl111sf.ko-ldv_main3_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--dvb-usb--dvb-usb-mxl111sf.ko-ldv_main3_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1077,7 +1077,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--dvb-usb--dvb-usb-pctv452e.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--dvb-usb--dvb-usb-pctv452e.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1085,7 +1085,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--dvb-usb--dvb-usb-vp7045.ko-ldv_main1_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--dvb-usb--dvb-usb-vp7045.ko-ldv_main1_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1093,7 +1093,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--frontends--it913x-fe.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--frontends--it913x-fe.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1101,7 +1101,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--frontends--tda18271c2dd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--frontends--tda18271c2dd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1109,7 +1109,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--ttpci--budget.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--dvb--ttpci--budget.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1117,7 +1117,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--video--cx231xx--cx231xx-dvb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--video--cx231xx--cx231xx-dvb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1125,7 +1125,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--video--gspca--gspca_jl2005bcd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--video--gspca--gspca_jl2005bcd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1133,7 +1133,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--video--gspca--gspca_stv0680.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--media--video--gspca--gspca_stv0680.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1141,7 +1141,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mfd--tps6105x.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mfd--tps6105x.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1149,7 +1149,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mfd--wm8400-core.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mfd--wm8400-core.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1157,7 +1157,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--misc--c2port--c2port-duramar2150.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--misc--c2port--c2port-duramar2150.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1165,7 +1165,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--misc--sgi-xp--xp.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--misc--sgi-xp--xp.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1173,7 +1173,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--misc--vmw_balloon.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--misc--vmw_balloon.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1181,7 +1181,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--devices--docprobe.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--devices--docprobe.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1189,7 +1189,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--devices--phram.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--devices--phram.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1197,7 +1197,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--devices--slram.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--devices--slram.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1205,7 +1205,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--ftl.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--ftl.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1213,7 +1213,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--inftl.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--inftl.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1221,7 +1221,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--maps--netsc520.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--maps--netsc520.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1229,7 +1229,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--maps--sbc_gxx.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--maps--sbc_gxx.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1237,7 +1237,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--maps--ts5500_flash.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--maps--ts5500_flash.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1245,7 +1245,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--mtdoops.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--mtdoops.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1253,7 +1253,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--nftl.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--nftl.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1261,7 +1261,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--onenand--onenand_sim.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--onenand--onenand_sim.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1269,7 +1269,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--tests--mtd_oobtest.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--mtd--tests--mtd_oobtest.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1277,7 +1277,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--net--arcnet--arc-rawmode.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--net--arcnet--arc-rawmode.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1285,7 +1285,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--net--arcnet--rfc1051.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--net--arcnet--rfc1051.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1293,7 +1293,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--net--arcnet--rfc1201.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--net--arcnet--rfc1201.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1301,7 +1301,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--net--wireless--ath--ath6kl--ath6kl_usb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--net--wireless--ath--ath6kl--ath6kl_usb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1309,7 +1309,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--net--wireless--mwifiex--mwifiex_pcie.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--net--wireless--mwifiex--mwifiex_pcie.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1317,7 +1317,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--pci--hotplug--cpcihp_generic.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--pci--hotplug--cpcihp_generic.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1325,7 +1325,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--platform--x86--mxm-wmi.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--platform--x86--mxm-wmi.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1333,7 +1333,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--platform--x86--topstar-laptop.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--platform--x86--topstar-laptop.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1341,7 +1341,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--platform--x86--toshiba_bluetooth.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--platform--x86--toshiba_bluetooth.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1349,7 +1349,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--pps--clients--pps-ktimer.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--pps--clients--pps-ktimer.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1357,7 +1357,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--regulator--wm831x-dcdc.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--regulator--wm831x-dcdc.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1365,7 +1365,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--regulator--wm831x-isink.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--regulator--wm831x-isink.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1373,7 +1373,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--regulator--wm831x-ldo.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--regulator--wm831x-ldo.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1381,7 +1381,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--scsi--dmx3191d.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--scsi--dmx3191d.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1389,7 +1389,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--scsi--qlogicfas408.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--scsi--qlogicfas408.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1397,7 +1397,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--staging--android--switch--switch_class.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--staging--android--switch--switch_class.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1405,7 +1405,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--staging--iio--iio_dummy_evgen.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--staging--iio--iio_dummy_evgen.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1413,7 +1413,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--staging--serqt_usb2--serqt_usb2.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--staging--serqt_usb2--serqt_usb2.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1421,7 +1421,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--staging--zram--zram.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--staging--zram--zram.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1429,7 +1429,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--tty--serial--mfd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--tty--serial--mfd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1437,7 +1437,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--usb--serial--cp210x.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--usb--serial--cp210x.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1445,7 +1445,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--usb--serial--iuu_phoenix.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--usb--serial--iuu_phoenix.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1453,7 +1453,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--usb--serial--metro-usb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--usb--serial--metro-usb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1461,7 +1461,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--usb--storage--ums-alauda.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--usb--storage--ums-alauda.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1469,7 +1469,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--uwb--i1480--i1480-est.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--uwb--i1480--i1480-est.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1477,7 +1477,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--w1--masters--ds2490.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--w1--masters--ds2490.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1485,7 +1485,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--watchdog--cpu5wdt.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--watchdog--cpu5wdt.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1493,7 +1493,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--watchdog--iTCO_vendor_support.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--watchdog--iTCO_vendor_support.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1501,7 +1501,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--xen--xenfs--xenfs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--xen--xenfs--xenfs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1509,7 +1509,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--acpi--ec_sys.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--acpi--ec_sys.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1517,7 +1517,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--firmware--google--gsmi.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--firmware--google--gsmi.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1525,7 +1525,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--gpio--gpio-74x164.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--gpio--gpio-74x164.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1533,7 +1533,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--gpio--gpio-max7301.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--gpio--gpio-max7301.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1541,7 +1541,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--gpio--gpio-mc33880.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--gpio--gpio-mc33880.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1549,7 +1549,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--gpio--gpio-tps65912.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--gpio--gpio-tps65912.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1557,7 +1557,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--gpio--gpio-wm831x.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--gpio--gpio-wm831x.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1565,7 +1565,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--gpu--drm--i2c--sil164.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--gpu--drm--i2c--sil164.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1573,7 +1573,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hid--hid-wacom.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hid--hid-wacom.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1581,7 +1581,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hid--hid-waltop.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hid--hid-waltop.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1589,7 +1589,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hid--hid-zydacron.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hid--hid-zydacron.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1597,7 +1597,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--ads7871.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--ads7871.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1605,7 +1605,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--asus_atk0110.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--asus_atk0110.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1613,7 +1613,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--emc1403.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--emc1403.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1621,7 +1621,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--f71805f.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--f71805f.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1629,7 +1629,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--gpio-fan.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--gpio-fan.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1637,7 +1637,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--max1111.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--max1111.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1645,7 +1645,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--pcf8591.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--pcf8591.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1653,7 +1653,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--smsc47b397.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--hwmon--smsc47b397.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1661,7 +1661,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--i2c--busses--i2c-stub.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--i2c--busses--i2c-stub.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1669,7 +1669,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--i2c--i2c-smbus.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--i2c--i2c-smbus.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1677,7 +1677,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--gameport--lightning.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--gameport--lightning.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1685,7 +1685,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--joystick--magellan.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--joystick--magellan.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1693,7 +1693,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--joystick--spaceball.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--joystick--spaceball.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1701,7 +1701,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--joystick--spaceorb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--joystick--spaceorb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1709,7 +1709,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--joystick--stinger.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--joystick--stinger.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1717,7 +1717,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--joystick--twidjoy.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--joystick--twidjoy.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1725,7 +1725,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--joystick--warrior.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--joystick--warrior.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1733,7 +1733,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--joystick--zhenhua.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--joystick--zhenhua.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1741,7 +1741,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--keyboard--gpio_keys_polled.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--keyboard--gpio_keys_polled.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1749,7 +1749,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--keyboard--newtonkbd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--keyboard--newtonkbd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1757,7 +1757,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--keyboard--stowaway.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--keyboard--stowaway.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1765,7 +1765,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--keyboard--xtkbd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--keyboard--xtkbd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1773,7 +1773,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--misc--ab8500-ponkey.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--misc--ab8500-ponkey.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1781,7 +1781,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--misc--mma8450.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--misc--mma8450.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1789,7 +1789,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--misc--mpu3050.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--misc--mpu3050.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1797,7 +1797,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--misc--pcap_keys.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--misc--pcap_keys.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1805,7 +1805,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--misc--pcf50633-input.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--misc--pcf50633-input.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1813,7 +1813,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--misc--rotary_encoder.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--misc--rotary_encoder.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1821,7 +1821,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--misc--wm831x-on.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--misc--wm831x-on.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1829,7 +1829,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--mouse--vsxxxaa.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--mouse--vsxxxaa.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1837,7 +1837,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--serio--ct82c710.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--serio--ct82c710.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1845,7 +1845,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--ad7879-spi.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--ad7879-spi.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1853,7 +1853,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--dynapro.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--dynapro.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1861,7 +1861,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--eeti_ts.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--eeti_ts.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1869,7 +1869,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--egalax_ts.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--egalax_ts.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1877,7 +1877,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--fujitsu_ts.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--fujitsu_ts.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1885,7 +1885,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--gunze.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--gunze.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1893,7 +1893,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--hampshire.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--hampshire.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1901,7 +1901,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--inexio.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--inexio.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1909,7 +1909,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--max11801_ts.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--max11801_ts.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1917,7 +1917,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--mtouch.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--mtouch.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1925,7 +1925,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--penmount.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--penmount.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1933,7 +1933,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--stmpe-ts.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--stmpe-ts.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1941,7 +1941,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--touchit213.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--touchit213.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1949,7 +1949,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--touchright.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--touchright.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1957,7 +1957,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--touchwin.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--touchwin.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1965,7 +1965,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--tsc40.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--tsc40.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1973,7 +1973,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--wacom_w8001.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--input--touchscreen--wacom_w8001.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1981,7 +1981,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--isdn--hisax--elsa_cs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--isdn--hisax--elsa_cs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1989,7 +1989,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--isdn--hisax--sedlbauer_cs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--isdn--hisax--sedlbauer_cs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -1997,7 +1997,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--isdn--hisax--teles_cs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--isdn--hisax--teles_cs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2005,7 +2005,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--leds--leds-bd2802.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--leds--leds-bd2802.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2013,7 +2013,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--leds--leds-dac124s085.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--leds--leds-dac124s085.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2021,7 +2021,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--leds--leds-pca9633.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--leds--leds-pca9633.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2029,7 +2029,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--leds--leds-regulator.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--leds--leds-regulator.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2037,7 +2037,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--macintosh--mac_hid.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--macintosh--mac_hid.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2045,7 +2045,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--bt8xx--dvb-bt8xx.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--bt8xx--dvb-bt8xx.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2053,7 +2053,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--dvb-usb--dvb-usb-a800.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--dvb-usb--dvb-usb-a800.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2061,7 +2061,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--dvb-usb--dvb-usb-az6027.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--dvb-usb--dvb-usb-az6027.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2069,7 +2069,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--dvb-usb--dvb-usb-cinergyT2.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--dvb-usb--dvb-usb-cinergyT2.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2077,7 +2077,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--dvb-usb--dvb-usb-rtl28xxu.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--dvb-usb--dvb-usb-rtl28xxu.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2085,7 +2085,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--dvb-usb--dvb-usb-ttusb2.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--dvb-usb--dvb-usb-ttusb2.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2093,7 +2093,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--ttpci--budget-patch.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--ttpci--budget-patch.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2101,7 +2101,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--ttpci--budget.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--dvb--ttpci--budget.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2109,7 +2109,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--video--cx231xx--cx231xx-dvb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--video--cx231xx--cx231xx-dvb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2117,7 +2117,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--video--gspca--gspca_benq.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--media--video--gspca--gspca_benq.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2125,7 +2125,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mfd--janz-cmodio.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mfd--janz-cmodio.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2133,7 +2133,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mfd--timberdale.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mfd--timberdale.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2141,7 +2141,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mfd--tps6105x.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mfd--tps6105x.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2149,7 +2149,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mfd--tps6507x.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mfd--tps6507x.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2157,7 +2157,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mfd--ucb1400_core.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mfd--ucb1400_core.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2165,7 +2165,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mfd--wl1273-core.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mfd--wl1273-core.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2173,7 +2173,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--misc--apds9802als.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--misc--apds9802als.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2181,7 +2181,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--misc--bmp085.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--misc--bmp085.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2189,7 +2189,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--misc--eeprom--eeprom_93xx46.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--misc--eeprom--eeprom_93xx46.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2197,7 +2197,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--devices--docprobe.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--devices--docprobe.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2205,7 +2205,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--devices--phram.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--devices--phram.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2213,7 +2213,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--devices--slram.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--devices--slram.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2221,7 +2221,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--ftl.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--ftl.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2229,7 +2229,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--inftl.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--inftl.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2237,7 +2237,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--maps--intel_vr_nor.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--maps--intel_vr_nor.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2245,7 +2245,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--mtdblock.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--mtdblock.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2253,7 +2253,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--nftl.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--nftl.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2261,7 +2261,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--tests--mtd_oobtest.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--mtd--tests--mtd_oobtest.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2269,7 +2269,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--arcnet--com20020_cs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--arcnet--com20020_cs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2277,7 +2277,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--arcnet--com90xx.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--arcnet--com90xx.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2285,7 +2285,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--arcnet--rfc1201.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--arcnet--rfc1201.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2293,7 +2293,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--phy--spi_ks8995.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--phy--spi_ks8995.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2301,7 +2301,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--wireless--airo_cs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--wireless--airo_cs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2309,7 +2309,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--wireless--ath--ath6kl--ath6kl_usb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--wireless--ath--ath6kl--ath6kl_usb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2317,7 +2317,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--wireless--mwifiex--mwifiex_pcie.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--wireless--mwifiex--mwifiex_pcie.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2325,7 +2325,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--wireless--wl1251--wl1251_spi.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--wireless--wl1251--wl1251_spi.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2333,7 +2333,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--wireless--wl12xx--wl12xx_sdio.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--net--wireless--wl12xx--wl12xx_sdio.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2341,7 +2341,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--parport--parport_cs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--parport--parport_cs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2349,7 +2349,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--pci--ioapic.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--pci--ioapic.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2357,7 +2357,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--platform--x86--panasonic-laptop.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--platform--x86--panasonic-laptop.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2365,7 +2365,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--power--max8903_charger.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--power--max8903_charger.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2373,7 +2373,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--power--wm831x_backup.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--power--wm831x_backup.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2381,7 +2381,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--power--wm831x_power.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--power--wm831x_power.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2389,7 +2389,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--regulator--gpio-regulator.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--regulator--gpio-regulator.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2397,7 +2397,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--regulator--max1586.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--regulator--max1586.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2405,7 +2405,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--regulator--max8649.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--regulator--max8649.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2413,7 +2413,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--regulator--userspace-consumer.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--regulator--userspace-consumer.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2421,7 +2421,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--regulator--virtual.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--regulator--virtual.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2429,7 +2429,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--regulator--wm831x-dcdc.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--regulator--wm831x-dcdc.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2437,7 +2437,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--rtc--rtc-ds1390.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--rtc--rtc-ds1390.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2445,7 +2445,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--rtc--rtc-ds3232.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--rtc--rtc-ds3232.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2453,7 +2453,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--rtc--rtc-pcf2123.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--rtc--rtc-pcf2123.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2461,7 +2461,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--rtc--rtc-rs5c348.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--rtc--rtc-rs5c348.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2469,7 +2469,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--rtc--rtc-v3020.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--rtc--rtc-v3020.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2477,7 +2477,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--scsi--pcmcia--sym53c500_cs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--scsi--pcmcia--sym53c500_cs.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2485,7 +2485,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--spi--spi-tle62x0.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--spi--spi-tle62x0.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2493,7 +2493,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--staging--android--switch--switch_gpio.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--staging--android--switch--switch_gpio.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2501,7 +2501,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--staging--comedi--drivers--unioxx5.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--staging--comedi--drivers--unioxx5.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2509,7 +2509,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--staging--serqt_usb2--serqt_usb2.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--staging--serqt_usb2--serqt_usb2.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2517,7 +2517,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--staging--telephony--ixj_pcmcia.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--staging--telephony--ixj_pcmcia.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2525,7 +2525,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--tty--serial--mfd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--tty--serial--mfd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2533,7 +2533,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--uio--uio_aec.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--uio--uio_aec.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2541,7 +2541,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--uio--uio_pci_generic.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--uio--uio_pci_generic.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2549,7 +2549,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--uio--uio_sercos3.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--uio--uio_sercos3.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2557,7 +2557,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--otg--ab8500-usb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--otg--ab8500-usb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2565,7 +2565,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--otg--nop-usb-xceiv.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--otg--nop-usb-xceiv.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2573,7 +2573,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--serial--cp210x.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--serial--cp210x.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2581,7 +2581,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--serial--ipw.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--serial--ipw.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2589,7 +2589,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--serial--iuu_phoenix.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--serial--iuu_phoenix.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2597,7 +2597,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--serial--metro-usb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--serial--metro-usb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2605,7 +2605,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--serial--spcp8x5.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--serial--spcp8x5.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2613,7 +2613,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--serial--ssu100.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--usb--serial--ssu100.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2621,7 +2621,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--video--backlight--lms283gf05.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--video--backlight--lms283gf05.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2629,7 +2629,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--video--backlight--ltv350qv.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--video--backlight--ltv350qv.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2637,7 +2637,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--video--backlight--tdo24m.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--video--backlight--tdo24m.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2645,7 +2645,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--video--matrox--i2c-matroxfb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--video--matrox--i2c-matroxfb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2653,7 +2653,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--video--vfb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--video--vfb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2661,7 +2661,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--w1--masters--ds2490.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--w1--masters--ds2490.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -2669,7 +2669,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--w1--masters--matrox_w1.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--w1--masters--matrox_w1.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 </sourcefiles>
 </rundefinition>

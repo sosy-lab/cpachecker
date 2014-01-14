@@ -22,6 +22,11 @@ ant -f gae-build.xml gae-install
 Afterwards you need to add the following JARs to the classpath:
 lib/gae/*.jar
 lib/appengine-java-sdk-1.8.8/lib/user/*.jar
+lib/appengine-java-sdk-1.8.8/lib/impl/appengine-api.jar
+lib/appengine-java-sdk-1.8.8/lib/impl/appengine-api-stubs.jar
+lib/appengine-java-sdk-1.8.8/lib/impl/appengine-api-stubs.jar
+lib/appengine-java-sdk-1.8.8/lib/impl/appengine-api-labs.jar
+lib/appengine-java-sdk-1.8.8/lib/testing/appengine-testing.jar
 
 
 Compiling and Running

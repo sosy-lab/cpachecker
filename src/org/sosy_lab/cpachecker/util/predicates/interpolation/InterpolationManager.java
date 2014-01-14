@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -52,11 +51,13 @@ import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -193,7 +194,7 @@ public final class InterpolationManager {
       executor = null;
     } else {
       // important to use daemon threads here, because we never have the chance to stop the executor
-      executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
+      executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setThreadFactory(Threads.threadFactory()).setDaemon(true).build());
     }
 
     if (reuseInterpolationEnvironment) {
@@ -708,11 +709,11 @@ public final class InterpolationManager {
   }
 
   private void dumpFormulaToFile(String name, BooleanFormula f, int i) {
-    File dumpFile = formatFormulaOutputFile(name, i);
+    Path dumpFile = formatFormulaOutputFile(name, i);
     fmgr.dumpFormulaToFile(f, dumpFile);
   }
 
-  private File formatFormulaOutputFile(String formula, int index) {
+  private Path formatFormulaOutputFile(String formula, int index) {
     return fmgr.formatFormulaOutputFile("interpolation", cexAnalysisTimer.getNumberOfIntervals(), formula, index);
   }
 

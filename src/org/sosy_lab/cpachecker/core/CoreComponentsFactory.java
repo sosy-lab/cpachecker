@@ -64,31 +64,36 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class CoreComponentsFactory {
 
   @Option(description="use assumption collecting algorithm")
-  private boolean useAssumptionCollector = false;
+  private boolean collectAssumptions = false;
 
-  @Option(description="use adjustable conditions algorithm")
+  @Option(name="algorithm.conditionAdjustment",
+      description="use adjustable conditions algorithm")
   private boolean useAdjustableConditions = false;
 
-  @Option(description = "use CEGAR algorithm for lazy counter-example guided analysis"
+  @Option(name="algorithm.CEGAR",
+      description = "use CEGAR algorithm for lazy counter-example guided analysis"
         + "\nYou need to specify a refiner with the cegar.refiner option."
         + "\nCurrently all refiner require the use of the ARGCPA.")
-  private boolean useRefinement = false;
+  private boolean useCEGAR = false;
 
-  @Option(description="use CBMC to double-check counter-examples")
-  private boolean useCBMC = false;
+  @Option(description="use a second model checking run (e.g., with CBMC or a different CPAchecker configuration) to double-check counter-examples")
+  private boolean checkCounterexamples = false;
 
-  @Option(description="use CBMC and the BDDCPA Restriction option")
+  @Option(name="checkCounterexamplesWithBDDCPARestriction",
+      description="use counterexample check and the BDDCPA Restriction option")
   private boolean useBDDCPARestriction = false;
 
-  @Option(description="use a BMC like algorithm that checks for satisfiability "
+  @Option(name="algorithm.BMC",
+      description="use a BMC like algorithm that checks for satisfiability "
         + "after the analysis has finished, works only with PredicateCPA")
   private boolean useBMC = false;
 
-  @Option(description="Use McMillan's Impact algorithm for lazy interpolation")
+  @Option(name="algorithm.impact",
+      description="Use McMillan's Impact algorithm for lazy interpolation")
   private boolean useImpactAlgorithm = false;
 
   @Option(name="restartAfterUnknown",
-      description="restart the algorithm using a different CPA after unknown result")
+      description="restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
 
   @Option(name="predicatedAnalysis",
@@ -96,14 +101,17 @@ public class CoreComponentsFactory {
           + " with the help of a PredicateCPA to separate differnt program paths")
   private boolean usePredicatedAnalysisAlgorithm = false;
 
-  @Option(description="use a proof check algorithm to validate a previously generated proof")
+  @Option(name="algorithm.proofCheck",
+      description="use a proof check algorithm to validate a previously generated proof")
   private boolean useProofCheckAlgorithm = false;
 
-  @Option(description = "do analysis and then check "
+  @Option(name="algorithm.propertyCheck",
+      description = "do analysis and then check "
       + "if reached set fulfills property specified by ConfigurableProgramAnalysisWithPropertyChecker")
   private boolean usePropertyCheckingAlgorithm = false;
 
-  @Option(description = "do analysis and then check analysis result")
+  @Option(name="checkProof",
+      description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
 
   private final Configuration config;
@@ -148,7 +156,7 @@ public class CoreComponentsFactory {
         algorithm = new PredicatedAnalysisAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
       }
 
-      if (useRefinement) {
+      if (useCEGAR) {
         algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
       }
 
@@ -156,7 +164,7 @@ public class CoreComponentsFactory {
         algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, shutdownNotifier, cfa);
       }
 
-      if (useCBMC) {
+      if (checkCounterexamples) {
         algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa, programDenotation);
       }
 
@@ -164,7 +172,7 @@ public class CoreComponentsFactory {
         algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa, programDenotation);
       }
 
-      if (useAssumptionCollector) {
+      if (collectAssumptions) {
         algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger);
       }
 

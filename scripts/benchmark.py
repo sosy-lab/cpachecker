@@ -126,7 +126,8 @@ class Worker(threading.Thread):
                 run.getCmdline(), run.benchmark.rlimits, run.logFile,
                 myCpuIndex=self.numberOfThread,
                 environments=run.benchmark.getEnvironments(),
-                runningDir=run.benchmark.workingDirectory())
+                runningDir=run.benchmark.workingDirectory(),
+                maxLogfileSize=config.maxLogfileSize)
 
         if self.runExecutor.PROCESS_KILLED:
             # If the run was interrupted, we ignore the result and cleanup.
@@ -379,7 +380,9 @@ def getBenchmarkDataForCloud(benchmark):
             # so we can use all other chars for the info, that is needed to run the tool.
             # we build a string-representation of all this info (it's a map),
             # that can be parsed with python again in cloudRunexecutor.py (this is very easy with eval()) .
-            argString = repr({"args":run.getCmdline(), "env":env, "debug": config.debug})
+            argMap = {"args":run.getCmdline(), "env":env,
+                      "debug":config.debug, "maxLogfileSize":config.maxLogfileSize}
+            argString = repr(argMap)
             assert not "\t" in argString # cannot call toTabList(), if there is a tab
 
             logFile = os.path.relpath(run.logFile, benchmark.logFolder)
@@ -501,6 +504,8 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
         Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
                                      config.commitMessage+'\n\n'+outputHandler.description)
 
+    return returnCode
+
 
 def executeBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile, config, OUTPUT_PATH)
@@ -510,10 +515,9 @@ def executeBenchmark(benchmarkFile):
             repr(benchmarkFile), len(benchmark.runSets)))
 
     if config.cloud:
-        executeBenchmarkInCloud(benchmark, outputHandler)
+        return executeBenchmarkInCloud(benchmark, outputHandler)
     else:
-        executeBenchmarkLocaly(benchmark, outputHandler)
-
+        return executeBenchmarkLocaly(benchmark, outputHandler)
 
 def main(argv=None):
 
@@ -618,11 +622,10 @@ def main(argv=None):
                       metavar="CPU_MODEL",
                       help="Only execute runs on CPU models that contain the given string.")
     
-    # for backward-compatibility only
-    parser.add_argument("--cloudCpuModel",
-                      dest="cloudCPUModel", type=str, default=None,
-                      metavar="CPU_MODEL",
-                      help="Only execute runs on CPU models that contain the given string.")
+    parser.add_argument("--maxLogfileSize",
+                      dest="maxLogfileSize", type=int, default=20,
+                      metavar="SIZE",
+                      help="Shrink logfiles to SIZE in MB, if they are too big. (-1 to disable, default value: 20 MB).")
 
     global config, OUTPUT_PATH
     config = parser.parse_args(argv[1:])
@@ -651,13 +654,16 @@ def main(argv=None):
         except OSError:
             pass # this does not work on Windows
 
+    returnCode = 0
     for arg in config.files:
         if STOPPED_BY_INTERRUPT: break
         logging.debug("Benchmark {0} is started.".format(repr(arg)))
-        executeBenchmark(arg)
+        rc = executeBenchmark(arg)
+        returnCode = returnCode or rc
         logging.debug("Benchmark {0} is done.".format(repr(arg)))
 
     logging.debug("I think my job is done. Have a nice day!")
+    return returnCode
 
 
 def killScriptLocal():

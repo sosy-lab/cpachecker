@@ -211,7 +211,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     boolean equalZero = false;
     switch(pOp) {
     case GREATER_EQUAL:
-      equalZero = pResultSign == SIGN.ZERO;
+      equalZero = pResultSign.covers(SIGN.ZERO);
       //$FALL-THROUGH$
     case GREATER_THAN:
       if(pIdentIsLeft) {
@@ -225,7 +225,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       }
       break;
     case LESS_EQUAL:
-      equalZero = pResultSign == SIGN.ZERO;
+      equalZero = pResultSign.covers(SIGN.ZERO);
       //$FALL-THROUGH$
     case LESS_THAN:
       if(pIdentIsLeft) { // x < (0)-

@@ -6,7 +6,7 @@
 <option name="-spec">sv-comp</option>
 <option name="-disable-java-assertions"/>
 <option name="-setprop">statistics.memory=false</option>
-<option name="-setprop">analysis.usePropertyCheckingAlgorithm=true</option>
+<option name="-setprop">analysis.algorithm.propertyCheck=true</option>
 <option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
 <option name="-setprop">pcc.proofFile=arg.obj</option>
 
@@ -64,7 +64,7 @@
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,</option>
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
@@ -74,7 +74,7 @@
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,</option>
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
@@ -84,7 +84,7 @@
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,</option>
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
@@ -94,7 +94,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -104,7 +104,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -114,7 +114,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -124,7 +124,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -134,7 +134,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -144,7 +144,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -154,7 +154,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=lastSession,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_true.cil.c</include>
 </sourcefiles>
@@ -164,7 +164,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=FilterDevice,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_true.cil.c</include>
 </sourcefiles>
@@ -174,7 +174,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=PeripheralType,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_true.cil.c</include>
 </sourcefiles>
@@ -184,7 +184,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ObjectType,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_true.cil.c</include>
 </sourcefiles>
@@ -194,7 +194,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=Timeout,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true.cil.c</include>
 </sourcefiles>
@@ -204,7 +204,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=devExt,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true.cil.c</include>
 </sourcefiles>
@@ -264,7 +264,7 @@
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,</option>
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
@@ -274,7 +274,7 @@
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,</option>
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
@@ -284,7 +284,7 @@
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,</option>
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
@@ -294,7 +294,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -304,7 +304,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -314,7 +314,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -324,7 +324,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -334,7 +334,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -344,7 +344,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -354,7 +354,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=lastSession,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_true.cil.c</include>
 </sourcefiles>
@@ -364,7 +364,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=FilterDevice,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_true.cil.c</include>
 </sourcefiles>
@@ -374,7 +374,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=PeripheralType,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_true.cil.c</include>
 </sourcefiles>
@@ -384,7 +384,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ObjectType,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_true.cil.c</include>
 </sourcefiles>
@@ -394,7 +394,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=Timeout,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true.cil.c</include>
 </sourcefiles>
@@ -404,7 +404,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=devExt,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true.cil.c</include>
 </sourcefiles>
@@ -446,7 +446,7 @@
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
@@ -456,7 +456,7 @@
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
@@ -466,7 +466,7 @@
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
@@ -476,7 +476,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -486,7 +486,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -496,7 +496,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -506,7 +506,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -516,7 +516,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -526,7 +526,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -536,7 +536,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_true.cil.c</include>
 </sourcefiles>
@@ -546,7 +546,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_true.cil.c</include>
 </sourcefiles>
@@ -556,7 +556,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_true.cil.c</include>
 </sourcefiles>
@@ -566,7 +566,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_true.cil.c</include>
 </sourcefiles>
@@ -576,7 +576,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true.cil.c</include>
 </sourcefiles>
@@ -586,7 +586,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true.cil.c</include>
 </sourcefiles>
@@ -649,7 +649,7 @@
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
@@ -659,7 +659,7 @@
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
@@ -669,7 +669,7 @@
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
@@ -679,7 +679,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -689,7 +689,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -699,7 +699,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -709,7 +709,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -719,7 +719,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -729,7 +729,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -739,7 +739,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=lastSession,IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_true.cil.c</include>
 </sourcefiles>
@@ -749,7 +749,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=FilterDevice,IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_true.cil.c</include>
 </sourcefiles>
@@ -759,7 +759,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=PeripheralType,IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_true.cil.c</include>
 </sourcefiles>
@@ -769,7 +769,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ObjectType,IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_true.cil.c</include>
 </sourcefiles>
@@ -779,7 +779,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=Timeout,IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true.cil.c</include>
 </sourcefiles>
@@ -789,7 +789,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=devExt,IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true.cil.c</include>
 </sourcefiles>
@@ -848,7 +848,7 @@
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_5_true.c</include>
 </sourcefiles>
@@ -858,7 +858,7 @@
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_6_true.c</include>
 </sourcefiles>
@@ -868,7 +868,7 @@
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_7_true.c</include>
 </sourcefiles>
@@ -878,7 +878,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -888,7 +888,7 @@
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -898,7 +898,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -908,7 +908,7 @@
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</include>
 </sourcefiles>
@@ -918,7 +918,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=lastSession,IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_true.cil.c</include>
 </sourcefiles>
@@ -928,7 +928,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=PeripheralType,IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_true.cil.c</include>
 </sourcefiles>
@@ -938,7 +938,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ObjectType,IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_true.cil.c</include>
 </sourcefiles>
@@ -948,7 +948,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=Timeout,IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true.cil.c</include>
 </sourcefiles>
@@ -958,7 +958,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">analysis.algorithm.proofCheck = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=devExt,IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true.cil.c</include>
 </sourcefiles>

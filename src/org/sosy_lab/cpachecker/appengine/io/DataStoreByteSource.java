@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,29 +21,28 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.server;
+package org.sosy_lab.cpachecker.appengine.io;
 
-import static com.googlecode.objectify.ObjectifyService.ofy;
-
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
-import org.sosy_lab.cpachecker.appengine.entity.Job;
+import com.google.common.io.ByteSource;
 
-import com.googlecode.objectify.Key;
 
-@SuppressWarnings("serial")
-public class JobRunnerWorker extends HttpServlet {
+public class DataStoreByteSource extends ByteSource {
+
+  private JobFile file;
+
+  public DataStoreByteSource(JobFile file) {
+    this.file = file;
+  }
 
   @Override
-  protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-    Key<Job> jobKey = Key.create(request.getParameter("jobKey"));
-    Job job = ofy().load().key(jobKey).now();
-
-    // TODO run CPAchecker
+  public InputStream openStream() throws IOException {
+    return new ByteArrayInputStream(file.getContent().getBytes());
   }
+
 }

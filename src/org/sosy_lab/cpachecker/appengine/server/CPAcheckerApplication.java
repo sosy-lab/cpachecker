@@ -28,11 +28,15 @@ import org.restlet.ext.wadl.WadlApplication;
 import org.restlet.routing.Router;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.server.resource.JobFileServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.JobRunnerServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobsServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource;
 
 import com.googlecode.objectify.ObjectifyService;
+
+import freemarker.log.Logger;
 
 public class CPAcheckerApplication extends WadlApplication {
 
@@ -41,16 +45,25 @@ public class CPAcheckerApplication extends WadlApplication {
     getTunnelService().setExtensionsTunnel(true);
     getEncoderService().setEnabled(true);
 
+    try {
+      Logger.selectLoggerLibrary(Logger.LIBRARY_JAVA);
+    } catch (ClassNotFoundException _) {
+      // ignored because JUL logging will be available
+    }
+
     Router router = new Router(getContext());
 
     // latest API
     router.attach("/", RootServerResource.class);
     router.attach("/jobs", JobsServerResource.class);
     router.attach("/jobs/{jobKey}", JobServerResource.class);
+    router.attach("/jobs/{jobKey}/files/{fileKey}", JobFileServerResource.class);
+    router.attach("/workers/run-job", JobRunnerServerResource.class);
 
-    // v1 API
+    CapabilitiesFilter capabilitiesFilter = new CapabilitiesFilter(getContext());
+    capabilitiesFilter.setNext(router);
 
-    return router;
+    return capabilitiesFilter;
   }
 
   static {

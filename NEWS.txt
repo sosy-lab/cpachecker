@@ -1,6 +1,8 @@
 Changes since CPAchecker 1.2
 ----------------------------
 
+* r10375: Many options regarding the analysis algorithm (algorithm.* options such as
+  analysis.useRefinement and analysis.useCBMC) were renamed.
 * r8454: CPAchecker with PredicateCPA now outputs information when in the error path
   values were assigned to each variable (in ErrorPath.*.txt),
   so analyzing an error path manually should be easier now.

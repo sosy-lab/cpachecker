@@ -23,12 +23,24 @@
  */
 package org.sosy_lab.cpachecker.appengine.server.common;
 
+import java.io.IOException;
+
 import org.restlet.representation.Representation;
+import org.restlet.resource.Get;
 import org.restlet.resource.Post;
 
 
 public interface JobsResource {
 
+  @Get("html")
+  public Representation jobsAsHtml();
+
   @Post("multipart:html")
-  public void createJobAndRedirectToJob(Representation input);
+  public Representation createJobFromHtml(Representation input) throws IOException;
+
+  @Get("json")
+  public Representation jobsAsJson();
+
+  @Post("json")
+  public Representation createJobFromJson(Representation input);
 }
