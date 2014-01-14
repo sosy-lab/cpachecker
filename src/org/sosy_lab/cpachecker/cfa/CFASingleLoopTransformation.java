@@ -330,6 +330,15 @@ public class CFASingleLoopTransformation {
     connectLoopHeadToSubgraphEntryNodes(loopHead, newSuccessorsToPC, pcIdExpression, mainLocation,
         new CBinaryExpressionBuilder(pInputCFA.getMachineModel(), logger));
 
+    // If there is only one subgraph, the program is loop-free
+    if (newPredecessorsToPC.isEmpty()) {
+      removeNextLeavingEdge(start);
+      CFAEdge loopHeadLeavingEdge = removeNextLeavingEdge(loopHead);
+      CFANode loopHeadSuccessor = loopHeadLeavingEdge.getSuccessor();
+      replaceInStructure(loopHeadSuccessor, start);
+      loopHead = start;
+    }
+
     // Build the CFA from the syntactically reachable nodes
     return buildCFA(start, loopHead, pInputCFA.getMachineModel(), pInputCFA.getLanguage());
   }
@@ -453,7 +462,6 @@ public class CFASingleLoopTransformation {
     // Get information about the loop structure
     Optional<ImmutableMultimap<String, Loop>> loopStructure =
         getLoopStructure(pLoopHead);
-    //    getLoopStructure(pStartNode.getFunctionName(), new TreeSet<>(allNodes.values()), pLanguage, logger);
 
     // Get information about variables, required by some analyses
     final Optional<VariableClassification> varClassification
