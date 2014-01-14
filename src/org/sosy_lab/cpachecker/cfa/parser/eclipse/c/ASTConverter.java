@@ -553,8 +553,21 @@ class ASTConverter {
   private CAstNode convert(IASTCastExpression e) {
     final CExpression operand;
     final FileLocation loc = getLocation(e);
-    final CType type = typeConverter.convert(e.getExpressionType());
-    final CType castType = convert(e.getTypeId());
+    /* using #typeConverter.convert(e.getExpressionType()); to recheck if our evaluated
+     * castType is valid, is wrong in some cases, so we scip this check, and only
+     * use our convert(IASTTypeID) method
+     * a case where convert(e.getExpressionType()) fails is:
+     * struct lock {
+     *   unsigned int slock;
+     * }
+     *
+     * int tmp = (*(volatile typeof(lock->slock) *)&(lock->slock));
+     *
+     * => the convert(IASTTypeId) method returns (unsigned int)*
+     * => the convert(CType) method returns (volatile int)*
+     * the second one is obviously wrong, because the unsigned is missing
+     */
+     final CType castType = convert(e.getTypeId());
 
     // To recognize and simplify constructs e.g. struct s *ps = (struct s *) malloc(.../* e.g. sizeof(struct s)*/);
     if (e.getOperand() instanceof CASTFunctionCallExpression &&
@@ -567,17 +580,15 @@ class ASTConverter {
     }
 
     if("__imag__".equals(e.getTypeId().getRawSignature())) {
-      return new CComplexCastExpression(loc, type, operand, castType, false);
+      return new CComplexCastExpression(loc, castType, operand, castType, false);
     } else if ("__real__".equals(e.getTypeId().getRawSignature())) {
-      return new CComplexCastExpression(loc, type, operand, castType, true);
+      return new CComplexCastExpression(loc, castType, operand, castType, true);
     }
 
-    assert type.getCanonicalType().equals(castType.getCanonicalType()) : "wrong casttype: " + type + " vs " + castType + " in line: " + loc.getStartingLineNumber();
-
     if (e.getOperand() instanceof IASTFieldReference && ((IASTFieldReference)e.getOperand()).isPointerDereference()) {
-      return createInitializedTemporaryVariable(loc, type, new CCastExpression(loc, type, operand));
+      return createInitializedTemporaryVariable(loc, castType, new CCastExpression(loc, castType, operand));
     } else {
-      return new CCastExpression(loc, type, operand);
+      return new CCastExpression(loc, castType, operand);
     }
   }
 
