@@ -130,7 +130,6 @@ public class CFASingleLoopTransformation {
     Queue<CFANode> nodes = new ArrayDeque<>(getAllNodes(pInputCFA));
 
     // Eliminate self loops
-    Set<CFAEdge> dummyEdges = new HashSet<>();
     List<CFANode> toAdd = new ArrayList<>();
     for (CFANode node : nodes) {
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
@@ -147,7 +146,6 @@ public class CFASingleLoopTransformation {
           addToNodes(replacementEdge);
 
           BlankEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), node, dummy, DUMMY_EDGE);
-          dummyEdges.add(dummyEdge);
           addToNodes(dummyEdge);
 
           successor = dummy;
@@ -161,7 +159,6 @@ public class CFASingleLoopTransformation {
     BiMap<Integer, CFANode> newSuccessorsToPC = HashBiMap.create();
     Map<CFANode, CFANode> globalNewToOld = new HashMap<>();
     Map<CFANode, CFANode> entryNodeConnectors = new HashMap<>();
-    Set<Integer> replaceablePCValues = new HashSet<>();
     globalNewToOld.put(oldMainFunctionEntryNode, start);
 
     // Create new nodes and assume edges based on program counter values leading to the new nodes
@@ -264,8 +261,6 @@ public class CFASingleLoopTransformation {
         }
       }
 
-      boolean hasRelevantEdges = false;
-
       // Copy the subgraph
       Set<CFANode> newSubgraph = new LinkedHashSet<>();
       for (CFANode oldNode : subgraph) {
@@ -275,38 +270,52 @@ public class CFASingleLoopTransformation {
       for (CFANode oldNode : subgraph) {
         for (int leavingEdgeIndex = 0; leavingEdgeIndex < oldNode.getNumLeavingEdges(); ++leavingEdgeIndex) {
           CFAEdge oldEdge = oldNode.getLeavingEdge(leavingEdgeIndex);
-          hasRelevantEdges |= !dummyEdges.contains(oldEdge);
           assert subgraph.contains(oldEdge.getSuccessor()) : "None of the nodes in the subgraph must have an edge leaving the subgraph at this point";
           CFAEdge newEdge = copyCFAEdgeWithNewNodes(oldEdge, globalNewToOld);
           newEdge.getPredecessor().addLeavingEdge(newEdge);
           newEdge.getSuccessor().addEnteringEdge(newEdge);
         }
       }
-      // If there are no relevant edges and this subgraph has exactly one
-      // successor subgraph, all predecessors of this subgraph may directly
-      // connect to the successor subgraph
-      if (!hasRelevantEdges && pcValuesOutOfSubgraph.size() == 1) {
-        replaceablePCValues.addAll(pcValuesOutOfSubgraph);
-      }
     }
 
-
-    // Remove trivial dummy subgraphs
-    for (int replaceablePCValue : replaceablePCValues) {
-      CFANode newSuccessor = newSuccessorsToPC.remove(replaceablePCValue);
+    // Remove trivial dummy subgraphs and other dummy edges
+    for (int replaceablePCValue : new ArrayList<>(newPredecessorsToPC.keySet())) {
+      CFANode newSuccessor = newSuccessorsToPC.get(replaceablePCValue);
       CFANode tailOfRedundantSubgraph = newPredecessorsToPC.get(replaceablePCValue);
       Map<CFANode, Integer> pcToNewSuccessors = newSuccessorsToPC.inverse();
-      Queue<CFANode> roots = new ArrayDeque<>();
-      roots.add(tailOfRedundantSubgraph);
-      while (!roots.isEmpty()) {
-        CFANode subgraphRoot = roots.poll();
-        Integer precedingPCValue = pcToNewSuccessors.get(subgraphRoot);
-        if (precedingPCValue != null) {
-          if (roots.isEmpty()) {
-            newSuccessorsToPC.put(precedingPCValue, newSuccessor);
+      Integer precedingPCValue;
+      CFAEdge dummyEdge;
+      if (tailOfRedundantSubgraph.getNumEnteringEdges() == 1
+          && isDummyEdge(dummyEdge = tailOfRedundantSubgraph.getEnteringEdge(0))
+          && dummyEdge.getPredecessor().getNumEnteringEdges() == 0
+          && (precedingPCValue = pcToNewSuccessors.get(dummyEdge.getPredecessor())) != null) {
+        pcToNewSuccessors.remove(newSuccessor);
+        newSuccessorsToPC.remove(precedingPCValue);
+        newSuccessorsToPC.put(precedingPCValue, newSuccessor);
+      } else {
+        Queue<CFANode> waitlist = new ArrayDeque<>();
+        waitlist.add(tailOfRedundantSubgraph);
+        while (!waitlist.isEmpty()) {
+          CFANode node = waitlist.poll();
+          for (CFAEdge edge : CFAUtils.enteringEdges(node).toList()) {
+            if (isDummyEdge(edge)) {
+              removeFromNodes(edge);
+              CFANode predecessor = edge.getPredecessor();
+              if (predecessor.getNumEnteringEdges() == 0
+                  && (precedingPCValue = pcToNewSuccessors.get(predecessor)) != null) {
+                pcToNewSuccessors.remove(predecessor);
+                newSuccessorsToPC.remove(precedingPCValue);
+                newSuccessorsToPC.put(precedingPCValue, edge.getSuccessor());
+              } else {
+                for (CFAEdge edgeEnteringPredecessor : CFAUtils.enteringEdges(predecessor)) {
+                  removeFromNodes(edgeEnteringPredecessor);
+                  edgeEnteringPredecessor = copyCFAEdgeWithNewNodes(edgeEnteringPredecessor, edgeEnteringPredecessor.getPredecessor(), node, globalNewToOld);
+                  addToNodes(edgeEnteringPredecessor);
+                }
+              }
+            }
           }
-        } else {
-          roots.addAll(CFAUtils.predecessorsOf(subgraphRoot).toList());
+          waitlist.addAll(CFAUtils.predecessorsOf(node).toList());
         }
       }
     }
@@ -323,6 +332,16 @@ public class CFASingleLoopTransformation {
 
     // Build the CFA from the syntactically reachable nodes
     return buildCFA(start, loopHead, pInputCFA.getMachineModel(), pInputCFA.getLanguage());
+  }
+
+  /**
+   * Checks if the given edge is a dummy edge.
+   *
+   * @param pEdge the edge to check.
+   * @return <code>true</code> if the edge is a dummy edge, <code>false</code> otherwise.
+   */
+  private boolean isDummyEdge(CFAEdge pEdge) {
+    return pEdge.getEdgeType() == CFAEdgeType.BlankEdge && pEdge.getDescription().equals(DUMMY_EDGE);
   }
 
   /**
