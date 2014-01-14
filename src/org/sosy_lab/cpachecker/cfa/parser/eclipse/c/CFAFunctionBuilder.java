@@ -1820,10 +1820,17 @@ class CFAFunctionBuilder extends ASTVisitor {
       return locStack.pop();
     }
 
+    int filelocStart = compoundExp.getFileLocation().getStartingLineNumber();
+
     if (!(lastStatement instanceof IASTExpressionStatement)) {
+       if (tempVar == null) {
+         CFANode lastNode = handleAllSideEffects(middleNode, filelocStart, lastStatement.getRawSignature(), true);
+         scope.leaveBlock();
+         return lastNode;
+       }
+
       throw new CFAGenerationRuntimeException("Unsupported statement type " + lastStatement.getClass().getSimpleName() + " at end of compound-statement expression", lastStatement);
     }
-    int filelocStart = compoundExp.getFileLocation().getStartingLineNumber();
 
     CAstNode exp = astCreator.convertExpressionWithSideEffects(((IASTExpressionStatement)lastStatement).getExpression());
 
