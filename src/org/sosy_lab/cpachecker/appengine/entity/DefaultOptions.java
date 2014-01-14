@@ -57,7 +57,6 @@ public class DefaultOptions {
     if (allowedOptions == null) {
       allowedOptions = new HashMap<>();
       allowedOptions.put("analysis.machineModel", "Linux32");
-//    allowedOptions.put("parser.usePreprocessor", "false");
       allowedOptions.put("output.disable", "false");
       allowedOptions.put("statistics.export", "true");
       allowedOptions.put("log.usedOptions.export", "false");
