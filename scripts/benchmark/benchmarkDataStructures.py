@@ -484,6 +484,7 @@ class Run():
         self.wallTime = 0
         self.memUsage = None
         self.host = None
+        self.category = result.CATEGORY_UNKNOWN
 
 
     def getCmdline(self):
@@ -491,6 +492,26 @@ class Run():
         args = [os.path.expandvars(arg) for arg in args]
         args = [os.path.expanduser(arg) for arg in args]
         return args;
+
+
+    def getPropFile(self):
+        # get prp-file from options
+        prpfile = None
+        for option in self.options:
+            if option.endswith('.prp'):
+                assert prpfile == None
+                prpfile = option
+                break
+
+        #if prpfile is None and not logPrpfileOnlyOnce:
+        #    logging.warn("Could not find propertyfile in options. This will be logged only once!")
+
+        # prpfile is relative to toolWorkingDir, we need it relativ to currentWorkingDir
+        if prpfile is not None:
+            prpfile = os.path.join(self.tool.getWorkingDirectory(self.benchmark.executable), prpfile)
+            assert os.path.isfile(prpfile)
+
+        return prpfile
 
 
     def afterExecution(self, returnvalue, output):
@@ -504,6 +525,7 @@ class Run():
         returncode = returnvalue >> 8
         logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
         self.status = self.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
+        self.category = result.getResultCategory(self.sourcefile, self.status, self.getPropFile())
         self.benchmark.tool.addColumnValues(output, self.columns)
 
         # Tools sometimes produce a result even after a timeout.
@@ -513,11 +535,13 @@ class Run():
         # so we do this only if the result is a "normal" one like TRUE.
         if self.status in result.STR_LIST and isTimeout:
             self.status = "TIMEOUT"
+            self.category = result.CATEGORY_ERROR
         if returnsignal == 9 \
                 and MEMLIMIT in rlimits \
                 and self.memUsage \
                 and int(self.memUsage) >= (rlimits[MEMLIMIT] * 1024 * 1024):
             self.status = 'OUT OF MEMORY'
+            self.category = result.CATEGORY_ERROR
 
 
     def _isTimeout(self):

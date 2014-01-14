@@ -43,20 +43,13 @@ COLOR_RED = "\033[31;1m{0}\033[m"
 COLOR_ORANGE = "\033[33;1m{0}\033[m"
 COLOR_MAGENTA = "\033[35;1m{0}\033[m"
 COLOR_DEFAULT = "{0}"
-COLOR_DIC = {result.RESULT_CORRECT_TRUE:   COLOR_GREEN,
-             result.RESULT_UNKNOWN:        COLOR_ORANGE,
-             result.RESULT_ERROR:          COLOR_MAGENTA,
-             result.RESULT_WRONG_TRUE:     COLOR_RED,
-             result.CATEGORY_UNKNOWN:      COLOR_DEFAULT,
-             result.RESULT_CORRECT_FALSE_LABEL:    COLOR_GREEN,
-             result.RESULT_CORRECT_FALSE_DEREF:    COLOR_GREEN,
-             result.RESULT_CORRECT_FALSE_FREE:     COLOR_GREEN,
-             result.RESULT_CORRECT_FALSE_MEMTRACK: COLOR_GREEN,
-             result.RESULT_WRONG_FALSE_LABEL:      COLOR_RED,
-             result.RESULT_WRONG_FALSE_DEREF:      COLOR_RED,
-             result.RESULT_WRONG_FALSE_FREE:       COLOR_RED,
-             result.RESULT_WRONG_FALSE_MEMTRACK:   COLOR_RED,
+COLOR_DIC = {result.CATEGORY_CORRECT: COLOR_GREEN,
+             result.CATEGORY_WRONG:   COLOR_RED,
+             result.CATEGORY_UNKNOWN:   COLOR_ORANGE,
+             result.CATEGORY_ERROR:     COLOR_MAGENTA,
              None: COLOR_DEFAULT}
+
+LEN_OF_STATUS = 22
 
 TERMINAL_TITLE=''
 _term = os.environ.get('TERM', '')
@@ -277,7 +270,7 @@ class OutputHandler:
         self.commonPrefix = self.commonPrefix[: self.commonPrefix.rfind('/') + 1] # only foldername
 
         # length of the first column in terminal
-        self.maxLengthOfFileName = max([len(file) for file in sourcefiles])
+        self.maxLengthOfFileName = max(len(file) for file in sourcefiles) if sourcefiles else 20
         self.maxLengthOfFileName = max(20, self.maxLengthOfFileName - len(self.commonPrefix))
 
         # write run set name to terminal
@@ -413,11 +406,10 @@ class OutputHandler:
         self.addValuesToRunXML(run, cpuTimeStr, wallTimeStr)
 
         # output in terminal/console
-        statusRelation = result.getResultCategory(run.sourcefile, run.status)
         if USE_COLORS and sys.stdout.isatty(): # is terminal, not file
-            statusStr = COLOR_DIC[statusRelation].format(run.status.ljust(8))
+            statusStr = COLOR_DIC[run.category].format(run.status.ljust(LEN_OF_STATUS))
         else:
-            statusStr = run.status.ljust(8)
+            statusStr = run.status.ljust(LEN_OF_STATUS)
 
         try:
             OutputHandler.printLock.acquire()
@@ -431,7 +423,7 @@ class OutputHandler:
 
             # write result in TXTFile and XML
             self.TXTFile.append(self.runSetToTXT(run.runSet), False)
-            self.statistics.addResult(statusRelation)
+            self.statistics.addResult(run.category, run.status)
 
             # we don't want to write this file to often, it can slow down the whole script,
             # so we wait at least 10 seconds between two write-actions
@@ -519,6 +511,7 @@ class OutputHandler:
         for elem in list(runElem):
             runElem.remove(elem)
         runElem.append(ET.Element("column", {"title": "status", "value": run.status}))
+        runElem.append(ET.Element("column", {"title": "category", "value": run.category}))
         runElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeStr}))
         runElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeStr}))
         if run.memUsage is not None:
@@ -542,12 +535,11 @@ class OutputHandler:
         @return: a line for the outputFile
         """
 
-        lengthOfStatus = 8
         lengthOfTime = 11
         minLengthOfColumns = 8
 
         outputLine = self.formatSourceFileName(sourcefile) + \
-                     status.ljust(lengthOfStatus) + \
+                     status.ljust(LEN_OF_STATUS) + \
                      cpuTimeDelta.rjust(lengthOfTime) + \
                      wallTimeDelta.rjust(lengthOfTime)
 
@@ -602,31 +594,24 @@ class OutputHandler:
 class Statistics:
 
     def __init__(self):
-        self.dic = dict((status,0) for status in COLOR_DIC)
+        self.dic = dict((category,0) for category in COLOR_DIC)
+        self.dic[(result.CATEGORY_WRONG, result.STR_TRUE)] = 0
         self.counter = 0
 
-    def addResult(self, statusRelation):
+    def addResult(self, category, status):
         self.counter += 1
-        assert statusRelation in self.dic
-        self.dic[statusRelation] += 1
+        assert category in self.dic
+        if category == result.CATEGORY_WRONG and status == result.STR_TRUE:
+            self.dic[(result.CATEGORY_WRONG, result.STR_TRUE)] += 1
+        self.dic[category] += 1
 
 
     def printToTerminal(self):
         Util.printOut('\n'.join(['\nStatistics:' + str(self.counter).rjust(13) + ' Files',
-                 '    correct:        ' + str(self.dic[result.RESULT_CORRECT_TRUE] +
-                                              self.dic[result.RESULT_CORRECT_FALSE_LABEL] +
-                                              self.dic[result.RESULT_CORRECT_FALSE_DEREF] +
-                                              self.dic[result.RESULT_CORRECT_FALSE_FREE] +
-                                              self.dic[result.RESULT_CORRECT_FALSE_MEMTRACK]
-                                              ).rjust(4),
-                 '    unknown:        ' + str(self.dic[result.RESULT_UNKNOWN] + \
-                                              self.dic[result.RESULT_ERROR]).rjust(4),
-                 '    false positives:' + str(self.dic[result.RESULT_WRONG_FALSE_LABEL] +
-                                              self.dic[result.RESULT_WRONG_FALSE_DEREF] +
-                                              self.dic[result.RESULT_WRONG_FALSE_FREE] +
-                                              self.dic[result.RESULT_WRONG_FALSE_MEMTRACK]
-                                              ).rjust(4) + \
-                 '        (file is true, result is false)',
-                 '    false negatives:' + str(self.dic[result.RESULT_WRONG_TRUE]).rjust(4) + \
-                 '        (file is false, result is true)',
+                 '    correct:        ' + str(self.dic[result.CATEGORY_CORRECT]).rjust(4),
+                 '    unknown:        ' + str(self.dic[result.CATEGORY_UNKNOWN] + self.dic[result.CATEGORY_ERROR]).rjust(4),
+                 '    false positives:' + str(self.dic[result.CATEGORY_WRONG] - self.dic[(result.CATEGORY_WRONG, result.STR_TRUE)]).rjust(4) + \
+                 '        (result is false, file is true or has a different false-property)',
+                 '    false negatives:' + str(self.dic[(result.CATEGORY_WRONG, result.STR_TRUE)]).rjust(4) + \
+                 '        (result is true, file is false)',
                  '']))
