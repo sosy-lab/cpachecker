@@ -33,7 +33,7 @@
               <span class="label label-default">${job.resultOutcome}</span>
             <#elseif job.resultOutcome == "UNKNOWN">
               <span class="label label-warning">${job.resultOutcome}</span>
-            <#elseif job.resultOutcome == "UNSAFE">
+            <#elseif job.resultOutcome == "FALSE">
               <span class="label label-danger">${job.resultOutcome}</span>
             <#else>
               <span class="label label-success">${job.resultOutcome}</span>

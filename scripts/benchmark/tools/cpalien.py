@@ -99,9 +99,9 @@ class Tool(benchmark.tools.cpachecker.Tool):
 
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
-                if line.startswith('SAFE'):
+                if line.startswith('TRUE'):
                     newStatus = result.STR_TRUE
-                elif line.startswith('UNSAFE'):
+                elif line.startswith('FALSE'):
                   newStatus = result.STR_FALSE_LABEL
                   if memory_leak:
                     newStatus = result.STR_FALSE_MEMTRACK

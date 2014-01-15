@@ -212,7 +212,7 @@ public class CPAchecker {
 
       result = analyzeResult(reached, isComplete);
       if (unknownAsTrue && result == Result.UNKNOWN) {
-        result = Result.SAFE;
+        result = Result.TRUE;
       }
 
     } catch (IOException e) {
@@ -330,7 +330,7 @@ public class CPAchecker {
       if (property != ViolatedProperty.OTHER) {
         logger.log(Level.WARNING, "Found violation of property", property);
       }
-      return Result.UNSAFE;
+      return Result.FALSE;
     }
 
     if (reached.hasWaitingState()) {
@@ -343,7 +343,7 @@ public class CPAchecker {
       return Result.UNKNOWN;
     }
 
-    return Result.SAFE;
+    return Result.TRUE;
   }
 
   private void initializeReachedSet(

@@ -39,10 +39,10 @@ public class CPAcheckerResult {
   /**
    * Enum for the possible outcomes of a CPAchecker analysis:
    * - UNKNOWN: analysis did not terminate
-   * - UNSAFE: bug found
-   * - SAFE: no bug found
+   * - FALSE: bug found
+   * - TRUE: no bug found
    */
-  public static enum Result { NOT_YET_STARTED, UNKNOWN, UNSAFE, SAFE }
+  public static enum Result { NOT_YET_STARTED, UNKNOWN, FALSE, TRUE }
 
   private final Result result;
 
@@ -94,10 +94,10 @@ public class CPAcheckerResult {
     switch (result) {
       case UNKNOWN:
         return "UNKNOWN, incomplete analysis.";
-      case UNSAFE:
-        return "UNSAFE. Error path found by chosen configuration.";
-      case SAFE:
-        return "SAFE. No error path found by chosen configuration.";
+      case FALSE:
+        return "FALSE. Property violation found by chosen configuration.";
+      case TRUE:
+        return "TRUE. No property violation found by chosen configuration.";
       default:
         return "UNKNOWN result: " + result;
     }

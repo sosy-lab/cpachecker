@@ -65,7 +65,7 @@ public class ProofGenerator {
     UnmodifiableReachedSet reached = pResult.getReached();
 
     // check result
-    if (pResult.getResult() != Result.SAFE) {
+    if (pResult.getResult() != Result.TRUE) {
       logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return;
     }
