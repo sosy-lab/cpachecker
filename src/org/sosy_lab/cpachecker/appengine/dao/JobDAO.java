@@ -39,8 +39,12 @@ import com.googlecode.objectify.VoidWork;
 public class JobDAO {
 
   public static Job load(String key) {
-    Key<Job> jobKey = Key.create(key);
-    return load(jobKey);
+    try {
+      Key<Job> jobKey = Key.create(key);
+      return load(jobKey);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
   }
 
   public static Job load(Key<Job> key) {
@@ -78,11 +82,6 @@ public class JobDAO {
         }
       });
     }
-  }
-
-  public static void delete(String key) {
-    Key<Job> jobKey = Key.create(key);
-    delete(jobKey);
   }
 
   public static void delete(Key<Job> key) {
