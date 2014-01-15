@@ -42,7 +42,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
   private static final int MAX_CBMC_ERROR_OUTPUT_SHOWN = 10;
   private static final Map<String, String> CBMC_ENV_VARS = ImmutableMap.of("LANG", "C");
 
-  private Boolean result = null;
+  private volatile Boolean result = null;
   private boolean unwindingAssertionFailed = false;
   private volatile int errorOutputCount = 0;
 
