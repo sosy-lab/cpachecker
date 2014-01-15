@@ -146,6 +146,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     try {
       saveStackTrace(e.getCause());
       setResult();
+      job.setTerminationDate(new Date());
       JobDAO.save(job);
 
       dumpConfiguration();
