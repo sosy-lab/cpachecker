@@ -780,17 +780,17 @@ def getCategoryCount(categoryList):
         # correctTrue, correctFalseLabel, correctProperty
             counts[result.CATEGORY_CORRECT, result.STR_TRUE],
             counts[result.CATEGORY_CORRECT, result.STR_FALSE_LABEL],
-            counts[result.CATEGORY_CORRECT, result.STR_PROP_DEREF] \
-          + counts[result.CATEGORY_CORRECT, result.STR_PROP_FREE] \
-          + counts[result.CATEGORY_CORRECT, result.STR_PROP_MEMTRACK] \
+            counts[result.CATEGORY_CORRECT, result.STR_FALSE_DEREF] \
+          + counts[result.CATEGORY_CORRECT, result.STR_FALSE_FREE] \
+          + counts[result.CATEGORY_CORRECT, result.STR_FALSE_MEMTRACK] \
           + counts[result.CATEGORY_CORRECT, result.STR_FALSE_TERMINATION],
 
         # wrongTrue, wrongFalseLabel, wrongProperty
             counts[result.CATEGORY_WRONG, result.STR_TRUE],
             counts[result.CATEGORY_WRONG, result.STR_FALSE_LABEL],
-            counts[result.CATEGORY_WRONG, result.STR_PROP_DEREF] \
-          + counts[result.CATEGORY_WRONG, result.STR_PROP_FREE] \
-          + counts[result.CATEGORY_WRONG, result.STR_PROP_MEMTRACK] \
+            counts[result.CATEGORY_WRONG, result.STR_FALSE_DEREF] \
+          + counts[result.CATEGORY_WRONG, result.STR_FALSE_FREE] \
+          + counts[result.CATEGORY_WRONG, result.STR_FALSE_MEMTRACK] \
           + counts[result.CATEGORY_WRONG, result.STR_FALSE_TERMINATION]
             )
 
@@ -815,9 +815,9 @@ def getStatsOfNumberColumn(values, categoryList, columnTitle):
             StatValue.fromList(valuesPerCategory[result.CATEGORY_CORRECT]),
             StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_TRUE]),
             StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_LABEL]),
-            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_PROP_DEREF] +
-                               valuesPerCategory[result.CATEGORY_WRONG, result.STR_PROP_FREE] +
-                               valuesPerCategory[result.CATEGORY_WRONG, result.STR_PROP_MEMTRACK] +
+            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_DEREF] +
+                               valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_FREE] +
+                               valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_MEMTRACK] +
                                valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_TERMINATION]
                                ),
             )

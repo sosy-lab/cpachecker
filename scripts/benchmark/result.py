@@ -40,21 +40,21 @@ STR_UNKNOWN = 'unknown'
 
 STR_FALSE_LABEL =       'false(label)'
 STR_FALSE_TERMINATION = 'false(termination)'
-STR_PROP_DEREF =        'false(valid-deref)'
-STR_PROP_FREE =         'false(valid-free)'
-STR_PROP_MEMTRACK =     'false(valid-memtrack)'
+STR_FALSE_DEREF =        'false(valid-deref)'
+STR_FALSE_FREE =         'false(valid-free)'
+STR_FALSE_MEMTRACK =     'false(valid-memtrack)'
 
 STR_LIST = [STR_TRUE, STR_UNKNOWN, 
             STR_FALSE_LABEL, STR_FALSE_TERMINATION, 
-            STR_PROP_DEREF, STR_PROP_FREE, STR_PROP_MEMTRACK]
+            STR_FALSE_DEREF, STR_FALSE_FREE, STR_FALSE_MEMTRACK]
 
 # string searched in filenames to determine correct or incorrect status.
 # use lower case! the dict contains assignments 'filename' --> 'status'
 FALSE_SUBSTRINGS = {'_false-unreach-label':  STR_FALSE_LABEL,
                     '_false-termination':    STR_FALSE_TERMINATION,
-                    '_false-valid-deref':    STR_PROP_DEREF,
-                    '_false-valid-free':     STR_PROP_FREE,
-                    '_false-valid-memtrack': STR_PROP_MEMTRACK
+                    '_false-valid-deref':    STR_FALSE_DEREF,
+                    '_false-valid-free':     STR_FALSE_FREE,
+                    '_false-valid-memtrack': STR_FALSE_MEMTRACK
                    }
 
 assert all('_false-' in k for k in FALSE_SUBSTRINGS.keys())
@@ -97,11 +97,11 @@ def _statusesOfPropertyFile(propertyFile):
         if 'LTL(F end)' in content:
             statuses.append(STR_FALSE_TERMINATION)
         if 'LTL(G valid-free)' in content:
-            statuses.append(STR_PROP_FREE)
+            statuses.append(STR_FALSE_FREE)
         if 'LTL(G valid-deref)' in content:
-            statuses.append(STR_PROP_DEREF)
+            statuses.append(STR_FALSE_DEREF)
         if 'LTL(G valid-memtrack)' in content:
-            statuses.append(STR_PROP_MEMTRACK)
+            statuses.append(STR_FALSE_MEMTRACK)
         
         assert len(statuses) > 0
     return statuses
