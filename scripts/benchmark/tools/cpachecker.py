@@ -144,7 +144,6 @@ class Tool(benchmark.tools.template.BaseTool):
         else:
             status = ''
 
-        property = None
         for line in output.splitlines():
             if 'java.lang.OutOfMemoryError' in line:
                 status = 'OUT OF JAVA MEMORY'
@@ -170,17 +169,15 @@ class Tool(benchmark.tools.template.BaseTool):
                 elif 'Parsing failed' in line:
                     status = 'ERROR (parsing failed)'
 
-            elif line.startswith('Found violation of property '):
-                property = re.match('Found violation of property ([^ ]*) .*', line).group(1)
-
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
                 if line.startswith('TRUE'):
                     newStatus = result.STR_TRUE
                 elif line.startswith('FALSE'):
                     newStatus = result.STR_FALSE_LABEL
-                    if property:
-                        newStatus = newStatus + '(' + property + ')'
+                    match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
+                    if match:
+                        newStatus = newStatus + '(' + match.group(1) + ')'
                 else:
                     newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
                 if newStatus:
