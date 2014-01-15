@@ -27,11 +27,13 @@
 
 
   <rundefinition name="abelf_cbmc">
-    <option name="-predicateAnalysis-PredAbsRefiner-ABElf-cbmc"/>
+    <option name="-predicateAnalysis-PredAbsRefiner-ABElf"/>
+    <option name="-cbmc"/>
   </rundefinition>
 
   <rundefinition name="abelf_cbmc_explicit">
-    <option name="-predicateAnalysis-PredAbsRefiner-ABElf-cbmc"/>
+    <option name="-predicateAnalysis-PredAbsRefiner-ABElf"/>
+    <option name="-cbmc"/>
     <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.explicit.ExplicitCPA,cpa.predicate.PredicateCPA,cpa.conditions.global.GlobalConditionsCPA</option>
   </rundefinition>
 
