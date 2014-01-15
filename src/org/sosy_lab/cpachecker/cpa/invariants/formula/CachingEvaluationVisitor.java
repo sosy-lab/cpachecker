@@ -29,9 +29,11 @@ import java.util.WeakHashMap;
 
 public class CachingEvaluationVisitor<T> extends DefaultFormulaVisitor<T, T> {
 
+  private static final boolean useCaching = false;
+
   private final Map<? extends String, ? extends InvariantsFormula<T>> environment;
 
-  private final WeakHashMap<InvariantsFormula<T>, T> cache = new WeakHashMap<>();
+  private final WeakHashMap<InvariantsFormula<T>, T> cache = useCaching ? new WeakHashMap<InvariantsFormula<T>, T>() : null;
 
   private final FormulaEvaluationVisitor<T> actualEvaluationVisitor;
 
@@ -42,17 +44,27 @@ public class CachingEvaluationVisitor<T> extends DefaultFormulaVisitor<T, T> {
 
   @Override
   protected T visitDefault(InvariantsFormula<T> pFormula) {
-    T evaluated = cache.get(pFormula);
-    if (evaluated != null) {
+    if (useCaching) {
+      T evaluated = cache.get(pFormula);
+      if (evaluated != null) {
+        return evaluated;
+      }
+      evaluated = pFormula.accept(actualEvaluationVisitor, environment);
+      cache.put(pFormula, evaluated);
       return evaluated;
     }
-    evaluated = pFormula.accept(actualEvaluationVisitor, environment);
-    cache.put(pFormula, evaluated);
-    return evaluated;
+    return pFormula.accept(actualEvaluationVisitor, environment);
+  }
+
+  @Override
+  public T visit(Constant<T> pConstant) {
+    return pConstant.getValue();
   }
 
   public void clearCache() {
-    this.cache.clear();
+    if (useCaching) {
+      this.cache.clear();
+    }
   }
 
 }
