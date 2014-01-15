@@ -24,9 +24,11 @@
 package org.sosy_lab.cpachecker.appengine.server.resource;
 
 import org.restlet.data.MediaType;
+import org.restlet.data.Status;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
+import org.restlet.resource.ResourceException;
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
@@ -41,18 +43,27 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 
 public class JobFileServerResource extends WadlServerResource implements JobFileResource {
 
+  private JobFile file = null;
+
+  @Override
+  protected void doInit() throws ResourceException {
+    super.doInit();
+    file = JobFileDAO.load(getAttribute("fileKey"));
+
+    if (file == null) {
+      getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND);
+      getResponse().commit();
+    }
+  }
+
   @Override
   public Representation fileAsHtml() {
-    JobFile file = JobFileDAO.load(getAttribute("fileKey"));
-
     String content = (file.getContent() == null) ? "" : file.getContent();
     return new StringRepresentation(content);
   }
 
   @Override
   public Representation fileAsJson() {
-    JobFile file = JobFileDAO.load(getAttribute("fileKey"));
-
     ObjectMapper mapper = new ObjectMapper();
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
     mapper.addMixInAnnotations(Job.class, JobMixinAnnotations.KeyOnly.class);

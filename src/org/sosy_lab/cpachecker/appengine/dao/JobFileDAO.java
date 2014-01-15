@@ -37,8 +37,12 @@ import com.googlecode.objectify.VoidWork;
 public class JobFileDAO {
 
   public static JobFile load(String key) {
-    Key<JobFile> fileKey = Key.create(key);
-    return load(fileKey);
+    try {
+      Key<JobFile> fileKey = Key.create(key);
+      return load(fileKey);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
   }
 
   public static JobFile load(Key<JobFile> key) {
