@@ -508,7 +508,7 @@ class Run():
 
         # prpfile is relative to toolWorkingDir, we need it relativ to currentWorkingDir
         if prpfile is not None:
-            prpfile = os.path.join(self.tool.getWorkingDirectory(self.benchmark.executable), prpfile)
+            prpfile = os.path.join(self.benchmark.tool.getWorkingDirectory(self.benchmark.executable), prpfile)
             assert os.path.isfile(prpfile)
 
         return prpfile
