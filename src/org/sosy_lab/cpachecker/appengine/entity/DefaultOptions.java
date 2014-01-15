@@ -80,6 +80,12 @@ public class DefaultOptions {
     }
 
     if (!getDefaultOptions().get(key).equals(value)) {
+
+      // log level needs to be UPPERCASE otherwise we'll have an exception later on
+      if (key.equals("log.level")) {
+        value = value.toUpperCase();
+      }
+
       usedOptions.put(key, value);
       return true;
     }

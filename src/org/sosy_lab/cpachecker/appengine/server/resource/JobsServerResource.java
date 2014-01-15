@@ -245,6 +245,14 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
       errors.add("error.noProgram");
     }
 
+    if (createdJob.getOptions().containsKey("log.level")) {
+      try {
+        Level.parse(createdJob.getOptions().get("log.level"));
+      } catch (IllegalArgumentException e) {
+        errors.add("error.invalidLogLevel");
+      }
+    }
+
     if (errors.size() == 0) {
       JobFileDAO.save(program);
       createdJob.addFile(program);
