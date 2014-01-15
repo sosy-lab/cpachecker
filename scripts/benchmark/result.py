@@ -83,8 +83,8 @@ def _statusesOfPropertyFile(propertyFile):
     assert propertyFile is None or os.path.isfile(propertyFile)
     
     if propertyFile is None:
-        # if we have no prpfile, lets use default property 'error-label-reachability'
-        return [STR_FALSE_LABEL]
+        # if we have no prpfile, lets use default case: 'every property'
+        return (v for k,v in FALSE_SUBSTRINGS.items())
     
     statuses = []
     with open(propertyFile) as f:
