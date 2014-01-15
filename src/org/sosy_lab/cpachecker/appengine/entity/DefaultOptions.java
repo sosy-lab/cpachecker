@@ -27,7 +27,9 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -150,9 +152,9 @@ public class DefaultOptions {
    *
    * @return The available specification files.
    */
-  public static File[] getSpecifications() {
+  public static List<String> getSpecifications() {
     Path specificationDir = Paths.get("WEB-INF/specifications");
-    return specificationDir.toFile().listFiles(new FilenameFilter() {
+    File[] files = specificationDir.toFile().listFiles(new FilenameFilter() {
 
       @Override
       public boolean accept(File pDir, String pName) {
@@ -160,6 +162,12 @@ public class DefaultOptions {
         return pName.endsWith(".spc");
       }
     });
+
+    List<String> specifications = new ArrayList<>();
+    for (File file : files) {
+      specifications.add(file.getName());
+    }
+    return specifications;
   }
 
   /**
@@ -167,9 +175,9 @@ public class DefaultOptions {
    *
    * @return The available configuration files.
    */
-  public static File[] getConfigurations() {
+  public static List<String> getConfigurations() {
     Path configurationDir = Paths.get("WEB-INF/configurations");
-    return configurationDir.toFile().listFiles(new FilenameFilter() {
+    File[] files = configurationDir.toFile().listFiles(new FilenameFilter() {
 
       @Override
       public boolean accept(File pDir, String pName) {
@@ -177,5 +185,11 @@ public class DefaultOptions {
         return pName.endsWith(".properties");
       }
     });
+
+    List<String> configurations = new ArrayList<>();
+    for (File file : files) {
+      configurations.add(file.getName());
+    }
+    return configurations;
   }
 }

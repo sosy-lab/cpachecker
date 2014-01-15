@@ -241,6 +241,18 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
       errors.add("error.specOrConfigMissing");
     }
 
+    if (createdJob.getSpecification() != null) {
+      if (!DefaultOptions.getSpecifications().contains(createdJob.getSpecification())) {
+        errors.add("error.specificationNotFound");
+      }
+    }
+
+    if (createdJob.getConfiguration() != null) {
+      if (!DefaultOptions.getConfigurations().contains(createdJob.getConfiguration())) {
+        errors.add("error.configurationNotFound");
+      }
+    }
+
     if (program.getContent() == null || program.getContent().equals("")) {
       errors.add("error.noProgram");
     }

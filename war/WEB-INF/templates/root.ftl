@@ -31,8 +31,7 @@
               <option value="">${msg.noSpec}</option>
               <option value="" disabled>-------------------</option>
               <#list specifications?sort as specification>
-                <#assign name = specification?substring(specification?last_index_of("/")+1)>
-                <option value="${name}">${name}</option>
+                <option value="${specification}">${specification}</option>
               </#list>
             </select>
           </div>
@@ -46,8 +45,7 @@
               <option value="">${msg.noConfig}</option>
               <option value="" disabled>-------------------</option>
               <#list configurations?sort as configuration>
-                <#assign name = configuration?substring(configuration?last_index_of("/")+1)>
-                <option value="${name}">${name}</option>
+                <option value="${configuration}">${configuration}</option>
               </#list>
             </select>
           </div>
