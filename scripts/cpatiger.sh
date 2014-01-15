@@ -48,7 +48,7 @@ case "$platform" in
     ;;
 esac
 
-if [ ! -e "$PATH_TO_CPACHECKER/bin/org/sosy_lab/cpachecker/cmdline/CPAMain.class" ] ; then
+if [ ! -e "$PATH_TO_CPACHECKER/bin/org/sosy_lab/cpachecker/cmdline/CPATigerMain.class" ] ; then
   if [ ! -e "$PATH_TO_CPACHECKER/cpachecker.jar" ] ; then
     echo "Could not find CPAchecker binary, please check path to project directory" 1>&2
     exit 1
@@ -94,4 +94,4 @@ if [ ! -z "$CPACHECKER_ARGUMENTS" ]; then
 fi
 
 # run CPAchecker
-exec "$JAVA" $JAVA_VM_ARGUMENTS -Xmx${JAVA_HEAP_SIZE:-$DEFAULT_HEAP_SIZE} $JAVA_ASSERTIONS org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}" $CPACHECKER_ARGUMENTS
+exec "$JAVA" $JAVA_VM_ARGUMENTS -Xmx${JAVA_HEAP_SIZE:-$DEFAULT_HEAP_SIZE} $JAVA_ASSERTIONS org.sosy_lab.cpachecker.cmdline.CPATigerMain "${OPTIONS[@]}" $CPACHECKER_ARGUMENTS
