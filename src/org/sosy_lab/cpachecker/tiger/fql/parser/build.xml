@@ -2,7 +2,7 @@
 <!DOCTYPE project> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
 <project name="FQLParserGeneration" default="generate-parser" basedir="./../../../../../../../">
   <!-- basedir should be the "CPAchecker" directory -->
-  <property name="parserDir" location="src/org/sosy_lab/cpachecker/fshell/fql2/parser/" />
+  <property name="parserDir" location="src/org/sosy_lab/cpachecker/tiger/fql/parser/" />
   <property name="src"       location="src" />
   <property name="lib"       location="lib" />
   <property environment="env" />
@@ -38,7 +38,7 @@
 
     <!-- remove generation date to not interfere with SVN -->
     <replaceregexp file="${parserDir}/FQLLexer.java" match="\d\d\.\d\d.\d\d \d\d:\d\d" replace="[date omitted]" flags="g" />
-    <replaceregexp file="${parserDir}/FQLLexer.java" match="(.tt>).*/(src/org/sosy_lab/cpachecker/fshell/fql2/parser/FQL.lex./tt>)" replace="\1\2" />
+    <replaceregexp file="${parserDir}/FQLLexer.java" match="(.tt>).*/(src/org/sosy_lab/cpachecker/tiger/fql/parser/FQL.lex./tt>)" replace="\1\2" />
   </target>
 
 
