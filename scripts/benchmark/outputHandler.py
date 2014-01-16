@@ -212,6 +212,7 @@ class OutputHandler:
         cpuInfo = dict()
         maxFrequency = 'unknown'
         cpuInfoFilename = '/proc/cpuinfo'
+        numberOfCores = 'unknown'
         if os.path.isfile(cpuInfoFilename) and os.access(cpuInfoFilename, os.R_OK):
             cpuInfoFile = open(cpuInfoFilename, 'rt')
             cpuInfoLines = [tuple(line.split(':')) for line in
@@ -220,12 +221,12 @@ class OutputHandler:
                                        .strip('\n').split('\n')]
             cpuInfo = dict(cpuInfoLines)
             cpuInfoFile.close()
+            numberOfCores = str(len([line for line in cpuInfoLines if line[0] == 'processor']))
         cpuModel = cpuInfo.get('model name', 'unknown') \
                           .strip() \
                           .replace("(R)", "") \
                           .replace("(TM)", "") \
                           .replace("(tm)", "")
-        numberOfCores = str(len([line for line in cpuInfoLines if line[0] == 'processor']))
         if 'cpu MHz' in cpuInfo:
             maxFrequency = cpuInfo['cpu MHz'].split('.')[0].strip() + ' MHz'
 
