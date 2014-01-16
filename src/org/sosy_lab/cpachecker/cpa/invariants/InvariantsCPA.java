@@ -209,11 +209,16 @@ public class InvariantsCPA extends AbstractCPA {
         ConfigurableProgramAnalysis cpa = new CPABuilder(configurationBuilder.build(), logManager, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
         ReachedSet reached = reachedSetFactory.create();
         reached.add(cpa.getInitialState(pNode), cpa.getInitialPrecision(pNode));
-        new CPAAlgorithm(cpa, logManager, config, shutdownNotifier).run(reached);
+        CPAAlgorithm targetFindingAlgorithm = new CPAAlgorithm(cpa, logManager, config, shutdownNotifier);
 
-        for (AbstractState state : FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE)) {
-          CFANode location = AbstractStates.extractLocation(state);
-          targetLocations.add(location);
+        boolean changed = true;
+        while (changed) {
+          changed = false;
+          targetFindingAlgorithm.run(reached);
+          for (AbstractState state : FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE)) {
+            CFANode location = AbstractStates.extractLocation(state);
+            changed |= targetLocations.add(location);
+          }
         }
       } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
         this.logManager.logException(Level.SEVERE, e, "Unable to find target locations. Defaulting to selecting all locations.");
