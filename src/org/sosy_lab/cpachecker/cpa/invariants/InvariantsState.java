@@ -863,7 +863,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       }
 
       Map<String, InvariantsFormula<CompoundInterval>> resultEnvironment = new NonRecursiveEnvironment();
-      Set<InvariantsFormula<CompoundInterval>> resultAssumptions = new HashSet<>();
 
       // Get some basic information by joining the environments
       for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : element1.environment.entrySet()) {
@@ -879,36 +878,43 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
         }
       }
 
-      // Make assumptions
-      VariableRelationSet<CompoundInterval> leftRelations = new VariableRelationSet<>(element1.assumptions);
-      VariableRelationSet<CompoundInterval> rightRelations = new VariableRelationSet<>(element2.assumptions);
-      VariableRelationSet<CompoundInterval> resultRelations = new VariableRelationSet<>(leftRelations);
-      resultRelations.uniteWith(element2.assumptions);
-      leftRelations.removeAll(resultRelations);
-      rightRelations.removeAll(resultRelations);
-      resultAssumptions.addAll(resultRelations);
+      Set<InvariantsFormula<CompoundInterval>> resultAssumptions;
+      if (precision.isUsingBinaryVariableInterrelations()) {
+        resultAssumptions = new HashSet<>();
+        final VariableRelationSet<CompoundInterval> resultRelations;
+        // Make assumptions
+        VariableRelationSet<CompoundInterval> leftRelations = new VariableRelationSet<>(element1.assumptions);
+        VariableRelationSet<CompoundInterval> rightRelations = new VariableRelationSet<>(element2.assumptions);
+        resultRelations = new VariableRelationSet<>(leftRelations);
+        resultRelations.uniteWith(element2.assumptions);
+        leftRelations.removeAll(resultRelations);
+        rightRelations.removeAll(resultRelations);
+        resultAssumptions.addAll(resultRelations);
 
-      Iterator<? extends InvariantsFormula<CompoundInterval>> leftAssumptionIterator = leftRelations.iterator();
-      Iterator<? extends InvariantsFormula<CompoundInterval>> rightAssumptionIterator = rightRelations.iterator();
-      // Apply "or" to the two remaining sets of assumptions
-      if (leftAssumptionIterator.hasNext() && rightAssumptionIterator.hasNext()) {
+        Iterator<? extends InvariantsFormula<CompoundInterval>> leftAssumptionIterator = leftRelations.iterator();
+        Iterator<? extends InvariantsFormula<CompoundInterval>> rightAssumptionIterator = rightRelations.iterator();
+        // Apply "or" to the two remaining sets of assumptions
+        if (leftAssumptionIterator.hasNext() && rightAssumptionIterator.hasNext()) {
 
-        InvariantsFormula<CompoundInterval> leftTotalAssumption = leftAssumptionIterator.next();
-        while (leftAssumptionIterator.hasNext()) {
-          leftTotalAssumption = CompoundStateFormulaManager.INSTANCE.logicalAnd(leftTotalAssumption, leftAssumptionIterator.next());
+          InvariantsFormula<CompoundInterval> leftTotalAssumption = leftAssumptionIterator.next();
+          while (leftAssumptionIterator.hasNext()) {
+            leftTotalAssumption = CompoundStateFormulaManager.INSTANCE.logicalAnd(leftTotalAssumption, leftAssumptionIterator.next());
+          }
+          InvariantsFormula<CompoundInterval> rightTotalAssumption = rightAssumptionIterator.next();
+          while (rightAssumptionIterator.hasNext()) {
+            rightTotalAssumption = CompoundStateFormulaManager.INSTANCE.logicalAnd(rightTotalAssumption, rightAssumptionIterator.next());
+          }
+
+          Set<InvariantsFormula<CompoundInterval>> newDisjunctiveClauses = new HashSet<>();
+
+          newDisjunctiveClauses.addAll(leftTotalAssumption.accept(SPLIT_DISJUNCTIONS_VISITOR));
+          newDisjunctiveClauses.addAll(rightTotalAssumption.accept(SPLIT_DISJUNCTIONS_VISITOR));
+          InvariantsFormula<CompoundInterval> newAssumption =
+              CompoundStateFormulaManager.INSTANCE.logicalOr(leftTotalAssumption, rightTotalAssumption);
+          resultAssumptions.add(newAssumption);
         }
-        InvariantsFormula<CompoundInterval> rightTotalAssumption = rightAssumptionIterator.next();
-        while (rightAssumptionIterator.hasNext()) {
-          rightTotalAssumption = CompoundStateFormulaManager.INSTANCE.logicalAnd(rightTotalAssumption, rightAssumptionIterator.next());
-        }
-
-        Set<InvariantsFormula<CompoundInterval>> newDisjunctiveClauses = new HashSet<>();
-
-        newDisjunctiveClauses.addAll(leftTotalAssumption.accept(SPLIT_DISJUNCTIONS_VISITOR));
-        newDisjunctiveClauses.addAll(rightTotalAssumption.accept(SPLIT_DISJUNCTIONS_VISITOR));
-        InvariantsFormula<CompoundInterval> newAssumption =
-            CompoundStateFormulaManager.INSTANCE.logicalOr(leftTotalAssumption, rightTotalAssumption);
-        resultAssumptions.add(newAssumption);
+      } else {
+        resultAssumptions = Collections.emptySet();
       }
 
       VariableSelection<CompoundInterval> resultVariableSelection = element1.variableSelection.join(element2.variableSelection);
