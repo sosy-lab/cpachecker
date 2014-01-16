@@ -62,6 +62,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.apphosting.api.ApiProxy.RequestTooLargeException;
 import com.google.common.base.Charsets;
 
 
@@ -73,7 +74,9 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
   public Representation createJobFromHtml(Representation input) throws IOException {
     DefaultOptions options = new DefaultOptions();
     Map<String, Object> settings = new HashMap<>();
+    List<String> errors = new ArrayList<>();
     String program = null;
+
     ServletFileUpload upload = new ServletFileUpload();
 
     try {
@@ -112,8 +115,6 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
               program = value;
             }
             break;
-          default:
-            break;
           }
         }
         else {
@@ -127,13 +128,15 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
       }
     } catch (FileUploadException | IOException e) {
       getLogger().log(Level.WARNING, "Could not upload program file.", e);
-      settings.put("errors", new String[] {"error.couldNotUpload"});
+
+      errors.add("error.couldNotUpload");
+      settings.put("errors", errors);
     }
 
     settings.put("programText", program);
     settings.put("options", options.getUsedOptions());
 
-    List<String> errors = createJob(settings);
+    errors = createJob(settings);
 
     if (errors.size() == 0) {
       getResponse().setStatus(Status.SUCCESS_CREATED);
@@ -196,7 +199,6 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
         return new StringRepresentation(mapper.writeValueAsString(createdJob), MediaType.APPLICATION_JSON);
       }
     } catch (JsonProcessingException e) {
-      // ignore
       return null;
     }
   }
@@ -266,11 +268,19 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
     }
 
     if (errors.size() == 0) {
-      JobFileDAO.save(program);
-      createdJob.addFile(program);
-      JobDAO.save(createdJob);
-      JobRunner jobRunner = new GAETaskQueueJobRunner();
-      createdJob = jobRunner.run(createdJob);
+      try {
+        JobFileDAO.save(program);
+        createdJob.addFile(program);
+        JobDAO.save(createdJob);
+        JobRunner jobRunner = new GAETaskQueueJobRunner();
+        createdJob = jobRunner.run(createdJob);
+      } catch (IOException e) {
+        if (e.getCause() instanceof RequestTooLargeException) {
+          errors.add("error.programTooLarge");
+        } else {
+          errors.add("error.couldNotUpload");
+        }
+      }
     }
 
     return errors;

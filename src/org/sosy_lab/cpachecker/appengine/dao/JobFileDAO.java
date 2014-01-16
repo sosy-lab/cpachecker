@@ -25,11 +25,14 @@ package org.sosy_lab.cpachecker.appengine.dao;
 
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
+import com.google.appengine.api.datastore.DatastoreFailureException;
+import com.google.apphosting.api.ApiProxy.RequestTooLargeException;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.VoidWork;
 
@@ -57,8 +60,14 @@ public class JobFileDAO {
     return ofy().load().type(JobFile.class).ancestor(parent).list();
   }
 
-  public static void save(JobFile file) {
-    ofy().save().entity(file).now();
+  public static void save(JobFile file) throws IOException {
+    try {
+      ofy().save().entity(file).now();
+    } catch (RequestTooLargeException e) {
+      throw new IOException(String.format("The file %s is too large to be saved.", file.getName()), e);
+    } catch (DatastoreFailureException e) {
+      throw new IOException(String.format("The file %s could not be saved.", file.getName()), e);
+    }
   }
 
   public static void delete(final JobFile file) {
