@@ -715,6 +715,11 @@ cpa.invariants.maximumFormulaDepth = 4
 cpa.invariants.merge = "JOIN"
   allowed values: [JOIN, SEP]
 
+# whether or not to use abstract evaluation to ensure termination when the
+# merge operator is SEP or the limit for interesting variables or predicates
+# is positive.
+cpa.invariants.useAbstractEvaluation = true
+
 # whether or not to collect information about binary variable interrelations.
 cpa.invariants.useBinaryVariableInterrelations = true
 

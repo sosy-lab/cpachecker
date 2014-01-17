@@ -334,13 +334,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       }
     }
     replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
-    final InvariantsFormula<CompoundInterval> newSubstitutedValue;
-    if (previousValue instanceof Constant<?>) {
-      newSubstitutedValue = pValue.accept(replaceVisitor).accept(this.partialEvaluator, EVALUATION_VISITOR);
-    } else {
-      newSubstitutedValue =
-          pValue.accept(replaceVisitor).accept(this.partialEvaluator, evaluationVisitor);
-    }
+    final InvariantsFormula<CompoundInterval> newSubstitutedValue =
+        pValue.accept(replaceVisitor).accept(this.partialEvaluator, evaluationVisitor);
 
     for (Map.Entry<String, InvariantsFormula<CompoundInterval>> environmentEntry : this.environment.entrySet()) {
       if (!environmentEntry.getKey().equals(pVarName)) {
@@ -778,7 +773,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * otherwise.
    */
   public boolean mayEvaluate(CFAEdge edge) {
-    return !this.visitedEdges.contains(edge);
+    return !this.precision.isUsingAbstractEvaluation() || !this.visitedEdges.contains(edge);
   }
 
   /**

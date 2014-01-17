@@ -126,6 +126,9 @@ public class InvariantsCPA extends AbstractCPA {
     @Option(description="whether or not to use a bit vector formula manager when extracting invariant approximations from states.")
     private boolean useBitvectors = false;
 
+    @Option(description="whether or not to use abstract evaluation to ensure termination when the merge operator is SEP or the limit for interesting variables or predicates is positive.")
+    private boolean useAbstractEvaluation = true;
+
   }
 
   /**
@@ -325,7 +328,8 @@ public class InvariantsCPA extends AbstractCPA {
         ImmutableSet.copyOf(limit(interestingPredicates, options.interestingPredicatesLimit)),
         ImmutableSet.copyOf(limit(interestingVariables, options.interestingVariableLimit)),
         options.maximumFormulaDepth,
-        options.useBinaryVariableInterrelations);
+        options.useBinaryVariableInterrelations,
+        options.useAbstractEvaluation);
 
     initialPrecisionMap.put(pNode, precision);
 
