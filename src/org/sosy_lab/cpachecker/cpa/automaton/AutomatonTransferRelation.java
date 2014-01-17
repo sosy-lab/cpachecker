@@ -95,18 +95,19 @@ class AutomatonTransferRelation implements TransferRelation {
     // we can just iterate through the edges.
     AutomatonState currentState = (AutomatonState)pElement;
     Collection<AutomatonState> currentSuccessors = null;
-    int edgeIndex = 0;
-    for (CFAEdge edge : edges) {
+    int edgeIndex;
+    for (edgeIndex=0; edgeIndex<edges.size(); edgeIndex++) {
+      CFAEdge edge = edges.get(edgeIndex);
       currentSuccessors = getAbstractSuccessors0(currentState, pPrecision, edge);
       if (currentSuccessors.isEmpty()) {
         return currentSuccessors; // bottom
       } else if (currentSuccessors.size() == 1) {
         currentState = Iterables.getOnlyElement(currentSuccessors);
-      } else {
+      } else { // currentSuccessors.size() > 1
         break;
       }
-      edgeIndex++;
     }
+
     if (edgeIndex == edges.size()) {
       return currentSuccessors;
     }
@@ -114,7 +115,7 @@ class AutomatonTransferRelation implements TransferRelation {
     // If there are two or more successors once, we use a waitlist algorithm.
     Deque<Pair<AutomatonState, Integer>> queue = new ArrayDeque<>(1);
     for (AutomatonState successor : currentSuccessors) {
-      queue.addLast(Pair.of(successor, edgeIndex+1));
+      queue.addLast(Pair.of(successor, edgeIndex));
     }
     currentSuccessors.clear();
 
