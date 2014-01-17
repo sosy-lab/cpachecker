@@ -159,6 +159,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * or not to use bit vectors for representing states and a variable selection.
    *
    * @param pUseBitvectors the flag indicating whether or not to use bit vectors for representing states.
+   * @param pVariableSelection the selected variables.
+   * @param pPrecision the precision of the state.
    */
   public InvariantsState(boolean pUseBitvectors, VariableSelection<CompoundInterval> pVariableSelection,
       InvariantsPrecision pPrecision) {
@@ -166,12 +168,16 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   /**
-   * Creates a new pristine invariants state with just a value for the flag indicating whether
-   * or not to use bit vectors for representing states and a variable selection.
+   * Creates a new invariants state with just a value for the flag indicating
+   * whether or not to use bit vectors for representing states, a selection of
+   * variables, the set of visited edges and a precision.
    *
    * @param pUseBitvectors the flag indicating whether or not to use bit vectors for representing states.
+   * @param pVariableSelection the selected variables.
+   * @param pVisitedEdges the edges already visited.
+   * @param pPrecision the precision of the state.
    */
-  public InvariantsState(boolean pUseBitvectors, VariableSelection<CompoundInterval> pVariableSelection,
+  private InvariantsState(boolean pUseBitvectors, VariableSelection<CompoundInterval> pVariableSelection,
       ImmutableSet<CFAEdge> pVisitedEdges,
       InvariantsPrecision pPrecision) {
     this.visitedEdges = pVisitedEdges;
@@ -185,19 +191,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   /**
-   * Creates a copy of the given state.
-   *
-   * @param pToCopy the state to copy.
-   * @return a copy of the given state.
-   */
-  public static InvariantsState copy(InvariantsState pToCopy) {
-    return from(pToCopy.visitedEdges, pToCopy.assumptions,
-        pToCopy.environment, pToCopy.useBitvectors, pToCopy.variableSelection,
-        pToCopy.collectedInterestingAssumptions,
-        pToCopy.precision);
-  }
-
-  /**
    * Creates a new state from the given state properties.
    *
    * @param pVisitedEdges the edges already visited previously.
@@ -208,7 +201,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * @param pInterestingAssumptions
    * @return a new state from the given state properties.
    */
-  public static InvariantsState from(ImmutableSet<CFAEdge> pVisitedEdges, Set<? extends InvariantsFormula<CompoundInterval>> pAssumptions,
+  private static InvariantsState from(ImmutableSet<CFAEdge> pVisitedEdges, Set<? extends InvariantsFormula<CompoundInterval>> pAssumptions,
       Map<String, InvariantsFormula<CompoundInterval>> pEnvironment,
       boolean pUseBitvectors, VariableSelection<CompoundInterval> pVariableSelection,
       Set<InvariantsFormula<CompoundInterval>> pCollectedInterestingAssumptions,
@@ -341,8 +334,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       }
     }
     replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
-    InvariantsFormula<CompoundInterval> newSubstitutedValue =
-        pValue.accept(replaceVisitor).accept(this.partialEvaluator, evaluationVisitor);
+    final InvariantsFormula<CompoundInterval> newSubstitutedValue;
+    if (previousValue instanceof Constant<?>) {
+      newSubstitutedValue = pValue.accept(replaceVisitor).accept(this.partialEvaluator, EVALUATION_VISITOR);
+    } else {
+      newSubstitutedValue =
+          pValue.accept(replaceVisitor).accept(this.partialEvaluator, evaluationVisitor);
+    }
 
     for (Map.Entry<String, InvariantsFormula<CompoundInterval>> environmentEntry : this.environment.entrySet()) {
       if (!environmentEntry.getKey().equals(pVarName)) {
@@ -373,11 +371,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (environment.isEmpty() && assumptions.isEmpty() && collectedInterestingAssumptions.isEmpty()) {
       return this;
     }
-    InvariantsState result = copy(this);
-    result.environment.clear();
-    result.assumptions.clear();
-    result.collectedInterestingAssumptions.clear();
-    return result;
+    return new InvariantsState(useBitvectors, variableSelection, visitedEdges, precision);
   }
 
   private InvariantsFormula<CompoundInterval> trim(InvariantsFormula<CompoundInterval> pFormula) {
