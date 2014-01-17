@@ -225,4 +225,12 @@ public class CompoundIntervalTest {
     assertEquals(topMultNeg2, topMultNeg2.unionWith(topMultNeg2));
   }
 
+  @Test
+  public void testBinaryXor() {
+    CompoundInterval zeroToOne = CompoundInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE));
+    CompoundInterval one = CompoundInterval.one();
+    assertEquals(zeroToOne, zeroToOne.binaryXor(one));
+    assertEquals(zeroToOne, one.binaryXor(zeroToOne));
+  }
+
 }

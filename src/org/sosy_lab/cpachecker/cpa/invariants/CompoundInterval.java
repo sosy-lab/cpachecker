@@ -1188,7 +1188,7 @@ public class CompoundInterval {
     }
     // 1 ^ [0,1] = [0,1]
     if (isSingleton() && contains(1) && pState.equals(zeroToOne)) {
-      return this;
+      return zeroToOne;
     }
     if (pState.isSingleton()) {
       CompoundInterval result = bottom();
