@@ -367,6 +367,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     return result;
   }
 
+  /**
+   * Gets a state that has no information about the program and the same
+   * information about the analysis as this state.
+   *
+   * @return a state that has no information about the program and the same
+   * information about the analysis as this state.
+   */
   public InvariantsState clear() {
     if (environment.isEmpty() && assumptions.isEmpty() && collectedInterestingAssumptions.isEmpty()) {
       return this;
@@ -418,6 +425,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     return environmentalAssumptions;
   }
 
+  /**
+   * Gets the assumptions and the environment stored in this state as an
+   * iterable.
+   *
+   * @return the assumptions and the environment stored in this state as an
+   * iterable.
+   */
   public Iterable<InvariantsFormula<CompoundInterval>> getAssumptionsAndEnvironment() {
     return Iterables.concat(this.assumptions, this.collectedInterestingAssumptions, new Iterable<InvariantsFormula<CompoundInterval>>() {
 
