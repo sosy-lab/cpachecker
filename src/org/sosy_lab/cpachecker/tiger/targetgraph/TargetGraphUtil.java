@@ -33,10 +33,10 @@ import org.jgrapht.graph.MaskFunctor;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.tiger.fql.ast.Predicate;
 import org.sosy_lab.cpachecker.tiger.targetgraph.TargetGraph.Builder;
 import org.sosy_lab.cpachecker.tiger.targetgraph.mask.FunctionNameMaskFunctor;
@@ -44,11 +44,11 @@ import org.sosy_lab.cpachecker.tiger.targetgraph.mask.FunctionNameMaskFunctor;
 public class TargetGraphUtil {
 
   public static Set<CFAEdge> getBasicBlockEntries(CFANode pInitialNode) {
-    LinkedHashSet<CFAEdge> lBasicBlockEntries = new LinkedHashSet<CFAEdge>();
+    LinkedHashSet<CFAEdge> lBasicBlockEntries = new LinkedHashSet<>();
 
-    HashSet<CFAEdge> lVisitedEdges = new HashSet<CFAEdge>();
+    HashSet<CFAEdge> lVisitedEdges = new HashSet<>();
 
-    LinkedList<CFAEdge> lWorklist = new LinkedList<CFAEdge>();
+    LinkedList<CFAEdge> lWorklist = new LinkedList<>();
 
     addLeavingEdgesToWorklist(pInitialNode, lWorklist);
 
@@ -62,7 +62,7 @@ public class TargetGraphUtil {
       lVisitedEdges.add(lCurrentEdge);
 
 
-      LinkedList<CFAEdge> lTrace = new LinkedList<CFAEdge>();
+      LinkedList<CFAEdge> lTrace = new LinkedList<>();
 
       CFAEdge lCurrentTraceEdge = lCurrentEdge;
 
@@ -169,10 +169,10 @@ public class TargetGraphUtil {
 
     Builder lBuilder = new Builder();
 
-    HashMap<CFANode, Node> lNodeMapping = new HashMap<CFANode, Node>();
+    HashMap<CFANode, Node> lNodeMapping = new HashMap<>();
 
-    LinkedList<CFANode> lWorklist = new LinkedList<CFANode>();
-    Set<CFANode> lVisitedNodes = new HashSet<CFANode>();
+    LinkedList<CFANode> lWorklist = new LinkedList<>();
+    Set<CFANode> lVisitedNodes = new HashSet<>();
 
     lWorklist.add(pInitialNode);
 
@@ -421,7 +421,7 @@ public class TargetGraphUtil {
 
     // 1) duplicate vertices
 
-    HashMap<Node, Pair<Node, Node>> lMap = new HashMap<Node, Pair<Node, Node>>();
+    HashMap<Node, Pair<Node, Node>> lMap = new HashMap<>();
 
     for (Node lNode : pTargetGraph.getNodes()) {
       Node lTrueNode = new Node(lNode);

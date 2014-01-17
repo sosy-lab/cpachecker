@@ -27,8 +27,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPGuard;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public class GuardedState {
 
@@ -47,7 +47,7 @@ public class GuardedState {
 
   public GuardedState(NondeterministicFiniteAutomaton.State pState, GuardedState pPreceedingState, Set<ECPGuard> pGuards) {
     mState = pState;
-    mGuards = new HashSet<ECPGuard>();
+    mGuards = new HashSet<>();
     mGuards.addAll(pPreceedingState.mGuards);
     mGuards.addAll(pGuards);
   }

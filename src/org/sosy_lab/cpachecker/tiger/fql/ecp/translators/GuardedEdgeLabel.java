@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPGuard;
 
 public class GuardedEdgeLabel extends GuardedLabel {
 
-  private static Map<ECPEdgeSet, Integer> mIds = new HashMap<ECPEdgeSet, Integer>();
+  private static Map<ECPEdgeSet, Integer> mIds = new HashMap<>();
 
   private final ECPEdgeSet mEdgeSet;
 

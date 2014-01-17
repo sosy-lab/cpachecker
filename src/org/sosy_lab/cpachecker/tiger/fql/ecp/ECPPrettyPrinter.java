@@ -60,8 +60,8 @@ public class ECPPrettyPrinter {
     private Map<ECPNodeSet, Integer> mNodeSetIds;
 
     public Visitor() {
-      mEdgeSetIds = new HashMap<ECPEdgeSet, Integer>();
-      mNodeSetIds = new HashMap<ECPNodeSet, Integer>();
+      mEdgeSetIds = new HashMap<>();
+      mNodeSetIds = new HashMap<>();
     }
 
     private int getEdgeSetId(ECPEdgeSet pEdgeSet) {

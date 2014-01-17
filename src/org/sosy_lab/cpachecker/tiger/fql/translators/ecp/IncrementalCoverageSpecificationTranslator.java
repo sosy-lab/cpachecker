@@ -33,13 +33,13 @@ import org.sosy_lab.cpachecker.tiger.fql.ast.coveragespecification.Concatenation
 import org.sosy_lab.cpachecker.tiger.fql.ast.coveragespecification.CoverageSpecification;
 import org.sosy_lab.cpachecker.tiger.fql.ast.coveragespecification.Quotation;
 import org.sosy_lab.cpachecker.tiger.fql.ast.coveragespecification.Union;
+import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPConcatenation;
+import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.targetgraph.Edge;
 import org.sosy_lab.cpachecker.tiger.targetgraph.Node;
 import org.sosy_lab.cpachecker.tiger.targetgraph.Occurrences;
 import org.sosy_lab.cpachecker.tiger.targetgraph.Path;
 import org.sosy_lab.cpachecker.tiger.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPConcatenation;
-import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 
 public class IncrementalCoverageSpecificationTranslator {
 
@@ -116,9 +116,9 @@ public class IncrementalCoverageSpecificationTranslator {
       public SinglePathIterator(Node pInitialNode) {
         mInitialNode = pInitialNode;
         mCurrentPattern = null;
-        mEdgeSequence = new LinkedList<Edge>();
-        mIteratorSequence = new LinkedList<Iterator<Edge>>();
-        mPatternSequence = new LinkedList<ElementaryCoveragePattern>();
+        mEdgeSequence = new LinkedList<>();
+        mIteratorSequence = new LinkedList<>();
+        mPatternSequence = new LinkedList<>();
 
         if (mTargetGraph.isFinalNode(pInitialNode)) {
           mCurrentPattern = mPathPatternTranslator.translate(new Path(pInitialNode, mEdgeSequence));

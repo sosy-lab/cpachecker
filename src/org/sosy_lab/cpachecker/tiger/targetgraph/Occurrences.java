@@ -28,7 +28,7 @@ import java.util.Map;
 
 public class Occurrences {
 
-  Map<Edge, Integer> mOccurrences = new HashMap<Edge, Integer>();
+  Map<Edge, Integer> mOccurrences = new HashMap<>();
 
   public Occurrences() {
 

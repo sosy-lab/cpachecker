@@ -34,7 +34,6 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPAtom;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPEdgeSet;
@@ -46,6 +45,7 @@ import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPUnion;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPVisitor;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.StandardECPEdgeSet;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public class ToGuardedAutomatonTranslator {
 
@@ -94,14 +94,14 @@ public class ToGuardedAutomatonTranslator {
 
     /** now we remove guarded lambda edges */
 
-    NondeterministicFiniteAutomaton<GuardedLabel> lAutomaton = new NondeterministicFiniteAutomaton<GuardedLabel>();
-    Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>();
+    NondeterministicFiniteAutomaton<GuardedLabel> lAutomaton = new NondeterministicFiniteAutomaton<>();
+    Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<>();
     lStateMap.put(lNewInitialState, lAutomaton.getInitialState());
 
-    List<NondeterministicFiniteAutomaton<GuardedLabel>.Edge> lWorklist = new LinkedList<NondeterministicFiniteAutomaton<GuardedLabel>.Edge>();
+    List<NondeterministicFiniteAutomaton<GuardedLabel>.Edge> lWorklist = new LinkedList<>();
     lWorklist.add(lInitialEdge);
 
-    Set<NondeterministicFiniteAutomaton<GuardedLabel>.Edge> lReachedEdges = new HashSet<NondeterministicFiniteAutomaton<GuardedLabel>.Edge>();
+    Set<NondeterministicFiniteAutomaton<GuardedLabel>.Edge> lReachedEdges = new HashSet<>();
 
     while (!lWorklist.isEmpty()) {
       NondeterministicFiniteAutomaton<GuardedLabel>.Edge lCurrentEdge = lWorklist.remove(0);
@@ -116,10 +116,10 @@ public class ToGuardedAutomatonTranslator {
 
       /** determine the lambda successors */
       // TODO refactor into distinguished method
-      List<GuardedState> lStatesWorklist = new LinkedList<GuardedState>();
+      List<GuardedState> lStatesWorklist = new LinkedList<>();
       lStatesWorklist.add(lInitialGuardedState);
 
-      Set<GuardedState> lReachedStates = new HashSet<GuardedState>();
+      Set<GuardedState> lReachedStates = new HashSet<>();
 
       while (!lStatesWorklist.isEmpty()) {
         GuardedState lCurrentState = lStatesWorklist.remove(0);
@@ -206,15 +206,15 @@ public class ToGuardedAutomatonTranslator {
    * @return Automaton that is only labeled with GuardedEdgeLabel objects.
    */
   public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> removeNodeSetGuards(NondeterministicFiniteAutomaton<GuardedLabel> pAutomaton) {
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = new NondeterministicFiniteAutomaton<GuardedEdgeLabel>();
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = new NondeterministicFiniteAutomaton<>();
 
-    Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>();
+    Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<>();
     lStateMap.put(pAutomaton.getInitialState(), lAutomaton.getInitialState());
 
-    List<NondeterministicFiniteAutomaton<GuardedLabel>.Edge> lWorklist = new LinkedList<NondeterministicFiniteAutomaton<GuardedLabel>.Edge>();
+    List<NondeterministicFiniteAutomaton<GuardedLabel>.Edge> lWorklist = new LinkedList<>();
     lWorklist.addAll(pAutomaton.getOutgoingEdges(pAutomaton.getInitialState()));
 
-    Set<NondeterministicFiniteAutomaton<GuardedLabel>.Edge> lReachedEdges = new HashSet<NondeterministicFiniteAutomaton<GuardedLabel>.Edge>();
+    Set<NondeterministicFiniteAutomaton<GuardedLabel>.Edge> lReachedEdges = new HashSet<>();
 
     while (!lWorklist.isEmpty()) {
       NondeterministicFiniteAutomaton<GuardedLabel>.Edge lCurrentEdge = lWorklist.remove(0);
@@ -230,7 +230,7 @@ public class ToGuardedAutomatonTranslator {
       if (lLabel.hasGuards()) {
         ECPNodeSet lNodeSet = null;
 
-        Set<ECPGuard> lRemainingGuards = new HashSet<ECPGuard>();
+        Set<ECPGuard> lRemainingGuards = new HashSet<>();
 
         for (ECPGuard lGuard : lLabel.getGuards()) {
           if (lGuard instanceof ECPNodeSet) {
@@ -255,7 +255,7 @@ public class ToGuardedAutomatonTranslator {
 
             ECPEdgeSet lCurrentEdgeSet = lEdgeLabel.getEdgeSet();
 
-            Set<CFAEdge> lRemainingCFAEdges = new HashSet<CFAEdge>();
+            Set<CFAEdge> lRemainingCFAEdges = new HashSet<>();
 
             for (CFAEdge lCFAEdge : lCurrentEdgeSet) {
               if (lNodeSet.contains(lCFAEdge.getSuccessor())) {
@@ -353,7 +353,7 @@ public class ToGuardedAutomatonTranslator {
 
   private static class Visitor implements ECPVisitor<Void> {
 
-    private static final Map<ECPAtom, GuardedLabel> sLabelCache = new HashMap<ECPAtom, GuardedLabel>();
+    private static final Map<ECPAtom, GuardedLabel> sLabelCache = new HashMap<>();
 
     private NondeterministicFiniteAutomaton<GuardedLabel> mAutomaton;
 
@@ -521,10 +521,10 @@ public class ToGuardedAutomatonTranslator {
    */
   public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> removeDeadEnds(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
     // TODO does hash set introduce nondeterminism?
-    Set<NondeterministicFiniteAutomaton.State> lClosure = new HashSet<NondeterministicFiniteAutomaton.State>();
+    Set<NondeterministicFiniteAutomaton.State> lClosure = new HashSet<>();
 
     for (NondeterministicFiniteAutomaton.State lFinalState : pAutomaton.getFinalStates()) {
-      LinkedList<NondeterministicFiniteAutomaton.State> lWorklist = new LinkedList<NondeterministicFiniteAutomaton.State>();
+      LinkedList<NondeterministicFiniteAutomaton.State> lWorklist = new LinkedList<>();
 
       lWorklist.add(lFinalState);
       lClosure.add(lFinalState);
@@ -543,10 +543,10 @@ public class ToGuardedAutomatonTranslator {
       }
     }
 
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNewAutomaton = new NondeterministicFiniteAutomaton<GuardedEdgeLabel>();
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNewAutomaton = new NondeterministicFiniteAutomaton<>();
 
     if (lClosure.contains(pAutomaton.getInitialState())) {
-      Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>();
+      Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<>();
 
       lStateMap.put(pAutomaton.getInitialState(), lNewAutomaton.getInitialState());
 
@@ -574,9 +574,9 @@ public class ToGuardedAutomatonTranslator {
   }
 
   public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> reduceEdgeSets(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNewAutomaton = new NondeterministicFiniteAutomaton<GuardedEdgeLabel>();
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNewAutomaton = new NondeterministicFiniteAutomaton<>();
 
-    Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>();
+    Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<>();
 
     lStateMap.put(pAutomaton.getInitialState(), lNewAutomaton.getInitialState());
 
@@ -609,7 +609,7 @@ public class ToGuardedAutomatonTranslator {
 
               CFANode lPredecessor = lOutgoingCFAEdge.getPredecessor();
 
-              ArrayList<CFAEdge> lIncomingCFAEdges = new ArrayList<CFAEdge>(lPredecessor.getNumEnteringEdges());
+              ArrayList<CFAEdge> lIncomingCFAEdges = new ArrayList<>(lPredecessor.getNumEnteringEdges());
 
               for (int lIndex = 0; lIndex < lPredecessor.getNumEnteringEdges(); lIndex++) {
                 CFAEdge lIncomingCFAEdge = lPredecessor.getEnteringEdge(lIndex);
@@ -649,9 +649,9 @@ public class ToGuardedAutomatonTranslator {
   }
 
   public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> removeInfeasibleTransitions(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNewAutomaton = new NondeterministicFiniteAutomaton<GuardedEdgeLabel>();
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNewAutomaton = new NondeterministicFiniteAutomaton<>();
 
-    Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>();
+    Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<>();
 
     lStateMap.put(pAutomaton.getInitialState(), lNewAutomaton.getInitialState());
 

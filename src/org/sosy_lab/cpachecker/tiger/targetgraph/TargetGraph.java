@@ -45,7 +45,7 @@ public class TargetGraph {
   private TargetGraph() {
     mInitialNodes = Collections.emptySet();
     mFinalNodes = Collections.emptySet();
-    mGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
+    mGraph = new DefaultDirectedGraph<>(Edge.class);
   }
 
   private TargetGraph(Set<Node> pInitialNodes, Set<Node> pFinalNodes, DirectedGraph<Node, Edge> pGraph) {
@@ -62,9 +62,9 @@ public class TargetGraph {
   public TargetGraph(TargetGraph pTargetGraph) {
     assert(pTargetGraph != null);
 
-    mInitialNodes = new LinkedHashSet<Node>(pTargetGraph.mInitialNodes);
-    mFinalNodes = new LinkedHashSet<Node>(pTargetGraph.mFinalNodes);
-    mGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
+    mInitialNodes = new LinkedHashSet<>(pTargetGraph.mInitialNodes);
+    mFinalNodes = new LinkedHashSet<>(pTargetGraph.mFinalNodes);
+    mGraph = new DefaultDirectedGraph<>(Edge.class);
 
     for (Node lNode : pTargetGraph.mGraph.vertexSet()) {
       mGraph.addVertex(lNode);
@@ -87,7 +87,7 @@ public class TargetGraph {
     mInitialNodes = Collections.singleton(lSourceNode);
     mFinalNodes = Collections.singleton(lTargetNode);
 
-    mGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
+    mGraph = new DefaultDirectedGraph<>(Edge.class);
 
     new Edge(lSourceNode, lTargetNode, pEdge.getCFAEdge(), mGraph);
   }
@@ -105,9 +105,9 @@ public class TargetGraph {
       throw new IllegalArgumentException();
     }
 
-    Set<Path> lPaths = new HashSet<Path>();
+    Set<Path> lPaths = new HashSet<>();
 
-    LinkedList<Edge> lPrefix = new LinkedList<Edge>();
+    LinkedList<Edge> lPrefix = new LinkedList<>();
 
     Occurrences lOccurrences = new Occurrences();
 
@@ -225,13 +225,13 @@ public class TargetGraph {
     }
 
     public Builder(TargetGraph pTargetGraph, MaskFunctor<Node, Edge> pMaskFunctor) {
-      DirectedGraph<Node, Edge> lMaskedGraph = new DirectedMaskSubgraph<Node, Edge>(pTargetGraph.mGraph, pMaskFunctor);
+      DirectedGraph<Node, Edge> lMaskedGraph = new DirectedMaskSubgraph<>(pTargetGraph.mGraph, pMaskFunctor);
       mTargetGraph = new TargetGraph(new LinkedHashSet<Node>(), new LinkedHashSet<Node>(), lMaskedGraph);
     }
 
     public Set<Edge> edges() {
       /*LinkedHashSet<Edge> lSet = new LinkedHashSet<Edge>();
-      
+
       Edge[] lEdges = new Edge[mTargetGraph.getEdges().size()];
       lEdges = mTargetGraph.getEdges().toArray(lEdges);
 

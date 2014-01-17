@@ -103,13 +103,13 @@ public class InfeasibilityPropagation {
   }*/
 
   public static Collection<CFAEdge> dfs2(CFANode pInitialCFANode, CFAEdge pForbiddenCFAEdge, Collection<CFAEdge> pTargetEdges) {
-    HashSet<CFAEdge> lFoundTargetEdges = new HashSet<CFAEdge>();
-    HashSet<CFAEdge> lTargetEdges = new HashSet<CFAEdge>(pTargetEdges);
+    HashSet<CFAEdge> lFoundTargetEdges = new HashSet<>();
+    HashSet<CFAEdge> lTargetEdges = new HashSet<>(pTargetEdges);
 
-    LinkedList<CFANode> lWorklist = new LinkedList<CFANode>();
+    LinkedList<CFANode> lWorklist = new LinkedList<>();
     lWorklist.add(pInitialCFANode);
 
-    HashSet<CFANode> lVisitedCFANodes = new HashSet<CFANode>();
+    HashSet<CFANode> lVisitedCFANodes = new HashSet<>();
 
     while (!lWorklist.isEmpty() && !lTargetEdges.isEmpty()) {
       CFANode lCurrentCFANode = lWorklist.poll();
@@ -152,7 +152,7 @@ public class InfeasibilityPropagation {
       return Pair.of(Boolean.FALSE, null);
     }
 
-    LinkedList<Edges> lSubgoals = new LinkedList<Edges>();
+    LinkedList<Edges> lSubgoals = new LinkedList<>();
 
     for (CoverageSpecification lElement : lSequence) {
       if (lElement instanceof Edges) {
@@ -259,7 +259,7 @@ public class InfeasibilityPropagation {
 
   private static class MyVisitor implements CoverageSpecificationVisitor<Void> {
 
-    LinkedList<CoverageSpecification> mSequence = new LinkedList<CoverageSpecification>();
+    LinkedList<CoverageSpecification> mSequence = new LinkedList<>();
     boolean mUseable = true;
 
     @Override

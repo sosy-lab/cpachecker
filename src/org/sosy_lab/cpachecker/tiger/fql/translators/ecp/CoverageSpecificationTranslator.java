@@ -41,14 +41,14 @@ import org.sosy_lab.cpachecker.tiger.fql.ast.coveragespecification.CoverageSpeci
 import org.sosy_lab.cpachecker.tiger.fql.ast.coveragespecification.Quotation;
 import org.sosy_lab.cpachecker.tiger.fql.ast.coveragespecification.Union;
 import org.sosy_lab.cpachecker.tiger.fql.ast.pathpattern.PathPattern;
+import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPConcatenation;
+import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPPredicate;
+import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.targetgraph.Edge;
 import org.sosy_lab.cpachecker.tiger.targetgraph.Node;
 import org.sosy_lab.cpachecker.tiger.targetgraph.Path;
 import org.sosy_lab.cpachecker.tiger.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.tiger.targetgraph.TargetGraphUtil;
-import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPConcatenation;
-import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPPredicate;
-import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 
 public class CoverageSpecificationTranslator {
 
@@ -67,7 +67,7 @@ public class CoverageSpecificationTranslator {
   public CoverageSpecificationTranslator(PathPatternTranslator pPatternTranslator) {
     mVisitor = new Visitor();
     mPathPatternTranslator = pPatternTranslator;
-    mResultCache = new HashMap<CoverageSpecification, Collection<ElementaryCoveragePattern>>();
+    mResultCache = new HashMap<>();
   }
 
   public int getOverallCacheHits() {
@@ -99,7 +99,7 @@ public class CoverageSpecificationTranslator {
         Collection<ElementaryCoveragePattern> lPrefixSet = pConcatenation.getFirstSubspecification().accept(this);
         Collection<ElementaryCoveragePattern> lSuffixSet = pConcatenation.getSecondSubspecification().accept(this);
 
-        lResultSet = new ArrayList<ElementaryCoveragePattern>(lPrefixSet.size() * lSuffixSet.size());
+        lResultSet = new ArrayList<>(lPrefixSet.size() * lSuffixSet.size());
 
         for (ElementaryCoveragePattern lPrefix : lPrefixSet) {
           for (ElementaryCoveragePattern lSuffix : lSuffixSet) {
@@ -144,7 +144,7 @@ public class CoverageSpecificationTranslator {
         Collection<ElementaryCoveragePattern> lPatterns1 = pUnion.getFirstSubspecification().accept(this);
         Collection<ElementaryCoveragePattern> lPatterns2 = pUnion.getSecondSubspecification().accept(this);
 
-        lResultSet = new ArrayList<ElementaryCoveragePattern>(lPatterns1.size() + lPatterns2.size());
+        lResultSet = new ArrayList<>(lPatterns1.size() + lPatterns2.size());
 
         lResultSet.addAll(lPatterns1);
         lResultSet.addAll(lPatterns2);
@@ -166,7 +166,7 @@ public class CoverageSpecificationTranslator {
       Collection<ElementaryCoveragePattern> lResultSet = mResultCache.get(pEdges);
 
       if (lResultSet == null) {
-        lResultSet = new ArrayList<ElementaryCoveragePattern>(lFilteredTargetGraph.getEdges().size());
+        lResultSet = new ArrayList<>(lFilteredTargetGraph.getEdges().size());
 
         for (Edge lEdge : lFilteredTargetGraph.getEdges()) {
           ElementaryCoveragePattern lPattern = mPathPatternTranslator.translate(lEdge);
@@ -190,7 +190,7 @@ public class CoverageSpecificationTranslator {
       Collection<ElementaryCoveragePattern> lResultSet = mResultCache.get(pNodes);
 
       if (lResultSet == null) {
-        lResultSet = new ArrayList<ElementaryCoveragePattern>(lFilteredTargetGraph.getNodes().size());
+        lResultSet = new ArrayList<>(lFilteredTargetGraph.getNodes().size());
 
         for (Node lNode : lFilteredTargetGraph.getNodes()) {
           lResultSet.add(mPathPatternTranslator.translate(lNode));
@@ -215,7 +215,7 @@ public class CoverageSpecificationTranslator {
       if (lResultSet == null) {
         Collection<Path> lPaths = lFilteredTargetGraph.getBoundedPaths(pPaths.getBound());
 
-        lResultSet = new ArrayList<ElementaryCoveragePattern>(lPaths.size());
+        lResultSet = new ArrayList<>(lPaths.size());
 
         for (Path lPath : lPaths) {
           lResultSet.add(mPathPatternTranslator.translate(lPath));

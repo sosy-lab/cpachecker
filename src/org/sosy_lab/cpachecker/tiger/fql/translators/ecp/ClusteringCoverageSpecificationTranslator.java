@@ -59,7 +59,7 @@ public class ClusteringCoverageSpecificationTranslator {
 
     mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(mPathPatternTranslator);
 
-    mSubgoalSequence = new ArrayList<Collection<ElementaryCoveragePattern>>(pCoverageSequence.size());
+    mSubgoalSequence = new ArrayList<>(pCoverageSequence.size());
 
     mNumberOfTestGoals = 1;
 
@@ -88,8 +88,8 @@ public class ClusteringCoverageSpecificationTranslator {
       return lCoveragePatterns; // nothing has to be done
     }
 
-    LinkedList<Iterator<ElementaryCoveragePattern>> lIteratorStack = new LinkedList<Iterator<ElementaryCoveragePattern>>();
-    LinkedList<ElementaryCoveragePattern> lPatternStack = new LinkedList<ElementaryCoveragePattern>();
+    LinkedList<Iterator<ElementaryCoveragePattern>> lIteratorStack = new LinkedList<>();
+    LinkedList<ElementaryCoveragePattern> lPatternStack = new LinkedList<>();
 
     int lCurrentStackDepth = 0;
 
@@ -99,7 +99,7 @@ public class ClusteringCoverageSpecificationTranslator {
 
     while (lCurrentStackDepth >= 0) {
       if (lCurrentStackDepth == mSubgoalSequence.size() - 1) {
-        ArrayList<ClusteredElementaryCoveragePattern> lCluster = new ArrayList<ClusteredElementaryCoveragePattern>(lClusterSize);
+        ArrayList<ClusteredElementaryCoveragePattern> lCluster = new ArrayList<>(lClusterSize);
 
         CFANode lInitialNode;
 
@@ -114,7 +114,7 @@ public class ClusteringCoverageSpecificationTranslator {
           lInitialNode = lEdgeSet.getCFAEdge().getSuccessor();
         }
 
-        LinkedList<ElementaryCoveragePattern> lSequence = new LinkedList<ElementaryCoveragePattern>();
+        LinkedList<ElementaryCoveragePattern> lSequence = new LinkedList<>();
 
         lSequence.add(mIDStar);
 

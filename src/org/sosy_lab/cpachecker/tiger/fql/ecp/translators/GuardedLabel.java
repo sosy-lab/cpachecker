@@ -43,12 +43,12 @@ public abstract class GuardedLabel implements Iterable<ECPGuard> {
       mGuards = Collections.emptySet();
     }
     else {
-      mGuards = new HashSet<ECPGuard>(pGuards);
+      mGuards = new HashSet<>(pGuards);
     }
   }
 
   public GuardedLabel(ECPGuard pGuard) {
-    mGuards = new HashSet<ECPGuard>();
+    mGuards = new HashSet<>();
     mGuards.add(pGuard);
   }
 

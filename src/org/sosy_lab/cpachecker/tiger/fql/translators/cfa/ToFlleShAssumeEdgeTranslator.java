@@ -28,9 +28,9 @@ import java.util.Map;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -39,11 +39,11 @@ import org.sosy_lab.cpachecker.util.predicates.simpleformulas.translators.c.Pred
 
 public class ToFlleShAssumeEdgeTranslator {
 
-  private static Map<String, CExpression> mExpressionCache = new HashMap<String, CExpression>();
+  private static Map<String, CExpression> mExpressionCache = new HashMap<>();
 
   public static CAssumeEdge translate(CFANode pNode, ECPPredicate pPredicate) {
 	  assert false;
-	  
+
 	  // TODO we have to adapt the translate method to provide a suitable code fragment!
     String lPredicateFunction = PredicateTranslator.translate(pPredicate.getPredicate());
 

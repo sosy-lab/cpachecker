@@ -66,7 +66,7 @@ public class ECPDominatorVisitor implements ECPVisitor<List<SingletonECPEdgeSet>
 
   @Override
   public List<SingletonECPEdgeSet> visit(ECPConcatenation pConcatenation) {
-    List<SingletonECPEdgeSet> lDominators = new LinkedList<SingletonECPEdgeSet>();
+    List<SingletonECPEdgeSet> lDominators = new LinkedList<>();
 
     for (ElementaryCoveragePattern lSubpattern : pConcatenation) {
       List<SingletonECPEdgeSet> lSubdominators = lSubpattern.accept(this);

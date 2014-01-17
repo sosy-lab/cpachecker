@@ -34,7 +34,7 @@ public class ECPConcatenation implements ElementaryCoveragePattern, Iterable<Ele
   private LinkedList<ElementaryCoveragePattern> mSubpatterns;
 
   public ECPConcatenation(ElementaryCoveragePattern pFirstSubpattern, ElementaryCoveragePattern pSecondSubpattern) {
-    mSubpatterns = new LinkedList<ElementaryCoveragePattern>();
+    mSubpatterns = new LinkedList<>();
 
     if (pFirstSubpattern instanceof ECPConcatenation) {
       ECPConcatenation lFirstSubpattern = (ECPConcatenation)pFirstSubpattern;
@@ -59,7 +59,7 @@ public class ECPConcatenation implements ElementaryCoveragePattern, Iterable<Ele
     Preconditions.checkNotNull(pSubpatterns);
     Preconditions.checkArgument(pSubpatterns.size() > 0);
 
-    mSubpatterns = new LinkedList<ElementaryCoveragePattern>();
+    mSubpatterns = new LinkedList<>();
 
     for (ElementaryCoveragePattern lSubpattern : pSubpatterns) {
       if (lSubpattern instanceof ECPConcatenation) {

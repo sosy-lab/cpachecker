@@ -41,8 +41,8 @@ public class GoalCluster {
   private Map<ElementaryCoveragePattern, Integer> mIndexMap;
 
   public GoalCluster() {
-    mClusterMap = new HashMap<ElementaryCoveragePattern, List<ElementaryCoveragePattern>>();
-    mIndexMap = new HashMap<ElementaryCoveragePattern, Integer>();
+    mClusterMap = new HashMap<>();
+    mIndexMap = new HashMap<>();
     mNode = new Node();
   }
 
@@ -86,8 +86,8 @@ public class GoalCluster {
     }
 
     private Node(int pDominatorIndex, ElementaryCoveragePattern pRepresentative, List<SingletonECPEdgeSet> pDominators) {
-      mNoDominatorCluster = new LinkedList<ElementaryCoveragePattern>();
-      mClusters = new LinkedHashMap<SingletonECPEdgeSet, List<Node>>();
+      mNoDominatorCluster = new LinkedList<>();
+      mClusters = new LinkedHashMap<>();
       mDominatorIndex = pDominatorIndex;
       mRepresentative = pRepresentative;
 
@@ -167,7 +167,7 @@ public class GoalCluster {
         if (lClusters == null) {
           Node lCluster = new Node(mDominatorIndex + 1, pPattern, pDominators);
 
-          lClusters = new LinkedList<Node>();
+          lClusters = new LinkedList<>();
           lClusters.add(lCluster);
 
           mClusters.put(lDominator, lClusters);

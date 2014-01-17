@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.tiger.fql.ecp.translators;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPNodeSet;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPPredicate;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public class AutomatonPrettyPrinter {
 
@@ -46,9 +46,9 @@ public class AutomatonPrettyPrinter {
   private Visitor mVisitor;
 
   public AutomatonPrettyPrinter() {
-    mStateIds = new HashMap<NondeterministicFiniteAutomaton.State, String>();
-    mEdgeSetIds = new HashMap<ECPEdgeSet, String>();
-    mNodeSetIds = new HashMap<ECPNodeSet, String>();
+    mStateIds = new HashMap<>();
+    mEdgeSetIds = new HashMap<>();
+    mNodeSetIds = new HashMap<>();
     mVisitor = new Visitor();
   }
 

@@ -50,7 +50,7 @@ public class StandardECPEdgeSet implements ECPEdgeSet {
     return new StandardECPEdgeSet(pCFAEdges);
   }
 
-  private Set<CFAEdge> mCFAEdges = new HashSet<CFAEdge>();
+  private Set<CFAEdge> mCFAEdges = new HashSet<>();
 
   private StandardECPEdgeSet(Collection<CFAEdge> pCFAEdges) {
     mCFAEdges.addAll(pCFAEdges);
@@ -68,7 +68,7 @@ public class StandardECPEdgeSet implements ECPEdgeSet {
 
   @Override
   public ECPEdgeSet startIn(ECPNodeSet pNodeSet) {
-    HashSet<CFAEdge> lResult = new HashSet<CFAEdge>();
+    HashSet<CFAEdge> lResult = new HashSet<>();
 
     for (CFAEdge lEdge : mCFAEdges) {
       if (pNodeSet.contains(lEdge.getPredecessor())) {
@@ -81,7 +81,7 @@ public class StandardECPEdgeSet implements ECPEdgeSet {
 
   @Override
   public ECPEdgeSet endIn(ECPNodeSet pNodeSet) {
-    HashSet<CFAEdge> lResult = new HashSet<CFAEdge>();
+    HashSet<CFAEdge> lResult = new HashSet<>();
 
     for (CFAEdge lEdge : mCFAEdges) {
       if (pNodeSet.contains(lEdge.getSuccessor())) {
@@ -111,7 +111,7 @@ public class StandardECPEdgeSet implements ECPEdgeSet {
 
     StandardECPEdgeSet lOther = (StandardECPEdgeSet)pOther;
 
-    HashSet<CFAEdge> lIntersection = new HashSet<CFAEdge>();
+    HashSet<CFAEdge> lIntersection = new HashSet<>();
     lIntersection.addAll(mCFAEdges);
     lIntersection.retainAll(lOther.mCFAEdges);
 
@@ -124,7 +124,7 @@ public class StandardECPEdgeSet implements ECPEdgeSet {
       return this;
     }
 
-    HashSet<CFAEdge> lUnion = new HashSet<CFAEdge>();
+    HashSet<CFAEdge> lUnion = new HashSet<>();
 
     if (pOther instanceof SingletonECPEdgeSet) {
       SingletonECPEdgeSet lOther = (SingletonECPEdgeSet)pOther;

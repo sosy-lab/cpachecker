@@ -59,7 +59,7 @@ public class Path implements Iterable<Edge> {
         lTmpEndNode = lEdge.getTarget();
       }
 
-      mEdges = new ArrayList<Edge>(pEdges);
+      mEdges = new ArrayList<>(pEdges);
     }
   }
 

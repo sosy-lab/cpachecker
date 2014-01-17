@@ -40,7 +40,7 @@ public class Node {
 
     mCFANode = pCFANode;
 
-    mPredicates = new ArrayList<Predicate>();
+    mPredicates = new ArrayList<>();
   }
 
   public Node(Node pNode) {
@@ -48,7 +48,7 @@ public class Node {
 
     mCFANode = pNode.mCFANode;
 
-    mPredicates = new ArrayList<Predicate>(pNode.mPredicates);
+    mPredicates = new ArrayList<>(pNode.mPredicates);
   }
 
   public void addPredicate(Predicate pPredicate) {

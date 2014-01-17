@@ -33,7 +33,7 @@ public class FilterEvaluationCache {
   private Map<TargetGraph, Map<Filter, TargetGraph>> mCache;
 
   public FilterEvaluationCache() {
-    mCache = new HashMap<TargetGraph, Map<Filter, TargetGraph>>();
+    mCache = new HashMap<>();
   }
 
   public boolean isCached(TargetGraph pTargetGraph, Filter pFilter) {

@@ -40,12 +40,6 @@ import org.sosy_lab.cpachecker.tiger.fql.ast.pathpattern.PathPattern;
 import org.sosy_lab.cpachecker.tiger.fql.ast.pathpattern.PathPatternVisitor;
 import org.sosy_lab.cpachecker.tiger.fql.ast.pathpattern.Repetition;
 import org.sosy_lab.cpachecker.tiger.fql.ast.pathpattern.Union;
-import org.sosy_lab.cpachecker.tiger.targetgraph.Edge;
-import org.sosy_lab.cpachecker.tiger.targetgraph.FilterEvaluator;
-import org.sosy_lab.cpachecker.tiger.targetgraph.Node;
-import org.sosy_lab.cpachecker.tiger.targetgraph.Path;
-import org.sosy_lab.cpachecker.tiger.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.tiger.targetgraph.TargetGraphUtil;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPNodeSet;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPPredicate;
@@ -53,6 +47,12 @@ import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPRepetition;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPUnion;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.StandardECPEdgeSet;
+import org.sosy_lab.cpachecker.tiger.targetgraph.Edge;
+import org.sosy_lab.cpachecker.tiger.targetgraph.FilterEvaluator;
+import org.sosy_lab.cpachecker.tiger.targetgraph.Node;
+import org.sosy_lab.cpachecker.tiger.targetgraph.Path;
+import org.sosy_lab.cpachecker.tiger.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.tiger.targetgraph.TargetGraphUtil;
 
 public class PathPatternTranslator {
 
@@ -170,7 +170,7 @@ public class PathPatternTranslator {
 
   private class Visitor implements PathPatternVisitor<ElementaryCoveragePattern> {
 
-    private final HashMap<PathPattern, ElementaryCoveragePattern> mResultCache = new HashMap<PathPattern, ElementaryCoveragePattern>();
+    private final HashMap<PathPattern, ElementaryCoveragePattern> mResultCache = new HashMap<>();
 
     public int mCacheHits = 0;
     public int mCacheMisses = 0;
@@ -241,9 +241,9 @@ public class PathPatternTranslator {
       if (lPattern == null) {
         TargetGraph lFilteredTargetGraph = mFilterEvaluator.evaluate(pEdges.getFilter());
 
-        Set<CFAEdge> lCFAEdges = new HashSet<CFAEdge>();
+        Set<CFAEdge> lCFAEdges = new HashSet<>();
 
-        Set<ElementaryCoveragePattern> lToBeUnited = new HashSet<ElementaryCoveragePattern>();
+        Set<ElementaryCoveragePattern> lToBeUnited = new HashSet<>();
 
         for (Edge lEdge : lFilteredTargetGraph.getEdges()) {
           if (!lEdge.getSource().getPredicates().isEmpty() || !lEdge.getTarget().getPredicates().isEmpty()) {
@@ -278,9 +278,9 @@ public class PathPatternTranslator {
       if (lPattern == null) {
         TargetGraph lFilteredTargetGraph = mFilterEvaluator.evaluate(pNodes.getFilter());
 
-        Set<CFANode> lCFANodes = new HashSet<CFANode>();
+        Set<CFANode> lCFANodes = new HashSet<>();
 
-        Set<ElementaryCoveragePattern> lToBeUnited = new HashSet<ElementaryCoveragePattern>();
+        Set<ElementaryCoveragePattern> lToBeUnited = new HashSet<>();
 
         for (Node lNode : lFilteredTargetGraph.getNodes()) {
           if (!lNode.getPredicates().isEmpty()) {
@@ -320,7 +320,7 @@ public class PathPatternTranslator {
           return ECPNodeSet.EMPTY_NODE_SET;
         }
 
-        ArrayList<ElementaryCoveragePattern> lToBeUnited = new ArrayList<ElementaryCoveragePattern>(lPaths.size());
+        ArrayList<ElementaryCoveragePattern> lToBeUnited = new ArrayList<>(lPaths.size());
 
         for (Path lPath : lFilteredTargetGraph.getBoundedPaths(pPaths.getBound())) {
           lToBeUnited.add(translate(lPath));

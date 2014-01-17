@@ -31,7 +31,7 @@ public class ECPUnion implements ElementaryCoveragePattern , Iterable<Elementary
   private LinkedList<ElementaryCoveragePattern> mSubpatterns;
 
   public ECPUnion(ElementaryCoveragePattern pFirstSubpattern, ElementaryCoveragePattern pSecondSubpattern) {
-    mSubpatterns = new LinkedList<ElementaryCoveragePattern>();
+    mSubpatterns = new LinkedList<>();
 
     if (pFirstSubpattern instanceof ECPUnion) {
       ECPUnion lFirstSubpattern = (ECPUnion)pFirstSubpattern;

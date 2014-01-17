@@ -40,7 +40,7 @@ public class BasicBlockEntryMaskFunctor implements MaskFunctor<Node, Edge> {
   public BasicBlockEntryMaskFunctor(Set<CFAEdge> pBasicBlockEntries) {
     mBasicBlockEntries = pBasicBlockEntries;
 
-    mCFANodes = new HashSet<CFANode>();
+    mCFANodes = new HashSet<>();
 
     for (CFAEdge lCFAEdge : mBasicBlockEntries) {
       mCFANodes.add(lCFAEdge.getPredecessor());
