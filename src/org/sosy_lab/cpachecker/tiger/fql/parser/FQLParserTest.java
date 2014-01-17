@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.tiger.fql.parser;
 
 import java.io.StringReader;
 
+import org.junit.Assert;
 import org.junit.Test;
-
 
 public class FQLParserTest {
 
@@ -44,7 +44,7 @@ public class FQLParserTest {
 
     System.out.println("RESULT: " + lResult.toString());
 
-    assert lResult.toString().equals("COVER EDGES(@BASICBLOCKENTRY)");
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(@BASICBLOCKENTRY)");
   }
 
   @Test
@@ -59,7 +59,7 @@ public class FQLParserTest {
 
     System.out.println("RESULT: " + lResult.toString());
 
-    assert lResult.toString().equals("COVER EDGES(@CONDITIONEDGE)");
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(@CONDITIONEDGE)");
   }
 
   @Test
@@ -74,7 +74,7 @@ public class FQLParserTest {
 
     System.out.println("RESULT: " + lResult.toString());
 
-    assert lResult.toString().equals("COVER EDGES(@DECISIONEDGE)");
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(@DECISIONEDGE)");
   }
 
   @Test
@@ -89,7 +89,7 @@ public class FQLParserTest {
 
     System.out.println("RESULT: " + lResult.toString());
 
-    assert lResult.toString().equals("COVER EDGES(@CONDITIONGRAPH)");
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(@CONDITIONGRAPH)");
   }
 
   @Test
@@ -104,7 +104,7 @@ public class FQLParserTest {
 
     System.out.println("RESULT: " + lResult.toString());
 
-    assert lResult.toString().equals("COVER EDGES(ID)");
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(ID)");
   }
 
   @Test
@@ -119,7 +119,7 @@ public class FQLParserTest {
 
     System.out.println("RESULT: " + lResult.toString());
 
-    assert lResult.toString().equals("COVER EDGES(COMPLEMENT(@BASICBLOCKENTRY))");
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(COMPLEMENT(@BASICBLOCKENTRY))");
   }
 
   @Test
@@ -134,7 +134,7 @@ public class FQLParserTest {
 
     System.out.println("RESULT: " + lResult.toString());
 
-    assert lResult.toString().equals("COVER EDGES(INTERSECT(@BASICBLOCKENTRY, @CONDITIONEDGE))");
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(INTERSECT(@BASICBLOCKENTRY, @CONDITIONEDGE))");
   }
 
   @Test
@@ -149,7 +149,7 @@ public class FQLParserTest {
 
     System.out.println("RESULT: " + lResult.toString());
 
-    assert lResult.toString().equals("COVER EDGES(UNION(@BASICBLOCKENTRY, @CONDITIONEDGE))");
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(UNION(@BASICBLOCKENTRY, @CONDITIONEDGE))");
   }
 
   @Test
@@ -164,7 +164,7 @@ public class FQLParserTest {
 
     System.out.println("RESULT: " + lResult.toString());
 
-    assert lResult.toString().equals("COVER \"EDGES(ID)*\"");
+    Assert.assertEquals(lResult.toString(), "COVER \"EDGES(ID)*\"");
   }
 
   @Test
@@ -179,7 +179,7 @@ public class FQLParserTest {
 
     System.out.println("RESULT: " + lResult.toString());
 
-    assert lResult.toString().equals("COVER (\"EDGES(ID)*\".EDGES(@CALL(f))).\"EDGES(ID)*\"");
+    Assert.assertEquals(lResult.toString(), "COVER (\"EDGES(ID)*\".EDGES(@CALL(f))).\"EDGES(ID)*\"");
   }
 
   @Test
@@ -194,7 +194,7 @@ public class FQLParserTest {
 
     System.out.println("RESULT: " + lResult.toString());
 
-    assert lResult.toString().equals("COVER (\"EDGES(ID)*\".NODES(@CALL(f))).\"EDGES(ID)*\"");
+    Assert.assertEquals(lResult.toString(), "COVER (\"EDGES(ID)*\".NODES(@CALL(f))).\"EDGES(ID)*\"");
   }
 
   @Test
@@ -209,7 +209,7 @@ public class FQLParserTest {
 
     System.out.println("RESULT: " + lResult.toString());
 
-    assert lResult.toString().equals("COVER (\"EDGES(ID)*\".PATHS(@CALL(f), 2)).\"EDGES(ID)*\"");
+    Assert.assertEquals(lResult.toString(), "COVER (\"EDGES(ID)*\".PATHS(@CALL(f), 2)).\"EDGES(ID)*\"");
   }
 
   @Test
@@ -224,7 +224,7 @@ public class FQLParserTest {
 
     System.out.println("RESULT: " + lResult.toString());
 
-    assert lResult.toString().equals("COVER ((\"NODES(ID)*\".{ x > 10 }).EDGES(@CALL(f))).\"PATHS(ID, 5)*\"");
+    Assert.assertEquals(lResult.toString(), "COVER ((\"NODES(ID)*\".{ x > 10 }).EDGES(@CALL(f))).\"PATHS(ID, 5)*\"");
   }
 
   @Test
@@ -239,7 +239,7 @@ public class FQLParserTest {
 
     System.out.println("RESULT: " + lResult.toString());
 
-    assert lResult.toString().equals("COVER ((\"NODES(COMPOSE(ID, @FILE('source.c')))*\".{ x > 10 }).EDGES(COMPOSE(@CALL(f), @FILE('source.c')))).\"PATHS(COMPOSE(ID, @FILE('source.c')), 5)*\"");
+    Assert.assertEquals(lResult.toString(), "COVER ((\"NODES(COMPOSE(ID, @FILE('source.c')))*\".{ x > 10 }).EDGES(COMPOSE(@CALL(f), @FILE('source.c')))).\"PATHS(COMPOSE(ID, @FILE('source.c')), 5)*\"");
   }
 
   @Test
@@ -254,7 +254,7 @@ public class FQLParserTest {
 
     System.out.println("RESULT: " + lResult.toString());
 
-    assert lResult.toString().equals("COVER ((\"NODES(COMPOSE(ID, PRED(@FILE('source.c'), { y > 100 })))*\".{ x > 10 }).EDGES(COMPOSE(@CALL(f), PRED(@FILE('source.c'), { y > 100 })))).\"PATHS(COMPOSE(ID, PRED(@FILE('source.c'), { y > 100 })), 5)*\"");
+    Assert.assertEquals(lResult.toString(), "COVER ((\"NODES(COMPOSE(ID, PRED(@FILE('source.c'), { y > 100 })))*\".{ x > 10 }).EDGES(COMPOSE(@CALL(f), PRED(@FILE('source.c'), { y > 100 })))).\"PATHS(COMPOSE(ID, PRED(@FILE('source.c'), { y > 100 })), 5)*\"");
   }
 
 }
