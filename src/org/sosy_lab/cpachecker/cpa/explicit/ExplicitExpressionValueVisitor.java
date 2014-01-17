@@ -52,8 +52,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
 /**
- * This Visitor returns the value from an expression.
- * The result may be null, i.e., the value is unknown.
+ * This Visitor extends the {@link AbstractExplicitExpressionValueVisitor}
+ * with functionality that requires an {@link ExplicitState} to evaluate the expression.
+ *
+ * For instance, variables occurring in the expression will be replaced by their
+ * current value in the ExplicitState.
  */
 public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionValueVisitor {
 

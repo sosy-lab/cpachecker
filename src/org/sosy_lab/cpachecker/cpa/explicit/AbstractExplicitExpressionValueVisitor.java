@@ -106,6 +106,9 @@ import com.google.common.primitives.UnsignedLongs;
  *
  * Furthermore, the visitor abstracts from using abstract states
  * to get values stored in the memory of a program.
+ *
+ * This Visitor does not use an ExplicitState to evaluate variables occurring
+ * inside an expression. For that, see {@link ExplicitExpressionValueVisitor}.
  */
 public abstract class AbstractExplicitExpressionValueVisitor
     extends DefaultCExpressionVisitor<NumberContainer, UnrecognizedCCodeException>
