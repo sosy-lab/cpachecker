@@ -58,7 +58,7 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
     return false;
   }
 
-  private boolean stop(CompositeState compositeState, CompositeState compositeReachedState, CompositePrecision compositePrecision) throws CPAException, InterruptedException {
+  protected boolean stop(CompositeState compositeState, CompositeState compositeReachedState, CompositePrecision compositePrecision) throws CPAException, InterruptedException {
     List<AbstractState> compositeElements = compositeState.getWrappedStates();
     List<AbstractState> compositeReachedStates = compositeReachedState.getWrappedStates();
 

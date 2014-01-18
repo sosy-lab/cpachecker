@@ -33,7 +33,7 @@ public class AssumeEdge extends AbstractCFAEdge {
   private final boolean truthAssumption;
   protected final IAExpression expression;
 
-  protected AssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
+  public AssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
       CFANode pSuccessor, IAExpression pExpression, boolean pTruthAssumption) {
 
     super("[" + pRawStatement + "]", pLineNumber, pPredecessor, pSuccessor);
