@@ -64,6 +64,7 @@ public class DefaultOptions {
       allowedOptions.put("log.usedOptions.export", "false");
       allowedOptions.put("log.level", "OFF");
       allowedOptions.put("log.truncateSize", "10000");
+      allowedOptions.put("limits.time.wall", "-1");
     }
     return allowedOptions;
   }

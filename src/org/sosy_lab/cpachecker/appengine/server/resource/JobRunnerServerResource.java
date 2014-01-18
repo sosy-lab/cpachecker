@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.appengine.server.common.JobRunnerResource;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.appengine.api.ThreadManager;
 import com.google.common.base.Charsets;
@@ -97,6 +98,10 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
 
     // TODO use and register appropriate notifier
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
+
+    ResourceLimitChecker limits = null;
+    limits = ResourceLimitChecker.fromConfiguration(config, logManager, shutdownNotifier);
+    limits.start();
 
     CPAchecker cpaChecker = new CPAchecker(config, logManager, shutdownNotifier);
     result = cpaChecker.run("program.c");
@@ -177,7 +182,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
   private void dumpLog() {
     if (logDumped) { return; }
 
-    if (outputEnabled && logHandler != null) {
+    if (config.getProperty("statistics.export").equals("true") && logHandler != null) {
       if (logLevel != null && logLevel.intValue() > 0) {
         logHandler.flushAndClose();
         logDumped = true;
