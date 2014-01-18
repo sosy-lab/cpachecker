@@ -45,6 +45,8 @@ import resource
 import signal
 import subprocess
 import threading
+import json
+import urllib2
 
 from benchmark.benchmarkDataStructures import *
 from benchmark.runexecutor import RunExecutor
@@ -63,6 +65,13 @@ DEFAULT_CLOUD_MEMLIMIT = None
 DEFAULT_CLOUD_MEMORY_REQUIREMENT = 15000 # MB
 DEFAULT_CLOUD_CPUCORE_REQUIREMENT = 1 # one core
 DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
+
+DEFAULT_APPENGINE_URI = 'http://dev.ba-cpa-lab.appspot.com'
+DEFAULT_APPENGINE_POLLINTERVAL = 15 # seconds
+DEFAULT_APPENGINE_TIMELIMIT = 540 # seconds (== 9 minutes)
+APPENGINE_SUBMITTER_THREAD = None
+APPENGINE_POLLER_THREAD = None
+APPENGINE_JOB_IDS = []
 
 # next lines are needed for stopping the script
 WORKER_THREADS = []
@@ -151,6 +160,67 @@ class Worker(threading.Thread):
         # the worker will stop asap, but not within this method.
         self.runExecutor.kill()
 
+class AppEngineSubmitter(threading.Thread):
+    def __init__(self, runDefinitions, benchmark):
+        threading.Thread.__init__(self)
+        self.runDefinitions = runDefinitions
+        self.benchmark = benchmark
+        self.submittedJobs = 0
+
+    def run(self):
+        for run in self.runDefinitions:
+            args = run['args']
+            with open(run['sourcefile'], 'r') as f:
+                args['programText'] = f.read()
+            
+            uri = config.appengineURI+'/jobs'
+            data = json.dumps(args)
+            headers = {'Content-type':'application/json', 'Accept':'application/json'}
+            try:
+                request = urllib2.Request(uri, data, headers)
+                response = urllib2.urlopen(request)
+                jobID = response.info()['Location'][len(uri)+1:]
+                APPENGINE_JOB_IDS.append(jobID)
+                self.submittedJobs += 1
+            except urllib2.HTTPError as e:
+                args['programText'] = run['sourcefile']
+                errorArgs = json.dumps(args)
+                logging.warn('Run could not be submitted. HTTP Error: {0}: {1}, Reason: {2}, Args: {3}'.format(e.code, e.reason, json.loads(e.read()), errorArgs))
+            except:
+                sys.exit('Error while submitting jobs. {0}'.format(sys.exc_info()[0]))
+                
+class AppEnginePoller(threading.Thread):
+    def __init__(self, benchmark):
+        threading.Thread.__init__(self)
+        self.benchmark = benchmark
+        self.nextJobIndex = 0
+    
+    def run(self):
+        # FIXME make this whole loop a lot nicer
+        while True:
+            if len(APPENGINE_JOB_IDS) > 0:
+                try:
+                    #with open(os.path.join(self.benchmark.logFolder, 'jobs.txt'), 'r+') as f:
+                    #jobID = f.readline().rstrip()
+                    jobID = APPENGINE_JOB_IDS[self.nextJobIndex]
+                    uri = config.appengineURI+'/jobs/'+jobID
+                    headers = {'Accept':'application/json'}
+                    request = urllib2.Request(uri, headers=headers)
+                    response = json.loads(urllib2.urlopen(request).read())
+                    if not response['status'] == 'RUNNING':
+                        # TODO save result (stats)
+                        self.nextJobIndex += 1
+                    else:
+                        time.sleep(config.appenginePollInterval)
+                except urllib2.HTTPError as e:
+                    sys.exit('Server error while polling job results. {0}'.format(e.reason))
+                except:
+                    sys.exit('Error while polling jobs. {0}'.format(sys.exc_info()[0]))
+            else:
+                time.sleep(config.appenginePollInterval)
+                
+            if self.nextJobIndex == len(APPENGINE_JOB_IDS):
+                break
 
 def executeBenchmarkLocaly(benchmark, outputHandler):
     
@@ -282,6 +352,46 @@ def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
         logging.warning("Host information file not found: " + filePath)
     return runToHostMap
 
+def parseArgsForAppEngine(args, absWorkingDir):
+    
+    appengineArgs = {}
+    options = {}
+    # TODO log.level
+    for arg in args:
+        if '-noout' == arg:
+            options['output.disable'] = True
+        elif '-stats' == arg:
+            options['statistics.export'] = True
+        elif '-32' == arg:
+            options['analysis.machineModel'] = 'Linux32'
+        elif '-64' == arg:
+            options['analysis.machineModel'] = 'Linux64'
+        elif '-printUsedOptions' == arg:
+            options['log.usedOptions.export'] = True
+        elif '-nolog' == arg:
+            options['log.level'] = 'OFF'
+        elif '-config' == arg:
+            conf = args[args.index('-config')+1]
+            conf = conf if conf.endswith('.properties') else '{0}.properties'.format(conf)
+            if os.path.isfile(os.path.join(absWorkingDir, 'config', conf)):
+                appengineArgs['configuration'] = conf
+            else:
+                sys.exit('Given configuration file {0} is not a valid file.'.format(conf))  
+        elif '-spec' == arg:
+            spec = args[args.index('-spec')+1]
+            spec = spec if spec.endswith('.spc') else '{0}.spc'.format(spec)
+            if os.path.isfile(os.path.join(absWorkingDir, 'config/specification', spec)):
+                appengineArgs['specification'] = spec
+            else:
+                sys.exit('Given specification file {0} is not a valid file.'.format(spec))
+        elif arg.startswith('-'):
+            if not 'configuration' in appengineArgs:
+                argName = arg[1:]
+                if os.path.isfile(os.path.join(absWorkingDir, 'config', argName + '.properties')):
+                    appengineArgs['configuration'] = argName+'.properties'
+    
+    appengineArgs['options'] = options
+    return appengineArgs
 
 def toTabList(l):
     return "\t".join(map(str, l))
@@ -336,7 +446,7 @@ def getToolDataForCloud(benchmark):
 
     workingDir = benchmark.workingDirectory()
     if not os.path.isdir(workingDir):
-        sys.exit("Missing working directory {0}, cannot run tool.", format(workingDir))
+        sys.exit("Missing working directory {0}, cannot run tool.".format(workingDir))
     logging.debug("Working dir: " + workingDir)
 
     toolpaths = benchmark.requiredFiles()
@@ -464,6 +574,42 @@ def handleCloudResults(benchmark, outputHandler):
         logging.warning("Some runs produced unexpected warnings on stderr, please check the {0} files!"
                         .format(os.path.join(outputDir, '*.stdError')))
 
+def getBenchmarkDataForAppEngine(benchmark):
+    # TODO default CPU model??
+    cpuModel = benchmark.requirements.cpuModel
+    
+    timeLimit = benchmark.rlimits.get(TIMELIMIT, DEFAULT_APPENGINE_TIMELIMIT)
+    if timeLimit > DEFAULT_APPENGINE_TIMELIMIT:
+        logging.warn('Given timelimit is too large for App Engine. Using %i seconds instead.'%DEFAULT_APPENGINE_TIMELIMIT)
+        timeLimit = DEFAULT_APPENGINE_TIMELIMIT
+
+    numberOfRuns = sum(len(runSet.runs) for runSet in benchmark.runSets if runSet.shouldBeExecuted())
+    
+    workingDir = benchmark.workingDirectory()
+    if not os.path.isdir(workingDir):
+        sys.exit("Missing working directory {0}, cannot run tool.".format(workingDir))
+    absWorkingDir = os.path.abspath(workingDir)
+    
+    sourceFiles = []
+    runDefinitions = []
+    for runSet in benchmark.runSets:
+        if not runSet.shouldBeExecuted(): continue
+        if STOPPED_BY_INTERRUPT: break
+
+        for run in runSet.runs:
+            logFile = os.path.relpath(run.logFile, benchmark.logFolder)
+            args = parseArgsForAppEngine(run.getCmdline()[1:-1], absWorkingDir)
+            args['options']['limits.time.wall'] = str(timeLimit)+'s'
+            runDefinitions.append({'args':args,
+                                   'debug':config.debug,
+                                   'maxLogfileSize':config.maxLogfileSize,
+                                   'sourcefile':os.path.join(absWorkingDir, run.sourcefile),
+                                   'logFile':logFile})
+            sourceFiles.append(run.sourcefile)
+
+    if not sourceFiles: sys.exit("Benchmark has nothing to run.")
+    
+    return (cpuModel, timeLimit, numberOfRuns, runDefinitions, sourceFiles, absWorkingDir)
 
 def executeBenchmarkInCloud(benchmark, outputHandler):
 
@@ -506,6 +652,28 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
 
     return returnCode
 
+def executeBenchmarkInAppengine(benchmark, outputHandler):
+    (cpuModel, timeLimit, numberOfRuns, runDefinitions, sourceFiles, absWorkingDir) = getBenchmarkDataForAppEngine(benchmark)
+    
+    # this also acts as warm-up request which sets the App Engine server instance up
+    logging.debug('Checking availability of {0}.'.format(config.appengineURI))
+    try:
+        urllib2.urlopen(config.appengineURI)
+        logging.debug('URI is available.')
+    except urllib2.URLError as e:
+        sys.exit('The URI {0} is not available. Error: {1}'.format(config.appengineURI, e.reason))
+    
+    # submit jobs    
+    APPENGINE_SUBMITTER_THREAD = AppEngineSubmitter(runDefinitions, benchmark)
+    APPENGINE_SUBMITTER_THREAD.start()
+    
+    # poll jobs
+    APPENGINE_POLLER_THREAD = AppEnginePoller(benchmark)
+    APPENGINE_POLLER_THREAD.start()
+    APPENGINE_POLLER_THREAD.join()
+    
+    # TODO handle result
+
 
 def executeBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile, config, OUTPUT_PATH)
@@ -516,6 +684,8 @@ def executeBenchmark(benchmarkFile):
 
     if config.cloud:
         return executeBenchmarkInCloud(benchmark, outputHandler)
+    if config.appengine:
+        return executeBenchmarkInAppengine(benchmark, outputHandler)
     else:
         return executeBenchmarkLocaly(benchmark, outputHandler)
 
@@ -626,6 +796,25 @@ def main(argv=None):
                       dest="maxLogfileSize", type=int, default=20,
                       metavar="SIZE",
                       help="Shrink logfiles to SIZE in MB, if they are too big. (-1 to disable, default value: 20 MB).")
+    
+    parser.add_argument("--appengine",
+                      dest="appengine",
+                      action="store_true",
+                      help="Use Google App Engine to execute benchmarks.")
+    
+    parser.add_argument("--appengineURI",
+                      dest="appengineURI",
+                      metavar="URI",
+                      default=DEFAULT_APPENGINE_URI,
+                      type=str,
+                      help="Sets the URI to use when submitting jobs to App Engine.")
+    
+    parser.add_argument("--appenginePollInterval",
+                      dest="appenginePollInterval",
+                      metavar="INTERVAL",
+                      default=DEFAULT_APPENGINE_POLLINTERVAL,
+                      type=int,
+                      help="Sets the interval in seconds after which App Engine is polled for results.")
 
     global config, OUTPUT_PATH
     config = parser.parse_args(argv[1:])
@@ -645,7 +834,7 @@ def main(argv=None):
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
 
-    if not config.cloud:
+    if not config.cloud and not config.appengine:
         try:
             processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
             if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
@@ -688,6 +877,15 @@ def killScriptCloud():
 
         # kill cloud-client, should be done automatically, when the subprocess is aborted
 
+def killScriptAppEngine():
+    global STOPPED_BY_INTERRUPT
+    STOPPED_BY_INTERRUPT = True
+    
+    Util.printOut("Killing threads...")
+    if not APPENGINE_SUBMITTER_THREAD == None: 
+        APPENGINE_SUBMITTER_THREAD.stop()
+    if not APPENGINE_POLLER_THREAD == None: 
+        APPENGINE_POLLER_THREAD.stop()
 
 def signal_handler_ignore(signum, frame):
     logging.warn('Received signal %d, ignoring it' % signum)
@@ -700,6 +898,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt: # this block is reached, when interrupt is thrown before or after a run set execution
         if config.cloud:
             killScriptCloud()
+        if config.appengine:
+            killScriptAppEngine()
         else:
             killScriptLocal()
         Util.printOut("\n\nScript was interrupted by user, some runs may not be done.")
