@@ -29,7 +29,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import org.sosy_lab.cpachecker.tiger.FShell3Result;
+import org.sosy_lab.cpachecker.tiger.TigerResult;
 
 public class Experiment {
 
@@ -61,7 +61,7 @@ public class Experiment {
     mWriter.println(pFileName + ";" + pFQLSpecification + ";" + pProgramEntry + ";" + pCILPreprocessing + ";"+ pNumberOfTestGoals + ";" + pNumberOfFeasibleTestGoals + ";" + pNumberOfInfeasibleTestGoals + ";" + pNumberOfTestCases + ";" + pNumberOfInpreciseTestCases + ";" + pTime + ";" + pTimeInReach + ";" + pTimeInCover + ";" + pTimeForFeasibleTestGoals + ";" + pTimeForInfeasibleTestGoals);
   }
 
-  public void addExperiment(String pFileName, String pFQLSpecification, String pProgramEntry, boolean pCILPreprocessing, FShell3Result pResult, double pTime) {
+  public void addExperiment(String pFileName, String pFQLSpecification, String pProgramEntry, boolean pCILPreprocessing, TigerResult pResult, double pTime) {
     addExperiment(pFileName, pFQLSpecification, pProgramEntry, pCILPreprocessing, pResult.getNumberOfTestGoals(), pResult.getNumberOfFeasibleTestGoals(), pResult.getNumberOfInfeasibleTestGoals(), pResult.getNumberOfTestCases(), pResult.getNumberOfImpreciseTestCases(), pTime, pResult.getTimeInReach(), pResult.getTimeInCover(), pResult.getTimeForFeasibleTestGoals(), pResult.getTimeForInfeasibleTestGoals());
   }
 

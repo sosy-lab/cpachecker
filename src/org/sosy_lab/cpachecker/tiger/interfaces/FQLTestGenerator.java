@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.tiger.interfaces;
 
-import org.sosy_lab.cpachecker.tiger.FShell3Result;
+import org.sosy_lab.cpachecker.tiger.TigerResult;
 
 public interface FQLTestGenerator {
 
-  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating);
+  public TigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating);
 
 }

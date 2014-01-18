@@ -80,7 +80,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPPredicate;
-import org.sosy_lab.cpachecker.tiger.fql.translators.cfa.ToFlleShAssumeEdgeTranslator;
+import org.sosy_lab.cpachecker.tiger.fql.translators.cfa.ToTigerAssumeEdgeTranslator;
 
 public class InterpreterTransferRelation implements TransferRelation {
 
@@ -1704,7 +1704,7 @@ public class InterpreterTransferRelation implements TransferRelation {
     AbstractState lResultElement = pElement;
 
     for (ECPPredicate lPredicate : pAutomatonElement) {
-      AssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
+      AssumeEdge lEdge = ToTigerAssumeEdgeTranslator.translate(pNode, lPredicate);
 
       try {
         Collection<? extends AbstractState> lResult = getAbstractSuccessors(lResultElement, pPrecision, lEdge);

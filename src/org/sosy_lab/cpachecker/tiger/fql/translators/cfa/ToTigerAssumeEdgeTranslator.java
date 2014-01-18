@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.util.predicates.simpleformulas.translators.c.PredicateTranslator;
 
-public class ToFlleShAssumeEdgeTranslator {
+public class ToTigerAssumeEdgeTranslator {
 
   private static Map<String, CExpression> mExpressionCache = new HashMap<>();
 

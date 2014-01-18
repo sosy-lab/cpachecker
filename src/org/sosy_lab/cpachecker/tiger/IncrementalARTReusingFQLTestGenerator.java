@@ -204,10 +204,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     FunctionEntryNode lMainFunction;
 
     try {
-      mConfiguration = FShell3.createConfiguration(pSourceFileName, pEntryFunction);
+      mConfiguration = Tiger.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new BasicLogManager(mConfiguration);
 
-      lCFAMap = FShell3.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
+      lCFAMap = Tiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -293,7 +293,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   }
 
   @Override
-  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
+  public TigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
     return run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck, pPedantic);
   }
 
@@ -342,7 +342,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     return pAutomaton;
   }
 
-  private boolean applyCoverageCheck(Goal pGoal, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pGoalAutomaton, GuardedEdgeAutomatonCPA pPassingCPA, FShell3Result.Factory pResultFactory) {
+  private boolean applyCoverageCheck(Goal pGoal, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pGoalAutomaton, GuardedEdgeAutomatonCPA pPassingCPA, TigerResult.Factory pResultFactory) {
     for (Map.Entry<TestCase, CFAEdge[]> lGeneratedTestCase : mGeneratedTestCases.entrySet()) {
       TestCase lTestCase = lGeneratedTestCase.getKey();
 
@@ -351,7 +351,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         continue; // don't use imprecise test cases for coverage
       }
 
-      ThreeValuedAnswer lCoverageAnswer = FShell3.accepts(pGoalAutomaton, lGeneratedTestCase.getValue());
+      ThreeValuedAnswer lCoverageAnswer = Tiger.accepts(pGoalAutomaton, lGeneratedTestCase.getValue());
 
       if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
         pResultFactory.addFeasibleTestCase(pGoal.getPattern(), lTestCase);
@@ -387,7 +387,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     return false;
   }
 
-  private FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
+  private TigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
 
     int lNumberOfTestGoals;
 
@@ -486,7 +486,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     ReachedSet lGraphReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.DFS);
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lPreviousGraphGoalAutomaton = null;
 
-    FShell3Result.Factory lResultFactory = FShell3Result.factory();
+    TigerResult.Factory lResultFactory = TigerResult.factory();
 
     int lIndex = 0;
 
@@ -800,7 +800,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     //System.out.println("#abstraction elements: " + mPredicateCPA.getAbstractionElementFactory().getNumberOfCreatedAbstractionElements());
     //System.out.println("#nonabstraction elements: " + NonabstractionElement.INSTANCES);
 
-    FShell3Result lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
+    TigerResult lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
 
     /*if (lResult.getNumberOfTestGoals() != lNumberOfTestGoals) {
       throw new RuntimeException();
@@ -821,7 +821,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     return lResult;
   }
 
-  private void printStatistics(FShell3Result.Factory pResultFactory) {
+  private void printStatistics(TigerResult.Factory pResultFactory) {
     mOutput.println("Generated Test Cases:");
 
     for (TestCase lTestCase : pResultFactory.getTestCases()) {

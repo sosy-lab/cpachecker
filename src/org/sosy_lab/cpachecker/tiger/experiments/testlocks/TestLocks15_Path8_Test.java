@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.tiger.experiments.testlocks;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.tiger.FShell3Result;
+import org.sosy_lab.cpachecker.tiger.TigerResult;
 import org.sosy_lab.cpachecker.tiger.Main;
 import org.sosy_lab.cpachecker.tiger.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
@@ -39,7 +39,7 @@ public class TestLocks15_Path8_Test extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    FShell3Result lResult = execute(lArguments);
+    TigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(121, lResult.getNumberOfTestGoals());
     Assert.assertEquals(73, lResult.getNumberOfFeasibleTestGoals());

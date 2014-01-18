@@ -35,8 +35,8 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.tiger.FShell3;
-import org.sosy_lab.cpachecker.tiger.FShell3Result;
+import org.sosy_lab.cpachecker.tiger.Tiger;
+import org.sosy_lab.cpachecker.tiger.TigerResult;
 
 public class NondetToInput {
 
@@ -294,10 +294,10 @@ public class NondetToInput {
 
     System.out.println(lTestSuite);
 
-    FShell3 lFShell3 = new FShell3(pSourceFile, pEntryFunction);
+    Tiger lFShell3 = new Tiger(pSourceFile, pEntryFunction);
     lFShell3.seed(lTestSuite);
     //FShell3Result lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");
-    FShell3Result lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");
+    TigerResult lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");
 
     System.out.println("#Goals: " + lResult.getNumberOfTestGoals() + ", #Feas: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Imprecise: " + lResult.getNumberOfImpreciseTestCases());
   }

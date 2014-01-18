@@ -65,7 +65,7 @@ import com.google.common.base.Joiner;
  * -> Handle enormous amounts of test goals.
  */
 
-public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
+public class Tiger implements FQLTestGenerator, FQLCoverageAnalyser {
 
   /*private final NonincrementalFQLTestGenerator mNonincrementalTestGenerator;
   private final IncrementalFQLTestGenerator mIncrementalTestGenerator;
@@ -85,7 +85,7 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   private long mRestartBound = 100000000; // 100 MB
   private PrintStream mOutput = System.out;
 
-  public FShell3(String pSourceFileName, String pEntryFunction) {
+  public Tiger(String pSourceFileName, String pEntryFunction) {
     /*mNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalTestGenerator = new IncrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalAndAlternatingTestGenerator = new IncrementalAndAlternatingFQLTestGenerator(pSourceFileName, pEntryFunction);
@@ -144,12 +144,12 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
     mIncrementalARTReusingTestGenerator.seed(pTestSuite);
   }
 
-  public FShell3Result run(String pFQLSpecification) {
+  public TigerResult run(String pFQLSpecification) {
     return run(pFQLSpecification, true, false, false, false, true, false);
   }
 
   @Override
-  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
+  public TigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
     mOutput.println(pFQLSpecification);
 
     /*if (pGenerateTestGoalAutomataInAdvance) {
@@ -225,7 +225,7 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
             mIncrementalARTReusingTestGenerator.setRestartBound(mRestartBound);
           }
 
-          FShell3Result lResult = mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+          TigerResult lResult = mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
 
           if (mDoLogging) {
             ((LoggingTestSuite)lTestSuite).close();
@@ -335,7 +335,7 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   }
 
   public static Configuration createConfiguration(String pSourceFile, String pEntryFunction) throws InvalidConfigurationException {
-    File lPropertiesFile = FShell3.createPropertiesFile(pEntryFunction);
+    File lPropertiesFile = Tiger.createPropertiesFile(pEntryFunction);
     return createConfiguration(Collections.singletonList(pSourceFile), lPropertiesFile.getAbsolutePath());
   }
 

@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.tiger.FShell3;
+import org.sosy_lab.cpachecker.tiger.Tiger;
 import org.sosy_lab.cpachecker.tiger.cfa.Wrapper;
 
 public class InterpreterCPATest {
@@ -101,10 +101,10 @@ public class InterpreterCPATest {
     FunctionEntryNode lMainFunction;
 
     try {
-      lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
+      lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new BasicLogManager(lConfiguration);
 
-      lCFAMap = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
+      lCFAMap = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
       lMainFunction = lCFAMap.get(lEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -193,10 +193,10 @@ public class InterpreterCPATest {
     FunctionEntryNode lMainFunction;
 
     try {
-      lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
+      lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new BasicLogManager(lConfiguration);
 
-      lCFAMap = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
+      lCFAMap = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
       lMainFunction = lCFAMap.get(lEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -284,10 +284,10 @@ public class InterpreterCPATest {
     FunctionEntryNode lMainFunction;
 
     try {
-      lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
+      lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new BasicLogManager(lConfiguration);
 
-      lCFAMap = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
+      lCFAMap = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
       lMainFunction = lCFAMap.get(lEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -375,10 +375,10 @@ public class InterpreterCPATest {
     FunctionEntryNode lMainFunction;
 
     try {
-      lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
+      lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new BasicLogManager(lConfiguration);
 
-      lCFAMap = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
+      lCFAMap = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
       lMainFunction = lCFAMap.get(lEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);

@@ -114,10 +114,10 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     FunctionEntryNode lMainFunction;
 
     try {
-      mConfiguration = FShell3.createConfiguration(pSourceFileName, pEntryFunction);
+      mConfiguration = Tiger.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new BasicLogManager(mConfiguration);
 
-      lCFAMap = FShell3.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
+      lCFAMap = Tiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -205,11 +205,11 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
   }
 
   @Override
-  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
+  public TigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
     return run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck, pPedantic);
   }
 
-  private FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
+  private TigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
     // Parse FQL Specification
     FQLSpecification lFQLSpecification;
     try {
@@ -230,7 +230,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     System.out.println("Cache hits (2): " + mCoverageSpecificationTranslator.getOverallCacheHits());
     System.out.println("Cache misses (2): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
 
-    FShell3Result.Factory lResultFactory = FShell3Result.factory();
+    TigerResult.Factory lResultFactory = TigerResult.factory();
 
     GuardedEdgeAutomatonCPA lPassingCPA = null;
 
@@ -288,7 +288,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
             throw new RuntimeException();
           }
 
-          ThreeValuedAnswer lCoverageAnswer = FShell3.accepts(lGoalAutomaton3, lGeneratedTestCase.getValue());
+          ThreeValuedAnswer lCoverageAnswer = Tiger.accepts(lGoalAutomaton3, lGeneratedTestCase.getValue());
 
           if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
             lIsCovered = true;
@@ -424,7 +424,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     //System.out.println("#abstraction elements: " + mPredicateCPA.getAbstractionElementFactory().getNumberOfCreatedAbstractionElements());
     //System.out.println("#nonabstraction elements: " + NonabstractionElement.INSTANCES);
 
-    FShell3Result lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
+    TigerResult lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
 
     /*if (lResult.getNumberOfTestGoals() != lNumberOfTestGoals) {
       throw new RuntimeException();
