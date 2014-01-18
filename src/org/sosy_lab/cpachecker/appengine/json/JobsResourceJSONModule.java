@@ -70,7 +70,7 @@ public class JobsResourceJSONModule extends SimpleModule {
           case "options":
             if ((token = parser.nextToken()) == JsonToken.START_OBJECT) {
               DefaultOptions options = new DefaultOptions();
-              while (parser.nextValue() == JsonToken.VALUE_STRING) {
+              while (parser.nextValue() != JsonToken.END_OBJECT) {
                 options.setOption(parser.getCurrentName(), parser.getValueAsString());
               }
               settings.put("options", options.getUsedOptions());
