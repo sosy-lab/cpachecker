@@ -91,13 +91,6 @@
               <input type="checkbox" name="logUsedOptions" id="logUsedOptions" value="log.usedOptions.export"> ${msg.logUsedOptions}
             </label>
           </div>
-<#--
-          <div class="checkbox">
-            <label for="usePreprocessor" class="control-label">
-              <input type="checkbox" name="usePreprocessor" id="usePreprocessor" value="parser.usePreprocessor"> ${msg.usePreprocessor}
-            </label>
-          </div>
--->
           <div class="form-group">
             <label for="logLevel" class="control-label">${msg.logLevel}</label>
             <select name="logLevel" id="logLevel" class="form-control input-sm">
