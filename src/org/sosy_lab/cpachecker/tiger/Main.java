@@ -139,7 +139,7 @@ public class Main {
       }
     }
 
-    Tiger lFShell = new Tiger(lSourceFileName, lEntryFunction);
+    CPATiger lFShell = new CPATiger(lSourceFileName, lEntryFunction);
 
     lFShell.setOutput(lOutput);
     lFShell.setGoalIndices(lMinIndex, lMaxIndex);

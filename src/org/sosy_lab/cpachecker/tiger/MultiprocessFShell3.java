@@ -268,10 +268,10 @@ public class MultiprocessFShell3 {
     FunctionEntryNode lMainFunction;
 
     try {
-      Configuration mConfiguration = Tiger.createConfiguration(pSourceFile, pEntryFunction);
+      Configuration mConfiguration = CPATiger.createConfiguration(pSourceFile, pEntryFunction);
       LogManager mLogManager = new BasicLogManager(mConfiguration);
 
-      lCFAMap = Tiger.getCFAMap(pSourceFile, mConfiguration, mLogManager);
+      lCFAMap = CPATiger.getCFAMap(pSourceFile, mConfiguration, mLogManager);
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);

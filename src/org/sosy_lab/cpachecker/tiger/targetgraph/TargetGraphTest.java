@@ -36,7 +36,7 @@ import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.tiger.Tiger;
+import org.sosy_lab.cpachecker.tiger.CPATiger;
 import org.sosy_lab.cpachecker.tiger.fql.ast.Predicate;
 import org.sosy_lab.cpachecker.tiger.fql.ast.filter.ConditionEdge;
 import org.sosy_lab.cpachecker.tiger.fql.ast.filter.Filter;
@@ -58,11 +58,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -75,11 +75,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -98,11 +98,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -121,11 +121,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -146,11 +146,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -174,11 +174,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -195,11 +195,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -216,11 +216,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -241,11 +241,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -264,11 +264,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -306,11 +306,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -334,11 +334,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -367,11 +367,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -395,11 +395,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -428,11 +428,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -461,11 +461,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -494,11 +494,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -529,11 +529,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -546,11 +546,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -574,11 +574,11 @@ public class TargetGraphTest {
 
     String lEntryFunction = "foo";
 
-    Configuration lConfiguration = Tiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = Tiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 

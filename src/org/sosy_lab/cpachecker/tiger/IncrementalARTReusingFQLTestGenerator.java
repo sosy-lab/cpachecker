@@ -204,10 +204,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     FunctionEntryNode lMainFunction;
 
     try {
-      mConfiguration = Tiger.createConfiguration(pSourceFileName, pEntryFunction);
+      mConfiguration = CPATiger.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new BasicLogManager(mConfiguration);
 
-      lCFAMap = Tiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
+      lCFAMap = CPATiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -351,7 +351,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         continue; // don't use imprecise test cases for coverage
       }
 
-      ThreeValuedAnswer lCoverageAnswer = Tiger.accepts(pGoalAutomaton, lGeneratedTestCase.getValue());
+      ThreeValuedAnswer lCoverageAnswer = CPATiger.accepts(pGoalAutomaton, lGeneratedTestCase.getValue());
 
       if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
         pResultFactory.addFeasibleTestCase(pGoal.getPattern(), lTestCase);

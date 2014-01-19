@@ -114,10 +114,10 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     FunctionEntryNode lMainFunction;
 
     try {
-      mConfiguration = Tiger.createConfiguration(pSourceFileName, pEntryFunction);
+      mConfiguration = CPATiger.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new BasicLogManager(mConfiguration);
 
-      lCFAMap = Tiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
+      lCFAMap = CPATiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -288,7 +288,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
             throw new RuntimeException();
           }
 
-          ThreeValuedAnswer lCoverageAnswer = Tiger.accepts(lGoalAutomaton3, lGeneratedTestCase.getValue());
+          ThreeValuedAnswer lCoverageAnswer = CPATiger.accepts(lGoalAutomaton3, lGeneratedTestCase.getValue());
 
           if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
             lIsCovered = true;

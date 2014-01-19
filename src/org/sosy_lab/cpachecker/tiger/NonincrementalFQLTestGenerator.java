@@ -112,10 +112,10 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     FunctionEntryNode lMainFunction;
 
     try {
-      mConfiguration = Tiger.createConfiguration(pSourceFileName, pEntryFunction);
+      mConfiguration = CPATiger.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new BasicLogManager(mConfiguration);
 
-      lCFAMap = Tiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
+      lCFAMap = CPATiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -462,7 +462,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     // check whether remaining goals are subsumed by current counter example
     for (Goal lOpenGoal : pGoals) {
       // is goal subsumed by structural path?
-      ThreeValuedAnswer lAcceptanceAnswer = Tiger.accepts(lOpenGoal.getAutomaton(), lCFAPath);
+      ThreeValuedAnswer lAcceptanceAnswer = CPATiger.accepts(lOpenGoal.getAutomaton(), lCFAPath);
 
       if (lAcceptanceAnswer == ThreeValuedAnswer.ACCEPT) {
         // test case satisfies goal

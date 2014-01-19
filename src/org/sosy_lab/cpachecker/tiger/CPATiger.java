@@ -65,7 +65,7 @@ import com.google.common.base.Joiner;
  * -> Handle enormous amounts of test goals.
  */
 
-public class Tiger implements FQLTestGenerator, FQLCoverageAnalyser {
+public class CPATiger implements FQLTestGenerator, FQLCoverageAnalyser {
 
   /*private final NonincrementalFQLTestGenerator mNonincrementalTestGenerator;
   private final IncrementalFQLTestGenerator mIncrementalTestGenerator;
@@ -85,7 +85,7 @@ public class Tiger implements FQLTestGenerator, FQLCoverageAnalyser {
   private long mRestartBound = 100000000; // 100 MB
   private PrintStream mOutput = System.out;
 
-  public Tiger(String pSourceFileName, String pEntryFunction) {
+  public CPATiger(String pSourceFileName, String pEntryFunction) {
     /*mNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalTestGenerator = new IncrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalAndAlternatingTestGenerator = new IncrementalAndAlternatingFQLTestGenerator(pSourceFileName, pEntryFunction);
@@ -335,7 +335,7 @@ public class Tiger implements FQLTestGenerator, FQLCoverageAnalyser {
   }
 
   public static Configuration createConfiguration(String pSourceFile, String pEntryFunction) throws InvalidConfigurationException {
-    File lPropertiesFile = Tiger.createPropertiesFile(pEntryFunction);
+    File lPropertiesFile = CPATiger.createPropertiesFile(pEntryFunction);
     return createConfiguration(Collections.singletonList(pSourceFile), lPropertiesFile.getAbsolutePath());
   }
 

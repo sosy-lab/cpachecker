@@ -27,7 +27,7 @@ import java.util.LinkedList;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.tiger.Tiger;
+import org.sosy_lab.cpachecker.tiger.CPATiger;
 import org.sosy_lab.cpachecker.tiger.TigerResult;
 import org.sosy_lab.cpachecker.tiger.Main;
 import org.sosy_lab.cpachecker.tiger.PredefinedCoverageCriteria;
@@ -86,7 +86,7 @@ public class BasicBlockCoverage extends ExperimentalSeries {
 
   @Test
   public void test_locks_101a() throws Exception {
-    Tiger lFlleSh = new Tiger("test/programs/fql/locks/test_locks_5.c", "main");
+    CPATiger lFlleSh = new CPATiger("test/programs/fql/locks/test_locks_5.c", "main");
 
     LinkedList<TestCase> lTestSuite = new LinkedList<>();
 
