@@ -101,6 +101,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.explicit.NumberContainer;
 import org.sosy_lab.cpachecker.cpa.explicit.SMGExplicitCommunicator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.AssumeVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.LValueAssignmentVisitor;
@@ -1787,13 +1788,13 @@ public class SMGTransferRelation implements TransferRelation {
 
     long truthValue = pMissingInformation.getTruthAssumption() ? 1 : 0;
 
-    Long value =
+    NumberContainer value =
         resolveAssumptionValue(oldState,
             pExplicitState,
             pMissingInformation.getMissingCExpressionInformation(),
             edge);
 
-    if (value != null && value != truthValue) {
+    if (value != null && value.equals(new NumberContainer(truthValue))) {
       return null;
     } else {
       hasChanged = true;
@@ -1801,7 +1802,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
   }
 
-  private Long resolveAssumptionValue(SMGState pSmgState, ExplicitState pExplicitState,
+  private NumberContainer resolveAssumptionValue(SMGState pSmgState, ExplicitState pExplicitState,
       CRightHandSide rValue, CFAEdge edge) throws UnrecognizedCCodeException {
 
     String functionName = edge.getPredecessor().getFunctionName();
@@ -1866,7 +1867,7 @@ public class SMGTransferRelation implements TransferRelation {
       SMGExplicitCommunicator cc = new SMGExplicitCommunicator(explicitState, functionName,
           pState, machineModel, logger, pCfaEdge);
 
-      Long value = cc.evaluateExpression(pRValue);
+      NumberContainer value = cc.evaluateExpression(pRValue);
 
       if (value == null) {
         return SMGUnknownValue.getInstance();
@@ -2099,21 +2100,26 @@ public class SMGTransferRelation implements TransferRelation {
     /**
      * A symbolic value representing an explicit value.
      */
-    private final BigInteger value;
+    private final BigDecimal value;
 
     private SMGKnownValue(BigInteger pValue) {
       checkNotNull(pValue);
-      value = pValue;
+      value = new BigDecimal(pValue);
     }
 
     private SMGKnownValue(long pValue) {
       checkNotNull(pValue);
-      value = BigInteger.valueOf(pValue);
+      value = BigDecimal.valueOf(pValue);
     }
 
     private SMGKnownValue(int pValue) {
       checkNotNull(pValue);
-      value = BigInteger.valueOf(pValue);
+      value = BigDecimal.valueOf(pValue);
+    }
+
+    private SMGKnownValue(BigDecimal pValue) {
+      checkNotNull(pValue);
+      value = pValue;
     }
 
     @Override
@@ -2142,7 +2148,7 @@ public class SMGTransferRelation implements TransferRelation {
       return result * 31 + c;
     }
 
-    public final BigInteger getValue() {
+    public final BigDecimal getValue() {
       return value;
     }
 
@@ -2175,6 +2181,10 @@ public class SMGTransferRelation implements TransferRelation {
     public static final SMGKnownSymValue FALSE = ZERO;
 
     private SMGKnownSymValue(BigInteger pValue) {
+      super(pValue);
+    }
+
+    private SMGKnownSymValue(BigDecimal pValue) {
       super(pValue);
     }
 
@@ -2240,6 +2250,10 @@ public class SMGTransferRelation implements TransferRelation {
     public static final SMGKnownExpValue ZERO = new SMGKnownExpValue(BigInteger.ZERO);
 
     private SMGKnownExpValue(BigInteger pValue) {
+      super(pValue);
+    }
+
+    private SMGKnownExpValue(BigDecimal pValue) {
       super(pValue);
     }
 
@@ -2355,6 +2369,28 @@ public class SMGTransferRelation implements TransferRelation {
         return ONE;
       } else {
         return new SMGKnownExpValue(BigInteger.valueOf(pValue));
+      }
+    }
+
+    public static final SMGKnownExpValue valueOf(NumberContainer pValue) {
+
+      if (pValue.bigDecimalValue().equals(new BigDecimal("0"))) {
+        return ZERO;
+      } else if (pValue.bigDecimalValue().equals(new BigDecimal("1"))) {
+        return ONE;
+      } else {
+        return new SMGKnownExpValue(pValue.bigDecimalValue());
+      }
+    }
+
+    public static final SMGKnownExpValue valueOf(BigDecimal pValue) {
+
+      if (pValue.equals(new BigDecimal("0"))) {
+        return ZERO;
+      } else if (pValue.equals(new BigDecimal("1"))) {
+        return ONE;
+      } else {
+        return new SMGKnownExpValue(pValue);
       }
     }
 
@@ -2537,6 +2573,12 @@ public class SMGTransferRelation implements TransferRelation {
     private final SMGKnownAddress address;
 
     private SMGKnownAddVal(BigInteger pValue, SMGKnownAddress pAddress) {
+      super(pValue);
+      checkNotNull(pAddress);
+      address = pAddress;
+    }
+
+    private SMGKnownAddVal(BigDecimal pValue, SMGKnownAddress pAddress) {
       super(pValue);
       checkNotNull(pAddress);
       address = pAddress;
