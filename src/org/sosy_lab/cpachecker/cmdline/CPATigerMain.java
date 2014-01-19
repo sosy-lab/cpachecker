@@ -45,11 +45,10 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
-import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
-import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
+import org.sosy_lab.cpachecker.tiger.CPAtiger;
+import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
@@ -86,8 +85,7 @@ public class CPATigerMain {
 
     // create everything
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
-    CPAchecker cpachecker = null;
-    ProofGenerator proofGenerator = null;
+    CPAtiger cpatiger = null;
     ResourceLimitChecker limits = null;
     MainOptions options = new MainOptions();
     try {
@@ -100,8 +98,8 @@ public class CPATigerMain {
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownNotifier);
       limits.start();
 
-      cpachecker = new CPAchecker(cpaConfig, logManager, shutdownNotifier);
-      proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
+      cpatiger = new CPAtiger(options.programs, "main");
+      //cpachecker = new CPAchecker(cpaConfig, logManager, shutdownNotifier);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
@@ -119,7 +117,8 @@ public class CPATigerMain {
     shutdownNotifier.register(forcedExitOnShutdown);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(options.programs);
+    CPAtigerResult result = cpatiger.run("");
+    //CPAcheckerResult result = cpachecker.run(options.programs);
 
     // We want to print the statistics completely now that we have come so far,
     // so we disable all the limits, shutdown hooks, etc.
@@ -128,9 +127,6 @@ public class CPATigerMain {
     ForceTerminationOnShutdown.cancelPendingTermination();
     limits.cancel();
     Thread.interrupted(); // clear interrupted flag
-
-    // generated proof (if enabled)
-    proofGenerator.generateProof(result);
 
     printResultAndStatistics(result, outputDirectory, options, logManager);
 
@@ -256,7 +252,7 @@ public class CPATigerMain {
   }
 
   @SuppressWarnings("deprecation")
-  private static void printResultAndStatistics(CPAcheckerResult mResult,
+  private static void printResultAndStatistics(CPAtigerResult mResult,
       String outputDirectory, MainOptions options, LogManager logManager) {
 
     // setup output streams
@@ -276,14 +272,16 @@ public class CPATigerMain {
 
     try {
       // print statistics
-      mResult.printStatistics(stream);
+      // TODO implement
+      //mResult.printStatistics(stream);
       stream.println();
 
       // print result
       if (!options.printStatistics) {
         stream = makePrintStream(mergeStreams(System.out, file)); // ensure that result is printed to System.out
       }
-      mResult.printResult(stream);
+      // TODO implement
+      //mResult.printResult(stream);
 
       if (outputDirectory != null) {
         stream.println("More details about the verification run can be found in the directory \"" + outputDirectory + "\".");
