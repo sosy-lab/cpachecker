@@ -31,7 +31,7 @@ import java.util.LinkedList;
 
 import org.sosy_lab.cpachecker.tiger.testcases.TestSuite;
 
-public class RestartingFShell3 {
+public class CPAtigerRestarting {
 
   public static void main(String[] args) throws IOException, InterruptedException {
     String lCoverageSpecification = args[0];

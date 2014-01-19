@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.tiger.experiments.ntdrivers.simplified.distribut
 import java.util.LinkedList;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.tiger.MultiprocessFShell3;
+import org.sosy_lab.cpachecker.tiger.CPAtigerParallelized;
 import org.sosy_lab.cpachecker.tiger.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
 
@@ -46,7 +46,7 @@ public class Floppy003_BB_Test extends ExperimentalSeries {
     String[] lArgs = new String[lArguments.size()];
     lArguments.toArray(lArgs);
 
-    MultiprocessFShell3.main(lArgs);
+    CPAtigerParallelized.main(lArgs);
   }
 
 }

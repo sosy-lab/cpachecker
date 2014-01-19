@@ -185,10 +185,10 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     FunctionEntryNode lMainFunction;
 
     try {
-      mConfiguration = CPATiger.createConfiguration(pSourceFileName, pEntryFunction);
+      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new BasicLogManager(mConfiguration);
 
-      lCFAMap = CPATiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
+      lCFAMap = CPAtiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -345,7 +345,7 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
           }
         }
 
-        ThreeValuedAnswer lCoverageAnswer = CPATiger.accepts(lGoal.getAutomaton(), lCFAPath);
+        ThreeValuedAnswer lCoverageAnswer = CPAtiger.accepts(lGoal.getAutomaton(), lCFAPath);
 
         if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
           lIsCovered = true;

@@ -27,7 +27,7 @@ import java.util.LinkedList;
 
 import org.junit.Test;
 import org.sosy_lab.cpachecker.tiger.PredefinedCoverageCriteria;
-import org.sosy_lab.cpachecker.tiger.RestartingFShell3;
+import org.sosy_lab.cpachecker.tiger.CPAtigerRestarting;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
 
 public class Floppy001_BB2_Test extends ExperimentalSeries {
@@ -47,7 +47,7 @@ String lCFile = "floppy_simpl3_BUG.cil.c";
     String[] lArgs = new String[lArguments.size()];
     lArguments.toArray(lArgs);
 
-    RestartingFShell3.main(lArgs);
+    CPAtigerRestarting.main(lArgs);
   }
 
 }

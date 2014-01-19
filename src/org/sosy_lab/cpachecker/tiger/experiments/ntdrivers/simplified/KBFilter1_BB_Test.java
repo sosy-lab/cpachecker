@@ -27,7 +27,7 @@ import java.util.LinkedList;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.tiger.CPATigerResult;
+import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
 
@@ -49,7 +49,7 @@ public class KBFilter1_BB_Test extends ExperimentalSeries {
     String[] lArgs = new String[lArguments.size()];
     lArguments.toArray(lArgs);
 
-    CPATigerResult lResult = execute(lArgs);
+    CPAtigerResult lResult = execute(lArgs);
 
     Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());

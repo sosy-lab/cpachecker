@@ -32,7 +32,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.sosy_lab.common.TimeAccumulator;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.tiger.CPATigerResult;
+import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.Main;
 
 import com.google.common.base.Preconditions;
@@ -60,14 +60,14 @@ public abstract class ExperimentalSeries {
     mExperiment = null;
   }
 
-  public CPATigerResult execute(String[] pArguments) throws IOException, InvalidConfigurationException {
+  public CPAtigerResult execute(String[] pArguments) throws IOException, InvalidConfigurationException {
     Preconditions.checkNotNull(pArguments);
 
     TimeAccumulator lTime = new TimeAccumulator();
 
     lTime.proceed();
 
-    CPATigerResult lResult = Main.run(pArguments);
+    CPAtigerResult lResult = Main.run(pArguments);
 
     lTime.pause();
 

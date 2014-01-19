@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.tiger.CPATiger;
+import org.sosy_lab.cpachecker.tiger.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.cilly.Cilly;
 import org.sosy_lab.cpachecker.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPPrettyPrinter;
@@ -73,11 +73,11 @@ public class PathPatternTranslatorTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -112,11 +112,11 @@ public class PathPatternTranslatorTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -151,11 +151,11 @@ public class PathPatternTranslatorTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -190,11 +190,11 @@ public class PathPatternTranslatorTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPATiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPATiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 

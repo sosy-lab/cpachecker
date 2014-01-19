@@ -122,10 +122,10 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
     FunctionEntryNode lMainFunction;
 
     try {
-      mConfiguration = CPATiger.createConfiguration(pSourceFileName, pEntryFunction);
+      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new BasicLogManager(mConfiguration);
 
-      lCFAMap = CPATiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
+      lCFAMap = CPAtiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -213,7 +213,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
   }
 
   @Override
-  public CPATigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
+  public CPAtigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
     return run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck, pPedantic);
   }
 
@@ -402,7 +402,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
     }
   }
 
-  private CPATigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
+  private CPAtigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
     // Parse FQL Specification
     FQLSpecification lFQLSpecification;
     try {
@@ -423,7 +423,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
     System.out.println("Cache hits (2): " + mCoverageSpecificationTranslator.getOverallCacheHits());
     System.out.println("Cache misses (2): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
 
-    CPATigerResult.Factory lResultFactory = CPATigerResult.factory();
+    CPAtigerResult.Factory lResultFactory = CPAtigerResult.factory();
 
     // TODO change to ProgressCPA
     GuardedEdgeAutomatonCPA lPassingCPA = null;
@@ -475,7 +475,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
             throw new RuntimeException();
           }
 
-          ThreeValuedAnswer lCoverageAnswer = CPATiger.accepts(lGoal.getAutomaton(), lGeneratedTestCase.getValue());
+          ThreeValuedAnswer lCoverageAnswer = CPAtiger.accepts(lGoal.getAutomaton(), lGeneratedTestCase.getValue());
 
           if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
             lIsCovered = true;
@@ -563,7 +563,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
     System.out.println("Time in reach: " + mTimeInReach.getSeconds());
     System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
 
-    CPATigerResult lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
+    CPAtigerResult lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
 
     System.out.println("Generated Test Cases:");
 

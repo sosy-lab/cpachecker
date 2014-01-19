@@ -113,10 +113,10 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     FunctionEntryNode lMainFunction;
 
     try {
-      mConfiguration = CPATiger.createConfiguration(pSourceFileName, pEntryFunction);
+      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new BasicLogManager(mConfiguration);
 
-      lCFAMap = CPATiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
+      lCFAMap = CPAtiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -198,11 +198,11 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
   }
 
   @Override
-  public CPATigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
+  public CPAtigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
     return run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation);
   }
 
-  private CPATigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation) {
+  private CPAtigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation) {
     // Parse FQL Specification
     FQLSpecification lFQLSpecification;
     try {
@@ -221,7 +221,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
 
     System.out.println("Number of test goals: " + lTask.getNumberOfTestGoals());
 
-    CPATigerResult.Factory lResultFactory = CPATigerResult.factory();
+    CPAtigerResult.Factory lResultFactory = CPAtigerResult.factory();
 
     GuardedEdgeAutomatonCPA lPassingCPA = null;
 
@@ -447,7 +447,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     return lRefiner.getCounterexampleTraceInfo();*/
   }
 
-  private void removeCoveredGoals(Deque<Goal> pGoals, CPATigerResult.Factory pResultFactory, TestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) throws ImpreciseExecutionException {
+  private void removeCoveredGoals(Deque<Goal> pGoals, CPAtigerResult.Factory pResultFactory, TestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) throws ImpreciseExecutionException {
     // a) determine cfa path
     CFAEdge[] lCFAPath;
     try {
@@ -463,7 +463,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     // check whether remaining goals are subsumed by current counter example
     for (Goal lOpenGoal : pGoals) {
       // is goal subsumed by structural path?
-      ThreeValuedAnswer lAcceptanceAnswer = CPATiger.accepts(lOpenGoal.getAutomaton(), lCFAPath);
+      ThreeValuedAnswer lAcceptanceAnswer = CPAtiger.accepts(lOpenGoal.getAutomaton(), lCFAPath);
 
       if (lAcceptanceAnswer == ThreeValuedAnswer.ACCEPT) {
         // test case satisfies goal

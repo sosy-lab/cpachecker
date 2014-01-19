@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.CoverageSpecificationTr
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.tiger.testcases.TestSuite;
 
-public class MultiprocessFShell3 {
+public class CPAtigerParallelized {
 
   public static class CommunicatingJob implements Runnable {
 
@@ -151,7 +151,7 @@ public class MultiprocessFShell3 {
         }
 
         try {
-          RestartingFShell3.main(lArguments);
+          CPAtigerRestarting.main(lArguments);
         } catch (IOException e) {
           // TODO Auto-generated catch block
           e.printStackTrace();
@@ -195,7 +195,7 @@ public class MultiprocessFShell3 {
     lGlobalTestsuite.write(pGlobalTestsuite);
   }
 
-  public static class FShell3Runnable implements Runnable {
+  public static class CPAtigerRunnable implements Runnable {
 
     private final String mCoverageSpecification;
     private final String mSourceFile;
@@ -204,11 +204,11 @@ public class MultiprocessFShell3 {
     private final int mMaxGoalIndex;
     private final String mInitialTestsuite;
 
-    public FShell3Runnable(String pCoverageSpecification, String pSourceFile, String pEntryFunction, int pMinGoalIndex, int pMaxGoalIndex) {
+    public CPAtigerRunnable(String pCoverageSpecification, String pSourceFile, String pEntryFunction, int pMinGoalIndex, int pMaxGoalIndex) {
       this(pCoverageSpecification, pSourceFile, pEntryFunction, pMinGoalIndex, pMaxGoalIndex, null);
     }
 
-    public FShell3Runnable(String pCoverageSpecification, String pSourceFile, String pEntryFunction, int pMinGoalIndex, int pMaxGoalIndex, String pInitialTestsuite) {
+    public CPAtigerRunnable(String pCoverageSpecification, String pSourceFile, String pEntryFunction, int pMinGoalIndex, int pMaxGoalIndex, String pInitialTestsuite) {
       mCoverageSpecification = pCoverageSpecification;
       mSourceFile = pSourceFile;
       mEntryFunction = pEntryFunction;
@@ -239,7 +239,7 @@ public class MultiprocessFShell3 {
       }
 
       try {
-        RestartingFShell3.main(lArguments);
+        CPAtigerRestarting.main(lArguments);
       } catch (IOException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
@@ -268,10 +268,10 @@ public class MultiprocessFShell3 {
     FunctionEntryNode lMainFunction;
 
     try {
-      Configuration mConfiguration = CPATiger.createConfiguration(pSourceFile, pEntryFunction);
+      Configuration mConfiguration = CPAtiger.createConfiguration(pSourceFile, pEntryFunction);
       LogManager mLogManager = new BasicLogManager(mConfiguration);
 
-      lCFAMap = CPATiger.getCFAMap(pSourceFile, mConfiguration, mLogManager);
+      lCFAMap = CPAtiger.getCFAMap(pSourceFile, mConfiguration, mLogManager);
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);

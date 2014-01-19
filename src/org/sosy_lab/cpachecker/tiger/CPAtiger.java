@@ -66,7 +66,7 @@ import com.google.common.base.Joiner;
  * -> Handle enormous amounts of test goals.
  */
 
-public class CPATiger implements FQLTestGenerator, FQLCoverageAnalyser {
+public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
 
   /*private final NonincrementalFQLTestGenerator mNonincrementalTestGenerator;
   private final IncrementalFQLTestGenerator mIncrementalTestGenerator;
@@ -86,7 +86,7 @@ public class CPATiger implements FQLTestGenerator, FQLCoverageAnalyser {
   private long mRestartBound = 100000000; // 100 MB
   private PrintStream mOutput = System.out;
 
-  public CPATiger(String pSourceFileName, String pEntryFunction) {
+  public CPAtiger(String pSourceFileName, String pEntryFunction) {
     /*mNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalTestGenerator = new IncrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalAndAlternatingTestGenerator = new IncrementalAndAlternatingFQLTestGenerator(pSourceFileName, pEntryFunction);
@@ -145,12 +145,12 @@ public class CPATiger implements FQLTestGenerator, FQLCoverageAnalyser {
     mIncrementalARTReusingTestGenerator.seed(pTestSuite);
   }
 
-  public CPATigerResult run(String pFQLSpecification) {
+  public CPAtigerResult run(String pFQLSpecification) {
     return run(pFQLSpecification, true, false, false, false, true, false);
   }
 
   @Override
-  public CPATigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
+  public CPAtigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
     mOutput.println(pFQLSpecification);
 
     /*if (pGenerateTestGoalAutomataInAdvance) {
@@ -226,7 +226,7 @@ public class CPATiger implements FQLTestGenerator, FQLCoverageAnalyser {
             mIncrementalARTReusingTestGenerator.setRestartBound(mRestartBound);
           }
 
-          CPATigerResult lResult = mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+          CPAtigerResult lResult = mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
 
           if (mDoLogging) {
             ((LoggingTestSuite)lTestSuite).close();
@@ -336,7 +336,7 @@ public class CPATiger implements FQLTestGenerator, FQLCoverageAnalyser {
   }
 
   public static Configuration createConfiguration(String pSourceFile, String pEntryFunction) throws InvalidConfigurationException {
-    File lPropertiesFile = CPATiger.createPropertiesFile(pEntryFunction);
+    File lPropertiesFile = CPAtiger.createPropertiesFile(pEntryFunction);
     return createConfiguration(Collections.singletonList(pSourceFile), lPropertiesFile.getAbsolutePath());
   }
 

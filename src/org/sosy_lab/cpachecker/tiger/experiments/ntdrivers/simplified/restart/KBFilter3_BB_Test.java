@@ -27,7 +27,7 @@ import java.util.LinkedList;
 
 import org.junit.Test;
 import org.sosy_lab.cpachecker.tiger.PredefinedCoverageCriteria;
-import org.sosy_lab.cpachecker.tiger.RestartingFShell3;
+import org.sosy_lab.cpachecker.tiger.CPAtigerRestarting;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
 
 public class KBFilter3_BB_Test extends ExperimentalSeries {
@@ -47,6 +47,6 @@ public class KBFilter3_BB_Test extends ExperimentalSeries {
     String[] lArgs = new String[lArguments.size()];
     lArguments.toArray(lArgs);
 
-    RestartingFShell3.main(lArgs);
+    CPAtigerRestarting.main(lArgs);
   }
 }

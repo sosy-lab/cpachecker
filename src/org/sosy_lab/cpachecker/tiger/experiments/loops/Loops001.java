@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.tiger.experiments.loops;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.tiger.CPATigerResult;
+import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.Main;
 import org.sosy_lab.cpachecker.tiger.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
@@ -41,7 +41,7 @@ public class Loops001 extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    CPATigerResult lResult = execute(lArguments);
+    CPAtigerResult lResult = execute(lArguments);
 
     // Summary successor has 0 entering CFA edges ... we can not determine an omega edge, but, all test goals are infeasible anyways!
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());

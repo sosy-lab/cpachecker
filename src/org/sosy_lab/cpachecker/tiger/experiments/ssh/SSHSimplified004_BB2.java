@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.tiger.experiments.ssh;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.tiger.CPATigerResult;
+import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.Main;
 import org.sosy_lab.cpachecker.tiger.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
@@ -41,7 +41,7 @@ public class SSHSimplified004_BB2 extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    CPATigerResult lResult = execute(lArguments);
+    CPAtigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.tiger.experiments.testlocks;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.tiger.CPATigerResult;
+import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.Main;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
 
@@ -38,7 +38,7 @@ public class BoundedPathCoverage extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_1.c",
         "main", true);
 
-    CPATigerResult lResult = execute(lArguments);
+    CPAtigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(7, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfFeasibleTestGoals());
@@ -54,7 +54,7 @@ public class BoundedPathCoverage extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_1.c",
         "main", true);
 
-    CPATigerResult lResult = execute(lArguments);
+    CPAtigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(31, lResult.getNumberOfTestGoals());
     Assert.assertEquals(7, lResult.getNumberOfFeasibleTestGoals());
@@ -70,7 +70,7 @@ public class BoundedPathCoverage extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_1.c",
         "main", true);
 
-    CPATigerResult lResult = execute(lArguments);
+    CPAtigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(127, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
@@ -86,7 +86,7 @@ public class BoundedPathCoverage extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_1.c",
         "main", true);
 
-    CPATigerResult lResult = execute(lArguments);
+    CPAtigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(511, lResult.getNumberOfTestGoals());
     Assert.assertEquals(31, lResult.getNumberOfFeasibleTestGoals());
@@ -102,7 +102,7 @@ public class BoundedPathCoverage extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_1.c",
         "main", true);
 
-    CPATigerResult lResult = execute(lArguments);
+    CPAtigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(2047, lResult.getNumberOfTestGoals());
     Assert.assertEquals(63, lResult.getNumberOfFeasibleTestGoals());
@@ -118,7 +118,7 @@ public class BoundedPathCoverage extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_1.c",
         "main", true);
 
-    CPATigerResult lResult = execute(lArguments);
+    CPAtigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(8191, lResult.getNumberOfTestGoals());
     Assert.assertEquals(127, lResult.getNumberOfFeasibleTestGoals());
@@ -134,7 +134,7 @@ public class BoundedPathCoverage extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_1.c",
         "main", true);
 
-    CPATigerResult lResult = execute(lArguments);
+    CPAtigerResult lResult = execute(lArguments);
 
     // 611.402s
     Assert.assertEquals(32767, lResult.getNumberOfTestGoals());
@@ -151,7 +151,7 @@ public class BoundedPathCoverage extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_1.c",
         "main", true);
 
-    CPATigerResult lResult = execute(lArguments);
+    CPAtigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(32767, lResult.getNumberOfTestGoals());
     Assert.assertEquals(255, lResult.getNumberOfFeasibleTestGoals());

@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.tiger.util.NullOutputStream;
 public class Main {
 
   public static void main(String[] pArguments) throws IOException, InvalidConfigurationException {
-    CPATigerResult lResult = run(pArguments);
+    CPAtigerResult lResult = run(pArguments);
 
     if (lResult.hasFinished()) {
       // signal that test generation has finished
@@ -53,7 +53,7 @@ public class Main {
     }
   }
 
-  public static CPATigerResult run(String[] pArguments) throws IOException, InvalidConfigurationException {
+  public static CPAtigerResult run(String[] pArguments) throws IOException, InvalidConfigurationException {
     assert(pArguments != null);
     assert(pArguments.length > 1);
 
@@ -139,7 +139,7 @@ public class Main {
       }
     }
 
-    CPATiger lFShell = new CPATiger(lSourceFileName, lEntryFunction);
+    CPAtiger lFShell = new CPAtiger(lSourceFileName, lEntryFunction);
 
     lFShell.setOutput(lOutput);
     lFShell.setGoalIndices(lMinIndex, lMaxIndex);
@@ -169,7 +169,7 @@ public class Main {
       lFShell.setRestartBound(lRestartBound);
     }
 
-    CPATigerResult lResult = lFShell.run(lFQLSpecificationString);
+    CPAtigerResult lResult = lFShell.run(lFQLSpecificationString);
 
     lOutput.println("#Goals: " + lResult.getNumberOfTestGoals() + ", #Feasible: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeasible: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Imprecise: " + lResult.getNumberOfImpreciseTestCases());
 

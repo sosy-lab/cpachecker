@@ -31,7 +31,7 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.Main;
-import org.sosy_lab.cpachecker.tiger.MultiprocessFShell3;
+import org.sosy_lab.cpachecker.tiger.CPAtigerParallelized;
 import org.sosy_lab.cpachecker.tiger.PredefinedCoverageCriteria;
 
 public class TestCaseTest {
@@ -138,7 +138,7 @@ public class TestCaseTest {
     lArguments[2] = "main";
     lArguments[3] = "2";
 
-    MultiprocessFShell3.main(lArguments);
+    CPAtigerParallelized.main(lArguments);
   }
 
 }
