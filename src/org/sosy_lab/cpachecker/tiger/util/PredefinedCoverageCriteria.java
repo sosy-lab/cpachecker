@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.tiger;
+package org.sosy_lab.cpachecker.tiger.util;
 
 public class PredefinedCoverageCriteria {
 

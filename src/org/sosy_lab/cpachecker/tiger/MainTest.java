@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.tiger;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
+import org.sosy_lab.cpachecker.tiger.util.PredefinedCoverageCriteria;
 
 public class MainTest extends ExperimentalSeries {
 

@@ -27,8 +27,8 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.Main;
-import org.sosy_lab.cpachecker.tiger.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
+import org.sosy_lab.cpachecker.tiger.util.PredefinedCoverageCriteria;
 
 public class TestLocks8_BB2_Test extends ExperimentalSeries {
 

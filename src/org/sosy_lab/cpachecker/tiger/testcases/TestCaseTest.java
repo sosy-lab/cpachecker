@@ -32,7 +32,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.Main;
 import org.sosy_lab.cpachecker.tiger.CPAtigerParallelized;
-import org.sosy_lab.cpachecker.tiger.PredefinedCoverageCriteria;
+import org.sosy_lab.cpachecker.tiger.util.PredefinedCoverageCriteria;
 
 public class TestCaseTest {
 
