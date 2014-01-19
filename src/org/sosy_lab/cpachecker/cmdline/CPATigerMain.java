@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.tiger.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
+import org.sosy_lab.cpachecker.tiger.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
@@ -117,7 +118,7 @@ public class CPATigerMain {
     shutdownNotifier.register(forcedExitOnShutdown);
 
     // run analysis
-    CPAtigerResult result = cpatiger.run("");
+    CPAtigerResult result = cpatiger.run(PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE);
     //CPAcheckerResult result = cpachecker.run(options.programs);
 
     // We want to print the statistics completely now that we have come so far,
