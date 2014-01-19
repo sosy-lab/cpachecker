@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.tiger;
+package org.sosy_lab.cpachecker.tiger.testgen;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -82,6 +82,12 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.tiger.CPAtiger;
+import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
+import org.sosy_lab.cpachecker.tiger.FeasibilityInformation;
+import org.sosy_lab.cpachecker.tiger.Goal;
+import org.sosy_lab.cpachecker.tiger.CPAtigerResult.Factory;
+import org.sosy_lab.cpachecker.tiger.FeasibilityInformation.FeasibilityStatus;
 import org.sosy_lab.cpachecker.tiger.artreuse.ARTReuse;
 import org.sosy_lab.cpachecker.tiger.cfa.Wrapper;
 import org.sosy_lab.cpachecker.tiger.clustering.ClusteredElementaryCoveragePattern;

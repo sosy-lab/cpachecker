@@ -34,7 +34,7 @@ import java.util.Map;
 
 public class FeasibilityInformation {
 
-  enum FeasibilityStatus {
+  public enum FeasibilityStatus {
     FEASIBLE,
     INFEASIBLE,
     IMPRECISE,
