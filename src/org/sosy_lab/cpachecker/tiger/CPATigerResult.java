@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
 
 import com.google.common.base.Preconditions;
 
-public class TigerResult {
+public class CPATigerResult {
 
   public static class Factory {
 
@@ -103,8 +103,8 @@ public class TigerResult {
       return lTestCases;
     }
 
-    public TigerResult create(double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
-      return new TigerResult(mFeasibleTestGoals.size(), mInfeasibleTestGoals.size(), mTestSuite.keySet().size(), mImpreciseTestCases.size(), pTimeInReach, pTimeInCover, pTimeForFeasibleTestGoals, pTimeForInfeasibleTestGoals, mFinished);
+    public CPATigerResult create(double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
+      return new CPATigerResult(mFeasibleTestGoals.size(), mInfeasibleTestGoals.size(), mTestSuite.keySet().size(), mImpreciseTestCases.size(), pTimeInReach, pTimeInCover, pTimeForFeasibleTestGoals, pTimeForInfeasibleTestGoals, mFinished);
     }
 
   }
@@ -123,7 +123,7 @@ public class TigerResult {
   private double mTimeInCover; // seconds
   private boolean mFinished;
 
-  private TigerResult(int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfTestCases, int pNumberOfImpreciseTestCases, double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals, boolean pFinished) {
+  private CPATigerResult(int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfTestCases, int pNumberOfImpreciseTestCases, double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals, boolean pFinished) {
     mNumberOfFeasibleTestGoals = pNumberOfFeasibleTestGoals;
     mNumberOfInfeasibleTestGoals = pNumberOfInfeasibleTestGoals;
     mNumberOfTestCases = pNumberOfTestCases;

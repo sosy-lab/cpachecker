@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.CoverageSpecificationTr
 import org.sosy_lab.cpachecker.tiger.interfaces.FQLTestGenerator;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
+import org.sosy_lab.cpachecker.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
@@ -197,11 +198,11 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
   }
 
   @Override
-  public TigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
+  public CPATigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
     return run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation);
   }
 
-  private TigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation) {
+  private CPATigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation) {
     // Parse FQL Specification
     FQLSpecification lFQLSpecification;
     try {
@@ -220,7 +221,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
 
     System.out.println("Number of test goals: " + lTask.getNumberOfTestGoals());
 
-    TigerResult.Factory lResultFactory = TigerResult.factory();
+    CPATigerResult.Factory lResultFactory = CPATigerResult.factory();
 
     GuardedEdgeAutomatonCPA lPassingCPA = null;
 
@@ -446,7 +447,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     return lRefiner.getCounterexampleTraceInfo();*/
   }
 
-  private void removeCoveredGoals(Deque<Goal> pGoals, TigerResult.Factory pResultFactory, TestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) throws ImpreciseExecutionException {
+  private void removeCoveredGoals(Deque<Goal> pGoals, CPATigerResult.Factory pResultFactory, TestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) throws ImpreciseExecutionException {
     // a) determine cfa path
     CFAEdge[] lCFAPath;
     try {

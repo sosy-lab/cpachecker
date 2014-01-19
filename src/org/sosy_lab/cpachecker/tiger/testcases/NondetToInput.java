@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.CPATiger;
-import org.sosy_lab.cpachecker.tiger.TigerResult;
+import org.sosy_lab.cpachecker.tiger.CPATigerResult;
 
 public class NondetToInput {
 
@@ -297,7 +297,7 @@ public class NondetToInput {
     CPATiger lFShell3 = new CPATiger(pSourceFile, pEntryFunction);
     lFShell3.seed(lTestSuite);
     //FShell3Result lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");
-    TigerResult lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");
+    CPATigerResult lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");
 
     System.out.println("#Goals: " + lResult.getNumberOfTestGoals() + ", #Feas: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Imprecise: " + lResult.getNumberOfImpreciseTestCases());
   }

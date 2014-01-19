@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.IncrementalCoverageSpec
 import org.sosy_lab.cpachecker.tiger.interfaces.FQLTestGenerator;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
+import org.sosy_lab.cpachecker.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 /*
@@ -212,7 +213,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
   }
 
   @Override
-  public TigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
+  public CPATigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
     return run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck, pPedantic);
   }
 
@@ -401,7 +402,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
     }
   }
 
-  private TigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
+  private CPATigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
     // Parse FQL Specification
     FQLSpecification lFQLSpecification;
     try {
@@ -422,7 +423,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
     System.out.println("Cache hits (2): " + mCoverageSpecificationTranslator.getOverallCacheHits());
     System.out.println("Cache misses (2): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
 
-    TigerResult.Factory lResultFactory = TigerResult.factory();
+    CPATigerResult.Factory lResultFactory = CPATigerResult.factory();
 
     // TODO change to ProgressCPA
     GuardedEdgeAutomatonCPA lPassingCPA = null;
@@ -562,7 +563,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
     System.out.println("Time in reach: " + mTimeInReach.getSeconds());
     System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
 
-    TigerResult lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
+    CPATigerResult lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
 
     System.out.println("Generated Test Cases:");
 

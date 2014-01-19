@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.KLEEToFShell3;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestSuite;
+import org.sosy_lab.cpachecker.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 /*

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.tiger.experiments.testlocks;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.tiger.TigerResult;
+import org.sosy_lab.cpachecker.tiger.CPATigerResult;
 import org.sosy_lab.cpachecker.tiger.Main;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
 
@@ -38,7 +38,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_1_labeled.c",
         "main", true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(11, lResult.getNumberOfTestGoals());
     Assert.assertEquals(10, lResult.getNumberOfFeasibleTestGoals());
@@ -54,7 +54,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_1_labeled.c",
         "main", true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(11, lResult.getNumberOfTestGoals());
     Assert.assertEquals(10, lResult.getNumberOfFeasibleTestGoals());
@@ -70,7 +70,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_5_labeled.c",
         "main", true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(32, lResult.getNumberOfTestGoals());
     Assert.assertEquals(26, lResult.getNumberOfFeasibleTestGoals());
@@ -86,7 +86,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_10_labeled.c",
         "main", true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(57, lResult.getNumberOfTestGoals());
     Assert.assertEquals(46, lResult.getNumberOfFeasibleTestGoals());
@@ -102,7 +102,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_15_labeled.c",
         "main", true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(82, lResult.getNumberOfTestGoals());
     Assert.assertEquals(66, lResult.getNumberOfFeasibleTestGoals());
@@ -118,7 +118,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_20_labeled.c",
         "main", true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(107, lResult.getNumberOfTestGoals());
     Assert.assertEquals(86, lResult.getNumberOfFeasibleTestGoals());
@@ -134,7 +134,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_1_labeled.c",
         "main", true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(11, lResult.getNumberOfTestGoals());
     Assert.assertEquals(10, lResult.getNumberOfFeasibleTestGoals());
@@ -150,7 +150,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_5_labeled.c",
         "main", true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(32, lResult.getNumberOfTestGoals());
     Assert.assertEquals(26, lResult.getNumberOfFeasibleTestGoals());
@@ -166,7 +166,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_10_labeled.c",
         "main", true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(57, lResult.getNumberOfTestGoals());
     Assert.assertEquals(46, lResult.getNumberOfFeasibleTestGoals());
@@ -182,7 +182,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_15_labeled.c",
         "main", true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(82, lResult.getNumberOfTestGoals());
     Assert.assertEquals(66, lResult.getNumberOfFeasibleTestGoals());
@@ -198,7 +198,7 @@ public class Passing extends ExperimentalSeries {
         "test/programs/fql/locks/test_locks_20_labeled.c",
         "main", true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(107, lResult.getNumberOfTestGoals());
     Assert.assertEquals(86, lResult.getNumberOfFeasibleTestGoals());

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.tiger.experiments.testlocks;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.tiger.TigerResult;
+import org.sosy_lab.cpachecker.tiger.CPATigerResult;
 import org.sosy_lab.cpachecker.tiger.Main;
 import org.sosy_lab.cpachecker.tiger.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
@@ -39,7 +39,7 @@ public class BasicBlock2Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(121, lResult.getNumberOfTestGoals());
     Assert.assertEquals(73, lResult.getNumberOfFeasibleTestGoals());
@@ -55,7 +55,7 @@ public class BasicBlock2Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(289, lResult.getNumberOfTestGoals());
     Assert.assertEquals(157, lResult.getNumberOfFeasibleTestGoals());
@@ -71,7 +71,7 @@ public class BasicBlock2Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(1024, lResult.getNumberOfTestGoals());
     Assert.assertEquals(601, lResult.getNumberOfFeasibleTestGoals());
@@ -87,7 +87,7 @@ public class BasicBlock2Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(1369, lResult.getNumberOfTestGoals());
     Assert.assertEquals(813, lResult.getNumberOfFeasibleTestGoals());
@@ -103,7 +103,7 @@ public class BasicBlock2Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(1764, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1057, lResult.getNumberOfFeasibleTestGoals());
@@ -119,7 +119,7 @@ public class BasicBlock2Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(2209, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1333, lResult.getNumberOfFeasibleTestGoals());
@@ -135,7 +135,7 @@ public class BasicBlock2Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(2704, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1641, lResult.getNumberOfFeasibleTestGoals());
@@ -151,7 +151,7 @@ public class BasicBlock2Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(3249, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1981, lResult.getNumberOfFeasibleTestGoals());
@@ -167,7 +167,7 @@ public class BasicBlock2Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(3844, lResult.getNumberOfTestGoals());
     Assert.assertEquals(2353, lResult.getNumberOfFeasibleTestGoals());
@@ -183,7 +183,7 @@ public class BasicBlock2Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(4489, lResult.getNumberOfTestGoals());
     Assert.assertEquals(2757, lResult.getNumberOfFeasibleTestGoals());
@@ -199,7 +199,7 @@ public class BasicBlock2Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(5184, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3193, lResult.getNumberOfFeasibleTestGoals());
@@ -215,7 +215,7 @@ public class BasicBlock2Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(5929, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3661, lResult.getNumberOfFeasibleTestGoals());
@@ -231,7 +231,7 @@ public class BasicBlock2Coverage extends ExperimentalSeries {
                                         "main",
                                         true);
 
-    TigerResult lResult = execute(lArguments);
+    CPATigerResult lResult = execute(lArguments);
 
     Assert.assertEquals(6724, lResult.getNumberOfTestGoals());
     Assert.assertEquals(4161, lResult.getNumberOfFeasibleTestGoals());

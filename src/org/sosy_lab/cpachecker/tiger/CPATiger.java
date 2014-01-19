@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.LoggingTestSuite;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestSuite;
+import org.sosy_lab.cpachecker.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 import com.google.common.base.Joiner;
@@ -144,12 +145,12 @@ public class CPATiger implements FQLTestGenerator, FQLCoverageAnalyser {
     mIncrementalARTReusingTestGenerator.seed(pTestSuite);
   }
 
-  public TigerResult run(String pFQLSpecification) {
+  public CPATigerResult run(String pFQLSpecification) {
     return run(pFQLSpecification, true, false, false, false, true, false);
   }
 
   @Override
-  public TigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
+  public CPATigerResult run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
     mOutput.println(pFQLSpecification);
 
     /*if (pGenerateTestGoalAutomataInAdvance) {
@@ -225,7 +226,7 @@ public class CPATiger implements FQLTestGenerator, FQLCoverageAnalyser {
             mIncrementalARTReusingTestGenerator.setRestartBound(mRestartBound);
           }
 
-          TigerResult lResult = mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+          CPATigerResult lResult = mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
 
           if (mDoLogging) {
             ((LoggingTestSuite)lTestSuite).close();
