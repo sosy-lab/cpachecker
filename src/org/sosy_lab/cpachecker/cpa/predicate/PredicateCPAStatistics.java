@@ -224,7 +224,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
 
       int allDistinctPreds = absmgr.getNumberOfPredicates();
 
-      if (result == Result.SAFE && exportInvariants && invariantsFile != null) {
+      if (result == Result.TRUE && exportInvariants && invariantsFile != null) {
         loopInvariantsWriter.exportLoopInvariants(invariantsFile, reached);
       }
 

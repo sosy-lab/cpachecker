@@ -62,9 +62,11 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
 
 @Options(prefix="analysis")
@@ -107,7 +109,7 @@ public class CPAchecker {
       description="stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
 
-  @Option(name="externalCBMC",
+  @Option(name="algorithm.CBMC",
       description="use CBMC as an external tool from CPAchecker")
   private boolean runCBMCasExternalTool = false;
 
@@ -160,6 +162,7 @@ public class CPAchecker {
     MainCPAStatistics stats = null;
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
+    Set<ViolatedProperty> violatedProperties = ImmutableSet.of();
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
@@ -202,7 +205,7 @@ public class CPAchecker {
       // now everything necessary has been instantiated
 
       if (disableAnalysis) {
-        return new CPAcheckerResult(Result.NOT_YET_STARTED, null, stats);
+        return new CPAcheckerResult(Result.NOT_YET_STARTED, violatedProperties, null, stats);
       }
 
       // run analysis
@@ -210,9 +213,14 @@ public class CPAchecker {
 
       boolean isComplete = runAlgorithm(algorithm, reached, stats);
 
-      result = analyzeResult(reached, isComplete);
-      if (unknownAsTrue && result == Result.UNKNOWN) {
-        result = Result.SAFE;
+      violatedProperties = findViolatedProperties(reached);
+      if (!violatedProperties.isEmpty()) {
+        result = Result.FALSE;
+      } else {
+        result = analyzeResult(reached, isComplete);
+        if (unknownAsTrue && result == Result.UNKNOWN) {
+          result = Result.TRUE;
+        }
       }
 
     } catch (IOException e) {
@@ -245,7 +253,7 @@ public class CPAchecker {
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
-    return new CPAcheckerResult(result, reached, stats);
+    return new CPAcheckerResult(result, violatedProperties, reached, stats);
   }
 
   private void checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {
@@ -324,15 +332,18 @@ public class CPAchecker {
     }
   }
 
-  private Result analyzeResult(final ReachedSet reached, boolean isComplete) {
-    for (AbstractState s : from(reached).filter(IS_TARGET_STATE)) {
-      ViolatedProperty property = ((Targetable)s).getViolatedProperty();
-      if (property != ViolatedProperty.OTHER) {
-        logger.log(Level.WARNING, "Found violation of property", property);
-      }
-      return Result.UNSAFE;
-    }
+  private Set<ViolatedProperty> findViolatedProperties(final ReachedSet reached) {
+    return from(reached).filter(IS_TARGET_STATE)
+                        .transform(new Function<AbstractState, ViolatedProperty>() {
+                                    @Override
+                                    public ViolatedProperty apply(AbstractState s) {
+                                      return  ((Targetable)s).getViolatedProperty();
+                                    }
+                                  })
+                        .toSet();
+  }
 
+  private Result analyzeResult(final ReachedSet reached, boolean isComplete) {
     if (reached.hasWaitingState()) {
       logger.log(Level.WARNING, "Analysis not completed: there are still states to be processed.");
       return Result.UNKNOWN;
@@ -343,7 +354,7 @@ public class CPAchecker {
       return Result.UNKNOWN;
     }
 
-    return Result.SAFE;
+    return Result.TRUE;
   }
 
   private void initializeReachedSet(

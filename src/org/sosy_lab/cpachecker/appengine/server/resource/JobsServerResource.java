@@ -52,7 +52,8 @@ import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
-import org.sosy_lab.cpachecker.appengine.entity.JobsResourceJSONModule;
+import org.sosy_lab.cpachecker.appengine.json.JobMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.json.JobsResourceJSONModule;
 import org.sosy_lab.cpachecker.appengine.server.common.JobsResource;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -61,6 +62,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.apphosting.api.ApiProxy.RequestTooLargeException;
 import com.google.common.base.Charsets;
 
 
@@ -72,7 +74,9 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
   public Representation createJobFromHtml(Representation input) throws IOException {
     DefaultOptions options = new DefaultOptions();
     Map<String, Object> settings = new HashMap<>();
+    List<String> errors = new ArrayList<>();
     String program = null;
+
     ServletFileUpload upload = new ServletFileUpload();
 
     try {
@@ -111,8 +115,6 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
               program = value;
             }
             break;
-          default:
-            break;
           }
         }
         else {
@@ -126,13 +128,15 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
       }
     } catch (FileUploadException | IOException e) {
       getLogger().log(Level.WARNING, "Could not upload program file.", e);
-      settings.put("errors", new String[] {"error.couldNotUpload"});
+
+      errors.add("error.couldNotUpload");
+      settings.put("errors", errors);
     }
 
     settings.put("programText", program);
     settings.put("options", options.getUsedOptions());
 
-    List<String> errors = createJob(settings);
+    errors = createJob(settings);
 
     if (errors.size() == 0) {
       getResponse().setStatus(Status.SUCCESS_CREATED);
@@ -195,7 +199,6 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
         return new StringRepresentation(mapper.writeValueAsString(createdJob), MediaType.APPLICATION_JSON);
       }
     } catch (JsonProcessingException e) {
-      // ignore
       return null;
     }
   }
@@ -204,11 +207,11 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
   public Representation jobsAsJson() {
     ObjectMapper mapper = new ObjectMapper();
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
-    mapper.registerModule(new JobsResourceJSONModule());
+    mapper.addMixInAnnotations(Job.class, JobMixinAnnotations.Minimal.class);
+
     try {
       return new StringRepresentation(mapper.writeValueAsString(JobDAO.jobs()), MediaType.APPLICATION_JSON);
     } catch (JsonProcessingException e) {
-      // ignore
       return null;
     }
   }
@@ -240,16 +243,44 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
       errors.add("error.specOrConfigMissing");
     }
 
+    if (createdJob.getSpecification() != null) {
+      if (!DefaultOptions.getSpecifications().contains(createdJob.getSpecification())) {
+        errors.add("error.specificationNotFound");
+      }
+    }
+
+    if (createdJob.getConfiguration() != null) {
+      if (!DefaultOptions.getConfigurations().contains(createdJob.getConfiguration())) {
+        errors.add("error.configurationNotFound");
+      }
+    }
+
     if (program.getContent() == null || program.getContent().equals("")) {
       errors.add("error.noProgram");
     }
 
+    if (createdJob.getOptions().containsKey("log.level")) {
+      try {
+        Level.parse(createdJob.getOptions().get("log.level"));
+      } catch (IllegalArgumentException e) {
+        errors.add("error.invalidLogLevel");
+      }
+    }
+
     if (errors.size() == 0) {
-      JobFileDAO.save(program);
-      createdJob.addFile(program);
-      JobDAO.save(createdJob);
-      JobRunner jobRunner = new GAETaskQueueJobRunner();
-      createdJob = jobRunner.run(createdJob);
+      try {
+        JobFileDAO.save(program);
+        createdJob.addFile(program);
+        JobDAO.save(createdJob);
+        JobRunner jobRunner = new GAETaskQueueJobRunner();
+        createdJob = jobRunner.run(createdJob);
+      } catch (IOException e) {
+        if (e.getCause() instanceof RequestTooLargeException) {
+          errors.add("error.programTooLarge");
+        } else {
+          errors.add("error.couldNotUpload");
+        }
+      }
     }
 
     return errors;

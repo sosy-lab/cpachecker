@@ -23,21 +23,57 @@
  */
 package org.sosy_lab.cpachecker.appengine.server.resource;
 
+import org.restlet.data.MediaType;
+import org.restlet.data.Status;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
+import org.restlet.resource.ResourceException;
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
+import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.json.JobFileMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.json.JobMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.server.common.JobFileResource;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 
 public class JobFileServerResource extends WadlServerResource implements JobFileResource {
 
+  private JobFile file = null;
+
+  @Override
+  protected void doInit() throws ResourceException {
+    super.doInit();
+    file = JobFileDAO.load(getAttribute("fileKey"));
+
+    if (file == null) {
+      getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND);
+      getResponse().commit();
+    }
+  }
+
   @Override
   public Representation fileAsHtml() {
-    JobFile file = JobFileDAO.load(getAttribute("fileKey"));
+    String content = (file.getContent() == null) ? "" : file.getContent();
+    return new StringRepresentation(content);
+  }
 
-    return new StringRepresentation(file.getContent());
+  @Override
+  public Representation fileAsJson() {
+    ObjectMapper mapper = new ObjectMapper();
+    mapper.enable(SerializationFeature.INDENT_OUTPUT);
+    mapper.addMixInAnnotations(Job.class, JobMixinAnnotations.KeyOnly.class);
+    mapper.addMixInAnnotations(JobFile.class, JobFileMixinAnnotations.Full.class);
+
+    try {
+      return new StringRepresentation(mapper.writeValueAsString(file), MediaType.APPLICATION_JSON);
+    } catch (JsonProcessingException e) {
+      return null;
+    }
   }
 
 }

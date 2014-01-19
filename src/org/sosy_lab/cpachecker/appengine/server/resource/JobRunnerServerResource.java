@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.appengine.server.common.JobRunnerResource;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.appengine.api.ThreadManager;
 import com.google.common.base.Charsets;
@@ -99,14 +99,15 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     // TODO use and register appropriate notifier
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
 
-    ProofGenerator proofGenerator = new ProofGenerator(config, logManager, shutdownNotifier);
+    ResourceLimitChecker limits = null;
+    limits = ResourceLimitChecker.fromConfiguration(config, logManager, shutdownNotifier);
+    limits.start();
+
     CPAchecker cpaChecker = new CPAchecker(config, logManager, shutdownNotifier);
     result = cpaChecker.run("program.c");
 
     setResult();
     dumpStatistics();
-
-    //    proofGenerator.generateProof(result);
 
     dumpLog();
 
@@ -131,11 +132,11 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
       log(Level.WARNING, "The given configuration is invalid.", e.getCause());
       break;
     case "IOException":
-      job.setStatusMessage("An I/O error occurred.");
+      job.setStatusMessage(String.format("An I/O error occurred: %s", e.getCause().getMessage()));
       log(Level.WARNING, "An I/O error occurred.", e.getCause());
       break;
     default:
-      job.setStatusMessage("An error occured.");
+      job.setStatusMessage(String.format("An error occured: %s", e.getCause().getMessage()));
       log(Level.WARNING, "There was an error", e.getCause());
     }
 
@@ -146,6 +147,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     try {
       saveStackTrace(e.getCause());
       setResult();
+      job.setTerminationDate(new Date());
       JobDAO.save(job);
 
       dumpConfiguration();
@@ -180,7 +182,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
   private void dumpLog() {
     if (logDumped) { return; }
 
-    if (outputEnabled && logHandler != null) {
+    if (config.getProperty("statistics.export").equals("true") && logHandler != null) {
       if (logLevel != null && logLevel.intValue() > 0) {
         logHandler.flushAndClose();
         logDumped = true;

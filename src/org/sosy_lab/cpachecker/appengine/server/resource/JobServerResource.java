@@ -29,19 +29,39 @@ import org.restlet.data.MediaType;
 import org.restlet.data.Status;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
+import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
+import org.restlet.resource.ResourceException;
 import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.json.JobFileMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.json.JobMixinAnnotations;
 import org.sosy_lab.cpachecker.appengine.server.common.JobResource;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 
 public class JobServerResource extends WadlServerResource implements JobResource {
 
+  private Job job;
+
+  @Override
+  protected void doInit() throws ResourceException {
+    super.doInit();
+    job = JobDAO.load(getAttribute("jobKey"));
+
+    if (job == null) {
+      getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND);
+      getResponse().commit();
+    }
+  }
+
   @Override
   public Representation jobAsHtml() {
-    Job job = JobDAO.load(getAttribute("jobKey"));
     List<JobFile> files = job.getFilesLoaded();
 
     return FreemarkerUtil.templateBuilder()
@@ -54,7 +74,7 @@ public class JobServerResource extends WadlServerResource implements JobResource
 
   @Override
   public Representation deleteJob(Variant variant) {
-    JobDAO.delete(getAttribute("jobKey"));
+    JobDAO.delete(job);
     getResponse().setStatus(Status.SUCCESS_OK);
 
     // only send redirect if it is a browser call
@@ -62,6 +82,20 @@ public class JobServerResource extends WadlServerResource implements JobResource
       getResponse().redirectSeeOther("/jobs");
     }
     return getResponseEntity();
+  }
+
+  @Override
+  public Representation jobAsJson() {
+    ObjectMapper mapper = new ObjectMapper();
+    mapper.enable(SerializationFeature.INDENT_OUTPUT);
+    mapper.addMixInAnnotations(Job.class, JobMixinAnnotations.Full.class);
+    mapper.addMixInAnnotations(JobFile.class, JobFileMixinAnnotations.Minimal.class);
+
+    try {
+      return new StringRepresentation(mapper.writeValueAsString(job), MediaType.APPLICATION_JSON);
+    } catch (JsonProcessingException e) {
+      return null;
+    }
   }
 
 }

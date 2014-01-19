@@ -34,6 +34,9 @@ public interface JobResource {
   @Get("html")
   public Representation jobAsHtml();
 
+  @Get("json")
+  public Representation jobAsJson();
+
   @Delete
   public Representation deleteJob(Variant variant);
 }

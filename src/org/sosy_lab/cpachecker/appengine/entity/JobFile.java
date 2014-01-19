@@ -150,7 +150,7 @@ public class JobFile {
   }
 
   /**
-   * A ByteArrayOuputStream that save the given JobFile instance on calling close()
+   * A ByteArrayOuputStream that saves the given JobFile instance on calling close()
    */
   public class SaveOnCloseByteArrayOutputStream extends ByteArrayOutputStream {
 

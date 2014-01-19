@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -429,6 +430,15 @@ class ASTTypeConverter {
       // TODO This might loose some information of dd or dd.getDeclTypeExpression()
       // (the latter should be of type IASTTypeIdExpression)
       CType ctype = convert(dd.getDeclTypeExpression().getExpressionType());
+
+      // readd the information about isVolatile and isConst if they got lost in
+      // the previous conversion
+      if (dd.isConst()) {
+        ctype = CTypes.withConst(ctype);
+      }
+      if (dd.isVolatile()) {
+        ctype = CTypes.withVolatile(ctype);
+      }
       return ctype;
     default:
       throw new CFAGenerationRuntimeException("Unknown basic type " + dd.getType() + " "

@@ -126,6 +126,9 @@ public class InvariantsCPA extends AbstractCPA {
     @Option(description="whether or not to use a bit vector formula manager when extracting invariant approximations from states.")
     private boolean useBitvectors = false;
 
+    @Option(description="whether or not to use abstract evaluation to ensure termination when the merge operator is SEP or the limit for interesting variables or predicates is positive.")
+    private boolean useAbstractEvaluation = true;
+
   }
 
   /**
@@ -209,11 +212,16 @@ public class InvariantsCPA extends AbstractCPA {
         ConfigurableProgramAnalysis cpa = new CPABuilder(configurationBuilder.build(), logManager, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
         ReachedSet reached = reachedSetFactory.create();
         reached.add(cpa.getInitialState(pNode), cpa.getInitialPrecision(pNode));
-        new CPAAlgorithm(cpa, logManager, config, shutdownNotifier).run(reached);
+        CPAAlgorithm targetFindingAlgorithm = new CPAAlgorithm(cpa, logManager, config, shutdownNotifier);
 
-        for (AbstractState state : FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE)) {
-          CFANode location = AbstractStates.extractLocation(state);
-          targetLocations.add(location);
+        boolean changed = true;
+        while (changed) {
+          changed = false;
+          targetFindingAlgorithm.run(reached);
+          for (AbstractState state : FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE)) {
+            CFANode location = AbstractStates.extractLocation(state);
+            changed |= targetLocations.add(location);
+          }
         }
       } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
         this.logManager.logException(Level.SEVERE, e, "Unable to find target locations. Defaulting to selecting all locations.");
@@ -320,7 +328,8 @@ public class InvariantsCPA extends AbstractCPA {
         ImmutableSet.copyOf(limit(interestingPredicates, options.interestingPredicatesLimit)),
         ImmutableSet.copyOf(limit(interestingVariables, options.interestingVariableLimit)),
         options.maximumFormulaDepth,
-        options.useBinaryVariableInterrelations);
+        options.useBinaryVariableInterrelations,
+        options.useAbstractEvaluation);
 
     initialPrecisionMap.put(pNode, precision);
 

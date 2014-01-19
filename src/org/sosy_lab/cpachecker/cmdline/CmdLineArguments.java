@@ -109,7 +109,7 @@ class CmdLineArguments {
 
     while (argsIt.hasNext()) {
       String arg = argsIt.next();
-      if (   handleArgument0("-cbmc",    "analysis.useCBMC", "true",            arg, properties)
+      if (   handleArgument0("-cbmc",    "analysis.checkCounterexamples", "true", arg, properties)
           || handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
           || handleArgument0("-noout",   "output.disable",   "true",            arg, properties)
           || handleArgument0("-java",    "language",         "JAVA",            arg, properties)
@@ -120,7 +120,7 @@ class CmdLineArguments {
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
           || handleArgument1("-config",        CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
-          || handleArgument1("-timelimit",     "cpa.conditions.global.time.wall", arg, argsIt, properties)
+          || handleArgument1("-timelimit",     "limits.time.cpu", arg, argsIt, properties)
           || handleArgument1("-sourcepath",    "java.sourcepath",         arg, argsIt, properties)
           || handleArgument1("-cp",            "java.classpath",          arg, argsIt, properties)
           || handleArgument1("-classpath",     "java.classpath",          arg, argsIt, properties)

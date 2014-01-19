@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.appengine.io;
 import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
@@ -57,7 +58,11 @@ public class GAEPathTest extends DatabaseTest {
     job = new Job(1L);
     file = new JobFile("test.tmp", job);
     file.setContent("lorem ipsum dolor sit amet");
-    JobFileDAO.save(file);
+    try {
+      JobFileDAO.save(file);
+    } catch (IOException e) {
+      fail(e.getMessage());
+    }
     job.addFile(file);
     JobDAO.save(job);
 

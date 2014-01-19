@@ -42,7 +42,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
   private static final int MAX_CBMC_ERROR_OUTPUT_SHOWN = 10;
   private static final Map<String, String> CBMC_ENV_VARS = ImmutableMap.of("LANG", "C");
 
-  private Boolean result = null;
+  private volatile Boolean result = null;
   private boolean unwindingAssertionFailed = false;
   private volatile int errorOutputCount = 0;
 
@@ -63,19 +63,11 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
   protected void handleExitCode(int pCode) throws CounterexampleAnalysisFailed {
     switch (pCode) {
     case 0: // Verification successful (Path is infeasible)
-      if (errorOutputCount > 0) {
-        logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings. Please check the log above!");
-      } else {
-        result = false;
-      }
+      result = false;
       break;
 
     case 10: // Verification failed (Path is feasible)
-      if (errorOutputCount > 0) {
-        logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings. Please check the log above!");
-      } else {
-        result = true;
-      }
+      result = true;
       break;
 
     default:
@@ -121,6 +113,13 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
 
   public Boolean getResult() {
     checkState(isFinished());
+
+    if (errorOutputCount > 0) {
+      logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings, ignoring the result. Please check the log above!");
+      errorOutputCount = 0; // print warning only once
+      result = null;
+    }
+
     return result;
   }
 }

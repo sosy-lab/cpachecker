@@ -31,8 +31,7 @@
               <option value="">${msg.noSpec}</option>
               <option value="" disabled>-------------------</option>
               <#list specifications?sort as specification>
-                <#assign name = specification?substring(specification?last_index_of("/")+1)>
-                <option value="${name}">${name}</option>
+                <option value="${specification}">${specification}</option>
               </#list>
             </select>
           </div>
@@ -46,8 +45,7 @@
               <option value="">${msg.noConfig}</option>
               <option value="" disabled>-------------------</option>
               <#list configurations?sort as configuration>
-                <#assign name = configuration?substring(configuration?last_index_of("/")+1)>
-                <option value="${name}">${name}</option>
+                <option value="${configuration}">${configuration}</option>
               </#list>
             </select>
           </div>
@@ -93,13 +91,6 @@
               <input type="checkbox" name="logUsedOptions" id="logUsedOptions" value="log.usedOptions.export"> ${msg.logUsedOptions}
             </label>
           </div>
-<#--
-          <div class="checkbox">
-            <label for="usePreprocessor" class="control-label">
-              <input type="checkbox" name="usePreprocessor" id="usePreprocessor" value="parser.usePreprocessor"> ${msg.usePreprocessor}
-            </label>
-          </div>
--->
           <div class="form-group">
             <label for="logLevel" class="control-label">${msg.logLevel}</label>
             <select name="logLevel" id="logLevel" class="form-control input-sm">

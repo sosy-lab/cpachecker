@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
 @Options(prefix = "cpa.bdd")
@@ -59,8 +60,16 @@ public class BDDPrecision implements Precision {
           "This pattern should only be used for known variables, i.e. for boolean vars.")
   private String forceTrackingPatternStr = "";
 
+  @Option(name = "precision.refinement.useScopedInterpolation",
+      description = "whether or not to add newly-found variables " +
+          "only to the exact program location or to the whole scope of the variable.")
+  private boolean useScopedInterpolation = false;
+
+  @Option(description = "whether the precision is initially empty (this should be set to true when refinement is used)")
+  private boolean initiallyEmptyPrecision = false;
+
   private final Pattern forceTrackingPattern;
-  private CegarPrecision cegarPrecision;
+  private final CegarPrecision cegarPrecision;
 
   private final Optional<VariableClassification> varClass;
 
@@ -73,7 +82,12 @@ public class BDDPrecision implements Precision {
     } else {
       this.forceTrackingPattern = null;
     }
-    this.cegarPrecision = new CegarPrecision(config);
+
+    if (initiallyEmptyPrecision) {
+      this.cegarPrecision = new CegarPrecision(useScopedInterpolation);
+    } else {
+      this.cegarPrecision = new CegarPrecision();
+    }
     this.varClass = vc;
   }
 
@@ -84,9 +98,7 @@ public class BDDPrecision implements Precision {
     this.trackBoolean = original.trackBoolean;
     this.trackIntEqual = original.trackIntEqual;
     this.trackIntAdd = original.trackIntAdd;
-    this.cegarPrecision = new CegarPrecision(original.cegarPrecision);
-
-    cegarPrecision.addToMapping(increment);
+    this.cegarPrecision = original.cegarPrecision.withAdditionalMappings(increment);
   }
 
   public boolean isDisabled() {
@@ -147,31 +159,33 @@ public class BDDPrecision implements Precision {
   }
 
 
-  @Options(prefix = "cpa.bdd.precision.refinement")
-  public class CegarPrecision {
+  public static class CegarPrecision {
 
     /** the collection that determines which variables are tracked at
      *  a specific location - if it is null, all variables are tracked */
-    private HashMultimap<CFANode, MemoryLocation> mapping = null;
+    private final Multimap<CFANode, MemoryLocation> mapping;
 
-    @Option(description = "whether or not to add newly-found variables " +
-        "only to the exact program location or to the whole scope of the variable.")
-    private boolean useScopedInterpolation = false;
+    private final boolean useScopedInterpolation;
 
-    private CegarPrecision(Configuration config) throws InvalidConfigurationException {
-      config.inject(this);
+    /** Constructor for creating a precision that tracks all variables. */
+    public CegarPrecision() {
+      mapping = null;
 
-      if (Boolean.parseBoolean(config.getProperty("analysis.useRefinement"))) {
-        mapping = HashMultimap.create();
-      }
+      useScopedInterpolation = false; // value does not matter.
+    }
+
+    /** Constructor for creating a precision that tracks no variables. */
+    public CegarPrecision(boolean pUseScopedInterpolation) {
+      mapping = ImmutableMultimap.of();
+
+      useScopedInterpolation = pUseScopedInterpolation;
     }
 
     /** copy constructor */
-    private CegarPrecision(CegarPrecision original) {
-      if (original.mapping != null) {
-        mapping = HashMultimap.create(original.mapping);
-        useScopedInterpolation = original.useScopedInterpolation;
-      }
+    private CegarPrecision(Multimap<CFANode, MemoryLocation> pMapping,
+        boolean pUseScopedInterpolation) {
+      mapping = HashMultimap.create(pMapping);
+      useScopedInterpolation = pUseScopedInterpolation;
     }
 
     /** returns, if nothing should be tracked. */
@@ -213,8 +227,14 @@ public class BDDPrecision implements Precision {
      *
      * @param additionalMapping to be added to the current mapping
      */
-    public void addToMapping(Multimap<CFANode, MemoryLocation> additionalMapping) {
-      mapping.putAll(additionalMapping);
+    private CegarPrecision withAdditionalMappings(Multimap<CFANode, MemoryLocation> additionalMapping) {
+      if (mapping == null) {
+        // all variables are tracked anyway
+        return this;
+      }
+      CegarPrecision result = new CegarPrecision(mapping, useScopedInterpolation);
+      result.mapping.putAll(additionalMapping);
+      return result;
     }
   }
 }

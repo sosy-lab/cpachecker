@@ -10,9 +10,12 @@
 
   <rundefinition>
     <sourcefiles>
-      <includesfile>integration-ControlFlowInteger.set</includesfile>
+      <includesfile>../programs/benchmarks/Simple.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
-      <includesfile>integration-SystemC.set</includesfile>
+      <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
+      <exclude>../programs/benchmarks/seq-pthread/*</exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>

@@ -3,25 +3,28 @@
 <benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
   <!-- try to make it more deterministic -->
   <option name="-setprop">cpa.predicate.mathsat5.furtherOptions=random_seed=42</option>
+  <option name="-noout"/>
+  <option name="-spec">sv-comp</option>
+  <option name="-heap">2000M</option>
+  <option name="-setprop">limits.time.cpu=1min</option>
 
   <rundefinition>
     <sourcefiles>
       <includesfile>../programs/simple/simple.set</includesfile>
-      <includesfile>integration-ControlFlowInteger.set</includesfile>
+      <includesfile>../programs/benchmarks/Simple.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
-      <includesfile>integration-SystemC.set</includesfile>
+      <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
+      <exclude>../programs/benchmarks/seq-pthread/*</exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
       <option name="-skipRecursion"/>
       <option name="-64"/>
     </sourcefiles>
-    <option name="-noout"/>
-    <option name="-spec">sv-comp</option>
     <option name="-predicateAnalysis"/>
-    <option name="-heap">2000M</option>
-    <option name="-setprop">limits.time.cpu=1min</option>
   </rundefinition>
 
   <columns>

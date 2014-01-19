@@ -1144,7 +1144,10 @@ public class CompoundInterval {
       CompoundInterval result = bottom();
       for (SimpleInterval interval : this.intervals) {
         if (!interval.isSingleton()) {
-          return top();
+          // x & 1 always yields either 0 or 1
+          if (pState.contains(1)) {
+            return CompoundInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE));
+          }
         }
         result = result.unionWith(SimpleInterval.singleton(interval.getLowerBound().and(pState.getValue())));
       }
@@ -1188,7 +1191,7 @@ public class CompoundInterval {
     }
     // 1 ^ [0,1] = [0,1]
     if (isSingleton() && contains(1) && pState.equals(zeroToOne)) {
-      return this;
+      return zeroToOne;
     }
     if (pState.isSingleton()) {
       CompoundInterval result = bottom();

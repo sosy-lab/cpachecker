@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositePrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.AssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -157,14 +158,18 @@ public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisio
 
       // enforce thresholds for explicit element, by incorporating information from reached set and path condition element
       if (i == indexOfExplicitState) {
-        ExplicitState explicitState         = (ExplicitState)oldState;
-        ExplicitPrecision explicitPrecision = (ExplicitPrecision)oldPrecision;
-        LocationState location              = AbstractStates.extractStateByType(composite, LocationState.class);
+        ExplicitState explicitState                 = (ExplicitState)oldState;
+        ExplicitPrecision explicitPrecision         = (ExplicitPrecision)oldPrecision;
+        LocationState location                      = AbstractStates.extractStateByType(composite, LocationState.class);
+        AssignmentsInPathConditionState assignments = AbstractStates.extractStateByType(composite, AssignmentsInPathConditionState.class);
 
-        // compute the abstraction for CEGAR
-        totalEnforceAbstraction.start();
-        explicitState = enforceAbstraction(explicitState, location, explicitPrecision);
-        totalEnforceAbstraction.stop();
+        // compute the abstraction based on the explicit-value precision, unless assignment information is available
+        // then, this is dealt with during enforcement of the path thresholds, see below
+        if(assignments == null) {
+          totalEnforceAbstraction.start();
+          explicitState = enforceAbstraction(explicitState, location, explicitPrecision);
+          totalEnforceAbstraction.stop();
+        }
 
         // compute the abstraction for reached set thresholds
         totalEnforceReachedSetThreshold.start();
@@ -173,8 +178,7 @@ public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisio
 
         // compute the abstraction for assignment thresholds
         totalEnforcePathThreshold.start();
-        AssignmentsInPathConditionState assigns       = AbstractStates.extractStateByType(composite, AssignmentsInPathConditionState.class);
-        Pair<ExplicitState, ExplicitPrecision> result = enforcePathThreshold(explicitState, explicitPrecision, assigns);
+        Pair<ExplicitState, ExplicitPrecision> result = enforcePathThreshold(explicitState, explicitPrecision, assignments);
         totalEnforcePathThreshold.stop();
 
         outElements.add(result.getFirst());
@@ -304,11 +308,16 @@ public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisio
       }
 
       // forget the value for all variables that exceed their threshold
-      for (String variableName: state.getTrackedVariableNames()) {
-        if (assignments.variableExceedsThreshold(variableName)) {
-          state.forget(variableName);
+      for (MemoryLocation memoryLocation: state.getDelta()) {
+        if (assignments.variableExceedsSoftThreshold(memoryLocation.getAsSimpleString())) {
+          if(!precision.isTracking(memoryLocation)
+              || assignments.variableExceedsHardThreshold(memoryLocation.getAsSimpleString())) {
+            state.forget(memoryLocation);
+          }
         }
       }
+
+      state.clearDelta();
     }
 
     return Pair.of(state, precision);

@@ -301,10 +301,10 @@ public class AutomatonTest {
       return checkerResult;
     }
     boolean isSafe() {
-      return checkerResult.getResult().equals(CPAcheckerResult.Result.SAFE);
+      return checkerResult.getResult().equals(CPAcheckerResult.Result.TRUE);
     }
     boolean isUnsafe() {
-      return checkerResult.getResult().equals(CPAcheckerResult.Result.UNSAFE);
+      return checkerResult.getResult().equals(CPAcheckerResult.Result.FALSE);
     }
     @Override
     public String toString() {

@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +46,10 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchEdgeTokens;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -54,11 +60,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-
 @Options
 public class AutomatonGraphmlParser {
-
-  private final static String SINK_NODE_ID = "sink";
 
   @Option(name="spec.considerNegativeSemanticsAttribute",
       description="Consider the negative semantics of tokens provided with path automatons.")
@@ -73,8 +76,6 @@ public class AutomatonGraphmlParser {
   */
   public List<Automaton> parseAutomatonFile(Path pInputFile) throws InvalidConfigurationException {
 
-    //CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
-
     try (InputStream input = pInputFile.asByteSource().openStream()) {
       // Parse the XML document ----
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -82,35 +83,36 @@ public class AutomatonGraphmlParser {
       Document doc = docBuilder.parse(input);
       doc.getDocumentElement().normalize();
 
+      GraphMlDocumentData docDat = new GraphMlDocumentData(doc);
+
       // (The one) root node of the graph ----
-      NodeList graphs = doc.getElementsByTagName("graph");
+      NodeList graphs = doc.getElementsByTagName(GraphMlTag.GRAPH.toString());
       Preconditions.checkArgument(graphs.getLength() == 1, "The graph file must describe exactly one automaton.");
       Node graphNode = graphs.item(0);
 
       // Extract the information on the automaton ----
       Node nameAttribute = graphNode.getAttributes().getNamedItem("name");
       String automatonName = nameAttribute == null ? "" : nameAttribute.getTextContent();
-      String initialStateName = getAttributeValue(graphNode, "entrynode", "Every graph needs a specified entry node!");
+      String initialStateName = docDat.getDataValue(graphNode, KeyDef.ENTRYNODE, "Every graph needs a specified entry node!");
 
       // Create transitions ----
-      NodeList edges = doc.getElementsByTagName("edge");
+      NodeList edges = doc.getElementsByTagName(GraphMlTag.EDGE.toString());
       Map<String, List<AutomatonTransition>> stateTransitions = Maps.newHashMap();
       for (int i=0; i<edges.getLength(); i++) {
-        Node stateTransitionNode = edges.item(i);
+        Node stateTransitionEdge = edges.item(i);
 
-        String sourceStateId = getAttributeValue(stateTransitionNode, "source", "Every transition needs a source!");
-        String targetStateId = getAttributeValue(stateTransitionNode, "target", "Every transition needs a target!");
-        String tokenString = getAttributeValue(stateTransitionNode, "tokens", "Every transition has to specify the set of tokens!");
+        String sourceStateId = getAttributeValue(stateTransitionEdge, "source", "Every transition needs a source!");
+        String targetStateId = getAttributeValue(stateTransitionEdge, "target", "Every transition needs a target!");
 
         Optional<Boolean> matchNegativeSemantics = Optional.absent();
         if (considerNegativeSemanticsAttribute) {
-          switch(getAttributeValueWithDefault(stateTransitionNode, "negation", "").toLowerCase()) {
+          switch(docDat.getDataValueWithDefault(stateTransitionEdge, KeyDef.TOKENSNEGATED, "").toLowerCase()) {
             case "true": matchNegativeSemantics = Optional.of(true); break;
             case "false": matchNegativeSemantics = Optional.of(false); break;
           }
         }
 
-        Set<Integer> matchTokens = parseTokens(tokenString);
+        Set<Integer> matchTokens = getTokensOfEdge(docDat, stateTransitionEdge);
         AutomatonBoolExpr trigger = new MatchEdgeTokens(matchTokens, matchNegativeSemantics);
         List<AutomatonBoolExpr> assertions = Collections.emptyList();
         List<AutomatonAction> actions = Collections.emptyList();
@@ -132,7 +134,7 @@ public class AutomatonGraphmlParser {
       }
 
       // Create states ----
-      NodeList nodes = doc.getElementsByTagName("node");
+      NodeList nodes = doc.getElementsByTagName(GraphMlTag.NODE.toString());
       List<AutomatonInternalState> automatonStates = Lists.newArrayList();
       for (int i=0; i<nodes.getLength(); i++) {
         Node stateNode = nodes.item(i);
@@ -206,6 +208,104 @@ public class AutomatonGraphmlParser {
     return attribute.getTextContent();
   }
 
+  private Set<Integer> getTokensOfEdge(GraphMlDocumentData docDat, Node edgeDef) {
+    Set<String> data = docDat.getDataOnNode(edgeDef, KeyDef.TOKENS);
+    Preconditions.checkArgument(data.size() == 1, "Each edge must include exactly one data-node with the key 'tokens'!");
+
+    String tokenString = data.iterator().next();
+    return parseTokens(tokenString);
+  }
+
+  private static class GraphMlDocumentData {
+
+    private final HashMap<String, Optional<String>> defaultDataValues = Maps.newHashMap();
+    private final Document doc;
+
+    public GraphMlDocumentData(Document doc) {
+      this.doc = doc;
+    }
+
+    private Optional<String> getDataDefault(KeyDef dataKey) {
+      Optional<String> result = defaultDataValues.get(dataKey.id);
+      if (result != null) {
+        return result;
+      }
+
+      NodeList keyDefs = doc.getElementsByTagName(GraphMlTag.KEY.toString());
+      for (int i=0; i<keyDefs.getLength(); i++) {
+        Element keyDef = (Element) keyDefs.item(i);
+        Node id = keyDef.getAttributes().getNamedItem("id");
+        if (dataKey.id.equals(id.getTextContent())) {
+          NodeList defaultTags = keyDef.getElementsByTagName(GraphMlTag.DEFAULT.toString());
+          result = Optional.absent();
+          if (defaultTags.getLength() > 0) {
+            Preconditions.checkArgument(defaultTags.getLength() == 1);
+            result = Optional.of(defaultTags.item(0).getTextContent());
+          }
+          defaultDataValues.put(dataKey.id, result);
+          return result;
+        }
+      }
+      return Optional.absent();
+    }
+
+    private String getDataValue(Node dataOnNode, KeyDef dataKey, String exceptionMessage) {
+      Set<String> values = getDataOnNode(dataOnNode, dataKey);
+      if (values.isEmpty()) {
+        Optional<String> defaultValue = getDataDefault(dataKey);
+        if (defaultValue.isPresent()) {
+          values.add(defaultValue.get());
+        }
+      }
+      Preconditions.checkArgument(values.size() == 1, exceptionMessage);
+      return values.iterator().next();
+    }
+
+    public String getDataValueWithDefault(Node dataOnNode, KeyDef dataKey, final String defaultValue) {
+      Set<String> values = getDataOnNode(dataOnNode, dataKey);
+      if (values.size() == 0) {
+        Optional<String> dataDefault = getDataDefault(dataKey);
+        if (dataDefault.isPresent()) {
+          return dataDefault.get();
+        } else {
+          return defaultValue;
+        }
+      } else {
+        return values.iterator().next();
+      }
+    }
+
+
+    private Set<String> getDataOnNode(Node node, final KeyDef dataKey) {
+      Preconditions.checkNotNull(node);
+      Preconditions.checkArgument(node.getNodeType() == Node.ELEMENT_NODE);
+
+      Element nodeElement = (Element) node;
+      Set<Node> dataNodes = findKeyedDataNode(nodeElement, dataKey);
+
+      Set<String> result = Sets.newHashSet();
+      for (Node n: dataNodes) {
+        result.add(n.getTextContent());
+      }
+
+      return result;
+    }
+
+    private Set<Node> findKeyedDataNode(Element of, final KeyDef dataKey) {
+      Set<Node> result = Sets.newHashSet();
+      NodeList dataChilds = of.getElementsByTagName(GraphMlTag.DATA.toString());
+      for (int i=0; i<dataChilds.getLength(); i++) {
+        Node dataChild = dataChilds.item(i);
+        Node attribute = dataChild.getAttributes().getNamedItem("key");
+        Preconditions.checkNotNull(attribute, "Every data element must have a key attribute!");
+        if (attribute.getTextContent().equals(dataKey.id)) {
+          result.add(dataChild);
+        }
+      }
+      return result;
+    }
+
+  }
 
 
 }

@@ -10,10 +10,13 @@
 
   <sourcefiles>
     <includesfile>../programs/simple/simple.set</includesfile>
-    <includesfile>integration-ControlFlowInteger.set</includesfile>
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
     <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
-    <includesfile>integration-SystemC.set</includesfile>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
+    <exclude>../programs/benchmarks/seq-pthread/*</exclude>
   </sourcefiles>
   <sourcefiles>
     <includesfile>integration-DeviceDrivers64.set</includesfile>
@@ -37,5 +40,4 @@
     <column title="Int" numberOfDigits="1">Interpolant computation</column>
     <column title="refSAT" numberOfDigits="1">Refinement sat check</column>
   </columns>
-
 </benchmark>

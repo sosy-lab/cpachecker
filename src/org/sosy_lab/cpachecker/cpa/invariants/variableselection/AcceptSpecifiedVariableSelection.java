@@ -137,7 +137,8 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
     @Override
     public VariableSelection<ConstantType> visit(
         AcceptSpecifiedVariableSelection<ConstantType> pAcceptSpecifiedVariableSelection) {
-      if (AcceptSpecifiedVariableSelection.this.specifiedVariables.containsAll(pAcceptSpecifiedVariableSelection.specifiedVariables)) {
+      if (AcceptSpecifiedVariableSelection.this == pAcceptSpecifiedVariableSelection
+          || AcceptSpecifiedVariableSelection.this.specifiedVariables.containsAll(pAcceptSpecifiedVariableSelection.specifiedVariables)) {
         return AcceptSpecifiedVariableSelection.this;
       }
       if (pAcceptSpecifiedVariableSelection.specifiedVariables.containsAll(AcceptSpecifiedVariableSelection.this.specifiedVariables)) {
