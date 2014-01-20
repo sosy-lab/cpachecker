@@ -28,9 +28,12 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.findLoops;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -55,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -62,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
 import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplifier;
@@ -83,6 +88,8 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 
 /**
  * Class that encapsulates the whole CFA creation process.
@@ -356,6 +363,297 @@ public class CFACreator {
 
 
       MutableCFA cfa = new MutableCFA(machineModel, c.getFunctions(), c.getCFANodes(), mainFunction, language);
+
+      stats.checkTime.start();
+
+      // check the CFA of each function
+      for (String functionName : cfa.getAllFunctionNames()) {
+        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName));
+      }
+      stats.checkTime.stop();
+
+      // SECOND, do those post-processings that change the CFA by adding/removing nodes/edges
+      stats.processingTime.start();
+
+      // remove all edges which don't have any effect on the program
+      CFASimplifier.simplifyCFA(cfa);
+
+      if (checkNullPointers) {
+        CFATransformations transformations = new CFATransformations(logger, config);
+        transformations.detectNullPointers(cfa);
+      }
+
+      if (expandFunctionPointerArrayAssignments) {
+        ExpandFunctionPointerArrayAssignments transformer = new ExpandFunctionPointerArrayAssignments(logger, config);
+        transformer.replaceFunctionPointerArrayAssignments(cfa);
+      }
+
+      // add function pointer edges
+      if (language == Language.C && fptrCallEdges) {
+        CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, c.getGlobalDeclarations(), config, logger);
+        fptrResolver.resolveFunctionPointers();
+      }
+
+      // THIRD, do read-only post-processings on each single function CFA
+
+      // Annotate CFA nodes with reverse postorder information for later use.
+      for (FunctionEntryNode function : cfa.getAllFunctionHeads()) {
+        CFAReversePostorder sorter = new CFAReversePostorder();
+        sorter.assignSorting(function);
+      }
+
+      // get loop information
+      // (needs post-order information)
+      Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
+
+      // FOURTH, insert call and return edges and build the supergraph
+      if (interprocedural) {
+        logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
+        CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language, logger, config);
+        spbuilder.insertCallEdgesRecursively();
+      }
+
+      if (useGlobalVars) {
+        // add global variables at the beginning of main
+        insertGlobalDeclarations(cfa, c.getGlobalDeclarations());
+      }
+
+      // FIFTH, do post-processings on the supergraph
+      // Mutating post-processings should be checked carefully for their effect
+      // on the information collected above (such as loops and post-order ids).
+
+      if (simplifyExpressions) {
+        // this replaces some edges in the CFA with new edges.
+        // all expressions, that can be evaluated, will be replaced with their result.
+        // example: a=1+2; --> a=3;
+        // TODO support for constant propagation like "define MAGIC_NUMBER 1234".
+        ExpressionSimplifier es = new ExpressionSimplifier(machineModel, logger);
+        CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(mainFunction, es);
+        es.replaceEdges();
+      }
+
+      if (useMultiEdges) {
+        MultiEdgeCreator.createMultiEdges(cfa);
+      }
+
+      // remove irrelevant locations
+      if (cfaReduction != null) {
+        stats.pruningTime.start();
+        cfaReduction.removeIrrelevantForSpecification(cfa);
+        stats.pruningTime.stop();
+
+        if (cfa.isEmpty()) {
+          logger.log(Level.INFO, "No states which violate the specification are syntactically reachable from the function " + mainFunction.getFunctionName()
+                + ", analysis not necessary. "
+                + "If you want to run the analysis anyway, set the option cfa.removeIrrelevantForSpecification to false.");
+
+          return ImmutableCFA.empty(machineModel, language);
+        }
+      }
+
+      // Get information about variables, needed for some analysis.
+      final Optional<VariableClassification> varClassification
+          = loopStructure.isPresent()
+          ? Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()))
+          : Optional.<VariableClassification>absent();
+
+      stats.processingTime.stop();
+
+      final ImmutableCFA immutableCFA;
+
+      if (transformIntoSingleLoop) {
+        stats.processingTime.start();
+        immutableCFA = new CFASingleLoopTransformation(logger, config).apply(cfa);
+        stats.processingTime.stop();
+      } else {
+        immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
+      }
+
+      // check the super CFA starting at the main function
+      stats.checkTime.start();
+      assert CFACheck.check(mainFunction, null);
+      stats.checkTime.stop();
+
+      if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
+          || ((exportFunctionCallsFile != null) && exportFunctionCalls)) {
+        exportCFAAsync(immutableCFA);
+      }
+
+      logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
+
+      return immutableCFA;
+
+    } finally {
+      stats.totalTime.stop();
+    }
+  }
+
+  private static final String CPAtiger_MAIN = "__CPAtiger__main";
+
+  private static String getWrapperCFunction(FunctionEntryNode pMainFunction) {
+    if (!(pMainFunction instanceof CFunctionEntryNode)) {
+      throw new UnsupportedOperationException("Only C is supported!");
+    }
+
+    CFunctionEntryNode lMainFunction = (CFunctionEntryNode)pMainFunction;
+
+    StringWriter lWrapperFunction = new StringWriter();
+    PrintWriter lWriter = new PrintWriter(lWrapperFunction);
+
+    // TODO interpreter is not capable of handling initialization of global declarations
+
+    lWriter.println(lMainFunction.getFunctionDefinition().toASTString());
+    lWriter.println();
+    lWriter.println("void " + CPAtiger_MAIN + "()");
+    lWriter.println("{");
+
+    if (!lMainFunction.getFunctionParameters().isEmpty()) {
+      lWriter.println("  int __BLAST_NONDET;");
+    }
+
+    for (CParameterDeclaration lDeclaration : lMainFunction.getFunctionParameters()) {
+      lWriter.println("  " + lDeclaration.toASTString() + ";");
+    }
+
+    for (CParameterDeclaration lDeclaration : lMainFunction.getFunctionParameters()) {
+      // TODO do we need to handle lDeclaration more specifically?
+      lWriter.println("  " + lDeclaration.getName() + " = __BLAST_NONDET;");
+    }
+
+    lWriter.println();
+    lWriter.print("  " + lMainFunction.getFunctionName() + "(");
+
+    boolean isFirst = true;
+
+    for (CParameterDeclaration lDeclaration : lMainFunction.getFunctionParameters()) {
+      if (isFirst) {
+        isFirst = false;
+      }
+      else {
+        lWriter.print(", ");
+      }
+
+      lWriter.print(lDeclaration.getName());
+    }
+
+    lWriter.println(");");
+    lWriter.println("  return;");
+    lWriter.println("}");
+
+    return lWrapperFunction.toString();
+  }
+
+  /**
+   * Parse a file and create a CFA, including all post-processing etc.
+   *
+   * @param sourceFiles  The files to parse.
+   * @return A representation of the CFA.
+   * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
+   * @throws IOException If an I/O error occurs.
+   * @throws ParserException If the parser or the CFA builder cannot handle the C code.
+   * @throws InterruptedException
+   */
+  public CFA cpatiger_parseFileAndCreateCFA(List<String> sourceFiles)
+          throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+
+    Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
+
+    stats.totalTime.start();
+    try {
+
+      // FIRST, parse file(s) and create CFAs for each function
+      logger.log(Level.FINE, "Starting parsing of file");
+      ParseResult c;
+
+      if (language == Language.C) {
+        checkIfValidFiles(sourceFiles);
+      }
+
+      if (sourceFiles.size() == 1) {
+        /*
+         * The program file has to parsed as String since Google App Engine does not allow
+         * writes to the file system and therefore the input file is stored elsewhere.
+         */
+        String sourceFileName = sourceFiles.get(0);
+        if (usePreprocessor) {
+          c = parser.parseFile(sourceFileName);
+        } else {
+          String code = Paths.get(sourceFileName).asCharSource(Charset.defaultCharset()).read();
+          c = parser.parseString(code);
+        }
+      } else {
+        // when there is more than one file which should be evaluated, the
+        // programdenotations are separated from each other and a prefix for
+        // static variables is generated
+        if (language != Language.C) {
+          throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
+        }
+
+        List<Pair<String, String>> programFragments = new ArrayList<>();
+        int counter = 0;
+        String staticVarPrefix;
+        for (String fileName : sourceFiles) {
+          String[] tmp = fileName.split("/");
+          staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
+
+          /*
+           * The program file has to parsed as String since Google App Engine does not allow
+           * writes to the file system and therefore the input file is stored elsewhere.
+           */
+          String code = Paths.get(fileName).asCharSource(Charset.defaultCharset()).read();
+          programFragments.add(Pair.of(code, staticVarPrefix));
+        }
+
+        c = ((CParser)parser).parseFile(programFragments);
+      }
+
+      logger.log(Level.FINE, "Parser Finished");
+
+      if (c.isEmpty()) {
+        switch (language) {
+        case JAVA:
+          throw new JParserException("No methods found in program");
+        case C:
+          throw new CParserException("No functions found in program");
+        default:
+          throw new AssertionError();
+        }
+      }
+
+      final FunctionEntryNode wrappedMainFunction;
+
+      switch (language) {
+      case JAVA:
+        wrappedMainFunction = getJavaMainMethod(sourceFiles, c.getFunctions());
+        break;
+      case C:
+        wrappedMainFunction = getCMainFunction(sourceFiles, c.getFunctions());
+        break;
+      default:
+        throw new AssertionError();
+      }
+
+
+      /* wrapper code for CPAtiger */
+      String lWrapperCode = getWrapperCFunction(wrappedMainFunction);
+
+      ParseResult lWrapperParseResult = ((CParser)parser).parseString(lWrapperCode);
+
+      assert (lWrapperParseResult.getFunctions().size() == 1);
+
+      final FunctionEntryNode mainFunction = lWrapperParseResult.getFunctions().get(CPAtiger_MAIN);
+
+      Map<String, FunctionEntryNode> lFunctions = new HashMap<>(lWrapperParseResult.getFunctions());
+      lFunctions.putAll(c.getFunctions());
+
+      SortedSetMultimap<String, CFANode> lCFANodes = TreeMultimap.create();
+      lCFANodes.putAll(lWrapperParseResult.getCFANodes());
+      lCFANodes.putAll(c.getCFANodes());
+
+      // TODO do we have to update global declarations?
+
+      //MutableCFA cfa = new MutableCFA(machineModel, c.getFunctions(), c.getCFANodes(), mainFunction, language);
+      MutableCFA cfa = new MutableCFA(machineModel, lFunctions, lCFANodes, mainFunction, language);
 
       stats.checkTime.start();
 

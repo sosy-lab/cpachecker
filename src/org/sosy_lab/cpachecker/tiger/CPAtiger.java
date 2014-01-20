@@ -275,7 +275,8 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
 
     // parse code file
     try {
-      cfa = lCFACreator.parseFileAndCreateCFA(Collections.singletonList(pSourceFileName));
+      //cfa = lCFACreator.parseFileAndCreateCFA(Collections.singletonList(pSourceFileName));
+      cfa = lCFACreator.cpatiger_parseFileAndCreateCFA(Collections.singletonList(pSourceFileName));
     } catch (Exception e) {
       e.printStackTrace();
 
