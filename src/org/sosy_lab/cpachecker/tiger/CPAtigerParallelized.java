@@ -271,7 +271,7 @@ public class CPAtigerParallelized {
       Configuration mConfiguration = CPAtiger.createConfiguration(pSourceFile, pEntryFunction);
       LogManager mLogManager = new BasicLogManager(mConfiguration);
 
-      lCFAMap = CPAtiger.getCFAMap(pSourceFile, mConfiguration, mLogManager);
+      lCFAMap = CPAtiger.getCFA(pSourceFile, mConfiguration, mLogManager).getAllFunctions();
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);

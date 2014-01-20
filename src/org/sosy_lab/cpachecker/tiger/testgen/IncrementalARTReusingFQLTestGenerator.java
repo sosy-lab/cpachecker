@@ -86,8 +86,6 @@ import org.sosy_lab.cpachecker.tiger.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.FeasibilityInformation;
 import org.sosy_lab.cpachecker.tiger.Goal;
-import org.sosy_lab.cpachecker.tiger.CPAtigerResult.Factory;
-import org.sosy_lab.cpachecker.tiger.FeasibilityInformation.FeasibilityStatus;
 import org.sosy_lab.cpachecker.tiger.artreuse.ARTReuse;
 import org.sosy_lab.cpachecker.tiger.cfa.Wrapper;
 import org.sosy_lab.cpachecker.tiger.clustering.ClusteredElementaryCoveragePattern;
@@ -214,7 +212,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new BasicLogManager(mConfiguration);
 
-      lCFAMap = CPAtiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
+      lCFAMap = CPAtiger.getCFA(pSourceFileName, mConfiguration, mLogManager).getAllFunctions();
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);

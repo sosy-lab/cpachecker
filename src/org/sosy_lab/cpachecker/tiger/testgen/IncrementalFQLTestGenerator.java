@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.Goal;
-import org.sosy_lab.cpachecker.tiger.CPAtigerResult.Factory;
 import org.sosy_lab.cpachecker.tiger.cfa.Wrapper;
 import org.sosy_lab.cpachecker.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
@@ -122,7 +121,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
       mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new BasicLogManager(mConfiguration);
 
-      lCFAMap = CPAtiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
+      lCFAMap = CPAtiger.getCFA(pSourceFileName, mConfiguration, mLogManager).getAllFunctions();
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);

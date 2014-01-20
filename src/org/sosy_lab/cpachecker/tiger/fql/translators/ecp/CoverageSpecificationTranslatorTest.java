@@ -78,7 +78,7 @@ public class CoverageSpecificationTranslatorTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -129,7 +129,7 @@ public class CoverageSpecificationTranslatorTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -180,7 +180,7 @@ public class CoverageSpecificationTranslatorTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -231,7 +231,7 @@ public class CoverageSpecificationTranslatorTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 

@@ -191,7 +191,10 @@ public class Wrapper {
 
     lWriter.println("void __FLLESH__main()");
     lWriter.println("{");
-    lWriter.println("  int __BLAST_NONDET;");
+
+    if (!pMainFunction.getFunctionParameters().isEmpty()) {
+      lWriter.println("  int __BLAST_NONDET;");
+    }
 
     for (CParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
       lWriter.println("  " + lDeclaration.toASTString() + ";");

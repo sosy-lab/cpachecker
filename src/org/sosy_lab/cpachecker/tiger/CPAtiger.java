@@ -42,7 +42,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
@@ -268,7 +267,7 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
     //mCoverageAnalyser.checkCoverage(pFQLSpecification, pTestSuite, pPedantic);
   }
 
-  public static Map<String, FunctionEntryNode> getCFAMap(String pSourceFileName, Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
+  public static CFA getCFA(String pSourceFileName, Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
     CFACreator lCFACreator = new CFACreator(pConfiguration, pLogManager, ShutdownNotifier.create());
 
     CFA cfa = null;
@@ -283,7 +282,7 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
       throw new RuntimeException(e);
     }
 
-    return cfa.getAllFunctions();
+    return cfa;
   }
 
   public static ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, CFAEdge[] pCFAPath) {

@@ -62,7 +62,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -79,7 +79,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -102,7 +102,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -125,7 +125,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -150,7 +150,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -178,7 +178,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -199,7 +199,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -220,7 +220,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lMainFunction = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lMainFunction = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
@@ -245,7 +245,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -268,7 +268,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -310,7 +310,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -338,7 +338,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -371,7 +371,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -399,7 +399,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -432,7 +432,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -465,7 +465,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -498,7 +498,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -533,7 +533,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -550,7 +550,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
@@ -578,7 +578,7 @@ public class TargetGraphTest {
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
-    FunctionEntryNode lInitialNode = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
+    FunctionEntryNode lInitialNode = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getFunctionHead(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 

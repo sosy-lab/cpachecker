@@ -188,7 +188,7 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
       mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new BasicLogManager(mConfiguration);
 
-      lCFAMap = CPAtiger.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
+      lCFAMap = CPAtiger.getCFA(pSourceFileName, mConfiguration, mLogManager).getAllFunctions();
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);

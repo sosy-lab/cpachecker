@@ -104,7 +104,7 @@ public class InterpreterCPATest {
       lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new BasicLogManager(lConfiguration);
 
-      lCFAMap = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
+      lCFAMap = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getAllFunctions();
       lMainFunction = lCFAMap.get(lEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -196,7 +196,7 @@ public class InterpreterCPATest {
       lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new BasicLogManager(lConfiguration);
 
-      lCFAMap = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
+      lCFAMap = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getAllFunctions();
       lMainFunction = lCFAMap.get(lEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -287,7 +287,7 @@ public class InterpreterCPATest {
       lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new BasicLogManager(lConfiguration);
 
-      lCFAMap = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
+      lCFAMap = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getAllFunctions();
       lMainFunction = lCFAMap.get(lEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -378,7 +378,7 @@ public class InterpreterCPATest {
       lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new BasicLogManager(lConfiguration);
 
-      lCFAMap = CPAtiger.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
+      lCFAMap = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getAllFunctions();
       lMainFunction = lCFAMap.get(lEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
