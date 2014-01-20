@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -70,6 +71,41 @@ public class SymbolicValue {
   public SymbolicValue simplify() {
     CExpression simplifiedTree = recursiveSimplify(root);
     return new SymbolicValue(simplifiedTree);
+  }
+
+  // classes used to represent the expression trees for the symbols
+  /**
+   * Base class for elements of a symbolic expression, e.g. "X + X"
+   */
+  public interface ExpressionBase {
+
+  }
+
+  public static class BinaryExpression {
+    public static enum BinaryOperator {
+      MULTIPLY      ("*"),
+      DIVIDE        ("/"),
+      MODULO        ("%"),
+      PLUS          ("+"),
+      MINUS         ("-"),
+      SHIFT_LEFT    ("<<"),
+      SHIFT_RIGHT   (">>"),
+      LESS_THAN     ("<"),
+      GREATER_THAN  (">"),
+      LESS_EQUAL    ("<="),
+      GREATER_EQUAL (">="),
+      BINARY_AND    ("&"),
+      BINARY_XOR    ("^"),
+      BINARY_OR     ("|"),
+      EQUALS        ("=="),
+      NOT_EQUALS    ("!="),
+      ;
+
+      private final String op;
+
+      private BinaryOperator(String pOp) {
+        op = pOp;
+      }
   }
 
   // TODO: this would probably be better by extending
