@@ -25,62 +25,29 @@ package org.sosy_lab.cpachecker.tiger.cfa;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 
 public class Wrapper {
 
-  private LogManager mLogManager;
-  private FunctionEntryNode mEntry;
+  private CFA mCFA;
   private CFAEdge mAlphaEdge;
   private CFAEdge mOmegaEdge;
 
-  private TranslationUnit mTranslationUnit;
+  public Wrapper(CFA pCFA, String pOriginalEntryFunction) {
+    // pCFA already contains a wrapper function in the C code! See CFACreator.CPAtiger_MAIN
 
-  public Wrapper(FunctionEntryNode pMainFunction, Map<String, FunctionEntryNode> pCFAs, LogManager pLogManager) {
-    this(pMainFunction, pCFAs, pLogManager, getWrapperCFunction(pMainFunction));
-  }
+    mCFA = pCFA;
 
-  public Wrapper(FunctionEntryNode pMainFunction, Map<String, FunctionEntryNode> pCFAs, LogManager pLogManager, String pWrapperSource) {
-    this(pMainFunction, pCFAs, pLogManager, pWrapperSource, "__FLLESH__main");
-  }
-
-  public Wrapper(FunctionEntryNode pMainFunction, Map<String, FunctionEntryNode> pCFAs, LogManager pLogManager, String pWrapperSource, String pEntryFunction) {
-    mLogManager = pLogManager;
-
-    TranslationUnit lWrapper = getWrapper(pWrapperSource);
-
-    mTranslationUnit = new TranslationUnit();
-    mTranslationUnit.add(lWrapper);
-    mTranslationUnit.add(pCFAs);
-
-    for (String lFunctionName : mTranslationUnit.functionNames()) {
-      mTranslationUnit.insertCallEdgesRecursively(lFunctionName);
-    }
-
-    mEntry = mTranslationUnit.getFunction(pEntryFunction);
-
-    throw new UnsupportedOperationException("Implement!");
-
-    /*
-
-    CFACreator.insertGlobalDeclarations(mEntry, lWrapper.getGlobalDeclarations(), mLogManager);
-
-    determineAlphaAndOmegaEdges(mEntry, pMainFunction);
-    */
+    determineAlphaAndOmegaEdges(mCFA.getMainFunction(), mCFA.getFunctionHead(pOriginalEntryFunction));
   }
 
   private void determineAlphaAndOmegaEdges(CFANode pInitialNode, CFANode pOriginalInitialNode) {
@@ -102,7 +69,6 @@ public class Wrapper {
       lVisitedNodes.add(lCFANode);
 
       // determine successors
-      //CallToReturnEdge lCallToReturnEdge = lCFANode.getLeavingSummaryEdge();
       FunctionSummaryEdge lCallToReturnEdge = lCFANode.getLeavingSummaryEdge();
 
       if (lCallToReturnEdge != null) {
@@ -136,6 +102,8 @@ public class Wrapper {
           }
 
           mOmegaEdge = lSummarySuccessor.getEnteringEdge(0);
+
+          break;
         }
 
         lWorklist.add(lCallToReturnEdge.getSuccessor());
@@ -151,6 +119,9 @@ public class Wrapper {
         }
       }
     }
+
+    assert(mAlphaEdge != null);
+    assert(mOmegaEdge != null);
   }
 
   public CFAEdge getAlphaEdge() {
@@ -162,7 +133,7 @@ public class Wrapper {
   }
 
   public FunctionEntryNode getCFA(String pFunctionName) {
-    return mTranslationUnit.getFunction(pFunctionName);
+    return mCFA.getFunctionHead(pFunctionName);
   }
 
   public void toDot(String pFileName) throws IOException {
@@ -170,66 +141,11 @@ public class Wrapper {
   }
 
   public void toDot(File pFile) throws IOException {
-    mTranslationUnit.toDot(mEntry.getFunctionName(), pFile);
+    throw new UnsupportedOperationException();
   }
 
   public FunctionEntryNode getEntry() {
-    return mEntry;
-  }
-
-  private static String getWrapperCFunction(FunctionEntryNode paramMainFunction) {
-    if (!(paramMainFunction instanceof CFunctionEntryNode)) {
-      throw new UnsupportedOperationException("Only C is supported!");
-    }
-
-    CFunctionEntryNode pMainFunction = (CFunctionEntryNode)paramMainFunction;
-
-    StringWriter lWrapperFunction = new StringWriter();
-    PrintWriter lWriter = new PrintWriter(lWrapperFunction);
-
-    // TODO interpreter is not capable of handling initialization of global declarations
-
-    lWriter.println("void __FLLESH__main()");
-    lWriter.println("{");
-
-    if (!pMainFunction.getFunctionParameters().isEmpty()) {
-      lWriter.println("  int __BLAST_NONDET;");
-    }
-
-    for (CParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
-      lWriter.println("  " + lDeclaration.toASTString() + ";");
-    }
-
-    for (CParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
-      // TODO do we need to handle lDeclaration more specifically?
-      lWriter.println("  " + lDeclaration.getName() + " = __BLAST_NONDET;");
-    }
-
-    lWriter.println();
-    lWriter.print("  " + pMainFunction.getFunctionName() + "(");
-
-    boolean isFirst = true;
-
-    for (CParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
-      if (isFirst) {
-        isFirst = false;
-      }
-      else {
-        lWriter.print(", ");
-      }
-
-      lWriter.print(lDeclaration.getName());
-    }
-
-    lWriter.println(");");
-    lWriter.println("  return;");
-    lWriter.println("}");
-
-    return lWrapperFunction.toString();
-  }
-
-  private TranslationUnit getWrapper(String pWrapperFunction) {
-    return TranslationUnit.parseString(pWrapperFunction, mLogManager);
+    return mCFA.getMainFunction();
   }
 
 }

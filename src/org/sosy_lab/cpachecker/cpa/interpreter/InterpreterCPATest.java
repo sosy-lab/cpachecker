@@ -25,14 +25,13 @@ package org.sosy_lab.cpachecker.cpa.interpreter;
 
 import java.io.IOException;
 import java.util.LinkedList;
-import java.util.Map;
 
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -97,21 +96,18 @@ public class InterpreterCPATest {
     String lSourceFileName = "test/programs/fql/locks/test_locks_1.c";
     String lEntryFunction = "main";
 
-    Map<String, FunctionEntryNode> lCFAMap;
-    FunctionEntryNode lMainFunction;
+    CFA lCFA;
 
     try {
       lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new BasicLogManager(lConfiguration);
 
-      lCFAMap = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getAllFunctions();
-      lMainFunction = lCFAMap.get(lEntryFunction);
+      lCFA = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
 
-
-    Wrapper lWrapper = new Wrapper(lMainFunction, lCFAMap, lLogManager);
+    Wrapper lWrapper = new Wrapper(lCFA, lEntryFunction);
 
     try {
       lWrapper.toDot("test/output/wrapper.dot");
@@ -189,21 +185,19 @@ public class InterpreterCPATest {
     String lSourceFileName = "test/programs/fql/locks/test_locks_1.c";
     String lEntryFunction = "main";
 
-    Map<String, FunctionEntryNode> lCFAMap;
-    FunctionEntryNode lMainFunction;
+    CFA lCFA;
 
     try {
       lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new BasicLogManager(lConfiguration);
 
-      lCFAMap = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getAllFunctions();
-      lMainFunction = lCFAMap.get(lEntryFunction);
+      lCFA = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
 
 
-    Wrapper lWrapper = new Wrapper(lMainFunction, lCFAMap, lLogManager);
+    Wrapper lWrapper = new Wrapper(lCFA, lEntryFunction);
 
     try {
       lWrapper.toDot("test/output/wrapper.dot");
@@ -280,21 +274,18 @@ public class InterpreterCPATest {
     String lSourceFileName = "test/programs/fql/locks/test_locks_1.c";
     String lEntryFunction = "main";
 
-    Map<String, FunctionEntryNode> lCFAMap;
-    FunctionEntryNode lMainFunction;
+    CFA lCFA;
 
     try {
       lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new BasicLogManager(lConfiguration);
 
-      lCFAMap = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getAllFunctions();
-      lMainFunction = lCFAMap.get(lEntryFunction);
+      lCFA = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
 
-
-    Wrapper lWrapper = new Wrapper(lMainFunction, lCFAMap, lLogManager);
+    Wrapper lWrapper = new Wrapper(lCFA, lEntryFunction);
 
     try {
       lWrapper.toDot("test/output/wrapper.dot");
@@ -371,21 +362,19 @@ public class InterpreterCPATest {
     String lSourceFileName = "test/programs/fql/ntdrivers-simplified/cdaudio_simpl1_BUG.cil.c";
     String lEntryFunction = "main";
 
-    Map<String, FunctionEntryNode> lCFAMap;
-    FunctionEntryNode lMainFunction;
+    CFA lCFA;
 
     try {
       lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new BasicLogManager(lConfiguration);
 
-      lCFAMap = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager).getAllFunctions();
-      lMainFunction = lCFAMap.get(lEntryFunction);
+      lCFA = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
 
 
-    Wrapper lWrapper = new Wrapper(lMainFunction, lCFAMap, lLogManager);
+    Wrapper lWrapper = new Wrapper(lCFA, lEntryFunction);
 
     try {
       lWrapper.toDot("test/output/wrapper.dot");

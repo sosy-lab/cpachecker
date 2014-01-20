@@ -38,6 +38,7 @@ import org.sosy_lab.common.TimeAccumulator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -116,11 +117,14 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     Map<String, FunctionEntryNode> lCFAMap;
     FunctionEntryNode lMainFunction;
 
+    CFA lCFA;
+
     try {
       mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new BasicLogManager(mConfiguration);
 
-      lCFAMap = CPAtiger.getCFA(pSourceFileName, mConfiguration, mLogManager).getAllFunctions();
+      lCFA = CPAtiger.getCFA(pSourceFileName, mConfiguration, mLogManager);
+      lCFAMap = lCFA.getAllFunctions();
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -133,7 +137,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
      */
     mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(lMainFunction);
 
-    mWrapper = new Wrapper(lMainFunction, lCFAMap, mLogManager);
+    mWrapper = new Wrapper(lCFA, pEntryFunction);
 
     try {
       mWrapper.toDot("test/output/wrapper.dot");
