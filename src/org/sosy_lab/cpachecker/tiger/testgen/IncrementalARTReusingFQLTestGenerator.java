@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.tiger.testgen;
 
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -108,6 +107,7 @@ import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestSuite;
 import org.sosy_lab.cpachecker.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
@@ -206,9 +206,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   }
 
   public IncrementalARTReusingFQLTestGenerator(String pSourceFileName, String pEntryFunction) {
-    Map<String, FunctionEntryNode> lCFAMap;
-    FunctionEntryNode lMainFunction;
-
     CFA lCFA;
 
     try {
@@ -216,26 +213,21 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       mLogManager = new BasicLogManager(mConfiguration);
 
       lCFA = CPAtiger.getCFA(pSourceFileName, mConfiguration, mLogManager);
-      lCFAMap = lCFA.getAllFunctions();
-      lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
 
+    // PROBLEM: Wrapper function is already integrated in CFA
+    // TODO CoverageSpecificationTranslator has to ignore CFA elements in the wrapper function!
+    System.err.println("TODO: CoverageSpecificationTranslator has to ignore CFA elements in the wrapper function!");
     /*
      * We have to instantiate mCoverageSpecificationTranslator before the wrapper
      * changes the underlying CFA. FQL specifications are evaluated against the
      * target graph generated during initialization of mCoverageSpecificationTranslator.
      */
-    mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(lMainFunction);
+    mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(lCFA.getFunctionHead(pEntryFunction));
 
     mWrapper = new Wrapper(lCFA, pEntryFunction);
-
-    try {
-      mWrapper.toDot("test/output/wrapper.dot");
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
 
     mAlphaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(mWrapper.getAlphaEdge()));
     mInverseAlphaLabel = new InverseGuardedEdgeLabel(mAlphaLabel);
@@ -246,13 +238,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
      * Initialize shared CPAs.
      */
     // location CPA
-    try {
-      mLocationCPA = (LocationCPA)LocationCPA.factory().createInstance();
-    } catch (InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    } catch (CPAException e) {
-      throw new RuntimeException(e);
-    }
+    GlobalInfo.getInstance().storeCFA(lCFA);
+    mLocationCPA = new LocationCPA(lCFA);
 
     // callstack CPA
     CPAFactory lCallStackCPAFactory = CallstackCPA.factory();
