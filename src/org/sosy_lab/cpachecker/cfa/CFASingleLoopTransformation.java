@@ -316,7 +316,6 @@ public class CFASingleLoopTransformation {
 
     CFANode firstSubgraphStart = newSuccessorsToPC.remove(0);
 
-
     // Remove trivial dummy subgraphs and other dummy edges
     Map<CFANode, Integer> pcToNewSuccessors = newSuccessorsToPC.inverse();
     for (int replaceablePCValue : new ArrayList<>(newPredecessorsToPC.keySet())) {
@@ -329,7 +328,10 @@ public class CFASingleLoopTransformation {
           && isDummyEdge(dummyEdge = tailOfRedundantSubgraph.getEnteringEdge(0))
           && dummyEdge.getPredecessor().getNumEnteringEdges() == 0
           && (precedingPCValue = pcToNewSuccessors.get(dummyEdge.getPredecessor())) != null) {
-        pcToNewSuccessors.remove(newSuccessor);
+        Integer predToRemove = pcToNewSuccessors.remove(newSuccessor);
+        if (predToRemove != null) {
+          newPredecessorsToPC.remove(predToRemove);
+        }
         newSuccessorsToPC.remove(precedingPCValue);
         newSuccessorsToPC.put(precedingPCValue, newSuccessor);
       }
@@ -382,9 +384,20 @@ public class CFASingleLoopTransformation {
     addToNodes(pcDeclarationEdge);
 
     // Skip the program counter initialization if it is never used
-    if (newPredecessorsToPC.isEmpty()) {
+    if (newPredecessorsToPC.size() <= 1) {
       removeFromNodes(pcDeclarationEdge);
       replaceInStructure(firstSubgraphStart, start);
+    }
+
+    // If there is only one pc value (besides 0), then the loop head can be skipped
+    if (newPredecessorsToPC.size() == 1) {
+      Entry<Integer, CFANode> entry = newPredecessorsToPC.entrySet().iterator().next();
+      CFANode pred = entry.getValue();
+      int pcValue = entry.getKey();
+      CFANode succ = newSuccessorsToPC.get(pcValue);
+      removeFromGraph(loopHead);
+      replaceInStructure(succ, pred);
+      loopHead = pred;
     }
 
     // Build the CFA from the syntactically reachable nodes
@@ -993,7 +1006,8 @@ public class CFASingleLoopTransformation {
       }
     }
     String loopFunction = pSingleLoopHead.getFunctionName();
-    return Optional.of(loopNodes.size() <= 1 // A size of one means only the loop head is contained
+    // A size of one means only the loop head is contained
+    return Optional.of(loopNodes.isEmpty() || loopNodes.size() == 1 && !pSingleLoopHead.hasEdgeTo(pSingleLoopHead)
         ? ImmutableMultimap.<String, Loop>of()
         : ImmutableMultimap.<String, Loop>builder().put(loopFunction, new Loop(pSingleLoopHead, loopNodes)).build());
   }
