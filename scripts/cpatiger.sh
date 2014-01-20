@@ -50,7 +50,7 @@ esac
 
 if [ ! -e "$PATH_TO_CPACHECKER/bin/org/sosy_lab/cpachecker/cmdline/CPATigerMain.class" ] ; then
   if [ ! -e "$PATH_TO_CPACHECKER/cpachecker.jar" ] ; then
-    echo "Could not find CPAchecker binary, please check path to project directory" 1>&2
+    echo "Could not find CPAtiger binary, please check path to project directory" 1>&2
     exit 1
   fi
 fi
@@ -86,11 +86,11 @@ if [ -n "$JAVA_HEAP_SIZE" ]; then
 fi
 
 if [ ! -z "$JAVA_VM_ARGUMENTS" ]; then
-  echo "Running CPAchecker with the following extra VM options: $JAVA_VM_ARGUMENTS"
+  echo "Running CPAtiger with the following extra VM options: $JAVA_VM_ARGUMENTS"
 fi
 
 if [ ! -z "$CPACHECKER_ARGUMENTS" ]; then
-  echo "Running CPAchecker with the following extra arguments: $CPACHECKER_ARGUMENTS"
+  echo "Running CPAtiger with the following extra arguments: $CPACHECKER_ARGUMENTS"
 fi
 
 # run CPAchecker
