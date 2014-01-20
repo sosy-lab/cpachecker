@@ -161,6 +161,7 @@ public class CFASingleLoopTransformation {
     loopHead.addEnteringEdge(pcDeclarationEdge);
 
     Queue<CFANode> nodes = new ArrayDeque<>(getAllNodes(pInputCFA));
+    Set<CFAEdge> dummyEdges = new HashSet<>();
 
     // Eliminate self loops
     List<CFANode> toAdd = new ArrayList<>();
@@ -180,6 +181,7 @@ public class CFASingleLoopTransformation {
 
           BlankEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), node, dummy, DUMMY_EDGE);
           addToNodes(dummyEdge);
+          dummyEdges.add(dummyEdge);
 
           successor = dummy;
           toAdd.add(dummy);
@@ -254,6 +256,7 @@ public class CFASingleLoopTransformation {
               // Create the dummy edge, but do not add it to the nodes!
               CFANode dummy = replacementEdge.getSuccessor();
               CFAEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), dummy, next, DUMMY_EDGE);
+              dummyEdges.add(dummyEdge);
 
               /*
                * Adjust the values: Current becomes the dummy, which is also
@@ -311,11 +314,14 @@ public class CFASingleLoopTransformation {
       }
     }
 
+    CFANode firstSubgraphStart = newSuccessorsToPC.remove(0);
+
+
     // Remove trivial dummy subgraphs and other dummy edges
+    Map<CFANode, Integer> pcToNewSuccessors = newSuccessorsToPC.inverse();
     for (int replaceablePCValue : new ArrayList<>(newPredecessorsToPC.keySet())) {
       CFANode newSuccessor = newSuccessorsToPC.get(replaceablePCValue);
       CFANode tailOfRedundantSubgraph = newPredecessorsToPC.get(replaceablePCValue);
-      Map<CFANode, Integer> pcToNewSuccessors = newSuccessorsToPC.inverse();
       Integer precedingPCValue;
       CFAEdge dummyEdge;
       // If a subgraph consists only of a dummy edge, eliminate it completely
@@ -326,40 +332,36 @@ public class CFASingleLoopTransformation {
         pcToNewSuccessors.remove(newSuccessor);
         newSuccessorsToPC.remove(precedingPCValue);
         newSuccessorsToPC.put(precedingPCValue, newSuccessor);
-      } else {
-        // Eliminate dummy edges from other subgraphs
-        Queue<CFANode> waitlist = new ArrayDeque<>();
-        waitlist.add(tailOfRedundantSubgraph);
-        while (!waitlist.isEmpty()) {
-          CFANode node = waitlist.poll();
-          for (CFAEdge edge : CFAUtils.enteringEdges(node).toList()) {
-            if (isDummyEdge(edge)) {
-              removeFromNodes(edge);
-              CFANode predecessor = edge.getPredecessor();
-              /*
-               * If the subgraph is entered by a dummy edge adjust the program
-               * counter successor.
-               */
-              if (predecessor.getNumEnteringEdges() == 0
-                  && (precedingPCValue = pcToNewSuccessors.get(predecessor)) != null) {
-                pcToNewSuccessors.remove(predecessor);
-                newSuccessorsToPC.remove(precedingPCValue);
-                newSuccessorsToPC.put(precedingPCValue, edge.getSuccessor());
-              } else {
-                /*
-                 * If the dummy edge is somewhere in between replace its
-                 * predecessor by its successor in the graph.
-                 */
-                for (CFAEdge edgeEnteringPredecessor : CFAUtils.enteringEdges(predecessor)) {
-                  removeFromNodes(edgeEnteringPredecessor);
-                  edgeEnteringPredecessor =
-                      copyCFAEdgeWithNewNodes(edgeEnteringPredecessor, edgeEnteringPredecessor.getPredecessor(), node, globalNewToOld);
-                  addToNodes(edgeEnteringPredecessor);
-                }
-              }
+      }
+    }
+    for (CFAEdge oldDummyEdge : dummyEdges) {
+      CFANode successor = globalNewToOld.get(oldDummyEdge.getSuccessor());
+      for (CFAEdge edge : CFAUtils.enteringEdges(successor)) {
+        if (isDummyEdge(edge)) {
+          removeFromNodes(edge);
+          CFANode predecessor = edge.getPredecessor();
+          /*
+           * If the subgraph is entered by a dummy edge adjust the program
+           * counter successor.
+           */
+          Integer precedingPCValue;
+          if (predecessor.getNumEnteringEdges() == 0
+              && (precedingPCValue = pcToNewSuccessors.get(predecessor)) != null) {
+            pcToNewSuccessors.remove(predecessor);
+            newSuccessorsToPC.remove(precedingPCValue);
+            newSuccessorsToPC.put(precedingPCValue, edge.getSuccessor());
+          } else {
+            /*
+             * If the dummy edge is somewhere in between replace its
+             * predecessor by its successor in the graph.
+             */
+            for (CFAEdge edgeEnteringPredecessor : CFAUtils.enteringEdges(predecessor)) {
+              removeFromNodes(edgeEnteringPredecessor);
+              edgeEnteringPredecessor =
+                  copyCFAEdgeWithNewNodes(edgeEnteringPredecessor, edgeEnteringPredecessor.getPredecessor(), successor, globalNewToOld);
+              addToNodes(edgeEnteringPredecessor);
             }
           }
-          waitlist.addAll(CFAUtils.predecessorsOf(node).toList());
         }
       }
     }
@@ -374,13 +376,15 @@ public class CFASingleLoopTransformation {
     connectLoopHeadToSubgraphEntryNodes(loopHead, newSuccessorsToPC, pcIdExpression, mainLocation,
         new CBinaryExpressionBuilder(pInputCFA.getMachineModel(), logger));
 
-    // If there is only one subgraph, the program is loop-free
+    // Connect the first subgraph directly to the declaration
+    removeFromNodes(pcDeclarationEdge);
+    pcDeclarationEdge = copyCFAEdgeWithNewNodes(pcDeclarationEdge, start, firstSubgraphStart, globalNewToOld);
+    addToNodes(pcDeclarationEdge);
+
+    // Skip the program counter initialization if it is never used
     if (newPredecessorsToPC.isEmpty()) {
-      removeNextLeavingEdge(start);
-      CFAEdge loopHeadLeavingEdge = removeNextLeavingEdge(loopHead);
-      CFANode loopHeadSuccessor = loopHeadLeavingEdge.getSuccessor();
-      replaceInStructure(loopHeadSuccessor, start);
-      loopHead = start;
+      removeFromNodes(pcDeclarationEdge);
+      replaceInStructure(firstSubgraphStart, start);
     }
 
     // Build the CFA from the syntactically reachable nodes
