@@ -37,12 +37,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -111,15 +113,12 @@ public enum InvariantsTransferRelation implements TransferRelation {
       case AssumeEdge:
         element = handleAssume(element, (CAssumeEdge) pEdge, pPrecision);
         break;
-
       case DeclarationEdge:
         element = handleDeclaration(element, (CDeclarationEdge) pEdge, pPrecision);
         break;
-
       case FunctionCallEdge:
         element = handleFunctionCall(element, (CFunctionCallEdge) pEdge, pPrecision);
         break;
-
       case StatementEdge:
         element = handleStatement(element, (CStatementEdge) pEdge, pPrecision);
         break;
@@ -234,7 +233,18 @@ public enum InvariantsTransferRelation implements TransferRelation {
       CAssignment assignment = (CAssignment)pEdge.getStatement();
       ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
       CExpression leftHandSide = assignment.getLeftHandSide();
+      CRightHandSide rightHandSide = assignment.getRightHandSide();
       InvariantsFormula<CompoundInterval> value = assignment.getRightHandSide().accept(etfv);
+      if (CompoundStateFormulaManager.isDefinitelyTop(value) && rightHandSide instanceof CFunctionCallExpression) {
+        CFunctionCallExpression cFunctionCallExpression = (CFunctionCallExpression) rightHandSide;
+        CExpression functionNameExpression = cFunctionCallExpression.getFunctionNameExpression();
+        if (functionNameExpression instanceof CIdExpression) {
+          CIdExpression idExpression = (CIdExpression) functionNameExpression;
+          if (idExpression.getName().equals("__VERIFIER_nondet_uint")) {
+            value = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.zero().extendToPositiveInfinity());
+          }
+        }
+      }
       return handleAssignment(pElement, pEdge.getPredecessor().getFunctionName(), pEdge, leftHandSide, value, pPrecision);
     }
 
