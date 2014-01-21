@@ -89,6 +89,7 @@ import org.sosy_lab.cpachecker.tiger.clustering.ClusteredElementaryCoveragePatte
 import org.sosy_lab.cpachecker.tiger.clustering.InfeasibilityPropagation;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.core.CPAtigerResult;
+import org.sosy_lab.cpachecker.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPEdgeSet;
@@ -303,18 +304,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     return run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckCorrectnessOfCoverageCheck, pPedantic);
   }
 
-  private FQLSpecification getFQLSpecification(String pFQLSpecification) {
-    // Parse FQL Specification
-    FQLSpecification lFQLSpecification;
-    try {
-      lFQLSpecification = FQLSpecification.parse(pFQLSpecification);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-
-    return lFQLSpecification;
-  }
-
   private GuardedEdgeAutomatonCPA getPassingCPA(FQLSpecification pFQLSpecification) {
     if (pFQLSpecification.hasPassingClause()) {
       mOutput.println("Cache hits (1): " + mCoverageSpecificationTranslator.getOverallCacheHits());
@@ -327,25 +316,13 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton1 = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
 
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton2 = optimizeAutomaton(lAutomaton1);
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton2 = FQLSpecificationUtil.optimizeAutomaton(lAutomaton1, mUseAutomatonOptimization);
 
       return new GuardedEdgeAutomatonCPA(lAutomaton2);
     }
     else {
       return null;
     }
-  }
-
-  private NondeterministicFiniteAutomaton<GuardedEdgeLabel> optimizeAutomaton(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
-    if (mUseAutomatonOptimization) {
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton1 = ToGuardedAutomatonTranslator.removeInfeasibleTransitions(pAutomaton);
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton2 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton1);
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton3 = ToGuardedAutomatonTranslator.reduceEdgeSets(lGoalAutomaton2);
-
-      return lGoalAutomaton3;
-    }
-
-    return pAutomaton;
   }
 
   private boolean applyCoverageCheck(Goal pGoal, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pGoalAutomaton, GuardedEdgeAutomatonCPA pPassingCPA, CPAtigerResult.Factory pResultFactory) {
@@ -397,7 +374,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     int lNumberOfTestGoals;
 
-    FQLSpecification lFQLSpecification = getFQLSpecification(pFQLSpecification);
+    FQLSpecification lFQLSpecification = FQLSpecificationUtil.getFQLSpecification(pFQLSpecification);
 
     Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation;
 
@@ -572,7 +549,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
 
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton = optimizeAutomaton(lGoal.getAutomaton());
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton = FQLSpecificationUtil.optimizeAutomaton(lGoal.getAutomaton(), mUseAutomatonOptimization);
 
       lTimeAccu.proceed();
 
