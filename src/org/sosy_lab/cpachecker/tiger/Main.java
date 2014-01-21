@@ -36,8 +36,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.tiger.cilly.Cilly;
 import org.sosy_lab.cpachecker.tiger.util.NullOutputStream;
+import org.sosy_lab.cpachecker.tiger.util.cilly.Cilly;
 
 public class Main {
 
