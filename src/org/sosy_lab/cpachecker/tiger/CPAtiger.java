@@ -86,14 +86,14 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
   private long mRestartBound = 100000000; // 100 MB
   private PrintStream mOutput = System.out;
 
-  public CPAtiger(String pSourceFileName, String pEntryFunction) {
+  public CPAtiger(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier) {
     /*mNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalTestGenerator = new IncrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalAndAlternatingTestGenerator = new IncrementalAndAlternatingFQLTestGenerator(pSourceFileName, pEntryFunction);
 
     mCoverageAnalyser = new StandardFQLCoverageAnalyser(pSourceFileName, pEntryFunction);*/
 
-    mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction);
+    mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction, shutdownNotifier);
   }
 
   public void setOutput(PrintStream pOutput) {
@@ -380,7 +380,7 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
 
       //lWriter.println("log.consoleLevel = ALL");
 
-      lWriter.println("analysis.traversal.order = topsort");
+      lWriter.println("analysis.traversal.order = DFS");
       lWriter.println("analysis.entryFunction = " + pEntryFunction);
 
       // we want to use CEGAR algorithm

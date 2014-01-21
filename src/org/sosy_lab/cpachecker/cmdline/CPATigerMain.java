@@ -99,7 +99,7 @@ public class CPATigerMain {
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownNotifier);
       limits.start();
 
-      cpatiger = new CPAtiger(options.programs, "main");
+      cpatiger = new CPAtiger(options.programs, "main", shutdownNotifier);
       //cpachecker = new CPAchecker(cpaConfig, logManager, shutdownNotifier);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");

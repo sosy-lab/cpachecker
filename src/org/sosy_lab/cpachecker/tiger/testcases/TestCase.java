@@ -37,6 +37,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.Model.Variable;
@@ -253,10 +254,17 @@ public abstract class TestCase {
     }
   }
 
-  public static TestCase fromCounterexample(CounterexampleTraceInfo pTraceInfo, LogManager pLogManager) {
-    Model lModel = pTraceInfo.getModel();
+  public static TestCase fromCounterexample(CounterexampleInfo pTraceInfo, LogManager pLogManager) {
+    Model lModel = pTraceInfo.getTargetPathModel();
 
     return fromCounterexample(lModel, pLogManager);
+  }
+
+  public static TestCase fromCounterexample(CounterexampleTraceInfo pTraceInfo, LogManager pLogManager) {
+    throw new UnsupportedOperationException("Implement!");
+    /*Model lModel = pTraceInfo.getModel();
+
+    return fromCounterexample(lModel, pLogManager);*/
   }
 
   public static TestCase fromCounterexample(Model pCounterexample, LogManager pLogManager) {

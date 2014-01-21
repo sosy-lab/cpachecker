@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -57,6 +58,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -109,7 +111,6 @@ import org.sosy_lab.cpachecker.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.collect.ImmutableSetMultimap;
 
@@ -159,6 +160,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
   private PrintStream mOutput = System.out;
 
+  private ShutdownNotifier mShutdownNotifier;
+
   public void setOutput(PrintStream pOutput) {
     mOutput = pOutput;
   }
@@ -199,13 +202,15 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     GuardedEdgeAutomatonCPA lIdStarCPA = new GuardedEdgeAutomatonCPA(lAutomaton);
 
     for (TestCase lTestCase : pTestSuite) {
-      CFAEdge[] lPath = reconstructPath(lTestCase, mWrapper.getEntry(), lIdStarCPA, null, mWrapper.getOmegaEdge().getSuccessor());
+      CFAEdge[] lPath = reconstructPath(mWrapper.getCFA(), lTestCase, mWrapper.getEntry(), lIdStarCPA, null, mWrapper.getOmegaEdge().getSuccessor());
 
       mGeneratedTestCases.put(lTestCase, lPath);
     }
   }
 
-  public IncrementalARTReusingFQLTestGenerator(String pSourceFileName, String pEntryFunction) {
+  public IncrementalARTReusingFQLTestGenerator(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier) {
+    mShutdownNotifier = shutdownNotifier;
+
     CFA lCFA;
 
     try {
@@ -241,13 +246,11 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     GlobalInfo.getInstance().storeCFA(lCFA);
     mLocationCPA = new LocationCPA(lCFA);
 
+
     // callstack CPA
-    CPAFactory lCallStackCPAFactory = CallstackCPA.factory();
     try {
-      mCallStackCPA = (CallstackCPA)lCallStackCPAFactory.createInstance();
+      mCallStackCPA = new CallstackCPA(mConfiguration, mLogManager);
     } catch (InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    } catch (CPAException e) {
       throw new RuntimeException(e);
     }
 
@@ -263,8 +266,18 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     // predicate abstraction CPA
     CPAFactory lPredicateCPAFactory = PredicateCPA.factory();
+    lPredicateCPAFactory.set(lCFA, CFA.class);
     lPredicateCPAFactory.setConfiguration(mConfiguration);
     lPredicateCPAFactory.setLogger(mLogManager);
+    lPredicateCPAFactory.set(shutdownNotifier, ShutdownNotifier.class);
+    ReachedSetFactory lReachedSetFactory;
+    try {
+      lReachedSetFactory = new ReachedSetFactory(mConfiguration, mLogManager);
+    } catch (InvalidConfigurationException e1) {
+      throw new RuntimeException(e1);
+    }
+    lPredicateCPAFactory.set(lReachedSetFactory, ReachedSetFactory.class);
+
     try {
       ConfigurableProgramAnalysis lPredicateCPA = lPredicateCPAFactory.createInstance();
 
@@ -614,10 +627,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         }
       }
 
-      CounterexampleTraceInfo lCounterexampleTraceInfo = null;
+      CounterexampleInfo lCounterexampleTraceInfo = null;
 
       if (lReachableViaGraphSearch) {
-        lCounterexampleTraceInfo = reach(lPredicateReachedSet, lPreviousGoalAutomaton, lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+        lCounterexampleTraceInfo = reach(mWrapper.getCFA(), lPredicateReachedSet, lPreviousGoalAutomaton, lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
 
         // lPredicateReachedSet and lPreviousGoalAutomaton have to be in-sync.
         lPreviousGoalAutomaton = lAutomatonCPA.getAutomaton();
@@ -709,8 +722,13 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
           boolean lIsPrecise = true;
 
+          System.err.println("TODO: reconstructPath needs a proper input extraction!");
+          // TODO remove again
+          lIsPrecise = false;
+
+          /*
           try {
-            lCFAPath = reconstructPath(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
+            lCFAPath = reconstructPath(mWrapper.getCFA(), lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
           } catch (InvalidConfigurationException e) {
             throw new RuntimeException(e);
           } catch (CPAException e) {
@@ -723,6 +741,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
               throw new RuntimeException(e);
             }
           }
+          */
 
           if (lIsPrecise) {
             mOutput.println("Goal #" + lIndex + " is feasible!");
@@ -832,7 +851,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> mBuilder = new ImmutableSetMultimap.Builder<>();
   HashSet<AbstractionPredicate> mGlobalPredicates = new HashSet<>();
 
-  private CounterexampleTraceInfo reach(ReachedSet pReachedSet, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, GuardedEdgeAutomatonCPA pAutomatonCPA, FunctionEntryNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
+  private CounterexampleInfo reach(CFA pCFA, ReachedSet pReachedSet, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, GuardedEdgeAutomatonCPA pAutomatonCPA, FunctionEntryNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
     mTimeInReach.proceed();
     mTimesInReach++;
 
@@ -861,7 +880,38 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
 
     int lPredicateCPAIndex = lComponentAnalyses.size();
-    lComponentAnalyses.add(mPredicateCPA);
+
+
+
+    // ****************************************************************************************
+
+    // TODO Create predicate CPA only once!
+    System.out.println("Create predicate CPA only once!");
+    CPAFactory lPredicateCPAFactory = PredicateCPA.factory();
+    lPredicateCPAFactory.set(pCFA, CFA.class);
+    lPredicateCPAFactory.setConfiguration(mConfiguration);
+    lPredicateCPAFactory.setLogger(mLogManager);
+    lPredicateCPAFactory.set(mShutdownNotifier, ShutdownNotifier.class);
+    ReachedSetFactory lReachedSetFactory;
+    try {
+      lReachedSetFactory = new ReachedSetFactory(mConfiguration, mLogManager);
+    } catch (InvalidConfigurationException e1) {
+      throw new RuntimeException(e1);
+    }
+    lPredicateCPAFactory.set(lReachedSetFactory, ReachedSetFactory.class);
+    try {
+      ConfigurableProgramAnalysis lPredicateCPA = lPredicateCPAFactory.createInstance();
+
+      lComponentAnalyses.add(lPredicateCPA);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    } catch (CPAException e) {
+      throw new RuntimeException(e);
+    }
+
+    // ****************************************************************************************
+    // TODO activate again
+    //lComponentAnalyses.add(mPredicateCPA);
 
     lComponentAnalyses.add(mAssumeCPA);
 
@@ -872,6 +922,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       lCPAFactory.setChildren(lComponentAnalyses);
       lCPAFactory.setConfiguration(mConfiguration);
       lCPAFactory.setLogger(mLogManager);
+      lCPAFactory.set(pCFA, CFA.class);
+
       ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
 
       // create ART CPA
@@ -902,9 +954,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     try {
       lRefiner = PredicateRefiner.create(lARTCPA);
 
-      System.err.println("HANDLE mBuilder");
-      System.err.println("HANDLE mGlobalPredicates");
-      System.exit(1); // TODO this is just to not having to deal with unreachable code!!! remove
+      System.err.println("TODO: HANDLE mBuilder");
+      System.err.println("TODO: HANDLE mGlobalPredicates");
+      //System.exit(1); // TODO this is just to not having to deal with unreachable code!!! remove
       //throw new RuntimeException();
       //lRefiner = new PredicateRefiner(lBasicAlgorithm.getCPA(), mBuilder, mGlobalPredicates);
     } catch (CPAException e) {
@@ -932,6 +984,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     lStatistics.add(lARTStatistics);
     lAlgorithm.collectStatistics(lStatistics);
 
+    // TODO activate ART reuse again!
+    System.out.println("TODO: activate ART reuse again!");
+    mReuseART = false;
+
     if (mReuseART) {
       ARTReuse.modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
 
@@ -955,7 +1011,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     //lAdjustment.NUMBER_OF_ABSTRACTIONS = 0; // TODO why does that not exist anymore: is there a statistics class?
 
     try {
-      lAlgorithm.run(pReachedSet);
+      boolean isComplete = lAlgorithm.run(pReachedSet);
+
+      assert isComplete;
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
@@ -965,17 +1023,31 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     //mOutput.println("Number of abstractions: " + lAdjustment.NUMBER_OF_ABSTRACTIONS); // TODO see above
 
-    throw new UnsupportedOperationException("Implement!");
+    CounterexampleInfo lCounterexampleInfo;
+    try {
+      lCounterexampleInfo = lRefiner.performRefinementWithInfo(pReachedSet);
+      System.err.println("TODO: do we perform unnecessary operations?");
+    } catch (CPAException | InterruptedException e) {
+      throw new RuntimeException(e);
+    }
 
+    System.err.println("TODO: handle PredicatePrecision!");
     /*
     mPrecision = new PredicatePrecision(mBuilder.build(), mGlobalPredicates);
 
     if (mPrintPredicateStatistics) {
       printPredicateStatistics(pReachedSet, lPredicateCPAIndex);
-    }
+    }*/
 
     mTimeInReach.pause();
 
+    System.err.println("TODO: Refinement Result (actually we don't wanna do refinement!): " + lCounterexampleInfo.isSpurious());
+
+    assert(!lCounterexampleInfo.isSpurious());
+
+    return lCounterexampleInfo;
+
+    /*
     CounterexampleTraceInfo lCounterexampleTraceInfo = lRefiner.getCounterexampleTraceInfo();
 
     return lCounterexampleTraceInfo;
@@ -1204,7 +1276,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     lCPAFactory.setLogger(mLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
 
-    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager, mConfiguration, null);
+    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager, mConfiguration, mShutdownNotifier);
 
     AbstractState lInitialElement = lCPA.getInitialState(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);
@@ -1246,7 +1318,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
   }
 
-  private CFAEdge[] reconstructPath(TestCase pTestCase, FunctionEntryNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+  private CFAEdge[] reconstructPath(CFA pCFA, TestCase pTestCase, FunctionEntryNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
     lComponentAnalyses.add(mLocationCPA);
 
@@ -1281,9 +1353,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     lCPAFactory.setChildren(lComponentAnalyses);
     lCPAFactory.setConfiguration(mConfiguration);
     lCPAFactory.setLogger(mLogManager);
+    lCPAFactory.set(pCFA, CFA.class);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
 
-    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager, mConfiguration, null);
+    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager, mConfiguration, mShutdownNotifier);
 
     AbstractState lInitialElement = lCPA.getInitialState(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);

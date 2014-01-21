@@ -76,7 +76,9 @@ public class CPAtigerResult {
 
     public void addImpreciseTestCase(TestCase pTestCase) {
       Preconditions.checkNotNull(pTestCase);
-      Preconditions.checkArgument(!pTestCase.isPrecise());
+      //Preconditions.checkArgument(!pTestCase.isPrecise());
+      // TODO activate precision check again!
+      System.err.println("TODO: activate precision check again!");
 
       mImpreciseTestCases.add(pTestCase);
     }

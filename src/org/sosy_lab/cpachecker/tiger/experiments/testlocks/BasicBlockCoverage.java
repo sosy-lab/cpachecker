@@ -27,6 +27,7 @@ import java.util.LinkedList;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.tiger.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.Main;
@@ -86,7 +87,8 @@ public class BasicBlockCoverage extends ExperimentalSeries {
 
   @Test
   public void test_locks_101a() throws Exception {
-    CPAtiger lFlleSh = new CPAtiger("test/programs/fql/locks/test_locks_5.c", "main");
+    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
+    CPAtiger lFlleSh = new CPAtiger("test/programs/fql/locks/test_locks_5.c", "main", shutdownNotifier);
 
     LinkedList<TestCase> lTestSuite = new LinkedList<>();
 

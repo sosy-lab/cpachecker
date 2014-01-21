@@ -124,6 +124,10 @@ public class Wrapper {
     assert(mOmegaEdge != null);
   }
 
+  public CFA getCFA() {
+    return mCFA;
+  }
+
   public CFAEdge getAlphaEdge() {
     return mAlphaEdge;
   }

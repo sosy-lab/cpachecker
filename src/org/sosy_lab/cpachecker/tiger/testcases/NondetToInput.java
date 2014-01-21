@@ -34,6 +34,7 @@ import java.util.LinkedList;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
@@ -294,7 +295,8 @@ public class NondetToInput {
 
     System.out.println(lTestSuite);
 
-    CPAtiger lFShell3 = new CPAtiger(pSourceFile, pEntryFunction);
+    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
+    CPAtiger lFShell3 = new CPAtiger(pSourceFile, pEntryFunction, shutdownNotifier);
     lFShell3.seed(lTestSuite);
     //FShell3Result lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");
     CPAtigerResult lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");
