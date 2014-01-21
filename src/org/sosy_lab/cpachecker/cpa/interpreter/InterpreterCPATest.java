@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.CPAtiger;
-import org.sosy_lab.cpachecker.tiger.cfa.Wrapper;
+import org.sosy_lab.cpachecker.tiger.util.Wrapper;
 
 public class InterpreterCPATest {
 
