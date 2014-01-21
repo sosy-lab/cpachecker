@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.tiger;
+package org.sosy_lab.cpachecker.tiger.cmdline;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.LinkedList;
 
+import org.sosy_lab.cpachecker.tiger.FeasibilityInformation;
 import org.sosy_lab.cpachecker.tiger.testcases.TestSuite;
 
 public class CPAtigerRestarting {

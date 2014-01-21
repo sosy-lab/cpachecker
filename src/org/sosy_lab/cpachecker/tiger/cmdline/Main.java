@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.tiger;
+package org.sosy_lab.cpachecker.tiger.cmdline;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -36,6 +36,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.tiger.CPAtiger;
+import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.util.NullOutputStream;
 import org.sosy_lab.cpachecker.tiger.util.cilly.Cilly;
 

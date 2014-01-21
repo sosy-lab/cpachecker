@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.tiger;
+package org.sosy_lab.cpachecker.tiger.cmdline;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -35,6 +35,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.tiger.CPAtiger;
+import org.sosy_lab.cpachecker.tiger.FeasibilityInformation;
 import org.sosy_lab.cpachecker.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;

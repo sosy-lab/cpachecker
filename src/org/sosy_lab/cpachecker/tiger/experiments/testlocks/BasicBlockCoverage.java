@@ -30,7 +30,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.tiger.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
-import org.sosy_lab.cpachecker.tiger.Main;
+import org.sosy_lab.cpachecker.tiger.cmdline.Main;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
 import org.sosy_lab.cpachecker.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;

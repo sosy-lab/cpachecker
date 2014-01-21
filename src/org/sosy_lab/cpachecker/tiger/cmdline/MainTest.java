@@ -21,10 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.tiger;
+package org.sosy_lab.cpachecker.tiger.cmdline;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
 import org.sosy_lab.cpachecker.tiger.fql.PredefinedCoverageCriteria;
 

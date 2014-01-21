@@ -33,7 +33,7 @@ import org.junit.BeforeClass;
 import org.sosy_lab.common.TimeAccumulator;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
-import org.sosy_lab.cpachecker.tiger.Main;
+import org.sosy_lab.cpachecker.tiger.cmdline.Main;
 
 import com.google.common.base.Preconditions;
 

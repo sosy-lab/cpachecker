@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.tiger.experiments.ntdrivers.simplified.restart;
 import java.util.LinkedList;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.tiger.CPAtigerRestarting;
+import org.sosy_lab.cpachecker.tiger.cmdline.CPAtigerRestarting;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
 import org.sosy_lab.cpachecker.tiger.fql.PredefinedCoverageCriteria;
 

@@ -30,8 +30,8 @@ import java.util.Collection;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.tiger.Main;
-import org.sosy_lab.cpachecker.tiger.CPAtigerParallelized;
+import org.sosy_lab.cpachecker.tiger.cmdline.CPAtigerParallelized;
+import org.sosy_lab.cpachecker.tiger.cmdline.Main;
 import org.sosy_lab.cpachecker.tiger.fql.PredefinedCoverageCriteria;
 
 public class TestCaseTest {

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.tiger.experiments.ntdrivers.simplified.distribut
 import java.util.LinkedList;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.tiger.CPAtigerParallelized;
+import org.sosy_lab.cpachecker.tiger.cmdline.CPAtigerParallelized;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
 import org.sosy_lab.cpachecker.tiger.fql.PredefinedCoverageCriteria;
 
