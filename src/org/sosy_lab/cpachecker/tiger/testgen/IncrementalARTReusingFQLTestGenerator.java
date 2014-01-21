@@ -222,9 +222,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       throw new RuntimeException(e);
     }
 
-    // PROBLEM: Wrapper function is already integrated in CFA
-    // TODO CoverageSpecificationTranslator has to ignore CFA elements in the wrapper function!
-    System.err.println("TODO: CoverageSpecificationTranslator has to ignore CFA elements in the wrapper function!");
     /*
      * We have to instantiate mCoverageSpecificationTranslator before the wrapper
      * changes the underlying CFA. FQL specifications are evaluated against the

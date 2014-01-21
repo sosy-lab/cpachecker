@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.jgrapht.graph.MaskFunctor;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -167,6 +168,10 @@ public class TargetGraphUtil {
       throw new IllegalArgumentException();
     }
 
+    if (pInitialNode.getFunctionName().equals(CFACreator.CPAtiger_MAIN)) {
+      throw new IllegalArgumentException("Do not start target graph construction inside wrapper code!");
+    }
+
     Builder lBuilder = new Builder();
 
     HashMap<CFANode, Node> lNodeMapping = new HashMap<>();
@@ -205,6 +210,11 @@ public class TargetGraphUtil {
         for (int lEdgeIndex = 0; lEdgeIndex < lNumberOfLeavingEdges; lEdgeIndex++) {
           CFAEdge lEdge = lCFANode.getLeavingEdge(lEdgeIndex);
           CFANode lSuccessor = lEdge.getSuccessor();
+
+          if (lSuccessor.getFunctionName().equals(CFACreator.CPAtiger_MAIN)) {
+            // we will not consider wrapper code in target graphs
+            continue;
+          }
 
           Node lSuccessorNode;
 

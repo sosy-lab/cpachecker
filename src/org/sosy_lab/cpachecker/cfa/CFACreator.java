@@ -488,7 +488,7 @@ public class CFACreator {
     }
   }
 
-  private static final String CPAtiger_MAIN = "__CPAtiger__main";
+  public static final String CPAtiger_MAIN = "__CPAtiger__main";
 
   private static String getWrapperCFunction(FunctionEntryNode pMainFunction) {
     if (!(pMainFunction instanceof CFunctionEntryNode)) {
