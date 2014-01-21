@@ -64,7 +64,7 @@ public class DefaultOptions {
       allowedOptions.put("log.usedOptions.export", "false");
       allowedOptions.put("log.level", "OFF");
       allowedOptions.put("log.truncateSize", "10000");
-      allowedOptions.put("limits.time.wall", "-1");
+      allowedOptions.put("limits.time.wall", "540s"); // 9 minutes
     }
     return allowedOptions;
   }
@@ -146,6 +146,23 @@ public class DefaultOptions {
     }
 
     return options;
+  }
+
+  /**
+   * Returns a map containing a combination of all default options and all
+   * immutable options.
+   *
+   * @see DefaultOptions#getDefaultOptions()
+   * @see DefaultOptions#getImmutableOptions()
+   *
+   * @return All options
+   * @throws IOException If immutable options cannot be read.
+   */
+  public static Map<String, String> getAllOptions() throws IOException {
+    Map<String, String> opts = new HashMap<>();
+    opts.putAll(getDefaultOptions());
+    opts.putAll(getImmutableOptions());
+    return opts;
   }
 
   /**
