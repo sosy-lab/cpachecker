@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.tiger.interfaces;
 
-import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
+import org.sosy_lab.cpachecker.tiger.core.CPAtigerResult;
 
 public interface FQLTestGenerator {
 

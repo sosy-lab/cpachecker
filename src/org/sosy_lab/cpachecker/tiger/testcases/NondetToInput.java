@@ -36,8 +36,8 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.tiger.CPAtiger;
-import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
+import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
+import org.sosy_lab.cpachecker.tiger.core.CPAtigerResult;
 
 public class NondetToInput {
 

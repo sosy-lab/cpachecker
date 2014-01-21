@@ -29,8 +29,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.LinkedList;
 
-import org.sosy_lab.cpachecker.tiger.FeasibilityInformation;
 import org.sosy_lab.cpachecker.tiger.testcases.TestSuite;
+import org.sosy_lab.cpachecker.tiger.util.FeasibilityInformation;
 
 public class CPAtigerRestarting {
 

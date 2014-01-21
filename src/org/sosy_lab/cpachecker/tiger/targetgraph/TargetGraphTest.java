@@ -36,7 +36,7 @@ import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.tiger.CPAtiger;
+import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.fql.ast.Predicate;
 import org.sosy_lab.cpachecker.tiger.fql.ast.filter.ConditionEdge;
 import org.sosy_lab.cpachecker.tiger.fql.ast.filter.Filter;

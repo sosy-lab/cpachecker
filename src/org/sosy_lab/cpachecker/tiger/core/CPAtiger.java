@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.tiger;
+package org.sosy_lab.cpachecker.tiger.core;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.tiger.testcases.LoggingTestSuite;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestSuite;
 import org.sosy_lab.cpachecker.tiger.testgen.IncrementalARTReusingFQLTestGenerator;
+import org.sosy_lab.cpachecker.tiger.util.FeasibilityInformation;
+import org.sosy_lab.cpachecker.tiger.util.LoggingFeasibilityInformation;
 import org.sosy_lab.cpachecker.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
