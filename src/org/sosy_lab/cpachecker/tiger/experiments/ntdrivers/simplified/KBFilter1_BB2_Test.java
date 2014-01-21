@@ -29,7 +29,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
-import org.sosy_lab.cpachecker.tiger.util.PredefinedCoverageCriteria;
+import org.sosy_lab.cpachecker.tiger.fql.PredefinedCoverageCriteria;
 
 public class KBFilter1_BB2_Test extends ExperimentalSeries {
 

@@ -28,7 +28,7 @@ import java.util.LinkedList;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.tiger.CPAtigerParallelized;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
-import org.sosy_lab.cpachecker.tiger.util.PredefinedCoverageCriteria;
+import org.sosy_lab.cpachecker.tiger.fql.PredefinedCoverageCriteria;
 
 public class CDAudio2_BB2_Test extends ExperimentalSeries {
 

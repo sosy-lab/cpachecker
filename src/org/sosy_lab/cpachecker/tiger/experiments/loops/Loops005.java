@@ -28,7 +28,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.tiger.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.Main;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
-import org.sosy_lab.cpachecker.tiger.util.PredefinedCoverageCriteria;
+import org.sosy_lab.cpachecker.tiger.fql.PredefinedCoverageCriteria;
 
 public class Loops005 extends ExperimentalSeries {
 
