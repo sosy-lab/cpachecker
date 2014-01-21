@@ -965,6 +965,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       throw new RuntimeException(e);
     }
 
+    // TODO shall we use a PredicatedAnalysiAlgorithm?
+    System.err.println("TODO: shall we use a PredicatedAnalysiAlgorithm?");
+
     CEGARAlgorithm lAlgorithm;
     try {
       lAlgorithm = new CEGARAlgorithm(lBasicAlgorithm, lRefiner, mConfiguration, mLogManager);
@@ -1024,11 +1027,31 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     //mOutput.println("Number of abstractions: " + lAdjustment.NUMBER_OF_ABSTRACTIONS); // TODO see above
 
     CounterexampleInfo lCounterexampleInfo;
-    try {
-      lCounterexampleInfo = lRefiner.performRefinementWithInfo(pReachedSet);
-      System.err.println("TODO: do we perform unnecessary operations?");
-    } catch (CPAException | InterruptedException e) {
-      throw new RuntimeException(e);
+
+    if (pReachedSet.getLastState() == null) {
+      // TODO How can pReachedSet.getLastState() return null?
+      System.err.println("TODO: How can this happen?");
+
+      mTimeInReach.pause();
+
+      return null;
+    }
+
+    if (((ARGState)pReachedSet.getLastState()).isTarget()) {
+      try {
+        lCounterexampleInfo = lRefiner.performRefinementWithInfo(pReachedSet);
+        System.err.println("TODO: do we perform unnecessary (refinement) operations?");
+      } catch (CPAException | InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+
+      System.err.println("TODO: Refinement Result (actually we don't wanna do refinement!): " + lCounterexampleInfo.isSpurious());
+
+      assert(!lCounterexampleInfo.isSpurious());
+    }
+    else {
+      // we have shown the infeasibility of the test goal (given the assumption that the algorithm completed)
+      lCounterexampleInfo = null; // TODO I guess this can't stay like that
     }
 
     System.err.println("TODO: handle PredicatePrecision!");
@@ -1040,10 +1063,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }*/
 
     mTimeInReach.pause();
-
-    System.err.println("TODO: Refinement Result (actually we don't wanna do refinement!): " + lCounterexampleInfo.isSpurious());
-
-    assert(!lCounterexampleInfo.isSpurious());
 
     return lCounterexampleInfo;
 
