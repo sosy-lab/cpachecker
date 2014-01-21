@@ -285,4 +285,9 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
 
     return errors;
   }
+
+  @Override
+  public void deleteAll() {
+    JobDAO.deleteAll();
+  }
 }

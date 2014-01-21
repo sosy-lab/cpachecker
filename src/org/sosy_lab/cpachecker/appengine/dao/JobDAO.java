@@ -28,6 +28,7 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.appengine.entity.Job;
+import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
 import com.google.appengine.api.taskqueue.Queue;
 import com.google.appengine.api.taskqueue.QueueFactory;
@@ -82,6 +83,14 @@ public class JobDAO {
         }
       });
     }
+  }
+
+  public static void deleteAll() {
+    List<Key<Job>> jobKeys = ofy().load().type(Job.class).keys().list();
+    ofy().delete().keys(jobKeys).now();
+
+    List<Key<JobFile>> fileKeys = ofy().load().type(JobFile.class).keys().list();
+    ofy().delete().keys(fileKeys).now();
   }
 
   public static void delete(Key<Job> key) {
