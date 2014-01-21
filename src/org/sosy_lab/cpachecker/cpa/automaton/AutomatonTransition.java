@@ -165,6 +165,10 @@ class AutomatonTransition {
     return followState;
   }
 
+  public AutomatonBoolExpr getTrigger() {
+    return trigger;
+  }
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();

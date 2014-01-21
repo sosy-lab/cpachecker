@@ -28,8 +28,10 @@ import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Writer;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +45,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchEdgeTokens;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
@@ -71,6 +75,35 @@ public class AutomatonGraphmlParser {
     pConfig.inject(this);
   }
 
+  private void removeTransitions(List<AutomatonTransition> from, Set<Integer> tokens) {
+    Iterator<AutomatonTransition> it = from.iterator();
+    while (it.hasNext()) {
+      AutomatonTransition t = it.next();
+      if (t.getTrigger() instanceof AutomatonBoolExpr.MatchEdgeTokens) {
+        AutomatonBoolExpr.MatchEdgeTokens matcher = (AutomatonBoolExpr.MatchEdgeTokens) t.getTrigger();
+        if (matcher.getMatchTokens().equals(tokens)) {
+          it.remove();
+        }
+      }
+    }
+  }
+
+  private boolean tokenSetsDisjoint(List<AutomatonTransition> transitions) {
+    Set<Integer> allTokens = Sets.newTreeSet();
+    for (AutomatonTransition t : transitions) {
+      if (t.getTrigger() instanceof AutomatonBoolExpr.MatchEdgeTokens) {
+        AutomatonBoolExpr.MatchEdgeTokens matcher = (AutomatonBoolExpr.MatchEdgeTokens) t.getTrigger();
+        int differentTokensWithout = allTokens.size();
+        allTokens.addAll(matcher.getMatchTokens());
+        int differentTokensWith = allTokens.size();
+        if (differentTokensWith - differentTokensWithout != matcher.getMatchTokens().size()) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   /**
   * Parses a Specification File and returns the Automata found in the file.
   */
@@ -96,6 +129,7 @@ public class AutomatonGraphmlParser {
       String initialStateName = docDat.getDataValue(graphNode, KeyDef.ENTRYNODE, "Every graph needs a specified entry node!");
 
       // Create transitions ----
+      AutomatonBoolExpr epsilonTrigger = new MatchEdgeTokens(Collections.<Integer>emptySet(), Optional.<Boolean>absent());
       NodeList edges = doc.getElementsByTagName(GraphMlTag.EDGE.toString());
       Map<String, List<AutomatonTransition>> stateTransitions = Maps.newHashMap();
       for (int i=0; i<edges.getLength(); i++) {
@@ -123,12 +157,31 @@ public class AutomatonGraphmlParser {
           stateTransitions.put(sourceStateId, transitions);
         }
 
+        List<AutomatonTransition> targetStateTransitions = stateTransitions.get(targetStateId);
+        if (targetStateTransitions == null) {
+          targetStateTransitions = Lists.newArrayList();
+          stateTransitions.put(targetStateId, targetStateTransitions);
+        }
+
+        removeTransitions(transitions, matchTokens);
         if (targetStateId.equalsIgnoreCase(SINK_NODE_ID)) {
           transitions.add(new AutomatonTransition(trigger, assertions, actions, AutomatonInternalState.BOTTOM));
-          transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM));
+          if (!matchTokens.isEmpty()) {
+            transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM));
+          }
         } else {
+          // Set of tokens
           transitions.add(new AutomatonTransition(trigger, assertions, actions, targetStateId));
-          transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM));
+          // Repeated set of tokens
+          targetStateTransitions.add(new AutomatonTransition(trigger, assertions, actions, targetStateId));
+          // Empty set of tokens
+          if (!matchTokens.isEmpty()) {
+            targetStateTransitions.add(new AutomatonTransition(epsilonTrigger, assertions, actions, targetStateId));
+          }
+          // Negated sets of tokens
+          if (!matchTokens.isEmpty()) {
+            transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM));
+          }
         }
 
       }
@@ -146,7 +199,11 @@ public class AutomatonGraphmlParser {
           transitions = Collections.emptyList();
         }
 
-        AutomatonInternalState state = new AutomatonInternalState(stateId, transitions, false, true);
+        // Determine if "matchAll" should be enabled
+        boolean matchAll = !tokenSetsDisjoint(transitions);
+
+        // ...
+        AutomatonInternalState state = new AutomatonInternalState(stateId, transitions, false, matchAll);
         automatonStates.add(state);
       }
 
@@ -156,11 +213,11 @@ public class AutomatonGraphmlParser {
       Automaton automaton = new Automaton(automatonName, automatonVariables, automatonStates, initialStateName);
       result.add(automaton);
 
-//      try (Writer w = Files.openOutputFile(Paths.get("autom_test.dot"))) {
-//        automaton.writeDotFile(w);
-//      } catch (IOException e) {
-//        //logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
-//      }
+      try (Writer w = Files.openOutputFile(Paths.get("autom_test.dot"))) {
+        automaton.writeDotFile(w);
+      } catch (IOException e) {
+        //logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+      }
 
       return result;
 
@@ -210,10 +267,13 @@ public class AutomatonGraphmlParser {
 
   private Set<Integer> getTokensOfEdge(GraphMlDocumentData docDat, Node edgeDef) {
     Set<String> data = docDat.getDataOnNode(edgeDef, KeyDef.TOKENS);
-    Preconditions.checkArgument(data.size() == 1, "Each edge must include exactly one data-node with the key 'tokens'!");
-
-    String tokenString = data.iterator().next();
-    return parseTokens(tokenString);
+    Preconditions.checkArgument(data.size() <= 1, "Each edge must include at most one data-node with the key 'tokens'!");
+    if (data.size() == 0) {
+      return Collections.emptySet();
+    } else {
+      String tokenString = data.iterator().next();
+      return parseTokens(tokenString);
+    }
   }
 
   private static class GraphMlDocumentData {

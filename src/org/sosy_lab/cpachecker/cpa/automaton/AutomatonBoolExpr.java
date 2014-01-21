@@ -23,15 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
@@ -197,11 +205,39 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       matchNegatedSemantics = pMatchNegatedSemantics;
     }
 
+    private boolean handleAsEpsilonEdge(CFAEdge edge) {
+      if (edge instanceof BlankEdge) {
+        return true;
+      } else if (edge instanceof CDeclarationEdge) {
+        CDeclarationEdge declEdge = (CDeclarationEdge) edge;
+        CDeclaration decl = declEdge.getDeclaration();
+        if (decl instanceof CFunctionDeclaration) {
+          return true;
+        } else if (decl instanceof CTypeDeclaration) {
+          return true;
+        } else if (decl instanceof CVariableDeclaration) {
+          CVariableDeclaration varDecl = (CVariableDeclaration) decl;
+          if (varDecl.getInitializer() == null) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    }
+
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      Set<Integer> edgeTokens = CFAUtils.getTokensFromCFAEdge(pArgs.getCfaEdge());
-      boolean match = edgeTokens.equals(matchTokens);
+      boolean match = false;
 
+      Set<Integer> edgeTokens;
+      if (handleAsEpsilonEdge(pArgs.getCfaEdge())) {
+        edgeTokens = Collections.emptySet();
+      } else {
+        edgeTokens = CFAUtils.getTokensFromCFAEdge(pArgs.getCfaEdge());
+      }
+
+      match = edgeTokens.equals(matchTokens);
       if (match && matchNegatedSemantics.isPresent()) {
         if (pArgs.getCfaEdge() instanceof AssumeEdge) {
           AssumeEdge a = (AssumeEdge) pArgs.getCfaEdge();
@@ -214,6 +250,14 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       }
 
       return match ? CONST_TRUE : CONST_FALSE;
+    }
+
+    public Optional<Boolean> getMatchNegatedSemantics() {
+      return matchNegatedSemantics;
+    }
+
+    public Set<Integer> getMatchTokens() {
+      return matchTokens;
     }
 
     @Override

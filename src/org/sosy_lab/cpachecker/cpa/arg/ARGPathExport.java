@@ -35,10 +35,16 @@ import java.util.Set;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
@@ -49,25 +55,49 @@ import org.w3c.dom.Element;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+import com.google.common.collect.Table;
 import com.google.common.collect.TreeRangeSet;
 
 public class ARGPathExport {
 
-  private void appendNewEdge(GraphMlBuilder doc, String from, String to, CFAEdge edge) throws IOException {
-    Element result = doc.createEdgeElement(from, to);
-
-    if (edge instanceof AssumeEdge) {
-      AssumeEdge a = (AssumeEdge) edge;
-      result.setAttribute("negation", a.getTruthAssumption() ? "false" : "true");
+  private boolean handleAsEpsilonEdge(CFAEdge edge) {
+    if (edge instanceof BlankEdge) {
+      return true;
+    } else if (edge instanceof CDeclarationEdge) {
+      CDeclarationEdge declEdge = (CDeclarationEdge) edge;
+      CDeclaration decl = declEdge.getDeclaration();
+      if (decl instanceof CFunctionDeclaration) {
+        return true;
+      } else if (decl instanceof CTypeDeclaration) {
+        return true;
+      } else if (decl instanceof CVariableDeclaration) {
+        CVariableDeclaration varDecl = (CVariableDeclaration) decl;
+        if (varDecl.getInitializer() == null) {
+          return true;
+        }
+      }
     }
 
-    doc.addDataElementChild(result, KeyDef.SOURCECODE, edge.getCode());
+    return false;
+  }
 
-    Set<Integer> tokens = CFAUtils.getTokensFromCFAEdge(edge);
-    doc.addDataElementChild(result, KeyDef.TOKENS, tokensToText(tokens));
+  private void appendNewEdge(GraphMlBuilder doc, String from, String to, CFAEdge edge) throws IOException {
+    Element result = doc.createEdgeElement(from, to);
+    if (!handleAsEpsilonEdge(edge)) {
+      if (edge instanceof AssumeEdge) {
+        AssumeEdge a = (AssumeEdge) edge;
+        result.setAttribute("negation", a.getTruthAssumption() ? "false" : "true");
+      }
 
+      doc.addDataElementChild(result, KeyDef.SOURCECODE, edge.getCode());
+
+      Set<Integer> tokens = CFAUtils.getTokensFromCFAEdge(edge);
+      doc.addDataElementChild(result, KeyDef.TOKENS, tokensToText(tokens));
+    }
     doc.appendToAppendable(result);
   }
 
@@ -171,7 +201,6 @@ public class ARGPathExport {
       doc.appendNewNode(sourceStateNodeId, NodeType.ONPATH);
 
       for (ARGState child : successorFunction.apply(s)) {
-
         // The child might be covered by another state
         // --> switch to the covering state
         if (child.isCovered()) {
@@ -230,6 +259,89 @@ public class ARGPathExport {
 
     doc.appendFooter();
   }
+
+  public void writePath2(Appendable sb,
+      final ARGState rootState,
+      final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
+      final Predicate<? super ARGState> displayedElements,
+      final Predicate<? super Pair<ARGState, ARGState>> pathEdges)
+      throws IOException {
+
+    Set<ARGState> processed = new HashSet<>();
+    Deque<ARGState> worklist = new ArrayDeque<>();
+    worklist.add(rootState);
+
+    GraphType graphType = GraphType.PROGRAMPATH;
+
+    GraphMlBuilder doc;
+    try {
+      doc = new GraphMlBuilder(sb);
+    } catch (ParserConfigurationException e) {
+      throw new IOException(e);
+    }
+
+    Table<ARGState, ARGState, List<CFAEdge>> adjacentStates = HashBasedTable.create();
+
+    // TODO: Full schema details
+    // Version of format..
+    // TODO! (we could use the version of a XML schema)
+
+    // ...
+    String entryStateNodeId = getStateIdent(rootState);
+
+    while (!worklist.isEmpty()) {
+      ARGState s = worklist.removeLast();
+
+      if (!displayedElements.apply(s)) {
+        continue;
+      }
+      if (!processed.add(s)) {
+        continue;
+      }
+
+      // Location of the state
+      CFANode loc = AbstractStates.extractLocation(s);
+
+      // Write the state
+      String sourceStateNodeId = getStateIdent(s);
+      doc.appendNewNode(sourceStateNodeId, NodeType.ONPATH);
+
+      for (ARGState child : successorFunction.apply(s)) {
+        // The child might be covered by another state
+        // --> switch to the covering state
+        if (child.isCovered()) {
+          child = child.getCoveringState();
+          assert !child.isCovered();
+        }
+
+        CFANode childLoc = AbstractStates.extractLocation(child);
+        CFAEdge edgeToNextState = loc.getEdgeTo(childLoc);
+
+        // Only proceed with this state if the path states contains the child
+        boolean isEdgeOnPath = pathEdges.apply(Pair.of(s, child));
+        if (s.getChildren().contains(child)) {
+          if (isEdgeOnPath) {
+            // Child belongs to the path!
+            if (edgeToNextState instanceof MultiEdge) {
+              // Write out a long linear chain of pseudo-states (one state encodes multiple edges)
+              // because the AutomatonCPA also iterates through the MultiEdge.
+              List<CFAEdge> edges = ((MultiEdge)edgeToNextState).getEdges();
+
+              adjacentStates.put(s, child, Lists.newArrayList(edges));
+            } else {
+              adjacentStates.put(s, child, Lists.newArrayList(edgeToNextState));
+            }
+          }
+        }
+
+        worklist.add(child);
+      }
+    }
+
+    doc.appendFooter();
+  }
+
+
 
 
 }
