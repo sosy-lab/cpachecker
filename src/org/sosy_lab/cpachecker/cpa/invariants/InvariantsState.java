@@ -154,6 +154,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   private Collection<InvariantsFormula<CompoundInterval>> environmentAndAssumptions = null;
 
+  private volatile int hash = 0;
+
   /**
    * Creates a new pristine invariants state with just a value for the flag indicating whether
    * or not to use bit vectors for representing states and a variable selection.
@@ -755,7 +757,15 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   @Override
   public int hashCode() {
-    return environment.hashCode();
+    int result = hash;
+    if (result == 0) {
+      result = 17;
+      result = 31 * result + environment.hashCode();
+      result = 31 * result + assumptions.hashCode();
+      result = 31 * result + collectedInterestingAssumptions.hashCode();
+      hash = result;
+    }
+    return result;
   }
 
   @Override
