@@ -630,6 +630,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
     String rightVarName = null;
 
     // we cannot handle pointers, so just ignore them
+    // TODO make program unsafe?
     if (left.getExpressionType() instanceof CPointerType || right.getExpressionType() instanceof CPointerType
         || (left instanceof CFieldReference && ((CFieldReference) left).isPointerDereference())
         || (right instanceof CFieldReference && ((CFieldReference) right).isPointerDereference())) {
@@ -661,7 +662,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       rightVarName = tempRight;
     }
 
-    // Comparison part, left and right are now definitly availbable
+    // Comparison part, left and right are now definitely available
     switch (op) {
     case EQUALS:
       if (truthAssumption) {
@@ -869,6 +870,8 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
   protected OctState handleStatementEdge(CStatementEdge cfaEdge, CStatement statement)
       throws CPATransferException {
 
+    boolean isNonedUInt = false;
+
     // check if there are functioncalls we cannot handle
     if (statement instanceof CFunctionCall) {
       CExpression fn = ((CFunctionCall)statement).getFunctionCallExpression().getFunctionNameExpression();
@@ -877,6 +880,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
         }
+        isNonedUInt = func.equals("__VERIFIER_nondet_uint");
       }
     }
 
@@ -897,8 +901,11 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
         return state;
       } else {
         // if we cannot determine coefficients, we cannot make any assumptions about
-        // the value of the assigned varible and reset its value to unknown
+        // the value of the assigned variable and reset its value to unknown
         if (coeffs == null) {
+          if (isNonedUInt) {
+            return state.forget(variableName).addGreaterEqConstraint(variableName, 0);
+          }
           return state.forget(variableName);
         } else {
           // TODO is assignment to field valid?
