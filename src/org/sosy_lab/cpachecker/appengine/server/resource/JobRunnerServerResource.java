@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.appengine.server.common.JobRunnerResource;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.appengine.api.ThreadManager;
@@ -65,24 +66,32 @@ import com.google.common.io.FileWriteMode;
 
 public class JobRunnerServerResource extends WadlServerResource implements JobRunnerResource {
 
+  private Job job;
+  private Level logLevel;
+  private Path errorPath;
   private Configuration config;
   private LogManager logManager;
   private GAELogHandler logHandler;
-  private Job job;
-  private CPAcheckerResult result;
-  private Level logLevel;
-  private Path errorPath;
+  private Thread cpaCheckerThread;
+  private volatile CPAcheckerResult result;
 
   private boolean outputEnabled = false;
   private boolean configDumped = false;
   private boolean statsDumped = false;
   private boolean logDumped = false;
 
+  boolean shutdownComplete = false;
+
   @Override
   public void runJob(Representation entity) throws Exception {
     Threads.setThreadFactory(ThreadManager.currentRequestThreadFactory());
     Form requestValues = new Form(entity);
     job = JobDAO.load(requestValues.getFirstValue("jobKey"));
+
+    /*
+     * Only process 'new' jobs. There seems to be a bug in the task queue that
+     * sometimes runs a task twice though it should only be run once.
+     */
     if (job.getStatus() != Status.PENDING) { return; }
 
     Paths.setFactory(new GAEPathFactory(job));
@@ -96,26 +105,98 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     setupLogging();
     dumpConfiguration();
 
-    // TODO use and register appropriate notifier
-    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
+    ShutdownRequestListener listener = new ShutdownRequestListener() {
+      @Override
+      public void shutdownRequested(final String reason) {
+        log(Level.WARNING, "Task timed out. Trying to rescue results.", reason);
 
-    ResourceLimitChecker limits = null;
-    limits = ResourceLimitChecker.fromConfiguration(config, logManager, shutdownNotifier);
+        try {
+          cpaCheckerThread.join(10000); // 10 seconds
+        } catch (Exception e) {
+          // Never mind. We are shutting down and only want to do so gracefully.
+        }
+
+        /*
+         * Sometimes there are weird race conditions going on and saving might
+         * fail therefore.In this case we try again a couple of times.
+         */
+        int retries = 0;
+        do {
+          try {
+            setResult();
+            job.setStatus(Status.TIMEOUT);
+            job.setTerminationDate(new Date());
+            job.setStatusMessage(reason);
+            JobDAO.save(job);
+
+            dumpStatistics();
+            dumpLog();
+            break;
+          } catch (Exception e) {
+            log(Level.WARNING, "Error while trying to rescue results.", e);
+          }
+          retries++;
+        } while (retries < 3);
+
+        shutdownComplete = true;
+      }
+    };
+
+    final ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
+    shutdownNotifier.registerAndCheckImmediately(listener);
+
+    final CPAchecker cpaChecker = new CPAchecker(config, logManager, shutdownNotifier);
+
+    /*
+     * To prevent the main thread (and therefore the complete request) to go
+     * down if the run is interrupted the checker is run in its own thread. This
+     * allows for setting the jobs status and potentially saving results.
+     */
+    cpaCheckerThread = Threads.newThread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          result = cpaChecker.run("program.c");
+        } catch (RuntimeException e) {
+          /* This exception might be thrown if the thread is interrupted and
+           * any data store operations are going on. The exception needs to
+           * be caught to be able to bail out sensible.
+           */
+          log(Level.WARNING, e);
+        }
+      }
+    });
+
+    ResourceLimitChecker limits = ResourceLimitChecker.fromConfiguration(config, logManager, shutdownNotifier);
     limits.start();
 
-    CPAchecker cpaChecker = new CPAchecker(config, logManager, shutdownNotifier);
-    result = cpaChecker.run("program.c");
+    cpaCheckerThread.start();
+    cpaCheckerThread.join();
 
-    setResult();
-    dumpStatistics();
+    if (shutdownNotifier.shouldShutdown()) {
+      while (!shutdownComplete) {
+        Thread.sleep(100);
+      }
+    } else {
+      shutdownNotifier.unregister(listener);
+      limits.cancel();
 
-    dumpLog();
+      setResult();
+      dumpStatistics();
+      dumpLog();
 
-    job.setTerminationDate(new Date());
-    job.setStatus(Status.DONE);
-    JobDAO.save(job);
+      job.setTerminationDate(new Date());
+      job.setStatus(Status.DONE);
+      JobDAO.save(job);
+    }
   }
 
+  /*
+   * Catches all exceptions that are thrown while running the job and are not
+   * handled along the way.
+   *
+   * @see org.restlet.resource.ServerResource#doCatch(java.lang.Throwable)
+   */
   @Override
   protected void doCatch(Throwable e) {
     // set status OK to pretend everything went fine so that the task will not be retried.
@@ -182,11 +263,9 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
   private void dumpLog() {
     if (logDumped) { return; }
 
-    if (config.getProperty("statistics.export").equals("true") && logHandler != null) {
-      if (logLevel != null && logLevel.intValue() > 0) {
-        logHandler.flushAndClose();
-        logDumped = true;
-      }
+    if (logHandler != null && logLevel != null && logLevel != Level.OFF) {
+      logHandler.flushAndClose();
+      logDumped = true;
     }
   }
 
@@ -205,16 +284,15 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
   private void dumpStatistics() throws IOException {
     if (statsDumped) { return; }
 
-    if (!outputEnabled || config.getProperty("statistics.export").equals("false") || result == null) { return; }
+    if (config.getProperty("statistics.export").equals("false") || result == null) { return; }
 
     Path statisticsDumpFile = Paths.get(config.getProperty("statistics.file"));
-    OutputStream out = statisticsDumpFile.asByteSink().openBufferedStream();
-    PrintStream stream = new PrintStream(out);
-    result.printStatistics(stream);
-
-    stream.flush();
-    out.close();
-    statsDumped = true;
+    try (OutputStream out = statisticsDumpFile.asByteSink().openBufferedStream()) {
+      PrintStream stream = new PrintStream(out);
+      result.printStatistics(stream);
+      stream.flush();
+      statsDumped = true;
+    }
   }
 
   private void setupLogging() throws IOException, InvalidConfigurationException {
