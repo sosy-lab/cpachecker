@@ -23,12 +23,32 @@
  */
 package org.sosy_lab.cpachecker.util.octagon;
 
+import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
+import java.util.ArrayList;
+import java.util.List;
+
+
 public class Octagon {
 
   private final long octId;
+  private static List<OctPhantomReference> phantomReferences = new ArrayList<>();
+  private static ReferenceQueue<Octagon> referenceQueue = new ReferenceQueue<>();
 
   Octagon(long l) {
     octId = l;
+    registerPhantomReference(this);
+  }
+
+  private static void registerPhantomReference(Octagon oct) {
+    phantomReferences.add(new OctPhantomReference(oct, referenceQueue));
+  }
+
+  public static void removePhantomReferences() {
+    Reference<? extends Octagon> reference;
+    while ((reference = referenceQueue.poll()) != null) {
+      ((OctPhantomReference)reference).cleanup();
+    }
   }
 
   long getOctId() {
@@ -53,5 +73,4 @@ public class Octagon {
   public String toString() {
     return "octagon with id: " + octId;
   }
-
 }

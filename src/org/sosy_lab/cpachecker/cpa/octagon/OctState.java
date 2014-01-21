@@ -102,12 +102,18 @@ class OctState implements AbstractState {
     octagon = OctagonManager.universe(0);
     variableToIndexMap = HashBiMap.create();
     logger = log;
+
+    // cleanup old octagons
+    Octagon.removePhantomReferences();
   }
 
   public OctState(Octagon oct, BiMap<String, Integer> map, LogManager log) {
     octagon = oct;
     variableToIndexMap = map;
     logger = log;
+
+    // cleanup old octagons
+    Octagon.removePhantomReferences();
   }
 
   @Override
@@ -209,12 +215,13 @@ class OctState implements AbstractState {
    */
   public OctState declareVariable(String varName, OctCoefficients coeffs) {
     assert (!variableToIndexMap.containsKey(varName));
-    OctState newState = new OctState(OctagonManager.addDimensionAndProject(octagon, 1),
+    OctState newState = new OctState(OctagonManager.addDimensionAndEmbed(octagon, 1),
                                      HashBiMap.create(variableToIndexMap),
                                      logger);
     newState.variableToIndexMap.put(varName, sizeOfVariables());
 
     if (coeffs == null) {
+      // TODO necessary???
       newState.octagon = OctagonManager.forget(newState.octagon, newState.getVariableIndexFor(varName));
     } else {
       NumArray arr = coeffs.getNumArray();
@@ -271,7 +278,7 @@ class OctState implements AbstractState {
    */
   public OctState addSmallerEqConstraint(String pVariableName, long pValueOfLiteral) {
     int varIdx = getVariableIndexFor(pVariableName);
-    return addConstraint(BinaryConstraints.PX, varIdx, 0, (int)pValueOfLiteral);
+    return addConstraint(BinaryConstraints.PX, varIdx, -1, (int)pValueOfLiteral);
   }
 
   /**
@@ -406,11 +413,5 @@ class OctState implements AbstractState {
 
     assert (OctagonManager.dimension(newState.octagon) == newState.sizeOfVariables());
     return newState;
-  }
-
-  @Override
-  protected void finalize() throws Throwable {
-    OctagonManager.free(octagon);
-    super.finalize();
   }
 }

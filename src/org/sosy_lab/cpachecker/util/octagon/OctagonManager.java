@@ -89,8 +89,8 @@ public class OctagonManager {
     long l = J_universe(n);
     return new Octagon(l);
   }
-  public static void free(Octagon oct) {
-    J_free(oct.getOctId());
+  static void free(Long oct) {
+    J_free(oct);
   }
 
   public static Octagon copy(Octagon oct) {
@@ -223,6 +223,10 @@ public class OctagonManager {
 
   public static void printNum(NumArray arr, int size) {
       J_printNum(arr.getArray(), size);
+  }
+
+  public static void printOct(Octagon oct) {
+    J_print(oct.getOctId());
   }
 
   public static String print(Octagon oct, BiMap<Integer, String> map) {
