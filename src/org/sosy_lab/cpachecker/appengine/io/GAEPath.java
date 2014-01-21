@@ -44,7 +44,10 @@ public class GAEPath extends FileSystemPath {
   public GAEPath(String path, Job job, String... more) {
     super(path, more);
 
-    jobFile = job.getFile(getPath());
+    if (isFile()) {
+      jobFile = job.getFile(getPath());
+    }
+
     if (jobFile == null) {
       jobFile = new JobFile(getPath(), job);
     }
