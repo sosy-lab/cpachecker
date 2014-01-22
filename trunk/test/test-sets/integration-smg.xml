@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpalien" timelimit="60" hardtimelimit="90" memlimit="1000" cpuCores="1">
+  <option name="-noout"/>
+  <option name="-heap">512M</option>
+  <option name="-preprocess" />
+  <option name="-setprop">limits.time.cpu=1min</option>
+
+  <sourcefiles name="cpalien-okay">
+    <includesfile>../programs/cpalien/cpalien.set</includesfile>
+    <option name="-CPAlien"/>
+  </sourcefiles>
+
+  <sourcefiles name="cpalien-label-okay">
+    <includesfile>../programs/cpalien/cpalien-label.set</includesfile>
+    <option name="-CPAlien-label"/>
+  </sourcefiles>
+
+  <requiredfiles>../programs/cpalien/cpalien-headers.h</requiredfiles>
+
+  <rundefinition/>
+</benchmark>

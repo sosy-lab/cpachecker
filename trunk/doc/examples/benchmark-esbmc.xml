@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+
+<benchmark tool="esbmc" timelimit="300" memlimit="15000">
+  <option name="-D_Bool=int"/>
+  <option name="--no-pointer-check"/>
+  <option name="--no-bounds-check"/>
+
+  <!-- Define a set of sourcefiles that will be used with all run definitions. -->
+  <sourcefiles name="counterexamples">
+    <include>path/to/sourcefiles*.c</include>
+  </sourcefiles>
+
+  <!-- Define a run definition with one specific option. -->
+  <rundefinition name="counterexamples_esbmc">
+    <option name="--no-div-by-zero-check"/>
+  </rundefinition>
+</benchmark>
+
+
+

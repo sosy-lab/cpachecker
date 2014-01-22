@@ -1,0 +1,4 @@
+../programs/cpbm/linux/*.cil.c
+../programs/cpbm/loopfrog/*_BUG.cil.c
+../programs/cpbm/loopfrog/*[!G].cil.c
+../programs/cpbm/scratch/*/*.cil.c

@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab : -->
+<project basedir="." default="build" name="CPAchecker" xmlns:ivy="antlib:org.apache.ivy.ant">
+    <!-- Include a file in which all properties can be overridden.
+         This file won't get checked in and can be used to change properties
+         locally for one machine if necessary. -->
+    <property file="build.properties"/>
+
+    <property name="version" value="1.3-svn"/> <!-- change here for a release -->
+
+    <!-- The following properties may be set via file build.properties or command line to change the build behavior. -->
+    <!-- <property name="ivy.disable" value=""/> --> <!-- Disable ivy completely. -->
+    <property name="ivy.repo.url" value="http://www.sosy-lab.org/ivy"/> <!-- URL to ivy repository. -->
+    <property name="verifiercloud.version" value="0.+"/> <!-- Version of VerifierCloud to use ("+" is wildcard). -->
+    <property name="verifiercloud.refresh" value="true"/> <!-- Lookup newest version of VerifierCloud on server each time. -->
+
+    <property environment="env"/>
+    <property name="debuglevel" value="source,lines,vars"/>
+    <property name="source.format" value="1.7"/>
+    <property name="source.dir" value="src"/>
+    <property name="class.format" value="1.7"/>
+    <property name="class.dir" value="bin"/>
+
+    <antversion property="ant.version.exact"/> <!-- Define property that contains the Ant version. -->
+    <property name="ivy.lib.dir" value="${basedir}/lib/java"/>
+    <property environment="env"/>
+    <condition property="tmp.ivy.cache.dir" value="${env.IVY_CACHE_DIR}" else="${user.home}/.ivy2/cache">
+      <isset property="env.IVY_CACHE_DIR"/>
+    </condition>
+    <property name="ivy.cache.dir" location="${tmp.ivy.cache.dir}"/>
+
+    <path id="CPAchecker.classpath">
+        <pathelement location="${class.dir}"/>
+        <fileset dir="lib" includes="*.jar" excludes="appengine-java-sdk-1.8.8/**,gae/**"/>
+        <fileset dir="lib/JavaParser" includes="*.jar"/>
+        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar"/>
+    </path>
+    <condition property="architecture" value="x86_64" else="x86">
+        <os arch="amd64"/>
+    </condition>
+    <condition property="os" value="linux">
+        <os name="Linux"/>
+    </condition>
+    <condition property="os" value="windows">
+        <os family="windows"/>
+    </condition>
+    <target name="init">
+        <echo message="Building ${ant.project.name} ${version}"/>
+        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
+        <echo message="${version}" file="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
+    </target>
+    <target name="clean">
+        <delete includeEmptyDirs="true">
+            <fileset dir="." includes="${class.dir}/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
+            <fileset dir="src/org/sosy_lab/cpachecker/util/predicates/smtInterpol" includes="Parser.java Lexer.java LexerSymbols.java"/>
+        </delete>
+
+        <!-- Clean subprojects -->
+        <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
+    </target>
+    <target depends="clean" name="cleanall"/>
+
+    <property name="ivy.useVersion" value="2.3.0"/> <!-- Change version number here to use a newer version of Ivy. -->
+    <property name="ivy.jar.dir" value="${ivy.lib.dir}/build"/>
+    <property name="ivy.jar.file" value="ivy.jar"/>
+    <available file="${ivy.jar.dir}/${ivy.jar.file}" property="ivy.jar.present"/>
+    <available file="${ivy.lib.dir}-contrib" property="ivy.contrib.present"/>
+
+    <!-- If necessary, download Ivy from web site so that it does not need to be installed. -->
+    <target name="bootstrap-ivy" unless="ivy.jar.present">
+        <mkdir dir="${ivy.jar.dir}"/>
+        <echo message="Downloading ivy..."/>
+    <get src="${ivy.repo.url}/org.apache.ivy/ivy/ivy-${ivy.useVersion}.jar" dest="${ivy.jar.dir}/${ivy.jar.file}" usetimestamp="true"/>
+    </target>
+
+    <!-- Load the Ivy plugin for Ant so the Ivy tasks are available. -->
+    <target name="load-ivy" depends="bootstrap-ivy">
+        <path id="ivy.lib.path">
+            <fileset dir="${ivy.jar.dir}" includes="${ivy.jar.file}"/>
+        </path>
+        <taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+        <ivy:settings file="lib/ivysettings.xml"/>
+    </target>
+
+    <!-- Ask Ivy to get all the dependencies for us -->
+    <target name="resolve-dependencies" depends="load-ivy, update-contrib" unless="ivy.disable">
+        <echo message="Downloading and installing dependencies with Ivy..."/>
+        <ivy:resolve conf="build, runtime, test" log="download-only"/>
+        <ivy:retrieve sync="true" overwriteMode="different" pattern="${ivy.lib.dir}/[conf]/[artifact](-[classifier]).[ext]"/>
+    </target>
+
+    <target name="report-dependencies" depends="resolve-dependencies" description="Generate dependencies report">
+        <ivy:report graph="false" dot="true" conf="runtime, build, test, contrib"/>
+    </target>
+
+    <!-- Update additional resources if they were downloaded previously. -->
+    <target name="update-contrib" if="ivy.contrib.present">
+        <antcall target="install-contrib"/>
+    </target>
+
+    <target name="install-contrib" depends="load-ivy" description="retrieve sources and docs for external libraries" unless="ivy.disable">
+        <ivy:resolve conf="contrib" log="download-only"/>
+        <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-contrib/[artifact](-[classifier]).[ext]"/>
+    </target>
+
+    <target name="resolve-benchmark-dependencies" depends="load-ivy" description="retrieve dependencies for benchmark configuration" unless="ivy.disable">
+        <condition property="ivy.useCacheOnly" value="true" else="false"><not><istrue value="${verifiercloud.refresh}"/></not></condition>
+        <ivy:resolve conf="benchmark" log="download-only" resolveMode="dynamic" useCacheOnly="${ivy.useCacheOnly}" refresh="${verifiercloud.refresh}"/>
+        <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
+    </target>
+
+    <target name="build-subprojects">
+            <echo message="Generate automaton parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
+    </target>
+
+
+    <target depends="init,resolve-dependencies,build-subprojects" name="build-dependencies"/>
+
+    <target depends="build-project,build-documentation" name="build"/>
+
+    <target depends="build-dependencies" name="build-project">
+        <depend srcdir="${source.dir}" destdir="${class.dir}"/>
+        <echo message="Compiling CPAchecker"/>
+        <javac debug="true"
+               debuglevel="${debuglevel}"
+               includeAntRuntime="false"
+               destdir="${class.dir}"
+               source="${source.format}"
+               target="${class.format}"
+               encoding="UTF-8">
+            <src path="${source.dir}"/>
+            <classpath refid="CPAchecker.classpath"/>
+        	<!-- exclude for now since necessary JARs might not be installed -->
+        	<exclude name="org/sosy_lab/cpachecker/appengine/**"/>
+        </javac>
+    </target>
+
+    <property name="outputfile" value="doc/ConfigurationOptions.txt"/>
+    <uptodate property="documentation.uptodate" targetfile="${outputfile}">
+        <srcfiles dir="${source.dir}" includes="**/*.java"/>
+    </uptodate>
+
+    <target name="build-documentation" depends="build-project" unless="documentation.uptodate">
+        <echo message="running OptionCollector..." level="info"/>
+
+        <echo file="${outputfile}" append="false" message="# This is an auto-generated file, DO NOT EDIT!${line.separator}# Run ant to generate it.${line.separator}"/>
+        <!-- the output of OptionCollector is written into "doc/ConfigurationOptions.txt" -->
+        <java classname="org.sosy_lab.common.configuration.OptionCollector"
+            fork="true"
+            output="${outputfile}" append="true"
+            logError="true">
+
+            <classpath refid="CPAchecker.classpath"/>
+            <jvmarg value="-Djava.library.path=lib/native/${architecture}-${os}/"/>
+
+            <!-- "-v" is a optional param for verbose output of OptionCollector -->
+            <!-- <arg value="-v"/> -->
+        </java>
+        <echo message="Options collected." level="info"/>
+    </target>
+
+    <target description="Make a distributable release" depends="build,jar,zip,tar" name="dist"/>
+
+    <target name="jar" depends="build">
+        <jar basedir="${class.dir}/" includes="**" destfile="cpachecker.jar"
+                whenmanifestonly="fail">
+            <manifest>
+                    <attribute name="Implementation-Title" value="CPAchecker"/>
+                    <attribute name="Implementation-Version" value="${version}"/>
+                    <attribute name="Implementation-URL" value="http://cpachecker.sosy-lab.org"/>
+                <attribute name="Main-Class" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
+             </manifest>
+        </jar>
+    </target>
+
+    <!-- Release for Windows -->
+    <target name="zip" depends="jar">
+        <property name="namez" value="CPAchecker-${version}-windows"/>
+        <zip destfile="${namez}.zip" whenempty="fail">
+            <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
+            <zipfileset dir="." includes="lib/*.* lib/java/runtime/*" excludes="lib/ivy*" prefix="${namez}/"/>
+            <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namez}/"/>
+        </zip>
+    </target>
+
+    <!-- Release for GNU/Linux -->
+    <target name="tar" depends="jar">
+        <property name="namet" value="CPAchecker-${version}-unix"/>
+        <tar destfile="${namet}.tar.bz2" compression="bzip2">
+            <tarfileset dir="."
+                includes="config/** doc/** cpachecker.jar *.txt lib/*.* lib/java/runtime/*"
+                excludes="lib/ivy*"
+                prefix="${namet}/"/>
+            <tarfileset dir="scripts"
+                includes="*.* tempita/** benchmark/* benchmark/tools/cpachecker.py benchmark/tools/template.py benchmark/tools/__init__.py"
+                excludes="*.bat *.sh *.py"
+                prefix="${namet}/scripts/"/>
+            <tarfileset dir="." filemode="755"
+                includes="scripts/*.sh scripts/*.py lib/native/**"
+                excludes="lib/native/source/** lib/native/*win*/**"
+                prefix="${namet}/"/>
+        </tar>
+    </target>
+
+    <!-- Load the JUnit plugin for Ant if it's not installed. -->
+    <condition property="ant.junit.available">
+        <typefound name="junit"/>
+    </condition>
+    <target name="load-junit" depends="resolve-dependencies" unless="ant.junit.available">
+        <taskdef name="junit"
+                 classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"
+                 classpath="${ivy.jar.dir}/ant-junit.jar"/>
+    </target>
+
+    <target description="Run all JUnit tests" depends="build, load-junit" name="unit-tests">
+        <property name="test.report.dir" value="output"/>
+        <mkdir dir="${test.report.dir}"/>
+        <junit fork="true" printSummary="true" showOutput="false" haltonfailure="true">
+            <assertions>
+            <enable />
+            </assertions>
+            <formatter type="plain"/>
+            <classpath refid="CPAchecker.classpath"/>
+            <batchtest fork="true" todir="${test.report.dir}">
+                <fileset dir="${class.dir}">
+                    <include name="**/*Test.*"/>
+                    <exclude name="**/*$*Test.*"/>
+                    <exclude name="org/sosy_lab/cpachecker/util/octagon/OctLibraryTest.class"/>
+                </fileset>
+            </batchtest>
+        </junit>
+    </target>
+
+    <target description="Run CPAchecker on some simple test cases in various configurations" depends="build" name="benchmark-tests">
+        <!-- TODO run benchmark.py with some benchmark definitions and check results like in BuildBot -->
+    </target>
+
+    <target description="Run all tests" depends="unit-tests, benchmark-tests" name="tests"/>
+
+</project>

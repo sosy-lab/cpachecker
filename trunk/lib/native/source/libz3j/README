@@ -1,0 +1,14 @@
+For building libz3j.so, follow these steps:
+- Checkout Z3 from http://z3.codeplex.com, using the branch "interp", into a directory $Z3
+- Get libfoci.so from http://www.kenmcmil.com/foci2/ (or from Ken McMillan directly)
+  and put it or symlink it into $Z3 and $Z3/build (important).
+- In $Z3, run "python scripts/mk_make.py -f libfoci.so".
+- In $Z3/build, run "make" and "strip libz3.so".
+- Run "./compile.sh $Z3" from this directory.
+- Copy libz3j.so and $Z3/build/libz3.so into the correct directory under CPAchecker/lib/native/...
+  and commit them.
+
+For using Z3 with CPAchecker,
+libfoci.so needs to be downloaded by the user
+(we don't have the rights to redistribute)
+and put into the correct directory under CPAchecker/lib/native/...
