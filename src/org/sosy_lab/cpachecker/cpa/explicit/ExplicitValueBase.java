@@ -31,5 +31,5 @@ package org.sosy_lab.cpachecker.cpa.explicit;
  * also be supported.
  */
 public interface ExplicitValueBase {
-
+  public boolean isNumericValue();
 }

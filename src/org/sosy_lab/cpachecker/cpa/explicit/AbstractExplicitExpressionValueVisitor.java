@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.math.BigDecimal;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -82,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -234,9 +236,16 @@ public abstract class AbstractExplicitExpressionValueVisitor
     case LESS_THAN:
     case LESS_EQUAL: {
 
-      final boolean tmp = booleanOperation(lVal, rVal, binaryOperator, calculationType, machineModel);
+      // TODO explicitfloat: handle values other than numeric ones
+      if(!lVal.isNumericValue() || !rVal.isNumericValue()) {
+        logger.logf(Level.FINE, "Parameter to boolean operation %s %s %s is not a numeric value.", lVal.toString(), binaryOperator.toString(), rVal.toString());
+        return null;
+      }
+
+      final boolean tmp = booleanOperation((ExplicitNumericValue) lVal,
+          (ExplicitNumericValue) rVal, binaryOperator, calculationType, machineModel);
       // return 1 if expression holds, 0 otherwise
-      result = tmp ? 1L : 0L;
+      result = new ExplicitNumericValue(tmp ? 1L : 0L);
       // we do not cast here, because 0 and 1 should be small enough for every type.
 
       break;
@@ -249,6 +258,11 @@ public abstract class AbstractExplicitExpressionValueVisitor
     return result;
   }
 
+  /**
+   * Calculate an arithmetic operation on two integer types.
+   * @param l
+   * @return
+   */
   private static long arithmeticOperation(final long l, final long r,
       final BinaryOperator op, final CType calculationType,
       final MachineModel machineModel, final LogManager logger) {
@@ -323,48 +337,143 @@ public abstract class AbstractExplicitExpressionValueVisitor
     default:
       throw new AssertionError("unknown binary operation: " + op);
     }
+
   }
 
-  private static boolean booleanOperation(final long l, final long r,
+  private static double arithmeticOperation(final double l, final double r,
+      final BinaryOperator op, final CType calculationType,
+      final MachineModel machineModel, final LogManager logger) {
+
+    switch (op) {
+    case PLUS:
+      return l + r;
+    case MINUS:
+      return l - r;
+    case DIVIDE:
+      if (r == 0) {
+        logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
+        return 0;
+      }
+      return l / r;
+    case MODULO:
+      return l % r; // TODO in C always sign of first operand?
+    case MULTIPLY:
+      return l * r;
+    case SHIFT_LEFT:
+      throw new AssertionError("trying to perform shift on floating point operands");
+    case SHIFT_RIGHT:
+      throw new AssertionError("trying to perform shift on floating point operands");
+    case BINARY_AND:
+      throw new AssertionError("trying to perform binary and on floating point operands");
+    case BINARY_OR:
+      throw new AssertionError("trying to perform binary or on floating point operands");
+    case BINARY_XOR:
+      throw new AssertionError("trying to perform binary xor on floating point operands");
+    default:
+      throw new AssertionError("unknown binary operation: " + op);
+    }
+
+  }
+
+  private static float arithmeticOperation(final float l, final float r,
+      final BinaryOperator op, final CType calculationType,
+      final MachineModel machineModel, final LogManager logger) {
+
+    switch (op) {
+    case PLUS:
+      return l + r;
+    case MINUS:
+      return l - r;
+    case DIVIDE:
+      if (r == 0) {
+        logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
+        return 0;
+      }
+      return l / r;
+    case MODULO:
+      return l % r; // TODO in C always sign of first operand?
+    case MULTIPLY:
+      return l * r;
+    case SHIFT_LEFT:
+      throw new AssertionError("trying to perform shift on floating point operands");
+    case SHIFT_RIGHT:
+      throw new AssertionError("trying to perform shift on floating point operands");
+    case BINARY_AND:
+      throw new AssertionError("trying to perform binary and on floating point operands");
+    case BINARY_OR:
+      throw new AssertionError("trying to perform binary or on floating point operands");
+    case BINARY_XOR:
+      throw new AssertionError("trying to perform binary xor on floating point operands");
+    default:
+      throw new AssertionError("unknown binary operation: " + op);
+    }
+
+  }
+
+  private static ExplicitValueBase arithmeticOperation(final ExplicitValueBase l, final ExplicitValueBase r,
+      final BinaryOperator op, final CType calculationType,
+      final MachineModel machineModel, final LogManager logger) {
+
+    try {
+      // At this point we're only handling explicit values of simple types.
+      CSimpleType type = (CSimpleType) calculationType;
+
+      // TODO explicitfloat: give a better debug message if lNum or rNum are not numeric
+
+      // arithmetic operations are currently only supported for numeric values
+      ExplicitNumericValue lNum = (ExplicitNumericValue) l;
+      ExplicitNumericValue rNum = (ExplicitNumericValue) r;
+
+      if(type.getType() == CBasicType.INT) {
+        // Both l and r must be of the same type, which in this case is INT, so we can cast to long.
+        long lVal = lNum.getNumber().longValue();
+        long rVal = rNum.getNumber().longValue();
+        long result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+        return new ExplicitNumericValue(type, result);
+      } else if(type.getType() == CBasicType.DOUBLE) {
+        double lVal = lNum.doubleValue();
+        double rVal = rNum.doubleValue();
+        double result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+        return new ExplicitNumericValue(type, result);
+      } else if(type.getType() == CBasicType.FLOAT) {
+        float lVal = lNum.floatValue();
+        float rVal = rNum.floatValue();
+        float result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+        return new ExplicitNumericValue(type, result);
+      } else {
+        logger.logf(Level.FINE, "unsupported type for result of binary operation %s", type.toString());
+        return null;
+      }
+    } catch(ClassCastException e) {
+      logger.logf(Level.FINE, "unsupported type for result of binary operation %s", calculationType.toString());
+      return null;
+    }
+  }
+
+  private static boolean booleanOperation(final ExplicitNumericValue l, final ExplicitNumericValue r,
       final BinaryOperator op, final CType calculationType,
       final MachineModel machineModel) {
 
-    // special handling for UNSIGNED_LONGLONG (32 and 64bit), UNSIGNED_LONG (64bit)
-    // because Java only has SIGNED_LONGLONG
-    if (calculationType instanceof CSimpleType) {
-      final CSimpleType st = (CSimpleType) calculationType;
-      if (machineModel.getSizeof(st) * machineModel.getSizeofCharInBits() >= SIZE_OF_JAVA_LONG
-          && st.isUnsigned()) {
-        final int cmp = UnsignedLongs.compare(l, r);
-        switch (op) {
-        case GREATER_THAN:
-          return cmp > 0;
-        case GREATER_EQUAL:
-          return cmp >= 0;
-        case LESS_THAN:
-          return cmp < 0;
-        case LESS_EQUAL:
-          return cmp <= 0;
-        }
-      }
-    }
+    // TODO explicitfloat: is BigDecimal accurate enough?
+    BigDecimal lVal = l.bigDecimalValue();
+    BigDecimal rVal = r.bigDecimalValue();
 
+    final int cmp = lVal.compareTo(rVal);
     switch (op) {
-    case EQUALS:
-      return (l == r);
-    case NOT_EQUALS:
-      return (l != r);
-    case GREATER_THAN:
-      return (l > r);
-    case GREATER_EQUAL:
-      return (l >= r);
-    case LESS_THAN:
-      return (l < r);
-    case LESS_EQUAL:
-      return (l <= r);
-
-    default:
-      throw new AssertionError("unknown binary operation: " + op);
+      case GREATER_THAN:
+        return cmp > 0;
+      case GREATER_EQUAL:
+        return cmp >= 0;
+      case LESS_THAN:
+        return cmp < 0;
+      case LESS_EQUAL:
+        return cmp <= 0;
+      case EQUALS:
+        return cmp == 0;
+      case NOT_EQUALS:
+        return cmp != 0;
+      default:
+        throw new AssertionError("unknown binary operation: " + op);
     }
   }
 
@@ -385,8 +494,8 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public long visit(CCharLiteralExpression pE) throws UnrecognizedCCodeException {
-    return pE.getCharacter();
+  public ExplicitValueBase visit(CCharLiteralExpression pE) throws UnrecognizedCCodeException {
+    return new ExplicitNumericValue(CNumericTypes.CHAR, (long) pE.getCharacter());
   }
 
   @Override
@@ -396,7 +505,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
   @Override
   public ExplicitValueBase visit(CIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
-    return pE.asLong();
+    return new ExplicitNumericValue(pE.asLong());
   }
 
   @Override
@@ -417,7 +526,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
     switch (idOperator) {
     case SIZEOF:
       int size = machineModel.getSizeof(innerType);
-      return (long) size;
+      return new ExplicitNumericValue(size);
 
     default: // TODO support more operators
       return null;
@@ -429,7 +538,8 @@ public abstract class AbstractExplicitExpressionValueVisitor
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
       if (enumerator.hasValue()) {
-        return enumerator.getValue();
+        // TODO rewrite CEnumerator to handle ExplicitValueBase and not just Long
+        return new ExplicitNumericValue(CNumericTypes.INT, enumerator.getValue());
       } else {
         return null;
       }
@@ -443,7 +553,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
     final UnaryOperator unaryOperator = unaryExpression.getOperator();
     final CExpression unaryOperand = unaryExpression.getOperand();
 
-    if (unaryOperator == UnaryOperator.SIZEOF) { return (long) machineModel.getSizeof(unaryOperand.getExpressionType()); }
+    if (unaryOperator == UnaryOperator.SIZEOF) { return new ExplicitNumericValue(machineModel.getSizeof(unaryOperand.getExpressionType())); }
 
     final ExplicitValueBase value = unaryOperand.accept(this);
 
@@ -451,22 +561,28 @@ public abstract class AbstractExplicitExpressionValueVisitor
       return null;
     }
 
+    if (!value.isNumericValue()) {
+      logger.logf(Level.FINE, "Invalid argument for unary operator %s: %s", unaryOperator.toString(), value.toString());
+      return null;
+    }
+    ExplicitNumericValue numericValue = (ExplicitNumericValue) value;
+
     switch (unaryOperator) {
     case PLUS:
       return value;
 
     case MINUS:
-      return -value;
+      return numericValue.negate();
 
     case NOT:
-      return (value == 0L) ? 1L : 0L;
+      return new ExplicitNumericValue(numericValue.isNull() ? 1L : 0L);
 
     case SIZEOF:
       throw new AssertionError("SIZEOF should be handled before!");
 
     case AMPER: // valid expression, but it's a pointer value
       // TODO Not precise enough
-      return getSizeof(unaryOperand.getExpressionType());
+      return new ExplicitNumericValue(getSizeof(unaryOperand.getExpressionType()));
     case TILDE:
     default:
       // TODO handle unimplemented operators

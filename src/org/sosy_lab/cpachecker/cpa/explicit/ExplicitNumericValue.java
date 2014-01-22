@@ -114,4 +114,18 @@ public class ExplicitNumericValue implements ExplicitValueBase {
   public String toString() {
     return "ExplicitNumericValue [type=" + type.toString() + ", number=" + number + "]";
   }
+
+  @Override
+  public boolean isNumericValue() {
+    return true;
+  }
+
+  public ExplicitNumericValue negate() {
+    // TODO explicitfloat: handle the different implementations of Number properly
+    return new ExplicitNumericValue(this.type, this.bigDecimalValue().negate());
+  }
+
+  public boolean isNull() {
+    return bigDecimalValue().compareTo(new BigDecimal(0)) == 0;
+  }
 }
