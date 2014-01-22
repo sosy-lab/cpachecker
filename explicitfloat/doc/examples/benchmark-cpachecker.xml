@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!-- Example file that demonstrates the use of CPAchecker. -->
+<benchmark tool="cpachecker" timelimit="10" memlimit="3000">
+
+  <!-- Global sourcefiles are used in every run definition. -->
+  <sourcefiles>
+    <include>../../test/programs/benchmarks/locks/*_5_*.c</include>
+
+    <!-- Next line shows the use of a variable,
+    in this case it has no effect, because of the path '../' after it. -->
+    <include>../../test/programs/${test_name}/../benchmarks/locks/*_6_*.c</include>
+
+    <!-- Files can be "included" and "excluded". -->
+    <include>../../test/programs/benchmarks/locks/*_1*_*.c</include>
+    <exclude>../../test/programs/benchmarks/locks/*_13_*.c</exclude>
+  </sourcefiles>
+
+  <!-- Global options for all run definitions. -->
+  <!-- Set the java heap size. -->
+  <option name="-heap">1000M</option>
+  <option name="-predicateAnalysis"/>
+
+
+  <rundefinition name="with-output-files">
+    <!-- Variables can appear in option values, too. -->
+    <option name="-setprop">output.path=test/results/${benchmark_name}.${benchmark_date}.output/${sourcefile_name}/</option>
+  </rundefinition>
+
+
+  <rundefinition name="noout">
+    <!-- Recommended option "-noout", as the CPAchecker output files
+         are normally not interesting for benchmarks. -->
+    <option name="-noout"/>
+  </rundefinition>
+
+
+  <!--
+    Search the CPAchecker output for some values.
+    The <column> tag has the pattern as content,
+    and the script will try to extract a numerical value from matching lines.
+    "numberOfDigits" gives the number of digits after the decimal separator,
+    "title" the name of the column in the table.
+    Both attributes are optional.
+  -->
+  <columns>
+    <column title="total" numberOfDigits="1">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+  </columns>
+</benchmark>

@@ -1,0 +1,10 @@
+shell.c - Memory Leak
+entryfunction: do_meta_command
+FOSSIL-SHA1-ID: cb9c15431c53b13b70d006d8c47741ebc1caaca3
+Error-Locations:
+shell.c: 1273
+shell-simple.c: 113
+shell.cil.c: 9795
+shell-simple.cil.c: 451
+
+

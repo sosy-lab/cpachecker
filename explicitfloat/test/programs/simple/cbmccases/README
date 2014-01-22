@@ -1,0 +1,1 @@
+These are test files that replicate possible problems when cbmc verification is used with CPAs that have merging on ARG. It might be a good idea to check how it performs on these files after changing something with the CBMC algorithm.
