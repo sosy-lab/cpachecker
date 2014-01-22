@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.invariants.operators.interval;
+package org.sosy_lab.cpachecker.cpa.invariants.operators;
 
 import java.math.BigInteger;
 
@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
  * This utility class provides helper functions for working with simple
  * intervals.
  */
-public class IntervalHelper {
+class IntervalHelper {
 
   /**
    * Private constructor for utility class.

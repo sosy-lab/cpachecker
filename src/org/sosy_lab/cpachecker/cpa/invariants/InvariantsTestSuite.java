@@ -26,17 +26,15 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
-
+import org.sosy_lab.cpachecker.cpa.invariants.operators.IIIOperatorTest;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.ISIOperatorTest;
 
 @RunWith(Suite.class)
-@SuiteClasses({ CompoundIntervalTest.class, SimpleIntervalTest.class,
-  org.sosy_lab.cpachecker.cpa.invariants.operators.interval.interval.tointerval.AddOperatorTest.class,
-  org.sosy_lab.cpachecker.cpa.invariants.operators.interval.interval.tointerval.MultiplyOperatorTest.class,
-  org.sosy_lab.cpachecker.cpa.invariants.operators.interval.interval.tointerval.DivideOperatorTest.class,
-  org.sosy_lab.cpachecker.cpa.invariants.operators.interval.interval.tointerval.ModuloOperatorTest.class,
-  org.sosy_lab.cpachecker.cpa.invariants.operators.interval.scalar.tointerval.ModuloOperatorTest.class,
-  org.sosy_lab.cpachecker.cpa.invariants.operators.interval.scalar.tointerval.ShiftLeftOperatorTest.class,
-  org.sosy_lab.cpachecker.cpa.invariants.operators.interval.scalar.tointerval.ShiftRightOperatorTest.class})
+@SuiteClasses({
+  CompoundIntervalTest.class,
+  SimpleIntervalTest.class,
+  IIIOperatorTest.class,
+  ISIOperatorTest.class})
 public class InvariantsTestSuite {
 
 }
