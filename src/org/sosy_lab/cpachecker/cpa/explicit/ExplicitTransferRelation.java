@@ -221,7 +221,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     // get value of actual parameter in caller function context
     for (int i = 0; i < parameters.size(); i++) {
-      Long value;
+      ExplicitValueBase value;
       IAExpression exp = arguments.get(i);
 
       if (exp instanceof JExpression) {
@@ -303,13 +303,13 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
         if (assignedVarName == null) {
           if (v.hasMissingPointer() && valueExists) {
-            Long value = state.getValueFor(returnVarName);
+            ExplicitValueBase value = state.getValueFor(returnVarName);
             addMissingInformation((CLeftHandSide) op1, value);
           }
         } else if (!valueExists) {
           newElement.forget(assignedVarName);
         } else {
-          Long value = state.getValueFor(returnVarName);
+          ExplicitValueBase value = state.getValueFor(returnVarName);
           newElement.assignConstant(assignedVarName, value);
         }
 
@@ -348,7 +348,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     ExplicitExpressionValueVisitor evv = getVisitor();
 
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
-    Long value = getExpressionValue(expression, CNumericTypes.INT, evv);
+    ExplicitValueBase value = getExpressionValue(expression, CNumericTypes.INT, evv);
 
     // value is null, try to derive further information
     if (value == null) {
@@ -403,7 +403,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     // get the variable name in the declarator
     String varName = decl.getName();
 
-    Long initialValue = null;
+    ExplicitValueBase initialValue = null;
 
     // get initial value
     IAInitializer init = decl.getInitializer();
@@ -605,7 +605,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       MemoryLocation assignedVar, final Type lType, IARightHandSide exp, ExplicitExpressionValueVisitor visitor)
       throws UnrecognizedCCodeException {
 
-    Long value;
+    ExplicitValueBase value;
     if (exp instanceof JRightHandSide) {
        value = ((JRightHandSide) exp).accept(visitor);
     } else if (exp instanceof CRightHandSide) {
@@ -714,7 +714,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     @Override
-    public Long visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
+    public ExplicitValueBase visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
       BinaryOperator binaryOperator   = pE.getOperator();
 
       CExpression lVarInBinaryExp  = pE.getOperand1();
@@ -723,8 +723,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       CExpression rVarInBinaryExp  = pE.getOperand2();
 
-      Long leftValue                  = lVarInBinaryExp.accept(this);
-      Long rightValue                 = rVarInBinaryExp.accept(this);
+      ExplicitValueBase leftValue                  = lVarInBinaryExp.accept(this);
+      ExplicitValueBase rightValue                 = rVarInBinaryExp.accept(this);
 
       if ((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue)) {
         if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
@@ -991,12 +991,12 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
   }
 
-  private Long getExpressionValue(IAExpression expression, final Type type, ExplicitExpressionValueVisitor evv)
+  private ExplicitValueBase getExpressionValue(IAExpression expression, final Type type, ExplicitExpressionValueVisitor evv)
       throws UnrecognizedCCodeException {
 
     if (expression instanceof JRightHandSide) {
 
-      final Long value = ((JRightHandSide) expression).accept(evv);
+      final ExplicitValueBase value = ((JRightHandSide) expression).accept(evv);
 
       if (evv.hasMissingFieldAccessInformation() || evv.hasMissingEnumComparisonInformation()) {
         missingInformationRightJExpression = (JRightHandSide) expression;
@@ -1179,7 +1179,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       return pNewElement;
     }
 
-    Long explicitValue = null;
+    ExplicitValueBase explicitValue = null;
 
     if (pMissingInformation.hasKnownValue()) {
       explicitValue = pMissingInformation.getcExpressionValue();
@@ -1202,7 +1202,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     return pNewElement;
   }
 
-  private Long resolveValue(SMGState pSmgState, CExpression rValue)
+  private ExplicitValueBase resolveValue(SMGState pSmgState, CExpression rValue)
       throws UnrecognizedCCodeException {
 
     SMGExplicitCommunicator cc = new SMGExplicitCommunicator(oldState, functionName,
@@ -1227,7 +1227,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     long truthValue = bTruthValue ? 1 : 0;
 
-    Long value = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
+    ExplicitValueBase value = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
 
     if(value != null && value != truthValue) {
       return null;
@@ -1291,7 +1291,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       }
     } else if (missingInformationRightJExpression != null) {
 
-      Long value = handleMissingInformationRightJExpression(rttState);
+      ExplicitValueBase value = handleMissingInformationRightJExpression(rttState);
 
       if (value != null) {
         newElement.assignConstant(missingInformationLeftJVariable, value);
@@ -1417,7 +1417,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
      * Expression could not be evaluated due to missing information. (e.g.
      * missing pointer alias).
      */
-    private final Long cExpressionValue;
+    private final ExplicitValueBase cExpressionValue;
 
     /**
      * The truth Assumption made in this assume edge.
@@ -1471,7 +1471,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     public MissingInformation(CExpression pMissingCLeftMemoryLocation,
-        Long pCExpressionValue) {
+        ExplicitValueBase pCExpressionValue) {
       missingCExpressionInformation = null;
       missingCLeftMemoryLocation = pMissingCLeftMemoryLocation;
       cExpressionValue = pCExpressionValue;
@@ -1532,7 +1532,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       return missingFreeInvocation != null;
     }
 
-    public Long getcExpressionValue() {
+    public ExplicitValueBase getcExpressionValue() {
       checkNotNull(cExpressionValue);
       return cExpressionValue;
     }

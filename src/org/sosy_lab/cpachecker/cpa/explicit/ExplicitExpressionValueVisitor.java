@@ -86,7 +86,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
   }
 
   @Override
-  protected Long evaluateCIdExpression(CIdExpression varName) {
+  protected ExplicitValueBase evaluateCIdExpression(CIdExpression varName) {
     return evaluateAIdExpression(varName);
   }
 
@@ -96,7 +96,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
   }
 
   /** This method returns the value of a variable from the current state. */
-  private Long evaluateAIdExpression(AIdExpression varName) {
+  private ExplicitValueBase evaluateAIdExpression(AIdExpression varName) {
 
     MemoryLocation memLoc;
 
@@ -113,7 +113,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
     }
   }
 
-  private Long evaluateLValue(CLeftHandSide pLValue) throws UnrecognizedCCodeException {
+  private ExplicitValueBase evaluateLValue(CLeftHandSide pLValue) throws UnrecognizedCCodeException {
 
     MemoryLocation varLoc = evaluateMemoryLocation(pLValue);
 
@@ -129,17 +129,17 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
   }
 
   @Override
-  protected Long evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+  protected ExplicitValueBase evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
     return evaluateLValue(pLValue);
   }
 
   @Override
-  protected Long evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue) throws UnrecognizedCCodeException {
+  protected ExplicitValueBase evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue) throws UnrecognizedCCodeException {
     return evaluateLValue(pLValue);
   }
 
   @Override
-  protected Long evaluateCPointerExpression(CPointerExpression pVarName) {
+  protected ExplicitValueBase evaluateCPointerExpression(CPointerExpression pVarName) {
     missingPointer = true;
     return null;
   }
@@ -190,7 +190,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
         return null;
       }
 
-      Long subscriptValue = subscript.accept(evv);
+      ExplicitValueBase subscriptValue = subscript.accept(evv);
 
       if(subscriptValue == null) {
         return null;

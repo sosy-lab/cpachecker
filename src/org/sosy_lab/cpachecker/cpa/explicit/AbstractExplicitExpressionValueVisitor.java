@@ -106,8 +106,8 @@ import com.google.common.primitives.UnsignedLongs;
  * to get values stored in the memory of a program.
  */
 public abstract class AbstractExplicitExpressionValueVisitor
-    extends DefaultCExpressionVisitor<Long, UnrecognizedCCodeException>
-    implements CRightHandSideVisitor<Long, UnrecognizedCCodeException>,
+    extends DefaultCExpressionVisitor<ExplicitValueBase, UnrecognizedCCodeException>
+    implements CRightHandSideVisitor<ExplicitValueBase, UnrecognizedCCodeException>,
     JRightHandSideVisitor<Long, RuntimeException>,
     JExpressionVisitor<Long, RuntimeException> {
 
@@ -153,7 +153,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  protected Long visitDefault(CExpression pExp) {
+  protected ExplicitValueBase visitDefault(CExpression pExp) {
     return null;
   }
 
@@ -163,13 +163,13 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(final CBinaryExpression pE) throws UnrecognizedCCodeException {
+  public ExplicitValueBase visit(final CBinaryExpression pE) throws UnrecognizedCCodeException {
 
-    final Long lVal = pE.getOperand1().accept(this);
+    final ExplicitValueBase lVal = pE.getOperand1().accept(this);
     if (lVal == null) { return null; }
-    final Long rVal = pE.getOperand2().accept(this);
+    final ExplicitValueBase rVal = pE.getOperand2().accept(this);
     if (rVal == null) { return null; }
-    Long result = calculateBinaryOperation(lVal, rVal, pE, machineModel, logger, edge);
+    ExplicitValueBase result = calculateBinaryOperation(lVal, rVal, pE, machineModel, logger, edge);
 
     return result;
   }
@@ -185,7 +185,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
    * @param logger for logging
    * @param edge only for logging
    */
-  public static Long calculateBinaryOperation(Long lVal, Long rVal,
+  public static ExplicitValueBase calculateBinaryOperation(ExplicitValueBase lVal, ExplicitValueBase rVal,
       final CBinaryExpression binaryExpr,
       final MachineModel machineModel, final LogManager logger, @Nullable CFAEdge edge) {
 
@@ -208,7 +208,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
       rVal = castCValue(rVal, calculationType, machineModel, logger, edge);
     }
 
-    Long result;
+    ExplicitValueBase result;
     switch (binaryOperator) {
     case PLUS:
     case MINUS:
@@ -369,48 +369,48 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(CCastExpression pE) throws UnrecognizedCCodeException {
+  public ExplicitValueBase visit(CCastExpression pE) throws UnrecognizedCCodeException {
     return castCValue(pE.getOperand().accept(this), pE.getExpressionType(), machineModel, logger, edge);
   }
 
   @Override
-  public Long visit(CComplexCastExpression pE) throws UnrecognizedCCodeException {
+  public ExplicitValueBase visit(CComplexCastExpression pE) throws UnrecognizedCCodeException {
     // evaluation of complex numbers is not supported by now
     return null;
   }
 
   @Override
-  public Long visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
+  public ExplicitValueBase visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
     return null;
   }
 
   @Override
-  public Long visit(CCharLiteralExpression pE) throws UnrecognizedCCodeException {
-    return (long) pE.getCharacter();
+  public long visit(CCharLiteralExpression pE) throws UnrecognizedCCodeException {
+    return pE.getCharacter();
   }
 
   @Override
-  public Long visit(CFloatLiteralExpression pE) throws UnrecognizedCCodeException {
+  public ExplicitValueBase visit(CFloatLiteralExpression pE) throws UnrecognizedCCodeException {
     return null;
   }
 
   @Override
-  public Long visit(CIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
+  public ExplicitValueBase visit(CIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
     return pE.asLong();
   }
 
   @Override
-  public Long visit(CImaginaryLiteralExpression pE) throws UnrecognizedCCodeException {
+  public ExplicitValueBase visit(CImaginaryLiteralExpression pE) throws UnrecognizedCCodeException {
     return pE.getValue().accept(this);
   }
 
   @Override
-  public Long visit(CStringLiteralExpression pE) throws UnrecognizedCCodeException {
+  public ExplicitValueBase visit(CStringLiteralExpression pE) throws UnrecognizedCCodeException {
     return null;
   }
 
   @Override
-  public Long visit(final CTypeIdExpression pE) {
+  public ExplicitValueBase visit(final CTypeIdExpression pE) {
     final TypeIdOperator idOperator = pE.getOperator();
     final CType innerType = pE.getType();
 
@@ -425,7 +425,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(CIdExpression idExp) throws UnrecognizedCCodeException {
+  public ExplicitValueBase visit(CIdExpression idExp) throws UnrecognizedCCodeException {
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
       if (enumerator.hasValue()) {
@@ -439,13 +439,13 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
+  public ExplicitValueBase visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
     final UnaryOperator unaryOperator = unaryExpression.getOperator();
     final CExpression unaryOperand = unaryExpression.getOperand();
 
     if (unaryOperator == UnaryOperator.SIZEOF) { return (long) machineModel.getSizeof(unaryOperand.getExpressionType()); }
 
-    final Long value = unaryOperand.accept(this);
+    final ExplicitValueBase value = unaryOperand.accept(this);
 
     if (value == null && unaryOperator != UnaryOperator.SIZEOF) {
       return null;
@@ -475,17 +475,17 @@ public abstract class AbstractExplicitExpressionValueVisitor
   }
 
   @Override
-  public Long visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
+  public ExplicitValueBase visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
     return evaluateCPointerExpression(pointerExpression);
   }
 
   @Override
-  public Long visit(CFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
+  public ExplicitValueBase visit(CFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
     return evaluateCFieldReference(fieldReferenceExpression);
   }
 
   @Override
-  public Long visit(CArraySubscriptExpression pE)
+  public ExplicitValueBase visit(CArraySubscriptExpression pE)
       throws UnrecognizedCCodeException {
     return evaluateCArraySubscriptExpression(pE);
   }
@@ -739,15 +739,15 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
   /* abstract methods */
 
-  protected abstract Long evaluateCPointerExpression(CPointerExpression pCPointerExpression) throws UnrecognizedCCodeException;
+  protected abstract ExplicitValueBase evaluateCPointerExpression(CPointerExpression pCPointerExpression) throws UnrecognizedCCodeException;
 
-  protected abstract Long evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException;
+  protected abstract ExplicitValueBase evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException;
 
   protected abstract Long evaluateJIdExpression(JIdExpression varName);
 
-  protected abstract Long evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException;
+  protected abstract ExplicitValueBase evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException;
 
-  protected abstract Long evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue) throws UnrecognizedCCodeException;
+  protected abstract ExplicitValueBase evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue) throws UnrecognizedCCodeException;
 
   /* additional methods */
 
@@ -768,7 +768,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
    * @param pTargetType the type of the left side of an assignment
    * @return if evaluation successful, then value, else null
    */
-  public Long evaluate(final CExpression pExp, final CType pTargetType)
+  public ExplicitValueBase evaluate(final CExpression pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
     return castCValue(pExp.accept(this), pTargetType, machineModel, logger, edge);
   }
@@ -782,7 +782,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
    * @param pTargetType the type of the left side of an assignment
    * @return if evaluation successful, then value, else null
    */
-  public Long evaluate(final CRightHandSide pExp, final CType pTargetType)
+  public ExplicitValueBase evaluate(final CRightHandSide pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
     return castCValue(pExp.accept(this), pTargetType, machineModel, logger, edge);
   }
@@ -802,7 +802,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
    * @param logger for logging
    * @param edge only for logging
    */
-  public static Long castCValue(@Nullable final Long value, final CType targetType,
+  public static ExplicitValueBase castCValue(@Nullable final ExplicitValueBase value, final CType targetType,
       final MachineModel machineModel, final LogManager logger, @Nullable final CFAEdge edge) {
     if (value == null) { return null; }
 
