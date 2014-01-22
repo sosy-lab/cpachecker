@@ -37,6 +37,7 @@ except ImportError: # Queue was renamed to queue in Python 3
   import queue as Queue
 
 import time
+from datetime import datetime, timedelta
 import logging
 import argparse
 import os
@@ -67,8 +68,9 @@ DEFAULT_CLOUD_CPUCORE_REQUIREMENT = 1 # one core
 DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
 
 DEFAULT_APPENGINE_URI = 'http://dev.ba-cpa-lab.appspot.com'
-DEFAULT_APPENGINE_POLLINTERVAL = 15 # seconds
+DEFAULT_APPENGINE_POLLINTERVAL = 30 # seconds
 DEFAULT_APPENGINE_TIMELIMIT = 540 # seconds (== 9 minutes)
+APPENGINE_TIMEOUT_GRACE_PERIOD = 60 # seconds
 APPENGINE_SUBMITTER_THREAD = None
 APPENGINE_POLLER_THREAD = None
 APPENGINE_JOB_IDS = []
@@ -161,14 +163,19 @@ class Worker(threading.Thread):
         self.runExecutor.kill()
 
 class AppEngineSubmitter(threading.Thread):
-    def __init__(self, runDefinitions, benchmark):
+    def __init__(self, runDefinitions, benchmark, timelimitPerRun):
         threading.Thread.__init__(self)
         self.runDefinitions = runDefinitions
         self.benchmark = benchmark
         self.submittedJobs = 0
+        self.timelimitPerRun = timelimitPerRun
+        # It might happen that a job never ends.
+        # Therefore a time limit will be enforced granting a grace period.
+        self.timeout = timedelta(seconds=APPENGINE_TIMEOUT_GRACE_PERIOD)
 
     def run(self):
         for run in self.runDefinitions:
+            if STOPPED_BY_INTERRUPT: break
             args = run['args']
             with open(run['sourcefile'], 'r') as f:
                 args['programText'] = f.read()
@@ -180,47 +187,75 @@ class AppEngineSubmitter(threading.Thread):
                 request = urllib2.Request(uri, data, headers)
                 response = urllib2.urlopen(request)
                 jobID = response.info()['Location'][len(uri)+1:]
+                logging.debug('Submitted job: '+jobID)
                 APPENGINE_JOB_IDS.append(jobID)
                 self.submittedJobs += 1
             except urllib2.HTTPError as e:
                 args['programText'] = run['sourcefile']
                 errorArgs = json.dumps(args)
-                logging.warn('Run could not be submitted. HTTP Error: {0}: {1}, Reason: {2}, Args: {3}'.format(e.code, e.reason, json.loads(e.read()), errorArgs))
+                logging.warn('Job could not be submitted. HTTP Error: {0}: {1}, Reason: {2}, Args: {3}'.format(e.code, e.reason, json.loads(e.read()), errorArgs))
             except:
                 sys.exit('Error while submitting jobs. {0}'.format(sys.exc_info()[0]))
+#             if self.submittedJobs == 10:
+#                 logging.debug('SUBMITTED %s JOBS'%self.submittedJobs)
+#                 break
+            
+        self.timeout = datetime.now() + self.timeout + timedelta(seconds=self.submittedJobs * self.timelimitPerRun)
+        logging.debug('Timeout will be enforced at '+self.timeout.isoformat())
                 
 class AppEnginePoller(threading.Thread):
     def __init__(self, benchmark):
         threading.Thread.__init__(self)
         self.benchmark = benchmark
-        self.nextJobIndex = 0
+        self.done = False
     
     def run(self):
-        # FIXME make this whole loop a lot nicer
-        while True:
-            if len(APPENGINE_JOB_IDS) > 0:
-                try:
-                    #with open(os.path.join(self.benchmark.logFolder, 'jobs.txt'), 'r+') as f:
-                    #jobID = f.readline().rstrip()
-                    jobID = APPENGINE_JOB_IDS[self.nextJobIndex]
-                    uri = config.appengineURI+'/jobs/'+jobID
-                    headers = {'Accept':'application/json'}
-                    request = urllib2.Request(uri, headers=headers)
-                    response = json.loads(urllib2.urlopen(request).read())
-                    if not response['status'] == 'RUNNING':
-                        # TODO save result (stats)
-                        self.nextJobIndex += 1
-                    else:
-                        time.sleep(config.appenginePollInterval)
-                except urllib2.HTTPError as e:
-                    sys.exit('Server error while polling job results. {0}'.format(e.reason))
-                except:
-                    sys.exit('Error while polling jobs. {0}'.format(sys.exc_info()[0]))
+        finishedJobs = 0
+        nextJobIndex = 0
+        showed = False
+        while not self.done and not STOPPED_BY_INTERRUPT:
+            self.done = (not APPENGINE_SUBMITTER_THREAD.is_alive() and finishedJobs == len(APPENGINE_JOB_IDS))
+            
+            # enforce time limit
+            if not APPENGINE_SUBMITTER_THREAD.is_alive() and datetime.now() >= APPENGINE_SUBMITTER_THREAD.timeout:
+                logging.warn('TIMEOUT! Jobs should be finished by now but it seems they are not.')
+                break
+
+            if len(APPENGINE_JOB_IDS) > nextJobIndex:
+                jobID = APPENGINE_JOB_IDS[nextJobIndex]
+                if jobID == 'FINISHED':
+                    nextJobIndex += 1
+                else:
+                    try:
+                        logging.debug('Polling job: '+jobID)
+                        uri = config.appengineURI+'/jobs/'+jobID
+                        headers = {'Accept':'application/json'}
+                        request = urllib2.Request(uri, headers=headers)
+                        response = json.loads(urllib2.urlopen(request).read())
+                        status = response['status']
+                        if status in ['DONE', 'TIMEOUT', 'ERROR']:
+                            # TODO save result (stats)
+                            logging.debug('Job %s has finished.'%jobID)
+                            APPENGINE_JOB_IDS[nextJobIndex] = 'FINISHED'
+                            nextJobIndex += 1
+                            finishedJobs += 1
+                        else:
+                            if status == 'PENDING':
+                                logging.debug('Job %s is still pending.'%jobID)
+                                nextJobIndex += 1
+                            elif status == 'RUNNING':
+                                logging.debug('Job %s is still running.'%jobID)
+                                time.sleep(config.appenginePollInterval)
+                            
+                    except urllib2.HTTPError as e:
+                        sys.exit('Server error while polling job results. {0}'.format(e.reason))
+                    except:
+                        sys.exit('Error while polling jobs. {0}'.format(sys.exc_info()[0]))
+                
+                # never go out of bounds    
+                nextJobIndex = nextJobIndex % len(APPENGINE_JOB_IDS)    
             else:
                 time.sleep(config.appenginePollInterval)
-                
-            if self.nextJobIndex == len(APPENGINE_JOB_IDS):
-                break
 
 def executeBenchmarkLocaly(benchmark, outputHandler):
     
@@ -358,6 +393,7 @@ def parseArgsForAppEngine(args, absWorkingDir):
     options = {}
     # TODO log.level
     for arg in args:
+        if STOPPED_BY_INTERRUPT: break
         if '-noout' == arg:
             options['output.disable'] = True
         elif '-stats' == arg:
@@ -597,6 +633,7 @@ def getBenchmarkDataForAppEngine(benchmark):
         if STOPPED_BY_INTERRUPT: break
 
         for run in runSet.runs:
+            if STOPPED_BY_INTERRUPT: break
             logFile = os.path.relpath(run.logFile, benchmark.logFolder)
             args = parseArgsForAppEngine(run.getCmdline()[1:-1], absWorkingDir)
             args['options']['limits.time.wall'] = str(timeLimit)+'s'
@@ -663,13 +700,21 @@ def executeBenchmarkInAppengine(benchmark, outputHandler):
     except urllib2.URLError as e:
         sys.exit('The URI {0} is not available. Error: {1}'.format(config.appengineURI, e.reason))
     
-    # submit jobs    
-    APPENGINE_SUBMITTER_THREAD = AppEngineSubmitter(runDefinitions, benchmark)
+    # submit jobs
+    global APPENGINE_SUBMITTER_THREAD
+    APPENGINE_SUBMITTER_THREAD = AppEngineSubmitter(runDefinitions, benchmark, timeLimit)
     APPENGINE_SUBMITTER_THREAD.start()
     
     # poll jobs
+    global APPENGINE_POLLER_THREAD
     APPENGINE_POLLER_THREAD = AppEnginePoller(benchmark)
     APPENGINE_POLLER_THREAD.start()
+    
+    try:
+        while not APPENGINE_POLLER_THREAD.done:
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        killScriptAppEngine()
     APPENGINE_POLLER_THREAD.join()
     
     # TODO handle result
@@ -881,11 +926,11 @@ def killScriptAppEngine():
     global STOPPED_BY_INTERRUPT
     STOPPED_BY_INTERRUPT = True
     
-    Util.printOut("Killing threads...")
-    if not APPENGINE_SUBMITTER_THREAD == None: 
-        APPENGINE_SUBMITTER_THREAD.stop()
-    if not APPENGINE_POLLER_THREAD == None: 
-        APPENGINE_POLLER_THREAD.stop()
+    Util.printOut("Killing subprocesses...")
+    APPENGINE_POLLER_THREAD.join()
+    APPENGINE_SUBMITTER_THREAD.join()
+    
+    # threads should stop on next loop iteration
 
 def signal_handler_ignore(signum, frame):
     logging.warn('Received signal %d, ignoring it' % signum)
