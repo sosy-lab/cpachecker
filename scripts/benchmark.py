@@ -171,7 +171,7 @@ class AppEngineSubmitter(threading.Thread):
         self.timelimitPerRun = timelimitPerRun
         # It might happen that a job never ends.
         # Therefore a time limit will be enforced granting a grace period.
-        self.timeout = timedelta(seconds=APPENGINE_TIMEOUT_GRACE_PERIOD)
+        self.timeout = datetime.now()
 
     def run(self):
         for run in self.runDefinitions:
@@ -200,7 +200,7 @@ class AppEngineSubmitter(threading.Thread):
 #                 logging.debug('SUBMITTED %s JOBS'%self.submittedJobs)
 #                 break
             
-        self.timeout = datetime.now() + self.timeout + timedelta(seconds=self.submittedJobs * self.timelimitPerRun)
+        self.timeout = datetime.now() + timedelta(seconds=APPENGINE_TIMEOUT_GRACE_PERIOD) + timedelta(seconds=self.submittedJobs * self.timelimitPerRun)
         logging.debug('Timeout will be enforced at '+self.timeout.isoformat())
                 
 class AppEnginePoller(threading.Thread):
@@ -212,7 +212,6 @@ class AppEnginePoller(threading.Thread):
     def run(self):
         finishedJobs = 0
         nextJobIndex = 0
-        showed = False
         while not self.done and not STOPPED_BY_INTERRUPT:
             self.done = (not APPENGINE_SUBMITTER_THREAD.is_alive() and finishedJobs == len(APPENGINE_JOB_IDS))
             
@@ -927,10 +926,10 @@ def killScriptAppEngine():
     STOPPED_BY_INTERRUPT = True
     
     Util.printOut("Killing subprocesses...")
-    APPENGINE_POLLER_THREAD.join()
-    APPENGINE_SUBMITTER_THREAD.join()
-    
-    # threads should stop on next loop iteration
+    if not APPENGINE_POLLER_THREAD == None:
+        APPENGINE_POLLER_THREAD.join()
+    if not APPENGINE_SUBMITTER_THREAD == None:
+        APPENGINE_SUBMITTER_THREAD.join()
 
 def signal_handler_ignore(signum, frame):
     logging.warn('Received signal %d, ignoring it' % signum)
