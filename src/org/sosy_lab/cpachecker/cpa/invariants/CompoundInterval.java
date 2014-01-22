@@ -33,10 +33,10 @@ import java.util.Queue;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cpa.invariants.operators.ICCOperator;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.IICOperator;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.ISCOperator;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
-import org.sosy_lab.cpachecker.cpa.invariants.operators.interval.compound.tocompound.ICCOperator;
-import org.sosy_lab.cpachecker.cpa.invariants.operators.interval.interval.tocompound.IICOperator;
-import org.sosy_lab.cpachecker.cpa.invariants.operators.interval.scalar.tocompound.ISCOperator;
 
 import com.google.common.base.Preconditions;
 
@@ -661,7 +661,7 @@ public class CompoundInterval {
    * state.
    */
   public CompoundInterval add(final BigInteger pValue) {
-    return applyOperationToAllAndUnite(ISCOperator.ADD_OPERATOR, pValue);
+    return applyOperationToAllAndUnite(ISCOperator.ADD, pValue);
   }
 
   /**
@@ -685,7 +685,7 @@ public class CompoundInterval {
    * state.
    */
   public CompoundInterval add(final SimpleInterval pInterval) {
-    return applyOperationToAllAndUnite(IICOperator.ADD_OPERATOR, pInterval);
+    return applyOperationToAllAndUnite(IICOperator.ADD, pInterval);
   }
 
   /**
@@ -697,7 +697,7 @@ public class CompoundInterval {
    * state.
    */
   public CompoundInterval add(final CompoundInterval pState) {
-    return applyOperationToAllAndUnite(ICCOperator.ADD_OPERATOR, pState);
+    return applyOperationToAllAndUnite(ICCOperator.ADD, pState);
   }
 
   /**
@@ -715,7 +715,7 @@ public class CompoundInterval {
     if (pValue.equals(BigInteger.ONE)) {
       return this;
     }
-    CompoundInterval result = applyOperationToAllAndUnite(ISCOperator.MULTIPLY_OPERATOR, pValue);
+    CompoundInterval result = applyOperationToAllAndUnite(ISCOperator.MULTIPLY, pValue);
     if (result.isTop()) {
       result = new CompoundInterval();
       if (pValue.signum() >= 0) {
@@ -744,7 +744,7 @@ public class CompoundInterval {
     if (pInterval.isSingleton()) {
       return multiply(pInterval.getLowerBound());
     }
-    return applyOperationToAllAndUnite(IICOperator.MULTIPLY_OPERATOR, pInterval);
+    return applyOperationToAllAndUnite(IICOperator.MULTIPLY, pInterval);
   }
 
   /**
@@ -759,7 +759,7 @@ public class CompoundInterval {
     if (pState.intervals.size() == 1) {
       return multiply(pState.intervals.get(0));
     }
-    return applyOperationToAllAndUnite(ICCOperator.MULTIPLY_OPERATOR, pState);
+    return applyOperationToAllAndUnite(ICCOperator.MULTIPLY, pState);
   }
 
   /**
@@ -771,7 +771,7 @@ public class CompoundInterval {
    * value.
    */
   public CompoundInterval divide(final BigInteger pValue) {
-    return applyOperationToAllAndUnite(ISCOperator.DIVIDE_OPERATOR, pValue);
+    return applyOperationToAllAndUnite(ISCOperator.DIVIDE, pValue);
   }
 
   /**
@@ -783,7 +783,7 @@ public class CompoundInterval {
    * interval.
    */
   public CompoundInterval divide(final SimpleInterval pInterval) {
-    return applyOperationToAllAndUnite(IICOperator.DIVIDE_OPERATOR, pInterval);
+    return applyOperationToAllAndUnite(IICOperator.DIVIDE, pInterval);
   }
 
   /**
@@ -795,7 +795,7 @@ public class CompoundInterval {
    * state.
    */
   public CompoundInterval divide(final CompoundInterval pState) {
-    return applyOperationToAllAndUnite(ICCOperator.DIVIDE_OPERATOR, pState);
+    return applyOperationToAllAndUnite(ICCOperator.DIVIDE, pState);
   }
 
   /**
@@ -807,7 +807,7 @@ public class CompoundInterval {
    * by the given value.
    */
   public CompoundInterval modulo(final BigInteger pValue) {
-    return applyOperationToAllAndUnite(ISCOperator.MODULO_OPERATOR, pValue);
+    return applyOperationToAllAndUnite(ISCOperator.MODULO, pValue);
   }
 
 
@@ -820,7 +820,7 @@ public class CompoundInterval {
    * by the given interval.
    */
   public CompoundInterval modulo(final SimpleInterval pInterval) {
-    return applyOperationToAllAndUnite(IICOperator.MODULO_OPERATOR, pInterval);
+    return applyOperationToAllAndUnite(IICOperator.MODULO, pInterval);
   }
 
   /**
@@ -832,7 +832,7 @@ public class CompoundInterval {
    * by the given state.
    */
   public CompoundInterval modulo(final CompoundInterval pState) {
-    return applyOperationToAllAndUnite(ICCOperator.MODULO_OPERATOR, pState);
+    return applyOperationToAllAndUnite(ICCOperator.MODULO, pState);
   }
 
   /**
@@ -844,7 +844,7 @@ public class CompoundInterval {
    * given value.
    */
   public CompoundInterval shiftLeft(final BigInteger pValue) {
-    return applyOperationToAllAndUnite(ISCOperator.SHIFT_LEFT_OPERATOR, pValue);
+    return applyOperationToAllAndUnite(ISCOperator.SHIFT_LEFT, pValue);
   }
 
   /**
@@ -856,7 +856,7 @@ public class CompoundInterval {
    * given interval.
    */
   public CompoundInterval shiftLeft(final SimpleInterval pInterval) {
-    return applyOperationToAllAndUnite(IICOperator.SHIFT_LEFT_OPERATOR, pInterval);
+    return applyOperationToAllAndUnite(IICOperator.SHIFT_LEFT, pInterval);
   }
 
   /**
@@ -868,7 +868,7 @@ public class CompoundInterval {
    * given state.
    */
   public CompoundInterval shiftLeft(final CompoundInterval pState) {
-    return applyOperationToAllAndUnite(ICCOperator.SHIFT_LEFT_OPERATOR, pState);
+    return applyOperationToAllAndUnite(ICCOperator.SHIFT_LEFT, pState);
   }
 
   /**
@@ -880,7 +880,7 @@ public class CompoundInterval {
    * given value.
    */
   public CompoundInterval shiftRight(final BigInteger pValue) {
-    return applyOperationToAllAndUnite(ISCOperator.SHIFT_RIGHT_OPERATOR, pValue);
+    return applyOperationToAllAndUnite(ISCOperator.SHIFT_RIGHT, pValue);
   }
 
   /**
@@ -892,7 +892,7 @@ public class CompoundInterval {
    * given interval.
    */
   public CompoundInterval shiftRight(final SimpleInterval pInterval) {
-    return applyOperationToAllAndUnite(IICOperator.SHIFT_RIGHT_OPERATOR, pInterval);
+    return applyOperationToAllAndUnite(IICOperator.SHIFT_RIGHT, pInterval);
   }
 
   /**
@@ -904,7 +904,7 @@ public class CompoundInterval {
    * given state.
    */
   public CompoundInterval shiftRight(final CompoundInterval pState) {
-    return applyOperationToAllAndUnite(ICCOperator.SHIFT_RIGHT_OPERATOR, pState);
+    return applyOperationToAllAndUnite(ICCOperator.SHIFT_RIGHT, pState);
   }
 
   /**

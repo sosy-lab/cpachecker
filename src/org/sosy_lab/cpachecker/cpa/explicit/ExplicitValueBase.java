@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,26 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.invariants.operators.interval.interval.tointerval;
-
-import static org.junit.Assert.assertEquals;
-
-import java.math.BigInteger;
-
-import org.junit.Test;
-import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
+package org.sosy_lab.cpachecker.cpa.explicit;
 
 /**
- * Unit test for the operator used to add simple intervals to simple
- * intervals to produce simple intervals.
+ * Base class for values that can be tracked by the ExplicitCPA.
+ *
+ * Traditionally, ExplicitCPA would only keep track of long type values.
+ * For the future, floats, symbolic values, and SMG nodes should
+ * also be supported.
  */
-public class AddOperatorTest {
-
-  @Test
-  public void testApply() {
-    SimpleInterval zero = SimpleInterval.singleton(BigInteger.ZERO);
-    SimpleInterval one = SimpleInterval.singleton(BigInteger.ONE);
-    assertEquals(one, AddOperator.INSTANCE.apply(zero, one));
-  }
+public interface ExplicitValueBase {
 
 }
