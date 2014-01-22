@@ -56,6 +56,20 @@ public class JobFileDAO {
     return ofy().load().type(JobFile.class).ancestor(parent).filter("path", path).first().now();
   }
 
+  public static JobFile loadByPath(String path, String parentKey) {
+    Job parent = JobDAO.load(parentKey);
+    return loadByPath(path, parent);
+  }
+
+  public static JobFile loadByName(String name, Job parent) {
+    return ofy().load().type(JobFile.class).ancestor(parent).filter("name", name).first().now();
+  }
+
+  public static JobFile loadByName(String name, String parentKey) {
+    Job parent = JobDAO.load(parentKey);
+    return loadByName(name, parent);
+  }
+
   public static List<JobFile> files(Job parent) {
     return ofy().load().type(JobFile.class).ancestor(parent).list();
   }

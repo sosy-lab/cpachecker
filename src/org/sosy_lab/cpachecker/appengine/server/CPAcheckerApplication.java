@@ -42,7 +42,7 @@ public class CPAcheckerApplication extends WadlApplication {
 
   @Override
   public Restlet createInboundRoot() {
-    getTunnelService().setExtensionsTunnel(true);
+//    getTunnelService().setExtensionsTunnel(true);
     getEncoderService().setEnabled(true);
 
     try {

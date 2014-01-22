@@ -226,7 +226,11 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     }
 
     try {
-      saveStackTrace(e.getCause());
+      if (e.getCause() != null) {
+        saveStackTrace(e.getCause());
+      } else {
+        saveStackTrace(e);
+      }
       setResult();
       job.setTerminationDate(new Date());
       JobDAO.save(job);

@@ -48,7 +48,11 @@ public class JobFileServerResource extends WadlServerResource implements JobFile
   @Override
   protected void doInit() throws ResourceException {
     super.doInit();
+
     file = JobFileDAO.load(getAttribute("fileKey"));
+    if (file == null) {
+      file = JobFileDAO.loadByName(getAttribute("fileKey"), getAttribute("jobKey"));
+    }
 
     if (file == null) {
       getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND);
@@ -74,6 +78,12 @@ public class JobFileServerResource extends WadlServerResource implements JobFile
     } catch (JsonProcessingException e) {
       return null;
     }
+  }
+
+  @Override
+  public Representation fileAsText() {
+    String content = (file.getContent() == null) ? "" : file.getContent();
+    return new StringRepresentation(content);
   }
 
 }

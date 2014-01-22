@@ -50,6 +50,7 @@ public class JobFile {
   @Id Long id;
   @Parent Ref<Job> job;
   @Index private String path;
+  @Index private String name;
   private String content;
   @Ignore private Writer contentWriter;
   @Ignore private ByteArrayOutputStream contentOutputStream;
@@ -59,12 +60,12 @@ public class JobFile {
   }
 
   public JobFile(String path) {
-    this.path = path;
+    setPath(path);
     init();
   }
 
   public JobFile(String path, Job job) {
-    this.path = path;
+    setPath(path);
     this.job = Ref.create(job);
     init();
   }
@@ -147,6 +148,10 @@ public class JobFile {
     if (contentOutputStream != null && contentOutputStream.size() > 0) {
       content = contentOutputStream.toString();
     }
+  }
+
+  @OnSave void storeName() {
+    name = getName();
   }
 
   /**

@@ -35,4 +35,7 @@ public interface JobFileResource {
   @Get("json")
   public Representation fileAsJson();
 
+  @Get("text")
+  public Representation fileAsText();
+
 }
