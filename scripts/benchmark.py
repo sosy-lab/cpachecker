@@ -670,6 +670,8 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
     cmdLine = ["java", "-jar", libDir + "/vcloud.jar", "benchmark", "--loglevel", logLevel]
     if config.cloudMaster:
         cmdLine.extend(["--master", config.cloudMaster])
+    if config.debug:
+        cmdLine.extend(["--print-new-files", "true"])
     cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE)
     try:
         (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
