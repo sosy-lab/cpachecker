@@ -456,7 +456,7 @@ public class CFACreator {
 
       if (transformIntoSingleLoop) {
         stats.processingTime.start();
-        immutableCFA = new CFASingleLoopTransformation(logger, config).apply(cfa);
+        immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config).apply(cfa);
         stats.processingTime.stop();
       } else {
         immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);

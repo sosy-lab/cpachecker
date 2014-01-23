@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -119,6 +120,11 @@ public class CFASingleLoopTransformation {
   private final Configuration config;
 
   /**
+   * The shutdown notifier used.
+   */
+  private final OptionalShutdownNotifier shutdownNotifier;
+
+  /**
    * Creates a new single loop transformer.
    *
    * @param pLogger the log manager to be used.
@@ -126,9 +132,39 @@ public class CFASingleLoopTransformation {
    *
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
-  public CFASingleLoopTransformation(LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
+  private CFASingleLoopTransformation(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     this.logger = pLogger;
     this.config = pConfig;
+    this.shutdownNotifier = new OptionalShutdownNotifier(pShutdownNotifier);
+  }
+
+  /**
+   * Gets a single loop transformation strategy using the given log manager and configuration.
+   *
+   * @param pLogger the log manager used.
+   * @param pConfig the configuration used.
+   *
+   * @return a single loop transformation strategy.
+   *
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   */
+  static CFASingleLoopTransformation getSingleLoopTransformation(LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
+    return new CFASingleLoopTransformation(pLogger, pConfig, null);
+  }
+
+  /**
+   * Gets a single loop transformation strategy using the given log manager, configuration and optional shutdown notifier.
+   *
+   * @param pLogger the log manager used.
+   * @param pConfig the configuration used.
+   * @param pShutdownNotifier the optional shutdown notifier.
+   *
+   * @return a single loop transformation strategy.
+   *
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   */
+  static CFASingleLoopTransformation getSingleLoopTransformation(LogManager pLogger, Configuration pConfig, @Nullable ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+    return new CFASingleLoopTransformation(pLogger, pConfig, pShutdownNotifier);
   }
 
   /**
@@ -138,8 +174,9 @@ public class CFASingleLoopTransformation {
    *
    * @return a new CFA with at most one loop.
    * @throws InvalidConfigurationException
+   * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
-  public ImmutableCFA apply(CFA pInputCFA) throws InvalidConfigurationException {
+  public ImmutableCFA apply(CFA pInputCFA) throws InvalidConfigurationException, InterruptedException {
     // Create new main function entry initializing the program counter
     FunctionEntryNode oldMainFunctionEntryNode = pInputCFA.getMainFunction();
     AFunctionDeclaration mainFunctionDeclaration = oldMainFunctionEntryNode.getFunctionDefinition();
@@ -166,6 +203,7 @@ public class CFASingleLoopTransformation {
     // Eliminate self loops
     List<CFANode> toAdd = new ArrayList<>();
     for (CFANode node : nodes) {
+      this.shutdownNotifier.shutdownIfNecessary();
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
         CFANode successor = edge.getSuccessor();
         // Eliminate a direct self edge by introducing a dummy node in between
@@ -199,6 +237,7 @@ public class CFASingleLoopTransformation {
     // Create new nodes and assume edges based on program counter values leading to the new nodes
     Set<CFANode> visited = new HashSet<>();
     while (!nodes.isEmpty()) {
+      this.shutdownNotifier.shutdownIfNecessary();
       CFANode subgraphRoot = nodes.poll();
 
       // Mark an unvisited node as visited or discard a visited node
@@ -319,6 +358,7 @@ public class CFASingleLoopTransformation {
     // Remove trivial dummy subgraphs and other dummy edges
     Map<CFANode, Integer> pcToNewSuccessors = newSuccessorsToPC.inverse();
     for (int replaceablePCValue : new ArrayList<>(newPredecessorsToPC.keySet())) {
+      this.shutdownNotifier.shutdownIfNecessary();
       CFANode newSuccessor = newSuccessorsToPC.get(replaceablePCValue);
       CFANode tailOfRedundantSubgraph = newPredecessorsToPC.get(replaceablePCValue);
       Integer precedingPCValue;
@@ -337,6 +377,7 @@ public class CFASingleLoopTransformation {
       }
     }
     for (CFAEdge oldDummyEdge : dummyEdges) {
+      this.shutdownNotifier.shutdownIfNecessary();
       CFANode successor = globalNewToOld.get(oldDummyEdge.getSuccessor());
       for (CFAEdge edge : CFAUtils.enteringEdges(successor)) {
         if (isDummyEdge(edge)) {
@@ -456,15 +497,18 @@ public class CFASingleLoopTransformation {
    * @param pLoopHead the single loop head.
    * @param pMachineModel the machine model.
    * @param pLanguage the programming language.
+   *
    * @return the CFA represented by the nodes reachable from the start node.
    *
    * @throws InvalidConfigurationException if the configuration is invalid.
+   * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
-  private ImmutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException {
+  private ImmutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException, InterruptedException {
     Map<String, FunctionEntryNode> functions = null;
     SortedSetMultimap<String, CFANode> allNodes = null;
     boolean changed = true;
     while (changed) {
+      this.shutdownNotifier.shutdownIfNecessary();
       changed = false;
       functions = new HashMap<>();
       allNodes = TreeMultimap.create();
@@ -505,6 +549,7 @@ public class CFASingleLoopTransformation {
       n.setReversePostorderId(-1);
     }
     while (!nodesWithNoIdAssigned.isEmpty()) {
+      this.shutdownNotifier.shutdownIfNecessary();
       CFAReversePostorder sorter = new CFAReversePostorder();
       sorter.assignSorting(nodesWithNoIdAssigned.iterator().next());
       nodesWithNoIdAssigned = FluentIterable.from(nodesWithNoIdAssigned).filter(new Predicate<CFANode>() {
@@ -1010,6 +1055,33 @@ public class CFASingleLoopTransformation {
     return Optional.of(loopNodes.isEmpty() || loopNodes.size() == 1 && !pSingleLoopHead.hasEdgeTo(pSingleLoopHead)
         ? ImmutableMultimap.<String, Loop>of()
         : ImmutableMultimap.<String, Loop>builder().put(loopFunction, new Loop(pSingleLoopHead, loopNodes)).build());
+  }
+
+  /**
+   * Instances of this class are proxies for ShutdownNotifier instances so that
+   * calls to {@link ShutdownNotifier#shutdownIfNecessary} are delegated to the
+   * wrapped instance or, if the wrapped instance is <code>null</code>, do
+   * nothing.
+   */
+  private static class OptionalShutdownNotifier {
+
+    private final ShutdownNotifier shutdownNotifier;
+
+    public OptionalShutdownNotifier(@Nullable ShutdownNotifier pShutdownNotifier) {
+      this.shutdownNotifier = pShutdownNotifier;
+    }
+
+    /**
+     * @see ShutdownNotifier#shutdownIfNecessary
+     *
+     * @throws InterruptedException if a shutdown was requested.
+     */
+    public void shutdownIfNecessary() throws InterruptedException {
+      if (shutdownNotifier != null) {
+        shutdownNotifier.shutdownIfNecessary();
+      }
+    }
+
   }
 
 }
