@@ -922,6 +922,13 @@ public abstract class AbstractExplicitExpressionValueVisitor
       final MachineModel machineModel, final LogManager logger, @Nullable final CFAEdge edge) {
     if (value == null) { return null; }
 
+    // For now can only cast numeric value's
+    if (!value.isNumericValue()) {
+      logger.logf(Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
+    }
+    ExplicitNumericValue numericValue = (ExplicitNumericValue) value;
+
+
     final CType type = targetType.getCanonicalType();
     if (type instanceof CSimpleType) {
       final CSimpleType st = (CSimpleType) type;
@@ -933,17 +940,18 @@ public abstract class AbstractExplicitExpressionValueVisitor
         final int bitPerByte = machineModel.getSizeofCharInBits();
         final int numBytes = machineModel.getSizeof(st);
         final int size = bitPerByte * numBytes;
+        final long longValue = numericValue.longValue();
 
         if ((size < SIZE_OF_JAVA_LONG) || (size == SIZE_OF_JAVA_LONG && st.isSigned())
-            || (value < Long.MAX_VALUE / 2 && value > Long.MIN_VALUE / 2)) {
+            || (longValue < Long.MAX_VALUE / 2 && longValue > Long.MIN_VALUE / 2)) {
           // we can handle this with java-type "long"
 
           final long maxValue = 1L << size; // 2^size
 
-          long result = value;
+          long result = longValue;
 
           if (size < SIZE_OF_JAVA_LONG) { // otherwise modulo is useless, because result would be 1
-            result = value % maxValue; // shrink to number of bits
+            result = longValue % maxValue; // shrink to number of bits
 
             if (st.isSigned() ||
                 (st.getType() == CBasicType.CHAR && !st.isUnsigned() && machineModel.isDefaultCharSigned())) {
@@ -955,14 +963,14 @@ public abstract class AbstractExplicitExpressionValueVisitor
             }
           }
 
-          if (result != value && loggedEdges.add(edge)) {
+          if (result != longValue && loggedEdges.add(edge)) {
             logger.logf(Level.INFO,
                 "overflow in line %d: value %d is to big for type '%s', casting to %d.",
                 edge == null ? null : edge.getLineNumber(),
                 value, targetType, result);
           }
 
-          if (st.isUnsigned() && value < 0) {
+          if (st.isUnsigned() && longValue < 0) {
 
             if (size < SIZE_OF_JAVA_LONG) {
               // value is negative, so adding maxValue makes it positive
@@ -987,7 +995,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
             }
           }
 
-          return result;
+          return new ExplicitNumericValue(result);
 
         } else {
           // java-type "long" is too small for big types like UNSIGNED_LONGLONG,
