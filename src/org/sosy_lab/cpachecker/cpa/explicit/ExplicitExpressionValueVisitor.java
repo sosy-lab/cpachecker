@@ -92,7 +92,8 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
 
   @Override
   protected Long evaluateJIdExpression(JIdExpression varName) {
-    return evaluateAIdExpression(varName);
+    // return evaluateAIdExpression(varName); TODO implement
+    return null;
   }
 
   /** This method returns the value of a variable from the current state. */
@@ -190,7 +191,15 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
         return null;
       }
 
-      ExplicitValueBase subscriptValue = subscript.accept(evv);
+      // Check if it is a Long
+      ExplicitValueBase subscriptValueCandidate = subscript.accept(evv);
+      if (subscriptValueCandidate.isNumericValue()) {
+        if (!((ExplicitNumericValue) subscriptValueCandidate).getType().isLong()) {
+          return null;
+        }
+      }
+
+      Long subscriptValue = ((ExplicitNumericValue) subscriptValueCandidate).longValue();
 
       if(subscriptValue == null) {
         return null;
