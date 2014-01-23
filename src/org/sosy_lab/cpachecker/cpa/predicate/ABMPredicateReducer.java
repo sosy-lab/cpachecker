@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -234,7 +235,6 @@ public class ABMPredicateReducer implements Reducer {
           ImmutableSetMultimap.<String, AbstractionPredicate> of(),
           ImmutableSet.<AbstractionPredicate> of());
 
-      assert expandedPredicatePrecision.getFunctionPredicates().isEmpty() : "TODO: need to handle function-specific predicates in ReducedPredicatePrecision";
       assert expandedPredicatePrecision.getLocationInstancePredicates().isEmpty() : "TODO: need to handle location-instance-specific predicates in ReducedPredicatePrecision";
 
       this.expandedPredicatePrecision = expandedPredicatePrecision;
@@ -319,6 +319,9 @@ public class ABMPredicateReducer implements Reducer {
         if (result.isEmpty()) {
           result = evaluatedGlobalPredicates;
         }
+        String functionName = context.getCallNode().getFunctionName();
+        result = new HashSet<>(result); //This is ImmutableSet
+        result.addAll(rootPredicatePrecision.getFunctionPredicates().get(functionName));
         return result;
       } else {
         Set<AbstractionPredicate> result =
