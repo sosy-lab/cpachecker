@@ -1870,10 +1870,10 @@ public class SMGTransferRelation implements TransferRelation {
 
       ExplicitValueBase value = cc.evaluateExpression(pRValue);
 
-      if (value == null) {
+      if (value == null || value.asLong() == null) {
         return SMGUnknownValue.getInstance();
       } else {
-        return SMGKnownExpValue.valueOf(value);
+        return SMGKnownExpValue.valueOf(value.asLong());
       }
     }
   }
@@ -2074,7 +2074,7 @@ public class SMGTransferRelation implements TransferRelation {
 
   }
 
-  public interface SMGExplicitValue  extends SMGValue {
+  public interface SMGExplicitValue  extends SMGValue, ExplicitValueBase {
 
     public SMGExplicitValue negate();
 

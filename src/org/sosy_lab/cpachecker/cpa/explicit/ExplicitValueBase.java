@@ -32,4 +32,10 @@ package org.sosy_lab.cpachecker.cpa.explicit;
  */
 public interface ExplicitValueBase {
   public boolean isNumericValue();
+
+  /** Return the ExplicitNumericValue if this is a numeric value, null otherwise. **/
+  public ExplicitNumericValue asNumericValue();
+
+  /** Return the long value if this is a long value, null otherwise. **/
+  public Long asLong();
 }

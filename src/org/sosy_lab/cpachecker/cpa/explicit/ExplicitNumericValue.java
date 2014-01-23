@@ -128,4 +128,18 @@ public class ExplicitNumericValue implements ExplicitValueBase {
   public boolean isNull() {
     return bigDecimalValue().compareTo(new BigDecimal(0)) == 0;
   }
+
+  @Override
+  public ExplicitNumericValue asNumericValue() {
+    return this;
+  }
+
+  @Override
+  public Long asLong() {
+    if(getType().getType() == CBasicType.INT) {
+      return this.asLong();
+    } else {
+      return null;
+    }
+  }
 }

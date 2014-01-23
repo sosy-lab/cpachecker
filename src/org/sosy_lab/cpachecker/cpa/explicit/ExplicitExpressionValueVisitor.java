@@ -191,15 +191,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
         return null;
       }
 
-      // Check if it is a Long
-      ExplicitValueBase subscriptValueCandidate = subscript.accept(evv);
-      if (subscriptValueCandidate.isNumericValue()) {
-        if (!((ExplicitNumericValue) subscriptValueCandidate).getType().isLong()) {
-          return null;
-        }
-      }
-
-      Long subscriptValue = ((ExplicitNumericValue) subscriptValueCandidate).longValue();
+      Long subscriptValue = subscript.accept(evv).asLong();
 
       if(subscriptValue == null) {
         return null;
