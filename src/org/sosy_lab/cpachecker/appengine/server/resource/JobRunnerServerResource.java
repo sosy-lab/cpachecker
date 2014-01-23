@@ -223,6 +223,8 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
       e = e.getCause();
     }
 
+    String message = (e.getMessage() == null) ? "" : e.getMessage();
+
     switch (e.getClass().getSimpleName()) {
     case "DeadlineExceededException":
       job.setStatus(Status.TIMEOUT);
@@ -234,11 +236,11 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
       log(Level.WARNING, "The given configuration is invalid.", e);
       break;
     case "IOException":
-      job.setStatusMessage(String.format("An I/O error occurred: %s", e.getMessage()));
+      job.setStatusMessage(String.format("An I/O error occurred: %s", message));
       log(Level.WARNING, "An I/O error occurred.", e);
       break;
     default:
-      job.setStatusMessage(String.format("An error occured: %s", e.getMessage()));
+      job.setStatusMessage(String.format("An error occured: %s", message));
       log(Level.WARNING, "There was an error", e);
     }
 
