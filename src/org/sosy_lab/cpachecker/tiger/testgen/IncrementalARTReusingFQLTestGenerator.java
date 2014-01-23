@@ -696,11 +696,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
           boolean lIsPrecise = true;
 
-          System.err.println("TODO: reconstructPath needs a proper input extraction!");
-          // TODO remove again
-          lIsPrecise = false;
-
-          /*
           try {
             lCFAPath = reconstructPath(mWrapper.getCFA(), lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
           } catch (InvalidConfigurationException e) {
@@ -715,7 +710,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
               throw new RuntimeException(e);
             }
           }
-          */
 
           if (lIsPrecise) {
             mOutput.println("Goal #" + lIndex + " is feasible!");

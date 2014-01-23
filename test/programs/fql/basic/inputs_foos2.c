@@ -25,10 +25,26 @@ int main()
   z = INPUT();
 
   if (flag2) {
-    result = (x + z > 10);
+    int tmp;
+    tmp = x + z;
+
+    if (tmp > 10) {
+      result = 1;
+    }
+    else {
+      result = 0;
+    }
   }
   else {
-    result = (x + z <= 10);
+    int tmp;
+    tmp = x + z;
+
+    if (tmp <= 10) {
+      result = 1;
+    }
+    else {
+      result = 0;
+    }
   }
 
   if (result) {

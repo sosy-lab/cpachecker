@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -81,6 +82,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.tiger.fql.translators.cfa.ToTigerAssumeEdgeTranslator;
+import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
 
 public class InterpreterTransferRelation implements TransferRelation {
 
@@ -1306,6 +1308,22 @@ public class InterpreterTransferRelation implements TransferRelation {
 
       return lSuccessor;
     }
+    // a = __VERIFIER_nondet_...();
+    else if (rightExp instanceof CFunctionCallExpression) {
+      CFunctionCallExpression lFunctionCallExpression = (CFunctionCallExpression)rightExp;
+      CExpression lFunctionNameExpression = lFunctionCallExpression.getFunctionNameExpression();
+
+      if (lFunctionNameExpression instanceof CIdExpression) {
+        CIdExpression lIdExpression = (CIdExpression)lFunctionNameExpression;
+        if (lIdExpression.getName().startsWith(TestCase.INPUT_PREFIX)) {
+          // a little hack ... we refer to __BLAST_NONDET (used in ESOP'13 CPAtiger version)
+          // TODO change this later
+          return handleAssignmentOfVariable(element, lParam, "__BLAST_NONDET", functionName);
+        }
+      }
+
+      throw new UnrecognizedCCodeException(rightExp.toASTString(), cfaEdge);
+    }
     else{
       throw new UnrecognizedCCodeException(rightExp.toASTString(), cfaEdge);
     }
@@ -1546,8 +1564,34 @@ public class InterpreterTransferRelation implements TransferRelation {
   private InterpreterElement handleAssignmentOfVariable(InterpreterElement element,
       String lParam, CExpression op2, String functionName) throws MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException
   {
+    return handleAssignmentOfVariable(element, lParam, op2.toASTString(), functionName);
+    /*
     String rParam = op2.toASTString();
 
+    String leftVarName = getvarName(lParam, functionName);
+
+    if (rParam.equals("__BLAST_NONDET")) {
+      InterpreterElement newElement = element.nextInputElement();
+
+      // We return the input of the current element, the successor element
+      // will refer to the next input.
+      newElement.assignConstant(leftVarName, element.getCurrentInput());
+
+      return newElement;
+    }
+    else {
+      String rightVarName = getvarName(rParam, functionName);
+
+      InterpreterElement newElement = element.clone();
+      newElement.assignConstant(leftVarName, newElement.getValueFor(rightVarName));
+
+      return newElement;
+    }*/
+  }
+
+  private InterpreterElement handleAssignmentOfVariable(InterpreterElement element,
+      String lParam, String rParam, String functionName) throws MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException
+  {
     String leftVarName = getvarName(lParam, functionName);
 
     if (rParam.equals("__BLAST_NONDET")) {
