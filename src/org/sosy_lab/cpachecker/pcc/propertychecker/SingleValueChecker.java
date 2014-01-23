@@ -52,7 +52,7 @@ public class SingleValueChecker implements PropertyChecker {
     // check if value correctly specified at location
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
     if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(labelLocVarVal)) {
-      if (AbstractStates.extractStateByType(pElemToCheck, ExplicitState.class).getValueFor(varValName) != varVal) { return false; }
+      if (AbstractStates.extractStateByType(pElemToCheck, ExplicitState.class).getValueFor(varValName).asLong() != varVal) { return false; }
     }
     return true;
   }

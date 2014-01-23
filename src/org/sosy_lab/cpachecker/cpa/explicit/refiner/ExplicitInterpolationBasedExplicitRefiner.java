@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.AssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -178,7 +179,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
     ExplicitInterpolator interpolator             = new ExplicitInterpolator(logger, shutdownNotifier, cfa,
                                                       loopLeavingAssumes, loopLeavingMemoryLocations);
-    Map<MemoryLocation, Long> currentInterpolant  = new HashMap<>();
+    Map<MemoryLocation, ExplicitValueBase> currentInterpolant  = new HashMap<>();
     Multimap<CFANode, MemoryLocation> increment   = HashMultimap.create();
 
     List<CFAEdge> cfaTrace = Lists.newArrayList();
@@ -201,8 +202,8 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       }
 
       // do interpolation
-      Map<MemoryLocation, Long> inputInterpolant = new HashMap<>(currentInterpolant);
-      Set<Pair<MemoryLocation, Long>> interpolant = interpolator.deriveInterpolant(cfaTrace, i, inputInterpolant);
+      Map<MemoryLocation, ExplicitValueBase> inputInterpolant = new HashMap<>(currentInterpolant);
+      Set<Pair<MemoryLocation, ExplicitValueBase>> interpolant = interpolator.deriveInterpolant(cfaTrace, i, inputInterpolant);
       numberOfInterpolations += interpolator.getNumberOfInterpolations();
 
       // early stop once we are past the first statement that made a path feasible for the first time
@@ -210,7 +211,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
         timerInterpolation.stop();
         return increment;
       }
-      for (Pair<MemoryLocation, Long> element : interpolant) {
+      for (Pair<MemoryLocation, ExplicitValueBase> element : interpolant) {
         if (element.getSecond() == null) {
           currentInterpolant.remove(element.getFirst());
         } else {
@@ -261,7 +262,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    * @param functionName the name of the function for which to remove variables
    * @return the current interpolant with the respective variables removed
    */
-  private Map<MemoryLocation, Long> clearInterpolant(Map<MemoryLocation, Long> currentInterpolant, String functionName) {
+  private Map<MemoryLocation, ExplicitValueBase> clearInterpolant(Map<MemoryLocation, ExplicitValueBase> currentInterpolant, String functionName) {
     for (Iterator<MemoryLocation> variableNames = currentInterpolant.keySet().iterator(); variableNames.hasNext(); ) {
       if (variableNames.next().isOnFunctionStack(functionName)) {
         variableNames.remove();

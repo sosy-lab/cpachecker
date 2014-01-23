@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
@@ -131,10 +132,10 @@ public class ExplicitInterpolator {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public Set<Pair<MemoryLocation, Long>> deriveInterpolant(
+  public Set<Pair<MemoryLocation, ExplicitValueBase>> deriveInterpolant(
       List<CFAEdge> pErrorPath,
       int pOffset,
-      Map<MemoryLocation, Long> pInputInterpolant) throws CPAException, InterruptedException {
+      Map<MemoryLocation, ExplicitValueBase> pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolations = 0;
     currentOffset          = pOffset;
 
@@ -156,14 +157,14 @@ public class ExplicitInterpolator {
       return Collections.emptySet();
     }
 
-    Set<Pair<MemoryLocation, Long>> interpolant = new HashSet<>();
+    Set<Pair<MemoryLocation, ExplicitValueBase>> interpolant = new HashSet<>();
     for (MemoryLocation currentMemoryLocation : determineInterpolationCandidates(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
       ExplicitState successor = initialSuccessor.clone();
 
       // remove the value of the current and all already-found-to-be-irrelevant variables from the successor
       successor.forget(currentMemoryLocation);
-      for (Pair<MemoryLocation, Long> interpolantVariable : interpolant) {
+      for (Pair<MemoryLocation, ExplicitValueBase> interpolantVariable : interpolant) {
         if (interpolantVariable.getSecond() == null) {
           successor.forget(interpolantVariable.getFirst());
         }
@@ -175,7 +176,7 @@ public class ExplicitInterpolator {
       if (isFeasible) {
         interpolant.add(Pair.of(currentMemoryLocation, initialSuccessor.getValueFor(currentMemoryLocation)));
       } else {
-        interpolant.add(Pair.<MemoryLocation, Long>of(currentMemoryLocation, null));
+        interpolant.add(Pair.<MemoryLocation, ExplicitValueBase>of(currentMemoryLocation, null));
       }
     }
 
