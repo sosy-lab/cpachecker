@@ -27,6 +27,7 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 
@@ -85,12 +86,24 @@ public class JobDAO {
     }
   }
 
+  /**
+   * Deletes all jobs, job files and purges the task queue.
+   */
   public static void deleteAll() {
     List<Key<Job>> jobKeys = ofy().load().type(Job.class).keys().list();
     ofy().delete().keys(jobKeys).now();
-
     List<Key<JobFile>> fileKeys = ofy().load().type(JobFile.class).keys().list();
     ofy().delete().keys(fileKeys).now();
+
+    try {
+      Queue queue = QueueFactory.getQueue(GAETaskQueueJobRunner.QUEUE_NAME);
+      queue.purge();
+    } catch (Exception _) {
+      /*
+       * it does not matter if the queue could be purged or not
+       * since tasks will disappear anyway after they've been run.
+       */
+    }
   }
 
   public static void delete(Key<Job> key) {
