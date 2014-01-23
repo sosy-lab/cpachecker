@@ -349,7 +349,7 @@ public class SMGExplicitCommunicator {
     @Override
     public SMGExplicitValue evaluateExplicitValue(SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue)
         throws CPATransferException {
-      ExplicitValueBase value = pRValue.accept(evv);
+      Long value = pRValue.accept(evv).asLong();
 
       if (value == null) {
         return SMGUnknownValue.getInstance();

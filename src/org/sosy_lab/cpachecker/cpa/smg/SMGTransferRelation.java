@@ -1789,7 +1789,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     long truthValue = pMissingInformation.getTruthAssumption() ? 1 : 0;
 
-    ExplicitValueBase value =
+    Long value =
         resolveAssumptionValue(oldState,
             pExplicitState,
             pMissingInformation.getMissingCExpressionInformation(),
@@ -1803,7 +1803,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
   }
 
-  private ExplicitValueBase resolveAssumptionValue(SMGState pSmgState, ExplicitState pExplicitState,
+  private Long resolveAssumptionValue(SMGState pSmgState, ExplicitState pExplicitState,
       CRightHandSide rValue, CFAEdge edge) throws UnrecognizedCCodeException {
 
     String functionName = edge.getPredecessor().getFunctionName();
@@ -1812,7 +1812,7 @@ public class SMGTransferRelation implements TransferRelation {
         new SMGExplicitCommunicator(pExplicitState, functionName,
             pSmgState, machineModel, logger, edge);
 
-    return cc.evaluateExpression(rValue);
+    return cc.evaluateExpression(rValue).asLong();
   }
 
   @SuppressWarnings("unused")
@@ -2383,6 +2383,22 @@ public class SMGTransferRelation implements TransferRelation {
         return new SMGKnownExpValue(pValue);
       }
     }
+
+    @Override
+    public boolean isNumericValue() {
+      // TODO Auto-generated method stub
+      return false;
+    }
+
+    @Override
+    public ExplicitNumericValue asNumericValue() {
+      return null;
+    }
+
+    @Override
+    public Long asLong() {
+      return null;
+    }
   }
 
 
@@ -2480,6 +2496,22 @@ public class SMGTransferRelation implements TransferRelation {
 
     @Override
     public SMGObject getObject() {
+      return null;
+    }
+
+    @Override
+    public boolean isNumericValue() {
+      // TODO Auto-generated method stub
+      return false;
+    }
+
+    @Override
+    public ExplicitNumericValue asNumericValue() {
+      return null;
+    }
+
+    @Override
+    public Long asLong() {
       return null;
     }
   }
