@@ -136,11 +136,11 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   private String missingInformationLeftJVariable = null;
 
   private boolean missingFieldVariableObject;
-  private Pair<String, Long> fieldNameAndInitialValue;
+  private Pair<String, ExplicitValueBase> fieldNameAndInitialValue;
 
   private boolean missingScopedFieldName;
   private JIdExpression notScopedField;
-  private Long notScopedFieldValue;
+  private ExplicitValueBase notScopedFieldValue;
 
   private boolean missingAssumeInformation;
 
@@ -225,7 +225,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       IAExpression exp = arguments.get(i);
 
       if (exp instanceof JExpression) {
-        value = ((JExpression) exp).accept(visitor);
+        // value = ((JExpression) exp).accept(visitor); TODO
+        value = null;
       } else if (exp instanceof CExpression) {
         value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
       } else {
@@ -323,7 +324,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         } else if (op1 instanceof JIdExpression && ((JIdExpression) op1).getDeclaration() instanceof JFieldDeclaration && !((JFieldDeclaration) ((JIdExpression) op1).getDeclaration()).isStatic()) {
           missingScopedFieldName = true;
           notScopedField = (JIdExpression) op1;
-          notScopedFieldValue = state.getValueFor(returnVarName);
+          // notScopedFieldValue = state.getValueFor(returnVarName); TODO
         } else {
           newElement.assignConstant(assignedVarName, state.getValueFor(returnVarName));
         }
@@ -375,7 +376,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       return element;
 
-    } else if ((truthValue && value == 1L) || (!truthValue && value == 0L)) {
+    } else if ((truthValue && value.equals(new ExplicitNumericValue(1L))) || (!truthValue && value.equals(new ExplicitNumericValue(0L)))) {
       // we do not know more than before, and the assumption is fulfilled,
       // so return the old state
       return state;
@@ -420,7 +421,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       // global variables without initializer are set to 0 in C
       if (init == null) {
-        initialValue = 0L;
+        initialValue = new ExplicitNumericValue(0L);
       }
     }
 
@@ -607,7 +608,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     ExplicitValueBase value;
     if (exp instanceof JRightHandSide) {
-       value = ((JRightHandSide) exp).accept(visitor);
+       // value = ((JRightHandSide) exp).accept(visitor); TODO
+      value = null;
     } else if (exp instanceof CRightHandSide) {
        value = visitor.evaluate((CRightHandSide) exp, (CType) lType);
     } else {
@@ -671,7 +673,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
   }
 
-  private void addMissingInformation(CLeftHandSide pOp1, Long pValue) {
+  private void addMissingInformation(CLeftHandSide pOp1, ExplicitValueBase pValue) {
     missingInformationList.add(new MissingInformation(pOp1, pValue));
 
   }
@@ -743,14 +745,14 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         // x is unknown, a binaryOperation (x==0), false-branch: set x=1L
         if ((binaryOperator == BinaryOperator.NOT_EQUALS && truthValue)
             || (binaryOperator == BinaryOperator.EQUALS && !truthValue)) {
-          if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
+          if (leftValue == null && rightValue.equals(new ExplicitNumericValue(0L)) && isAssignable(lVarInBinaryExp)) {
             MemoryLocation leftVariableName = getMemoryLocation(lVarInBinaryExp);
-            assignableState.assignConstant(leftVariableName, 1L);
+            assignableState.assignConstant(leftVariableName, new ExplicitNumericValue(1L));
           }
 
-          else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
+          else if (rightValue == null && leftValue.equals(new ExplicitNumericValue(0L)) && isAssignable(rVarInBinaryExp)) {
             MemoryLocation rightVariableName = getMemoryLocation(rVarInBinaryExp);
-            assignableState.assignConstant(rightVariableName, 1L);
+            assignableState.assignConstant(rightVariableName, new ExplicitNumericValue(1L));
           }
         }
       }
@@ -774,10 +776,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
 
           String leftVariableName = getScopedVariableName(lVarInBinaryExp, functionName);
-          assignableState.assignConstant(leftVariableName, rightValue);
+          //assignableState.assignConstant(leftVariableName, rightValue); TODO
         } else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
           String rightVariableName = getScopedVariableName(rVarInBinaryExp, functionName);
-          assignableState.assignConstant(rightVariableName, leftValue);
+          //assignableState.assignConstant(rightVariableName, leftValue); TODO
 
         }
       }
@@ -789,13 +791,13 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
             || (binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && !truthValue)) {
           if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
             String leftVariableName = getScopedVariableName(lVarInBinaryExp, functionName);
-            assignableState.assignConstant(leftVariableName, 1L);
+            assignableState.assignConstant(leftVariableName, new ExplicitNumericValue(1L));
 
           }
 
           else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
             String rightVariableName = getScopedVariableName(rVarInBinaryExp, functionName);
-            assignableState.assignConstant(rightVariableName, 1L);
+            assignableState.assignConstant(rightVariableName, new ExplicitNumericValue(1L));
           }
         }
       }
@@ -984,7 +986,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       String varName = handleIdExpression(idExp);
 
       if (state.contains(varName)) {
-        return state.getValueFor(varName);
+        //return state.getValueFor(varName); TODO
+        return null;
       } else {
         return null;
       }
@@ -996,7 +999,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     if (expression instanceof JRightHandSide) {
 
-      final ExplicitValueBase value = ((JRightHandSide) expression).accept(evv);
+      final ExplicitValueBase value = null; // TODO ((JRightHandSide) expression).accept(evv);
 
       if (evv.hasMissingFieldAccessInformation() || evv.hasMissingEnumComparisonInformation()) {
         missingInformationRightJExpression = (JRightHandSide) expression;
@@ -1229,7 +1232,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     ExplicitValueBase value = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
 
-    if(value != null && value != truthValue) {
+    if(value != null && value.equals(new ExplicitNumericValue(truthValue))) {
       return null;
     } else {
 
@@ -1291,7 +1294,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       }
     } else if (missingInformationRightJExpression != null) {
 
-      ExplicitValueBase value = handleMissingInformationRightJExpression(rttState);
+      ExplicitValueBase value = null; // TODO handleMissingInformationRightJExpression(rttState);
 
       if (value != null) {
         newElement.assignConstant(missingInformationLeftJVariable, value);
@@ -1328,9 +1331,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
      String scopedFieldName = getRTTScopedVariableName(notScopedField.getName(), objectScope);
 
-     Long value = notScopedFieldValue;
+     ExplicitValueBase value = notScopedFieldValue;
      if (missingInformationRightJExpression != null) {
-       value = handleMissingInformationRightJExpression(rttState);
+       value = null; // TODO handleMissingInformationRightJExpression(rttState);
      }
 
      if (value != null) {
