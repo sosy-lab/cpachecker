@@ -1,5 +1,0 @@
-test/programs/benchmarks/locks/*.c
-test/programs/benchmarks/ntdrivers-simplified/*.cil.c
-test/programs/benchmarks/ssh-simplified/s3_clnt_*.cil.c
-test/programs/benchmarks/ssh-simplified/s3_srvr_?[._]*cil.c
-test/programs/benchmarks/systemc/*.cil.c
