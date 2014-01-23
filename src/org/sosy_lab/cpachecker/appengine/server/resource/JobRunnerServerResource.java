@@ -198,12 +198,12 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
       // do not overwrite any previous status
       if (job.getStatus() != Status.ERROR && job.getStatus() != Status.TIMEOUT) {
         setResult();
-        dumpStatistics();
-        dumpLog();
-
         job.setTerminationDate(new Date());
         job.setStatus(Status.DONE);
         JobDAO.save(job);
+
+        dumpStatistics();
+        dumpLog();
       }
     }
   }
@@ -287,8 +287,8 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     if (logDumped) { return; }
 
     if (logHandler != null && logLevel != null && logLevel != Level.OFF) {
-      logHandler.flushAndClose();
       logDumped = true;
+      logHandler.flushAndClose();
     }
   }
 

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.appengine.log;
 
-import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -65,7 +64,7 @@ public class GAELogHandler extends Handler {
           headIsWritten = true;
         }
         writer.write(msg);
-      } catch (IOException e) {
+      } catch (Exception e) {
         reportError(null, e, ErrorManager.WRITE_FAILURE);
       }
     }
