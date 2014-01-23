@@ -43,6 +43,8 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -97,6 +99,7 @@ import com.google.common.collect.TreeMultimap;
  * Instances of this class are used to apply single loop transformation to
  * control flow automata.
  */
+@Options
 public class CFASingleLoopTransformation {
 
   /**
@@ -124,6 +127,20 @@ public class CFASingleLoopTransformation {
    */
   private final OptionalShutdownNotifier shutdownNotifier;
 
+  @Option(name="cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption",
+      description="Single loop transformation builds a decision tree based on" +
+    		" the program counter values. This option causes the last program" +
+    		" counter value not to be explicitly assumed in the decision tree," +
+    		" so that it is only indirectly represented by the assumption of" +
+    		" falsehood for all other assumptions in the decision tree.")
+  private boolean omitExplicitLastProgramCounterAssumption = true;
+
+  @Option(name="cfa.transformIntoSingleLoop.initialSubgraphAsPrefix",
+      description="Setting this option prefixes the loop with the initial" +
+      		"subgraph instead of treating it like the other subgraphs as a " +
+      		"leaf of the program counter value decision tree.")
+  private boolean initialSubgraphAsPrefix = true;
+
   /**
    * Creates a new single loop transformer.
    *
@@ -135,6 +152,7 @@ public class CFASingleLoopTransformation {
   private CFASingleLoopTransformation(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     this.logger = pLogger;
     this.config = pConfig;
+    config.inject(this);
     this.shutdownNotifier = new OptionalShutdownNotifier(pShutdownNotifier);
   }
 
@@ -353,8 +371,6 @@ public class CFASingleLoopTransformation {
       }
     }
 
-    CFANode firstSubgraphStart = newSuccessorsToPC.remove(0);
-
     // Remove trivial dummy subgraphs and other dummy edges
     Map<CFANode, Integer> pcToNewSuccessors = newSuccessorsToPC.inverse();
     for (int replaceablePCValue : new ArrayList<>(newPredecessorsToPC.keySet())) {
@@ -409,6 +425,16 @@ public class CFASingleLoopTransformation {
       }
     }
 
+    CFANode firstSubgraphStart = newSuccessorsToPC.get(0);
+
+    if (initialSubgraphAsPrefix) {
+      newSuccessorsToPC.remove(0);
+      // Connect the first subgraph directly to the declaration
+      removeFromNodes(pcDeclarationEdge);
+      pcDeclarationEdge = copyCFAEdgeWithNewNodes(pcDeclarationEdge, start, firstSubgraphStart, globalNewToOld);
+      addToNodes(pcDeclarationEdge);
+    }
+
     /*
      * Connect the subgraph tails to their successors via the loop head by
      * setting the corresponding program counter values.
@@ -418,11 +444,6 @@ public class CFASingleLoopTransformation {
     // Connect the subgraph entry nodes by assuming the program counter values
     connectLoopHeadToSubgraphEntryNodes(loopHead, newSuccessorsToPC, pcIdExpression, mainLocation,
         new CBinaryExpressionBuilder(pInputCFA.getMachineModel(), logger));
-
-    // Connect the first subgraph directly to the declaration
-    removeFromNodes(pcDeclarationEdge);
-    pcDeclarationEdge = copyCFAEdgeWithNewNodes(pcDeclarationEdge, start, firstSubgraphStart, globalNewToOld);
-    addToNodes(pcDeclarationEdge);
 
     // Skip the program counter initialization if it is never used
     if (newPredecessorsToPC.size() <= 1) {
@@ -661,7 +682,7 @@ public class CFASingleLoopTransformation {
    * @param pMainLocation the location of the main function.
    * @param pExpressionBuilder the CExpressionBuilder used to build the assume edges.
    */
-  private static void connectLoopHeadToSubgraphEntryNodes(CFANode pLoopHead,
+   private void connectLoopHeadToSubgraphEntryNodes(CFANode pLoopHead,
       Map<Integer, CFANode> newSuccessorToPCMapping,
       CIdExpression pPCIdExpression,
       FileLocation pMainLocation,
@@ -691,26 +712,30 @@ public class CFASingleLoopTransformation {
      * assume edge node. This does not hurt, but can be optimized out:
      */
     if (!toAdd.isEmpty()) {
-      // The last edge is superfluous
-      removeLast(toAdd);
-      /*
-       * The last positive edge is thus the only relevant edge after the edge
-       * leading to its predecessor
-       */
-      CFAEdge lastTrueEdge = removeLast(toAdd);
-      /*
-       * The successor of the edge leading to the predecessor of the last
-       * positive edge can thus be set to the last relevant node
-       */
-      if (!toAdd.isEmpty()) {
-        CAssumeEdge secondToLastFalseEdge = removeLast(toAdd);
-        CAssumeEdge newLastEdge = new CAssumeEdge(secondToLastFalseEdge.getRawStatement(), 0, secondToLastFalseEdge.getPredecessor(), lastTrueEdge.getSuccessor(),
-            secondToLastFalseEdge.getExpression(), false);
-        toAdd.add(newLastEdge);
+      if (omitExplicitLastProgramCounterAssumption) {
+        // The last edge is superfluous
+        removeLast(toAdd);
+        /*
+         * The last positive edge is thus the only relevant edge after the edge
+         * leading to its predecessor
+         */
+        CFAEdge lastTrueEdge = removeLast(toAdd);
+        /*
+         * The successor of the edge leading to the predecessor of the last
+         * positive edge can thus be set to the last relevant node
+         */
+        if (!toAdd.isEmpty()) {
+          CAssumeEdge secondToLastFalseEdge = removeLast(toAdd);
+          CAssumeEdge newLastEdge = new CAssumeEdge(secondToLastFalseEdge.getRawStatement(), 0, secondToLastFalseEdge.getPredecessor(), lastTrueEdge.getSuccessor(),
+              secondToLastFalseEdge.getExpression(), false);
+          toAdd.add(newLastEdge);
+        } else {
+          BlankEdge edge = new BlankEdge("", 0, pLoopHead, lastTrueEdge.getSuccessor(), "");
+          addToNodes(edge);
+        }
       } else {
-        BlankEdge edge = new BlankEdge("", 0, pLoopHead, lastTrueEdge.getSuccessor(), "");
-        edge.getPredecessor().addLeavingEdge(edge);
-        edge.getSuccessor().addEnteringEdge(edge);
+        BlankEdge defaultBackEdge = new BlankEdge("", 0, decisionTreeNode, pLoopHead, "Illegal program counter value");
+        addToNodes(defaultBackEdge);
       }
     }
     // Add the edges connecting the real nodes with the loop head

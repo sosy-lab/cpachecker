@@ -316,6 +316,18 @@ cfa.simplifyPointerExpressions = false
 # program counter.
 cfa.transformIntoSingleLoop = false
 
+# Setting this option prefixes the loop with the initialsubgraph instead of
+# treating it like the other subgraphs as a leaf of the program counter value
+# decision tree.
+cfa.transformIntoSingleLoop.initialSubgraphAsPrefix = true
+
+# Single loop transformation builds a decision tree based on the program
+# counter values. This option causes the last program counter value not to be
+# explicitly assumed in the decision tree, so that it is only indirectly
+# represented by the assumption of falsehood for all other assumptions in the
+# decision tree.
+cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption = true
+
 # combine sequences of simple edges into a single edge
 cfa.useMultiEdges = false
 
