@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.math.BigDecimal;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 

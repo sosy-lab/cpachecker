@@ -362,13 +362,13 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
       throw new InvalidQueryException("The Query \"" + pProperty
           + "\" is invalid. Could not split the property string correctly.");
     } else {
-      ExplicitValueBase value = this.constantsMap.get(MemoryLocation.valueOf(parts[0]));
+      Long value = this.constantsMap.get(MemoryLocation.valueOf(parts[0])).asLong();
 
       if (value == null) {
         return false;
       } else {
         try {
-          return value.longValue() == Long.parseLong(parts[1]);
+          return value == Long.parseLong(parts[1]);
         } catch (NumberFormatException e) {
           // The command might contains something like "main::p==cmd" where the user wants to compare the variable p to the variable cmd (nearest in scope)
           // perhaps we should omit the "main::" and find the variable via static scoping ("main::p" is also not intuitive for a user)
@@ -441,7 +441,8 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
     for (Map.Entry<MemoryLocation, ExplicitValueBase> entry : constantsMap.entrySet()) {
       RationalFormula var = nfmgr.makeVariable(entry.getKey().getAsSimpleString());
-      RationalFormula val = nfmgr.makeNumber(entry.getValue());
+      // TODO explicitfloat: handle the case that it's not a long
+      RationalFormula val = nfmgr.makeNumber(entry.getValue().asLong());
       formula = bfmgr.and(formula, nfmgr.equal(var, val));
     }
 
