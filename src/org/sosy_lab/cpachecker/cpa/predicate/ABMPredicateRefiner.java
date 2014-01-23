@@ -295,7 +295,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
         final PredicateStaticRefiner pStaticRefiner)
             throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pFormulaManager, pPredAbsMgr, pStaticRefiner, pSolver);
+      super(config, logger, predicateCpa.getShutdownNotifier(), pFormulaManager, pPredAbsMgr, pStaticRefiner, pSolver);
 
       RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
       if (relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {

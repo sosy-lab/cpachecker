@@ -170,6 +170,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
         RefinementStrategy backupRefinementStrategy = new PredicateAbstractionRefinementStrategy(
             config,
             logger,
+            predicateCpa.getShutdownNotifier(),
             formulaManager,
             predicateCpa.getPredicateManager(),
             extractor,

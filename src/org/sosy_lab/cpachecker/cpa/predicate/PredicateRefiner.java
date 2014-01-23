@@ -65,6 +65,7 @@ public abstract class PredicateRefiner implements Refiner {
     RefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
         config,
         logger,
+        predicateCpa.getShutdownNotifier(),
         fmgr,
         predicateCpa.getPredicateManager(),
         staticRefiner,

@@ -101,7 +101,8 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
 
     //prover = predicateCpa.getTheoremProver();
 
-    predicateRefinementStrategy = new PredicateAbstractionRefinementStrategy(config, logger, emgr, amgr,
+    predicateRefinementStrategy = new PredicateAbstractionRefinementStrategy(
+        config, logger, predicateCpa.getShutdownNotifier(), emgr, amgr,
         predicateCpa.getStaticRefiner(),
         predicateCpa.getSolver());
   }
