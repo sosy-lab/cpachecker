@@ -393,6 +393,9 @@ cpa.arg.errorPath.export = true
 # translate error path to C program
 cpa.arg.errorPath.exportAsSource = true
 
+# export error paths to files immediately after they were found
+cpa.arg.errorPath.exportImmediately = false
+
 # export error path to file, if one is found
 cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
