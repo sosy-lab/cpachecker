@@ -192,9 +192,9 @@ public class SMGExplicitCommunicator {
           if (address.isUnknown()) {
             return null;
           } else if (address.getAsInt() == 0) {
-            return 1L;
+            return new ExplicitNumericValue(1L);
           } else {
-            return 0L;
+            return new ExplicitNumericValue(0L);
           }
         default:
           return super.visit(pUnaryExpression);
@@ -274,8 +274,8 @@ public class SMGExplicitCommunicator {
       }
     }
 
-    private long booleanAsLong(boolean b) {
-      return b ? 1L : 0L;
+    private ExplicitValueBase booleanAsLong(boolean b) {
+      return b ? new ExplicitNumericValue(1L) : new ExplicitNumericValue(0L);
     }
 
     @Override
@@ -310,7 +310,7 @@ public class SMGExplicitCommunicator {
          if(value.isUnknown() || value.getAsInt() != 0) {
            return null;
          } else {
-           return 0L;
+           return new ExplicitNumericValue(0L);
          }
       }
     }

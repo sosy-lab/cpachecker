@@ -100,7 +100,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
 import org.sosy_lab.cpachecker.cpa.explicit.SMGExplicitCommunicator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.AssumeVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.LValueAssignmentVisitor;
@@ -1787,13 +1789,13 @@ public class SMGTransferRelation implements TransferRelation {
 
     long truthValue = pMissingInformation.getTruthAssumption() ? 1 : 0;
 
-    Long value =
+    ExplicitValueBase value =
         resolveAssumptionValue(oldState,
             pExplicitState,
             pMissingInformation.getMissingCExpressionInformation(),
             edge);
 
-    if (value != null && value != truthValue) {
+    if (value != null && (value.equals(new ExplicitNumericValue(truthValue)))) {
       return null;
     } else {
       hasChanged = true;
@@ -1801,7 +1803,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
   }
 
-  private Long resolveAssumptionValue(SMGState pSmgState, ExplicitState pExplicitState,
+  private ExplicitValueBase resolveAssumptionValue(SMGState pSmgState, ExplicitState pExplicitState,
       CRightHandSide rValue, CFAEdge edge) throws UnrecognizedCCodeException {
 
     String functionName = edge.getPredecessor().getFunctionName();
@@ -1866,7 +1868,7 @@ public class SMGTransferRelation implements TransferRelation {
       SMGExplicitCommunicator cc = new SMGExplicitCommunicator(explicitState, functionName,
           pState, machineModel, logger, pCfaEdge);
 
-      Long value = cc.evaluateExpression(pRValue);
+      ExplicitValueBase value = cc.evaluateExpression(pRValue);
 
       if (value == null) {
         return SMGUnknownValue.getInstance();
