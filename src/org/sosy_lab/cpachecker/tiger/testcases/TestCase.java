@@ -185,6 +185,11 @@ public abstract class TestCase {
     return lBuffer.toString();
   }
 
+  @Override
+  public int hashCode() {
+    return mInputs.hashCode() * (mIsPrecise?13:27);
+  }
+
   public static Collection<TestCase> fromFile(String pFileName) throws IOException {
     return fromFile(new File(pFileName));
   }
@@ -257,7 +262,9 @@ public abstract class TestCase {
   public static TestCase fromCounterexample(CounterexampleInfo pTraceInfo, LogManager pLogManager) {
     Model lModel = pTraceInfo.getTargetPathModel();
 
-    return fromCounterexample(lModel, pLogManager);
+    TestCase lTestcase = fromCounterexample(lModel, pLogManager);
+
+    return lTestcase;
   }
 
   public static TestCase fromCounterexample(CounterexampleTraceInfo pTraceInfo, LogManager pLogManager) {
@@ -267,33 +274,36 @@ public abstract class TestCase {
     return fromCounterexample(lModel, pLogManager);*/
   }
 
+  public static final String INPUT_PREFIX = "__VERIFIER_nondet_";
+
   public static TestCase fromCounterexample(Model pCounterexample, LogManager pLogManager) {
     //Set<MathsatAssignable> lAssignables = pCounterexample.getAssignables();
 
     boolean lIsPrecise = true;
 
     SortedMap<Integer, Double> lNondetMap = new TreeMap<>();
-    SortedMap<Integer, Boolean> lNondetFlagMap = new TreeMap<>();
+    //SortedMap<Integer, Boolean> lNondetFlagMap = new TreeMap<>();
+    // TODO do we need the nondet flag!!!
+    System.err.println("TODO: Due to using functions instead of variables for nondet values, we do not need nondet-flags anymore. (check!)");
 
     for (Map.Entry<AssignableTerm, Object> lAssignment : pCounterexample.entrySet()) {
       AssignableTerm lTerm = lAssignment.getKey();
 
       if (lTerm instanceof Variable) {
 
-        System.err.println("IMPLEMENT INPUT VALUE EXTRACTION!");
-
-        /*
         Variable lVar = (Variable)lTerm;
         String lName = lVar.getName();
 
-        if (lName.equals(CtoFormulaConverter.NONDET_VARIABLE)) {
+        if (lName.startsWith(INPUT_PREFIX)) {
           Integer lIndex = lVar.getSSAIndex();
 
           double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
 
           lNondetMap.put(lIndex, lDoubleValue);
         }
-        else if (lName.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+        // TODO Do we need the NONDET_FLAG_VARIABLE?
+        //System.err.println("TODO: Do we need the NONDET_FLAG_VARIABLE?");
+        /*else if (lName.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
           Integer lIndex = lVar.getSSAIndex();
 
           double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
@@ -304,8 +314,7 @@ public abstract class TestCase {
           else {
             lNondetFlagMap.put(lIndex, false);
           }
-        }
-        */
+        }*/
       }
     }
 
@@ -313,9 +322,10 @@ public abstract class TestCase {
     LinkedList<Double> lValues = new LinkedList<>();
 
     for (Map.Entry<Integer, Double> lEntry : lNondetMap.entrySet()) {
-      Integer lKey = lEntry.getKey();
+      //Integer lKey = lEntry.getKey();
 
-      if (lNondetFlagMap.get(lKey)) {
+      //if (lNondetFlagMap.get(lKey)) {
+      //if (true) {
         Double lValue = lEntry.getValue();
 
         int lIntValue = lValue.intValue();
@@ -326,7 +336,7 @@ public abstract class TestCase {
 
         lInput.add(lIntValue);
         lValues.add(lValue);
-      }
+      //}
     }
 
     if (lIsPrecise) {
