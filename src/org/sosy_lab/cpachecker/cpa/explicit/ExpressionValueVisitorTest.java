@@ -299,12 +299,13 @@ public class ExpressionValueVisitorTest {
       throws UnrecognizedCCodeException {
 
     // we use NULL as inputType, because it is not needed
-    final long value = evv.evaluate(
+    final ExplicitValueBase value = evv.evaluate(
         new CIntegerLiteralExpression(loc, null, BigInteger.valueOf(in)),
         outType);
 
     // System.out.println(String.format("(%s) %d == %d == %d", outType, in, expectedOut, value));
 
-    Assert.assertTrue(expectedOut == value);
+    // TODO explicitfloat: add floats to the test
+    Assert.assertTrue(expectedOut == value.asLong());
   }
 }
