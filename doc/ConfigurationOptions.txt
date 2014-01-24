@@ -1331,6 +1331,7 @@ pcc.checkPropertyPerElement = false
 # file in which proof representation needed for proof checking is stored
 pcc.proofFile = "arg.obj"
 
+# Generate and dump a proof
 pcc.proofgen.doPCC = false
 
 # Qualified name for class which implements certification strategy, hence

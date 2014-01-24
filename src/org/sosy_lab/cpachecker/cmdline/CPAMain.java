@@ -101,7 +101,9 @@ public class CPAMain {
       limits.start();
 
       cpachecker = new CPAchecker(cpaConfig, logManager, shutdownNotifier);
-      proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
+      if (options.doPCC) {
+        proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
+      }
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
@@ -130,7 +132,9 @@ public class CPAMain {
     Thread.interrupted(); // clear interrupted flag
 
     // generated proof (if enabled)
-    proofGenerator.generateProof(result);
+    if (proofGenerator != null) {
+      proofGenerator.generateProof(result);
+    }
 
     try {
       printResultAndStatistics(result, outputDirectory, options, logManager);
@@ -179,6 +183,9 @@ public class CPAMain {
 
     @Option(name="statistics.print", description="print statistics to console")
     private boolean printStatistics = false;
+
+    @Option(name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
+    private boolean doPCC = false;
   }
 
   private static void dumpConfiguration(MainOptions options, Configuration config,

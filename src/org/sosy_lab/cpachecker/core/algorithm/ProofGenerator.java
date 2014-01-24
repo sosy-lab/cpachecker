@@ -42,8 +42,6 @@ import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
 @Options
 public class ProofGenerator {
 
-  @Option(name = "pcc.proofgen.doPCC", description = "")
-  private boolean doPCC = false;
   @Option(
       name = "pcc.strategy",
       description = "Qualified name for class which implements certification strategy, hence proof writing, to be used.")
@@ -62,7 +60,6 @@ public class ProofGenerator {
   }
 
   public void generateProof(CPAcheckerResult pResult) {
-    if (!doPCC) { return; }
     UnmodifiableReachedSet reached = pResult.getReached();
 
     // check result
