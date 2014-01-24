@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.simplification;
 
 import java.math.BigInteger;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
@@ -49,8 +50,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
 
 import com.google.common.collect.Sets;
 
@@ -66,6 +70,36 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   public ExpressionSimplificationVisitor(MachineModel mm, LogManager pLogger) {
     this.machineModel = mm;
     this.logger = pLogger;
+  }
+
+  /**
+   * Takes an explicit value as returned by various ExplicitCPA functions and
+   * converts it to a <code>Pair<CExpression, Number></code> as required by
+   * this class.
+   */
+  private Pair<CExpression, Number> convertExplicitValueToPair(final CExpression expr, ExplicitValueBase value) {
+    // TODO: handle cases other than numeric values
+    ExplicitNumericValue numericResult = value.asNumericValue();
+    if(numericResult != null) {
+      switch(numericResult.getType().getType()) {
+        case INT:
+        case CHAR: {
+          return Pair.<CExpression, Number> of(
+              new CIntegerLiteralExpression(expr.getFileLocation(),
+                  expr.getExpressionType(), BigInteger.valueOf(numericResult.asLong())),
+                  numericResult.asLong());
+        }
+        case FLOAT:
+        case DOUBLE: {
+          return Pair.<CExpression, Number> of(
+              new CFloatLiteralExpression(expr.getFileLocation(),
+                  expr.getExpressionType(), numericResult.bigDecimalValue()),
+                  numericResult.doubleValue());
+        }
+      }
+    }
+    logger.logf(Level.FINE, "Can not handle result of expression %s", numericResult.toString());
+    return null;
   }
 
   @Override
@@ -97,14 +131,18 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       return Pair.of((CExpression) newExpr, null);
     }
 
-    long result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
-        pair1.getSecond().longValue(), pair2.getSecond().longValue(),
+    // TODO: handle the case that it's not a CSimpleType or that it's not a number
+
+    CSimpleType type1 = (CSimpleType) pair1.getFirst().getExpressionType().getCanonicalType();
+    CSimpleType type2 = (CSimpleType) pair2.getFirst().getExpressionType().getCanonicalType();
+
+    ExplicitValueBase lVal = new ExplicitNumericValue(type1, pair1.getSecond());
+    ExplicitValueBase rVal = new ExplicitNumericValue(type2, pair2.getSecond());
+    ExplicitValueBase result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
+        lVal, rVal,
         expr, machineModel, logger, null);
 
-    return Pair.<CExpression, Number> of(
-        new CIntegerLiteralExpression(expr.getFileLocation(),
-            expr.getExpressionType(), BigInteger.valueOf(result)),
-        result);
+    return convertExplicitValueToPair(expr, result);
   }
 
   @Override
@@ -125,13 +163,13 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       return Pair.of((CExpression) newExpr, null);
     }
 
-    final long castedValue = ExplicitExpressionValueVisitor.castCValue(
-        pair.getSecond().longValue(), expr.getExpressionType(), machineModel, logger, null);
+    // TODO: handle the case that the result is not a numeric value
+    CSimpleType type = (CSimpleType) pair.getFirst().getExpressionType().getCanonicalType();
+    final ExplicitValueBase castedValue = ExplicitExpressionValueVisitor.castCValue(
+        new ExplicitNumericValue(type, pair.getSecond()), expr.getExpressionType(), machineModel, logger, null);
 
-    return Pair.<CExpression, Number> of(
-        new CIntegerLiteralExpression(expr.getFileLocation(),
-            expr.getExpressionType(), BigInteger.valueOf(castedValue)),
-        castedValue);
+
+    return convertExplicitValueToPair(expr, castedValue);
   }
 
   @Override
