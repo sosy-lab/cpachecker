@@ -32,7 +32,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 
 import com.googlecode.objectify.Key;
@@ -169,8 +168,6 @@ public class JobFile {
     public void close() throws IOException {
       super.close();
       JobFileDAO.save(file);
-      file.getJob().addFile(file);
-      JobDAO.save(file.getJob());
     }
   }
 }
