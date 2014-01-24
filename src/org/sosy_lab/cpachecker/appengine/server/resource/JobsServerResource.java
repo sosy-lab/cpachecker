@@ -110,6 +110,9 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
           case "machineModel":
             options.setOption("analysis.machineModel", value);
             break;
+          case "wallTime":
+            options.setOption("limits.time.wall", value);
+            break;
           case "programText":
             if (program == null || program.isEmpty()) {
               program = value;
@@ -149,6 +152,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
         .context(getContext())
         .addData("job", createdJob)
         .addData("errors", errors)
+        .addData("allowedOptions", DefaultOptions.getDefaultOptions())
         .addData("defaultOptions", DefaultOptions.getImmutableOptions())
         .addData("specifications", DefaultOptions.getSpecifications())
         .addData("configurations", DefaultOptions.getConfigurations())

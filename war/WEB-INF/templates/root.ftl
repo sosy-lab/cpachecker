@@ -111,6 +111,11 @@
               <option value="Linux64">Linux64</option>
             </select>
           </div>
+          <div class="form-group">
+            <label for="wallTime" class="control-label">${msg.wallTime}</label>
+            <span class="help-block">${msg.wallTimeInfo}</span>
+            <input type="text" name="wallTime" id="wallTime" class="form-control input-sm" value="${allowedOptions['limits.time.wall']}" />
+          </div>
         </div>
       </div>
 

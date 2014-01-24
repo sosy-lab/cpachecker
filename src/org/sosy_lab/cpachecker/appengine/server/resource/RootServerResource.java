@@ -38,6 +38,7 @@ public class RootServerResource extends WadlServerResource implements RootResour
   public Representation getRootHtml() throws IOException {
     return FreemarkerUtil.templateBuilder()
         .context(getContext())
+        .addData("allowedOptions", DefaultOptions.getDefaultOptions())
         .addData("defaultOptions", DefaultOptions.getImmutableOptions())
         .addData("specifications", DefaultOptions.getSpecifications())
         .addData("configurations", DefaultOptions.getConfigurations())

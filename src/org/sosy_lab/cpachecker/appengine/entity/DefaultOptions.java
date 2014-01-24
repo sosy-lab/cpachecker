@@ -88,6 +88,24 @@ public class DefaultOptions {
         value = value.toUpperCase();
       }
 
+      // walltime must not be negative or too large
+      if (key.equals("limits.time.wall")) {
+        int defaultValue;
+        int newValue;
+        try {
+          String cleanDefault = getDefault("limits.time.wall").replaceAll("[^0-9]*$", "");
+          String cleanValue = value.replaceAll("[^0-9]*$", "");
+          defaultValue = Integer.parseInt(cleanDefault);
+          newValue = Integer.parseInt(cleanValue);
+
+          if (newValue < 0 || newValue > defaultValue) {
+            value = getDefault("limits.time.wall");
+          }
+        } catch (NumberFormatException e) {
+          value = getDefault("limits.time.wall");
+        }
+      }
+
       usedOptions.put(key, value);
       return true;
     }
