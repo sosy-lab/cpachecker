@@ -328,6 +328,11 @@ cfa.transformIntoSingleLoop.initialSubgraphAsPrefix = true
 # decision tree.
 cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption = true
 
+# This option controls what program counter values are used. Possible values
+# are INCREMENTAL and NODE_NUMBER.
+cfa.transformIntoSingleLoop.programCounterValueProviderFactory = INCREMENTAL
+  enum:     [NODE_NUMBER, INCREMENTAL]
+
 # combine sequences of simple edges into a single edge
 cfa.useMultiEdges = false
 
