@@ -67,13 +67,13 @@ DEFAULT_CLOUD_MEMORY_REQUIREMENT = 15000 # MB
 DEFAULT_CLOUD_CPUCORE_REQUIREMENT = 1 # one core
 DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
 
-DEFAULT_APPENGINE_URI = 'http://dev.ba-cpa-lab.appspot.com'
-DEFAULT_APPENGINE_POLLINTERVAL = 30 # seconds
+DEFAULT_APPENGINE_URI = 'http://dev.ba-lab.appspot.com'
+DEFAULT_APPENGINE_POLLINTERVAL = 60 # seconds
 DEFAULT_APPENGINE_TIMELIMIT = 540 # seconds (== 9 minutes)
-APPENGINE_TIMEOUT_GRACE_PERIOD = 60 # seconds
+APPENGINE_TIMEOUT_GRACE_PERIOD = 120 # seconds (== 2 minutes)
 APPENGINE_SUBMITTER_THREAD = None
 APPENGINE_POLLER_THREAD = None
-APPENGINE_JOB_IDS = []
+APPENGINE_JOBS = []
 
 # next lines are needed for stopping the script
 WORKER_THREADS = []
@@ -167,6 +167,7 @@ class AppEngineSubmitter(threading.Thread):
         threading.Thread.__init__(self)
         self.runDefinitions = runDefinitions
         self.benchmark = benchmark
+        self.done = False
         self.submittedJobs = 0
         self.timelimitPerRun = timelimitPerRun
         # It might happen that a job never ends.
@@ -188,20 +189,28 @@ class AppEngineSubmitter(threading.Thread):
                 response = urllib2.urlopen(request)
                 jobID = response.info()['Location'][len(uri)+1:]
                 logging.debug('Submitted job: '+jobID)
-                APPENGINE_JOB_IDS.append(jobID)
-                self.submittedJobs += 1
+                APPENGINE_JOBS.append({'jobID':jobID, 'logFile':run['logFile'], 'status':''})
             except urllib2.HTTPError as e:
-                args['programText'] = run['sourcefile']
-                errorArgs = json.dumps(args)
-                logging.warn('Job could not be submitted. HTTP Error: {0}: {1}, Reason: {2}, Args: {3}'.format(e.code, e.reason, json.loads(e.read()), errorArgs))
+                msg = e.read()
+                try:
+                    with open(run['logFile']+'.stdErr', 'w') as logFile:
+                        logFile.write('NOT SUBMITTED\n{0}\n{1}\n{2}'.format(e.code, e.reason, msg))
+                except:
+                    pass
+                logging.warn('Job could not be submitted. HTTP Error: {0}: {1}, Message: {2}, Sourcefile: {3}'.format(e.code, e.reason, msg, run['sourcefile']))
             except:
                 sys.exit('Error while submitting jobs. {0}'.format(sys.exc_info()[0]))
+            
+            self.submittedJobs += 1
+
 #             if self.submittedJobs == 10:
 #                 logging.debug('SUBMITTED %s JOBS'%self.submittedJobs)
 #                 break
-            
-        self.timeout = datetime.now() + timedelta(seconds=APPENGINE_TIMEOUT_GRACE_PERIOD) + timedelta(seconds=self.submittedJobs * self.timelimitPerRun)
-        logging.debug('Timeout will be enforced at '+self.timeout.isoformat())
+         
+        # disabled for now
+#         self.timeout = datetime.now() + timedelta(seconds=APPENGINE_TIMEOUT_GRACE_PERIOD) + timedelta(seconds=self.submittedJobs * self.timelimitPerRun)
+#         logging.debug('Timeout will be enforced at '+self.timeout.isoformat())
+        self.done = True
                 
 class AppEnginePoller(threading.Thread):
     def __init__(self, benchmark):
@@ -213,16 +222,18 @@ class AppEnginePoller(threading.Thread):
         finishedJobs = 0
         nextJobIndex = 0
         while not self.done and not STOPPED_BY_INTERRUPT:
-            self.done = (not APPENGINE_SUBMITTER_THREAD.is_alive() and finishedJobs == len(APPENGINE_JOB_IDS))
+            self.done = (APPENGINE_SUBMITTER_THREAD.done and finishedJobs == len(APPENGINE_JOBS))
             
             # enforce time limit
-            if not APPENGINE_SUBMITTER_THREAD.is_alive() and datetime.now() >= APPENGINE_SUBMITTER_THREAD.timeout:
-                logging.warn('TIMEOUT! Jobs should be finished by now but it seems they are not.')
-                break
+            # Disabled for now since App Engine randomly pauses execution
+#             if APPENGINE_SUBMITTER_THREAD.done and datetime.now() >= APPENGINE_SUBMITTER_THREAD.timeout:
+#                 logging.warn('TIMEOUT! Jobs should be finished by now but it seems they are not.')
+#                 break
 
-            if len(APPENGINE_JOB_IDS) > nextJobIndex:
-                jobID = APPENGINE_JOB_IDS[nextJobIndex]
-                if jobID == 'FINISHED':
+            if len(APPENGINE_JOBS) > nextJobIndex:
+                job = APPENGINE_JOBS[nextJobIndex]
+                jobID = job['jobID']
+                if job['status'] in ['DONE', 'TIMEOUT', 'ERROR']:
                     nextJobIndex += 1
                 else:
                     try:
@@ -233,18 +244,21 @@ class AppEnginePoller(threading.Thread):
                         response = json.loads(urllib2.urlopen(request).read())
                         status = response['status']
                         if status in ['DONE', 'TIMEOUT', 'ERROR']:
-                            # TODO save result (stats)
                             logging.debug('Job %s has finished.'%jobID)
-                            APPENGINE_JOB_IDS[nextJobIndex] = 'FINISHED'
+                            job['status'] = status
+                            self.saveResult(job, response)
                             nextJobIndex += 1
                             finishedJobs += 1
                         else:
                             if status == 'PENDING':
+                                # TODO Detect stalled jobs.
+                                # Sometimes jobs will never be started because of
+                                # problems on GAE itself. 
                                 logging.debug('Job %s is still pending.'%jobID)
                                 nextJobIndex += 1
                             elif status == 'RUNNING':
                                 logging.debug('Job %s is still running.'%jobID)
-                                time.sleep(config.appenginePollInterval)
+                            time.sleep(config.appenginePollInterval)
                             
                     except urllib2.HTTPError as e:
                         sys.exit('Server error while polling job results. {0}'.format(e.reason))
@@ -252,9 +266,51 @@ class AppEnginePoller(threading.Thread):
                         sys.exit('Error while polling jobs. {0}'.format(sys.exc_info()[0]))
                 
                 # never go out of bounds    
-                nextJobIndex = nextJobIndex % len(APPENGINE_JOB_IDS)    
+                nextJobIndex = nextJobIndex % len(APPENGINE_JOBS)    
             else:
                 time.sleep(config.appenginePollInterval)
+    
+    def saveResult(self, job, jsonObj):
+        jobID = job['jobID']
+        logFile = job['logFile']
+        headers = {'Accept':'text/plain'}
+
+        try:
+            uri = config.appengineURI+'/jobs/'+jobID+'/files/Statistics.txt'
+            request = urllib2.Request(uri, headers=headers)
+            response = urllib2.urlopen(request).read()
+            filewriter.writeFile(response, logFile)
+        except:
+            pass # no stats
+        
+        try:
+            with open(logFile+'.stdOut', 'w') as stdOut:
+                json.dump(jsonObj, stdOut)
+        except:
+            pass # no result
+
+        # save errors
+        status = job['status']
+        if status in ['ERROR','TIMEOUT']:
+            try:
+                uri = config.appengineURI+'/jobs/'+jobID+'/files/ERROR.txt'
+                request = urllib2.Request(uri, headers=headers)
+                response = urllib2.urlopen(request).read()
+                filewriter.writeFile(response, logFile+'.stdErr')
+            except:
+                pass # no error file
+
+        if config.appengineDeleteWhenDone:
+            try:
+                headers = {'Accept':'application/json'}
+                uri = config.appengineURI+'/jobs/'+jobID
+                request = urllib2.Request(uri, headers=headers)
+                request.get_method = lambda: 'DELETE'
+                urllib2.urlopen(request).read()
+                logging.debug('Deleted job {0} from App Engine.'.format(jobID))
+            except:
+                logging.warn('The job {0} could not be deleted from App Engine.'
+                             .format(jobID))
 
 def executeBenchmarkLocaly(benchmark, outputHandler):
     
@@ -390,7 +446,6 @@ def parseArgsForAppEngine(args, absWorkingDir):
     
     appengineArgs = {}
     options = {}
-    # TODO log.level
     for arg in args:
         if STOPPED_BY_INTERRUPT: break
         if '-noout' == arg:
@@ -424,6 +479,12 @@ def parseArgsForAppEngine(args, absWorkingDir):
                 argName = arg[1:]
                 if os.path.isfile(os.path.join(absWorkingDir, 'config', argName + '.properties')):
                     appengineArgs['configuration'] = argName+'.properties'
+    
+    if config.debug:
+        logLevel = 'FINER'
+    else:
+        logLevel = 'INFO'
+    options['log.level'] = logLevel
     
     appengineArgs['options'] = options
     return appengineArgs
@@ -608,7 +669,114 @@ def handleCloudResults(benchmark, outputHandler):
     if runsProducedErrorOutput:
         logging.warning("Some runs produced unexpected warnings on stderr, please check the {0} files!"
                         .format(os.path.join(outputDir, '*.stdError')))
+        
+def parseAppEngineResult(run):
+    withError = []
+    withTimeout = []
+    notSubmitted = []
+    output = ''
+    returnValue = 0
+    hasTimedOut = False
+    
+    hasLogFile = (os.path.exists(run.logFile) and os.path.isfile(run.logFile))
+    hasStdOutFile = (os.path.exists(run.logFile+'.stdOut') and os.path.isfile(run.logFile+'.stdOut'))
+    hasErrOutFile = (os.path.exists(run.logFile+'.stdErr') and os.path.isfile(run.logFile+'.stdErr'))
+    
+    if hasLogFile:
+        try:
+            with open(run.logFile, 'rt') as outputFile:
+                # first 6 lines are for logging, rest is output of subprocess, see RunExecutor.py for details
+                output = '\n'.join(map(Util.decodeToString, outputFile.readlines()[6:]))
 
+            os.remove(run.logFile)
+        except IOError as e:
+            logging.warning("Cannot read log file: " + e.strerror)
+            
+    if hasStdOutFile:
+        try:
+            with open(run.logFile+'.stdOut', 'rt') as file:
+                result = json.loads(file.read())
+                if result['status'] == 'ERROR':
+                    returnValue = 18 # error
+                    withError.append({'run':run, 'message':result['statusMessage']})
+                if result['status'] == 'TIMEOUT':
+                    returnValue = 9 # timeout
+                    hasTimedOut = True
+                    withTimeout.append(run)
+                    
+                # set walltime
+                formatUTC= '%Y-%m-%dT%H:%M:%S.%f'
+                executionDate =  datetime.strptime(result['executionDate'], formatUTC)
+                terminationDate = datetime.strptime(result['terminationDate'], formatUTC)
+                delta = terminationDate - executionDate
+                run.wallTime = delta.total_seconds()
+
+            os.remove(run.logFile+'.stdOut') 
+        except:
+            pass # can't read std out file
+            
+    if hasErrOutFile:
+        try:
+            with open(run.logFile+'.stdErr', 'rt') as errFile:
+                lines = errFile.readlines()
+                if lines[0].strip() == 'NOT SUBMITTED':
+                    # TODO really aborted? semantic!
+                    returnValue = 6 # aborted
+                    notSubmitted.append({'run':run, 'messages':lines[-1]})
+                else:
+                    result = json.loads(''.join(lines))
+                    if result['status'] == 'ERROR':
+                        returnValue = 18 # error
+                        withError.append({'run':run, 'message':result['statusMessage']})
+                    elif result['status'] == 'TIMEOUT':
+                        returnValue = 9 # timeout
+                        hasTimedOut = True
+                        withTimeout.append(run)
+        except:
+            pass # can't read err file
+    
+    return (returnValue, output, hasTimedOut, withError, withTimeout, notSubmitted)
+        
+def handleAppEngineResults(benchmark, outputHandler):
+    withError = []
+    withTimeout = []
+    notSubmitted = []
+    
+    for runSet in benchmark.runSets:
+        if not runSet.shouldBeExecuted():
+            outputHandler.outputForSkippingRunSet(runSet)
+            continue
+
+        outputHandler.outputBeforeRunSet(runSet)
+        
+        totalWallTime = 0
+        for run in runSet.runs:
+            outputHandler.outputBeforeRun(run)
+            
+            (returnValue, output, hasTimedOut, withErr, withTO, notSubmt) = \
+                parseAppEngineResult(run)
+                
+            totalWallTime += run.wallTime
+
+            withError = withError + withErr
+            withTimeout = withTimeout + withTO
+            notSubmitted = notSubmitted + notSubmt
+            
+            run.afterExecution(returnValue, output, hasTimedOut)
+            outputHandler.outputAfterRun(run)
+
+        outputHandler.outputAfterRunSet(runSet, None, totalWallTime)
+
+    outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
+    
+    if len(notSubmitted) > 0:
+        logging.warning("{0} runs were not submitted to App Engine!".format(len(notSubmitted)))
+    if len(withError) > 0:
+        logging.warning("{0} runs produced unexpected errors, please check the {1} files!"
+                        .format(len(withError), os.path.join(outputDir, '*.stdErr')))
+    if len(withTimeout) > 0:
+        logging.warning("{0} runs timed out!".format(len(withTimeout)))
+    
 def getBenchmarkDataForAppEngine(benchmark):
     # TODO default CPU model??
     cpuModel = benchmark.requirements.cpuModel
@@ -640,7 +808,7 @@ def getBenchmarkDataForAppEngine(benchmark):
                                    'debug':config.debug,
                                    'maxLogfileSize':config.maxLogfileSize,
                                    'sourcefile':os.path.join(absWorkingDir, run.sourcefile),
-                                   'logFile':logFile})
+                                   'logFile':os.path.join(benchmark.logFolder, logFile)})
             sourceFiles.append(run.sourcefile)
 
     if not sourceFiles: sys.exit("Benchmark has nothing to run.")
@@ -710,7 +878,6 @@ def executeBenchmarkInAppengine(benchmark, outputHandler):
     global APPENGINE_POLLER_THREAD
     APPENGINE_POLLER_THREAD = AppEnginePoller(benchmark)
     APPENGINE_POLLER_THREAD.start()
-    
     try:
         while not APPENGINE_POLLER_THREAD.done:
             time.sleep(0.1)
@@ -718,7 +885,7 @@ def executeBenchmarkInAppengine(benchmark, outputHandler):
         killScriptAppEngine()
     APPENGINE_POLLER_THREAD.join()
     
-    # TODO handle result
+    handleAppEngineResults(benchmark, outputHandler)
 
 
 def executeBenchmark(benchmarkFile):
@@ -861,6 +1028,11 @@ def main(argv=None):
                       default=DEFAULT_APPENGINE_POLLINTERVAL,
                       type=int,
                       help="Sets the interval in seconds after which App Engine is polled for results.")
+    
+    parser.add_argument("--appengineKeep",
+                        dest="appengineDeleteWhenDone",
+                        action="store_false",
+                        help="If set a job will NOT be deleted from App Engine after it has successfully been executed.")
 
     global config, OUTPUT_PATH
     config = parser.parse_args(argv[1:])
@@ -927,7 +1099,7 @@ def killScriptAppEngine():
     global STOPPED_BY_INTERRUPT
     STOPPED_BY_INTERRUPT = True
     
-    Util.printOut("Killing subprocesses...")
+    Util.printOut("Killing subprocesses. May take up to %s seconds..."%config.appenginePollInterval)
     if not APPENGINE_POLLER_THREAD == None:
         APPENGINE_POLLER_THREAD.join()
     if not APPENGINE_SUBMITTER_THREAD == None:
