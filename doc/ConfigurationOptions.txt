@@ -144,6 +144,10 @@ analysis.summaryEdges = false
 analysis.traversal.order = DFS
   enum:     [DFS, BFS, RAND]
 
+# handle abstract states with more automaton matches first? (only if
+# AutomatonCPA enabled)
+analysis.traversal.useAutomatonInformation = false
+
 # handle states with a deeper callstack first?
 # This needs the CallstackCPA to have any effect.
 analysis.traversal.useCallstack = false

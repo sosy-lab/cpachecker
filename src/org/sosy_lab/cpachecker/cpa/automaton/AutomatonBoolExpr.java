@@ -234,10 +234,19 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       if (handleAsEpsilonEdge(pArgs.getCfaEdge())) {
         edgeTokens = Collections.emptySet();
       } else {
-        edgeTokens = CFAUtils.getTokensFromCFAEdge(pArgs.getCfaEdge());
+        edgeTokens = CFAUtils.getTokensFromCFAEdge(pArgs.getCfaEdge(), true);
       }
 
-      match = edgeTokens.equals(matchTokens);
+      if (matchTokens.isEmpty()) {
+        match = edgeTokens.isEmpty();
+      } else {
+        match = edgeTokens.containsAll(matchTokens);
+      }
+
+      System.out.println(edgeTokens);
+      System.out.println(matchTokens);
+      System.out.println(match);
+
       if (match && matchNegatedSemantics.isPresent()) {
         if (pArgs.getCfaEdge() instanceof AssumeEdge) {
           AssumeEdge a = (AssumeEdge) pArgs.getCfaEdge();

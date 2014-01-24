@@ -90,6 +90,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private transient final ControlAutomatonCPA automatonCPA;
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
+  private int matches = 0;
 
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
@@ -278,5 +279,13 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     in.defaultReadObject();
     int stateId = in.readInt();
     internalState = GlobalInfo.getInstance().getAutomatonInfo().getStateById(stateId);
+  }
+
+  public int getMatches() {
+    return matches;
+  }
+
+  public void setMatches(int pMatches) {
+    matches = pMatches;
   }
 }

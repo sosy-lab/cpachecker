@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.waitlist.AutomatonWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
@@ -65,6 +66,10 @@ public class ReachedSetFactory {
       description = "handle more abstract states (with less information) first? (only for ExplicitCPA)")
   boolean useExplicitInformation = false;
 
+  @Option(name = "traversal.useAutomatonInformation",
+      description = "handle abstract states with more automaton matches first? (only if AutomatonCPA enabled)")
+  boolean useAutomatonInformation = false;
+
   @Option(name = "reachedSet",
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
@@ -80,6 +85,10 @@ public class ReachedSetFactory {
 
   public ReachedSet create() {
     WaitlistFactory waitlistFactory = traversalMethod;
+
+    if (useAutomatonInformation) {
+      waitlistFactory = AutomatonWaitlist.factory(waitlistFactory);
+    }
     if (useReversePostorder || useTopsort) {
       waitlistFactory = ReversePostorderSortedWaitlist.factory(waitlistFactory);
     }

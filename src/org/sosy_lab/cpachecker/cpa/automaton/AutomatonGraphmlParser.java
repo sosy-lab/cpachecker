@@ -75,14 +75,16 @@ public class AutomatonGraphmlParser {
     pConfig.inject(this);
   }
 
-  private void removeTransitions(List<AutomatonTransition> from, Set<Integer> tokens) {
+  private void removeTransitions(Set<AutomatonTransition> whitelist, List<AutomatonTransition> from, Set<Integer> tokens) {
     Iterator<AutomatonTransition> it = from.iterator();
     while (it.hasNext()) {
       AutomatonTransition t = it.next();
-      if (t.getTrigger() instanceof AutomatonBoolExpr.MatchEdgeTokens) {
-        AutomatonBoolExpr.MatchEdgeTokens matcher = (AutomatonBoolExpr.MatchEdgeTokens) t.getTrigger();
-        if (matcher.getMatchTokens().equals(tokens)) {
-          it.remove();
+      if (whitelist.contains(t)) {
+        if (t.getTrigger() instanceof AutomatonBoolExpr.MatchEdgeTokens) {
+          AutomatonBoolExpr.MatchEdgeTokens matcher = (AutomatonBoolExpr.MatchEdgeTokens) t.getTrigger();
+          if (matcher.getMatchTokens().equals(tokens)) {
+            it.remove();
+          }
         }
       }
     }
@@ -108,7 +110,7 @@ public class AutomatonGraphmlParser {
   * Parses a Specification File and returns the Automata found in the file.
   */
   public List<Automaton> parseAutomatonFile(Path pInputFile) throws InvalidConfigurationException {
-
+    Set<AutomatonTransition> auxilaryTransitions = Sets.newHashSet();
     try (InputStream input = pInputFile.asByteSource().openStream()) {
       // Parse the XML document ----
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -163,25 +165,37 @@ public class AutomatonGraphmlParser {
           stateTransitions.put(targetStateId, targetStateTransitions);
         }
 
-        removeTransitions(transitions, matchTokens);
+        removeTransitions(auxilaryTransitions, transitions, matchTokens);
         if (targetStateId.equalsIgnoreCase(SINK_NODE_ID)) {
           transitions.add(new AutomatonTransition(trigger, assertions, actions, AutomatonInternalState.BOTTOM));
           if (!matchTokens.isEmpty()) {
-            transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM));
+            AutomatonTransition tr = new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM);
+            auxilaryTransitions.add(tr);
+            transitions.add(tr);
           }
         } else {
           // Set of tokens
           transitions.add(new AutomatonTransition(trigger, assertions, actions, targetStateId));
+
           // Repeated set of tokens
-          targetStateTransitions.add(new AutomatonTransition(trigger, assertions, actions, targetStateId));
+          if (!matchTokens.isEmpty()) {
+            AutomatonTransition tr = new AutomatonTransition(trigger, assertions, actions, targetStateId);
+            auxilaryTransitions.add(tr);
+            targetStateTransitions.add(tr);
+          }
+
           // Empty set of tokens
           if (!matchTokens.isEmpty()) {
-            targetStateTransitions.add(new AutomatonTransition(epsilonTrigger, assertions, actions, targetStateId));
+            AutomatonTransition tr = new AutomatonTransition(epsilonTrigger, assertions, actions, targetStateId);
+            auxilaryTransitions.add(tr);
+            targetStateTransitions.add(tr);
           }
           // Negated sets of tokens
-          if (!matchTokens.isEmpty()) {
-            transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM));
-          }
+//          if (!matchTokens.isEmpty()) {
+//            AutomatonTransition tr = new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM);
+//            auxilaryTransitions.add(tr);
+//            transitions.add(tr);
+//          }
         }
 
       }
