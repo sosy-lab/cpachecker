@@ -31,14 +31,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
@@ -413,7 +414,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     out.println("  number of explicit interpolations:                   " + numberOfInterpolations);
-    out.println("  max. time for singe interpolation:                   " + timerInterpolation.printMaxTime());
+    out.println("  max. time for singe interpolation:                   " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
     out.println("  total time for interpolation:                        " + timerInterpolation);
   }
 }

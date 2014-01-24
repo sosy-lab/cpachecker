@@ -31,14 +31,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -168,7 +169,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
       balancing.start();
       boolean balanced = balancer.balance(tnet);
       balancing.stop();
-      logger.log(Level.FINEST, "Balancer took",balancing.getSumTime(),"miliseconds.");
+      logger.log(Level.FINEST, "Balancer took",balancing.getSumTime().formatAs(TimeUnit.SECONDS));
 
       if (balanced) {
         // If the network balanced, then, since all NetworkBuilders put 'false' at the error

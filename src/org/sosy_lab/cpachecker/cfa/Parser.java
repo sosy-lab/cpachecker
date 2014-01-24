@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
 
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 

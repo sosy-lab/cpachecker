@@ -23,14 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -77,7 +78,7 @@ public class ProofGenerator {
     checkingStrategy.writeProof(reached);
 
     writingTimer.stop();
-    logger.log(Level.INFO, "Writing proof took " + writingTimer.printMaxTime());
+    logger.log(Level.INFO, "Writing proof took " + writingTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
   }
 
 }

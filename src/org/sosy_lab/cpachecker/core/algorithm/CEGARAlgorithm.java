@@ -32,18 +32,19 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -95,8 +96,8 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         out.println("");
         out.println("Total time for CEGAR algorithm:   " + totalTimer);
         out.println("Time for refinements:             " + refinementTimer);
-        out.println("Average time for refinement:      " + refinementTimer.printAvgTime());
-        out.println("Max time for refinement:          " + refinementTimer.printMaxTime());
+        out.println("Average time for refinement:      " + refinementTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
+        out.println("Max time for refinement:          " + refinementTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
       }
     }
   }
@@ -221,13 +222,13 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean isComplete        = true;
     int initialReachedSetSize = reached.size();
-    
+
     stats.totalTimer.start();
     try {
       boolean refinementSuccessful;
       do {
         refinementSuccessful = false;
-        
+
         // run algorithm
         isComplete &= algorithm.run(reached);
 
@@ -237,7 +238,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
           refinementSuccessful = refine(reached);
 
           // assert that reached set is free of target states,
-          // if refinement was successful and initial reached set was empty (i.e. stopAfterError=true) 
+          // if refinement was successful and initial reached set was empty (i.e. stopAfterError=true)
           if (refinementSuccessful && initialReachedSetSize == 1) {
             assert !from(reached).anyMatch(IS_TARGET_STATE);
           }

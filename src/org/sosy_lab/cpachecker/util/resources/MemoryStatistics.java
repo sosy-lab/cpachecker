@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import javax.management.JMException;
 import javax.management.MBeanServer;
@@ -41,7 +42,7 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.time.TimeSpan;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -265,7 +266,7 @@ public class MemoryStatistics implements Runnable {
       gcCount += gcBean.getCollectionCount();
       gcNames.add(gcBean.getName());
     }
-    out.println("Time for Garbage Collector:   " + Timer.formatTime(gcTime) + " (in " + gcCount + " runs)");
+    out.println("Time for Garbage Collector:   " + TimeSpan.ofMillis(gcTime).formatAs(TimeUnit.SECONDS) + " (in " + gcCount + " runs)");
     out.println("Garbage Collector(s) used:    " + Joiner.on(", ").join(gcNames));
   }
 

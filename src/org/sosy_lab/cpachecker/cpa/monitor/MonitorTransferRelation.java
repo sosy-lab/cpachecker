@@ -37,13 +37,13 @@ import java.util.concurrent.TimeoutException;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -147,7 +147,8 @@ public class MonitorTransferRelation implements TransferRelation {
     }
 
     // update time information
-    long timeOfExecution = totalTimeOfTransfer.stop();
+    totalTimeOfTransfer.stop();
+    long timeOfExecution = totalTimeOfTransfer.getLengthOfLastInterval().asMillis();
     long totalTimeOnPath = element.getTotalTimeOnPath() + timeOfExecution;
 
     if (totalTimeOnPath > maxTotalTimeForPath) {
@@ -227,7 +228,8 @@ public class MonitorTransferRelation implements TransferRelation {
     }
 
     // update time information
-    long timeOfExecution = totalTimeOfTransfer.stop();
+    totalTimeOfTransfer.stop();
+    long timeOfExecution = totalTimeOfTransfer.getLengthOfLastInterval().asMillis();
     long totalTimeOnPath = element.getTotalTimeOnPath() + timeOfExecution;
 
     if (totalTimeOnPath > maxTotalTimeForPath) {

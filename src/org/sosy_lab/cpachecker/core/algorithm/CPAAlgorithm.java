@@ -27,18 +27,19 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -100,7 +101,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Number of times stopped:         " + countStop);
       out.println("Number of times breaked:         " + countBreak);
       out.println();
-      out.println("Total time for CPA algorithm:     " + totalTimer + " (Max: " + totalTimer.printMaxTime() + ")");
+      out.println("Total time for CPA algorithm:     " + totalTimer + " (Max: " + totalTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
       out.println("  Time for choose from waitlist:  " + chooseTimer);
       if (forcedCoveringTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for forced covering:       " + forcedCoveringTimer);
@@ -151,14 +152,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     try {
       return run0(reachedSet);
     } finally {
-      stats.totalTimer.stop();
-      stats.chooseTimer.stop();
-      stats.precisionTimer.stop();
-      stats.transferTimer.stop();
-      stats.mergeTimer.stop();
-      stats.stopTimer.stop();
-      stats.addTimer.stop();
-      stats.forcedCoveringTimer.stop();
+      stats.totalTimer.stopIfRunning();
+      stats.chooseTimer.stopIfRunning();
+      stats.precisionTimer.stopIfRunning();
+      stats.transferTimer.stopIfRunning();
+      stats.mergeTimer.stopIfRunning();
+      stats.stopTimer.stopIfRunning();
+      stats.addTimer.stopIfRunning();
+      stats.forcedCoveringTimer.stopIfRunning();
     }
   }
 

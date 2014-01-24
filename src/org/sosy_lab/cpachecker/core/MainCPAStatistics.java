@@ -35,12 +35,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.management.JMException;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -50,6 +50,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -506,9 +508,9 @@ class MainCPAStatistics implements Statistics {
       cfaCreatorStatistics.printStatistics(out, result, reached);
     }
     out.println("Time for Analysis:            " + analysisTime);
-    out.println("CPU time for analysis:        " + Timer.formatTime(analysisCpuTime/1000/1000));
+    out.println("CPU time for analysis:        " + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
     out.println("Total time for CPAchecker:    " + programTime);
-    out.println("Total CPU time for CPAchecker:" + Timer.formatTime(programCpuTime/1000/1000));
+    out.println("Total CPU time for CPAchecker:" + TimeSpan.ofNanos(programCpuTime).formatAs(TimeUnit.SECONDS));
   }
 
   private void printMemoryStatistics(PrintStream out) {
