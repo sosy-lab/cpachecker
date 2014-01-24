@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
-import com.google.common.io.Closeables;
+import com.google.common.io.Closer;
 
 public class CPAMain {
 
@@ -132,7 +132,11 @@ public class CPAMain {
     // generated proof (if enabled)
     proofGenerator.generateProof(result);
 
-    printResultAndStatistics(result, outputDirectory, options, logManager);
+    try {
+      printResultAndStatistics(result, outputDirectory, options, logManager);
+    } catch (IOException e) {
+      logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
+    }
 
     System.out.flush();
     System.err.flush();
@@ -257,16 +261,17 @@ public class CPAMain {
 
   @SuppressWarnings("deprecation")
   private static void printResultAndStatistics(CPAcheckerResult mResult,
-      String outputDirectory, MainOptions options, LogManager logManager) {
+      String outputDirectory, MainOptions options, LogManager logManager) throws IOException {
 
     // setup output streams
     PrintStream console = options.printStatistics ? System.out : null;
     OutputStream file = null;
+    Closer closer = Closer.create();
 
     if (options.exportStatistics && options.exportStatisticsFile != null) {
       try {
         Files.createParentDirs(options.exportStatisticsFile);
-        file = options.exportStatisticsFile.asByteSink().openStream();
+        file = closer.register(options.exportStatisticsFile.asByteSink().openStream());
       } catch (IOException e) {
         logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
       }
@@ -290,12 +295,11 @@ public class CPAMain {
       }
 
       stream.flush();
+    } catch (Throwable t) {
+      closer.rethrow(t);
 
     } finally {
-      // close only file, not System.out
-      if (file != null) {
-        Closeables.closeQuietly(file);
-      }
+      closer.close();
     }
   }
 
