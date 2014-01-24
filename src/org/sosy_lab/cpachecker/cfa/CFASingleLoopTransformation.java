@@ -27,6 +27,7 @@ import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -103,6 +104,8 @@ import com.google.common.collect.TreeMultimap;
  */
 @Options
 public class CFASingleLoopTransformation {
+
+  public static final String ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME = " ";
 
   /**
    * The name of the program counter variable introduced by the transformation.
@@ -206,11 +209,10 @@ public class CFASingleLoopTransformation {
     FunctionEntryNode oldMainFunctionEntryNode = pInputCFA.getMainFunction();
     AFunctionDeclaration mainFunctionDeclaration = oldMainFunctionEntryNode.getFunctionDefinition();
     FileLocation mainLocation = mainFunctionDeclaration.getFileLocation();
-    String mainFunctionName = oldMainFunctionEntryNode.getFunctionName();
     FunctionEntryNode start = oldMainFunctionEntryNode instanceof CFunctionEntryNode ?
         new CFunctionEntryNode(0, (CFunctionDeclaration) mainFunctionDeclaration, oldMainFunctionEntryNode.getExitNode(), oldMainFunctionEntryNode.getFunctionParameterNames()) :
         new JMethodEntryNode(0, (JMethodDeclaration) mainFunctionDeclaration, oldMainFunctionEntryNode.getExitNode(), oldMainFunctionEntryNode.getFunctionParameterNames());
-    CFANode loopHead = new CFANode(0, mainFunctionName);
+    CFANode loopHead = new CFANode(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
 
     Queue<CFANode> nodes = new ArrayDeque<>(getAllNodes(pInputCFA));
     Set<CFAEdge> dummyEdges = new HashSet<>();
@@ -530,6 +532,9 @@ public class CFASingleLoopTransformation {
   private ImmutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException, InterruptedException {
     Map<String, FunctionEntryNode> functions = null;
     SortedSetMultimap<String, CFANode> allNodes = null;
+    FunctionExitNode artificialFunctionExitNode = new FunctionExitNode(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+    FunctionEntryNode artificialFunctionEntryNode =
+        new FunctionEntryNode(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, artificialFunctionExitNode, null, Collections.<String>emptyList());
     boolean changed = true;
     while (changed) {
       this.shutdownNotifier.shutdownIfNecessary();
@@ -545,6 +550,8 @@ public class CFASingleLoopTransformation {
           waitlist.addAll(CFAUtils.successorsOf(current).toList());
           if (current instanceof FunctionEntryNode) {
             functions.put(functionName, (FunctionEntryNode) current);
+          } else if (current == pLoopHead && functionName.equals(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)) {
+            functions.put(functionName, artificialFunctionEntryNode);
           }
         }
       }
@@ -695,7 +702,7 @@ public class CFASingleLoopTransformation {
     for (Entry<Integer, CFANode> pcToNewSuccessorMapping : newSuccessorToPCMapping.entrySet()) {
       CFANode newSuccessor = pcToNewSuccessorMapping.getValue();
       int pcToSet = pcToNewSuccessorMapping.getKey();
-      // Connect thKeyequence to the loop header assuming the program counter value
+      // Connect the subgraph entry nodes to the loop header by assuming the program counter value
       CFANode newDecisionTreeNode = new CFANode(0, decisionTreeNode.getFunctionName());
       CExpression assumePCExpression = pExpressionBuilder.buildBinaryExpression(
           pPCIdExpression,
