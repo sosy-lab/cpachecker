@@ -306,9 +306,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   boolean isRelevantVariable(final String function, final String name) {
-    return !variableClassification.isPresent() ||
-           !options.ignoreIrrelevantVariables() ||
+    if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
+      return name.equals(RETURN_VARIABLE_NAME) ||
            variableClassification.get().getRelevantVariables().containsEntry(function, name);
+    }
+    return true;
   }
 
   boolean isAddressedVariable(final String function, final String name) {
