@@ -704,15 +704,8 @@ public class CFASingleLoopTransformation {
       int pcToSet = pcToNewSuccessorMapping.getKey();
       // Connect the subgraph entry nodes to the loop header by assuming the program counter value
       CFANode newDecisionTreeNode = new CFANode(0, decisionTreeNode.getFunctionName());
-      CExpression assumePCExpression = pExpressionBuilder.buildBinaryExpression(
-          pPCIdExpression,
-          new CIntegerLiteralExpression(pMainLocation, CNumericTypes.INT, BigInteger.valueOf(pcToSet)),
-          BinaryOperator.EQUALS);
-      CAssumeEdge toSequence = new CAssumeEdge(String.format("%s == %d",  pPCIdExpression.getName(), pcToSet), 0, decisionTreeNode,
-          newSuccessor, assumePCExpression, true);
-      CAssumeEdge toNewDecisionTreeNode = new CAssumeEdge(String.format("!(%s == %d)",  pPCIdExpression.getName(), pcToSet),
-          0, decisionTreeNode, newDecisionTreeNode,
-          assumePCExpression, false);
+      CAssumeEdge toSequence = createProgramCounterAssumeEdge(pMainLocation, pExpressionBuilder, decisionTreeNode, newSuccessor, pPCIdExpression, pcToSet, true);
+      CAssumeEdge toNewDecisionTreeNode = createProgramCounterAssumeEdge(pMainLocation, pExpressionBuilder, decisionTreeNode, newDecisionTreeNode, pPCIdExpression, pcToSet, false);
       toAdd.add(toSequence);
       toAdd.add(toNewDecisionTreeNode);
       decisionTreeNode = newDecisionTreeNode;
@@ -1180,6 +1173,47 @@ public class CFASingleLoopTransformation {
       return pCFANode.getNodeNumber();
     }
 
+  }
+
+  public static interface ProgramCounterValueAssumeEdge {
+
+    public int getProgramCounterValue();
+
+  }
+
+  private static class CProgramCounterValueAssumeEdge extends CAssumeEdge implements ProgramCounterValueAssumeEdge {
+
+    private final int pcValue;
+
+    public CProgramCounterValueAssumeEdge(String pRawStatement, CFANode pPredecessor, CFANode pSuccessor,
+        CExpression pExpression, boolean pTruthAssumption, int pPCValue) {
+      super(pRawStatement, 0, pPredecessor, pSuccessor, pExpression, pTruthAssumption);
+      this.pcValue = pPCValue;
+    }
+
+    @Override
+    public int getProgramCounterValue() {
+      return pcValue;
+    }
+
+  }
+
+  private static CProgramCounterValueAssumeEdge createProgramCounterAssumeEdge(FileLocation pLocation,
+      CBinaryExpressionBuilder pExpressionBuilder,
+      CFANode pPredecessor,
+      CFANode pSuccessor,
+      CIdExpression pPCIdExpression,
+      int pPCValue,
+      boolean pTruthAssumption) {
+    CExpression assumePCExpression = pExpressionBuilder.buildBinaryExpression(
+        pPCIdExpression,
+        new CIntegerLiteralExpression(pLocation, CNumericTypes.INT, BigInteger.valueOf(pPCValue)),
+        BinaryOperator.EQUALS);
+    String rawStatement = String.format("%s == %d",  pPCIdExpression.getName(), pPCValue);
+    if (!pTruthAssumption) {
+      rawStatement = String.format("!(%s)", rawStatement);
+    }
+    return new CProgramCounterValueAssumeEdge(rawStatement, pPredecessor, pSuccessor, assumePCExpression, pTruthAssumption, pPCValue);
   }
 
 }
