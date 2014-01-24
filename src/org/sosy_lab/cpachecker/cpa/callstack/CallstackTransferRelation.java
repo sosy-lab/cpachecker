@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -89,6 +90,22 @@ public class CallstackTransferRelation implements TransferRelation {
           return Collections.emptySet();
         }
         // otherwise use this edge just like a normal edge
+      }
+      break;
+    }
+    case AssumeEdge: {
+      CallstackState element = (CallstackState) pElement;
+      String successorFunctionName = pCfaEdge.getSuccessor().getFunctionName();
+      if (!successorFunctionName.equals(element.getCurrentFunction())
+          && pCfaEdge instanceof CFASingleLoopTransformation.ProgramCounterValueAssumeEdge) {
+        /*
+         * This edge is syntactically reachable, but makes no sense from this
+         * state, as it would change function without passing a function entry
+         * or exit node.
+         *
+         * Edges like this are introduced by the single loop transformation.
+         */
+        return Collections.emptySet();
       }
       break;
     }
