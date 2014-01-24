@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithmWithCounterexampleInfo;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -936,9 +936,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     // TODO shall we use a PredicatedAnalysiAlgorithm?
     System.err.println("TODO: shall we use a PredicatedAnalysiAlgorithm?");
 
-    CEGARAlgorithm lAlgorithm;
+    CEGARAlgorithmWithCounterexampleInfo lAlgorithm;
     try {
-      lAlgorithm = new CEGARAlgorithm(lBasicAlgorithm, lRefiner, mConfiguration, mLogManager);
+      lAlgorithm = new CEGARAlgorithmWithCounterexampleInfo(lBasicAlgorithm, lRefiner, mConfiguration, mLogManager);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     } catch (CPAException e) {
@@ -981,10 +981,12 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     PredicatePrecisionAdjustment lAdjustment = (PredicatePrecisionAdjustment)mPredicateCPA.getPrecisionAdjustment();
     //lAdjustment.NUMBER_OF_ABSTRACTIONS = 0; // TODO why does that not exist anymore: is there a statistics class?
 
-    try {
-      boolean isComplete = lAlgorithm.run(pReachedSet);
+    Pair<Boolean, CounterexampleInfo> lResult;
 
-      assert isComplete;
+    try {
+      lResult = lAlgorithm.runWithCounterexample(pReachedSet);
+
+      assert lResult.getFirst();
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
@@ -996,25 +998,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     CounterexampleInfo lCounterexampleInfo;
 
-    if (pReachedSet.getLastState() == null) {
-      // TODO How can pReachedSet.getLastState() return null?
-      System.err.println("TODO: How can this happen?");
+    if (pReachedSet.getLastState() != null && ((ARGState)pReachedSet.getLastState()).isTarget()) {
+      lCounterexampleInfo = lResult.getSecond();
 
-      mTimeInReach.pause();
-
-      return null;
-    }
-
-    if (((ARGState)pReachedSet.getLastState()).isTarget()) {
-      try {
-        lCounterexampleInfo = lRefiner.performRefinementWithInfo(pReachedSet);
-        System.err.println("TODO: do we perform unnecessary (refinement) operations?");
-      } catch (CPAException | InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-
-      System.err.println("TODO: Refinement Result (actually we don't wanna do refinement!): " + lCounterexampleInfo.isSpurious());
-
+      assert(lCounterexampleInfo != null);
       assert(!lCounterexampleInfo.isSpurious());
     }
     else {
