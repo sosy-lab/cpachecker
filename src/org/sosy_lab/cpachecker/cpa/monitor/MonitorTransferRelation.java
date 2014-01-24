@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 @Options(prefix="cpa.monitor")
 public class MonitorTransferRelation implements TransferRelation {
@@ -88,7 +87,7 @@ public class MonitorTransferRelation implements TransferRelation {
       executor = null;
     } else {
       // important to use daemon threads here, because we never have the chance to stop the executor
-      executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setThreadFactory(Threads.threadFactory()).setDaemon(true).build());
+      executor = Executors.newSingleThreadExecutor(Threads.threadFactoryBuilder().setDaemon(true).build());
     }
   }
 

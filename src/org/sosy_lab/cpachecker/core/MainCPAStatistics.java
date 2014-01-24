@@ -136,8 +136,7 @@ class MainCPAStatistics implements Statistics {
 
     if (monitorMemoryUsage) {
       memStats = new MemoryStatistics(pLogger);
-      memStatsThread = Threads.newThread(memStats, "CPAchecker memory statistics collector");
-      memStatsThread.setDaemon(true);
+      memStatsThread = Threads.newThread(memStats, "CPAchecker memory statistics collector", true);
       memStatsThread.start();
     } else {
       memStats = null;

@@ -84,7 +84,6 @@ import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 
 @Options(prefix="cpa.predicate.refinement")
@@ -194,7 +193,7 @@ public final class InterpolationManager {
       executor = null;
     } else {
       // important to use daemon threads here, because we never have the chance to stop the executor
-      executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setThreadFactory(Threads.threadFactory()).setDaemon(true).build());
+      executor = Executors.newSingleThreadExecutor(Threads.threadFactoryBuilder().setDaemon(true).build());
     }
 
     if (reuseInterpolationEnvironment) {
