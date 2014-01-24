@@ -1175,8 +1175,19 @@ public class CFASingleLoopTransformation {
 
   }
 
-  public static interface ProgramCounterValueAssumeEdge {
+  /**
+   * Edges of this interface are CFA assume edges used in the single loop
+   * transformation. They are artificial edges used to encode the control flow
+   * through the single loop head into the correct subgraph based on program
+   * counter values.
+   */
+  public static interface ProgramCounterValueAssumeEdge extends CFAEdge {
 
+    /**
+     * Gets the program counter value.
+     *
+     * @return the program counter value.
+     */
     public int getProgramCounterValue();
 
   }
