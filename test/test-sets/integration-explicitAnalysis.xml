@@ -16,9 +16,13 @@
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
+      <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_1_true-unreach-label.cil.c</option>
+      <exclude>../programs/benchmarks/eca/Problem06_60_false-unreach-label.c</option>
+      <exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
+      <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-media-video-c-qcam.ko_true-unreach-label.cil.out.i.pp.cil.c</option>
       <option name="-skipRecursion"/>
       <option name="-64"/>
     </sourcefiles>
