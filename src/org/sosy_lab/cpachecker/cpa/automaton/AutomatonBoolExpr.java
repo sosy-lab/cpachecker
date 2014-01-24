@@ -243,10 +243,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
         match = edgeTokens.containsAll(matchTokens);
       }
 
-      System.out.println(edgeTokens);
-      System.out.println(matchTokens);
-      System.out.println(match);
-
       if (match && matchNegatedSemantics.isPresent()) {
         if (pArgs.getCfaEdge() instanceof AssumeEdge) {
           AssumeEdge a = (AssumeEdge) pArgs.getCfaEdge();
