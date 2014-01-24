@@ -514,10 +514,10 @@ class Run():
         return prpfile
 
 
-    def afterExecution(self, returnvalue, output):
+    def afterExecution(self, returnvalue, output, timeout=True):
 
         rlimits = self.benchmark.rlimits
-        isTimeout = self._isTimeout()
+        isTimeout = True if timeout else self._isTimeout()
 
         # calculation: returnvalue == (returncode * 256) + returnsignal
         # highest bit of returnsignal shows only whether a core file was produced, we clear it
