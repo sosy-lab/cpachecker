@@ -446,6 +446,13 @@ def parseArgsForAppEngine(args, absWorkingDir):
     
     appengineArgs = {}
     options = {}
+    
+    if config.debug:
+        logLevel = 'FINER'
+    else:
+        logLevel = 'INFO'
+    options['log.level'] = logLevel
+    
     for arg in args:
         if STOPPED_BY_INTERRUPT: break
         if '-noout' == arg:
@@ -479,12 +486,6 @@ def parseArgsForAppEngine(args, absWorkingDir):
                 argName = arg[1:]
                 if os.path.isfile(os.path.join(absWorkingDir, 'config', argName + '.properties')):
                     appengineArgs['configuration'] = argName+'.properties'
-    
-    if config.debug:
-        logLevel = 'FINER'
-    else:
-        logLevel = 'INFO'
-    options['log.level'] = logLevel
     
     appengineArgs['options'] = options
     return appengineArgs
@@ -773,7 +774,7 @@ def handleAppEngineResults(benchmark, outputHandler):
         logging.warning("{0} runs were not submitted to App Engine!".format(len(notSubmitted)))
     if len(withError) > 0:
         logging.warning("{0} runs produced unexpected errors, please check the {1} files!"
-                        .format(len(withError), os.path.join(outputDir, '*.stdErr')))
+                        .format(len(withError), os.path.join(benchmark.logFolder, '*.stdErr')))
     if len(withTimeout) > 0:
         logging.warning("{0} runs timed out!".format(len(withTimeout)))
     
