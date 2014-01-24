@@ -58,12 +58,12 @@ public abstract class JobMixinAnnotations {
     Date creationDate;
 
     @JsonProperty
-    @JsonInclude(Include.NON_EMPTY)
+    @JsonInclude(Include.ALWAYS)
     @JsonFormat(timezone="UTC",pattern="yyyy-MM-dd'T'HH:mm:ss.SSS")
     Date executionDate;
 
     @JsonProperty
-    @JsonInclude(Include.NON_EMPTY)
+    @JsonInclude(Include.ALWAYS)
     @JsonFormat(timezone="UTC",pattern="yyyy-MM-dd'T'HH:mm:ss.SSS")
     Date terminationDate;
 
@@ -71,33 +71,33 @@ public abstract class JobMixinAnnotations {
     Status status;
 
     @JsonProperty("result")
-    @JsonInclude(Include.NON_EMPTY)
+    @JsonInclude(Include.ALWAYS)
     Result resultOutcome;
   }
 
   public abstract class Full extends Minimal {
     @JsonProperty
-    @JsonInclude(Include.NON_EMPTY)
+    @JsonInclude(Include.ALWAYS)
     String statusMessage;
 
     @JsonProperty
-    @JsonInclude(Include.NON_EMPTY)
+    @JsonInclude(Include.ALWAYS)
     String specification;
 
     @JsonProperty
-    @JsonInclude(Include.NON_EMPTY)
+    @JsonInclude(Include.ALWAYS)
     String configuration;
 
     @JsonProperty
-    @JsonInclude(Include.NON_EMPTY)
+    @JsonInclude(Include.ALWAYS)
     Result resultMessage;
 
     @JsonProperty
-    @JsonInclude(Include.NON_EMPTY)
+    @JsonInclude(Include.ALWAYS)
     Map<String, String> options;
 
     @JsonProperty("files")
-    @JsonInclude(Include.NON_EMPTY)
+    @JsonInclude(Include.ALWAYS)
     @Override
     public abstract List<JobFile> getFilesLoaded();
   }
