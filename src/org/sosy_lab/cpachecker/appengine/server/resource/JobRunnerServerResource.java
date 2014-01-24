@@ -313,6 +313,11 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     try (OutputStream out = statisticsDumpFile.asByteSink().openBufferedStream()) {
       PrintStream stream = new PrintStream(out);
       result.printStatistics(stream);
+
+      if (result != null) {
+        result.printResult(stream);
+      }
+
       stream.flush();
       statsDumped = true;
     }
