@@ -933,9 +933,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       throw new RuntimeException(e);
     }
 
-    // TODO shall we use a PredicatedAnalysiAlgorithm?
-    System.err.println("TODO: shall we use a PredicatedAnalysiAlgorithm?");
-
     CEGARAlgorithmWithCounterexampleInfo lAlgorithm;
     try {
       lAlgorithm = new CEGARAlgorithmWithCounterexampleInfo(lBasicAlgorithm, lRefiner, mConfiguration, mLogManager);
@@ -957,7 +954,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     // TODO activate ART reuse again!
     System.out.println("TODO: activate ART reuse again!");
-    mReuseART = false;
+    //mReuseART = false;
 
     if (mReuseART) {
       ARTReuse.modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
@@ -1020,64 +1017,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     mTimeInReach.pause();
 
     return lCounterexampleInfo;
-
-    /*
-    CounterexampleTraceInfo lCounterexampleTraceInfo = lRefiner.getCounterexampleTraceInfo();
-
-    return lCounterexampleTraceInfo;
-    */
-
-    // the following is old code!
-    /*if (lCounterexampleTraceInfo != null && lCounterexampleTraceInfo.isSpurious()) {
-      // TODO automaton index
-      InfeasibilityCacheEntry lEntry = new InfeasibilityCacheEntry(pAutomatonCPA.getAutomaton(), pReachedSet, lPredicateCPAIndex, lProductAutomatonIndex);
-
-      mInfeasibilityCache.add(lEntry);
-    }
-    else if (lCounterexampleTraceInfo != null) {
-      // TODO feasibility cache
-
-      ARTElement lLastElement = (ARTElement)pReachedSet.getLastElement();
-
-      // TODO how many abstraction points with state >= 5 are in the reached set?
-
-      throw new RuntimeException();
-    }*/
-
-    /*if (lCounterexampleTraceInfo != null) {
-      if (lCounterexampleTraceInfo.isSpurious()) {
-        System.out.println("SPURIOUS ************************");
-      }
-      else {
-        System.out.println("NOT SPURIOUS ********************");
-      }
-
-      for (AbstractElement lReachedElement : pReachedSet) {
-        ARTElement lARTElement = (ARTElement)lReachedElement;
-
-        CompositeElement lCompositeElement = (CompositeElement)lARTElement.getWrappedElement();
-
-        PredicateAbstractElement lPredicateElement = (PredicateAbstractElement)lCompositeElement.get(lPredicateCPAIndex);
-
-        if (lPredicateElement instanceof AbstractionElement) {
-          AbstractionElement lAbstractionElement = (AbstractionElement)lPredicateElement;
-
-          if (!lAbstractionElement.getAbstractionFormula().isFalse()) {
-            ProductAutomatonElement lProductAutomatonElement = (ProductAutomatonElement)lCompositeElement.get(lProductAutomatonIndex);
-
-            // TODO generalize
-            GuardedEdgeAutomatonStateElement lStateElement = (GuardedEdgeAutomatonStateElement)lProductAutomatonElement.get(0);
-
-            if (lStateElement.getAutomatonState().ID >= 5) {
-              System.out.println("ping");
-            }
-          }
-        }
-      }
-    }
-
-    return lCounterexampleTraceInfo;
-    */
   }
 
   //HashSet<InfeasibilityCacheEntry> mInfeasibilityCache = new HashSet<InfeasibilityCacheEntry>();
