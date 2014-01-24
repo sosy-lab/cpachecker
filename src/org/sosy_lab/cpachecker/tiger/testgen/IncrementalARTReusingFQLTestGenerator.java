@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.assume.AssumeCPA;
-import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.cfapath.CFAPathCPA;
 import org.sosy_lab.cpachecker.cpa.cfapath.CFAPathStandardState;
@@ -81,7 +80,6 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.artreuse.ARTReuse;
@@ -134,7 +132,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private final CallstackCPA mCallStackCPA;
   private final AssumeCPA mAssumeCPA;
   private final CFAPathCPA mCFAPathCPA;
-  private final ConfigurableProgramAnalysis mPredicateCPA;
+  //private final ConfigurableProgramAnalysis mPredicateCPA;
 
   private final TimeAccumulator mTimeInReach;
   private int mTimesInReach;
@@ -276,6 +274,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
     lPredicateCPAFactory.set(lReachedSetFactory, ReachedSetFactory.class);
 
+    /*
     try {
       ConfigurableProgramAnalysis lPredicateCPA = lPredicateCPAFactory.createInstance();
 
@@ -289,7 +288,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       throw new RuntimeException(e);
     } catch (CPAException e) {
       throw new RuntimeException(e);
-    }
+    }*/
 
     mTimeInReach = new TimeAccumulator();
     mTimesInReach = 0;
@@ -854,6 +853,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     // ****************************************************************************************
 
     // TODO Create predicate CPA only once!
+    // PROBLEM the PredicateCPA creates an internal InvariantGenerator object. The reference to it is set to null after the first use of the PredicateCPA (see PredicatePrecisionAdjustment).
     System.out.println("Create predicate CPA only once!");
     CPAFactory lPredicateCPAFactory = PredicateCPA.factory();
     lPredicateCPAFactory.set(pCFA, CFA.class);
@@ -954,7 +954,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     // TODO activate ART reuse again!
     System.out.println("TODO: activate ART reuse again!");
-    //mReuseART = false;
+    mReuseART = false;
 
     if (mReuseART) {
       ARTReuse.modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
@@ -975,7 +975,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       pReachedSet.add(lInitialElement, lInitialPrecision);
     }
 
-    PredicatePrecisionAdjustment lAdjustment = (PredicatePrecisionAdjustment)mPredicateCPA.getPrecisionAdjustment();
+    //PredicatePrecisionAdjustment lAdjustment = (PredicatePrecisionAdjustment)mPredicateCPA.getPrecisionAdjustment();
     //lAdjustment.NUMBER_OF_ABSTRACTIONS = 0; // TODO why does that not exist anymore: is there a statistics class?
 
     Pair<Boolean, CounterexampleInfo> lResult;
