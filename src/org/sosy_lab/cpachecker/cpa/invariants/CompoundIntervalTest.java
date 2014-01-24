@@ -233,4 +233,13 @@ public class CompoundIntervalTest {
     assertEquals(zeroToOne, one.binaryXor(zeroToOne));
   }
 
+  @Test
+  public void testBinaryAnd() {
+    CompoundInterval zeroToOne = CompoundInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE));
+    CompoundInterval one = CompoundInterval.one();
+    assertEquals(zeroToOne, CompoundInterval.top().binaryAnd(one));
+    assertEquals(zeroToOne, one.binaryAnd(CompoundInterval.top()));
+    CompoundInterval.top().binaryAnd(CompoundInterval.singleton(8));
+  }
+
 }
