@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.appengine.json;
 
+import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -59,5 +60,9 @@ public abstract class JobStatisticMixinAnnotations {
     long startTime;
     @JsonProperty
     long pendingTime;
+
+    @JsonProperty
+    @Override
+    public abstract Job getJob();
   }
 }
