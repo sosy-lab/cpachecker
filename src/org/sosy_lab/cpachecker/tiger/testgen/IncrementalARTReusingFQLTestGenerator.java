@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.assume.AssumeCPA;
@@ -72,7 +71,6 @@ import org.sosy_lab.cpachecker.cpa.cfapath.CFAPathStandardState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
-import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonStateElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonElement;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
@@ -91,7 +89,6 @@ import org.sosy_lab.cpachecker.tiger.core.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.tiger.fql.ast.FQLSpecification;
-import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.SingletonECPEdgeSet;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
@@ -1083,90 +1080,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     */
 
-  }
-
-
-
-  private void modifyART(ReachedSet pReachedSet, ARGReachedSet pARTReachedSet, int pProductAutomatonIndex, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> pFrontierEdges) {
-    //Set<Pair<ARTElement, ARTElement>> lPathEdges = Collections.emptySet();
-    //ARTStatistics.dumpARTToDotFile(new File("/home/andreas/art01.dot"), lARTCPA, pReachedSet, lPathEdges);
-
-    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lEdge : pFrontierEdges) {
-      GuardedEdgeLabel lLabel = lEdge.getLabel();
-
-      ECPEdgeSet lEdgeSet = lLabel.getEdgeSet();
-
-      for (CFAEdge lCFAEdge : lEdgeSet) {
-        CFANode lCFANode = lCFAEdge.getPredecessor();
-
-        Collection<AbstractState> lAbstractElements = pReachedSet.getReached(lCFANode);
-
-        LinkedList<AbstractState> lAbstractElements2 = new LinkedList<>();
-        lAbstractElements2.addAll(lAbstractElements);
-
-        for (AbstractState lAbstractElement : lAbstractElements2) {
-          if (!pReachedSet.contains(lAbstractElement)) {
-            // lAbstractElement was removed in an earlier step
-            continue;
-          }
-
-          ARGState lARTElement = (ARGState)lAbstractElement;
-
-          boolean metLocationState = false;
-          boolean foundLocationState = false;
-
-          for (AbstractState lWrappedState : lARTElement.getWrappedStates()) {
-            if (lWrappedState instanceof LocationState) {
-              metLocationState = true;
-
-              LocationState lLocationState = (LocationState)lWrappedState;
-
-              foundLocationState = (lLocationState.getLocationNode() == lCFANode);
-
-              break;
-            }
-          }
-
-          if (!metLocationState) {
-            throw new RuntimeException("Handle this!"); // TODO remove this check again
-          }
-
-          if (!foundLocationState) {
-            continue;
-          }
-
-          /*
-          if (lARTElement.retrieveLocationElement().getLocationNode() != lCFANode) {
-            continue;
-          }*/
-
-          // what's the semantics of getWrappedElement*s*()?
-          CompositeState lCompositeElement = (CompositeState)lARTElement.getWrappedState();
-
-          ProductAutomatonElement lProductAutomatonElement = (ProductAutomatonElement)lCompositeElement.get(pProductAutomatonIndex);
-
-          GuardedEdgeAutomatonStateElement lStateElement = (GuardedEdgeAutomatonStateElement)lProductAutomatonElement.get(0);
-
-          if (lStateElement.getAutomatonState() == lEdge.getSource()) {
-            if (lARTElement.getChildren().isEmpty()) {
-              // re-add element to worklist
-              pReachedSet.reAddToWaitlist(lARTElement);
-            }
-            else {
-              // by removing the children, lARTElement gets added to the
-              // worklist automatically
-
-              /* TODO add removal of only non-isomorphic parts again */
-              while (!lARTElement.getChildren().isEmpty()) {
-                ARGState lChildElement = lARTElement.getChildren().iterator().next();
-
-                pARTReachedSet.removeSubtree(lChildElement);
-              }
-            }
-          }
-        }
-      }
-    }
   }
 
   private boolean checkCoverage(TestCase pTestCase, FunctionEntryNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
