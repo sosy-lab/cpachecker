@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.tiger.testgen.IncrementalARTReusingFQLTestGenerator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -420,6 +421,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     default:
       throw new AssertionError();
     }
+
+    // TODO reduce coupling
+    System.err.println("TODO: reduce coupling!");
+    PredicatePrecision tmp = IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision;
+    assert(tmp != null);
+    IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addLocalPredicates(mergePredicatesPerLocation(newPredicates));
+
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
 

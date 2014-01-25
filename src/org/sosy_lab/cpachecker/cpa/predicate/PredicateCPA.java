@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.tiger.testgen.IncrementalARTReusingFQLTestGenerator;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -201,7 +202,18 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
 
     precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, pathFormulaManager, abstractionManager, formulaManager);
-    initialPrecision = precisionBootstraper.prepareInitialPredicates();
+
+    // TODO reduce coupling!!!
+    System.err.println("TODO: reduce coupling!");
+    if (IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision == null) {
+      initialPrecision = precisionBootstraper.prepareInitialPredicates();
+      IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = new PredicatePrecision(initialPrecision);
+    }
+    else {
+      initialPrecision = new PredicatePrecision(IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision);
+    }
+
+    //initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
     stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager,

@@ -80,4 +80,56 @@ public abstract class PredicateRefiner implements Refiner {
         pfmgr,
         strategy);
   }
+
+  public static PredicateCPARefiner cpatiger_create(ConfigurableProgramAnalysis pCpa /*, Builder<CFANode,AbstractionPredicate> pBuilder, Set<AbstractionPredicate> pMGlobalPredicates*/ ) throws CPAException, InvalidConfigurationException {
+    PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
+    if (predicateCpa == null) {
+      throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " needs a PredicateCPA");
+    }
+
+    Configuration config = predicateCpa.getConfiguration();
+    LogManager logger = predicateCpa.getLogger();
+    FormulaManagerView fmgr = predicateCpa.getFormulaManager();
+    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
+    Solver solver = predicateCpa.getSolver();
+    PredicateStaticRefiner staticRefiner = predicateCpa.getStaticRefiner();
+
+    InterpolationManager manager = new InterpolationManager(
+        fmgr,
+        pfmgr,
+        solver,
+        predicateCpa.getFormulaManagerFactory(),
+        config,
+        predicateCpa.getShutdownNotifier(),
+        logger);
+
+    PathChecker pathChecker = new PathChecker(logger, pfmgr, solver);
+
+    // TODO create different PredicateAbstractionRefinementStrategy
+    System.out.println("TODO: created different PredicateAbstractionRefinementStrategy!");
+
+
+    // incorporate this in the refinement strategy
+    //mBuilder.putAll(refinementResult.getSecond().getPredicateMap());
+    //mGlobalPredicates.addAll(refinementResult.getSecond().getGlobalPredicates());
+
+
+    RefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
+        config,
+        logger,
+        fmgr,
+        predicateCpa.getPredicateManager(),
+        staticRefiner,
+        solver);
+
+    return new PredicateCPARefiner(
+        config,
+        logger,
+        pCpa,
+        manager,
+        pathChecker,
+        fmgr,
+        pfmgr,
+        strategy);
+  }
 }

@@ -80,6 +80,10 @@ public class PredicatePrecision implements Precision {
     mGlobalPredicates = ImmutableSet.copyOf(pGlobalPredicates);
   }
 
+  public PredicatePrecision(PredicatePrecision other) {
+    this(other.mLocationInstancePredicates, other.mLocalPredicates, other.mFunctionPredicates, other.mGlobalPredicates);
+  }
+
   private static <K extends Comparable<? super K>, V>
       ImmutableSetMultimap<K, V> sortedImmutableSetCopyOf(Multimap<K, V> m) {
     return ImmutableSetMultimap
