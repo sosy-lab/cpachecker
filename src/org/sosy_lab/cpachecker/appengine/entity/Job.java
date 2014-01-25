@@ -286,6 +286,10 @@ public class Job {
     resultMessage = pResultMessage;
   }
 
+  public Ref<JobStatistic> getStatisticReference() {
+    return statistic;
+  }
+
   public JobStatistic getStatistic() {
     return (statistic == null) ? null : statistic.get();
   }
