@@ -437,7 +437,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       // create a temp var for the left side of the expression
     } else {
       String tempLeft = buildVarName(functionName, TEMP_BOOLEAN_VAR_NAME + temporaryVariableCounter + "_");
-      OctCoefficients coeffsLeft = left.accept(new COctagonCoefficientVisitor(state, state.sizeOfVariables()+1));
+      IOctCoefficients coeffsLeft = left.accept(new COctagonCoefficientVisitor(state, state.sizeOfVariables()+1));
 
       // we cannot do any comparison with an unknown value, so just quit here
       // TODO remove if check???
@@ -782,7 +782,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       String returnVarName = buildVarName(calledFunctionName, FUNCTION_RETURN_VAR);
 
       String assignedVarName = buildVarName(op1, callerFunctionName);
-      OctCoefficients right = new OctCoefficients(state.sizeOfVariables(), state.getVariableIndexFor(returnVarName), 1);
+      IOctCoefficients right = new OctSimpleCoefficients(state.sizeOfVariables(), state.getVariableIndexFor(returnVarName), 1);
 
       state = state.makeAssignment(assignedVarName, right);
 
@@ -824,7 +824,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       boolean isDeclarationNecessary = !state.existsVariable(variableName);
 
 
-      OctCoefficients initCoeffs = null;
+      IOctCoefficients initCoeffs = null;
 
       CInitializer init = declaration.getInitializer();
       if (init != null) {
@@ -849,7 +849,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
 
         // global variables without initializer are set to 0 in C
       } else if (decl.isGlobal()) {
-        initCoeffs = new OctCoefficients(state.sizeOfVariables() + 1);
+        initCoeffs = new OctSimpleCoefficients(isDeclarationNecessary ? state.sizeOfVariables() + 1 : state.sizeOfVariables());
       }
 
       if (isDeclarationNecessary) {
@@ -889,7 +889,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       CLeftHandSide left = ((CAssignment) statement).getLeftHandSide();
       CRightHandSide right = ((CAssignment) statement).getRightHandSide();
 
-      OctCoefficients coeffs = right.accept(new COctagonCoefficientVisitor(state, state.sizeOfVariables()));
+      IOctCoefficients coeffs = right.accept(new COctagonCoefficientVisitor(state, state.sizeOfVariables()));
 
 
       String variableName = buildVarName(left, functionName);
@@ -904,7 +904,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
         // the value of the assigned variable and reset its value to unknown
         if (coeffs == null) {
           if (isNonedUInt) {
-            return state.forget(variableName).addGreaterEqConstraint(variableName, 0);
+            return state.forget(variableName).makeAssignment(variableName, OctIntervalCoefficients.getUIntCoeffs(state.sizeOfVariables()));
           }
           return state.forget(variableName);
         } else {
@@ -970,7 +970,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
     }
 
     String tempVarName = buildVarName(cfaEdge.getPredecessor().getFunctionName(), FUNCTION_RETURN_VAR);
-    OctCoefficients coeffs = expression.accept(new COctagonCoefficientVisitor(state, state.sizeOfVariables()));
+    IOctCoefficients coeffs = expression.accept(new COctagonCoefficientVisitor(state, state.sizeOfVariables()));
 
     // main function has no __cpa_temp_result_var as the result of the main function
     // is not important for us, we skip here
@@ -1000,8 +1000,8 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
     return null;
   }
 
-  class COctagonCoefficientVisitor extends DefaultCExpressionVisitor<OctCoefficients, CPATransferException>
-      implements CRightHandSideVisitor<OctCoefficients, CPATransferException> {
+  class COctagonCoefficientVisitor extends DefaultCExpressionVisitor<IOctCoefficients, CPATransferException>
+      implements CRightHandSideVisitor<IOctCoefficients, CPATransferException> {
 
     private OctState coeffState;
     private int nofVariables;
@@ -1019,59 +1019,488 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
 
 
     @Override
-    protected OctCoefficients visitDefault(CExpression pExp) throws CPATransferException {
+    protected IOctCoefficients visitDefault(CExpression pExp) throws CPATransferException {
       return null;
     }
 
     @Override
-    public OctCoefficients visit(CArraySubscriptExpression e) throws CPATransferException {
+    public IOctCoefficients visit(CArraySubscriptExpression e) throws CPATransferException {
       // TODO check if we can handle array expressions
       return null;
     }
 
     @Override
-    public OctCoefficients visit(CBinaryExpression e) throws CPATransferException {
-      OctCoefficients left = e.getOperand1().accept(this);
-      OctCoefficients right = e.getOperand2().accept(this);
+    public IOctCoefficients visit(CBinaryExpression e) throws CPATransferException {
+      IOctCoefficients left = e.getOperand1().accept(this);
+      IOctCoefficients right = e.getOperand2().accept(this);
 
       if (left == null || right == null) { return null; }
 
       switch (e.getOperator()) {
       case BINARY_AND:
+        return left.binAnd(right);
       case BINARY_OR:
+        return left.binOr(right);
       case BINARY_XOR:
+        return left.binXOr(right);
       case EQUALS:
-      case GREATER_EQUAL:
-      case GREATER_THAN:
-      case LESS_EQUAL:
-      case LESS_THAN:
-      case NOT_EQUALS:
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-      case MODULO:
+        if (left.hasOnlyConstantValue() && right.hasOnlyConstantValue()) {
+          return left.eq(right);
+        }
+        if ((e.getOperand1() instanceof CIdExpression
+            || e.getOperand1() instanceof CIntegerLiteralExpression
+            || e.getOperand1() instanceof CCharLiteralExpression)
+           && (e.getOperand2() instanceof CIdExpression
+            || e.getOperand2() instanceof CIntegerLiteralExpression
+            || e.getOperand2() instanceof CCharLiteralExpression)
+            ) {
+          if (e.getOperand1() instanceof CIdExpression) {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addEqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName())).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (state.addEqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName()), ((CCharLiteralExpression)e.getOperand2()).getValue()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (state.addEqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName()), ((CIntegerLiteralExpression)e.getOperand2()).asLong()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          } else if (e.getOperand1() instanceof CIntegerLiteralExpression) {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addEqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), ((CIntegerLiteralExpression)e.getOperand1()).asLong()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (((CIntegerLiteralExpression)e.getOperand1()).asLong() != ((CCharLiteralExpression)e.getOperand2()).getValue()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (((CIntegerLiteralExpression)e.getOperand1()).asLong() != ((CIntegerLiteralExpression)e.getOperand2()).asLong()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          } else {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addEqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), ((CCharLiteralExpression)e.getOperand1()).getValue()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (((CCharLiteralExpression)e.getOperand1()).getValue() != ((CCharLiteralExpression)e.getOperand2()).getValue()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (((CCharLiteralExpression)e.getOperand1()).getValue() != ((CIntegerLiteralExpression)e.getOperand2()).asLong()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          }
+        }
         return null;
+      case GREATER_EQUAL:
+        if (left.hasOnlyConstantValue() && right.hasOnlyConstantValue()) {
+          left.greaterEq(right);
+        }
+        if ((e.getOperand1() instanceof CIdExpression
+            || e.getOperand1() instanceof CIntegerLiteralExpression
+            || e.getOperand1() instanceof CCharLiteralExpression)
+           && (e.getOperand2() instanceof CIdExpression
+            || e.getOperand2() instanceof CIntegerLiteralExpression
+            || e.getOperand2() instanceof CCharLiteralExpression)
+            ) {
+          if (e.getOperand1() instanceof CIdExpression) {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addGreaterEqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName())).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (state.addGreaterEqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName()), ((CCharLiteralExpression)e.getOperand2()).getValue()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (state.addGreaterEqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName()), ((CIntegerLiteralExpression)e.getOperand2()).asLong()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          } else if (e.getOperand1() instanceof CIntegerLiteralExpression) {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addSmallerConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), ((CIntegerLiteralExpression)e.getOperand1()).asLong()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (((CIntegerLiteralExpression)e.getOperand1()).asLong() < ((CCharLiteralExpression)e.getOperand2()).getValue()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (((CIntegerLiteralExpression)e.getOperand1()).asLong() < ((CIntegerLiteralExpression)e.getOperand2()).asLong()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          } else {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addSmallerConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), ((CCharLiteralExpression)e.getOperand1()).getValue()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (((CCharLiteralExpression)e.getOperand1()).getValue() < ((CCharLiteralExpression)e.getOperand2()).getValue()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (((CCharLiteralExpression)e.getOperand1()).getValue() < ((CIntegerLiteralExpression)e.getOperand2()).asLong()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          }
+        }
+        return null;
+      case GREATER_THAN:
+        if (left.hasOnlyConstantValue() && right.hasOnlyConstantValue()) {
+          left.greater(right);
+        }
+        if ((e.getOperand1() instanceof CIdExpression
+            || e.getOperand1() instanceof CIntegerLiteralExpression
+            || e.getOperand1() instanceof CCharLiteralExpression)
+           && (e.getOperand2() instanceof CIdExpression
+            || e.getOperand2() instanceof CIntegerLiteralExpression
+            || e.getOperand2() instanceof CCharLiteralExpression)
+            ) {
+          if (e.getOperand1() instanceof CIdExpression) {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addGreaterConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName())).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (state.addGreaterConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName()), ((CCharLiteralExpression)e.getOperand2()).getValue()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (state.addGreaterConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName()), ((CIntegerLiteralExpression)e.getOperand2()).asLong()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          } else if (e.getOperand1() instanceof CIntegerLiteralExpression) {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addSmallerEqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), ((CIntegerLiteralExpression)e.getOperand1()).asLong()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (((CIntegerLiteralExpression)e.getOperand1()).asLong() <= ((CCharLiteralExpression)e.getOperand2()).getValue()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (((CIntegerLiteralExpression)e.getOperand1()).asLong() <= ((CIntegerLiteralExpression)e.getOperand2()).asLong()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          } else {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addSmallerEqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), ((CCharLiteralExpression)e.getOperand1()).getValue()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (((CCharLiteralExpression)e.getOperand1()).getValue() <= ((CCharLiteralExpression)e.getOperand2()).getValue()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (((CCharLiteralExpression)e.getOperand1()).getValue() <= ((CIntegerLiteralExpression)e.getOperand2()).asLong()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          }
+        }
+        return null;
+      case LESS_EQUAL:
+        if (left.hasOnlyConstantValue() && right.hasOnlyConstantValue()) {
+          left.smallerEq(right);
+        }
+        if ((e.getOperand1() instanceof CIdExpression
+            || e.getOperand1() instanceof CIntegerLiteralExpression
+            || e.getOperand1() instanceof CCharLiteralExpression)
+           && (e.getOperand2() instanceof CIdExpression
+            || e.getOperand2() instanceof CIntegerLiteralExpression
+            || e.getOperand2() instanceof CCharLiteralExpression)
+            ) {
+          if (e.getOperand1() instanceof CIdExpression) {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addSmallerEqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName())).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (state.addSmallerEqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName()), ((CCharLiteralExpression)e.getOperand2()).getValue()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (state.addSmallerEqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName()), ((CIntegerLiteralExpression)e.getOperand2()).asLong()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          } else if (e.getOperand1() instanceof CIntegerLiteralExpression) {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addGreaterConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), ((CIntegerLiteralExpression)e.getOperand1()).asLong()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (((CIntegerLiteralExpression)e.getOperand1()).asLong() > ((CCharLiteralExpression)e.getOperand2()).getValue()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (((CIntegerLiteralExpression)e.getOperand1()).asLong() > ((CIntegerLiteralExpression)e.getOperand2()).asLong()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          } else {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addGreaterConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), ((CCharLiteralExpression)e.getOperand1()).getValue()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (((CCharLiteralExpression)e.getOperand1()).getValue() > ((CCharLiteralExpression)e.getOperand2()).getValue()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (((CCharLiteralExpression)e.getOperand1()).getValue() > ((CIntegerLiteralExpression)e.getOperand2()).asLong()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          }
+        }
+        return null;
+      case LESS_THAN:
+        if (left.hasOnlyConstantValue() && right.hasOnlyConstantValue()) {
+          left.smaller(right);
+        }
+        if ((e.getOperand1() instanceof CIdExpression
+            || e.getOperand1() instanceof CIntegerLiteralExpression
+            || e.getOperand1() instanceof CCharLiteralExpression)
+           && (e.getOperand2() instanceof CIdExpression
+            || e.getOperand2() instanceof CIntegerLiteralExpression
+            || e.getOperand2() instanceof CCharLiteralExpression)
+            ) {
+          if (e.getOperand1() instanceof CIdExpression) {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addSmallerConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName())).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (state.addSmallerConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName()), ((CCharLiteralExpression)e.getOperand2()).getValue()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (state.addSmallerConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName()), ((CIntegerLiteralExpression)e.getOperand2()).asLong()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          } else if (e.getOperand1() instanceof CIntegerLiteralExpression) {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addGreaterEqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), ((CIntegerLiteralExpression)e.getOperand1()).asLong()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (((CIntegerLiteralExpression)e.getOperand1()).asLong() >= ((CCharLiteralExpression)e.getOperand2()).getValue()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (((CIntegerLiteralExpression)e.getOperand1()).asLong() >= ((CIntegerLiteralExpression)e.getOperand2()).asLong()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          } else {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addGreaterEqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), ((CCharLiteralExpression)e.getOperand1()).getValue()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (((CCharLiteralExpression)e.getOperand1()).getValue() >= ((CCharLiteralExpression)e.getOperand2()).getValue()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (((CCharLiteralExpression)e.getOperand1()).getValue() >= ((CIntegerLiteralExpression)e.getOperand2()).asLong()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          }
+        }
+        return null;
+      case NOT_EQUALS:
+        if (left.hasOnlyConstantValue() && right.hasOnlyConstantValue()) {
+          left.ineq(right);
+        }
+        if ((e.getOperand1() instanceof CIdExpression
+            || e.getOperand1() instanceof CIntegerLiteralExpression
+            || e.getOperand1() instanceof CCharLiteralExpression)
+           && (e.getOperand2() instanceof CIdExpression
+            || e.getOperand2() instanceof CIntegerLiteralExpression
+            || e.getOperand2() instanceof CCharLiteralExpression)
+            ) {
+          if (e.getOperand1() instanceof CIdExpression) {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addIneqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName())).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (state.addIneqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName()), ((CCharLiteralExpression)e.getOperand2()).getValue()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (state.addIneqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand1()).getName()), ((CIntegerLiteralExpression)e.getOperand2()).asLong()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          } else if (e.getOperand1() instanceof CIntegerLiteralExpression) {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addIneqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), ((CIntegerLiteralExpression)e.getOperand1()).asLong()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (((CIntegerLiteralExpression)e.getOperand1()).asLong() == ((CCharLiteralExpression)e.getOperand2()).getValue()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (((CIntegerLiteralExpression)e.getOperand1()).asLong() == ((CIntegerLiteralExpression)e.getOperand2()).asLong()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          } else {
+            if (e.getOperand2() instanceof CIdExpression) {
+              if (state.addIneqConstraint(buildVarName(functionName, ((CIdExpression) e.getOperand2()).getName()), ((CCharLiteralExpression)e.getOperand1()).getValue()).isEmpty()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else if (e.getOperand2() instanceof CCharLiteralExpression){
+              if (((CCharLiteralExpression)e.getOperand1()).getValue() == ((CCharLiteralExpression)e.getOperand2()).getValue()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            } else {
+              if (((CCharLiteralExpression)e.getOperand1()).getValue() == ((CIntegerLiteralExpression)e.getOperand2()).asLong()) {
+                return new OctSimpleCoefficients(nofVariables);
+              } else {
+                return new OctSimpleCoefficients(nofVariables, 1);
+              }
+            }
+          }
+        }
+        return null;
+      case SHIFT_LEFT:
+        return left.shiftLeft(right);
+      case SHIFT_RIGHT:
+        return left.shiftRight(right);
+      case MODULO:
+        return left.modulo(right);
       case MINUS:
         return left.sub(right);
       case PLUS:
         return left.add(right);
       case DIVIDE:
-        if (right.hasOnlyConstantValue()) {
-          return left.div(right.get(nofVariables));
-        } else {
-          // within a division the divisor has to be a constant value, any other
-          // divisions are not possible
-          return null;
-        }
+        return left.div(right);
       case MULTIPLY:
-        if (left.hasOnlyConstantValue()) {
-          return right.mult(left.get(nofVariables));
-        } else if (right.hasOnlyConstantValue()) {
-          return left.mult(right.get(nofVariables));
-        } else {
-          // both operands have coefficients for variables, multiplying such
-          // is not possible
-          return null;
-        }
+        return left.mult(right);
 
       default:
         throw new AssertionError("Unhandled case statement");
@@ -1082,7 +1511,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
      * Only unpack the cast and continue with the casts operand
      */
     @Override
-    public OctCoefficients visit(CCastExpression e) throws CPATransferException {
+    public IOctCoefficients visit(CCastExpression e) throws CPATransferException {
       return e.getOperand().accept(this);
     }
 
@@ -1090,33 +1519,33 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
      * Ignore complex casts
      */
     @Override
-    public OctCoefficients visit(CComplexCastExpression e) throws CPATransferException {
+    public IOctCoefficients visit(CComplexCastExpression e) throws CPATransferException {
       return null;
     }
 
     @Override
-    public OctCoefficients visit(CFieldReference e) throws CPATransferException {
+    public IOctCoefficients visit(CFieldReference e) throws CPATransferException {
       return null;
     }
 
     @Override
-    public OctCoefficients visit(CIdExpression e) throws CPATransferException {
+    public IOctCoefficients visit(CIdExpression e) throws CPATransferException {
       String varName = buildVarName(e, functionName);
       Integer varIndex = coeffState.getVariableIndexFor(varName);
       if (varIndex == null) { return null; }
-      return new OctCoefficients(nofVariables + 1, varIndex, 1);
+      return new OctSimpleCoefficients(nofVariables, varIndex, 1);
     }
 
     @Override
-    public OctCoefficients visit(CCharLiteralExpression e) throws CPATransferException {
-      return new OctCoefficients(nofVariables + 1, nofVariables, e.getValue());
+    public IOctCoefficients visit(CCharLiteralExpression e) throws CPATransferException {
+      return new OctSimpleCoefficients(nofVariables, e.getValue());
     }
 
     /**
      * Ignore ImaginaryExpressions
      */
     @Override
-    public OctCoefficients visit(CImaginaryLiteralExpression e) throws CPATransferException {
+    public IOctCoefficients visit(CImaginaryLiteralExpression e) throws CPATransferException {
       return null;
     }
 
@@ -1124,38 +1553,38 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
      * Floats can currently not be handled
      */
     @Override
-    public OctCoefficients visit(CFloatLiteralExpression e) throws CPATransferException {
+    public IOctCoefficients visit(CFloatLiteralExpression e) throws CPATransferException {
       // TODO check if we can handle floats, too
       return null;
     }
 
     @Override
-    public OctCoefficients visit(CIntegerLiteralExpression e) throws CPATransferException {
-      return new OctCoefficients(nofVariables + 1, nofVariables, (int) e.asLong());
+    public IOctCoefficients visit(CIntegerLiteralExpression e) throws CPATransferException {
+      return new OctSimpleCoefficients(nofVariables, (int) e.asLong());
     }
 
     /**
      * Strings cannot be handled
      */
     @Override
-    public OctCoefficients visit(CStringLiteralExpression e) throws CPATransferException {
+    public IOctCoefficients visit(CStringLiteralExpression e) throws CPATransferException {
       return null;
     }
 
 
     @Override
-    public OctCoefficients visit(CTypeIdExpression e) throws CPATransferException {
+    public IOctCoefficients visit(CTypeIdExpression e) throws CPATransferException {
       return null;
     }
 
     @Override
-    public OctCoefficients visit(CTypeIdInitializerExpression e) throws CPATransferException {
+    public IOctCoefficients visit(CTypeIdInitializerExpression e) throws CPATransferException {
       return null;
     }
 
     @Override
-    public OctCoefficients visit(CUnaryExpression e) throws CPATransferException {
-      OctCoefficients operand = e.getOperand().accept(this);
+    public IOctCoefficients visit(CUnaryExpression e) throws CPATransferException {
+      IOctCoefficients operand = e.getOperand().accept(this);
 
       if (operand == null) { return null; }
 
@@ -1175,14 +1604,18 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
     }
 
     @Override
-    public OctCoefficients visit(CPointerExpression e) throws CPATransferException {
-      return e.getOperand().accept(this);
+    public IOctCoefficients visit(CPointerExpression e) throws CPATransferException {
+      return null;
     }
 
 
     @Override
-    public OctCoefficients visit(CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
-      //TODO check what to do when function call appears
+    public IOctCoefficients visit(CFunctionCallExpression e) throws CPATransferException {
+      if (e.getFunctionNameExpression() instanceof CIdExpression) {
+        if (((CIdExpression)e.getFunctionNameExpression()).getName().equals("__VERIFIER_nondet_uint")) {
+          return OctIntervalCoefficients.getUIntCoeffs(nofVariables+1);
+        }
+      }
       return null;
     }
   }

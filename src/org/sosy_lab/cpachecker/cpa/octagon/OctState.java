@@ -210,10 +210,19 @@ class OctState implements AbstractState {
     return variableToIndexMap.containsKey(variableName);
   }
 
+  public OctState declareVariable(String varName, IOctCoefficients oct) {
+    if (oct instanceof OctSimpleCoefficients || oct == null) {
+      return declareVariable(varName, (OctSimpleCoefficients)oct);
+    } else if (oct instanceof OctIntervalCoefficients) {
+      return declareVariable(varName, (OctIntervalCoefficients)oct);
+    }
+    throw new IllegalArgumentException("Unkown subtype of OctCoefficients.");
+  }
+
   /**
    * This method declares a variable.
    */
-  public OctState declareVariable(String varName, OctCoefficients coeffs) {
+  private OctState declareVariable(String varName, OctSimpleCoefficients coeffs) {
     assert (!variableToIndexMap.containsKey(varName));
     OctState newState = new OctState(OctagonManager.addDimensionAndEmbed(octagon, 1),
                                      HashBiMap.create(variableToIndexMap),
@@ -228,16 +237,59 @@ class OctState implements AbstractState {
       newState.octagon = OctagonManager.assingVar(newState.octagon, newState.getVariableIndexFor(varName), arr);
       OctagonManager.num_clear_n(arr, coeffs.size());
     }
-
     return newState;
+  }
+
+  /**
+   * This method declares a variable.
+   */
+  private OctState declareVariable(String varName, OctIntervalCoefficients coeffs) {
+    assert (!variableToIndexMap.containsKey(varName));
+    OctState newState = new OctState(OctagonManager.addDimensionAndEmbed(octagon, 1),
+                                     HashBiMap.create(variableToIndexMap),
+                                     logger);
+    newState.variableToIndexMap.put(varName, sizeOfVariables());
+
+    if (coeffs == null) {
+      // TODO necessary???
+      newState.octagon = OctagonManager.forget(newState.octagon, newState.getVariableIndexFor(varName));
+    } else {
+      NumArray arr = coeffs.getNumArray();
+      newState.octagon = OctagonManager.intervAssingVar(newState.octagon, newState.getVariableIndexFor(varName), arr);
+      OctagonManager.num_clear_n(arr, coeffs.size());
+    }
+    return newState;
+  }
+
+  public OctState makeAssignment(String leftVarName, IOctCoefficients oct) {
+    if (oct instanceof OctSimpleCoefficients || oct == null) {
+      return makeAssignment(leftVarName, (OctSimpleCoefficients)oct);
+    } else if (oct instanceof OctIntervalCoefficients) {
+      return makeAssignment(leftVarName, (OctIntervalCoefficients)oct);
+    }
+    throw new IllegalArgumentException("Unkown subtype of OctCoefficients.");
   }
 
   /**
    * This method makes an assignment to a variable
    */
-  public OctState makeAssignment(String leftVarName, OctCoefficients oct) {
+  private OctState makeAssignment(String leftVarName, OctSimpleCoefficients oct) {
     NumArray arr = oct.getNumArray();
     OctState newState = new OctState(OctagonManager.assingVar(octagon, getVariableIndexFor(leftVarName), arr),
+                                     HashBiMap.create(variableToIndexMap),
+                                     logger);
+    OctagonManager.num_clear_n(arr, oct.size());
+    return newState;
+  }
+
+  /**
+   * This method makes an interval assignment to a variable. The OctCoefficients
+   * need to be twice as long as for normal assignments! (upper and lower bound)
+   */
+  private OctState makeAssignment(String leftVarName, OctIntervalCoefficients oct) {
+    NumArray arr = oct.getNumArray();
+    System.out.println("assigning:\n" + oct);
+    OctState newState = new OctState(OctagonManager.intervAssingVar(octagon, getVariableIndexFor(leftVarName), arr),
                                      HashBiMap.create(variableToIndexMap),
                                      logger);
     OctagonManager.num_clear_n(arr, oct.size());
