@@ -855,37 +855,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     int lPredicateCPAIndex = lComponentAnalyses.size();
 
-
-
-    // ****************************************************************************************
-
-    // TODO Create predicate CPA only once!
-    // PROBLEM the PredicateCPA creates an internal InvariantGenerator object. The reference to it is set to null after the first use of the PredicateCPA (see PredicatePrecisionAdjustment).
-    /*System.out.println("Create predicate CPA only once!");
-    CPAFactory lPredicateCPAFactory = PredicateCPA.factory();
-    lPredicateCPAFactory.set(pCFA, CFA.class);
-    lPredicateCPAFactory.setConfiguration(mConfiguration);
-    lPredicateCPAFactory.setLogger(mLogManager);
-    lPredicateCPAFactory.set(mShutdownNotifier, ShutdownNotifier.class);
-    ReachedSetFactory lReachedSetFactory;
-    try {
-      lReachedSetFactory = new ReachedSetFactory(mConfiguration, mLogManager);
-    } catch (InvalidConfigurationException e1) {
-      throw new RuntimeException(e1);
-    }
-    lPredicateCPAFactory.set(lReachedSetFactory, ReachedSetFactory.class);
-    try {
-      ConfigurableProgramAnalysis lPredicateCPA = lPredicateCPAFactory.createInstance();
-
-      lComponentAnalyses.add(lPredicateCPA);
-    } catch (InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    } catch (CPAException e) {
-      throw new RuntimeException(e);
-    }*/
-
-    // ****************************************************************************************
-    // TODO activate again
     lComponentAnalyses.add(mPredicateCPA);
 
     lComponentAnalyses.add(mAssumeCPA);
@@ -912,9 +881,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       lARTCPA.precisionAdjustment.setCache(mInfeasibilityCache);
       lARTCPA.precisionAdjustment.setPredicateCPAIndex(lPredicateCPAIndex);
       lARTCPA.precisionAdjustment.setAutomatonCPAIndex(lProductAutomatonIndex);*/
-    } catch (InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    } catch (CPAException e) {
+    } catch (InvalidConfigurationException | CPAException e) {
       throw new RuntimeException(e);
     }
 
@@ -928,12 +895,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     PredicateCPARefiner lRefiner;
     try {
       lRefiner = PredicateRefiner.cpatiger_create(lARTCPA);
-
-      System.err.println("TODO: HANDLE mBuilder");
-      System.err.println("TODO: HANDLE mGlobalPredicates");
-      //System.exit(1); // TODO this is just to not having to deal with unreachable code!!! remove
-      //throw new RuntimeException();
-      //lRefiner = new PredicateRefiner(lBasicAlgorithm.getCPA(), mBuilder, mGlobalPredicates);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InvalidConfigurationException e) {
@@ -959,10 +920,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     lStatistics.add(lARTStatistics);
     lAlgorithm.collectStatistics(lStatistics);
 
-    // TODO activate ART reuse again!
-    System.out.println("TODO: activate ART reuse again!");
-    //mReuseART = false;
-
     if (mReuseART) {
       ARTReuse.modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
 
@@ -985,23 +942,15 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       pReachedSet.add(lInitialElement, lInitialPrecision);
     }
 
-    //PredicatePrecisionAdjustment lAdjustment = (PredicatePrecisionAdjustment)mPredicateCPA.getPrecisionAdjustment();
-    //lAdjustment.NUMBER_OF_ABSTRACTIONS = 0; // TODO why does that not exist anymore: is there a statistics class?
-
     Pair<Boolean, CounterexampleInfo> lResult;
 
     try {
       lResult = lAlgorithm.runWithCounterexample(pReachedSet);
 
       assert lResult.getFirst();
-    } catch (CPAException e) {
-      throw new RuntimeException(e);
-    } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
+    } catch (CPAException | InterruptedException e) {
       throw new RuntimeException(e);
     }
-
-    //mOutput.println("Number of abstractions: " + lAdjustment.NUMBER_OF_ABSTRACTIONS); // TODO see above
 
     CounterexampleInfo lCounterexampleInfo;
 
@@ -1027,59 +976,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     mTimeInReach.pause();
 
     return lCounterexampleInfo;
-  }
-
-  //HashSet<InfeasibilityCacheEntry> mInfeasibilityCache = new HashSet<InfeasibilityCacheEntry>();
-
-  private static void printPredicateStatistics(ReachedSet pReachedSet, int lPredicateCPAIndex) {
-    throw new UnsupportedOperationException("Implement!");
-
-    /*
-    Map<Integer, Integer> lPredicates = new HashMap<>();
-
-    int lMaxNumberOfPredicates = 0;
-
-    for (Pair<AbstractState, Precision> lPair : pReachedSet.getReachedWithPrecision()) {
-      ARGState lARTElement = (ARGState)lPair.getFirst();
-      CompositePrecision lPrecision = (CompositePrecision)lPair.getSecond();
-
-      PredicatePrecision lPredicatePrecision = (PredicatePrecision)lPrecision.get(lPredicateCPAIndex);
-
-      CFANode lLocation = ((CompositeState)lARTElement.getWrappedState()).retrieveLocationElement().getLocationNode();
-
-      int lNumberOfPredicates = lPredicatePrecision.getPredicates(lLocation).size();
-
-      if (lNumberOfPredicates > lMaxNumberOfPredicates) {
-        lMaxNumberOfPredicates = lNumberOfPredicates;
-      }
-
-      int lCounter = 0;
-      if (lPredicates.containsKey(lNumberOfPredicates)) {
-        lCounter = lPredicates.get(lNumberOfPredicates);
-      }
-
-      lCounter++;
-      lPredicates.put(lNumberOfPredicates, lCounter);
-
-      if (lNumberOfPredicates >= 20) {
-        System.out.println(lPredicatePrecision.getPredicates(lLocation));
-      }
-    }
-
-    System.out.println("Max number of predicates: " + lMaxNumberOfPredicates);
-
-    for (int i = 0; i <= lMaxNumberOfPredicates; i++) {
-      int lCounter = 0;
-
-      if (lPredicates.containsKey(i)) {
-        lCounter = lPredicates.get(i);
-      }
-
-      System.out.println("" + i + " predicates: " + lCounter);
-    }
-
-    */
-
   }
 
   private boolean checkCoverage(TestCase pTestCase, FunctionEntryNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
