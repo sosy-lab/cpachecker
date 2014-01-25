@@ -704,13 +704,10 @@ def parseAppEngineResult(run):
                     returnValue = 9 # timeout
                     hasTimedOut = True
                     withTimeout.append(run)
-                    
-                # set walltime
-                formatUTC= '%Y-%m-%dT%H:%M:%S.%f'
-                executionDate =  datetime.strptime(result['executionDate'], formatUTC)
-                terminationDate = datetime.strptime(result['terminationDate'], formatUTC)
-                delta = terminationDate - executionDate
-                run.wallTime = delta.total_seconds()
+
+                run.wallTime = timedelta(microseconds=result['statistic']['latency']).total_seconds()
+                run.cpuTime = result['statistic']['CPUTime']
+                run.host = result['statistic']['host']
 
             os.remove(run.logFile+'.stdOut') 
         except:
