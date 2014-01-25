@@ -68,6 +68,8 @@ public class Job {
   }
 
   @Id private Long id;
+  // ID to identify the associated request with the App Engine log file
+  private String requestID;
   private Date creationDate;
   private Date executionDate;
   private Date terminationDate;
@@ -81,6 +83,7 @@ public class Job {
   private String resultMessage;
   @EmbedMap private Map<String, String> options = new HashMap<>();
   private List<Ref<JobFile>> files = new CopyOnWriteArrayList<>();
+  private Ref<JobStatistic> statistic;
 
   @Ignore private boolean optionsEscaped = false;
 
@@ -102,6 +105,13 @@ public class Job {
     return Key.create(Job.class, getId()).getString();
   }
 
+  public String getRequestID() {
+    return requestID;
+  }
+
+  public void setRequestID(String pRequestID) {
+    requestID = pRequestID;
+  }
 
   public Date getExecutionDate() {
     return executionDate;
@@ -274,5 +284,13 @@ public class Job {
 
   public void setResultMessage(String pResultMessage) {
     resultMessage = pResultMessage;
+  }
+
+  public JobStatistic getStatistic() {
+    return (statistic == null) ? null : statistic.get();
+  }
+
+  public void setStatistic(JobStatistic pStatistic) {
+    statistic = Ref.create(pStatistic);
   }
 }

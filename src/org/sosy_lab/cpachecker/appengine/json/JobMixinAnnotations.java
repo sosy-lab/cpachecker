@@ -29,6 +29,7 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -100,5 +101,10 @@ public abstract class JobMixinAnnotations {
     @JsonInclude(Include.ALWAYS)
     @Override
     public abstract List<JobFile> getFilesLoaded();
+
+    @JsonProperty
+    @JsonInclude(Include.ALWAYS)
+    @Override
+    public abstract JobStatistic getStatistic();
   }
 }

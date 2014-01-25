@@ -46,8 +46,8 @@ import com.googlecode.objectify.annotation.Parent;
 @Entity
 public class JobFile {
 
-  @Id Long id;
-  @Parent Ref<Job> job;
+  @Id private Long id;
+  @Parent private  Ref<Job> job;
   @Index private String path;
   @Index private String name;
   private String content;

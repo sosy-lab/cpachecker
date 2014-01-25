@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.appengine.api.ThreadManager;
+import com.google.apphosting.api.ApiProxy;
 import com.google.common.base.Charsets;
 import com.google.common.io.FileWriteMode;
 
@@ -98,6 +99,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     Paths.setFactory(new GAEPathFactory(job));
     errorPath = Paths.get(ERROR_FILE_NAME);
 
+    job.setRequestID((String) ApiProxy.getCurrentEnvironment().getAttributes().get("com.google.appengine.runtime.request_log_id"));
     job.setExecutionDate(new Date());
     job.setStatus(Status.RUNNING);
     JobDAO.save(job);

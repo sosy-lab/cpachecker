@@ -62,6 +62,11 @@ public class JobDAO {
     return job;
   }
 
+  /**
+   * Deletes the given job, the associated statistic and all associated files.
+   *
+   * @param job The job to delete
+   */
   public static void delete(final Job job) {
     if (job != null) {
       ofy().transact(new VoidWork() {
@@ -80,6 +85,11 @@ public class JobDAO {
           if (job.getFiles() != null && job.getFiles().size() > 0) {
             ofy().delete().entities(job.getFiles()).now();
           }
+
+          if (job.getStatistic() != null) {
+            ofy().delete().entity(job.getStatistic()).now();
+          }
+
           ofy().delete().entities(job).now();
         }
       });

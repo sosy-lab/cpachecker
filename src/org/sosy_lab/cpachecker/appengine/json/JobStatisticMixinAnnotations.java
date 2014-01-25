@@ -21,37 +21,43 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.common;
+package org.sosy_lab.cpachecker.appengine.json;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
 
-import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
-import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
-import com.googlecode.objectify.ObjectifyService;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Ignore
-public abstract class DatabaseTest {
 
-  private final LocalServiceTestHelper helper = new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig());
+public abstract class JobStatisticMixinAnnotations {
 
-  static {
-    ObjectifyService.register(Job.class);
-    ObjectifyService.register(JobFile.class);
-    ObjectifyService.register(JobStatistic.class);
+  @JsonAutoDetect(getterVisibility=Visibility.NONE,fieldVisibility=Visibility.NONE)
+
+  public abstract class Minimal extends JobStatistic {
+    @Override
+    @JsonProperty
+    public abstract String getKey();
+
+    @JsonProperty
+    long latency;
+
+    @JsonProperty
+    String host;
+
+    @Override
+    @JsonProperty("CPUTime")
+    public abstract double getMcyclesInSeconds();
   }
 
-  @Before
-  public void setUp() {
-    helper.setUp();
-  }
-
-  @After
-  public void tearDown() {
-    helper.tearDown();
+  public abstract class Full extends Minimal {
+    @JsonProperty
+    double cost;
+    @JsonProperty
+    long endTime;
+    @JsonProperty
+    long startTime;
+    @JsonProperty
+    long pendingTime;
   }
 }

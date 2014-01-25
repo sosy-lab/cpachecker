@@ -21,37 +21,31 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.common;
+package org.sosy_lab.cpachecker.appengine.dao;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import static com.googlecode.objectify.ObjectifyService.ofy;
+
 import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
 
-import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
-import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
-import com.googlecode.objectify.ObjectifyService;
+import com.googlecode.objectify.Key;
 
-@Ignore
-public abstract class DatabaseTest {
 
-  private final LocalServiceTestHelper helper = new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig());
+public class JobStatisticDAO {
 
-  static {
-    ObjectifyService.register(Job.class);
-    ObjectifyService.register(JobFile.class);
-    ObjectifyService.register(JobStatistic.class);
+  public static JobStatistic load(String key) {
+    try {
+      Key<JobStatistic> statsKey = Key.create(key);
+      return load(statsKey);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
   }
 
-  @Before
-  public void setUp() {
-    helper.setUp();
+  public static JobStatistic load(Key<JobStatistic> key) {
+    return ofy().load().key(key).now();
   }
 
-  @After
-  public void tearDown() {
-    helper.tearDown();
+  public static void save(JobStatistic stats) {
+    ofy().save().entity(stats).now();
   }
 }

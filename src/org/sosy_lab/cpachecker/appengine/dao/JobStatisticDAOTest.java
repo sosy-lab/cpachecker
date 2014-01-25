@@ -21,37 +21,43 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.appengine.common;
+package org.sosy_lab.cpachecker.appengine.dao;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
+import static org.junit.Assert.*;
+
+import org.junit.Test;
+import org.sosy_lab.cpachecker.appengine.common.DatabaseTest;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
 
-import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
-import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
-import com.googlecode.objectify.ObjectifyService;
+import com.googlecode.objectify.Key;
 
-@Ignore
-public abstract class DatabaseTest {
 
-  private final LocalServiceTestHelper helper = new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig());
+public class JobStatisticDAOTest extends DatabaseTest {
 
-  static {
-    ObjectifyService.register(Job.class);
-    ObjectifyService.register(JobFile.class);
-    ObjectifyService.register(JobStatistic.class);
-  }
+  private Job job;
 
-  @Before
+  @Override
   public void setUp() {
-    helper.setUp();
+    super.setUp();
+    job = new Job();
+    JobDAO.save(job);
   }
 
-  @After
-  public void tearDown() {
-    helper.tearDown();
+  @Test
+  public void shouldLoadStats() throws Exception {
+    JobStatistic stats = new JobStatistic(job);
+    JobStatisticDAO.save(stats);
+    JobStatistic loaded = JobStatisticDAO.load(Key.create(stats));
+
+    assertEquals(stats, loaded);
+  }
+
+  @Test
+  public void shouldSaveStats() throws Exception {
+    JobStatistic stats = new JobStatistic(job);
+    JobStatisticDAO.save(stats);
+
+    assertNotNull(stats.getId());
   }
 }
