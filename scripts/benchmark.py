@@ -1114,7 +1114,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt: # this block is reached, when interrupt is thrown before or after a run set execution
         if config.cloud:
             killScriptCloud()
-        if config.appengine:
+        elif config.appengine:
             killScriptAppEngine()
         else:
             killScriptLocal()
