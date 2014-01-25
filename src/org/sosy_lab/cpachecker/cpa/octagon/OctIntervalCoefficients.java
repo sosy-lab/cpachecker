@@ -151,6 +151,10 @@ public class OctIntervalCoefficients extends AOctCoefficients {
    */
   @Override
   public IOctCoefficients div(long coeff) {
+    if (coeff == 0) {
+      return null;
+    }
+
     OctIntervalCoefficients ret = new OctIntervalCoefficients(size);
     for (int i = 0; i < coefficients.length; i++) {
       ret.coefficients[i] = coefficients[i].divide(BigInteger.valueOf(coeff));
@@ -176,7 +180,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
    */
   @Override
   public IOctCoefficients div(IOctCoefficients oct) {
-    if (oct instanceof OctSimpleCoefficients && oct.hasOnlyConstantValue()) {
+    if (oct instanceof OctSimpleCoefficients && oct.hasOnlyConstantValue() && hasOnlyConstantValue()) {
       OctSimpleCoefficients tmp = (OctSimpleCoefficients) oct;
       return div(tmp.coefficients[tmp.coefficients.length-1].longValue());
     }

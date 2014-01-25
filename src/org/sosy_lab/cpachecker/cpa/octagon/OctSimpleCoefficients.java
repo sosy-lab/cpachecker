@@ -156,6 +156,10 @@ public class OctSimpleCoefficients extends AOctCoefficients {
    */
   @Override
   public IOctCoefficients div(long coeff) {
+    if (coeff == 0) {
+      return null;
+    }
+
     OctSimpleCoefficients ret = new OctSimpleCoefficients(size);
     for (int i = 0; i < coefficients.length; i++) {
       ret.coefficients[i] = coefficients[i].divide(BigInteger.valueOf(coeff));
@@ -183,10 +187,10 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   @Override
   public IOctCoefficients div(IOctCoefficients oct) {
     Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
-    if (hasOnlyConstantValue()) {
-      return oct.div(coefficients[coefficients.length-1].longValue());
-    } else if (oct.hasOnlyConstantValue() && oct instanceof OctSimpleCoefficients) {
-      return div(((OctSimpleCoefficients)oct).coefficients[((OctSimpleCoefficients)oct).coefficients.length-1].longValue());
+    if (hasOnlyConstantValue() && oct.hasOnlyConstantValue()) {
+      if (oct instanceof OctSimpleCoefficients) {
+        return div(((OctSimpleCoefficients) oct).getConstantValue().longValue());
+      }
     }
     return null;
   }
