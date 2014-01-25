@@ -964,17 +964,20 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     // TODO activate ART reuse again!
     System.out.println("TODO: activate ART reuse again!");
-    mReuseART = false;
+    //mReuseART = false;
 
     if (mReuseART) {
       ARTReuse.modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
 
-      if (mPrecision != null) {
+      // TODO activate predicate update again
+      System.err.println("TODO: activate predicate update again!");
+
+      /*if (mPrecision != null) {
         for (AbstractState lWaitlistElement : pReachedSet.getWaitlist()) {
         //for (AbstractElement lWaitlistElement : pReachedSet) {
           pReachedSet.updatePrecision(lWaitlistElement, mPrecision);
         }
-      }
+      }*/
     }
     else {
       pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.DFS); // TODO why does TOPSORT not exist anymore?

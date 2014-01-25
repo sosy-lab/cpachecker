@@ -41,9 +41,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonStateElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonElement;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public class ARTReuse {
@@ -89,32 +89,9 @@ public class ARTReuse {
 
           ARGState lARTElement = (ARGState)lAbstractElement;
 
-          boolean foundLocationState = false;
-          boolean metLocationState = false;
-
-          for (AbstractState lWrappedState : lARTElement.getWrappedStates()) {
-            if (lWrappedState instanceof LocationState) {
-              metLocationState = true;
-
-              LocationState locationState = (LocationState)lWrappedState;
-
-              foundLocationState = (locationState.getLocationNode() == lCFANode);
-
-              break;
-            }
-          }
-
-          if (!metLocationState) {
-            throw new RuntimeException("Implementation Error!"); // TODO Remove this again!!!
-          }
-
-          if (!foundLocationState) {
+          if (AbstractStates.extractLocation(lARTElement) != lCFANode) {
             continue;
           }
-
-          /*if (lARTElement.retrieveLocationElement().getLocationNode() != lCFANode) {
-            continue;
-          }*/
 
           // what's the semantics of getWrappedElement*s*()?
           CompositeState lCompositeElement = (CompositeState)lARTElement.getWrappedState();
