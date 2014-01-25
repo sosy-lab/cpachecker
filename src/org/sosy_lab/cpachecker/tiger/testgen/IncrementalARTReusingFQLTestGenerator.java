@@ -105,6 +105,7 @@ import org.sosy_lab.cpachecker.tiger.util.FeasibilityInformation;
 import org.sosy_lab.cpachecker.tiger.util.Goal;
 import org.sosy_lab.cpachecker.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.tiger.util.Wrapper;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
@@ -196,8 +197,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     try {
       lIdStarFQLSpecification = FQLSpecification.parse("COVER \"EDGES(ID)*\" PASSING EDGES(ID)*");
     } catch (Exception e1) {
-      // TODO Auto-generated catch block
-      e1.printStackTrace();
       throw new RuntimeException(e1);
     }
     ElementaryCoveragePattern lIdStarPattern = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(lIdStarFQLSpecification.getPathPattern());
@@ -291,9 +290,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       else {
         mPredicateCPA = lPredicateCPA;
       }
-    } catch (InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    } catch (CPAException e) {
+    } catch (InvalidConfigurationException | CPAException e) {
       throw new RuntimeException(e);
     }
 
@@ -357,17 +354,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
             return true;
           }
-        } catch (InvalidConfigurationException e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
-          throw new RuntimeException(e);
-        } catch (CPAException e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
-          throw new RuntimeException(e);
-        } catch (ImpreciseExecutionException e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
+        } catch (InvalidConfigurationException | CPAException | ImpreciseExecutionException e) {
           throw new RuntimeException(e);
         }
       }
@@ -704,9 +691,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
           try {
             lCFAPath = reconstructPath(mWrapper.getCFA(), lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
-          } catch (InvalidConfigurationException e) {
-            throw new RuntimeException(e);
-          } catch (CPAException e) {
+          } catch (InvalidConfigurationException | CPAException e) {
             throw new RuntimeException(e);
           } catch (ImpreciseExecutionException e) {
             lIsPrecise = false;
@@ -895,18 +880,14 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     PredicateCPARefiner lRefiner;
     try {
       lRefiner = PredicateRefiner.cpatiger_create(lARTCPA);
-    } catch (CPAException e) {
-      throw new RuntimeException(e);
-    } catch (InvalidConfigurationException e) {
+    } catch (CPAException | InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
 
     CEGARAlgorithmWithCounterexampleInfo lAlgorithm;
     try {
       lAlgorithm = new CEGARAlgorithmWithCounterexampleInfo(lBasicAlgorithm, lRefiner, mConfiguration, mLogManager);
-    } catch (InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    } catch (CPAException e) {
+    } catch (InvalidConfigurationException | CPAException e) {
       throw new RuntimeException(e);
     }
 
@@ -926,12 +907,16 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       // TODO activate predicate update again
       System.err.println("TODO: activate predicate update again!");
 
-      /*if (mPrecision != null) {
+      if (mPrecision != null) {
         for (AbstractState lWaitlistElement : pReachedSet.getWaitlist()) {
-        //for (AbstractElement lWaitlistElement : pReachedSet) {
-          pReachedSet.updatePrecision(lWaitlistElement, mPrecision);
+          //for (AbstractElement lWaitlistElement : pReachedSet) {
+
+          Precision lOldPrecision = pReachedSet.getPrecision(lWaitlistElement);
+          Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, mPrecision, PredicatePrecision.class);
+
+          pReachedSet.updatePrecision(lWaitlistElement, lNewPrecision);
         }
-      }*/
+      }
     }
     else {
       pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.DFS); // TODO why does TOPSORT not exist anymore?
@@ -1021,10 +1006,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     try {
       lAlgorithm.run(lReachedSet);
-    } catch (CPAException e) {
-      throw new RuntimeException(e);
-    } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
+    } catch (CPAException | InterruptedException e) {
       throw new RuntimeException(e);
     }
 
@@ -1101,10 +1083,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     try {
       lAlgorithm.run(lReachedSet);
-    } catch (CPAException e) {
-      throw new RuntimeException(e);
-    } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
+    } catch (CPAException | InterruptedException e) {
       throw new RuntimeException(e);
     }
 
@@ -1184,9 +1163,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       lARTCPA = (ARGCPA)lARTCPAFactory.createInstance();
       //lARTCPA.precisionAdjustment.deactivate();
-    } catch (InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    } catch (CPAException e) {
+    } catch (InvalidConfigurationException | CPAException e) {
       throw new RuntimeException(e);
     }
 
@@ -1222,10 +1199,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     try {
       lBasicAlgorithm.run(pReachedSet);
-    } catch (CPAException e) {
-      throw new RuntimeException(e);
-    } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
+    } catch (CPAException | InterruptedException e) {
       throw new RuntimeException(e);
     }
 
