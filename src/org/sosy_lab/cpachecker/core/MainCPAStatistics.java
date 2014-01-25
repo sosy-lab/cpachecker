@@ -523,7 +523,9 @@ class MainCPAStatistics implements Statistics {
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
         }
-        memStats.printStatistics(out);
+        if (!memStatsThread.isAlive()) {
+          memStats.printStatistics(out);
+        }
       }
     }
   }
