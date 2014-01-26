@@ -77,6 +77,15 @@ public class OctSimpleCoefficients extends AOctCoefficients {
     coefficients[size] = BigInteger.valueOf(value);
   }
 
+  @Override
+  public OctSimpleCoefficients fitToSize(int size) {
+    Preconditions.checkArgument(hasOnlyConstantValue(), "changing size is only possible when there are no values besides constant ones");
+    OctSimpleCoefficients oct = new OctSimpleCoefficients(size);
+    oct.coefficients[size] = coefficients[coefficients.length-1];
+    oct.isInfite[size] = isInfite[coefficients.length-1];
+    return oct;
+  }
+
   /**
    * {@inheritDoc}
    */

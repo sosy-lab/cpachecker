@@ -82,6 +82,17 @@ public class OctIntervalCoefficients extends AOctCoefficients {
     coefficients[size*2 +1] = BigInteger.valueOf(upperBound);
   }
 
+  @Override
+  public OctIntervalCoefficients fitToSize(int size) {
+    Preconditions.checkArgument(hasOnlyConstantValue(), "changing size is only possible when there are no values besides constant ones");
+    OctIntervalCoefficients oct = new OctIntervalCoefficients(size);
+    oct.coefficients[oct.coefficients.length-1] = coefficients[coefficients.length-1];
+    oct.coefficients[oct.coefficients.length-2] = coefficients[coefficients.length-2];
+    oct.isInfite[oct.coefficients.length-1] = isInfite[coefficients.length-1];
+    oct.isInfite[oct.coefficients.length-2] = isInfite[coefficients.length-2];
+    return oct;
+  }
+
   /**
    * {@inheritDoc}
    */

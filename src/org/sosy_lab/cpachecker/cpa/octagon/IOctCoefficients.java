@@ -41,6 +41,8 @@ interface IOctCoefficients {
    */
   public abstract int size();
 
+  public abstract IOctCoefficients fitToSize(int size);
+
   /**
    * Adds two OctCoefficients.
    * @return The new added Coefficient.

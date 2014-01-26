@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.octagon;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -94,6 +96,7 @@ class OctState implements AbstractState {
 
   // mapping from variable name to its identifier
   private BiMap<String, Integer> variableToIndexMap;
+  private Map<String, IOctCoefficients> variableToCoeffMap;
 
   private LogManager logger;
 
@@ -101,15 +104,17 @@ class OctState implements AbstractState {
   public OctState(LogManager log) {
     octagon = OctagonManager.universe(0);
     variableToIndexMap = HashBiMap.create();
+    variableToCoeffMap = new HashMap<>();
     logger = log;
 
     // cleanup old octagons
     Octagon.removePhantomReferences();
   }
 
-  public OctState(Octagon oct, BiMap<String, Integer> map, LogManager log) {
+  public OctState(Octagon oct, BiMap<String, Integer> map, Map<String, IOctCoefficients> coeffMap, LogManager log) {
     octagon = oct;
     variableToIndexMap = map;
+    variableToCoeffMap = coeffMap;
     logger = log;
 
     // cleanup old octagons
@@ -173,6 +178,10 @@ class OctState implements AbstractState {
     return variableToIndexMap;
   }
 
+  public Map<String, IOctCoefficients> getVariableToCoeffMap() {
+    return variableToCoeffMap;
+  }
+
   public boolean isEmpty() {
     return OctagonManager.isEmpty(octagon);
   }
@@ -186,15 +195,23 @@ class OctState implements AbstractState {
       newMap.put(e.getKey(), e.getValue());
     }
 
-    return new OctState(newOct, newMap, logger);
+    Map<String, IOctCoefficients> newCoeffMap = new HashMap<>();
+    for (Entry<String, IOctCoefficients> e: variableToCoeffMap.entrySet()) {
+      newCoeffMap.put(e.getKey(), e.getValue());
+    }
+
+    return new OctState(newOct, newMap, newCoeffMap, logger);
   }
 
   /**
    * This method sets the coefficients/ the value of a variable to undefined.
    */
   public OctState forget(String pVariableName) {
+    Map<String, IOctCoefficients> map = new HashMap<>(variableToCoeffMap);
+    map.put(pVariableName, null);
     return new OctState(OctagonManager.forget(octagon, getVariableIndexFor(pVariableName)),
                         HashBiMap.create(variableToIndexMap),
+                        map,
                         logger);
   }
 
@@ -226,8 +243,10 @@ class OctState implements AbstractState {
     assert (!variableToIndexMap.containsKey(varName));
     OctState newState = new OctState(OctagonManager.addDimensionAndEmbed(octagon, 1),
                                      HashBiMap.create(variableToIndexMap),
+                                     new HashMap<>(variableToCoeffMap),
                                      logger);
     newState.variableToIndexMap.put(varName, sizeOfVariables());
+    newState.variableToCoeffMap.put(varName, coeffs);
 
     if (coeffs == null) {
       // TODO necessary???
@@ -247,8 +266,10 @@ class OctState implements AbstractState {
     assert (!variableToIndexMap.containsKey(varName));
     OctState newState = new OctState(OctagonManager.addDimensionAndEmbed(octagon, 1),
                                      HashBiMap.create(variableToIndexMap),
+                                     new HashMap<>(variableToCoeffMap),
                                      logger);
     newState.variableToIndexMap.put(varName, sizeOfVariables());
+    newState.variableToCoeffMap.put(varName, null);
 
     if (coeffs == null) {
       // TODO necessary???
@@ -277,8 +298,10 @@ class OctState implements AbstractState {
     NumArray arr = oct.getNumArray();
     OctState newState = new OctState(OctagonManager.assingVar(octagon, getVariableIndexFor(leftVarName), arr),
                                      HashBiMap.create(variableToIndexMap),
+                                     new HashMap<>(variableToCoeffMap),
                                      logger);
     OctagonManager.num_clear_n(arr, oct.size());
+    newState.variableToCoeffMap.put(leftVarName, oct);
     return newState;
   }
 
@@ -288,11 +311,12 @@ class OctState implements AbstractState {
    */
   private OctState makeAssignment(String leftVarName, OctIntervalCoefficients oct) {
     NumArray arr = oct.getNumArray();
-    System.out.println("assigning:\n" + oct);
     OctState newState = new OctState(OctagonManager.intervAssingVar(octagon, getVariableIndexFor(leftVarName), arr),
                                      HashBiMap.create(variableToIndexMap),
+                                     new HashMap<>(variableToCoeffMap),
                                      logger);
     OctagonManager.num_clear_n(arr, oct.size());
+    newState.variableToCoeffMap.put(leftVarName, oct);
     return newState;
   }
 
@@ -307,6 +331,7 @@ class OctState implements AbstractState {
     OctagonManager.num_set_int(arr, 3, constantValue);
     OctState newState = new OctState(OctagonManager.addBinConstraint(octagon, 1, arr),
                                      HashBiMap.create(variableToIndexMap),
+                                     new HashMap<>(variableToCoeffMap),
                                      logger);
     OctagonManager.num_clear_n(arr, 4);
     return newState;
@@ -460,6 +485,7 @@ class OctState implements AbstractState {
 
     OctState newState = new OctState(OctagonManager.removeDimension(octagon, keysToRemove.size()),
                                      HashBiMap.create(variableToIndexMap),
+                                     new HashMap<>(variableToCoeffMap),
                                      logger);
     newState.variableToIndexMap.keySet().removeAll(keysToRemove);
 
