@@ -346,15 +346,16 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     Builder configurationBuilder = Configuration.builder();
     configurationBuilder.setOptions(DefaultOptions.getDefaultOptions());
 
-    if (job.getSpecification() != null) {
-      configurationBuilder.setOption("specification", "WEB-INF/specifications/" + job.getSpecification());
-    }
     if (job.getConfiguration() != null) {
       configurationBuilder.loadFromFile(Paths.get("WEB-INF", "configurations", job.getConfiguration()));
     }
     configurationBuilder
         .loadFromFile(Paths.get("WEB-INF", "default-options.properties"))
+        .setOption("analysis.programNames", job.getSourceFileName())
         .setOptions(job.getOptions());
+    if (job.getSpecification() != null) {
+      configurationBuilder.setOption("specification", "WEB-INF/specifications/" + job.getSpecification());
+    }
     Configuration configuration = configurationBuilder.build();
 
     FileTypeConverter fileTypeConverter = new FileTypeConverter(configuration);
