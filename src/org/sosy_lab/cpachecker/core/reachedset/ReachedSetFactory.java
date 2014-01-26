@@ -28,7 +28,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.waitlist.AutomatonWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
@@ -87,7 +88,8 @@ public class ReachedSetFactory {
     WaitlistFactory waitlistFactory = traversalMethod;
 
     if (useAutomatonInformation) {
-      waitlistFactory = AutomatonWaitlist.factory(waitlistFactory);
+      waitlistFactory = AutomatonMatchesWaitlist.factory(waitlistFactory);
+      waitlistFactory = AutomatonFailedMatchesWaitlist.factory(waitlistFactory);
     }
     if (useReversePostorder || useTopsort) {
       waitlistFactory = ReversePostorderSortedWaitlist.factory(waitlistFactory);

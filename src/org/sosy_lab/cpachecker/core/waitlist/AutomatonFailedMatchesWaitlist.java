@@ -28,9 +28,9 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 
-public class AutomatonWaitlist extends AbstractSortedWaitlist<Integer> {
+public class AutomatonFailedMatchesWaitlist extends AbstractSortedWaitlist<Integer> {
 
-  protected AutomatonWaitlist(WaitlistFactory pSecondaryStrategy) {
+  protected AutomatonFailedMatchesWaitlist(WaitlistFactory pSecondaryStrategy) {
     super(pSecondaryStrategy);
   }
 
@@ -39,8 +39,7 @@ public class AutomatonWaitlist extends AbstractSortedWaitlist<Integer> {
     AutomatonState automatonState =
       AbstractStates.extractStateByType(pState, AutomatonState.class);
 
-    // negate size so that the highest key corresponds to the smallest map
-    return (automatonState != null) ? automatonState.getMatches() : 0;
+    return (automatonState != null) ? automatonState.getFailedMatches() : 0;
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
@@ -48,7 +47,7 @@ public class AutomatonWaitlist extends AbstractSortedWaitlist<Integer> {
 
       @Override
       public Waitlist createWaitlistInstance() {
-        return new AutomatonWaitlist(pSecondaryStrategy);
+        return new AutomatonFailedMatchesWaitlist(pSecondaryStrategy);
       }
     };
   }

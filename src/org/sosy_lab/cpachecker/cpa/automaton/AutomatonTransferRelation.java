@@ -189,6 +189,7 @@ class AutomatonTransferRelation implements TransferRelation {
     Collection<AutomatonState> lSuccessors = new HashSet<>(2);
     AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
+    int failedMatches = 0;
     boolean nonDetState = state.getInternalState().isNonDetState();
 
     // these transitions cannot be evaluated until last, because they might have sideeffects on other CPAs (dont want to execute them twice)
@@ -237,7 +238,7 @@ class AutomatonTransferRelation implements TransferRelation {
 
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
-            AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa);
+            AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0);
             logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getDescription() + "\"");
             lSuccessors.add(errorState);
           }
@@ -246,8 +247,10 @@ class AutomatonTransferRelation implements TransferRelation {
             // not a nondet State, break on the first matching edge
             break;
           }
+        } else {
+          // do nothing if the edge did not match
+          failedMatches++;
         }
-        // do nothing if the edge did not match
       }
     }
 
@@ -263,16 +266,18 @@ class AutomatonTransferRelation implements TransferRelation {
         exprArgs.putTransitionVariables(transitionVariables);
         t.executeActions(exprArgs);
         actionTime.stop();
-        AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), cpa);
-        lSuccessor.setMatches(state.getMatches() + 1);
+        AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), cpa, state.getMatches() + 1, state.getFailedMatches());
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {
           lSuccessors.add(lSuccessor);
-        } // else add nothing
+        } else {
+          // add nothing
+        }
       }
       return lSuccessors;
     } else {
       // stay in same state, no transitions to be executed here (no transition matched)
-      return Collections.singleton(state);
+      AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(state.getVars(), state.getInternalState(), cpa, state.getMatches(), state.getFailedMatches() + failedMatches);
+      return Collections.singleton(stateNewCounters);
     }
   }
 
