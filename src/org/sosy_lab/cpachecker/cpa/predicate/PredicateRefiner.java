@@ -81,7 +81,7 @@ public abstract class PredicateRefiner implements Refiner {
         strategy);
   }
 
-  public static PredicateCPARefiner cpatiger_create(ConfigurableProgramAnalysis pCpa /*, Builder<CFANode,AbstractionPredicate> pBuilder, Set<AbstractionPredicate> pMGlobalPredicates*/ ) throws CPAException, InvalidConfigurationException {
+  public static PredicateCPARefiner cpatiger_create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " needs a PredicateCPA");
@@ -104,15 +104,6 @@ public abstract class PredicateRefiner implements Refiner {
         logger);
 
     PathChecker pathChecker = new PathChecker(logger, pfmgr, solver);
-
-    // TODO create different PredicateAbstractionRefinementStrategy
-    System.out.println("TODO: created different PredicateAbstractionRefinementStrategy!");
-
-
-    // incorporate this in the refinement strategy
-    //mBuilder.putAll(refinementResult.getSecond().getPredicateMap());
-    //mGlobalPredicates.addAll(refinementResult.getSecond().getGlobalPredicates());
-
 
     RefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
         config,
