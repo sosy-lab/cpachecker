@@ -199,9 +199,9 @@ class AppEngineSubmitter(threading.Thread):
             
             self.submittedJobs += 1
 
-#             if self.submittedJobs == 10:
-#                 logging.debug('SUBMITTED %s JOBS'%self.submittedJobs)
-#                 break
+#             if self.submittedJobs == 10: break
+        
+        logging.debug('Submitting finished with %i submitted jobs.'%self.submittedJobs)
         self.done = True
                 
 class AppEnginePoller(threading.Thread):
@@ -230,7 +230,7 @@ class AppEnginePoller(threading.Thread):
                         response = json.loads(urllib2.urlopen(request).read())
                         status = response['status']
                         if status in ['DONE', 'TIMEOUT', 'ERROR']:
-                            logging.debug('Job %s has finished.'%jobID)
+                            logging.debug('Job {0} finished. Status: {1}'.format(jobID,status))
                             job['status'] = status
                             self.saveResult(job, response)
                             nextJobIndex += 1
@@ -247,7 +247,11 @@ class AppEnginePoller(threading.Thread):
                             time.sleep(config.appenginePollInterval)
                             
                     except urllib2.HTTPError as e:
-                        sys.exit('Server error while polling job results. {0}'.format(e.reason))
+                        nextJobIndex += 1
+                        finishedJobs += 1
+                        job['status'] = 'ERROR'
+                        self.saveResult(job, None)
+                        logging.warn('Server error while polling job {0}: {1} {2}'.format(jobID,e.code,e.reason))
                     except:
                         sys.exit('Error while polling jobs. {0}'.format(sys.exc_info()[0]))
                 
