@@ -68,6 +68,8 @@ import com.google.common.base.Charsets;
 
 public class JobsServerResource extends WadlServerResource implements JobsResource {
 
+  private static String DEFAULT_FILENAME = "program.c";
+
   private Job createdJob = null;
 
   @Override
@@ -115,7 +117,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
             break;
           case "programText":
             if (program == null || program.isEmpty()) {
-              settings.put("sourceFileName", "program.c");
+              settings.put("sourceFileName", DEFAULT_FILENAME);
               program = value;
             }
             break;
@@ -239,10 +241,13 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
     createdJob = new Job(JobDAO.allocateKey().getId());
     createdJob.setSpecification((String) settings.get("specification"));
     createdJob.setConfiguration((String) settings.get("configuration"));
-    createdJob.setSourceFileName((String) settings.get("sourceFileName"));
     if (settings.get("options") != null) {
       createdJob.setOptions((Map<String, String>) settings.get("options"));
     }
+
+    String fileName = (String) settings.get("sourceFileName");
+    fileName = (fileName == null || fileName.equals("")) ? DEFAULT_FILENAME : fileName;
+    createdJob.setSourceFileName(fileName);
     JobFile program = new JobFile(createdJob.getSourceFileName(), createdJob);
     program.setContent((String) settings.get("programText"));
 
