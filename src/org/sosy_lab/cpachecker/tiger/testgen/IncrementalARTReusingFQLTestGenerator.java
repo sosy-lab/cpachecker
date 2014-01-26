@@ -330,13 +330,12 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   }
 
   private boolean applyCoverageCheck(Goal pGoal, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pGoalAutomaton, GuardedEdgeAutomatonCPA pPassingCPA, CPAtigerResult.Factory pResultFactory) {
+    GuardedEdgeAutomatonCPA lAutomatonCPA = null;
+
     for (Map.Entry<TestCase, CFAEdge[]> lGeneratedTestCase : mGeneratedTestCases.entrySet()) {
       TestCase lTestCase = lGeneratedTestCase.getKey();
 
-      if (!lTestCase.isPrecise()) {
-        //throw new RuntimeException();
-        continue; // don't use imprecise test cases for coverage
-      }
+      assert (lTestCase.isPrecise());
 
       ThreeValuedAnswer lCoverageAnswer = CPAtiger.accepts(pGoalAutomaton, lGeneratedTestCase.getValue());
 
@@ -346,8 +345,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         return true;
       }
       else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
-        // TODO reuse this CPA in run method
-        GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(pGoalAutomaton);
+        if (lAutomatonCPA == null) {
+          // TODO reuse this CPA in run method
+          lAutomatonCPA = new GuardedEdgeAutomatonCPA(pGoalAutomaton);
+        }
 
         try {
           if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, pPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
@@ -411,30 +412,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       lGoalPatterns = lTranslator.createElementaryCoveragePatternsAndClusters();
 
-      /*IncrementalCoverageSpecificationTranslator lTranslator2 = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
-      Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator2.translate(lFQLSpecification.getCoverageSpecification());
-      for (int lGoalIndex = 0; lGoalIndex < lNumberOfTestGoals; lGoalIndex++) {
-        ClusteredElementaryCoveragePattern lGoal1 = (ClusteredElementaryCoveragePattern)lGoalPatterns[lGoalIndex];
-        ECPConcatenation lGoal2 = (ECPConcatenation)lGoalIterator.next();
-
-        ECPConcatenation lGoal1Prime = (ECPConcatenation)lGoal1.getWrappedPattern();
-
-        if (lGoal2.size() != lGoal1Prime.size()) {
-          System.out.println("sizes " + lGoal2.size() + " vs. " + lGoal1Prime.size());
-          //throw new RuntimeException("sizes " + lGoal2.size() + " vs. " + lGoal1Prime.size());
-        }
-
-        for (int u = 0; u < lGoal2.size(); u++) {
-          if (!lGoal2.get(u).equals(lGoal1Prime.get(u))) {
-            throw new RuntimeException("moohoohoo");
-          }
-        }
-
-        if (!lGoal1Prime.equals(lGoal2)) {
-          throw new RuntimeException("unequality at index " + lGoalIndex);
-        }
-      }*/
-
       mOutput.println("done.");
     }
     else {
@@ -467,8 +444,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     int lIndex = 0;
 
-    boolean pHadProgress = false;
-
     long[] lGoalRuntime = new long[lNumberOfTestGoals];
     InfeasibilityPropagation.Prediction[] lGoalPrediction = new InfeasibilityPropagation.Prediction[lNumberOfTestGoals];
 
@@ -485,25 +460,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       long lStartTime = System.currentTimeMillis();
 
-      if (mDoRestart) {
-        throw new RuntimeException("IMPLEMENT RESTART FUNCTIONALITY PROPERLY");
-
-        /*try {
-          Sigar lSigar = new Sigar();
-
-          Mem lMemory = lSigar.getMem();
-
-          if (pHadProgress && lMemory.getFree() < mRestartBound) {
-            mOutput.println("SHUTDOWN TEST GENERATION");
-
-            lResultFactory.setUnfinished();
-
-            break;
-          }
-        } catch (SigarException e) {
-          throw new RuntimeException(e);
-        }*/
-      }
 
       lIndex++;
 
@@ -538,8 +494,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         mOutput.println("Stored information: " + mFeasibilityInformation.getStatus(lIndex));
         continue;
       }
-
-      pHadProgress = true;
 
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
 
