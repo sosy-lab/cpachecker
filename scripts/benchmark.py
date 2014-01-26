@@ -68,7 +68,7 @@ DEFAULT_CLOUD_CPUCORE_REQUIREMENT = 1 # one core
 DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
 
 DEFAULT_APPENGINE_URI = 'http://dev.ba-lab.appspot.com'
-DEFAULT_APPENGINE_POLLINTERVAL = 60 # seconds
+DEFAULT_APPENGINE_POLLINTERVAL = 180 # seconds (== 3 minutes)
 DEFAULT_APPENGINE_TIMELIMIT = 540 # seconds (== 9 minutes)
 APPENGINE_TIMEOUT_GRACE_PERIOD = 120 # seconds (== 2 minutes)
 APPENGINE_SUBMITTER_THREAD = None
