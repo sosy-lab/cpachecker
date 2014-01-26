@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.tiger.interfaces;
+package org.sosy_lab.cpachecker.tiger.core.interfaces;
 
 import java.util.Collection;
 

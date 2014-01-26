@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
+import org.sosy_lab.cpachecker.tiger.core.interfaces.FQLCoverageAnalyser;
 import org.sosy_lab.cpachecker.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.SingletonECPEdgeSet;
@@ -72,7 +73,6 @@ import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.InverseGuardedEdgeLabel
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
-import org.sosy_lab.cpachecker.tiger.interfaces.FQLCoverageAnalyser;
 import org.sosy_lab.cpachecker.tiger.testcases.CRESTToFShell3;
 import org.sosy_lab.cpachecker.tiger.testcases.FShell2ToFShell3;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;

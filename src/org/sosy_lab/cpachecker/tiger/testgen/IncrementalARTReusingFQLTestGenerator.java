@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.tiger.clustering.ClusteredElementaryCoveragePatte
 import org.sosy_lab.cpachecker.tiger.clustering.InfeasibilityPropagation;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.core.CPAtigerResult;
+import org.sosy_lab.cpachecker.tiger.core.interfaces.FQLTestGenerator;
 import org.sosy_lab.cpachecker.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.tiger.fql.ast.FQLSpecification;
@@ -96,7 +97,6 @@ import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.ToGuardedAutomatonTrans
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.ClusteringCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
-import org.sosy_lab.cpachecker.tiger.interfaces.FQLTestGenerator;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseInputsTestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
