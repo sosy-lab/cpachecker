@@ -99,6 +99,7 @@ import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.CoverageSpecificationTr
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.tiger.interfaces.FQLTestGenerator;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;
+import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseInputsTestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestSuite;
 import org.sosy_lab.cpachecker.tiger.util.FeasibilityInformation;
@@ -456,7 +457,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     int lNumberOfCFAInfeasibleGoals = 0;
 
-    ReachedSet lPredicateReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.DFS); // TODO why does TOPSORT not exist anymore?
+    ReachedSet lPredicateReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lPreviousGoalAutomaton = null;
 
     ReachedSet lGraphReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.DFS);
@@ -637,8 +638,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           int lTmpIndex = lIndex; // caution lIndex starts at 0
 
           while (lRemainingPatterns.hasNext()) {
-            //System.out.println("lTmpIndex: " + lTmpIndex);
-
             InfeasibilityPropagation.Prediction lPrediction = lGoalPrediction[lTmpIndex];
 
             ClusteredElementaryCoveragePattern lRemainingPattern = lRemainingPatterns.next();
@@ -684,6 +683,12 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
         mTestSuite.add(lTestCase);
 
+        // TODO is this useful?
+        if (!lTestCase.isPrecise()) {
+          // derive a precise test case
+          lTestCase = ((ImpreciseInputsTestCase)lTestCase).toPreciseTestCase();
+        }
+
         if (lTestCase.isPrecise()) {
           CFAEdge[] lCFAPath = null;
 
@@ -697,9 +702,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
             lIsPrecise = false;
             lTestCase = e.getTestCase();
 
-            if (pPedantic) {
+            // TODO move forward
+            /*if (pPedantic) {
               throw new RuntimeException(e);
-            }
+            }*/
           }
 
           if (lIsPrecise) {
@@ -807,8 +813,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   }
 
   public PredicatePrecision mPrecision;
-  /*public ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> mBuilder = new ImmutableSetMultimap.Builder<>();
-  public HashSet<AbstractionPredicate> mGlobalPredicates = new HashSet<>();*/
 
   private CounterexampleInfo reach(CFA pCFA, ReachedSet pReachedSet, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, GuardedEdgeAutomatonCPA pAutomatonCPA, FunctionEntryNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
     mTimeInReach.proceed();
@@ -904,12 +908,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     if (mReuseART) {
       ARTReuse.modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
 
-      // TODO activate predicate update again
-      System.err.println("TODO: activate predicate update again!");
-
       if (mPrecision != null) {
         for (AbstractState lWaitlistElement : pReachedSet.getWaitlist()) {
-          //for (AbstractElement lWaitlistElement : pReachedSet) {
+        //for (AbstractState lWaitlistElement : pReachedSet) {
 
           Precision lOldPrecision = pReachedSet.getPrecision(lWaitlistElement);
           Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, mPrecision, PredicatePrecision.class);
@@ -919,7 +920,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       }
     }
     else {
-      pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.DFS); // TODO why does TOPSORT not exist anymore?
+      pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
 
       AbstractState lInitialElement = lARTCPA.getInitialState(pEntryNode);
       Precision lInitialPrecision = lARTCPA.getInitialPrecision(pEntryNode);
@@ -949,14 +950,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       // we have shown the infeasibility of the test goal (given the assumption that the algorithm completed)
       lCounterexampleInfo = null; // TODO I guess this can't stay like that
     }
-
-    System.err.println("TODO: handle PredicatePrecision!");
-    /*
-    mPrecision = new PredicatePrecision(mBuilder.build(), mGlobalPredicates);
-
-    if (mPrintPredicateStatistics) {
-      printPredicateStatistics(pReachedSet, lPredicateCPAIndex);
-    }*/
 
     mTimeInReach.pause();
 
