@@ -141,15 +141,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private int mMinIndex = 0;
   private int mMaxIndex = Integer.MAX_VALUE;
 
-  private boolean mDoRestart = false;
-  private long mRestartBound = 100000000; // 100 MB
-
   private boolean mUseAutomatonOptimization = true;
   private boolean mUseGraphCPA = false; // TODO disabled it since it causes a bug when doing FQL queries with PASSING clause
   private boolean mReuseART = true;
   private boolean mUseInfeasibilityPropagation = true;
-
-  private boolean mPrintPredicateStatistics = false;
 
   private FeasibilityInformation mFeasibilityInformation;
   private TestSuite mTestSuite;
@@ -174,14 +169,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   public void setGoalIndices(int pMinIndex, int pMaxIndex) {
     mMinIndex = pMinIndex;
     mMaxIndex = pMaxIndex;
-  }
-
-  public void doRestart() {
-    mDoRestart = true;
-  }
-
-  public void setRestartBound(long pRestartBound) {
-    mRestartBound = pRestartBound;
   }
 
   public void setFeasibilityInformation(FeasibilityInformation pFeasibilityInformation) {
@@ -452,7 +439,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       lGoalPrediction[i] = InfeasibilityPropagation.Prediction.UNKNOWN; // value indicating unknown prediction
     }
 
-    //while (lGoalIterator.hasNext()) {
     while (lIndex < lGoalPatterns.length) {
       if (lIndex > 0) {
         mOutput.println("Goal #" + (lIndex) + " needed " + lGoalRuntime[lIndex - 1] + " ms");
@@ -473,7 +459,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       }
 
 
-      //ElementaryCoveragePattern lGoalPattern = lGoalIterator.next();
       ElementaryCoveragePattern lGoalPattern = lGoalPatterns[lIndex - 1];
 
       mOutput.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
@@ -587,8 +572,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
           ListIterator<ClusteredElementaryCoveragePattern> lRemainingPatterns = lClusteredPattern.getRemainingElementsInCluster();
 
-          //int lTmpIndex = lIndex + 1;
-          // TODO check again!
           int lTmpIndex = lIndex; // caution lIndex starts at 0
 
           while (lRemainingPatterns.hasNext()) {
@@ -607,7 +590,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
           lRemainingPatterns = lClusteredPattern.getRemainingElementsInCluster();
 
-          //lTmpIndex = lIndex + 1;
           lTmpIndex = lIndex;
 
           int lPredictedElements = 0;
@@ -655,11 +637,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           } catch (ImpreciseExecutionException e) {
             lIsPrecise = false;
             lTestCase = e.getTestCase();
-
-            // TODO move forward
-            /*if (pPedantic) {
-              throw new RuntimeException(e);
-            }*/
           }
 
           if (lIsPrecise) {
@@ -671,8 +648,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
             mGeneratedTestCases.put(lTestCase, lCFAPath);
 
             mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
-
-
 
             InfeasibilityPropagation.Prediction lCurrentPrediction = lGoalPrediction[lIndex - 1];
 
@@ -706,12 +681,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           if (!lCurrentPrediction.equals(InfeasibilityPropagation.Prediction.UNKNOWN)) {
             throw new RuntimeException("missmatching prediction");
           }
-/*
-          if (!pPedantic) {
-          //if (true) {
-            // TODO implement reconstruction of path
-            throw new RuntimeException();
-          }*/
         }
 
         lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
@@ -796,8 +765,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     int lProductAutomatonIndex = lComponentAnalyses.size();
     lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
 
-    int lPredicateCPAIndex = lComponentAnalyses.size();
-
     lComponentAnalyses.add(mPredicateCPA);
 
     lComponentAnalyses.add(mAssumeCPA);
@@ -820,10 +787,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       lARTCPAFactory.setLogger(mLogManager);
 
       lARTCPA = (ARGCPA)lARTCPAFactory.createInstance();
-/*
-      lARTCPA.precisionAdjustment.setCache(mInfeasibilityCache);
-      lARTCPA.precisionAdjustment.setPredicateCPAIndex(lPredicateCPAIndex);
-      lARTCPA.precisionAdjustment.setAutomatonCPAIndex(lProductAutomatonIndex);*/
     } catch (InvalidConfigurationException | CPAException e) {
       throw new RuntimeException(e);
     }
@@ -864,8 +827,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       if (mPrecision != null) {
         for (AbstractState lWaitlistElement : pReachedSet.getWaitlist()) {
-        //for (AbstractState lWaitlistElement : pReachedSet) {
-
           Precision lOldPrecision = pReachedSet.getPrecision(lWaitlistElement);
           Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, mPrecision, PredicatePrecision.class);
 

@@ -217,10 +217,10 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
             throw new RuntimeException(e);
           }
 
-          if (mDoRestart) {
+          /*if (mDoRestart) {
             mIncrementalARTReusingTestGenerator.doRestart();
             mIncrementalARTReusingTestGenerator.setRestartBound(mRestartBound);
-          }
+          }*/
 
           CPAtigerResult lResult = mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
 
@@ -270,11 +270,8 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
 
     // parse code file
     try {
-      //cfa = lCFACreator.parseFileAndCreateCFA(Collections.singletonList(pSourceFileName));
       cfa = lCFACreator.cpatiger_parseFileAndCreateCFA(Collections.singletonList(pSourceFileName));
     } catch (Exception e) {
-      e.printStackTrace();
-
       throw new RuntimeException(e);
     }
 
@@ -350,8 +347,7 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
                                     .setOptions(lCommandLineOptions)
                                     .build();
     } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      throw new RuntimeException(e);
     }
 
     return lConfiguration;
