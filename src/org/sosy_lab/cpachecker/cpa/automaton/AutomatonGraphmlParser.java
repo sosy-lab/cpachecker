@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Writer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -44,7 +45,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchEdgeTokens;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
@@ -79,7 +82,8 @@ public class AutomatonGraphmlParser {
       if (whitelist.contains(t)) {
         if (t.getTrigger() instanceof AutomatonBoolExpr.MatchEdgeTokens) {
           AutomatonBoolExpr.MatchEdgeTokens matcher = (AutomatonBoolExpr.MatchEdgeTokens) t.getTrigger();
-          if (matcher.getMatchTokens().equals(tokens)) {
+          // Subset!
+          if (tokens.containsAll(matcher.getMatchTokens())) {
             it.remove();
           }
         }
@@ -140,8 +144,12 @@ public class AutomatonGraphmlParser {
         Optional<Boolean> matchNegativeSemantics = Optional.absent();
         if (considerNegativeSemanticsAttribute) {
           switch(docDat.getDataValueWithDefault(stateTransitionEdge, KeyDef.TOKENSNEGATED, "").toLowerCase()) {
-            case "true": matchNegativeSemantics = Optional.of(true); break;
-            case "false": matchNegativeSemantics = Optional.of(false); break;
+            case "true":
+              matchNegativeSemantics = Optional.of(true);
+              break;
+            case "false":
+              matchNegativeSemantics = Optional.of(false);
+              break;
           }
         }
 
@@ -165,11 +173,6 @@ public class AutomatonGraphmlParser {
         removeTransitions(auxilaryTransitions, transitions, matchTokens);
         if (targetStateId.equalsIgnoreCase(SINK_NODE_ID)) {
           transitions.add(new AutomatonTransition(trigger, assertions, actions, AutomatonInternalState.BOTTOM));
-          if (!matchTokens.isEmpty()) {
-            AutomatonTransition tr = new AutomatonTransition(new AutomatonBoolExpr.Negation(trigger), assertions, actions, AutomatonInternalState.BOTTOM);
-            auxilaryTransitions.add(tr);
-            transitions.add(tr);
-          }
         } else {
           // Set of tokens
           transitions.add(new AutomatonTransition(trigger, assertions, actions, targetStateId));
@@ -224,11 +227,11 @@ public class AutomatonGraphmlParser {
       Automaton automaton = new Automaton(automatonName, automatonVariables, automatonStates, initialStateName);
       result.add(automaton);
 
-//      try (Writer w = Files.openOutputFile(Paths.get("autom_test.dot"))) {
-//        automaton.writeDotFile(w);
-//      } catch (IOException e) {
-//        //logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
-//      }
+      try (Writer w = Files.openOutputFile(Paths.get("autom_test.dot"))) {
+        automaton.writeDotFile(w);
+      } catch (IOException e) {
+        //logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+      }
 
       return result;
 

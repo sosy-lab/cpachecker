@@ -246,7 +246,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       if (match && matchNegatedSemantics.isPresent()) {
         if (pArgs.getCfaEdge() instanceof AssumeEdge) {
           AssumeEdge a = (AssumeEdge) pArgs.getCfaEdge();
-          if (matchNegatedSemantics.get() && a.getTruthAssumption()) {
+          if (matchNegatedSemantics.get() == a.getTruthAssumption()) {
             match = false;
           }
         } else {
@@ -267,7 +267,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public String toString() {
-      return "MATCH TOKENS " + matchTokens;
+      return "MATCH TOKENS " + matchTokens + " " + matchNegatedSemantics;
     }
   }
 
