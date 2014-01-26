@@ -228,7 +228,10 @@ class GlobalScope implements Scope {
       // We now have a real declaration for a type for which we have seen a forward declaration
       // We set a reference to the full type in the old type
       // and update the types map with the full type.
-      ((CElaboratedType)oldType).setRealType(type);
+      if (type != ((CElaboratedType)oldType).getRealType()) {
+        ((CElaboratedType)oldType).setRealType(type);
+      }
+
     }
 
     types.put(name, declaration);
