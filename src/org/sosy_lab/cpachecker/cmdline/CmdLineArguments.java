@@ -116,6 +116,11 @@ class CmdLineArguments {
           || handleArgument0("-32",      "analysis.machineModel", "Linux32",    arg, properties)
           || handleArgument0("-64",      "analysis.machineModel", "Linux64",    arg, properties)
           || handleArgument0("-preprocess",    "parser.usePreprocessor", "true", arg, properties)
+
+          || handleArgument0("-bb",  "cpatiger.fqlquery.bb",  "true", arg, properties)
+          || handleArgument0("-bb2", "cpatiger.fqlquery.bb2", "true", arg, properties)
+          || handleArgument0("-bb3", "cpatiger.fqlquery.bb3", "true", arg, properties)
+
           || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)

@@ -46,4 +46,10 @@ public class NullOutputStream extends OutputStream {
 
   }
 
+  private static NullOutputStream mInstance = new NullOutputStream();
+
+  public static NullOutputStream getInstance() {
+    return mInstance;
+  }
+
 }

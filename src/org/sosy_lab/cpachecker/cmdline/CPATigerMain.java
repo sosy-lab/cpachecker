@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.core.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.fql.PredefinedCoverageCriteria;
+import org.sosy_lab.cpachecker.tiger.util.NullOutputStream;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
@@ -106,7 +107,10 @@ public class CPATigerMain {
       }
 
       cpatiger = new CPAtiger(options.programs, entryFunction, shutdownNotifier);
-      //cpachecker = new CPAchecker(cpaConfig, logManager, shutdownNotifier);
+
+      if (!Strings.isNullOrEmpty(cpaConfig.getProperty("output.disable"))) {
+        cpatiger.setOutput(new PrintStream(NullOutputStream.getInstance()));
+      }
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
@@ -128,11 +132,34 @@ public class CPATigerMain {
     String fqlQuery = cpaConfig.getProperty("cpatiger.fqlquery");
 
     if (Strings.isNullOrEmpty(fqlQuery)) {
-      fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE;
+
+      String fqlBBQuery = cpaConfig.getProperty("cpatiger.fqlquery.bb");
+
+      if (Strings.isNullOrEmpty(fqlBBQuery)) {
+
+        String fqlBB2Query = cpaConfig.getProperty("cpatiger.fqlquery.bb2");
+
+        if (Strings.isNullOrEmpty(fqlBB2Query)) {
+
+          String fqlBB3Query = cpaConfig.getProperty("cpatiger.fqlquery.bb3");
+
+          if (Strings.isNullOrEmpty(fqlBB3Query)) {
+            fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE;
+          }
+          else {
+            fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_3_COVERAGE;
+          }
+        }
+        else {
+          fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_2_COVERAGE;
+        }
+      }
+      else {
+        fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE;
+      }
     }
 
     CPAtigerResult result = cpatiger.run(fqlQuery);
-    //CPAcheckerResult result = cpachecker.run(options.programs);
 
     // We want to print the statistics completely now that we have come so far,
     // so we disable all the limits, shutdown hooks, etc.
