@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.tiger.testcases;
 
+import java.util.LinkedList;
 import java.util.List;
 
 public class ImpreciseInputsTestCase extends TestCase {
@@ -37,6 +38,22 @@ public class ImpreciseInputsTestCase extends TestCase {
   public ImpreciseInputsTestCase(List<Integer> pInputs, List<Double> pValues) {
     super(pInputs, false);
     copy(pValues);
+  }
+
+  public PreciseInputsTestCase toPreciseTestCase() {
+    LinkedList<Integer> lApproximatedValues = new LinkedList<>();
+
+    for (Double lDoubleValue : mInputs) {
+      // TODO shall we distinguish lDoubleValue >= 0 and lDoubleValue < 0 ?
+      if (lDoubleValue > lDoubleValue.intValue()) {
+        lApproximatedValues.add(lDoubleValue.intValue() + 1);
+      }
+      else {
+        lApproximatedValues.add(lDoubleValue.intValue());
+      }
+    }
+
+    return new PreciseInputsTestCase(lApproximatedValues);
   }
 
   private void copy(double[] pValues) {
