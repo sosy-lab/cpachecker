@@ -27,7 +27,7 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.tiger.util.Goal;
+import org.sosy_lab.cpachecker.tiger.goals.Goal;
 
 public class GoalReordering {
 

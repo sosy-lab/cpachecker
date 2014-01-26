@@ -97,13 +97,13 @@ import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.ToGuardedAutomatonTrans
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.ClusteringCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
+import org.sosy_lab.cpachecker.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseInputsTestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestSuite;
 import org.sosy_lab.cpachecker.tiger.util.ARTReuse;
 import org.sosy_lab.cpachecker.tiger.util.FeasibilityInformation;
-import org.sosy_lab.cpachecker.tiger.util.Goal;
 import org.sosy_lab.cpachecker.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.util.Precisions;

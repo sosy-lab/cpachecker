@@ -73,13 +73,13 @@ import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.InverseGuardedEdgeLabel
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
+import org.sosy_lab.cpachecker.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.tiger.testcases.CRESTToFShell3;
 import org.sosy_lab.cpachecker.tiger.testcases.FShell2ToFShell3;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.KLEEToFShell3;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestSuite;
-import org.sosy_lab.cpachecker.tiger.util.Goal;
 import org.sosy_lab.cpachecker.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;

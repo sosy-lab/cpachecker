@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
+import org.sosy_lab.cpachecker.tiger.goals.Goal;
 
 public class Task implements Iterable<ElementaryCoveragePattern> {
 

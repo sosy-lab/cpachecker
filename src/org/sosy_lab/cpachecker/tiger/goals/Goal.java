@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.tiger.util;
+package org.sosy_lab.cpachecker.tiger.goals;
 
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
