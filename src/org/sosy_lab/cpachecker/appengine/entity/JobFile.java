@@ -32,7 +32,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 
 import com.googlecode.objectify.Key;
@@ -47,8 +46,8 @@ import com.googlecode.objectify.annotation.Parent;
 @Entity
 public class JobFile {
 
-  @Id Long id;
-  @Parent Ref<Job> job;
+  @Id private Long id;
+  @Parent private  Ref<Job> job;
   @Index private String path;
   @Index private String name;
   private String content;
@@ -169,8 +168,6 @@ public class JobFile {
     public void close() throws IOException {
       super.close();
       JobFileDAO.save(file);
-      file.getJob().addFile(file);
-      JobDAO.save(file.getJob());
     }
   }
 }

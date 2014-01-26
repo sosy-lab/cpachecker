@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.Map;
 
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;

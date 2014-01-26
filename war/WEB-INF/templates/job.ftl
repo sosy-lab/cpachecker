@@ -84,6 +84,12 @@
           <td>${job.configuration}</td>
         </tr>
         </#if>
+        <#if job.sourceFileName??>
+        <tr>
+          <td>${msg.sourceFileName}</td>
+          <td>${job.sourceFileName}</td>
+        </tr>
+        </#if>
         <#if job.options?? >
         <tr>
           <td>${msg.options}</td>
@@ -92,6 +98,36 @@
           	<#list job.options?keys as option>
           		<li>${option} = ${job.options[option]}</li>
           	</#list>
+          	</ul>
+          </td>
+        </tr>
+        </#if>
+        <#if job.statistic?? >
+        <tr>
+          <td>${msg.statistic}</td>
+          <td>
+          	<ul class="list-unstyled">
+          	<#if job.statistic.startTime?has_content>
+          		<li>${msg.startTime}: ${(job.statistic.startTime/1000)?number_to_datetime}</li>
+          	</#if>
+          	<#if job.statistic.endTime?has_content>
+          		<li>${msg.endTime}: ${(job.statistic.endTime/1000)?number_to_datetime}</li>
+          	</#if>
+          	<#if job.statistic.latency?has_content>
+          		<li>${msg.latency}: ${job.statistic.latency/1000000} ${msg.seconds}</li>
+          	</#if>
+          	<#if job.statistic.pendingTime?has_content>
+          		<li>${msg.pendingTime}: ${job.statistic.pendingTime/1000000} ${msg.seconds}</li>
+          	</#if>
+          	<#if job.statistic.mcyclesInSeconds?has_content>
+          		<li>${msg.machineCyclesInSeconds}: ${job.statistic.mcyclesInSeconds} ${msg.seconds}</li>
+          	</#if>
+          	<#if (job.statistic.cost > 0)>
+          		<li>${msg.estimatedCosts}: ${job.statistic.cost?string("##.##")} USD</li>
+          	</#if>
+          	<#if job.statistic.host?has_content>
+          		<li>${msg.host}: ${job.statistic.host}</li>
+          	</#if>
           	</ul>
           </td>
         </tr>

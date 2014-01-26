@@ -28,9 +28,11 @@ import org.restlet.ext.wadl.WadlApplication;
 import org.restlet.routing.Router;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobFileServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobRunnerServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.JobStatisticServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobsServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource;
 
@@ -57,6 +59,7 @@ public class CPAcheckerApplication extends WadlApplication {
     router.attach("/", RootServerResource.class);
     router.attach("/jobs", JobsServerResource.class);
     router.attach("/jobs/{jobKey}", JobServerResource.class);
+    router.attach("/jobs/{jobKey}/stats", JobStatisticServerResource.class);
     router.attach("/jobs/{jobKey}/files/{fileKey}", JobFileServerResource.class);
     router.attach("/workers/run-job", JobRunnerServerResource.class);
 
@@ -69,5 +72,6 @@ public class CPAcheckerApplication extends WadlApplication {
   static {
     ObjectifyService.register(Job.class);
     ObjectifyService.register(JobFile.class);
+    ObjectifyService.register(JobStatistic.class);
   }
 }

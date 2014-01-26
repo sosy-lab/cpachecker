@@ -808,11 +808,11 @@ def getStatsOfNumberColumn(values, categoryList, columnTitle):
     for value, catStat in zip(valueList, categoryList):
         category, status = catStat
         if category == result.CATEGORY_CORRECT:
-            status = None # ignore status, we donot need it
+            status = None # ignore status, we do not need it, use None as DUMMY
         valuesPerCategory[category, status].append(value)
 
     return (StatValue.fromList(valueList),
-            StatValue.fromList(valuesPerCategory[result.CATEGORY_CORRECT]),
+            StatValue.fromList(valuesPerCategory[result.CATEGORY_CORRECT, None]), # None as DUMMY
             StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_TRUE]),
             StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_LABEL]),
             StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_DEREF] +

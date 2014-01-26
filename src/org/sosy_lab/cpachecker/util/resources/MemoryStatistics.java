@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import javax.management.JMException;
 import javax.management.MBeanServer;
@@ -41,17 +42,18 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.time.TimeSpan;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
 /**
- * This class is a thread that continuously monitors memory usage.
- * To use it, instantiate it, call {@link Thread#start()},
- * call {@link Thread#interrupt()} when you want to stop monitoring,
- * wait for termination with {@link Thread#join()} and then call
- * {@link #printStatistics(PrintStream)}.
+ * This class is a runnable that continuously monitors memory usage.
+ * To use it, instantiate it, and let a {@link Thread} run it.
+ * Call {@link Thread#interrupt()} when you want to stop monitoring,
+ * wait for termination with {@link Thread#join()}. Then check if the thread is
+ * alive with {@link Thread#isAlive()} and call
+ * {@link #printStatistics(PrintStream)} if the thread is NOT alive.
  *
  * It also provides a static utility method for printing garbage collection
  * statistics.
@@ -218,11 +220,10 @@ public class MemoryStatistics implements Runnable {
 
   /**
    * Print the gathered statistics.
-   * This method may only be called when this thread has finished!
+   * This method may only be called when the thread running this instance
+   * has finished! Check with {@link Thread#isAlive()} prior invocation!
    */
   public void printStatistics(PrintStream out) {
-//    checkState(!this.isAlive());
-
     long heapPeak = 0;
     long nonHeapPeak = 0;
     for (MemoryPoolMXBean pool : ManagementFactory.getMemoryPoolMXBeans()) {
@@ -265,7 +266,7 @@ public class MemoryStatistics implements Runnable {
       gcCount += gcBean.getCollectionCount();
       gcNames.add(gcBean.getName());
     }
-    out.println("Time for Garbage Collector:   " + Timer.formatTime(gcTime) + " (in " + gcCount + " runs)");
+    out.println("Time for Garbage Collector:   " + TimeSpan.ofMillis(gcTime).formatAs(TimeUnit.SECONDS) + " (in " + gcCount + " runs)");
     out.println("Garbage Collector(s) used:    " + Joiner.on(", ").join(gcNames));
   }
 

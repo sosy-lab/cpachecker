@@ -234,18 +234,24 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       if (handleAsEpsilonEdge(pArgs.getCfaEdge())) {
         edgeTokens = Collections.emptySet();
       } else {
-        edgeTokens = CFAUtils.getTokensFromCFAEdge(pArgs.getCfaEdge());
+        edgeTokens = CFAUtils.getTokensFromCFAEdge(pArgs.getCfaEdge(), true);
       }
 
-      match = edgeTokens.equals(matchTokens);
+      if (matchTokens.isEmpty()) {
+        match = edgeTokens.isEmpty();
+      } else {
+        match = edgeTokens.containsAll(matchTokens);
+      }
+
       if (match && matchNegatedSemantics.isPresent()) {
         if (pArgs.getCfaEdge() instanceof AssumeEdge) {
           AssumeEdge a = (AssumeEdge) pArgs.getCfaEdge();
-          if (matchNegatedSemantics.get() && a.getTruthAssumption()) {
+          if (matchNegatedSemantics.get() == a.getTruthAssumption()) {
             match = false;
           }
         } else {
-          throw new IllegalStateException("Matching of negative semantics only possible for assume edges!");
+          // Matching of negative semantics only possible for assume edges!
+          match = false;
         }
       }
 
@@ -262,7 +268,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public String toString() {
-      return "MATCH TOKENS " + matchTokens;
+      return "MATCH TOKENS " + matchTokens + " " + matchNegatedSemantics;
     }
   }
 

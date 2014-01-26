@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
 
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
@@ -41,6 +42,7 @@ public abstract class DatabaseTest {
   static {
     ObjectifyService.register(Job.class);
     ObjectifyService.register(JobFile.class);
+    ObjectifyService.register(JobStatistic.class);
   }
 
   @Before

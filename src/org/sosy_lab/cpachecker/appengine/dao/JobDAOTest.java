@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.appengine.common.DatabaseTest;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.Job.Status;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
 
 import com.googlecode.objectify.Key;
 
@@ -57,15 +58,24 @@ public class JobDAOTest extends DatabaseTest {
   public void shouldDeleteJob() throws Exception {
     Job job = new Job(1L);
     job.setStatus(Status.DONE);
+
     JobFile file = new JobFile("", job);
     JobFileDAO.save(file);
     job.addFile(file);
+
+    JobStatistic stats = new JobStatistic(job);
+    JobStatisticDAO.save(stats);
+    job.setStatistic(stats);
+
     JobDAO.save(job);
+
     Key<Job> jobKey = Key.create(job);
     Key<JobFile> fileKey = Key.create(file);
+    Key<JobStatistic> statsKey = Key.create(stats);
     JobDAO.delete(job);
 
-    assertTrue(JobDAO.load(jobKey) == null);
-    assertTrue(JobFileDAO.load(fileKey) == null);
+    assertNull(JobDAO.load(jobKey));
+    assertNull(JobFileDAO.load(fileKey));
+    assertNull(JobStatisticDAO.load(statsKey));
   }
 }

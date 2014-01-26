@@ -78,9 +78,7 @@ public final class ResourceLimitChecker {
 
     } else {
       Runnable runnable = new ResourceLimitCheckRunnable(shutdownNotifier, limits);
-
-      thread = Threads.newThread(runnable, "Resource limit checker");
-      thread.setDaemon(true);
+      thread = Threads.newThread(runnable, "Resource limit checker", true);
     }
   }
 

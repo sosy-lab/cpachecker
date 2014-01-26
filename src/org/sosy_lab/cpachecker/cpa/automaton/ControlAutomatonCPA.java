@@ -155,7 +155,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this);
+    return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0);
   }
 
   @Override

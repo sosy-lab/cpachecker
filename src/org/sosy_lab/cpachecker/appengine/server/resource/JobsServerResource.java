@@ -68,6 +68,8 @@ import com.google.common.base.Charsets;
 
 public class JobsServerResource extends WadlServerResource implements JobsResource {
 
+  private static String DEFAULT_FILENAME = "program.c";
+
   private Job createdJob = null;
 
   @Override
@@ -110,8 +112,12 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
           case "machineModel":
             options.setOption("analysis.machineModel", value);
             break;
+          case "wallTime":
+            options.setOption("limits.time.wall", value);
+            break;
           case "programText":
             if (program == null || program.isEmpty()) {
+              settings.put("sourceFileName", DEFAULT_FILENAME);
               program = value;
             }
             break;
@@ -119,6 +125,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
         }
         else {
           if (program == null || program.isEmpty()) {
+            settings.put("sourceFileName", item.getName());
             // files will always be treated as text/plain
             StringWriter writer = new StringWriter();
             IOUtils.copy(stream, writer, Charsets.UTF_8);
@@ -149,6 +156,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
         .context(getContext())
         .addData("job", createdJob)
         .addData("errors", errors)
+        .addData("allowedOptions", DefaultOptions.getDefaultOptions())
         .addData("defaultOptions", DefaultOptions.getImmutableOptions())
         .addData("specifications", DefaultOptions.getSpecifications())
         .addData("configurations", DefaultOptions.getConfigurations())
@@ -231,12 +239,16 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
     }
 
     createdJob = new Job(JobDAO.allocateKey().getId());
-    JobFile program = new JobFile("program.c", createdJob);
     createdJob.setSpecification((String) settings.get("specification"));
     createdJob.setConfiguration((String) settings.get("configuration"));
     if (settings.get("options") != null) {
       createdJob.setOptions((Map<String, String>) settings.get("options"));
     }
+
+    String fileName = (String) settings.get("sourceFileName");
+    fileName = (fileName == null || fileName.equals("")) ? DEFAULT_FILENAME : fileName;
+    createdJob.setSourceFileName(fileName);
+    JobFile program = new JobFile(createdJob.getSourceFileName(), createdJob);
     program.setContent((String) settings.get("programText"));
 
     if (createdJob.getSpecification() == null && createdJob.getConfiguration() == null) {

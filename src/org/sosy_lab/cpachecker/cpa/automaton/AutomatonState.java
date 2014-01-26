@@ -53,7 +53,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable>emptyMap(),
             new AutomatonInternalState("_predefinedState_TOP", Collections.<AutomatonTransition>emptyList()),
-            pAutomatonCPA);
+            pAutomatonCPA, 0, 0);
     }
 
     @Override
@@ -73,7 +73,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     public BOTTOM(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable>emptyMap(),
             AutomatonInternalState.BOTTOM,
-            pAutomatonCPA);
+            pAutomatonCPA, 0, 0);
     }
 
     @Override
@@ -90,22 +90,31 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private transient final ControlAutomatonCPA automatonCPA;
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
+  private int matches = 0;
+  private int failedMatches = 0;
 
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
-      AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA) {
+      AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
+      int successfulMatches, int failedMatches) {
     if (pInternalState == AutomatonInternalState.BOTTOM) {
       return pAutomatonCPA.getBottomState();
     } else {
-      return new AutomatonState(pVars, pInternalState, pAutomatonCPA);
+      return new AutomatonState(pVars, pInternalState, pAutomatonCPA, successfulMatches, failedMatches);
     }
   }
 
   private AutomatonState(Map<String, AutomatonVariable> pVars,
-      AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA) {
-    vars = checkNotNull(pVars);
-    internalState = checkNotNull(pInternalState);
-    automatonCPA = checkNotNull(pAutomatonCPA);
+      AutomatonInternalState pInternalState,
+      ControlAutomatonCPA pAutomatonCPA,
+      int successfulMatches,
+      int failedMatches) {
+
+    this.vars = checkNotNull(pVars);
+    this.internalState = checkNotNull(pInternalState);
+    this.automatonCPA = checkNotNull(pAutomatonCPA);
+    this.matches = successfulMatches;
+    this.failedMatches = failedMatches;
   }
 
   @Override
@@ -165,7 +174,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     private final AutomatonState previousState;
 
     AutomatonUnknownState(AutomatonState pPreviousState) {
-      super(pPreviousState.getVars(), pPreviousState.getInternalState(), pPreviousState.automatonCPA);
+      super(pPreviousState.getVars(), pPreviousState.getInternalState(), pPreviousState.automatonCPA, -1, -1);
       previousState = pPreviousState;
     }
 
@@ -278,5 +287,21 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     in.defaultReadObject();
     int stateId = in.readInt();
     internalState = GlobalInfo.getInstance().getAutomatonInfo().getStateById(stateId);
+  }
+
+  public int getMatches() {
+    return matches;
+  }
+
+  public int getFailedMatches() {
+    return failedMatches;
+  }
+
+  public void setFailedMatches(int pFailedMatches) {
+    failedMatches = pFailedMatches;
+  }
+
+  public void setMatches(int pMatches) {
+    matches = pMatches;
   }
 }

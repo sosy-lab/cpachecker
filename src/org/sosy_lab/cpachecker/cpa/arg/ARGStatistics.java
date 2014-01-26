@@ -139,6 +139,10 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path errorPathAutomatonGraphmlFile = Paths.get("ErrorPath.%d.graphml");
 
+  @Option(name="errorPath.exportImmediately",
+      description="export error paths to files immediately after they were found")
+  private boolean dumpErrorPathImmediately = false;
+
   private final ARGCPA cpa;
 
   private Writer refinementGraphUnderlyingWriter = null;
@@ -212,26 +216,38 @@ public class ARGStatistics implements Statistics {
       return;
     }
 
-    final ARGState rootState = (ARGState)pReached.getFirstState();
     final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
     int cexIndex = 0;
 
     for (Map.Entry<ARGState, CounterexampleInfo> cex : getAllCounterexamples(pReached).entrySet()) {
-      final ARGState targetState = checkNotNull(cex.getKey());
-      @Nullable final CounterexampleInfo counterexample = cex.getValue();
-      final ARGPath targetPath = checkNotNull(getTargetPath(targetState, counterexample));
-
-      final Set<Pair<ARGState, ARGState>> targetPathEdges = getEdgesOfPath(targetPath);
-      allTargetPathEdges.addAll(targetPathEdges);
-
-      if (exportErrorPath && counterexample != null) {
-        exportCounterexample(pReached, rootState, cexIndex++, counterexample,
-            targetPath, Predicates.in(targetPathEdges));
-      }
+      exportCounterexample(pReached, cex.getKey(), cex.getValue(), cexIndex++, allTargetPathEdges,
+          !shouldDumpErrorPathImmediately());
     }
 
     if (exportARG) {
+      final ARGState rootState = (ARGState)pReached.getFirstState();
       exportARG(rootState, Predicates.in(allTargetPathEdges));
+    }
+  }
+
+  // Print error trace and increment counter cexIndex.
+  void exportCounterexample(ReachedSet pReached, ARGState pTargetState,
+      @Nullable final CounterexampleInfo pCounterexampleInfo,
+      int cexIndex, @Nullable final Set<Pair<ARGState, ARGState>> allTargetPathEdges,
+      boolean reallyWriteToDisk) {
+    checkNotNull(pTargetState);
+
+    final ARGState rootState = (ARGState)pReached.getFirstState();
+    final ARGPath targetPath = checkNotNull(getTargetPath(pTargetState, pCounterexampleInfo));
+
+    final Set<Pair<ARGState, ARGState>> targetPathEdges = getEdgesOfPath(targetPath);
+    if (allTargetPathEdges != null) {
+      allTargetPathEdges.addAll(targetPathEdges);
+    }
+
+    if (reallyWriteToDisk && exportErrorPath && pCounterexampleInfo != null) {
+      exportCounterexample(pReached, rootState, cexIndex, pCounterexampleInfo,
+          targetPath, Predicates.in(targetPathEdges));
     }
   }
 
@@ -498,5 +514,9 @@ public class ARGStatistics implements Statistics {
       lastElement = currentElement;
     }
     return result;
+  }
+
+  boolean shouldDumpErrorPathImmediately() {
+    return dumpErrorPathImmediately;
   }
 }

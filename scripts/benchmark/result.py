@@ -60,6 +60,15 @@ FALSE_SUBSTRINGS = {'_false-unreach-label':  STR_FALSE_LABEL,
 assert all('_false-' in k for k in FALSE_SUBSTRINGS.keys())
 
 
+# this map contains substring of property-files with their status
+PROPERTY_MATCHER = {'LTL(G ! label(':         STR_FALSE_LABEL,
+                    'LTL(F end)':             STR_FALSE_TERMINATION,
+                    'LTL(G valid-free)':      STR_FALSE_FREE,
+                    'LTL(G valid-deref)' :    STR_FALSE_DEREF,
+                    'LTL(G valid-memtrack)' : STR_FALSE_MEMTRACK
+                   }
+
+
 # Score values taken from http://sv-comp.sosy-lab.org/
 SCORE_CORRECT_TRUE = 2
 SCORE_CORRECT_FALSE = 1
@@ -84,25 +93,18 @@ def _statusesOfPropertyFile(propertyFile):
     
     if propertyFile is None:
         # if we have no prpfile, lets use default case: 'every property'
-        return (v for k,v in FALSE_SUBSTRINGS.items())
+        return FALSE_SUBSTRINGS.values()
     
     statuses = []
     with open(propertyFile) as f:
         content = f.read()
         assert 'CHECK' in content
-        
+
         # TODO: should we switch to regex or line-based reading?
-        if 'LTL(G ! label(' in content:
-            statuses.append(STR_FALSE_LABEL)
-        if 'LTL(F end)' in content:
-            statuses.append(STR_FALSE_TERMINATION)
-        if 'LTL(G valid-free)' in content:
-            statuses.append(STR_FALSE_FREE)
-        if 'LTL(G valid-deref)' in content:
-            statuses.append(STR_FALSE_DEREF)
-        if 'LTL(G valid-memtrack)' in content:
-            statuses.append(STR_FALSE_MEMTRACK)
-        
+        for substring, status in PROPERTY_MATCHER.items():
+            if substring in content:
+                statuses.append(status)
+
         assert len(statuses) > 0
     return statuses
 

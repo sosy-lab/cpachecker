@@ -86,8 +86,7 @@ class ForceTerminationOnShutdown implements Runnable {
           Thread t = Threads.newThread(new ForceTerminationOnShutdown(logger,
                                                                mainThread,
                                                                shutdownHook),
-                                "ForceTerminationOnShutdown");
-          t.setDaemon(true);
+                                "ForceTerminationOnShutdown", true);
           boolean success = forceTerminationOnShutdownThread.compareAndSet(null, t);
           if (success) {
             t.start();

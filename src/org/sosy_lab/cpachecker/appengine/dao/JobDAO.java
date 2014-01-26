@@ -25,11 +25,17 @@ package org.sosy_lab.cpachecker.appengine.dao;
 
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
+import java.util.Collections;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
 
+import com.google.appengine.api.log.LogQuery;
+import com.google.appengine.api.log.LogServiceFactory;
+import com.google.appengine.api.log.RequestLogs;
 import com.google.appengine.api.taskqueue.Queue;
 import com.google.appengine.api.taskqueue.QueueFactory;
 import com.googlecode.objectify.Key;
@@ -49,7 +55,8 @@ public class JobDAO {
   }
 
   public static Job load(Key<Job> key) {
-    return ofy().load().key(key).now();
+    Job job = ofy().load().key(key).now();
+    return retrieveAndSetStats(job);
   }
 
   public static List<Job> jobs() {
@@ -61,6 +68,11 @@ public class JobDAO {
     return job;
   }
 
+  /**
+   * Deletes the given job, the associated statistic and all associated files.
+   *
+   * @param job The job to delete
+   */
   public static void delete(final Job job) {
     if (job != null) {
       ofy().transact(new VoidWork() {
@@ -79,18 +91,35 @@ public class JobDAO {
           if (job.getFiles() != null && job.getFiles().size() > 0) {
             ofy().delete().entities(job.getFiles()).now();
           }
+
+          if (job.getStatistic() != null) {
+            ofy().delete().entity(job.getStatistic()).now();
+          }
+
           ofy().delete().entities(job).now();
         }
       });
     }
   }
 
+  /**
+   * Deletes all jobs, job files and purges the task queue.
+   */
   public static void deleteAll() {
     List<Key<Job>> jobKeys = ofy().load().type(Job.class).keys().list();
     ofy().delete().keys(jobKeys).now();
-
     List<Key<JobFile>> fileKeys = ofy().load().type(JobFile.class).keys().list();
     ofy().delete().keys(fileKeys).now();
+
+    try {
+      Queue queue = QueueFactory.getQueue(GAETaskQueueJobRunner.QUEUE_NAME);
+      queue.purge();
+    } catch (Exception _) {
+      /*
+       * it does not matter if the queue could be purged or not
+       * since tasks will disappear anyway after they've been run.
+       */
+    }
   }
 
   public static void delete(Key<Job> key) {
@@ -99,6 +128,44 @@ public class JobDAO {
 
   public static Key<Job> allocateKey() {
     return ObjectifyService.factory().allocateId(Job.class);
+  }
+
+  private static Job retrieveAndSetStats(Job job) {
+    if (job == null) {
+      return job;
+    }
+
+    if (job.getRequestID() != null && job.getStatisticReference() == null) {
+      List<String> reqIDs = Collections.singletonList(job.getRequestID());
+      LogQuery query = LogQuery.Builder.withRequestIds(reqIDs);
+      for (RequestLogs record : LogServiceFactory.getLogService().fetch(query)) {
+        if (record.isFinished()) {
+
+          // Update status if job is done but the status does not reflect this
+          if (job.getStatus() == org.sosy_lab.cpachecker.appengine.entity.Job.Status.PENDING
+              || job.getStatus() == org.sosy_lab.cpachecker.appengine.entity.Job.Status.RUNNING) {
+            job.setStatus(org.sosy_lab.cpachecker.appengine.entity.Job.Status.ERROR);
+            job.setStatusMessage(String.format("Running the job is done but the status did not reflect this."
+                + "Therefore the status was set to %s.", org.sosy_lab.cpachecker.appengine.entity.Job.Status.ERROR));
+          }
+
+          JobStatistic stats = new JobStatistic(job);
+          stats.setCost(record.getCost());
+          stats.setHost(record.getHost());
+          stats.setLatency(record.getLatencyUsec());
+          stats.setEndTime(record.getEndTimeUsec());
+          stats.setStartTime(record.getStartTimeUsec());
+          stats.setPendingTime(record.getPendingTimeUsec());
+          stats.setMcycles(record.getMcycles());
+
+          JobStatisticDAO.save(stats);
+          job.setStatistic(stats);
+          job = save(job);
+        }
+      }
+    }
+
+    return job;
   }
 
 }

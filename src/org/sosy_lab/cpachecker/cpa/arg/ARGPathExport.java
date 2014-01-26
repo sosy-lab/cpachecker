@@ -90,12 +90,12 @@ public class ARGPathExport {
     if (!handleAsEpsilonEdge(edge)) {
       if (edge instanceof AssumeEdge) {
         AssumeEdge a = (AssumeEdge) edge;
-        result.setAttribute("negation", a.getTruthAssumption() ? "false" : "true");
+        doc.addDataElementChild(result, KeyDef.TOKENSNEGATED, a.getTruthAssumption() ? "false" : "true");
       }
 
       doc.addDataElementChild(result, KeyDef.SOURCECODE, edge.getCode());
 
-      Set<Integer> tokens = CFAUtils.getTokensFromCFAEdge(edge);
+      Set<Integer> tokens = CFAUtils.getTokensFromCFAEdge(edge, false);
       doc.addDataElementChild(result, KeyDef.TOKENS, tokensToText(tokens));
     }
     doc.appendToAppendable(result);
@@ -110,6 +110,7 @@ public class ARGPathExport {
     doc.appendNewKeyDef(KeyDef.ENTRYNODE, null);
     doc.appendNewKeyDef(KeyDef.SOURCECODE, null);
     doc.appendNewKeyDef(KeyDef.TOKENS, null);
+    doc.appendNewKeyDef(KeyDef.TOKENSNEGATED, null);
     doc.appendNewKeyDef(KeyDef.NODETYPE, NodeType.ONPATH.text);
   }
 
@@ -250,6 +251,7 @@ public class ARGPathExport {
               sinkNodeWritten = true;
               doc.appendNewNode(SINK_NODE_ID, NodeType.SINKNODE);
             }
+            appendNewEdge(doc, prevStateId, SINK_NODE_ID, edgeToNextState);
           }
         }
 

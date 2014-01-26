@@ -29,11 +29,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.invariants.Farkas;
 import org.sosy_lab.cpachecker.util.invariants.LinearInequality;
@@ -143,7 +144,7 @@ public class BasicBalancer implements Balancer {
       redlog.start();
       map = getParameterValuesFromRedlog(phi, params);
       redlog.stop();
-      logger.log(Level.ALL, "Redlog took", redlog.getSumTime(), "milliseconds.");
+      logger.log(Level.ALL, "Redlog took", redlog.getSumTime().formatAs(TimeUnit.SECONDS));
     }
 
     if (map == null) {
@@ -227,7 +228,7 @@ public class BasicBalancer implements Balancer {
     redlog.start();
     HashMap<String, Rational> map = getParameterValuesFromRedlog(Phi, params);
     redlog.stop();
-    logger.log(Level.ALL, "Redlog took", redlog.getSumTime(), "milliseconds.");
+    logger.log(Level.ALL, "Redlog took", redlog.getSumTime().formatAs(TimeUnit.SECONDS));
 
     if (map == null) {
       logger.log(Level.FINEST, "Redlog could not find values for all parameters.");
@@ -714,11 +715,11 @@ public class BasicBalancer implements Balancer {
     try {
       asetset = ms.solve(tnet.getAssumptions());
       msTimer.stop();
-      logger.log(Level.ALL, "MatrixSolver took", msTimer.getSumTime(), "milliseconds.");
+      logger.log(Level.ALL, "MatrixSolver took", msTimer.getSumTime().formatAs(TimeUnit.SECONDS));
     } catch (MatrixSolvingFailedException e) {
       msTimer.stop();
       logger.log(Level.ALL, e.getReason());
-      logger.log(Level.ALL, "MatrixSolver took", msTimer.getSumTime(), "milliseconds.");
+      logger.log(Level.ALL, "MatrixSolver took", msTimer.getSumTime().formatAs(TimeUnit.SECONDS));
       return new AssumptionSet();
     }
     // For the moment we just return the first set.

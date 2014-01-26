@@ -24,11 +24,11 @@
 
     <dependencies>
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.378" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.390" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="15.0" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava" rev="16.0" conf="runtime->default; contrib->sources"/>
 
         <!-- Annotations from JSR 305 (e.g., @Nullable) -->
         <dependency org="com.google.code.findbugs" name="jsr305" rev="1.3.9" conf="runtime->default"/>

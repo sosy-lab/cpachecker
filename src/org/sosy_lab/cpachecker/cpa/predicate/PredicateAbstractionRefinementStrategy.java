@@ -51,6 +51,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -146,6 +147,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
 
   protected final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PredicateAbstractionManager predAbsMgr;
@@ -206,7 +208,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   public PredicateAbstractionRefinementStrategy(final Configuration config,
-      final LogManager pLogger, final FormulaManagerView pFormulaManager,
+      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      final FormulaManagerView pFormulaManager,
       final PredicateAbstractionManager pPredAbsMgr,
       final PredicateStaticRefiner pStaticRefiner, final Solver pSolver)
           throws CPAException, InvalidConfigurationException {
@@ -215,6 +218,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     config.inject(this, PredicateAbstractionRefinementStrategy.class);
 
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     fmgr = pFormulaManager;
     bfmgr = pFormulaManager.getBooleanFormulaManager();
     predAbsMgr = pPredAbsMgr;
@@ -253,6 +257,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
       PredicatePrecision heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
 
+      shutdownNotifier.shutdownIfNecessary();
       pReached.removeSubtree(refinementRoot, heuristicPrecision, PredicatePrecision.class);
 
       heuristicsCount++;

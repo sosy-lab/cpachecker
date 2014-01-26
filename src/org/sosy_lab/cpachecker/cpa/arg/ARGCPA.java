@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -221,5 +222,14 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return stopOperator.isCoveredBy(pElement, pOtherElement, wrappedProofChecker);
+  }
+
+  void exportCounterexample(ReachedSet pReached, ARGState pTargetState,
+    CounterexampleInfo pCounterexampleInfo, int cexIndex) {
+    stats.exportCounterexample(pReached, pTargetState, pCounterexampleInfo, cexIndex, null, true);
+  }
+
+  boolean shouldPrintErrorPathImmediately() {
+    return stats.shouldDumpErrorPathImmediately();
   }
 }

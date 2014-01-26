@@ -45,7 +45,14 @@ public class GAEPath extends FileSystemPath {
     super(path, more);
 
     if (isFile()) {
-      jobFile = job.getFile(getPath());
+      try {
+        if (!super.exists()) {
+          jobFile = job.getFile(getPath());
+        }
+      } catch (Exception e) {
+        // if super.exists() fails because it accesses the file system
+        jobFile = job.getFile(getPath());
+      }
     }
 
     if (jobFile == null) {

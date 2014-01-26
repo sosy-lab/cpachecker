@@ -91,9 +91,11 @@ class OctDomain implements AbstractDomain {
     Octagon newOctagon = OctagonManager.union(octEl1.getOctagon(), octEl2.getOctagon());
     BiMap<String, Integer> newMap =
       octEl1.sizeOfVariables() > octEl2.sizeOfVariables()? octEl1.getVariableToIndexMap() : octEl2.getVariableToIndexMap();
+    Map<String, IOctCoefficients> newCoeffMap =
+        octEl1.sizeOfVariables() > octEl2.sizeOfVariables()? octEl1.getVariableToCoeffMap() : octEl2.getVariableToCoeffMap();
 
       // TODO should it be null
-      return new OctState(newOctagon, newMap, logger);
+      return new OctState(newOctagon, newMap, newCoeffMap, logger);
       // TODO add widening
       //    return LibraryAccess.widening(octEl1, octEl2);
   }

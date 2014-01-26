@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.appengine.server.resource;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Date;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
@@ -60,6 +61,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.appengine.api.ThreadManager;
+import com.google.apphosting.api.ApiProxy;
 import com.google.common.base.Charsets;
 import com.google.common.io.FileWriteMode;
 
@@ -80,7 +82,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
   private boolean statsDumped = false;
   private boolean logDumped = false;
 
-  boolean shutdownComplete = false;
+  private boolean shutdownComplete = false;
 
   @Override
   public void runJob(Representation entity) throws Exception {
@@ -97,6 +99,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     Paths.setFactory(new GAEPathFactory(job));
     errorPath = Paths.get(ERROR_FILE_NAME);
 
+    job.setRequestID((String) ApiProxy.getCurrentEnvironment().getAttributes().get("com.google.appengine.runtime.request_log_id"));
     job.setExecutionDate(new Date());
     job.setStatus(Status.RUNNING);
     JobDAO.save(job);
@@ -156,16 +159,29 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
       @Override
       public void run() {
         try {
-          result = cpaChecker.run("program.c");
-        } catch (RuntimeException e) {
-          /* This exception might be thrown if the thread is interrupted and
-           * any data store operations are going on. The exception needs to
-           * be caught to be able to bail out sensible.
-           */
-          log(Level.WARNING, e);
+          result = cpaChecker.run(job.getSourceFileName());
+        } catch (Exception e) {
+          if (e.getClass().getSimpleName().equals("RuntimeException")) {
+            /* RuntimeException might be thrown if the thread is interrupted and
+             * data store operations are going on. The exception needs to be
+             * ignored to be able to bail out sensible.
+             */
+            log(Level.WARNING, e);
+          } else {
+            log(Level.WARNING, e);
+            throw new IllegalStateException(e);
+          }
         }
       }
     });
+
+    UncaughtExceptionHandler handler = new UncaughtExceptionHandler() {
+      @Override
+      public void uncaughtException(Thread t, Throwable e) {
+        doCatch(e);
+      }
+    };
+    cpaCheckerThread.setUncaughtExceptionHandler(handler);
 
     ResourceLimitChecker limits = ResourceLimitChecker.fromConfiguration(config, logManager, shutdownNotifier);
     limits.start();
@@ -181,13 +197,16 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
       shutdownNotifier.unregister(listener);
       limits.cancel();
 
-      setResult();
-      dumpStatistics();
-      dumpLog();
+      // do not overwrite any previous status
+      if (job.getStatus() != Status.ERROR && job.getStatus() != Status.TIMEOUT) {
+        setResult();
+        job.setTerminationDate(new Date());
+        job.setStatus(Status.DONE);
+        JobDAO.save(job);
 
-      job.setTerminationDate(new Date());
-      job.setStatus(Status.DONE);
-      JobDAO.save(job);
+        dumpStatistics();
+        dumpLog();
+      }
     }
   }
 
@@ -199,26 +218,32 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
    */
   @Override
   protected void doCatch(Throwable e) {
-    // set status OK to pretend everything went fine so that the task will not be retried.
+    // set status OK to pretend everything went fine so that the task will not be re-tried.
     getResponse().setStatus(org.restlet.data.Status.SUCCESS_OK);
 
-    switch (e.getCause().getClass().getSimpleName()) {
+    if (e.getCause() != null) {
+      e = e.getCause();
+    }
+
+    String message = (e.getMessage() == null) ? "" : e.getMessage();
+
+    switch (e.getClass().getSimpleName()) {
     case "DeadlineExceededException":
       job.setStatus(Status.TIMEOUT);
       job.setStatusMessage("The task timed out. Results may be available however.");
-      log(Level.WARNING, "Task timed out. Trying to rescue results.", e.getCause());
+      log(Level.WARNING, "Task timed out. Trying to rescue results.", e);
       break;
     case "InvalidConfigurationException":
       job.setStatusMessage("The given configuration is invalid.");
-      log(Level.WARNING, "The given configuration is invalid.", e.getCause());
+      log(Level.WARNING, "The given configuration is invalid.", e);
       break;
     case "IOException":
-      job.setStatusMessage(String.format("An I/O error occurred: %s", e.getCause().getMessage()));
-      log(Level.WARNING, "An I/O error occurred.", e.getCause());
+      job.setStatusMessage(String.format("An I/O error occurred: %s", message));
+      log(Level.WARNING, "An I/O error occurred.", e);
       break;
     default:
-      job.setStatusMessage(String.format("An error occured: %s", e.getCause().getMessage()));
-      log(Level.WARNING, "There was an error", e.getCause());
+      job.setStatusMessage(String.format("An error occured: %s", message));
+      log(Level.WARNING, "There was an error", e);
     }
 
     if (job.getStatus() != Status.TIMEOUT) {
@@ -226,11 +251,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     }
 
     try {
-      if (e.getCause() != null) {
-        saveStackTrace(e.getCause());
-      } else {
-        saveStackTrace(e);
-      }
+      saveStackTrace(e);
       setResult();
       job.setTerminationDate(new Date());
       JobDAO.save(job);
@@ -268,8 +289,8 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     if (logDumped) { return; }
 
     if (logHandler != null && logLevel != null && logLevel != Level.OFF) {
-      logHandler.flushAndClose();
       logDumped = true;
+      logHandler.flushAndClose();
     }
   }
 
@@ -294,6 +315,11 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     try (OutputStream out = statisticsDumpFile.asByteSink().openBufferedStream()) {
       PrintStream stream = new PrintStream(out);
       result.printStatistics(stream);
+
+      if (result != null) {
+        result.printResult(stream);
+      }
+
       stream.flush();
       statsDumped = true;
     }

@@ -63,7 +63,6 @@ public class DefaultOptions {
       allowedOptions.put("statistics.export", "true");
       allowedOptions.put("log.usedOptions.export", "false");
       allowedOptions.put("log.level", "OFF");
-      allowedOptions.put("log.truncateSize", "10000");
       allowedOptions.put("limits.time.wall", "540s"); // 9 minutes
     }
     return allowedOptions;
@@ -87,6 +86,24 @@ public class DefaultOptions {
       // log level needs to be UPPERCASE otherwise we'll have an exception later on
       if (key.equals("log.level")) {
         value = value.toUpperCase();
+      }
+
+      // walltime must not be negative or too large
+      if (key.equals("limits.time.wall")) {
+        int defaultValue;
+        int newValue;
+        try {
+          String cleanDefault = getDefault("limits.time.wall").replaceAll("[^0-9]*$", "");
+          String cleanValue = value.replaceAll("[^0-9]*$", "");
+          defaultValue = Integer.parseInt(cleanDefault);
+          newValue = Integer.parseInt(cleanValue);
+
+          if (newValue < 0 || newValue > defaultValue) {
+            value = getDefault("limits.time.wall");
+          }
+        } catch (NumberFormatException e) {
+          value = getDefault("limits.time.wall");
+        }
       }
 
       usedOptions.put(key, value);

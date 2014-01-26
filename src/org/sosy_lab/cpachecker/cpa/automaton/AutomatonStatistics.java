@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.PrintStream;
 
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -49,7 +50,7 @@ class AutomatonStatistics implements Statistics {
     AutomatonTransferRelation trans = mCpa.getTransferRelation();
     out.println("Number of states:                    " + mCpa.getAutomaton().getNumberOfStates());
     out.println("Total time for successor computation: " + trans.totalPostTime);
-    if (trans.totalPostTime.getSumTime() >= 500) {
+    if (trans.totalPostTime.getSumTime().compareTo(TimeSpan.ofMillis(500)) >= 0) {
       // normally automaton is very fast, and time measurements are very imprecise
       // so don't care about very small times
       out.println("  Time for transition matches:       " + trans.matchTime);

@@ -41,7 +41,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -456,7 +456,7 @@ public class CFACreator {
 
       if (transformIntoSingleLoop) {
         stats.processingTime.start();
-        immutableCFA = new CFASingleLoopTransformation(logger, config).apply(cfa);
+        immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config).apply(cfa);
         stats.processingTime.stop();
       } else {
         immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);

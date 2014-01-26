@@ -29,8 +29,8 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 
 import java.util.Collection;
 
-import org.sosy_lab.common.NestedTimer;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.time.NestedTimer;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -169,7 +169,7 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
       if (count == 0) {
         solveTime.stop();
         enumTime.startOuter();
-        regionTime = enumTime.getInnerTimer();
+        regionTime = enumTime.getCurentInnerTimer();
       }
 
       shutdownNotifier.shutdownIfNecessary();
