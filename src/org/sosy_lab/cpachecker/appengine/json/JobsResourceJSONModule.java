@@ -64,6 +64,9 @@ public class JobsResourceJSONModule extends SimpleModule {
           case "configuration":
             settings.put("configuration", parser.nextTextValue());
             break;
+          case "sourceFileName":
+            settings.put("sourceFileName", parser.nextTextValue());
+            break;
           case "programText":
             settings.put("programText", parser.nextTextValue());
             break;

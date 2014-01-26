@@ -159,7 +159,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
       @Override
       public void run() {
         try {
-          result = cpaChecker.run("program.c");
+          result = cpaChecker.run(job.getSourceFileName());
         } catch (Exception e) {
           if (e.getClass().getSimpleName().equals("RuntimeException")) {
             /* RuntimeException might be thrown if the thread is interrupted and

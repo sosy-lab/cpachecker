@@ -77,6 +77,7 @@ public class Job {
   private String statusMessage;
   private String specification;
   private String configuration;
+  private String sourceFileName;
   private String queueName;
   private String taskName;
   private Result resultOutcome;
@@ -212,6 +213,14 @@ public class Job {
 
   public void setConfiguration(String pConfiguration) {
     configuration = pConfiguration;
+  }
+
+  public String getSourceFileName() {
+    return sourceFileName;
+  }
+
+  public void setSourceFileName(String pSourceFileName) {
+    sourceFileName = pSourceFileName;
   }
 
   public Long getId() {

@@ -115,6 +115,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
             break;
           case "programText":
             if (program == null || program.isEmpty()) {
+              settings.put("sourceFileName", "program.c");
               program = value;
             }
             break;
@@ -122,6 +123,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
         }
         else {
           if (program == null || program.isEmpty()) {
+            settings.put("sourceFileName", item.getName());
             // files will always be treated as text/plain
             StringWriter writer = new StringWriter();
             IOUtils.copy(stream, writer, Charsets.UTF_8);
@@ -235,12 +237,13 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
     }
 
     createdJob = new Job(JobDAO.allocateKey().getId());
-    JobFile program = new JobFile("program.c", createdJob);
     createdJob.setSpecification((String) settings.get("specification"));
     createdJob.setConfiguration((String) settings.get("configuration"));
+    createdJob.setSourceFileName((String) settings.get("sourceFileName"));
     if (settings.get("options") != null) {
       createdJob.setOptions((Map<String, String>) settings.get("options"));
     }
+    JobFile program = new JobFile(createdJob.getSourceFileName(), createdJob);
     program.setContent((String) settings.get("programText"));
 
     if (createdJob.getSpecification() == null && createdJob.getConfiguration() == null) {

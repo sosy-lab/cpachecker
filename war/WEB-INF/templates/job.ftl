@@ -84,6 +84,12 @@
           <td>${job.configuration}</td>
         </tr>
         </#if>
+        <#if job.sourceFileName??>
+        <tr>
+          <td>${msg.sourceFileName}</td>
+          <td>${job.sourceFileName}</td>
+        </tr>
+        </#if>
         <#if job.options?? >
         <tr>
           <td>${msg.options}</td>

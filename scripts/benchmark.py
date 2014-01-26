@@ -792,6 +792,7 @@ def getBenchmarkDataForAppEngine(benchmark):
             logFile = os.path.relpath(run.logFile, benchmark.logFolder)
             args = parseArgsForAppEngine(run.getCmdline()[1:-1], absWorkingDir)
             args['options']['limits.time.wall'] = str(timeLimit)+'s'
+            args['sourceFileName'] = run.sourcefile
             runDefinitions.append({'args':args,
                                    'debug':config.debug,
                                    'maxLogfileSize':config.maxLogfileSize,
