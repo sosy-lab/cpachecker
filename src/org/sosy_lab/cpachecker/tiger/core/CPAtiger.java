@@ -89,12 +89,6 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
   private PrintStream mOutput = System.out;
 
   public CPAtiger(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier) {
-    /*mNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
-    mIncrementalTestGenerator = new IncrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
-    mIncrementalAndAlternatingTestGenerator = new IncrementalAndAlternatingFQLTestGenerator(pSourceFileName, pEntryFunction);
-
-    mCoverageAnalyser = new StandardFQLCoverageAnalyser(pSourceFileName, pEntryFunction);*/
-
     mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction, shutdownNotifier);
   }
 
