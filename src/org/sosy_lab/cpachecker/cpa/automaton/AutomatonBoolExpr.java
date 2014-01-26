@@ -250,7 +250,8 @@ interface AutomatonBoolExpr extends AutomatonExpression {
             match = false;
           }
         } else {
-          throw new IllegalStateException("Matching of negative semantics only possible for assume edges!");
+          // Matching of negative semantics only possible for assume edges!
+          match = false;
         }
       }
 
