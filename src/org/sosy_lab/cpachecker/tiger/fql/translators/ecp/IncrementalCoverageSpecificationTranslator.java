@@ -35,11 +35,11 @@ import org.sosy_lab.cpachecker.tiger.fql.ast.coveragespecification.Quotation;
 import org.sosy_lab.cpachecker.tiger.fql.ast.coveragespecification.Union;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.tiger.targetgraph.Edge;
-import org.sosy_lab.cpachecker.tiger.targetgraph.Node;
-import org.sosy_lab.cpachecker.tiger.targetgraph.Occurrences;
-import org.sosy_lab.cpachecker.tiger.targetgraph.Path;
-import org.sosy_lab.cpachecker.tiger.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.Edge;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.Node;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.Occurrences;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.Path;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.TargetGraph;
 
 public class IncrementalCoverageSpecificationTranslator {
 

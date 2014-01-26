@@ -30,7 +30,6 @@ import java.util.LinkedList;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.tiger.clustering.ClusteredElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.tiger.fql.ast.coveragespecification.CoverageSpecification;
 import org.sosy_lab.cpachecker.tiger.fql.ast.filter.Identity;
@@ -38,6 +37,7 @@ import org.sosy_lab.cpachecker.tiger.fql.ast.pathpattern.Repetition;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.SingletonECPEdgeSet;
+import org.sosy_lab.cpachecker.tiger.goals.clustering.ClusteredElementaryCoveragePattern;
 
 public class ClusteringCoverageSpecificationTranslator {
 

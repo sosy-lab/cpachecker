@@ -44,11 +44,11 @@ import org.sosy_lab.cpachecker.tiger.fql.ast.pathpattern.PathPattern;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.tiger.targetgraph.Edge;
-import org.sosy_lab.cpachecker.tiger.targetgraph.Node;
-import org.sosy_lab.cpachecker.tiger.targetgraph.Path;
-import org.sosy_lab.cpachecker.tiger.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.tiger.targetgraph.TargetGraphUtil;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.Edge;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.Node;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.Path;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.TargetGraphUtil;
 
 public class CoverageSpecificationTranslator {
 

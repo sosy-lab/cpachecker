@@ -47,12 +47,12 @@ import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPRepetition;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPUnion;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.StandardECPEdgeSet;
-import org.sosy_lab.cpachecker.tiger.targetgraph.Edge;
-import org.sosy_lab.cpachecker.tiger.targetgraph.FilterEvaluator;
-import org.sosy_lab.cpachecker.tiger.targetgraph.Node;
-import org.sosy_lab.cpachecker.tiger.targetgraph.Path;
-import org.sosy_lab.cpachecker.tiger.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.tiger.targetgraph.TargetGraphUtil;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.Edge;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.FilterEvaluator;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.Node;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.Path;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.TargetGraphUtil;
 
 public class PathPatternTranslator {
 

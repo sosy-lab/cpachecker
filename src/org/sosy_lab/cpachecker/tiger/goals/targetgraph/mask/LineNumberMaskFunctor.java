@@ -21,13 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.tiger.targetgraph.mask;
+package org.sosy_lab.cpachecker.tiger.goals.targetgraph.mask;
 
 import org.jgrapht.graph.MaskFunctor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.tiger.targetgraph.Edge;
-import org.sosy_lab.cpachecker.tiger.targetgraph.Node;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.Edge;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.Node;
 
 public class LineNumberMaskFunctor implements MaskFunctor<Node, Edge> {
 

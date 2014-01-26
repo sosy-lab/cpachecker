@@ -38,8 +38,8 @@ import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPPrettyPrinter;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.tiger.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.tiger.targetgraph.TargetGraphUtil;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.tiger.goals.targetgraph.TargetGraphUtil;
 import org.sosy_lab.cpachecker.tiger.util.cilly.Cilly;
 
 public class PathPatternTranslatorTest {
