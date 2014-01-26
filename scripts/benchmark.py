@@ -163,16 +163,12 @@ class Worker(threading.Thread):
         self.runExecutor.kill()
 
 class AppEngineSubmitter(threading.Thread):
-    def __init__(self, runDefinitions, benchmark, timelimitPerRun):
+    def __init__(self, runDefinitions, benchmark):
         threading.Thread.__init__(self)
         self.runDefinitions = runDefinitions
         self.benchmark = benchmark
         self.done = False
         self.submittedJobs = 0
-        self.timelimitPerRun = timelimitPerRun
-        # It might happen that a job never ends.
-        # Therefore a time limit will be enforced granting a grace period.
-        self.timeout = datetime.now()
 
     def run(self):
         for run in self.runDefinitions:
@@ -206,10 +202,6 @@ class AppEngineSubmitter(threading.Thread):
 #             if self.submittedJobs == 10:
 #                 logging.debug('SUBMITTED %s JOBS'%self.submittedJobs)
 #                 break
-         
-        # disabled for now
-#         self.timeout = datetime.now() + timedelta(seconds=APPENGINE_TIMEOUT_GRACE_PERIOD) + timedelta(seconds=self.submittedJobs * self.timelimitPerRun)
-#         logging.debug('Timeout will be enforced at '+self.timeout.isoformat())
         self.done = True
                 
 class AppEnginePoller(threading.Thread):
@@ -223,12 +215,6 @@ class AppEnginePoller(threading.Thread):
         nextJobIndex = 0
         while not self.done and not STOPPED_BY_INTERRUPT:
             self.done = (APPENGINE_SUBMITTER_THREAD.done and finishedJobs == len(APPENGINE_JOBS))
-            
-            # enforce time limit
-            # Disabled for now since App Engine randomly pauses execution
-#             if APPENGINE_SUBMITTER_THREAD.done and datetime.now() >= APPENGINE_SUBMITTER_THREAD.timeout:
-#                 logging.warn('TIMEOUT! Jobs should be finished by now but it seems they are not.')
-#                 break
 
             if len(APPENGINE_JOBS) > nextJobIndex:
                 job = APPENGINE_JOBS[nextJobIndex]
@@ -869,7 +855,7 @@ def executeBenchmarkInAppengine(benchmark, outputHandler):
     
     # submit jobs
     global APPENGINE_SUBMITTER_THREAD
-    APPENGINE_SUBMITTER_THREAD = AppEngineSubmitter(runDefinitions, benchmark, timeLimit)
+    APPENGINE_SUBMITTER_THREAD = AppEngineSubmitter(runDefinitions, benchmark)
     APPENGINE_SUBMITTER_THREAD.start()
     
     # poll jobs
