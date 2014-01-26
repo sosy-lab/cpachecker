@@ -426,8 +426,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     System.err.println("TODO: reduce coupling!");
     PredicatePrecision tmp = IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision;
     assert(tmp != null);
+    //IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addGlobalPredicates(newPredicates.values());
+    //IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addFunctionPredicates(mergePredicatesPerFunction(newPredicates));
     IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addLocalPredicates(mergePredicatesPerLocation(newPredicates));
-
+    //IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addLocationInstancePredicates(newPredicates);
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
 
