@@ -1140,8 +1140,9 @@ public class CompoundInterval {
     if (isSingleton() && containsZero()) {
       return this;
     }
+    CompoundInterval result;
     if (pState.isSingleton()) {
-      CompoundInterval result = bottom();
+      result = bottom();
       for (SimpleInterval interval : this.intervals) {
         if (!interval.isSingleton()) {
           // x & 1 always yields either 0 or 1
@@ -1151,12 +1152,26 @@ public class CompoundInterval {
         }
         result = result.unionWith(SimpleInterval.singleton(interval.getLowerBound().and(pState.getValue())));
       }
-      return result;
     } else if (isSingleton()) {
       return pState.binaryAnd(this);
+    } else {
+      result = top();
     }
-    // TODO maybe a more exact implementation is possible?
-    return top();
+    return result;
+  }
+
+  /**
+   * Computes the state resulting from computing the absolute values of this
+   * state.
+   *
+   * @return the state resulting from computing the absolute values of this
+   * state.
+   */
+  public CompoundInterval absolute() {
+    if (!containsNegative()) {
+      return this;
+    }
+    return intersectWith(one().negate().extendToNegativeInfinity()).negate().unionWith(intersectWith(zero().extendToPositiveInfinity()));
   }
 
   /**
