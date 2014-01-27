@@ -499,6 +499,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       boolean lIsCovered = false;
 
       if (pApplySubsumptionCheck) {
+        // check whether some existing test case covers the goal lGoal
         lIsCovered = applyCoverageCheck(lGoal, lGoalAutomaton, lPassingCPA, lResultFactory);
       }
 
