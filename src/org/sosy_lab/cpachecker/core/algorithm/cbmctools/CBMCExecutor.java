@@ -60,7 +60,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
   }
 
   @Override
-  protected void handleExitCode(int pCode) throws CounterexampleAnalysisFailed {
+  protected synchronized void handleExitCode(int pCode) throws CounterexampleAnalysisFailed {
     switch (pCode) {
     case 0: // Verification successful (Path is infeasible)
       result = false;
@@ -76,7 +76,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
   }
 
   @Override
-  protected void handleErrorOutput(String pLine) throws CounterexampleAnalysisFailed {
+  protected synchronized void handleErrorOutput(String pLine) throws CounterexampleAnalysisFailed {
     // CBMC does not seem to print this anymore to stderr
     //if (!(pLine.startsWith("Verified ") && pLine.endsWith("original clauses.")))
 
@@ -100,7 +100,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
   }
 
   @Override
-  protected void handleOutput(String pLine) throws CounterexampleAnalysisFailed {
+  protected synchronized void handleOutput(String pLine) throws CounterexampleAnalysisFailed {
     if (pLine.contains("unwinding assertion")) {
       unwindingAssertionFailed = true;
     }
@@ -111,7 +111,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
     return unwindingAssertionFailed;
   }
 
-  public Boolean getResult() {
+  public synchronized Boolean getResult() {
     checkState(isFinished());
 
     if (errorOutputCount > 0) {
