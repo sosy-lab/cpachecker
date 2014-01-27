@@ -110,7 +110,7 @@ public class ExpressionToFormulaWithUFVisitor
     final CType baseType = PointerTargetSet.simplifyType(e.getArrayExpression().getExpressionType());
     // Fixed-length arrays
     // TODO: Check if fixed-sized arrays and pointers can be clearly distinguished this way
-    if (baseType instanceof CArrayType && PointerTargetSet.getArrayLength((CArrayType) baseType) != null) {
+    if (baseType instanceof CArrayType && ((CArrayType) baseType).getLength() != null) {
       assert base.isAliasedLocation();
     } else {
       // The address of the first element is needed i.e. the value of the pointer in the array expression

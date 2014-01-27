@@ -574,6 +574,10 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     }
   }
 
+  static boolean isSimpleType(final CType type) {
+    return !(type instanceof CArrayType) && !(type instanceof CCompositeType);
+  }
+
   BooleanFormula makeAssignment(@Nonnull CType lvalueType,
                                 final @Nonnull CType rvalueType,
                                 final @Nonnull Location lvalue,
@@ -700,10 +704,6 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
                                   "Start address is mandatory for inexact pointer target patterns");
       addInexactRetentionConstraints(startAddress, size, typesToRetain, ssa, constraints, pts);
     }
-  }
-
-  private static boolean isSimpleType(final CType type) {
-    return !(type instanceof CArrayType) && !(type instanceof CCompositeType);
   }
 
   private Pair<AliasedLocation, CType> shiftArrayLvalue(final AliasedLocation lvalue,
