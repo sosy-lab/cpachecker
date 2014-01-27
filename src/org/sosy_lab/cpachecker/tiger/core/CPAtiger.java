@@ -372,7 +372,8 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
 
       //lWriter.println("log.consoleLevel = ALL");
 
-      lWriter.println("analysis.traversal.order = DFS");
+      //lWriter.println("analysis.traversal.order = DFS");
+      lWriter.println("analysis.traversal.order = BFS");
       lWriter.println("analysis.entryFunction = " + pEntryFunction);
 
       // we want to use CEGAR algorithm
