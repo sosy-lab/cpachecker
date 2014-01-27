@@ -1657,9 +1657,13 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
 
       switch (e.getOperator()) {
       case AMPER:
-      case NOT:
       case SIZEOF:
       case TILDE:
+        return null;
+      case NOT:
+        if (operand.hasOnlyConstantValue()) {
+          return operand.eq(new OctSimpleCoefficients(nofVariables));
+        }
         return null;
       case PLUS:
         return operand;

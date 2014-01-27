@@ -277,6 +277,16 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   }
 
   @Override
+  public OctSimpleCoefficients not() {
+    Preconditions.checkArgument(hasOnlyConstantValue());
+    if (coefficients[size].equals(BigInteger.ZERO)) {
+      return new OctSimpleCoefficients(size, 1);
+    } else {
+      return new OctSimpleCoefficients(size);
+    }
+  }
+
+  @Override
   public OctSimpleCoefficients greaterEq(IOctCoefficients oct) {
     Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
     if (hasOnlyConstantValue() && oct.hasOnlyConstantValue()) {
@@ -384,6 +394,44 @@ public class OctSimpleCoefficients extends AOctCoefficients {
         }
         return new OctSimpleCoefficients(size, val);
       }
+    }
+    return null;
+  }
+
+  public IOctCoefficients greaterPart(IOctCoefficients oct) {
+    Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
+    if (!(hasOnlyConstantValue() && oct.hasOnlyConstantValue())) {
+      return null;
+    }
+
+    OctSimpleCoefficients test = greater(oct);
+    if (test != null && test.getConstantValue().equals(BigInteger.ONE)) {
+      return this;
+    }
+
+    if (oct instanceof OctIntervalCoefficients) {
+      // TODO
+    }
+    return null;
+  }
+
+  public IOctCoefficients smallerPart(IOctCoefficients oct) {
+    Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
+    if (!(hasOnlyConstantValue() && oct.hasOnlyConstantValue())) {
+      return null;
+    }
+
+    OctSimpleCoefficients test = smaller(oct);
+    if (test != null && test.getConstantValue().equals(BigInteger.ONE)) {
+      return this;
+    }
+    test = greaterEq(oct);
+    if (test != null && test.getConstantValue().equals(BigInteger.ONE)) {
+      return null;
+    }
+
+     if (oct instanceof OctIntervalCoefficients) {
+      // TODO
     }
     return null;
   }

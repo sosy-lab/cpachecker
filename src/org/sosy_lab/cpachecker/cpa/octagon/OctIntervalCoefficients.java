@@ -233,6 +233,21 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   }
 
   @Override
+  public OctSimpleCoefficients not() {
+    Preconditions.checkArgument(hasOnlyConstantValue());
+    if (coefficients[coefficients.length-2].compareTo(BigInteger.ZERO) < 0
+        || coefficients[coefficients.length-1].compareTo(BigInteger.ZERO) > 0) {
+      return new OctSimpleCoefficients(size);
+    } else if (coefficients[coefficients.length-2].compareTo(BigInteger.ZERO) == 0
+        && coefficients[coefficients.length-1].compareTo(BigInteger.ZERO) == 0
+        && !isInfite[coefficients.length-2] && !isInfite[coefficients.length-1]){
+      return new OctSimpleCoefficients(size, 1);
+    } else {
+      return null;
+    }
+  }
+
+  @Override
   public OctSimpleCoefficients greaterEq(IOctCoefficients oct) {
     Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
     if (!(hasOnlyConstantValue() && oct.hasOnlyConstantValue())) {
@@ -240,9 +255,9 @@ public class OctIntervalCoefficients extends AOctCoefficients {
     }
     if (oct instanceof OctSimpleCoefficients) {
       BigInteger leftVal = coefficients[coefficients.length-1];
-      BigInteger rightVal = ((OctSimpleCoefficients)oct).coefficients[oct.size()-1];
+      BigInteger rightVal = ((OctSimpleCoefficients)oct).coefficients[oct.size()];
 
-      if (leftVal.compareTo(rightVal) >= 0) {
+      if (!isInfite[coefficients.length-1] && leftVal.compareTo(rightVal) >= 0) {
         return new OctSimpleCoefficients(size, 1);
       } else {
         return new OctSimpleCoefficients(size);
@@ -251,7 +266,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       BigInteger leftVal = coefficients[coefficients.length-1];
       BigInteger rightVal = ((OctIntervalCoefficients)oct).coefficients[coefficients.length-2];
 
-      if (leftVal.compareTo(rightVal) >= 0) {
+      if (!((OctIntervalCoefficients)oct).isInfite[coefficients.length-2] && !isInfite[coefficients.length -1] && leftVal.compareTo(rightVal) >= 0) {
         return new OctSimpleCoefficients(size, 1);
       } else {
         return new OctSimpleCoefficients(size);
@@ -268,9 +283,9 @@ public class OctIntervalCoefficients extends AOctCoefficients {
     }
     if (oct instanceof OctSimpleCoefficients) {
       BigInteger leftVal = coefficients[coefficients.length-1];
-      BigInteger rightVal = ((OctSimpleCoefficients)oct).coefficients[oct.size()-1];
+      BigInteger rightVal = ((OctSimpleCoefficients)oct).coefficients[oct.size()];
 
-      if (leftVal.compareTo(rightVal) > 0) {
+      if (!isInfite[coefficients.length-1] && leftVal.compareTo(rightVal) > 0) {
         return new OctSimpleCoefficients(size, 1);
       } else {
         return new OctSimpleCoefficients(size);
@@ -279,7 +294,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       BigInteger leftVal = coefficients[coefficients.length-1];
       BigInteger rightVal = ((OctIntervalCoefficients)oct).coefficients[coefficients.length-2];
 
-      if (leftVal.compareTo(rightVal) > 0) {
+      if (!((OctIntervalCoefficients)oct).isInfite[coefficients.length-2] && !isInfite[coefficients.length -1] && leftVal.compareTo(rightVal) > 0) {
         return new OctSimpleCoefficients(size, 1);
       } else {
         return new OctSimpleCoefficients(size);
@@ -295,19 +310,19 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       return null;
     }
     if (oct instanceof OctSimpleCoefficients) {
-      BigInteger leftVal = coefficients[coefficients.length-1];
-      BigInteger rightVal = ((OctSimpleCoefficients)oct).coefficients[oct.size()-1];
+      BigInteger leftVal = coefficients[coefficients.length-2];
+      BigInteger rightVal = ((OctSimpleCoefficients)oct).coefficients[oct.size()];
 
-      if (leftVal.compareTo(rightVal) <= 0) {
+      if (!isInfite[coefficients.length-2] && leftVal.compareTo(rightVal) <= 0) {
         return new OctSimpleCoefficients(size, 1);
       } else {
         return new OctSimpleCoefficients(size);
       }
     } else if (oct instanceof OctIntervalCoefficients) {
-      BigInteger leftVal = coefficients[coefficients.length-1];
-      BigInteger rightVal = ((OctIntervalCoefficients)oct).coefficients[coefficients.length-2];
+      BigInteger leftVal = coefficients[coefficients.length-2];
+      BigInteger rightVal = ((OctIntervalCoefficients)oct).coefficients[coefficients.length-1];
 
-      if (leftVal.compareTo(rightVal) <= 0) {
+      if (!((OctIntervalCoefficients)oct).isInfite[coefficients.length-1] && !isInfite[coefficients.length -2] && leftVal.compareTo(rightVal) <= 0) {
         return new OctSimpleCoefficients(size, 1);
       } else {
         return new OctSimpleCoefficients(size);
@@ -323,10 +338,10 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       return null;
     }
     if (oct instanceof OctSimpleCoefficients) {
-      BigInteger leftVal = coefficients[coefficients.length-1];
-      BigInteger rightVal = ((OctSimpleCoefficients)oct).coefficients[oct.size()-1];
+      BigInteger leftVal = coefficients[coefficients.length-2];
+      BigInteger rightVal = ((OctSimpleCoefficients)oct).coefficients[oct.size()];
 
-      if (leftVal.compareTo(rightVal) < 0) {
+      if (!isInfite[coefficients.length-2] && leftVal.compareTo(rightVal) < 0) {
         return new OctSimpleCoefficients(size, 1);
       } else {
         return new OctSimpleCoefficients(size);
@@ -335,7 +350,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       BigInteger leftVal = coefficients[coefficients.length-1];
       BigInteger rightVal = ((OctIntervalCoefficients)oct).coefficients[coefficients.length-2];
 
-      if (leftVal.compareTo(rightVal) < 0) {
+      if (!((OctIntervalCoefficients)oct).isInfite[coefficients.length-1] && !isInfite[coefficients.length -2] && leftVal.compareTo(rightVal) < 0) {
         return new OctSimpleCoefficients(size, 1);
       } else {
         return new OctSimpleCoefficients(size);
@@ -357,6 +372,9 @@ public class OctIntervalCoefficients extends AOctCoefficients {
         BigInteger val2 = coefficients[(size*2)+1];
         BigInteger val3 = ((OctSimpleCoefficients)oct).coefficients[size];
         val = val1.compareTo(val3) == 0 && val2.compareTo(val3) == 0 ? 1 : 0;
+        if (val == 1) {
+          val = ((isInfite[size*2] && isInfite[(size*2)+1]) == ((OctSimpleCoefficients)oct).isInfite[size]) ? 1 : 0;
+        }
       }
       return new OctSimpleCoefficients(size, val);
 
@@ -364,6 +382,9 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       int val = 1;
       for (int i = 0; i < coefficients.length && val == 1; i++) {
         val = coefficients[i].compareTo(((OctIntervalCoefficients)oct).coefficients[i]);
+        if (val == 1) {
+          val = isInfite[i] && ((OctIntervalCoefficients)oct).isInfite[i] ? 1 : 0;
+        }
       }
       return new OctSimpleCoefficients(size, val);
     }
@@ -381,7 +402,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       BigInteger upperBound = coefficients[coefficients.length-2];
       BigInteger val3 = ((OctSimpleCoefficients)oct).coefficients[size];
 
-      if (lowerBound.compareTo(val3) > 0 || upperBound.compareTo(val3) < 0) {
+      if ((!isInfite[coefficients.length-1] && (lowerBound.compareTo(val3)) > 0) || (!isInfite[coefficients.length-2] && upperBound.compareTo(val3) < 0)) {
         return new OctSimpleCoefficients(size, 1);
       } else {
         return new OctSimpleCoefficients(size);
@@ -392,7 +413,8 @@ public class OctIntervalCoefficients extends AOctCoefficients {
       BigInteger lowerBound2 = ((OctIntervalCoefficients)oct).coefficients[coefficients.length-1];
       BigInteger upperBound2 = ((OctIntervalCoefficients)oct).coefficients[coefficients.length-2];
 
-      if (lowerBound1.compareTo(upperBound2) > 0 || upperBound1.compareTo(lowerBound2) < 0) {
+      if ((lowerBound1.compareTo(upperBound2) > 0 && !isInfite[coefficients.length-1] && !((OctIntervalCoefficients)oct).isInfite[coefficients.length-2])
+          || (upperBound1.compareTo(lowerBound2) < 0 && !isInfite[coefficients.length-2] && !((OctIntervalCoefficients)oct).isInfite[coefficients.length-1])) {
         return new OctSimpleCoefficients(size, 1);
       } else {
         return new OctSimpleCoefficients(size);

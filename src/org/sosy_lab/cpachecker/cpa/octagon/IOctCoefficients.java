@@ -87,6 +87,8 @@ interface IOctCoefficients {
    */
   public abstract IOctCoefficients div(IOctCoefficients oct);
 
+  public abstract IOctCoefficients not();
+
   public abstract IOctCoefficients binAnd(IOctCoefficients oct);
 
   public abstract IOctCoefficients binOr(IOctCoefficients oct);
