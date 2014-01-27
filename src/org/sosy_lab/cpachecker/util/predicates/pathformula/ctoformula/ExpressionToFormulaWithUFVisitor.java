@@ -198,7 +198,7 @@ public class ExpressionToFormulaWithUFVisitor
   }
 
   @Override
-  public Value visit(final CCastExpression e) throws UnrecognizedCCodeException {
+  public Expression visit(final CCastExpression e) throws UnrecognizedCCodeException {
     final CType resultType = PointerTargetSet.simplifyType(e.getExpressionType());
     final CExpression operand = conv.makeCastFromArrayToPointerIfNecessary(e.getOperand(), resultType);
 
@@ -216,7 +216,13 @@ public class ExpressionToFormulaWithUFVisitor
     }
 
     final CType operandType = PointerTargetSet.simplifyType(operand.getExpressionType());
-    return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), edge));
+    if (CToFormulaWithUFConverter.isSimpleType(resultType)) {
+      return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), edge));
+    } else if (resultType.equals(operandType)) { // Special case: conversion of non-scalar type to itself is allowed (and ignored)
+      return result;
+    } else {
+      throw new UnrecognizedCCodeException("Conversion to non-scalar type requested", edge, e);
+    }
 // TODO: The following heuristic should be implemented in more generally in the assignment to p
 //    if (operand instanceof CPointerExpression
 //        && !(resultType instanceof CFunctionType)) {
