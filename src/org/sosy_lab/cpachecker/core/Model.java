@@ -610,6 +610,12 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
           return null;
         }
 
+        for(String value : parameterValuesAsCode) {
+          if(value == null) {
+            return null;
+          }
+        }
+
         Joiner joiner = Joiner.on(", ");
         String arguments = "(" + joiner.join(parameterValuesAsCode) + ")";
 
