@@ -233,7 +233,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public IOctCoefficients greaterEq(IOctCoefficients oct) {
+  public OctSimpleCoefficients greaterEq(IOctCoefficients oct) {
     Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
     if (!(hasOnlyConstantValue() && oct.hasOnlyConstantValue())) {
       return null;
@@ -261,7 +261,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public IOctCoefficients greater(IOctCoefficients oct) {
+  public OctSimpleCoefficients greater(IOctCoefficients oct) {
     Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
     if (!(hasOnlyConstantValue() && oct.hasOnlyConstantValue())) {
       return null;
@@ -289,7 +289,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public IOctCoefficients smallerEq(IOctCoefficients oct) {
+  public OctSimpleCoefficients smallerEq(IOctCoefficients oct) {
     Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
     if (!(hasOnlyConstantValue() && oct.hasOnlyConstantValue())) {
       return null;
@@ -317,7 +317,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public IOctCoefficients smaller(IOctCoefficients oct) {
+  public OctSimpleCoefficients smaller(IOctCoefficients oct) {
     Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
     if (!(hasOnlyConstantValue() && oct.hasOnlyConstantValue())) {
       return null;
@@ -345,7 +345,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public IOctCoefficients eq(IOctCoefficients oct) {
+  public OctSimpleCoefficients eq(IOctCoefficients oct) {
     Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
     if (!(hasOnlyConstantValue() && oct.hasOnlyConstantValue())) {
       return null;
@@ -371,7 +371,7 @@ public class OctIntervalCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public IOctCoefficients ineq(IOctCoefficients oct) {
+  public OctSimpleCoefficients ineq(IOctCoefficients oct) {
     Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
     if (!(hasOnlyConstantValue() && oct.hasOnlyConstantValue())) {
       return null;

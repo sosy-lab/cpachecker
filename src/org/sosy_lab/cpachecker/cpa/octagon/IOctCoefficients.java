@@ -99,17 +99,17 @@ interface IOctCoefficients {
 
   public abstract IOctCoefficients modulo(IOctCoefficients oct);
 
-  public abstract IOctCoefficients greaterEq(IOctCoefficients oct);
+  public abstract OctSimpleCoefficients greaterEq(IOctCoefficients oct);
 
-  public abstract IOctCoefficients greater(IOctCoefficients oct);
+  public abstract OctSimpleCoefficients greater(IOctCoefficients oct);
 
-  public abstract IOctCoefficients smallerEq(IOctCoefficients oct);
+  public abstract OctSimpleCoefficients smallerEq(IOctCoefficients oct);
 
-  public abstract IOctCoefficients smaller(IOctCoefficients oct);
+  public abstract OctSimpleCoefficients smaller(IOctCoefficients oct);
 
-  public abstract IOctCoefficients eq(IOctCoefficients oct);
+  public abstract OctSimpleCoefficients eq(IOctCoefficients oct);
 
-  public abstract IOctCoefficients ineq(IOctCoefficients oct);
+  public abstract OctSimpleCoefficients ineq(IOctCoefficients oct);
 
   /**
    * Indicates whether the Coefficient List only consists of a constant value.
