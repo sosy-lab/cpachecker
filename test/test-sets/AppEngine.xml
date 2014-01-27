@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="540">
+  <option name="-noout"/>
+  <option name="-nolog"/>
+  <option name="-spec">sv-comp</option>
+  
+  <!-- these options are set by default on App Engine -->
+  <option name="-setprop"/>
+  <option name="analysis.checkCounterexamples=false"/>
+  <option name="-setprop"/>
+  <option name="statistics.memory=false"/>
+  <option name="-setprop"/>
+  <option name="log.file=CPALog.txt"/>
+  <option name="-setprop"/>
+  <option name="log.useColors=false"/>
+  <option name="-setprop"/>
+  <option name="parser.usePreprocessor=false"/>
+  <option name="-setprop"/>
+  <option name="analysis.algorithm.CBMC=false"/>
+  <option name="-setprop"/>
+  <option name="analysis.algorithm.proofCheck=false"/>
+  <option name="-setprop"/>
+  <option name="configuration.dumpFile=UsedConfiguration.properties"/>
+  <option name="-setprop"/>
+  <option name="statistics.file=Statistics.txt"/>
+  <option name="-setprop"/>
+  <option name="cpa.predicate.solver=smtinterpol"/>
+  <option name="-setprop"/>
+  <option name="memorysafety.check=false"/>
+  <option name="-setprop"/>
+  <option name="limits.time.cpu=-1ns"/>
+  <option name="-setprop"/>
+  <option name="cpa.conditions.global.time.wall=-1"/>
+  <option name="-setprop"/>
+  <option name="cpa.conditions.global.time.cpu=-1"/>
+  <option name="-setprop"/>
+  <option name="cpa.conditions.global.time.cpu.hardlimit=-1"/>
+  <option name="-setprop"/>
+  <option name="cpa.conditions.global.time.wall.hardlimit=-1"/>
+  <option name="-setprop"/>
+  <option name="cpa.conditions.global.memory.heap=-1"/>
+  <option name="-setprop"/>
+  <option name="cpa.conditions.global.memory.process=-1"/>
+  <option name="-setprop"/>
+  <option name="cpa.conditions.global.reached.size=-1"/>
+  <option name="-setprop"/>
+  <option name="cpa.conditions.path.assignments.softThreshold = -1"/>
+  <option name="-setprop"/>
+  <option name="cpa.conditions.path.assignments.hardThreshold = -1"/>
+  <option name="-setprop"/>
+  <option name="cpa.conditions.path.assumeedges.limit=-1"/>
+  <option name="-setprop"/>
+  <option name="cpa.conditions.path.length.limit=-1"/>
+  <option name="-setprop"/>
+  <option name="cpa.conditions.path.repetitions.limit=-1"/>
+  <option name="-setprop"/>
+  <option name="cpa.monitor.limit=0"/>
+  <option name="-setprop"/>
+  <option name="cpa.monitor.pathcomputationlimit=0"/>
+  <option name="-setprop"/>
+  <option name="cpa.predicate.refinement.timelimit=0"/>
+  
+  <sourcefiles name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+  </sourcefiles>
+  
+  <!--<sourcefiles name="ProductLines">
+  	<includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+  </sourcefiles>-->
+  
+  <rundefinition name="explicitAnalysis-Simple">
+  	<option name="-explicitAnalysis-simple"></option>
+  </rundefinition>
+  
+  <rundefinition name="explicitAnalysis">
+    <option name="-explicitAnalysis"/>
+  </rundefinition>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+  </columns>
+</benchmark>
