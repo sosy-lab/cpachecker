@@ -401,6 +401,62 @@ public class OctIntervalCoefficients extends AOctCoefficients {
     throw new IllegalArgumentException("Unkown subtype of OctCoefficient.");
   }
 
+  public OctIntervalCoefficients greaterPart(IOctCoefficients oct) {
+    Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
+    if (!(hasOnlyConstantValue() && oct.hasOnlyConstantValue())) {
+      return null;
+    }
+
+    OctSimpleCoefficients test = greater(oct);
+    if (test != null && test.getConstantValue().equals(BigInteger.ONE)) {
+      return this;
+    }
+
+    if (oct instanceof OctSimpleCoefficients) {
+      BigInteger otherConstVal = ((OctSimpleCoefficients) oct).getConstantValue();
+      if (isInfite[coefficients.length -1] || coefficients[coefficients.length-1].compareTo(otherConstVal) <= 0) {
+        OctIntervalCoefficients ret = new OctIntervalCoefficients(size);
+        ret.coefficients[coefficients.length-1] = coefficients[coefficients.length-1];
+        ret.isInfite[coefficients.length-1] = isInfite[coefficients.length-1];
+        ret.coefficients[coefficients.length-2] = otherConstVal.add(BigInteger.ONE);
+        return ret;
+      }
+    } else if (oct instanceof OctIntervalCoefficients) {
+      // TODO
+    }
+    return null;
+  }
+
+  public OctIntervalCoefficients smallerPart(IOctCoefficients oct) {
+    Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
+    if (!(hasOnlyConstantValue() && oct.hasOnlyConstantValue())) {
+      return null;
+    }
+
+    OctSimpleCoefficients test = smaller(oct);
+    if (test != null && test.getConstantValue().equals(BigInteger.ONE)) {
+      return this;
+    }
+    test = greaterEq(oct);
+    if (test != null && test.getConstantValue().equals(BigInteger.ONE)) {
+      return null;
+    }
+
+    if (oct instanceof OctSimpleCoefficients) {
+      BigInteger otherConstVal = ((OctSimpleCoefficients) oct).getConstantValue();
+      if (coefficients[coefficients.length-2].compareTo(otherConstVal) >= 0) {
+        OctIntervalCoefficients ret = new OctIntervalCoefficients(size);
+        ret.coefficients[coefficients.length-1] = coefficients[coefficients.length-1];
+        ret.isInfite[coefficients.length-1] = isInfite[coefficients.length-1];
+        ret.coefficients[coefficients.length-2] = otherConstVal.subtract(BigInteger.ONE);
+        return ret;
+      }
+    } else if (oct instanceof OctIntervalCoefficients) {
+      // TODO
+    }
+    return null;
+  }
+
   /**
    * Returns the coefficients (lowerBount, upperBound) at the given index.
    */
