@@ -435,8 +435,9 @@ cpa.arg.refinements.file = "ARGRefinements.dot"
 # entries/exits
 cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
 
-# signal the analysis to break in case of reached error state
-cpa.automaton.breakOnTargetState = true
+# signal the analysis to break in case the given number of error state is
+# reached 
+cpa.automaton.breakOnTargetState = 1
 
 # export automaton to file
 cpa.automaton.dotExport = false
@@ -444,6 +445,11 @@ cpa.automaton.dotExport = false
 # file for saving the automaton in DOT format (%s will be replaced with
 # automaton name)
 cpa.automaton.dotExportFile = "%s.dot"
+
+# the maximum number of iterations performed after the initial error is
+# found, despite the limitgiven as cpa.automaton.breakOnTargetState is not
+# yet reached
+cpa.automaton.extraIterationsLimit = -1
 
 # file with automaton specification for ObserverAutomatonCPA and
 # ControlAutomatonCPA
