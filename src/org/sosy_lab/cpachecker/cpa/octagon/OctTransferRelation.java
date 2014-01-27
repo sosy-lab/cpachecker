@@ -235,10 +235,7 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
         || expression instanceof CFieldReference
         || (expression instanceof CPointerExpression && ((CPointerExpression) expression).getOperand() instanceof CIdExpression)) {
       if (isHandleableVariable(expression)) {
-        String varName = expression.toASTString();
-        if (expression instanceof CPointerExpression) {
-          varName = ((CPointerExpression) expression).getOperand().toASTString();
-        }
+        String varName = buildVarName((CLeftHandSide) expression, functionName);
         return handleSingleBooleanExpression(varName, truthAssumption, state);
       } else {
         return state;
