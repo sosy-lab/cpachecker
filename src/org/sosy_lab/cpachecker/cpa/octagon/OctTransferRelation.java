@@ -454,6 +454,20 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       rightVal = ((CCharLiteralExpression) right).getCharacter();
     }
 
+    IOctCoefficients test = state.getVariableToCoeffMap().get(leftVarName);
+    // in cases like
+    // a = [0, INFINITY]
+    // the test (a > 0) will fail normally as zero is included in the range for a
+    // for addressing this problem we check if only a part of the range of a is
+    // bigger than the compared value, and return a smaller range which is
+    // afterwards assigned to a instead of prooving any constraints
+    if (test instanceof OctIntervalCoefficients) {
+      test = handleIntervalCoeffsInAssumptions((OctIntervalCoefficients) test, new OctSimpleCoefficients(test.size(), rightVal), op, truthAssumption);
+      if (test != null) {
+        return state.makeAssignment(leftVarName, test);
+      }
+    }
+
     switch (op) {
     case EQUALS:
       if (truthAssumption) {
@@ -503,6 +517,39 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       throw new CPATransferException("Unhandled case statement: " + op);
     }
 
+  }
+
+  private IOctCoefficients handleIntervalCoeffsInAssumptions(OctIntervalCoefficients leftCoeffs,
+      IOctCoefficients rightCoeffs, BinaryOperator op, boolean truthAssumption) {
+    switch (op) {
+
+    case LESS_THAN:
+      if (truthAssumption) {
+        return leftCoeffs.smallerPart(rightCoeffs);
+      }
+      break;
+    case GREATER_EQUAL:
+      if (!truthAssumption) {
+        return leftCoeffs.smallerPart(rightCoeffs);
+      }
+      break;
+
+    case GREATER_THAN:
+      if (truthAssumption) {
+        return leftCoeffs.greaterPart(rightCoeffs);
+      }
+      break;
+    case LESS_EQUAL:
+      if (!truthAssumption) {
+        return leftCoeffs.greaterPart(rightCoeffs);
+      }
+      break;
+
+    default:
+      // no exception here, every case which cannot be handled should return null
+      // so normal assumption handling can handle these cases
+    }
+    return null;
   }
 
   /**
@@ -657,6 +704,21 @@ public class OctTransferRelation extends ForwardingTransferRelation<OctState, Pr
       temporaryVariableCounter++;
       state = state.declareVariable(tempRight, right.accept(new COctagonCoefficientVisitor(state, state.sizeOfVariables()+1)));
       rightVarName = tempRight;
+    }
+
+    IOctCoefficients test = state.getVariableToCoeffMap().get(leftVarName);
+    IOctCoefficients rightSide = state.getVariableToCoeffMap().get(rightVarName);
+    // in cases like
+    // a = [0, INFINITY]
+    // the test (a > 0) will fail normally as zero is included in the range for a
+    // for addressing this problem we check if only a part of the range of a is
+    // bigger than the compared value, and return a smaller range which is
+    // afterwards assigned to a instead of prooving any constraints
+    if (test instanceof OctIntervalCoefficients && rightSide != null) {
+      test = handleIntervalCoeffsInAssumptions((OctIntervalCoefficients) test, rightSide, op, truthAssumption);
+      if (test != null) {
+        return state.makeAssignment(leftVarName, test);
+      }
     }
 
     // Comparison part, left and right are now definitely available
