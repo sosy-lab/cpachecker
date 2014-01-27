@@ -1,3 +1,7 @@
+#define __BLAST_NONDET __VERIFIER_nondet_int()
+
+int __BLAST_NONDET;
+
 int KernelMode  ;
 int Executive  ;
 int DevicePowerState ;
@@ -113,7 +117,7 @@ int KbFilter_PnP(int DeviceObject , int Irp )
   int irpSp__Context ;
   int irpSp__Control ;
   long __cil_tmp23 ;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;
@@ -390,7 +394,7 @@ int main(void)
   int irp ;
   int pirp ;
   int pirp__IoStatus__Status ;
-  int __BLAST_NONDET ;
+  
   int irp_choice ;
   int devobj ;
   int __cil_tmp8 ;
@@ -624,7 +628,7 @@ void stubMoreProcessingRequired(void)
 }
 #line 497 "kbfiltr_simpl2.cil.c"
 int IofCallDriver(int DeviceObject , int Irp ) 
-{ int __BLAST_NONDET ;
+{ 
   int returnVal2 ;
   int compRetStatus ;
   int lcontext ;
@@ -744,7 +748,7 @@ void IofCompleteRequest(int Irp , int PriorityBoost )
 #line 582 "kbfiltr_simpl2.cil.c"
 int KeSetEvent(int Event , int Increment , int Wait ) 
 { int l ;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   l = __BLAST_NONDET;
@@ -759,7 +763,7 @@ int KeSetEvent(int Event , int Increment , int Wait )
 #line 590 "kbfiltr_simpl2.cil.c"
 int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alertable ,
                           int Timeout ) 
-{ int __BLAST_NONDET ;
+{ 
   int tmp001;
 
   // initialization added by ah
@@ -836,7 +840,7 @@ int KbFilter_CreateClose(int DeviceObject , int Irp )
   int Irp__IoStatus__Status ;
   int status ;
   int tmp ;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   irpStack__MajorFunction = __BLAST_NONDET;
@@ -888,7 +892,7 @@ int KbFilter_DispatchPassThrough(int DeviceObject , int Irp )
   int DeviceObject__DeviceExtension__TopOfStack ;
   int irpStack ;
   int tmp ;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
@@ -929,7 +933,7 @@ int KbFilter_Power(int DeviceObject , int Irp )
   int devExt__TopOfStack ;
   int powerType ;
   int tmp ;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   irpStack__MinorFunction = __BLAST_NONDET;
@@ -1000,7 +1004,7 @@ int KbFilter_Power(int DeviceObject , int Irp )
 }
 #line 767 "kbfiltr_simpl2.cil.c"
 int PoCallDriver(int DeviceObject , int Irp ) 
-{ int __BLAST_NONDET ;
+{ 
   int compRetStatus ;
   int returnVal ;
   int lcontext ;
@@ -1148,7 +1152,7 @@ int KbFilter_InternIoCtl(int DeviceObject , int Irp )
   int __cil_tmp43 ;
   int __cil_tmp44 ;
   int __cil_tmp45 ;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   __cil_tmp17 = __BLAST_NONDET;

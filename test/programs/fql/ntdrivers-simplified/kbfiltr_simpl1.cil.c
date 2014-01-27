@@ -114,7 +114,7 @@ int KbFilter_PnP(int DeviceObject , int Irp )
   int irpSp__Context ;
   int irpSp__Control ;
   long __cil_tmp23 ;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;
@@ -388,7 +388,7 @@ int main(void)
   int irp ;
   int pirp ;
   int pirp__IoStatus__Status ;
-  int __BLAST_NONDET ;
+  
   int irp_choice ;
   int devobj ;
   int __cil_tmp8 ;
@@ -584,7 +584,7 @@ void stubMoreProcessingRequired(void)
 }
 #line 455 "kbfiltr_simpl1.cil.c"
 int IofCallDriver(int DeviceObject , int Irp ) 
-{ int __BLAST_NONDET ;
+{ 
   int returnVal2 ;
   int compRetStatus ;
   int lcontext ;
@@ -690,7 +690,7 @@ void IofCompleteRequest(int Irp , int PriorityBoost )
 #line 540 "kbfiltr_simpl1.cil.c"
 int KeSetEvent(int Event , int Increment , int Wait ) 
 { int l ;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   l = __BLAST_NONDET;
@@ -705,7 +705,7 @@ int KeSetEvent(int Event , int Increment , int Wait )
 #line 548 "kbfiltr_simpl1.cil.c"
 int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alertable ,
                           int Timeout ) 
-{ int __BLAST_NONDET ;
+{ 
 //__BLAST_NONDET = random();
   int tmp_001;
   tmp_001 = __BLAST_NONDET;
