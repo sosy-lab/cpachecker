@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
@@ -150,6 +151,17 @@ public class CFASingleLoopTransformation {
       description="This option controls what program counter values are used" +
           ". Possible values are INCREMENTAL and NODE_NUMBER.")
   private ProgramCounterValueProviderFactories programCounterValueProviderFactory = ProgramCounterValueProviderFactories.INCREMENTAL;
+
+  @Option(name="cfa.transformIntoSingleLoop.subgraphGrowthStrategy",
+      description="This option controls the size of the subgraphs referred" +
+      		" to by program counter values. The larger the subgraphs, the" +
+      		" fewer program counter values are required. Possible values are " +
+      		" MULTIPLE_PATHS, SINGLE_PATH and SINGLE_EDGE, where" +
+      		" MULTIPLE_PATHS has the largest subgraphs (and fewest program" +
+      		" counter values) and SINGLE_EDGE has the smallest subgraphs (and" +
+      		" most program counter values). The larger the subgraphs, the" +
+      		" closer the resulting graph will look like the original CFA.")
+  private AcyclicGraph.AcyclicGrowthStrategies subgraphGrowthStrategy = org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation.AcyclicGraph.AcyclicGrowthStrategies.MULTIPLE_PATHS;
 
   /**
    * Creates a new single loop transformer.
@@ -280,13 +292,12 @@ public class CFASingleLoopTransformation {
       }
 
       // Get an acyclic sub graph
-      final Set<CFANode> subgraph = new LinkedHashSet<>();
-      final Set<CFAEdge> subgraphEdges = new LinkedHashSet<>();
+      final AcyclicGraph subgraph = new AcyclicGraph(subgraphRoot, this.subgraphGrowthStrategy);
       Deque<CFANode> waitlist = new ArrayDeque<>();
       waitlist.add(subgraphRoot);
-      subgraph.add(subgraphRoot);
       while (!waitlist.isEmpty()) {
         CFANode current = waitlist.poll();
+        assert subgraph.containsNode(current) || !visited.contains(current);
         visited.add(current);
 
         for (CFAEdge edge : CFAUtils.leavingEdges(current).toList()) {
@@ -298,10 +309,10 @@ public class CFASingleLoopTransformation {
           assert current != next : "Self-loops must be eliminated previously";
 
           // Add the edge to the subgraph if no cycle is introduced by it
-          if (!becomesLoop(subgraph, subgraphEdges, edge)) {
-            subgraph.add(next);
+          if ((!visited.contains(next) || subgraph.containsNode(next))
+              && subgraph.isFurtherGrowthDesired()
+              && subgraph.offerEdge(edge)) {
             waitlist.add(next);
-            subgraphEdges.add(edge);
           } else {
             /*
              * The cycle is avoided by making the edge leave the subgraph
@@ -331,12 +342,7 @@ public class CFASingleLoopTransformation {
             CFAEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), dummy, next, DUMMY_EDGE);
             dummyEdges.add(dummyEdge);
 
-            /*
-             * The dummy becomes part of the subgraph, so does the replacement
-             * edge
-             */
-            subgraph.add(dummy);
-            subgraphEdges.add(replacementEdge);
+            subgraph.addEdge(replacementEdge);
             tmpMap.clear();
 
             // Compute the program counter for the replaced edge and map the nodes to it
@@ -351,13 +357,13 @@ public class CFASingleLoopTransformation {
 
       // Copy the subgraph
       Set<CFANode> newSubgraph = new LinkedHashSet<>();
-      for (CFANode oldNode : subgraph) {
+      for (CFANode oldNode : subgraph.getNodes()) {
         CFANode newNode = getOrCreateNewFromOld(oldNode, globalNewToOld);
         newSubgraph.add(newNode);
       }
-      for (CFAEdge oldEdge : subgraphEdges) {
-        assert subgraph.contains(oldEdge.getSuccessor()) : "None of the edges must leave the subgraph at this point";
-        assert subgraph.contains(oldEdge.getPredecessor()) : "None of the edges must enter the subgraph at this point";
+      for (CFAEdge oldEdge : subgraph.getEdges()) {
+        assert subgraph.containsNode(oldEdge.getSuccessor()) : "None of the edges must leave the subgraph at this point";
+        assert subgraph.containsNode(oldEdge.getPredecessor()) : "None of the edges must enter the subgraph at this point";
         CFAEdge newEdge = copyCFAEdgeWithNewNodes(oldEdge, globalNewToOld);
         addToNodes(newEdge);
       }
@@ -478,40 +484,6 @@ public class CFASingleLoopTransformation {
    */
   private boolean isDummyEdge(CFAEdge pEdge) {
     return pEdge.getEdgeType() == CFAEdgeType.BlankEdge && pEdge.getDescription().equals(DUMMY_EDGE);
-  }
-
-  /**
-   * Checks if the subgraph defined by the given set of nodes and the given set
-   * of edges would contain a loop if the given candidate edge was added to the
-   * set of edges and its successor was added to the set of nodes.
-   *
-   * @param pSubgraphNodes the nodes of the subgraph.
-   * @param pSubgraphEdges the edges of the subgraph.
-   * @param pCandidateEdge the candidate edge.
-   * @return <code>true</code> if the candidate edge would introduce a loop in
-   * the subgraph.
-   */
-  private boolean becomesLoop(Set<CFANode> pSubgraphNodes, Set<CFAEdge> pSubgraphEdges, CFAEdge pCandidateEdge) {
-    Set<CFANode> visited = new HashSet<>();
-    Queue<CFANode> waitlist = new ArrayDeque<>();
-    waitlist.offer(pCandidateEdge.getSuccessor());
-    while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.poll();
-      if (current.equals(pCandidateEdge.getPredecessor())) {
-        return true;
-      }
-      if (visited.add(current)) {
-        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
-          if (pSubgraphEdges.contains(leavingEdge)) {
-            CFANode succ = leavingEdge.getSuccessor();
-            if (pSubgraphNodes.contains(succ)) {
-              waitlist.add(succ);
-            }
-          }
-        }
-      }
-    }
-    return false;
   }
 
   /**
@@ -1225,6 +1197,216 @@ public class CFASingleLoopTransformation {
       rawStatement = String.format("!(%s)", rawStatement);
     }
     return new CProgramCounterValueAssumeEdge(rawStatement, pPredecessor, pSuccessor, assumePCExpression, pTruthAssumption, pPCValue);
+  }
+
+  /**
+   * Instances of this class are acyclic graphs.
+   */
+  private static class AcyclicGraph {
+
+    /**
+     * The set of nodes.
+     */
+    private final Set<CFANode> nodes = new LinkedHashSet<>();
+
+    /**
+     * The set of edges.
+     */
+    private final Set<CFAEdge> edges = new LinkedHashSet<>();
+
+    /**
+     * The growth strategy.
+     */
+    private final AcyclicGrowthStrategy growthStrategy;
+
+    /**
+     * Creates a new acyclic graph with the given root node and default growth
+     * strategy.
+     *
+     * @param pRoot the root node.
+     * @param pGrowthStrategy the growth strategy.
+     */
+    public AcyclicGraph(CFANode pRoot, AcyclicGrowthStrategy pGrowthStrategy) {
+      this.nodes.add(pRoot);
+      this.growthStrategy = pGrowthStrategy;
+    }
+
+    /**
+     * Gets the nodes of the graph as an unmodifiable set.
+     *
+     * @return the nodes of the graph as an unmodifiable set.
+     */
+    public Set<CFANode> getNodes() {
+      return Collections.unmodifiableSet(this.nodes);
+    }
+
+    /**
+     * Gets the edges of the graph as an unmodifiable set.
+     *
+     * @return the edges of the graph as an unmodifiable set.
+     */
+    public Set<CFAEdge> getEdges() {
+      return Collections.unmodifiableSet(this.edges);
+    }
+
+    /**
+     * Checks if the given node is contained in this graph.
+     *
+     * @param pNode the node to look for.
+     * @return @{code true} if the node is contained in the graph,
+     * @{code false} otherwise.
+     */
+    public boolean containsNode(CFANode pNode) {
+      return this.nodes.contains(pNode);
+    }
+
+    /**
+     * Checks if the given edge is contained in this graph.
+     *
+     * @param pEdge the edge to look for.
+     * @return @{code true} if the edge is contained in the graph,
+     * @{code false} otherwise.
+     */
+    public boolean containsEdge(CFAEdge pEdge) {
+      return this.edges.contains(pEdge);
+    }
+
+    /**
+     * Adds the given edge to the graph.
+     *
+     * @param pEdge the edge to be added.
+     *
+     * @throws IllegalArgumentException if the edge cannot be added according
+     * to the employed growth strategy.
+     */
+    public void addEdge(CFAEdge pEdge) {
+      Preconditions.checkArgument(offerEdge(pEdge));
+    }
+
+    /**
+     * If the given edge may be added to the graph according to the growth
+     * strategy, it is added.
+     *
+     * @param pEdge the candidate edge.
+     *
+     * @return {@code true} if the edge was added, {@code false} otherwise.
+     */
+    public boolean offerEdge(CFAEdge pEdge) {
+      if (introducesLoop(pEdge)) {
+        return false;
+      }
+      this.edges.add(pEdge);
+      this.nodes.add(pEdge.getSuccessor());
+      return true;
+    }
+
+    public boolean isFurtherGrowthDesired() {
+      return this.growthStrategy.isFurtherGrowthDesired(this);
+    }
+
+    @Override
+    public String toString() {
+      return this.edges.toString();
+    }
+
+    /**
+     * Checks if the given control flow edge would introduce a loop to the
+     * graph if it was added.
+     *
+     * @param pEdge the edge to check.
+     * @return {@code true} if adding the edge would introduce a loop to the
+     * graph, {@code false} otherwise.
+     */
+    private boolean introducesLoop(CFAEdge pEdge) {
+      Set<CFANode> visited = new HashSet<>();
+      Queue<CFANode> waitlist = new ArrayDeque<>();
+      waitlist.offer(pEdge.getSuccessor());
+      while (!waitlist.isEmpty()) {
+        CFANode current = waitlist.poll();
+        if (current.equals(pEdge.getPredecessor())) {
+          return true;
+        }
+        if (visited.add(current)) {
+          for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
+            if (containsEdge(leavingEdge)) {
+              CFANode succ = leavingEdge.getSuccessor();
+              if (containsNode(succ)) {
+                waitlist.add(succ);
+              }
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    /**
+     * Instances of implementing classes are used as growth strategies for
+     * acyclic graphs.
+     */
+    public static interface AcyclicGrowthStrategy {
+
+      /**
+       * Decides whether or not further growth is desired for the given graph.
+       *
+       * @param pGraph the current graph.
+       *
+       * @return {@code true} if further growth of the graph is desired,
+       * @{code false} otherwise.
+       */
+      boolean isFurtherGrowthDesired(AcyclicGraph pGraph);
+
+    }
+
+    /**
+     * This enum contains different acyclic growth strategies.
+     */
+    public static enum AcyclicGrowthStrategies implements AcyclicGrowthStrategy {
+
+      /**
+       * This growth strategy allows for infinite growth.
+       */
+      MULTIPLE_PATHS {
+
+        @Override
+        public boolean isFurtherGrowthDesired(AcyclicGraph pGraph) {
+          return true;
+        }
+
+      },
+
+      /**
+       * This growth strategy allows for growth along an arbitrary single
+       * finite path.
+       */
+      SINGLE_PATH {
+
+        @Override
+        public boolean isFurtherGrowthDesired(AcyclicGraph pGraph) {
+          for (CFANode node : pGraph.getNodes()) {
+            if (node.getNumLeavingEdges() > 1) {
+              return false;
+            }
+          }
+          return true;
+        }
+
+      },
+
+      /**
+       * This growth strategy advises against any kind of growth.
+       */
+      SINGLE_EDGE {
+
+        @Override
+        public boolean isFurtherGrowthDesired(AcyclicGraph pGraph) {
+          return false;
+        }
+
+      };
+
+    }
+
   }
 
 }
