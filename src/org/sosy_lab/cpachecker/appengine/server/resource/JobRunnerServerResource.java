@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.FileLogFormatter;
+import org.sosy_lab.cpachecker.appengine.common.JobMappingThreadFactory;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
@@ -60,7 +61,6 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
-import com.google.appengine.api.ThreadManager;
 import com.google.apphosting.api.ApiProxy;
 import com.google.common.base.Charsets;
 import com.google.common.io.FileWriteMode;
@@ -86,7 +86,6 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
 
   @Override
   public void runJob(Representation entity) throws Exception {
-    Threads.setThreadFactory(ThreadManager.currentRequestThreadFactory());
     Form requestValues = new Form(entity);
     job = JobDAO.load(requestValues.getFirstValue("jobKey"));
 
@@ -96,7 +95,10 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
      */
     if (job.getStatus() != Status.PENDING) { return; }
 
-    Paths.setFactory(new GAEPathFactory(job));
+    JobMappingThreadFactory.registerJobWithThread(job, Thread.currentThread());
+    Threads.setThreadFactory(new JobMappingThreadFactory());
+
+    Paths.setFactory(new GAEPathFactory(JobMappingThreadFactory.getMap()));
     errorPath = Paths.get(ERROR_FILE_NAME);
 
     job.setRequestID((String) ApiProxy.getCurrentEnvironment().getAttributes().get("com.google.appengine.runtime.request_log_id"));
@@ -199,13 +201,13 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
 
       // do not overwrite any previous status
       if (job.getStatus() != Status.ERROR && job.getStatus() != Status.TIMEOUT) {
+        dumpStatistics();
+        dumpLog();
+
         setResult();
         job.setTerminationDate(new Date());
         job.setStatus(Status.DONE);
         JobDAO.save(job);
-
-        dumpStatistics();
-        dumpLog();
       }
     }
   }
