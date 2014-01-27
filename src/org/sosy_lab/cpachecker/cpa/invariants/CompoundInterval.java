@@ -1157,6 +1157,30 @@ public class CompoundInterval {
     } else {
       result = top();
     }
+    if (!result.isSingleton()) {
+      CompoundInterval absThis = absolute();
+      CompoundInterval absOther = pState.absolute();
+      BigInteger smallestUpperBound = null;
+      if (absThis.hasUpperBound()) {
+        smallestUpperBound = absThis.getUpperBound();
+      }
+      if (absOther.hasUpperBound()) {
+        smallestUpperBound = smallestUpperBound == null
+            ? absOther.getUpperBound()
+            : smallestUpperBound.min(absOther.getUpperBound());
+      }
+      assert smallestUpperBound == null || smallestUpperBound.signum() >= 0;
+      CompoundInterval range;
+      if (smallestUpperBound == null) {
+        range = zero().extendToPositiveInfinity();
+      } else {
+        range = CompoundInterval.of(SimpleInterval.of(BigInteger.ZERO, smallestUpperBound));
+      }
+      if (containsNegative() && pState.containsNegative()) {
+        range = range.unionWith(range.negate());
+      }
+      result = result.intersectWith(range);
+    }
     return result;
   }
 
