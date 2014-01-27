@@ -117,6 +117,10 @@ public class TestCaseUtil {
 
   }
 
+  public void setOutput(PrintStream pOutput) {
+    mOutput = pOutput;
+  }
+
   public void setFeasibilityInformation(FeasibilityInformation pFeasibilityInformation) {
     assert(pFeasibilityInformation != null);
     assert(mFeasibilityInformation == null);
@@ -124,7 +128,7 @@ public class TestCaseUtil {
     mFeasibilityInformation = pFeasibilityInformation;
   }
 
-  public void reconstructPath(TestCase pTestCase, int pIndex, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA, Factory pResultFactory, Goal pGoal, Prediction[] mGoalPrediction) {
+  public void reconstructPath(TestCase pTestCase, int pIndex, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA, Factory pResultFactory, Goal pGoal, Prediction[] pGoalPrediction) {
 
     // TODO is this useful?
     if (!pTestCase.isPrecise()) {
@@ -148,46 +152,43 @@ public class TestCaseUtil {
 
       if (lIsPrecise) {
         mOutput.println("Goal #" + pIndex + " is feasible!");
-
-        pResultFactory.addFeasibleTestCase(pGoal.getPattern(), pTestCase);
-
-        // we only add precise test cases for coverage analysis
-        mGeneratedTestCases.put(pTestCase, lCFAPath);
-
-        mFeasibilityInformation.setStatus(pIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
-
-        InfeasibilityPropagation.Prediction lCurrentPrediction = mGoalPrediction[pIndex - 1];
-
-        if (!lCurrentPrediction.equals(InfeasibilityPropagation.Prediction.UNKNOWN)) {
-          throw new RuntimeException("missmatching prediction");
-        }
+        updatePreciseTestCaseStatistics(pTestCase, pIndex, pGoal, lCFAPath, pResultFactory, pGoalPrediction);
       }
       else {
         mOutput.println("Goal #" + pIndex + " lead to an imprecise execution!");
-
-        pResultFactory.addImpreciseTestCase(pTestCase);
-
-        mFeasibilityInformation.setStatus(pIndex, FeasibilityInformation.FeasibilityStatus.IMPRECISE);
-
-        InfeasibilityPropagation.Prediction lCurrentPrediction = mGoalPrediction[pIndex - 1];
-
-        if (!lCurrentPrediction.equals(InfeasibilityPropagation.Prediction.UNKNOWN)) {
-          throw new RuntimeException("missmatching prediction");
-        }
+        updateImpreciseTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
       }
     }
     else {
       mOutput.println("Goal #" + pIndex + " is imprecise!");
+      updateImpreciseTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
+    }
+  }
 
-      pResultFactory.addImpreciseTestCase(pTestCase);
+  private void updatePreciseTestCaseStatistics(TestCase pPreciseTestCase, int pIndex, Goal pGoal, CFAEdge[] lCFAPath, Factory pResultFactory, Prediction[] pGoalPrediction) {
+    pResultFactory.addFeasibleTestCase(pGoal.getPattern(), pPreciseTestCase);
 
-      mFeasibilityInformation.setStatus(pIndex, FeasibilityInformation.FeasibilityStatus.IMPRECISE);
+    // we only add precise test cases for coverage analysis
+    mGeneratedTestCases.put(pPreciseTestCase, lCFAPath);
 
-      InfeasibilityPropagation.Prediction lCurrentPrediction = mGoalPrediction[pIndex - 1];
+    mFeasibilityInformation.setStatus(pIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
 
-      if (!lCurrentPrediction.equals(InfeasibilityPropagation.Prediction.UNKNOWN)) {
-        throw new RuntimeException("missmatching prediction");
-      }
+    InfeasibilityPropagation.Prediction lCurrentPrediction = pGoalPrediction[pIndex - 1];
+
+    if (!lCurrentPrediction.equals(InfeasibilityPropagation.Prediction.UNKNOWN)) {
+      throw new RuntimeException("missmatching prediction");
+    }
+  }
+
+  private void updateImpreciseTestCaseStatistics(TestCase pImpreciseTestCase, int pIndex, Factory pResultFactory, Prediction[] pGoalPrediction) {
+    pResultFactory.addImpreciseTestCase(pImpreciseTestCase);
+
+    mFeasibilityInformation.setStatus(pIndex, FeasibilityInformation.FeasibilityStatus.IMPRECISE);
+
+    InfeasibilityPropagation.Prediction lCurrentPrediction = pGoalPrediction[pIndex - 1];
+
+    if (!lCurrentPrediction.equals(InfeasibilityPropagation.Prediction.UNKNOWN)) {
+      throw new RuntimeException("missmatching prediction");
     }
   }
 
