@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
+import org.sosy_lab.cpachecker.tiger.testgen.IncrementalARTReusingFQLTestGenerator;
 
 import com.google.common.base.Preconditions;
 
@@ -78,7 +79,7 @@ public class CPAtigerResult {
       Preconditions.checkNotNull(pTestCase);
       //Preconditions.checkArgument(!pTestCase.isPrecise());
       // TODO activate precision check again!
-      System.err.println("TODO: activate precision check again!");
+      IncrementalARTReusingFQLTestGenerator.getInstance().mOutput.println("TODO: activate precision check again!");
 
       mImpreciseTestCases.add(pTestCase);
     }

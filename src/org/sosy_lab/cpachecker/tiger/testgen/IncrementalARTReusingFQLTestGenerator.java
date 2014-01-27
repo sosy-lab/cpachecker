@@ -149,7 +149,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private FeasibilityInformation mFeasibilityInformation;
   private TestSuite mTestSuite;
 
-  private PrintStream mOutput = System.out;
+  public PrintStream mOutput = System.out;
 
   private ShutdownNotifier mShutdownNotifier;
 

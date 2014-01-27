@@ -423,7 +423,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     }
 
     // TODO reduce coupling
-    System.err.println("TODO: reduce coupling!");
+    IncrementalARTReusingFQLTestGenerator.getInstance().mOutput.println("TODO: reduce coupling!");
     PredicatePrecision tmp = IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision;
     assert(tmp != null);
     //IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addGlobalPredicates(newPredicates.values());

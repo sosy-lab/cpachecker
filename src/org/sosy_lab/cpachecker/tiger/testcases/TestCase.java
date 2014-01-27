@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.Model.Variable;
+import org.sosy_lab.cpachecker.tiger.testgen.IncrementalARTReusingFQLTestGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 public abstract class TestCase {
@@ -284,7 +285,7 @@ public abstract class TestCase {
     SortedMap<Integer, Double> lNondetMap = new TreeMap<>();
     //SortedMap<Integer, Boolean> lNondetFlagMap = new TreeMap<>();
     // TODO do we need the nondet flag!!!
-    System.err.println("TODO: Due to using functions instead of variables for nondet values, we do not need nondet-flags anymore. (check!)");
+    IncrementalARTReusingFQLTestGenerator.getInstance().mOutput.println("TODO: Due to using functions instead of variables for nondet values, we do not need nondet-flags anymore. (check!)");
 
     for (Map.Entry<AssignableTerm, Object> lAssignment : pCounterexample.entrySet()) {
       AssignableTerm lTerm = lAssignment.getKey();
