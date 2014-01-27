@@ -99,11 +99,11 @@ import org.sosy_lab.cpachecker.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.tiger.goals.clustering.ClusteredElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.goals.clustering.InfeasibilityPropagation;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;
-import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseInputsTestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestSuite;
 import org.sosy_lab.cpachecker.tiger.util.ARTReuse;
 import org.sosy_lab.cpachecker.tiger.util.FeasibilityInformation;
+import org.sosy_lab.cpachecker.tiger.util.TestCaseUtil;
 import org.sosy_lab.cpachecker.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -153,6 +153,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
   private ShutdownNotifier mShutdownNotifier;
 
+
+  private TestCaseUtil mTestCaseUtil;
+
+
   private static IncrementalARTReusingFQLTestGenerator INSTANCE = null;
 
   // TODO replace this by better code architecture
@@ -173,6 +177,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
   public void setFeasibilityInformation(FeasibilityInformation pFeasibilityInformation) {
     mFeasibilityInformation = pFeasibilityInformation;
+
+    mTestCaseUtil.setFeasibilityInformation(mFeasibilityInformation);
   }
 
   public void setTestSuite(TestSuite pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
@@ -288,6 +294,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     // we can collect test cases accross several run invocations and use them for coverage analysis
     // TODO output test cases from an earlier run
     mGeneratedTestCases = new HashMap<>();
+
+    mTestCaseUtil = new TestCaseUtil(mWrapper, mOutput, mGeneratedTestCases, mLocationCPA, mCallStackCPA, mCFAPathCPA, mAssumeCPA, mLogManager, mConfiguration, mShutdownNotifier);
   }
 
   @Override
@@ -618,70 +626,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
 
         mTestSuite.add(lTestCase);
-
-        // TODO is this useful?
-        if (!lTestCase.isPrecise()) {
-          // derive a precise test case
-          lTestCase = ((ImpreciseInputsTestCase)lTestCase).toPreciseTestCase();
-        }
-
-        if (lTestCase.isPrecise()) {
-          CFAEdge[] lCFAPath = null;
-
-          boolean lIsPrecise = true;
-
-          try {
-            lCFAPath = reconstructPath(mWrapper.getCFA(), lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
-          } catch (InvalidConfigurationException | CPAException e) {
-            throw new RuntimeException(e);
-          } catch (ImpreciseExecutionException e) {
-            lIsPrecise = false;
-            lTestCase = e.getTestCase();
-          }
-
-          if (lIsPrecise) {
-            mOutput.println("Goal #" + lIndex + " is feasible!");
-
-            lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
-
-            // we only add precise test cases for coverage analysis
-            mGeneratedTestCases.put(lTestCase, lCFAPath);
-
-            mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
-
-            InfeasibilityPropagation.Prediction lCurrentPrediction = lGoalPrediction[lIndex - 1];
-
-            if (!lCurrentPrediction.equals(InfeasibilityPropagation.Prediction.UNKNOWN)) {
-              throw new RuntimeException("missmatching prediction");
-            }
-          }
-          else {
-            mOutput.println("Goal #" + lIndex + " lead to an imprecise execution!");
-
-            lResultFactory.addImpreciseTestCase(lTestCase);
-
-            mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.IMPRECISE);
-
-            InfeasibilityPropagation.Prediction lCurrentPrediction = lGoalPrediction[lIndex - 1];
-
-            if (!lCurrentPrediction.equals(InfeasibilityPropagation.Prediction.UNKNOWN)) {
-              throw new RuntimeException("missmatching prediction");
-            }
-          }
-        }
-        else {
-          mOutput.println("Goal #" + lIndex + " is imprecise!");
-
-          lResultFactory.addImpreciseTestCase(lTestCase);
-
-          mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.IMPRECISE);
-
-          InfeasibilityPropagation.Prediction lCurrentPrediction = lGoalPrediction[lIndex - 1];
-
-          if (!lCurrentPrediction.equals(InfeasibilityPropagation.Prediction.UNKNOWN)) {
-            throw new RuntimeException("missmatching prediction");
-          }
-        }
+        mTestCaseUtil.reconstructPath(lTestCase, lIndex, lAutomatonCPA, lPassingCPA, lResultFactory, lGoal, lGoalPrediction);
 
         lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
         lTimeCover.pause();
