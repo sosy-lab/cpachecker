@@ -504,12 +504,10 @@ public class CFACreator {
 
     lWriter.println(lMainFunction.getFunctionDefinition().toASTString());
     lWriter.println();
+    lWriter.println("int __VERIFIER_nondet_int();");
+    lWriter.println();
     lWriter.println("void " + CPAtiger_MAIN + "()");
     lWriter.println("{");
-
-    if (!lMainFunction.getFunctionParameters().isEmpty()) {
-      lWriter.println("  int __BLAST_NONDET;");
-    }
 
     for (CParameterDeclaration lDeclaration : lMainFunction.getFunctionParameters()) {
       lWriter.println("  " + lDeclaration.toASTString() + ";");
@@ -517,7 +515,7 @@ public class CFACreator {
 
     for (CParameterDeclaration lDeclaration : lMainFunction.getFunctionParameters()) {
       // TODO do we need to handle lDeclaration more specifically?
-      lWriter.println("  " + lDeclaration.getName() + " = __BLAST_NONDET;");
+      lWriter.println("  " + lDeclaration.getName() + " = __VERIFIER_nondet_int();");
     }
 
     lWriter.println();
