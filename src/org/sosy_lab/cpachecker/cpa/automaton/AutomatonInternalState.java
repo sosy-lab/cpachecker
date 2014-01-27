@@ -97,6 +97,10 @@ public class AutomatonInternalState {
     return mIsTarget;
   }
 
+  public boolean getDoesMatchAll() {
+    return mAllTransitions;
+  }
+
   public List<AutomatonTransition> getTransitions() {
     return transitions;
   }

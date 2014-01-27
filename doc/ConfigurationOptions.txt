@@ -1373,8 +1373,12 @@ reachedSet.file = "reached.txt"
 # matching condition.
 restartAlgorithm.configFiles = no default value
 
+spec.automatonDumpFile = no default value
+
 # Consider the negative semantics of tokens provided with path automatons.
 spec.considerNegativeSemanticsAttribute = true
+
+spec.transitionToStopForNegatedTokensetMatch = true
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
