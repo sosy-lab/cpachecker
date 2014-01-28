@@ -228,15 +228,8 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
   }
 
-  static abstract class MatchEdgeTokens implements AutomatonBoolExpr {
-
-    protected final Set<Integer> matchTokens;
-
-    public MatchEdgeTokens(Set<Integer> pTokens) {
-      matchTokens = pTokens;
-    }
-
-    private boolean handleAsEpsilonEdge(CFAEdge edge) {
+  static abstract class TokenAwareAutomatonBoolExpr implements AutomatonBoolExpr {
+    protected boolean handleAsEpsilonEdge(CFAEdge edge) {
       if (edge instanceof BlankEdge) {
         return true;
       } else if (edge instanceof CDeclarationEdge) {
@@ -255,6 +248,39 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       }
 
       return false;
+    }
+  }
+
+  static class MatchNonEmptyEdgeTokens extends TokenAwareAutomatonBoolExpr {
+
+    public MatchNonEmptyEdgeTokens() {
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      Set<Integer> edgeTokens;
+      if (handleAsEpsilonEdge(pArgs.getCfaEdge())) {
+        edgeTokens = Collections.emptySet();
+      } else {
+        edgeTokens = CFAUtils.getTokensFromCFAEdge(pArgs.getCfaEdge(), true);
+      }
+
+      return edgeTokens.size() > 0 ? CONST_TRUE : CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH NONEMPTY TOKENS";
+    }
+
+  }
+
+  static abstract class MatchEdgeTokens extends TokenAwareAutomatonBoolExpr {
+
+    protected final Set<Integer> matchTokens;
+
+    public MatchEdgeTokens(Set<Integer> pTokens) {
+      matchTokens = pTokens;
     }
 
     protected abstract boolean tokensMatching(Set<Integer> cfaEdgeTokens);

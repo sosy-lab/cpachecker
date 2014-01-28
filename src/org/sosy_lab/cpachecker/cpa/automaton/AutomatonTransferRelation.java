@@ -203,6 +203,15 @@ class AutomatonTransferRelation implements TransferRelation {
       matchTime.start();
       ResultValue<Boolean> match = t.match(exprArgs);
       matchTime.stop();
+
+      System.out.println("----------------------");
+      System.out.println(t.getTrigger());
+      System.out.println(t.getFollowState().getName());
+      System.out.println(edge.getPredecessor().getNodeNumber());
+      System.out.println(edge.getCode());
+      System.out.println(match.getValue());
+
+
       if (match.canNotEvaluate()) {
         if (failOnUnknownMatch) {
           throw new CPATransferException("Automaton transition condition could not be evaluated: " + match.getFailureMessage());
