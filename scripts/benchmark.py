@@ -69,11 +69,15 @@ DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
 
 DEFAULT_APPENGINE_URI = 'http://dev.ba-lab.appspot.com'
 DEFAULT_APPENGINE_POLLINTERVAL = 180 # seconds (== 3 minutes)
-DEFAULT_APPENGINE_TIMELIMIT = 540 # seconds (== 9 minutes)
 APPENGINE_TIMEOUT_GRACE_PERIOD = 120 # seconds (== 2 minutes)
 APPENGINE_SUBMITTER_THREAD = None
 APPENGINE_POLLER_THREAD = None
 APPENGINE_JOBS = []
+# these will be fetched from the server
+DEFAULT_APPENGINE_TIMELIMIT = 0
+APPENGINE_RETRIES = 0
+APPENGINE_STATS_FILENAME = ''
+APPENGINE_ERROR_FILENAME = ''
 
 # next lines are needed for stopping the script
 WORKER_THREADS = []
@@ -230,11 +234,14 @@ class AppEnginePoller(threading.Thread):
                         response = json.loads(urllib2.urlopen(request).read())
                         status = response['status']
                         if status in ['DONE', 'TIMEOUT', 'ERROR']:
-                            logging.debug('Job {0} finished. Status: {1}'.format(jobID,status))
-                            job['status'] = status
-                            self.saveResult(job, response)
+                            if status == 'ERROR' and response['retries'] < APPENGINE_RETRIES:
+                                logging.debug('Job {0} finished with status ERROR. It has retries left and therefore might still succeed eventually.')
+                            else:
+                                logging.debug('Job {0} finished. Status: {1}'.format(jobID,status))
+                                job['status'] = status
+                                self.saveResult(job, response)
+                                finishedJobs += 1
                             nextJobIndex += 1
-                            finishedJobs += 1
                         else:
                             if status == 'PENDING':
                                 # TODO Detect stalled jobs.
@@ -248,10 +255,10 @@ class AppEnginePoller(threading.Thread):
                             
                     except urllib2.HTTPError as e:
                         nextJobIndex += 1
-                        finishedJobs += 1
-                        job['status'] = 'ERROR'
-                        self.saveResult(job, None)
-                        logging.warn('Server error while polling job {0}: {1} {2}'.format(jobID,e.code,e.reason))
+#                         finishedJobs += 1
+#                         job['status'] = 'ERROR'
+#                         self.saveResult(job, None)
+                        logging.warn('Server error while polling job {0}: {1} {2}. Polling will be retried in the next iteration.'.format(jobID,e.code,e.reason))
                     except:
                         sys.exit('Error while polling jobs. {0}'.format(sys.exc_info()[0]))
                 
@@ -266,7 +273,7 @@ class AppEnginePoller(threading.Thread):
         headers = {'Accept':'text/plain'}
 
         try:
-            uri = config.appengineURI+'/jobs/'+jobID+'/files/Statistics.txt'
+            uri = config.appengineURI+'/jobs/'+jobID+'/files/' + APPENGINE_STATS_FILENAME
             request = urllib2.Request(uri, headers=headers)
             response = urllib2.urlopen(request).read()
             filewriter.writeFile(response, logFile)
@@ -283,7 +290,7 @@ class AppEnginePoller(threading.Thread):
         status = job['status']
         if status in ['ERROR','TIMEOUT']:
             try:
-                uri = config.appengineURI+'/jobs/'+jobID+'/files/ERROR.txt'
+                uri = config.appengineURI+'/jobs/'+jobID+'/files/' + APPENGINE_ERROR_FILENAME
                 request = urllib2.Request(uri, headers=headers)
                 response = urllib2.urlopen(request).read()
                 filewriter.writeFile(response, logFile+'.stdErr')
@@ -848,15 +855,24 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
     return returnCode
 
 def executeBenchmarkInAppengine(benchmark, outputHandler):
-    (cpuModel, timeLimit, numberOfRuns, runDefinitions, sourceFiles, absWorkingDir) = getBenchmarkDataForAppEngine(benchmark)
-    
-    # this also acts as warm-up request which sets the App Engine server instance up
-    logging.debug('Checking availability of {0}.'.format(config.appengineURI))
+    # Get settings from server. Also warms-up the server.
+    uri = config.appengineURI + '/settings'
+    logging.debug('Pulling settings from {0}.'.format(uri))
     try:
-        urllib2.urlopen(config.appengineURI)
-        logging.debug('URI is available.')
+        headers = {'Accept':'application/json'}
+        request = urllib2.Request(uri, headers=headers)
+        response = json.loads(urllib2.urlopen(request).read())
+        global DEFAULT_APPENGINE_TIMELIMIT, APPENGINE_STATS_FILENAME, APPENGINE_ERROR_FILENAME, APPENGINE_RETRIES
+        DEFAULT_APPENGINE_TIMELIMIT = response['timeLimit']
+        APPENGINE_STATS_FILENAME = response['statisticsFileName']
+        APPENGINE_ERROR_FILENAME = response['errorFileName']
+        APPENGINE_RETRIES = int(response['retries'])
+        
+        logging.debug('Settings were successfully retrieved.')
     except urllib2.URLError as e:
-        sys.exit('The URI {0} is not available. Error: {1}'.format(config.appengineURI, e.reason))
+        sys.exit('The settings could not be pulled. {0} is not available. Error: {1}'.format(config.appengineURI, e.reason))
+    
+    (cpuModel, timeLimit, numberOfRuns, runDefinitions, sourceFiles, absWorkingDir) = getBenchmarkDataForAppEngine(benchmark)
     
     # submit jobs
     global APPENGINE_SUBMITTER_THREAD
