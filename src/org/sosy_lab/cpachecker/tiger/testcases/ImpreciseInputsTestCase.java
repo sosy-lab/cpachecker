@@ -44,13 +44,9 @@ public class ImpreciseInputsTestCase extends TestCase {
     LinkedList<Integer> lApproximatedValues = new LinkedList<>();
 
     for (Double lDoubleValue : mInputs) {
-      // TODO shall we distinguish lDoubleValue >= 0 and lDoubleValue < 0 ?
-      if (lDoubleValue > lDoubleValue.intValue()) {
-        lApproximatedValues.add(lDoubleValue.intValue() + 1);
-      }
-      else {
-        lApproximatedValues.add(lDoubleValue.intValue());
-      }
+      Double lTmpValue = Math.abs(lDoubleValue) + 0.5;
+      int lApproxValue = (lDoubleValue >= 0)?lTmpValue.intValue():(-lTmpValue.intValue());
+      lApproximatedValues.add(lApproxValue);
     }
 
     return new PreciseInputsTestCase(lApproximatedValues);
