@@ -28,7 +28,7 @@ import java.util.List;
 
 public class ImpreciseInputsTestCase extends TestCase {
 
-  private double[] mInputs;
+  private double[] mExactInputValues;
 
   public ImpreciseInputsTestCase(int[] pInputs, double[] pValues) {
     super(pInputs, false);
@@ -43,7 +43,7 @@ public class ImpreciseInputsTestCase extends TestCase {
   public PreciseInputsTestCase toPreciseTestCase() {
     LinkedList<Integer> lApproximatedValues = new LinkedList<>();
 
-    for (Double lDoubleValue : mInputs) {
+    for (Double lDoubleValue : mExactInputValues) {
       Double lTmpValue = Math.abs(lDoubleValue) + 0.5;
       int lApproxValue = (lDoubleValue >= 0)?lTmpValue.intValue():(-lTmpValue.intValue());
       lApproximatedValues.add(lApproxValue);
@@ -53,17 +53,17 @@ public class ImpreciseInputsTestCase extends TestCase {
   }
 
   private void copy(double[] pValues) {
-    mInputs = new double[pValues.length];
+    mExactInputValues = new double[pValues.length];
     for (int i = 0; i < pValues.length; i++) {
-      mInputs[i] = pValues[i];
+      mExactInputValues[i] = pValues[i];
     }
   }
 
   private void copy(List<Double> pValues) {
-    mInputs = new double[pValues.size()];
+    mExactInputValues = new double[pValues.size()];
     int lIndex = 0;
     for (Double lValue : pValues) {
-      mInputs[lIndex] = lValue;
+      mExactInputValues[lIndex] = lValue;
       lIndex++;
     }
   }
@@ -72,15 +72,19 @@ public class ImpreciseInputsTestCase extends TestCase {
   public String toString() {
     StringBuffer lBuffer = new StringBuffer();
 
-    for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
+    for (int lIndex = 0; lIndex < mExactInputValues.length; lIndex++) {
       if (lIndex > 0) {
         lBuffer.append(",");
       }
 
-      lBuffer.append(mInputs[lIndex]);
+      lBuffer.append(mExactInputValues[lIndex]);
     }
 
     return super.toString() + " was <" + lBuffer.toString() + ">";
+  }
+
+  public double[] getExactInputs() {
+    return mExactInputValues;
   }
 
 }
