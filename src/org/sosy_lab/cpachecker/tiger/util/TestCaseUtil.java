@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
+import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.MissingInputException;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -128,40 +129,58 @@ public class TestCaseUtil {
     mFeasibilityInformation = pFeasibilityInformation;
   }
 
-  public void reconstructPath(TestCase pTestCase, int pIndex, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA, Factory pResultFactory, Goal pGoal, Prediction[] pGoalPrediction) {
+  public void reconstructPathFromImpreciseTestCase(TestCase pTestCase, int pIndex, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA, Factory pResultFactory, Goal pGoal, Prediction[] pGoalPrediction) {
+    assert (!pTestCase.isPrecise());
+    assert (pTestCase instanceof ImpreciseInputsTestCase);
 
-    // TODO is this useful?
-    if (!pTestCase.isPrecise()) {
-      // derive a precise test case
-      pTestCase = ((ImpreciseInputsTestCase)pTestCase).toPreciseTestCase();
+    TestCase lPreciseTestCase = ((ImpreciseInputsTestCase)pTestCase).toPreciseTestCase();
+
+    try {
+      reconstructPathFromPreciseTestCase(lPreciseTestCase, pIndex, pAutomatonCPA, pPassingCPA, pResultFactory, pGoal, pGoalPrediction);
+    } catch (MissingInputException e) {
+      mOutput.println("Goal #" + pIndex + " is imprecise!");
+      updateImpreciseTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
+    }
+  }
+
+  public void reconstructPathFromPreciseTestCase(TestCase pTestCase, int pIndex, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA, Factory pResultFactory, Goal pGoal, Prediction[] pGoalPrediction) throws MissingInputException {
+    assert (pTestCase.isPrecise());
+
+    CFAEdge[] lCFAPath = null;
+
+    boolean lIsPrecise = true;
+
+    try {
+      lCFAPath = reconstructPath(mWrapper.getCFA(), pTestCase, mWrapper.getEntry(), pAutomatonCPA, pPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
+    } catch (MissingInputException e) {
+      throw e;
+    } catch (InvalidConfigurationException | CPAException e) {
+      throw new RuntimeException(e);
+    } catch (ImpreciseExecutionException e) {
+      lIsPrecise = false;
+      pTestCase = e.getTestCase();
     }
 
+    if (lIsPrecise) {
+      mOutput.println("Goal #" + pIndex + " is feasible!");
+      updatePreciseTestCaseStatistics(pTestCase, pIndex, pGoal, lCFAPath, pResultFactory, pGoalPrediction);
+    }
+    else {
+      mOutput.println("Goal #" + pIndex + " lead to an imprecise execution!");
+      updateImpreciseTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
+    }
+  }
+
+  public void reconstructPath(TestCase pTestCase, int pIndex, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA, Factory pResultFactory, Goal pGoal, Prediction[] pGoalPrediction) {
     if (pTestCase.isPrecise()) {
-      CFAEdge[] lCFAPath = null;
-
-      boolean lIsPrecise = true;
-
       try {
-        lCFAPath = reconstructPath(mWrapper.getCFA(), pTestCase, mWrapper.getEntry(), pAutomatonCPA, pPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
-      } catch (InvalidConfigurationException | CPAException e) {
-        throw new RuntimeException(e);
-      } catch (ImpreciseExecutionException e) {
-        lIsPrecise = false;
-        pTestCase = e.getTestCase();
-      }
-
-      if (lIsPrecise) {
-        mOutput.println("Goal #" + pIndex + " is feasible!");
-        updatePreciseTestCaseStatistics(pTestCase, pIndex, pGoal, lCFAPath, pResultFactory, pGoalPrediction);
-      }
-      else {
-        mOutput.println("Goal #" + pIndex + " lead to an imprecise execution!");
-        updateImpreciseTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
+        reconstructPathFromPreciseTestCase(pTestCase, pIndex, pAutomatonCPA, pPassingCPA, pResultFactory, pGoal, pGoalPrediction);
+      } catch (MissingInputException e1) {
+        throw new RuntimeException(e1);
       }
     }
     else {
-      mOutput.println("Goal #" + pIndex + " is imprecise!");
-      updateImpreciseTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
+      reconstructPathFromImpreciseTestCase(pTestCase, pIndex, pAutomatonCPA, pPassingCPA, pResultFactory, pGoal, pGoalPrediction);
     }
   }
 
@@ -240,6 +259,8 @@ public class TestCaseUtil {
 
     try {
       lAlgorithm.run(lReachedSet);
+    } catch (MissingInputException e) {
+      throw e;
     } catch (CPAException | InterruptedException e) {
       throw new RuntimeException(e);
     }
