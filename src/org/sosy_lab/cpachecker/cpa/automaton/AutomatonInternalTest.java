@@ -106,7 +106,7 @@ public class AutomatonInternalTest {
     AutomatonBoolExpr cannot = new AutomatonBoolExpr.CPAQuery("none", "none");
     Map<String, AutomatonVariable> vars = Collections.emptyMap();
     List<AbstractState> elements = Collections.emptyList();
-    AutomatonExpressionArguments args = new AutomatonExpressionArguments(vars, elements, null, null);
+    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, vars, elements, null, null);
     AutomatonBoolExpr ex;
     AutomatonBoolExpr myTrue= AutomatonBoolExpr.TRUE;
     AutomatonBoolExpr myFalse= AutomatonBoolExpr.FALSE;
@@ -205,7 +205,7 @@ public class AutomatonInternalTest {
     // tests the replacement of Joker expressions in the AST comparison
     ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST("$20 = $5($1, $?);", parser);
     CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST("var1 = function(var2, egal);", parser);
-    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
+    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, null);
 
     boolean result = patternAST.matches(sourceAST, args);
     Assert.assertTrue(result);
@@ -216,7 +216,7 @@ public class AutomatonInternalTest {
 
   @Test
   public void transitionVariableReplacement() throws Exception {
-    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, logger);
+    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, logger);
     args.putTransitionVariable(1, "hi");
     args.putTransitionVariable(2, "hello");
     // actual test
@@ -268,7 +268,7 @@ public class AutomatonInternalTest {
    * @throws InvalidConfigurationException
    */
   public void testAST(String src, String pattern, boolean result) throws InvalidAutomatonException, InvalidConfigurationException {
-    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
+    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, null);
     CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST(src, parser);
     ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST(pattern, parser);
 

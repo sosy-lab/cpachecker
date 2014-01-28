@@ -79,6 +79,9 @@ public class AutomatonGraphmlParser {
   @Option(name="spec.transitionToStopForNegatedTokensetMatch", description="")
   private boolean transitionToStopForNegatedTokensetMatch = true;
 
+  @Option(name="spec.matchSourcecodeData", description="Match the source code provided with the witness.")
+  private boolean matchSourcecodeData = false;
+
   @Option(name="spec.automatonDumpFile", description="")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path specAutomatonDumpFile = null;
@@ -181,25 +184,6 @@ public class AutomatonGraphmlParser {
         String sourceStateId = getAttributeValue(stateTransitionEdge, "source", "Every transition needs a source!");
         String targetStateId = getAttributeValue(stateTransitionEdge, "target", "Every transition needs a target!");
 
-        AutomatonBoolExpr conjunctedTriggers = AutomatonBoolExpr.TRUE;
-
-        if (considerNegativeSemanticsAttribute) {
-          Optional<Boolean> matchPositiveCase = Optional.absent();
-          switch(docDat.getDataValueWithDefault(stateTransitionEdge, KeyDef.TOKENSNEGATED, "").toLowerCase()) {
-            case "true":
-              matchPositiveCase = Optional.of(false);
-              break;
-            case "false":
-              matchPositiveCase = Optional.of(true);
-              break;
-          }
-
-          conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, new AutomatonBoolExpr.MatchAssumeCase(matchPositiveCase));
-        }
-
-        Set<Integer> matchTokens = getTokensOfEdge(docDat, stateTransitionEdge);
-        AutomatonBoolExpr tokensSubsetTrigger = new SubsetMatchEdgeTokens(matchTokens);
-        conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, tokensSubsetTrigger);
         List<AutomatonBoolExpr> emptyAssertions = Collections.emptyList();
         List<AutomatonAction> actions = Collections.emptyList();
 
@@ -215,42 +199,81 @@ public class AutomatonGraphmlParser {
           stateTransitions.put(targetStateId, targetStateTransitions);
         }
 
-        removeTransitions(auxilaryTransitions, transitions, matchTokens);
-        if (targetStateId.equalsIgnoreCase(SINK_NODE_ID)) {
-          // Transition to the BOTTOM state
-          transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, AutomatonInternalState.BOTTOM));
+        AutomatonBoolExpr conjunctedTriggers = AutomatonBoolExpr.TRUE;
+
+        if (matchSourcecodeData) {
+          Set<String> sourceCodeDataTags = docDat.getDataOnNode(stateTransitionEdge, KeyDef.SOURCECODE);
+          Preconditions.checkArgument(sourceCodeDataTags.size() < 2, "At most one source code data-tag must be provided!");
+          if (sourceCodeDataTags.isEmpty()) {
+            conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, new AutomatonBoolExpr.MatchCFAEdgeExact(""));
+          } else {
+            final String sourceCode = sourceCodeDataTags.iterator().next();
+            conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, new AutomatonBoolExpr.MatchCFAEdgeExact(sourceCode));
+          }
+
+          if (targetStateId.equalsIgnoreCase(SINK_NODE_ID)) {
+            // Transition to the BOTTOM state
+            transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, AutomatonInternalState.BOTTOM));
+          } else {
+            // Transition to the next state
+            transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, targetStateId));
+            transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(conjunctedTriggers), emptyAssertions, actions, AutomatonInternalState.BOTTOM));
+          }
         } else {
-          // Transition to the next state
-          transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, targetStateId));
-
-          // -- Add some auxiliary transitions --
-
-          // Repeated set of tokens
-          if (!matchTokens.isEmpty()) {
-            AutomatonTransition tr = new AutomatonTransition(tokensSubsetTrigger, emptyAssertions, actions, targetStateId);
-            auxilaryTransitions.add(tr);
-            targetStateTransitions.add(tr);
+          if (considerNegativeSemanticsAttribute) {
+            Optional<Boolean> matchPositiveCase = Optional.absent();
+            switch(docDat.getDataValueWithDefault(stateTransitionEdge, KeyDef.TOKENSNEGATED, "").toLowerCase()) {
+              case "true":
+                matchPositiveCase = Optional.of(false);
+                break;
+              case "false":
+                matchPositiveCase = Optional.of(true);
+                break;
+            }
+            conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, new AutomatonBoolExpr.MatchAssumeCase(matchPositiveCase));
           }
 
-          // Empty set of tokens
-          if (!matchTokens.isEmpty()) {
-            AutomatonTransition tr = new AutomatonTransition(epsilonTrigger, emptyAssertions, actions, targetStateId);
-            auxilaryTransitions.add(tr);
-            targetStateTransitions.add(tr);
-          }
+          Set<Integer> matchTokens = getTokensOfEdge(docDat, stateTransitionEdge);
 
-          // Negated sets of tokens to STOP
-          if (transitionToStopForNegatedTokensetMatch && !matchTokens.isEmpty()) {
-            AutomatonBoolExpr trigger = new AutomatonBoolExpr.And(
-                    new AutomatonBoolExpr.MatchNonEmptyEdgeTokens(),
-                    new AutomatonBoolExpr.Negation(
-                        new IntersectionMatchEdgeTokens(matchTokens)));
-            AutomatonTransition tr = new AutomatonTransition(trigger, emptyAssertions, actions, AutomatonInternalState.BOTTOM);
-            auxilaryTransitions.add(tr);
-            transitions.add(tr);
+          AutomatonBoolExpr tokensSubsetTrigger = new SubsetMatchEdgeTokens(matchTokens);
+          conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, tokensSubsetTrigger);
+
+          removeTransitions(auxilaryTransitions, transitions, matchTokens);
+
+          if (targetStateId.equalsIgnoreCase(SINK_NODE_ID)) {
+            // Transition to the BOTTOM state
+            transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, AutomatonInternalState.BOTTOM));
+          } else {
+            // Transition to the next state
+            transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, targetStateId));
+
+            // -- Add some auxiliary transitions --
+            // Repeated set of tokens
+            if (!matchTokens.isEmpty()) {
+              AutomatonTransition tr = new AutomatonTransition(tokensSubsetTrigger, emptyAssertions, actions, targetStateId);
+              auxilaryTransitions.add(tr);
+              targetStateTransitions.add(tr);
+            }
+
+            // Empty set of tokens
+            if (!matchTokens.isEmpty()) {
+              AutomatonTransition tr = new AutomatonTransition(epsilonTrigger, emptyAssertions, actions, targetStateId);
+              auxilaryTransitions.add(tr);
+              targetStateTransitions.add(tr);
+            }
+
+            // Negated sets of tokens to STOP
+            if (transitionToStopForNegatedTokensetMatch && !matchTokens.isEmpty()) {
+              AutomatonBoolExpr trigger = new AutomatonBoolExpr.And(
+                      new AutomatonBoolExpr.MatchNonEmptyEdgeTokens(),
+                      new AutomatonBoolExpr.Negation(
+                          new IntersectionMatchEdgeTokens(matchTokens)));
+              AutomatonTransition tr = new AutomatonTransition(trigger, emptyAssertions, actions, AutomatonInternalState.BOTTOM);
+              auxilaryTransitions.add(tr);
+              transitions.add(tr);
+            }
           }
         }
-
       }
 
       // Create states ----

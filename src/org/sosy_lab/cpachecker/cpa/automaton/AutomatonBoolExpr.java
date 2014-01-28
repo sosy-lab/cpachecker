@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.TokenCollector;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
@@ -262,7 +262,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       if (handleAsEpsilonEdge(pArgs.getCfaEdge())) {
         edgeTokens = Collections.emptySet();
       } else {
-        edgeTokens = CFAUtils.getTokensFromCFAEdge(pArgs.getCfaEdge(), true);
+        edgeTokens = TokenCollector.getTokensFromCFAEdge(pArgs.getCfaEdge(), true);
       }
 
       return edgeTokens.size() > 0 ? CONST_TRUE : CONST_FALSE;
@@ -293,10 +293,17 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       if (handleAsEpsilonEdge(pArgs.getCfaEdge())) {
         edgeTokens = Collections.emptySet();
       } else {
-        edgeTokens = CFAUtils.getTokensFromCFAEdge(pArgs.getCfaEdge(), true);
+        edgeTokens = TokenCollector.getTokensFromCFAEdge(pArgs.getCfaEdge(), true);
       }
 
       match = tokensMatching(edgeTokens);
+
+      if (!match) {
+        Set<Integer> tokensSinceLastMatch = pArgs.getState().getTokensSinceLastMatch();
+        if (!tokensSinceLastMatch.isEmpty()) {
+          match = tokensMatching(tokensSinceLastMatch);
+        }
+      }
 
       return match ? CONST_TRUE : CONST_FALSE;
     }

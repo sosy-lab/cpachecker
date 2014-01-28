@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.TokenCollector;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
@@ -93,11 +93,10 @@ public class ARGPathExport {
         doc.addDataElementChild(result, KeyDef.TOKENSNEGATED, a.getTruthAssumption() ? "false" : "true");
       }
 
-      doc.addDataElementChild(result, KeyDef.SOURCECODE, edge.getCode());
-
-      Set<Integer> tokens = CFAUtils.getTokensFromCFAEdge(edge, false);
+      Set<Integer> tokens = TokenCollector.getTokensFromCFAEdge(edge, false);
       doc.addDataElementChild(result, KeyDef.TOKENS, tokensToText(tokens));
     }
+    doc.addDataElementChild(result, KeyDef.SOURCECODE, edge.getRawStatement());
     doc.appendToAppendable(result);
   }
 

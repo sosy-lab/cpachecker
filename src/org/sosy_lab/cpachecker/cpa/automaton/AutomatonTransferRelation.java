@@ -43,6 +43,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.TokenCollector;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -181,13 +183,15 @@ class AutomatonTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
 
+    TokenCollector.getKnownToEdge(edge);
+
     if (state.getInternalState().getTransitions().isEmpty()) {
       // shortcut
       return Collections.singleton(state);
     }
 
     Collection<AutomatonState> lSuccessors = new HashSet<>(2);
-    AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state.getVars(), otherElements, edge, logger);
+    AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state, state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
     int failedMatches = 0;
     boolean nonDetState = state.getInternalState().isNonDetState();
@@ -286,6 +290,10 @@ class AutomatonTransferRelation implements TransferRelation {
     } else {
       // stay in same state, no transitions to be executed here (no transition matched)
       AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(state.getVars(), state.getInternalState(), cpa, state.getMatches(), state.getFailedMatches() + failedMatches);
+      stateNewCounters.addNoMatchTokens(state.getTokensSinceLastMatch());
+      if (edge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
+        stateNewCounters.addNoMatchTokens(TokenCollector.getTokensFromCFAEdge(edge, true));
+      }
       return Collections.singleton(stateNewCounters);
     }
   }
