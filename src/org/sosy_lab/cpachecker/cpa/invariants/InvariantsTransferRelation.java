@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -64,6 +65,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor.VariableNameExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -296,7 +298,29 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
         return handleAssignment(pElement, pFunctionReturnEdge.getSuccessor().getFunctionName(), pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pPrecision);
       }
-      return pElement;
+
+      Iterator<CExpression> actualParamIterator = summaryEdge.getExpression().getFunctionCallExpression().getParameterExpressions().iterator();
+      InvariantsState result = pElement;
+      for (String formalParamName : pFunctionReturnEdge.getPredecessor().getEntryNode().getFunctionParameterNames()) {
+        if (!actualParamIterator.hasNext()) {
+          break;
+        }
+        CExpression actualParam = actualParamIterator.next();
+        InvariantsFormula<CompoundInterval> actualParamFormula = actualParam.accept(getExpressionToFormulaVisitor(summaryEdge));
+        if (actualParamFormula instanceof Variable) {
+          String actualParamName = ((Variable<?>) actualParamFormula).getName();
+          String formalParamPrefix = calledFunctionName + "::" + formalParamName + "->";
+          for (Entry<? extends String, ? extends InvariantsFormula<CompoundInterval>> entry : pElement.getEnvironment().entrySet()) {
+            String varName = entry.getKey();
+            if (varName.startsWith(formalParamPrefix)) {
+              String formalParamSuffix = varName.substring(formalParamPrefix.length());
+              result = result.assign(false, actualParamName + "->" + formalParamSuffix, entry.getValue(), summaryEdge);
+            }
+          }
+        }
+      }
+
+      return result;
   }
 
   public static String getVarName(CExpression pLhs, CFAEdge pEdge) throws UnrecognizedCCodeException {
