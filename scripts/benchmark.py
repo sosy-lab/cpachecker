@@ -891,6 +891,10 @@ def executeBenchmarkInAppengine(benchmark, outputHandler):
     APPENGINE_POLLER_THREAD.join()
     
     handleAppEngineResults(benchmark, outputHandler)
+    
+    if config.commit and not STOPPED_BY_INTERRUPT:
+        Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
+                                     config.commitMessage+'\n\n'+outputHandler.description)
 
 
 def executeBenchmark(benchmarkFile):
