@@ -80,6 +80,7 @@ public class Job {
   private String sourceFileName;
   private String queueName;
   private String taskName;
+  private int retries;
   private Result resultOutcome;
   private String resultMessage;
   @EmbedMap private Map<String, String> options = new HashMap<>();
@@ -277,6 +278,14 @@ public class Job {
 
   public void setTaskName(String pTaskName) {
     taskName = pTaskName;
+  }
+
+  public int getRetries() {
+    return retries;
+  }
+
+  public void setRetries(int pRetries) {
+    retries = pRetries;
   }
 
   public Result getResultOutcome() {

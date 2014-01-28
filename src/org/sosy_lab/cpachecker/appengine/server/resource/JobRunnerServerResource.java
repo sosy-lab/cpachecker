@@ -34,8 +34,10 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
 import org.restlet.data.Form;
+import org.restlet.engine.header.Header;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
+import org.restlet.util.Series;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
@@ -101,6 +103,10 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     Paths.setFactory(new GAEPathFactory(JobMappingThreadFactory.getMap()));
     errorPath = Paths.get(ERROR_FILE_NAME);
 
+    @SuppressWarnings("unchecked")
+    Series<Header> headers = (Series<Header>) getRequestAttributes().get("org.restlet.http.headers");
+    int retries = Integer.valueOf(headers.getFirstValue("X-AppEngine-TaskRetryCount"));
+    job.setRetries(retries);
     job.setRequestID((String) ApiProxy.getCurrentEnvironment().getAttributes().get("com.google.appengine.runtime.request_log_id"));
     job.setExecutionDate(new Date());
     job.setStatus(Status.RUNNING);
@@ -311,7 +317,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
   private void dumpStatistics() throws IOException {
     if (statsDumped) { return; }
 
-    if (config.getProperty("statistics.export").equals("false") || result == null) { return; }
+    if (config == null || config.getProperty("statistics.export").equals("false") || result == null) { return; }
 
     Path statisticsDumpFile = Paths.get(config.getProperty("statistics.file"));
     try (OutputStream out = statisticsDumpFile.asByteSink().openBufferedStream()) {
