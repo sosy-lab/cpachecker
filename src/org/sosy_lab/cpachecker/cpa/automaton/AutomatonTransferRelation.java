@@ -204,12 +204,12 @@ class AutomatonTransferRelation implements TransferRelation {
       ResultValue<Boolean> match = t.match(exprArgs);
       matchTime.stop();
 
-      System.out.println("----------------------");
-      System.out.println(t.getTrigger());
-      System.out.println(t.getFollowState().getName());
-      System.out.println(edge.getPredecessor().getNodeNumber());
-      System.out.println(edge.getCode());
-      System.out.println(match.getValue());
+//      System.out.println("----------------------");
+//      System.out.println(t.getTrigger());
+//      System.out.println(t.getFollowState().getName());
+//      System.out.println(edge.getPredecessor().getNodeNumber());
+//      System.out.println(edge.getCode());
+//      System.out.println(match.getValue());
 
 
       if (match.canNotEvaluate()) {
