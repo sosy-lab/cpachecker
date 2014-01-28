@@ -395,6 +395,12 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
       // Logging information
       lWriter.println("log.level = OFF");
       lWriter.println("log.consoleLevel = OFF");
+      lWriter.println("cfa.export = false");
+      lWriter.println("cfa.exportPerFunction = false");
+      lWriter.println("cfa.callgraph.export = false");
+
+      // configuration of SMT solver
+      lWriter.println("cpa.predicate.solver.useIntegers = true"); // we exact input data
 
       lWriter.close();
 
