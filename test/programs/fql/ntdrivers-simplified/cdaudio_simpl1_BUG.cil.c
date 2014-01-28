@@ -1,3 +1,8 @@
+#define __BLAST_NONDET __VERIFIER_nondet_int()
+
+int __BLAST_NONDET;
+
+
 int s  ;
 int UNLOADED  ;
 int NP  ;
@@ -177,7 +182,7 @@ int CdAudioStartDevice(int DeviceObject , int Irp )
   int deviceParameterHandle ;
   int keyValue ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   deviceExtension__Active = __BLAST_NONDET;
@@ -296,7 +301,7 @@ int CdAudioPnp(int DeviceObject , int Irp )
   int tmp ;
   int tmp___0 ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
@@ -423,7 +428,7 @@ int CdAudioPnp(int DeviceObject , int Irp )
 int CdAudioDeviceControl(int DeviceObject , int Irp ) 
 { int deviceExtension__Active ;
   int status ;
-  int __BLAST_NONDET;
+  
 
   // initialiazation added by ah
   deviceExtension__Active = __BLAST_NONDET;
@@ -496,7 +501,7 @@ int CdAudioSendToNextDriver(int DeviceObject , int Irp )
   int Irp__Tail__Overlay__CurrentStackLocation ;
   int deviceExtension__TargetDeviceObject ;
   int tmp ;
-  int __BLAST_NONDET;
+  
 
   Irp__CurrentLocation = __BLAST_NONDET;
   Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
@@ -537,7 +542,7 @@ int CdAudioIsPlayActive(int DeviceObject )
   long __cil_tmp10 ;
   int __cil_tmp11 ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   deviceExtension__PlayActive = __BLAST_NONDET;
@@ -709,7 +714,7 @@ int CdAudio535DeviceControl(int DeviceObject , int Irp )
   int __cil_tmp109 ;
   int __cil_tmp110 ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
@@ -1380,7 +1385,7 @@ int CdAudio435DeviceControl(int DeviceObject , int Irp )
   unsigned long __cil_tmp115 ;
   unsigned long __cil_tmp116 ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   currentIrpStack__Parameters__DeviceIoControl__IoControlCode = __BLAST_NONDET;
@@ -2164,7 +2169,7 @@ int CdAudioAtapiDeviceControl(int DeviceObject , int Irp )
   int __cil_tmp17 ;
   int __cil_tmp18 ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   currentIrpStack__Parameters__DeviceIoControl__IoControlCode = __BLAST_NONDET;
@@ -2235,7 +2240,7 @@ int CdAudioAtapiDeviceControl(int DeviceObject , int Irp )
 #line 1309 "cdaudio_simpl1.cil.c"
 void HpCdrProcessLastSession(int Toc ) 
 { int index ;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   index = __BLAST_NONDET;
@@ -2255,7 +2260,7 @@ int HPCdrCompletion(int DeviceObject , int Irp , int Context )
 { int Irp__PendingReturned ;
   int Irp__AssociatedIrp__SystemBuffer ;
   
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   Irp__PendingReturned = __BLAST_NONDET;
@@ -2297,7 +2302,7 @@ int CdAudioHPCdrDeviceControl(int DeviceObject , int Irp )
   int __cil_tmp10 ;
   int __cil_tmp11 ;
   int __cil_tmp12 ;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   currentIrpStack__Parameters__DeviceIoControl__IoControlCode = __BLAST_NONDET;
@@ -2421,7 +2426,7 @@ int CdAudioPower(int DeviceObject , int Irp )
   int Irp__Tail__Overlay__CurrentStackLocation ;
   int deviceExtension__TargetDeviceObject ;
   int tmp ;
-  int __BLAST_NONDET;
+  
 
   Irp__CurrentLocation = __BLAST_NONDET;
   Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
@@ -2484,7 +2489,7 @@ int main(void)
   int __cil_tmp9 ;
 
   int tmp001;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   tmp001 = __BLAST_NONDET;
@@ -2719,7 +2724,7 @@ int IofCallDriver(int DeviceObject , int Irp )
   unsigned long __cil_tmp8 ;
 
   int tmp001;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   tmp001 = __BLAST_NONDET;
@@ -2851,7 +2856,7 @@ void IofCompleteRequest(int Irp , int PriorityBoost )
 #line 1734 "cdaudio_simpl1.cil.c"
 int KeSetEvent(int Event , int Increment , int Wait ) 
 { int l ;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   l = __BLAST_NONDET;
@@ -2868,7 +2873,7 @@ int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alert
                           int Timeout ) 
 { 
   int tmp001;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   tmp001 = __BLAST_NONDET;
@@ -2932,7 +2937,7 @@ int PoCallDriver(int DeviceObject , int Irp )
   long __cil_tmp8 ;
 
   int tmp001;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   tmp001 = __BLAST_NONDET;
@@ -3043,7 +3048,7 @@ int PoCallDriver(int DeviceObject , int Irp )
 int ZwClose(int Handle ) 
 { 
   int tmp001;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   tmp001 = __BLAST_NONDET;

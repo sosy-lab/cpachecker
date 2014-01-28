@@ -1,3 +1,8 @@
+#define __BLAST_NONDET __VERIFIER_nondet_int()
+
+int __BLAST_NONDET;
+
+
 int s  ;
 int UNLOADED  ;
 int NP  ;
@@ -108,7 +113,7 @@ int DiskPerfDispatchPnp(int DeviceObject , int Irp )
   int status ;
   int tmp ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   Irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
@@ -179,7 +184,7 @@ int DiskPerfStartDevice(int DeviceObject , int Irp )
   int deviceExtension ;
   int status ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;
@@ -214,7 +219,7 @@ int DiskPerfRemoveDevice(int DeviceObject , int Irp )
   int deviceExtension ;
   int wmilibContext ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;
@@ -248,7 +253,7 @@ int DiskPerfSendToNextDriver(int DeviceObject , int Irp )
   int deviceExtension ;
   int tmp ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;
@@ -289,7 +294,7 @@ int DiskPerfDispatchPower(int DeviceObject , int Irp )
   int deviceExtension ;
   int tmp ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;
@@ -337,7 +342,7 @@ int DiskPerfForwardIrpSynchronous(int DeviceObject , int Irp )
   int irpSp___0 ;
   long __cil_tmp15 ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;
@@ -516,7 +521,7 @@ int DiskPerfDeviceControl(int DeviceObject , int Irp )
   int __cil_tmp25 ;
   int __cil_tmp26 ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;
@@ -626,7 +631,7 @@ int DiskPerfShutdownFlush(int DeviceObject , int Irp )
   int deviceExtension ;
   int tmp ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;
@@ -698,7 +703,7 @@ int DiskPerfRegisterDevice(int DeviceObject )
   int __cil_tmp38 ;
   int __cil_tmp39 ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;
@@ -933,7 +938,7 @@ int main(void)
   int we_should_unload ;
   int irp ;
   int pirp__IoStatus__Status ;
-  int __BLAST_NONDET;
+  
   int irp_choice ;
   int devobj ;
   int __cil_tmp9 ;
@@ -1171,7 +1176,7 @@ int main(void)
 int IoBuildDeviceIoControlRequest(int IoControlCode , int DeviceObject , int InputBuffer ,
                                   int InputBufferLength , int OutputBuffer , int OutputBufferLength ,
                                   int InternalDeviceIoControl , int Event , int IoStatusBlock ) 
-{ int __BLAST_NONDET;
+{ 
   int malloc_ret ;
 
   int tmp001;
@@ -1223,7 +1228,7 @@ void stubMoreProcessingRequired(void)
 }
 #line 845 "diskperf_simpl1.cil.c"
 int IofCallDriver(int DeviceObject , int Irp ) 
-{ int __BLAST_NONDET;
+{ 
   int returnVal2 ;
   int compRetStatus ;
   int lcontext ;
@@ -1352,7 +1357,7 @@ void IofCompleteRequest(int Irp , int PriorityBoost )
 #line 936 "diskperf_simpl1.cil.c"
 int KeSetEvent(int Event , int Increment , int Wait ) 
 { int l ;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   l = __BLAST_NONDET;
@@ -1367,7 +1372,7 @@ int KeSetEvent(int Event , int Increment , int Wait )
 #line 944 "diskperf_simpl1.cil.c"
 int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alertable ,
                           int Timeout ) 
-{ int __BLAST_NONDET;
+{ 
   int tmp001;
 
   // initialization added by ah
@@ -1424,7 +1429,7 @@ int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alert
 }
 #line 988 "diskperf_simpl1.cil.c"
 int PoCallDriver(int DeviceObject , int Irp ) 
-{ int __BLAST_NONDET;
+{ 
   int compRetStatus ;
   int returnVal ;
   int lcontext ;

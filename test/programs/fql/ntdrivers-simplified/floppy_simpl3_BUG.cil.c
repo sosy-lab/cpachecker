@@ -1,3 +1,8 @@
+#define __BLAST_NONDET __VERIFIER_nondet_int()
+
+int __BLAST_NONDET;
+
+
 int FloppyThread  ;
 int KernelMode  ;
 int Suspended  ;
@@ -111,7 +116,7 @@ int FlQueueIrpToThread(int Irp , int DisketteExtension )
   int __cil_tmp12 ;
   int __cil_tmp13 ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   DisketteExtension__PoweringDown = __BLAST_NONDET;
@@ -225,7 +230,7 @@ int FloppyPnp(int DeviceObject , int Irp )
   long __cil_tmp29 ;
   long __cil_tmp30 ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;
@@ -650,7 +655,7 @@ int FloppyStartDevice(int DeviceObject , int Irp )
   int __cil_tmp48 ;
   int __cil_tmp49 ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   DeviceObject__DeviceExtension = __BLAST_NONDET;
@@ -869,7 +874,7 @@ int FlFdcDeviceIo(int DeviceObject , int Ioctl , int Data )
   int irpStack__Parameters__DeviceIoControl__Type3InputBuffer ;
   long __cil_tmp11 ;
 
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   irp__Tail__Overlay__CurrentStackLocation = __BLAST_NONDET;
@@ -946,7 +951,7 @@ int main(void)
   int irp ;
   int pirp ;
   int pirp__IoStatus__Status ;
-  int __BLAST_NONDET ;
+  
   int irp_choice ;
   int devobj ;
   int __cil_tmp8 ;
@@ -1136,7 +1141,7 @@ int main(void)
 int IoBuildDeviceIoControlRequest(int IoControlCode , int DeviceObject , int InputBuffer ,
                                   int InputBufferLength , int OutputBuffer , int OutputBufferLength ,
                                   int InternalDeviceIoControl , int Event , int IoStatusBlock ) 
-{ int __BLAST_NONDET ;
+{ 
   int malloc ;
   int tmp001;
 
@@ -1168,7 +1173,7 @@ int IoBuildDeviceIoControlRequest(int IoControlCode , int DeviceObject , int Inp
 }
 #line 848 "floppy_simpl3.cil.c"
 int IoDeleteSymbolicLink(int SymbolicLinkName ) 
-{ int __BLAST_NONDET ;
+{ 
   int tmp001;
 
   // initialization added by ah
@@ -1198,7 +1203,7 @@ int IoDeleteSymbolicLink(int SymbolicLinkName )
 int IoQueryDeviceDescription(int BusType , int BusNumber , int ControllerType , int ControllerNumber ,
                              int PeripheralType , int PeripheralNumber , int CalloutRoutine ,
                              int Context ) 
-{ int __BLAST_NONDET ;
+{ 
   int tmp001;
 
   // initialization added by ah
@@ -1227,7 +1232,7 @@ int IoQueryDeviceDescription(int BusType , int BusNumber , int ControllerType , 
 #line 892 "floppy_simpl3.cil.c"
 int IoRegisterDeviceInterface(int PhysicalDeviceObject , int InterfaceClassGuid ,
                               int ReferenceString , int SymbolicLinkName ) 
-{ int __BLAST_NONDET ;
+{ 
   int tmp001;
 
   // initialization added by ah
@@ -1255,7 +1260,7 @@ int IoRegisterDeviceInterface(int PhysicalDeviceObject , int InterfaceClassGuid 
 }
 #line 914 "floppy_simpl3.cil.c"
 int IoSetDeviceInterfaceState(int SymbolicLinkName , int Enable ) 
-{ int __BLAST_NONDET ;
+{ 
   int tmp001;
 
   // initialization added by ah
@@ -1302,7 +1307,7 @@ void stubMoreProcessingRequired(void)
 }
 #line 949 "floppy_simpl3.cil.c"
 int IofCallDriver(int DeviceObject , int Irp ) 
-{ int __BLAST_NONDET ;
+{ 
   int returnVal2 ;
   int compRetStatus1 ;
   int lcontext ;
@@ -1421,7 +1426,7 @@ void IofCompleteRequest(int Irp , int PriorityBoost )
 #line 1034 "floppy_simpl3.cil.c"
 int KeSetEvent(int Event , int Increment , int Wait ) 
 { int l ;
-  int __BLAST_NONDET;
+  
 
   // initialization added by ah
   l = __BLAST_NONDET;
@@ -1436,7 +1441,7 @@ int KeSetEvent(int Event , int Increment , int Wait )
 #line 1042 "floppy_simpl3.cil.c"
 int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alertable ,
                           int Timeout ) 
-{ int __BLAST_NONDET ;
+{ 
   int tmp001;
 
   // initialization added by ah
@@ -1494,7 +1499,7 @@ int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alert
 #line 1086 "floppy_simpl3.cil.c"
 int ObReferenceObjectByHandle(int Handle , int DesiredAccess , int ObjectType , int AccessMode ,
                               int Object , int HandleInformation ) 
-{ int __BLAST_NONDET ;
+{ 
   int tmp001;
 
   // initialization added by ah 
@@ -1523,7 +1528,7 @@ int ObReferenceObjectByHandle(int Handle , int DesiredAccess , int ObjectType , 
 #line 1108 "floppy_simpl3.cil.c"
 int PsCreateSystemThread(int ThreadHandle , int DesiredAccess , int ObjectAttributes ,
                          int ProcessHandle , int ClientId , int StartRoutine , int StartContext ) 
-{ int __BLAST_NONDET ;
+{ 
   int tmp001;
 
   // initialization added by ah
@@ -1551,7 +1556,7 @@ int PsCreateSystemThread(int ThreadHandle , int DesiredAccess , int ObjectAttrib
 }
 #line 1130 "floppy_simpl3.cil.c"
 int ZwClose(int Handle ) 
-{ int __BLAST_NONDET ;
+{ 
   int tmp001;
 
   // initialization added by ah
