@@ -1011,6 +1011,54 @@ public abstract class AbstractExplicitExpressionValueVisitor
         }
       }
 
+      case FLOAT:
+      {
+        // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
+        // TODO: check for overflow(source larger than the highest number we can store in target etc.)
+
+        float floatValue = numericValue.floatValue();
+        ExplicitValueBase result = null;
+
+        final int bitPerByte = machineModel.getSizeofCharInBits();
+        final int numBytes = machineModel.getSizeof(st);
+        final int size = bitPerByte * numBytes;
+
+        if(size == 32) {
+          // 32 bit means Java float
+          result = new ExplicitNumericValue(st, floatValue);
+        } else if(size == 64) {
+          // 64 bit means Java double
+          result = new ExplicitNumericValue(st, floatValue);
+        } else {
+          throw new AssertionError("Trying to cast to unsupported floating point type: "+st);
+        }
+
+        return result;
+      }
+      case DOUBLE: {
+        // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
+        // TODO: check for overflow(source larger than the highest number we can store in target etc.)
+
+        double doubleValue = numericValue.doubleValue();
+        ExplicitValueBase result = null;
+
+        final int bitPerByte = machineModel.getSizeofCharInBits();
+        final int numBytes = machineModel.getSizeof(st);
+        final int size = bitPerByte * numBytes;
+
+        if(size == 32) {
+          // 32 bit means Java float
+          result = new ExplicitNumericValue(st, (float) doubleValue);
+        } else if(size == 64) {
+          // 64 bit means Java double
+          result = new ExplicitNumericValue(st, doubleValue);
+        } else {
+          throw new AssertionError("Trying to cast to unsupported floating point type: "+st);
+        }
+
+        return result;
+      }
+
       default:
         return value; // currently we do not handle floats, doubles or voids
       }
