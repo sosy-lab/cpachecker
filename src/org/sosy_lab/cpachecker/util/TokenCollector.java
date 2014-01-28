@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -62,7 +63,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -374,6 +374,9 @@ public class TokenCollector {
         }
       break;
       case FunctionCallEdge:
+        if (edge.getPredecessor().getLeavingSummaryEdge() != null) {
+          edges.add(edge.getPredecessor().getLeavingSummaryEdge());
+        }
         result.add(((CFunctionCallEdge) edge).getLineNumber());
         astNodes.addAll(((CFunctionCallEdge) edge).getArguments());
       break ;
@@ -381,7 +384,10 @@ public class TokenCollector {
         result.add(((CFunctionReturnEdge) edge).getLineNumber());
       break;
       case ReturnStatementEdge:
-        result.add(((CReturnStatementEdge) edge).getLineNumber());
+        CExpression expr = ((CReturnStatementEdge) edge).getExpression();
+        if (expr != null) {
+          result.add(((CReturnStatementEdge) edge).getLineNumber());
+        }
       break;
       case StatementEdge:
         result.addAll(collectTokensFrom(((CStatementEdge) edge).getStatement(), overApproximateTokens));
@@ -455,7 +461,10 @@ public class TokenCollector {
       case FunctionReturnEdge:
       break;
       case ReturnStatementEdge:
-        idExs.addAll(((CReturnStatementEdge) edge).getExpression().accept(visitor));
+        CExpression expr = ((CReturnStatementEdge) edge).getExpression();
+        if (expr != null) {
+          idExs.addAll(expr.accept(visitor));
+        }
       break;
       case StatementEdge:
         idExs.addAll(((CStatementEdge) edge).getStatement().accept(visitor));
