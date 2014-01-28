@@ -309,12 +309,16 @@ public enum InvariantsTransferRelation implements TransferRelation {
         InvariantsFormula<CompoundInterval> actualParamFormula = actualParam.accept(getExpressionToFormulaVisitor(summaryEdge));
         if (actualParamFormula instanceof Variable) {
           String actualParamName = ((Variable<?>) actualParamFormula).getName();
-          String formalParamPrefix = calledFunctionName + "::" + formalParamName + "->";
+          String formalParamPrefixDeref = calledFunctionName + "::" + formalParamName + "->";
+          String formalParamPrefixAccess = calledFunctionName + "::" + formalParamName + ".";
           for (Entry<? extends String, ? extends InvariantsFormula<CompoundInterval>> entry : pElement.getEnvironment().entrySet()) {
             String varName = entry.getKey();
-            if (varName.startsWith(formalParamPrefix)) {
-              String formalParamSuffix = varName.substring(formalParamPrefix.length());
+            if (varName.startsWith(formalParamPrefixDeref)) {
+              String formalParamSuffix = varName.substring(formalParamPrefixDeref.length());
               result = result.assign(false, actualParamName + "->" + formalParamSuffix, entry.getValue(), summaryEdge);
+            } else if (varName.startsWith(formalParamPrefixAccess)) {
+              String formalParamSuffix = varName.substring(formalParamPrefixAccess.length());
+              result = result.assign(false, actualParamName + "." + formalParamSuffix, entry.getValue(), summaryEdge);
             }
           }
         }
