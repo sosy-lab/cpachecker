@@ -313,6 +313,10 @@ public class Job {
   }
 
   public void setStatistic(JobStatistic pStatistic) {
-    statistic = Ref.create(pStatistic);
+    if (pStatistic == null) {
+      statistic = null;
+    } else {
+      statistic = Ref.create(pStatistic);
+    }
   }
 }

@@ -91,12 +91,6 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     Form requestValues = new Form(entity);
     job = JobDAO.load(requestValues.getFirstValue("jobKey"));
 
-    /*
-     * Only process 'new' jobs. There seems to be a bug in the task queue that
-     * sometimes runs a task twice though it should only be run once.
-     */
-    if (job.getStatus() != Status.PENDING) { return; }
-
     JobMappingThreadFactory.registerJobWithThread(job, Thread.currentThread());
     Threads.setThreadFactory(new JobMappingThreadFactory());
 
@@ -106,6 +100,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     @SuppressWarnings("unchecked")
     Series<Header> headers = (Series<Header>) getRequestAttributes().get("org.restlet.http.headers");
     int retries = Integer.valueOf(headers.getFirstValue("X-AppEngine-TaskRetryCount"));
+    job.setStatistic(null); // clear any stats so if this is a retry it have get proper stats
     job.setRetries(retries);
     job.setRequestID((String) ApiProxy.getCurrentEnvironment().getAttributes().get("com.google.appengine.runtime.request_log_id"));
     job.setExecutionDate(new Date());
