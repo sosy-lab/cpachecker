@@ -6,6 +6,11 @@
     	<bucket-size>1</bucket-size>
     	<max-concurrent-requests>1</max-concurrent-requests>
 		<retry-parameters>
+			<!--
+				NOTE:
+				When changing this value also update it in
+				org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource
+			-->
       		<task-retry-limit>2</task-retry-limit>
     	</retry-parameters>
 	</queue>

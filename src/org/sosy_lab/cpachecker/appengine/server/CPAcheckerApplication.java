@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.appengine.server.resource.JobServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobStatisticServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.JobsServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.SettingsServerResource;
 
 import com.googlecode.objectify.ObjectifyService;
 
@@ -62,6 +63,7 @@ public class CPAcheckerApplication extends WadlApplication {
     router.attach("/jobs/{jobKey}/stats", JobStatisticServerResource.class);
     router.attach("/jobs/{jobKey}/files/{fileKey}", JobFileServerResource.class);
     router.attach("/workers/run-job", JobRunnerServerResource.class);
+    router.attach("/settings", SettingsServerResource.class);
 
     CapabilitiesFilter capabilitiesFilter = new CapabilitiesFilter(getContext());
     capabilitiesFilter.setNext(router);
