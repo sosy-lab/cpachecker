@@ -2,7 +2,7 @@
 <appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
     <application>ba-lab</application>
     <version>dev</version>
-    <threadsafe>false</threadsafe>
+    <threadsafe>true</threadsafe>
     
     <admin-console>
   		<page name="Appstats" url="/appstats" />
