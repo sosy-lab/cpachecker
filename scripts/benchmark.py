@@ -870,7 +870,7 @@ def executeBenchmarkInAppengine(benchmark, outputHandler):
         
         logging.debug('Settings were successfully retrieved.')
     except urllib2.URLError as e:
-        sys.exit('The settings could not be pulled. {0} is not available. Error: {1}'.format(config.appengineURI, e.reason))
+        sys.exit('The settings could not be pulled. {0} is not available. Error: {1}'.format(uri, e.reason))
     
     (cpuModel, timeLimit, numberOfRuns, runDefinitions, sourceFiles, absWorkingDir) = getBenchmarkDataForAppEngine(benchmark)
     
