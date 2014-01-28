@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
 import org.sosy_lab.cpachecker.appengine.server.common.JobRunnerResource;
 
+import com.google.appengine.api.log.AppLogLine;
 import com.google.appengine.api.log.LogQuery;
 import com.google.appengine.api.log.LogServiceFactory;
 import com.google.appengine.api.log.RequestLogs;
@@ -158,8 +159,14 @@ public class JobDAO {
             job.setStatus(Status.ERROR);
             job.setStatusMessage(String.format("Running the job is done but the status did not reflect this."
                 + "Therefore the status was set to %s.", Status.ERROR));
+
             JobFile error = new JobFile(JobRunnerResource.ERROR_FILE_NAME, job);
-            error.setContent(record.getCombined());
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append(record.getCombined());
+            for (AppLogLine line : record.getAppLogLines()) {
+              stringBuilder.append(line.getLogMessage());
+            }
+            error.setContent(stringBuilder.toString());
             try {
               JobFileDAO.save(error);
             } catch (IOException e) {
