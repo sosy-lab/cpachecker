@@ -7,4 +7,8 @@
     <admin-console>
   		<page name="Appstats" url="/appstats" />
 	</admin-console>
+	
+	<static-error-handlers>
+		<handler file="errorpages/timeout.json" error-code="timeout" />
+	</static-error-handlers>
 </appengine-web-app>
