@@ -111,6 +111,11 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
     return unwindingAssertionFailed;
   }
 
+  boolean producedErrorOutput() {
+    checkState(isFinished());
+    return errorOutputCount > 0;
+  }
+
   public synchronized Boolean getResult() {
     checkState(isFinished());
 

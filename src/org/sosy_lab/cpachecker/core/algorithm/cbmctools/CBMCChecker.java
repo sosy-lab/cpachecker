@@ -37,7 +37,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,6 +46,7 @@ import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -168,11 +168,23 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       logger.log(Level.FINER, "CBMC finished.");
     }
 
-    if (cbmc.getResult() == null) {
-      // exit code and stderr are already logged with level WARNING
-      throw new CounterexampleAnalysisFailed("CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
+    if (!cbmc.producedErrorOutput()) {
+      switch (exitCode) {
+      case 0: // Verification successful (Path is infeasible)
+        return false;
+
+      case 10: // Verification failed (Path is feasible)
+        return true;
+
+      default:
+      }
+
+    } else {
+      logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings, ignoring the result. Please check the log above!");
     }
-    return cbmc.getResult();
+
+    // exit code and stderr are already logged with level WARNING
+    throw new CounterexampleAnalysisFailed("CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
   }
 
   private List<String> getParamForMachineModel() {
