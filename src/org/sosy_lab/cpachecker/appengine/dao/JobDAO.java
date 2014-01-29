@@ -114,6 +114,8 @@ public class JobDAO {
     ofy().delete().keys(jobKeys).now();
     List<Key<JobFile>> fileKeys = ofy().load().type(JobFile.class).keys().list();
     ofy().delete().keys(fileKeys).now();
+    List<Key<JobStatistic>> statKeys = ofy().load().type(JobStatistic.class).keys().list();
+    ofy().delete().keys(statKeys).now();
 
     try {
       Queue queue = QueueFactory.getQueue(GAETaskQueueJobRunner.QUEUE_NAME);
