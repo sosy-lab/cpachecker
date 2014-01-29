@@ -879,6 +879,17 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
           String.format("free() called with %d parameters", parameters.size()), edge, e);
     }
 
+    if (errorConditions != null) {
+      final Formula operand = parameters.get(0).accept(delegate);
+      BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
+
+      for (String base : pts.getAllBases()) {
+        Formula baseF = conv.makeConstant(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID, pts);
+        validFree = conv.bfmgr.or(validFree, conv.fmgr.makeEqual(operand, baseF));
+      }
+      errorConditions.addInvalidFreeCondition(conv.bfmgr.not(validFree));
+    }
+
     return Value.nondetValue(); // free does not return anything, so nondet is ok
   }
 

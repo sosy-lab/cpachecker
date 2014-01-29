@@ -339,7 +339,7 @@ public class ExpressionToFormulaWithUFVisitor
           final int oldUsedFieldsSize = usedFields.size();
           AliasedLocation addressExpression = null;
 
-          if (operand instanceof CFieldReference) {
+          if (errorConditions != null && operand instanceof CFieldReference) {
             // for &(s->f) and &((*s).f) do special case because the pointer is
             // not actually dereferenced and thus we don't want to add error conditions
             // for invalid-deref
