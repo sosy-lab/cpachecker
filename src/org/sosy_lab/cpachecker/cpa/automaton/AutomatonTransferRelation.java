@@ -287,7 +287,7 @@ class AutomatonTransferRelation implements TransferRelation {
         exprArgs.putTransitionVariables(transitionVariables);
         t.executeActions(exprArgs);
         actionTime.stop();
-        AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), cpa, state.getMatches() + 1, state.getFailedMatches());
+        AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), cpa, t.getAssumptions(), state.getMatches() + 1, state.getFailedMatches());
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {
           lSuccessors.add(lSuccessor);
         } else {

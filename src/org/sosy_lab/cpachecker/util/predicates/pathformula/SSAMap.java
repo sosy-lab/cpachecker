@@ -75,7 +75,7 @@ public class SSAMap implements Serializable {
 
   private static final long serialVersionUID = 7618801653203679876L;
 
-  private static final int INDEX_NOT_CONTAINED = -1;
+  public static final int INDEX_NOT_CONTAINED = -1;
 
   /**
    * Builder for SSAMaps. Its state starts with an existing SSAMap, but may be

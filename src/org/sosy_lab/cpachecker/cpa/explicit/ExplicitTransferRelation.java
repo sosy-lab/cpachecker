@@ -86,10 +86,13 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
@@ -98,6 +101,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -1031,7 +1035,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements, CFAEdge cfaEdge, Precision precision)
-    throws UnrecognizedCCodeException {
+    throws CPATransferException {
     assert element instanceof ExplicitState;
 
     super.setInfo(element, precision, cfaEdge);
@@ -1044,6 +1048,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         break;
       } else if(ae instanceof SMGState) {
         retVal = strengthen((SMGState) ae);
+      } else if(ae instanceof AutomatonState) {
+        retVal = strengthen((AutomatonState) ae, cfaEdge);
       }
     }
 
@@ -1051,6 +1057,32 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     oldState = null;
 
     return retVal;
+  }
+
+  private Collection<? extends AbstractState> strengthen(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
+
+    CIdExpression retVarName = new CIdExpression(null, new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), "___cpa_temp_result_var_", null);
+
+    List<CAssumeEdge> assumeEdges = pAutomatonState.getAsAssumeEdges(retVarName, pCfaEdge.getPredecessor().getFunctionName());
+
+    ExplicitState state = this.state;
+
+
+    for(AssumeEdge assumeEdge : assumeEdges) {
+      state = this.handleAssumption(assumeEdge, assumeEdge.getExpression(), assumeEdge.getTruthAssumption());
+
+      if(state == null) {
+        break;
+      } else {
+        setInfo(state, precision, pCfaEdge);
+      }
+    }
+
+    if (state == null) {
+      return Collections.emptyList();
+    } else {
+      return Collections.singleton(state);
+    }
   }
 
   private Collection<? extends AbstractState> strengthen(SMGState smgState) throws UnrecognizedCCodeException {

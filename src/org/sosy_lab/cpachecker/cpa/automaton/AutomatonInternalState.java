@@ -44,6 +44,7 @@ public class AutomatonInternalState {
       Collections.singletonList(new AutomatonTransition(
                                     AutomatonBoolExpr.TRUE,
                                     Collections.<AutomatonBoolExpr>emptyList(),
+                                    null,
                                     Collections.<AutomatonAction>emptyList(),
                                     BOTTOM)),
       true, false);

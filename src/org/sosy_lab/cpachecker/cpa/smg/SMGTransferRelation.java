@@ -100,6 +100,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.SMGExplicitCommunicator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.AssumeVisitor;
@@ -1610,6 +1611,8 @@ public class SMGTransferRelation implements TransferRelation {
     for (AbstractState ae : elements) {
       if(ae instanceof ExplicitState) {
         retVal = strengthen((ExplicitState) ae, (SMGState)element, cfaEdge);
+      } else if(ae instanceof AutomatonState) {
+        strengthen((AutomatonState) ae, (SMGState)element, cfaEdge);
       }
     }
 
@@ -1619,6 +1622,27 @@ public class SMGTransferRelation implements TransferRelation {
     hasChanged = false;
     oldState = null;
     return retVal;
+  }
+
+  private Collection<? extends AbstractState> strengthen(AutomatonState pAutomatonState, SMGState pElement,
+      CFAEdge pCfaEdge) throws CPATransferException {
+
+    List<CAssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(null, pCfaEdge.getPredecessor().getFunctionName());
+
+    SMGState newElement = new SMGState(pElement);
+
+    for (CAssumeEdge assume : assumptions) {
+      newElement = handleAssumption(newElement, assume.getExpression(), pCfaEdge, assume.getTruthAssumption());
+      if (newElement == null) {
+        break;
+      }
+    }
+
+    if (newElement == null) {
+      return Collections.emptyList();
+    } else {
+      return Collections.singleton(newElement);
+    }
   }
 
   private boolean hasChanged;
