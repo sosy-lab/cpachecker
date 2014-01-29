@@ -200,7 +200,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
   }
 
-  public IncrementalARTReusingFQLTestGenerator(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier, PrintStream pOutput) {
+  public IncrementalARTReusingFQLTestGenerator(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier, PrintStream pOutput, boolean pStopOnImpreciseExecution) {
     assert (INSTANCE == null);
 
     mOutput = pOutput;
@@ -293,7 +293,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     // TODO output test cases from an earlier run
     mGeneratedTestCases = new HashMap<>();
 
-    mTestCaseUtil = new TestCaseUtil(mWrapper, mOutput, mGeneratedTestCases, mLocationCPA, mCallStackCPA, mCFAPathCPA, mAssumeCPA, mLogManager, mConfiguration, mShutdownNotifier);
+    mTestCaseUtil = new TestCaseUtil(mWrapper, mOutput, mGeneratedTestCases, mLocationCPA, mCallStackCPA, mCFAPathCPA, mAssumeCPA, mLogManager, mConfiguration, mShutdownNotifier, pStopOnImpreciseExecution);
   }
 
   @Override

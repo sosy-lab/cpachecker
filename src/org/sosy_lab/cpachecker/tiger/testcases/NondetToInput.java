@@ -296,7 +296,7 @@ public class NondetToInput {
     System.out.println(lTestSuite);
 
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
-    CPAtiger lFShell3 = new CPAtiger(pSourceFile, pEntryFunction, shutdownNotifier, System.out);
+    CPAtiger lFShell3 = new CPAtiger(pSourceFile, pEntryFunction, shutdownNotifier, System.out, true);
     lFShell3.seed(lTestSuite);
     //FShell3Result lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");
     CPAtigerResult lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");

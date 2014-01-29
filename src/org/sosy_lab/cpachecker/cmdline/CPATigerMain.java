@@ -111,7 +111,12 @@ public class CPATigerMain {
         lPrintStream = new PrintStream(NullOutputStream.getInstance());
       }
 
-      cpatiger = new CPAtiger(options.programs, entryFunction, shutdownNotifier, lPrintStream);
+      boolean lStopOnImpreciseExecution = false;
+      if (!Strings.isNullOrEmpty(cpaConfig.getProperty("cpatiger.simulation.stopOnImpreciseExecution"))) {
+        lStopOnImpreciseExecution = true;
+      }
+
+      cpatiger = new CPAtiger(options.programs, entryFunction, shutdownNotifier, lPrintStream, lStopOnImpreciseExecution);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
@@ -160,7 +165,15 @@ public class CPATigerMain {
       }
     }
 
-    CPAtigerResult result = cpatiger.run(fqlQuery);
+    CPAtigerResult result;
+
+    String lGoalIndex = cpaConfig.getProperty("cpatiger.goal");
+    if (Strings.isNullOrEmpty(lGoalIndex)) {
+      result = cpatiger.run(fqlQuery);
+    }
+    else {
+      result = cpatiger.run(fqlQuery, Integer.parseInt(lGoalIndex));
+    }
 
     // We want to print the statistics completely now that we have come so far,
     // so we disable all the limits, shutdown hooks, etc.

@@ -85,6 +85,8 @@ public class TestCaseUtil {
   private Configuration mConfiguration;
   private ShutdownNotifier mShutdownNotifier;
 
+  private boolean mStopOnImpreciseExecution;
+
   public TestCaseUtil(
       Wrapper pWrapper,
       PrintStream pOutput,
@@ -97,7 +99,9 @@ public class TestCaseUtil {
 
       LogManager pLogManager,
       Configuration pConfiguration,
-      ShutdownNotifier pShutdownNotifier) {
+      ShutdownNotifier pShutdownNotifier,
+
+      boolean pStopOnImpreciseExecution) {
 
     mWrapper = pWrapper;
     mOutput = pOutput;
@@ -112,6 +116,7 @@ public class TestCaseUtil {
     mConfiguration = pConfiguration;
     mShutdownNotifier = pShutdownNotifier;
 
+    mStopOnImpreciseExecution = pStopOnImpreciseExecution;
   }
 
   public void setFeasibilityInformation(FeasibilityInformation pFeasibilityInformation) {
@@ -247,6 +252,10 @@ public class TestCaseUtil {
         else {
           mOutput.println("Goal #" + pIndex + " lead to an imprecise execution!");
           updateImpreciseTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
+
+          if (mStopOnImpreciseExecution) {
+            throw new RuntimeException("Imprecise simulation!");
+          }
         }
 
       } catch (MissingInputException e) {
@@ -304,6 +313,10 @@ public class TestCaseUtil {
         else {
           mOutput.println("Goal #" + pIndex + " lead to an imprecise execution!");
           updateImpreciseTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
+
+          if (mStopOnImpreciseExecution) {
+            throw new RuntimeException("Imprecise simulation!");
+          }
         }
 
       } catch (MissingInputException e1) {

@@ -117,9 +117,10 @@ class CmdLineArguments {
           || handleArgument0("-64",      "analysis.machineModel", "Linux64",    arg, properties)
           || handleArgument0("-preprocess",    "parser.usePreprocessor", "true", arg, properties)
 
-          || handleArgument0("-bb",  "cpatiger.fqlquery.bb",  "true", arg, properties)
-          || handleArgument0("-bb2", "cpatiger.fqlquery.bb2", "true", arg, properties)
-          || handleArgument0("-bb3", "cpatiger.fqlquery.bb3", "true", arg, properties)
+          || handleArgument0("-pedantic", "cpatiger.simulation.stopOnImpreciseExecution", "true", arg, properties) // stop if simulation encounters an imprecise execution
+          || handleArgument0("-bb",  "cpatiger.fqlquery.bb",  "true", arg, properties) // use basic block coverage as FQL query
+          || handleArgument0("-bb2", "cpatiger.fqlquery.bb2", "true", arg, properties) // use (basic block)^2 coverage as FQL query
+          || handleArgument0("-bb3", "cpatiger.fqlquery.bb3", "true", arg, properties) // use (basic block)^3 coverage as FQL query
 
           || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
@@ -130,7 +131,8 @@ class CmdLineArguments {
           || handleArgument1("-cp",            "java.classpath",          arg, argsIt, properties)
           || handleArgument1("-classpath",     "java.classpath",          arg, argsIt, properties)
 
-          || handleArgument1("-fql", "cpatiger.fqlquery", arg, argsIt, properties)
+          || handleArgument1("-fql", "cpatiger.fqlquery", arg, argsIt, properties) // FQL query
+          || handleArgument1("-goal", "cpatiger.goal", arg, argsIt, properties) // process only the given goal
 
           //|| handleMultipleArgument1("-spec",  "specification",           arg, argsIt, properties)
       ) {
