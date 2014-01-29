@@ -75,7 +75,6 @@ public class TestCaseUtil {
   private PrintStream mOutput;
   private Map<TestCase, CFAEdge[]> mGeneratedTestCases;
   private FeasibilityInformation mFeasibilityInformation;
-  //private Prediction[] mGoalPrediction;
 
   private LocationCPA mLocationCPA;
   private CallstackCPA mCallStackCPA;
@@ -90,8 +89,6 @@ public class TestCaseUtil {
       Wrapper pWrapper,
       PrintStream pOutput,
       Map<TestCase, CFAEdge[]> pGeneratedTestCases,
-      //FeasibilityInformation pFeasibilityInformation,
-      //Prediction[] pGoalPrediction,
 
       LocationCPA pLocationCPA,
       CallstackCPA pCallstackCPA,
@@ -105,8 +102,6 @@ public class TestCaseUtil {
     mWrapper = pWrapper;
     mOutput = pOutput;
     mGeneratedTestCases = pGeneratedTestCases;
-    //mFeasibilityInformation = pFeasibilityInformation;
-    //mGoalPrediction = pGoalPrediction;
 
     mLocationCPA = pLocationCPA;
     mCallStackCPA = pCallstackCPA;
@@ -117,10 +112,6 @@ public class TestCaseUtil {
     mConfiguration = pConfiguration;
     mShutdownNotifier = pShutdownNotifier;
 
-  }
-
-  public void setOutput(PrintStream pOutput) {
-    mOutput = pOutput;
   }
 
   public void setFeasibilityInformation(FeasibilityInformation pFeasibilityInformation) {
@@ -197,7 +188,7 @@ public class TestCaseUtil {
     assert (!pTestCase.isPrecise());
     assert (pTestCase instanceof ImpreciseInputsTestCase);
 
-    ImpreciseInputsTestCase lTestCase = (ImpreciseInputsTestCase)pTestCase;
+    /*ImpreciseInputsTestCase lTestCase = (ImpreciseInputsTestCase)pTestCase;
 
     int[] lInputValues = lTestCase.getInputs();
     double[] lExactInputValues = lTestCase.getExactInputs();
@@ -210,7 +201,7 @@ public class TestCaseUtil {
       }
     }
 
-    /*if (lNumberOfRoundings < 4) {
+    if (lNumberOfRoundings < 4) {
       // we will try to enumerate everything
       ArrayList<int[]> lTestCases = new ArrayList<>(8); // TODO we potentially waste space
       enumerate(lInputValues, lExactInputValues, 0, lTestCases);

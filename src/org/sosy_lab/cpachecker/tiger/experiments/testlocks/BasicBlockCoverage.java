@@ -88,7 +88,7 @@ public class BasicBlockCoverage extends ExperimentalSeries {
   @Test
   public void test_locks_101a() throws Exception {
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
-    CPAtiger lFlleSh = new CPAtiger("test/programs/fql/locks/test_locks_5.c", "main", shutdownNotifier);
+    CPAtiger lFlleSh = new CPAtiger("test/programs/fql/locks/test_locks_5.c", "main", shutdownNotifier, System.out);
 
     LinkedList<TestCase> lTestSuite = new LinkedList<>();
 

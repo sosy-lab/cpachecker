@@ -86,14 +86,11 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
   private boolean mDoAppendingLogging = false;
   private boolean mDoRestart = false;
   private long mRestartBound = 100000000; // 100 MB
-  private PrintStream mOutput = System.out;
+  private PrintStream mOutput;
 
-  public CPAtiger(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier) {
-    mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction, shutdownNotifier);
-  }
-
-  public void setOutput(PrintStream pOutput) {
+  public CPAtiger(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier, PrintStream pOutput) {
     mOutput = pOutput;
+    mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction, shutdownNotifier, pOutput);
   }
 
   public void doRestart() {
@@ -160,7 +157,6 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
         // TODO make configurable
         if (!pAlternating) {
           */
-          mIncrementalARTReusingTestGenerator.setOutput(mOutput);
           mIncrementalARTReusingTestGenerator.setGoalIndices(mMinIndex, mMaxIndex);
 
           FeasibilityInformation lFeasibilityInformation;

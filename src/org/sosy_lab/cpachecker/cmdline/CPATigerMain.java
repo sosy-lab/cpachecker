@@ -106,11 +106,12 @@ public class CPATigerMain {
         entryFunction = "main";
       }
 
-      cpatiger = new CPAtiger(options.programs, entryFunction, shutdownNotifier);
-
+      PrintStream lPrintStream = System.out;
       if (!Strings.isNullOrEmpty(cpaConfig.getProperty("output.disable"))) {
-        cpatiger.setOutput(new PrintStream(NullOutputStream.getInstance()));
+        lPrintStream = new PrintStream(NullOutputStream.getInstance());
       }
+
+      cpatiger = new CPAtiger(options.programs, entryFunction, shutdownNotifier, lPrintStream);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);

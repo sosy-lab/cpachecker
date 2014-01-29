@@ -166,12 +166,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     return INSTANCE;
   }
 
-  public void setOutput(PrintStream pOutput) {
-    mOutput = pOutput;
-
-    mTestCaseUtil.setOutput(mOutput);
-  }
-
   public void setGoalIndices(int pMinIndex, int pMaxIndex) {
     mMinIndex = pMinIndex;
     mMaxIndex = pMaxIndex;
@@ -206,8 +200,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
   }
 
-  public IncrementalARTReusingFQLTestGenerator(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier) {
+  public IncrementalARTReusingFQLTestGenerator(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier, PrintStream pOutput) {
     assert (INSTANCE == null);
+
+    mOutput = pOutput;
 
     INSTANCE = this;
 
