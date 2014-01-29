@@ -51,7 +51,7 @@ cmd_line = ["java", "-jar", lib_dir + "/vcloud.jar", "cpachecker",\
             "--parameters", parameters\
             ]
 
-print(cmd_line)
+logging.debug("CPAchecker command: ", cmd_line)
 cloud = subprocess.Popen(cmd_line)
 cloud.communicate()
 cloud.wait()
