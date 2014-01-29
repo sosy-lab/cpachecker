@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -553,21 +554,48 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
       }
 
       @Nullable
-      public String getAsCode() {
+      private String getAsCode(CFAEdge pEdge) {
 
         if (assignments.size() < 0) {
           return null;
         }
 
-        if (edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-          return handleDeclaration(((ADeclarationEdge) edge).getDeclaration());
-        } else if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-          return handleStatement(((AStatementEdge) edge).getStatement());
-        } else if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-          return handleFunctionCall( ((FunctionCallEdge)edge));
+        if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+          return handleDeclaration(((ADeclarationEdge) pEdge).getDeclaration());
+        } else if (pEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+          return handleStatement(((AStatementEdge) pEdge).getStatement());
+        } else if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+          return handleFunctionCall( ((FunctionCallEdge)pEdge));
+        } else if(pEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
+          return handleMultiEdge((MultiEdge)pEdge);
         }
 
         return null;
+      }
+
+      @Nullable
+      public String getAsCode() {
+
+        return getAsCode(edge);
+      }
+
+      private String handleMultiEdge(MultiEdge pEdge) {
+
+        Set<String> result = new HashSet<>(pEdge.getEdges().size());
+
+        for (CFAEdge edge : pEdge) {
+          String code = getAsCode(edge);
+
+          if (code != null && !result.contains(code)) {
+            result.add(code);
+          }
+        }
+
+        if(result.size() < 1) {
+          return null;
+        } else {
+          return Joiner.on(" ").join(result);
+        }
       }
 
       private  String handleFunctionCall(FunctionCallEdge pFunctionCallEdge) {
