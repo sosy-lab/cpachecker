@@ -610,37 +610,6 @@ cpa.conditions.path.length.limit = -1
 # maximum repetitions of any edge in a path (-1 for infinite)
 cpa.conditions.path.repetitions.limit = -1
 
-# with this option enabled, a check for unreachable memory occurs whenever a
-# function returns, and not only at the end of the main function
-cpa.cpalien.checkForMemLeaksAtEveryFrameDrop = no default value
-
-# If this Option is enabled, failure of mallocis simulated
-cpa.cpalien.enableMallocFail = no default value
-
-# Filename format for SMG graph dumps
-cpa.cpalien.exportSMG.file = no default value
-
-# Describes when SMG graphs should be dumped. One of: {never, leaf,
-# interesting, every}
-cpa.cpalien.exportSMGwhen = no default value
-
-# with this option enabled, memory that is not freed before the end of main
-# is reported as memleak even if it is reachable from local variables in main
-cpa.cpalien.handleNonFreedMemoryInMainAsMemLeak = no default value
-
-# Sets how unknown functions are handled. One of: {strict, assume_safe}
-cpa.cpalien.handleUnknownFunctions = no default value
-
-# Determines if memory errors are target states
-cpa.cpalien.memoryErrors = no default value
-
-# Sets the level of runtime checking: NONE, HALF, FULL
-cpa.cpalien.runtimeCheck = no default value
-  enum:     [FORCED, NONE, HALF, FULL]
-
-# Emit messages when we encounter non-target undefined behavior
-cpa.cpalien.unknownOnUndefined = no default value
-
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
@@ -1408,6 +1377,9 @@ spec.automatonDumpFile = no default value
 
 # Consider the negative semantics of tokens provided with path automatons.
 spec.considerNegativeSemanticsAttribute = true
+
+# Match the source code provided with the witness.
+spec.matchSourcecodeData = false
 
 spec.transitionToStopForNegatedTokensetMatch = true
 
