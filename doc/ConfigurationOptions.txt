@@ -449,6 +449,9 @@ cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
 # reached 
 cpa.automaton.breakOnTargetState = 1
 
+# Collect information about matched (and traversed) tokens.
+cpa.automaton.collectTokenInformation = false
+
 # export automaton to file
 cpa.automaton.dotExport = false
 
