@@ -102,14 +102,23 @@ public class ExpressionToFormulaWithUFVisitor
     }
   }
 
-  Formula asValueFormula(final Expression e, final CType type) {
+  Formula asValueFormula(final Expression e, final CType type, final boolean isSafe) {
     if (e.isValue()) {
       return e.asValue().getValue();
     } else if (e.asLocation().isAliased()) {
-      return conv.makeDereference(type, e.asLocation().asAliased().getAddress(), ssa, errorConditions, pts);
+      return !isSafe ? conv.makeDereference(type, e.asLocation().asAliased().getAddress(), ssa, errorConditions, pts) :
+                       conv.makeSafeDereference(type, e.asLocation().asAliased().getAddress(), ssa, pts);
     } else { // Unaliased location
       return conv.makeVariable(e.asLocation().asUnaliased().getVariableName(), type, ssa, pts);
     }
+  }
+
+  Formula asValueFormula(final Expression e, final CType type) {
+    return asValueFormula(e, type, false);
+  }
+
+  Formula asSafeValueFormula(final Expression e, final CType type) {
+    return asValueFormula(e, type, true);
   }
 
   @Override
@@ -351,15 +360,15 @@ public class ExpressionToFormulaWithUFVisitor
               isDeref = true;
             }
             if (isDeref) {
-              final AliasedLocation base = fieldOwner.accept(this).asAliasedLocation();
-              final String fieldName = field.getFieldName();
               final CPointerType pointerType = (CPointerType)PointerTargetSet.simplifyType(fieldOwner.getExpressionType());
+              final Formula base = asSafeValueFormula(fieldOwner.accept(this), pointerType);
+              final String fieldName = field.getFieldName();
               final CCompositeType compositeType = (CCompositeType)PointerTargetSet.simplifyType(pointerType.getType());
               usedFields.add(Pair.of(compositeType, fieldName));
               final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
                                                           pts.getOffset(compositeType, fieldName));
-              addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base.getAddress(), offset));
-              addEqualBaseAdressConstraint(base.getAddress(), addressExpression.getAddress());
+              addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset));
+              addEqualBaseAdressConstraint(base, addressExpression.getAddress());
             }
           }
 

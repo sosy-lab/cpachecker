@@ -873,14 +873,15 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
    * Handle calls to free()
    */
   private Value handleMemoryFree(final CFunctionCallExpression e,
-      final List<CExpression> parameters) throws UnrecognizedCCodeException {
+                                 final List<CExpression> parameters) throws UnrecognizedCCodeException {
     if (parameters.size() != 1) {
       throw new UnrecognizedCCodeException(
           String.format("free() called with %d parameters", parameters.size()), edge, e);
     }
 
     if (errorConditions != null) {
-      final Formula operand = parameters.get(0).accept(delegate);
+      final Formula operand = asValueFormula(parameters.get(0).accept(this),
+                                                 PointerTargetSet.simplifyType(parameters.get(0).getExpressionType()));
       BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
 
       for (String base : pts.getAllBases()) {

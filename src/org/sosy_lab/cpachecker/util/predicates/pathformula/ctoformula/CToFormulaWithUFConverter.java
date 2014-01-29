@@ -294,7 +294,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
     return makeSafeDereference(type, address, ssa, pts);
   }
 
-  private Formula makeSafeDereference(CType type,
+  Formula makeSafeDereference(CType type,
                          final Formula address,
                          final SSAMapBuilder ssa,
                          final PointerTargetSetBuilder pts) {
@@ -1252,6 +1252,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   private BooleanFormula makeDeclaration(final CDeclarationEdge declarationEdge,
                                          final Constraints constraints,
                                          final PointerTargetSetBuilder pts,
+                                         final @Nullable ErrorConditions errorConditions,
                                          final StatementToFormulaWithUFVisitor statementVisitor)
   throws CPATransferException {
 
@@ -1281,6 +1282,12 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
       // The variable is unused
       logDebug("Ignoring declaration of unused variable", declarationEdge);
       return bfmgr.makeBoolean(true);
+    }
+
+    if (errorConditions != null) {
+      final Formula address = makeConstant(PointerTargetSet.getBaseName(declaration.getQualifiedName()),
+                                           PointerTargetSet.getBaseType(declarationType), pts);
+      constraints.addConstraint(fmgr.makeEqual(makeBaseAddressOfTerm(address), address));
     }
 
     // if there is an initializer associated to this variable,
@@ -1460,9 +1467,11 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
   }
 
   private BooleanFormula createFormulaForEdge(final CFAEdge edge,
-      final String function, final SSAMapBuilder ssa, final Constraints constraints,
-      final ErrorConditions errorConditions,
-      final PointerTargetSetBuilder pts) throws CPATransferException {
+                                              final String function, final SSAMapBuilder ssa,
+                                              final Constraints constraints,
+                                              final ErrorConditions errorConditions,
+                                              final PointerTargetSetBuilder pts)
+  throws CPATransferException {
 
     if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
       List<BooleanFormula> multiEdgeFormulas = new ArrayList<>(((MultiEdge)edge).getEdges().size());
@@ -1497,7 +1506,7 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
     case DeclarationEdge: {
       final CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
-      return makeDeclaration(declarationEdge, constraints, pts, statementVisitor);
+      return makeDeclaration(declarationEdge, constraints, pts, errorConditions, statementVisitor);
     }
 
     case AssumeEdge: {
