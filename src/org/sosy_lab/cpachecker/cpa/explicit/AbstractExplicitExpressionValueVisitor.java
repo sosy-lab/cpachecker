@@ -500,7 +500,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
   @Override
   public ExplicitValueBase visit(CFloatLiteralExpression pE) throws UnrecognizedCCodeException {
-    return null;
+    return new ExplicitNumericValue(CNumericTypes.DOUBLE, pE.getValue());
   }
 
   @Override
