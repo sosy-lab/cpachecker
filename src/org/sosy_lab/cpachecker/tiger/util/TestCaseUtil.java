@@ -254,6 +254,12 @@ public class TestCaseUtil {
           updateImpreciseTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
 
           if (mStopOnImpreciseExecution) {
+            mOutput.println("Goal:");
+            mOutput.println(pGoal.getAutomaton());
+            mOutput.println();
+            mOutput.println(pTestCase);
+            mOutput.println();
+
             throw new RuntimeException("Imprecise simulation!");
           }
         }
@@ -315,6 +321,12 @@ public class TestCaseUtil {
           updateImpreciseTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
 
           if (mStopOnImpreciseExecution) {
+            mOutput.println("Goal:");
+            mOutput.println(pGoal.getAutomaton());
+            mOutput.println();
+            mOutput.println(pTestCase);
+            mOutput.println();
+
             throw new RuntimeException("Imprecise simulation!");
           }
         }
