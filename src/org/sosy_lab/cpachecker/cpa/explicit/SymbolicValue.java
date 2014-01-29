@@ -23,13 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 /**
@@ -51,15 +46,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
  * integer arithmetics, this can not be simplified to "X".
  */
 public class SymbolicValue implements ExplicitValueBase {
+
   /** root of the expression tree **/
-  CExpression root;
+  ExpressionBase root;
 
-  /**
-   * The C variable that this symbolic value represents.
-   */
-  private CIdExpression container;
-
-  public SymbolicValue(CExpression root) {
+  public SymbolicValue(ExpressionBase root) {
     this.root = root;
   }
 
@@ -68,7 +59,7 @@ public class SymbolicValue implements ExplicitValueBase {
    * as much as possible.
    */
   public SymbolicValue simplify() {
-    CExpression simplifiedTree = recursiveSimplify(root);
+    ExpressionBase simplifiedTree = recursiveSimplify(root);
     return new SymbolicValue(simplifiedTree);
   }
 
@@ -81,30 +72,68 @@ public class SymbolicValue implements ExplicitValueBase {
   }
 
   public static class BinaryExpression {
+
     public static enum BinaryOperator {
-      MULTIPLY      ("*"),
-      DIVIDE        ("/"),
-      MODULO        ("%"),
-      PLUS          ("+"),
-      MINUS         ("-"),
-      SHIFT_LEFT    ("<<"),
-      SHIFT_RIGHT   (">>"),
-      LESS_THAN     ("<"),
-      GREATER_THAN  (">"),
-      LESS_EQUAL    ("<="),
-      GREATER_EQUAL (">="),
-      BINARY_AND    ("&"),
-      BINARY_XOR    ("^"),
-      BINARY_OR     ("|"),
-      EQUALS        ("=="),
-      NOT_EQUALS    ("!="),
-      ;
+      MULTIPLY("*"),
+      DIVIDE("/"),
+      MODULO("%"),
+      PLUS("+"),
+      MINUS("-"),
+      SHIFT_LEFT("<<"),
+      SHIFT_RIGHT(">>"),
+      LESS_THAN("<"),
+      GREATER_THAN(">"),
+      LESS_EQUAL("<="),
+      GREATER_EQUAL(">="),
+      BINARY_AND("&"),
+      BINARY_XOR("^"),
+      BINARY_OR("|"),
+      EQUALS("=="),
+      NOT_EQUALS("!="), ;
 
       private final String op;
 
       private BinaryOperator(String pOp) {
         op = pOp;
       }
+
+      @Override
+      public String toString() {
+        return op;
+      }
+
+    }
+
+    BinaryOperator op = null;
+    ExpressionBase operand1 = null;
+    ExpressionBase operand2 = null;
+
+    /**
+     * Contructor for a <code>BinaryExpression</code>.
+     *
+     * @param pOp The operator
+     * @param pOperand1 The first operand (left side)
+     * @param pOperand2 The second operand (right side)
+     */
+    public BinaryExpression(BinaryOperator pOp, ExpressionBase pOperand1,
+        ExpressionBase pOperand2) {
+      op = pOp;
+      operand1 = pOperand1;
+      operand2 = pOperand2;
+    }
+
+    public ExpressionBase getOperand1() {
+      return operand1;
+    }
+
+    public ExpressionBase getOperand2() {
+      return operand2;
+    }
+
+    public BinaryOperator getOperator() {
+      return op;
+    }
+
   }
 
   // TODO: this would probably be better by extending
@@ -117,39 +146,36 @@ public class SymbolicValue implements ExplicitValueBase {
    *
    * Example: "X - X" gets simplified to "0"
    */
-  public CExpression recursiveSimplify(CExpression expression) {
-    if(expression instanceof CBinaryExpression) {
-      CBinaryExpression binaryExpression = (CBinaryExpression) expression;
+  public ExpressionBase recursiveSimplify(ExpressionBase expression) {
+    if (expression instanceof BinaryExpression) {
+      BinaryExpression binaryExpression = (BinaryExpression) expression;
 
-      switch(binaryExpression.getOperator()) {
+      switch (binaryExpression.getOperator()) {
       case MINUS:
-        if(binaryExpression.getExpressionType() instanceof CSimpleType) {
+        if (binaryExpression.getExpressionType() instanceof CSimpleType) {
           // TODO: recursive equivalence check in a separate function
           boolean isEqual = false;
-          if(binaryExpression.getOperand1() instanceof CIdExpression
+          if (binaryExpression.getOperand1() instanceof CIdExpression
               && binaryExpression.getOperand2() instanceof CIdExpression) {
             CIdExpression leftHand = (CIdExpression) binaryExpression.getOperand1();
             CIdExpression rightHand = (CIdExpression) binaryExpression.getOperand2();
-            if(leftHand.getDeclaration().equals(rightHand.getDeclaration())) {
+            if (leftHand.getDeclaration().equals(rightHand.getDeclaration())) {
               isEqual = true;
             }
           }
 
-          if(isEqual) {
-            return new CIntegerLiteralExpression(null, CNumericTypes.INT, new BigInteger("0"));
-          }
+//          if (isEqual) { return new CIntegerLiteralExpression(null, CNumericTypes.INT, new BigInteger("0")); }
         }
       }
 
-      CExpression newLeftHand = recursiveSimplify(binaryExpression.getOperand1());
-      CExpression newRightHand = recursiveSimplify(binaryExpression.getOperand2());
-      return new CBinaryExpression(null, binaryExpression.getExpressionType(), binaryExpression.getCalculationType(), newLeftHand, newRightHand, binaryExpression.getOperator());
+      ExpressionBase newLeftHand = recursiveSimplify(binaryExpression.getOperand1());
+      ExpressionBase newRightHand = recursiveSimplify(binaryExpression.getOperand2());
+      return new CBinaryExpression(null, binaryExpression.getExpressionType(), binaryExpression.getCalculationType(),
+          newLeftHand, newRightHand, binaryExpression.getOperator());
     }
     // If we couldn't simplify it, return as-is.
     return expression;
   }
-
-}
 
   @Override
   public boolean isNumericValue() {
