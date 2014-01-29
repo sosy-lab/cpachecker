@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location;
@@ -103,8 +104,9 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
                                          final String function,
                                          final SSAMapBuilder ssa,
                                          final Constraints constraints,
+                                         final @Nullable ErrorConditions errorConditions,
                                          final PointerTargetSetBuilder pts) {
-    super(cToFormulaConverter, cfaEdge, function, ssa, constraints, pts);
+    super(cToFormulaConverter, cfaEdge, function, ssa, constraints, errorConditions, pts);
 
     this.statementDelegate = new StatementToFormulaVisitor(delegate);
     this.lvalueVisitor = lvalueVisitor;
@@ -202,6 +204,7 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
                           edge,
                           ssa,
                           constraints,
+                          errorConditions,
                           pts);
     }
   }
@@ -241,6 +244,7 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
                           edge,
                           ssa,
                           constraints,
+                          errorConditions,
                           pts);
     }
   }
@@ -455,6 +459,7 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
                           edge,
                           ssa,
                           constraints,
+                          errorConditions,
                           pts);
 
     addEssentialFields(lhsUsedFields, pts);
@@ -843,6 +848,7 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
                                  edge,
                                  ssa,
                                  constraints,
+                                 errorConditions,
                                  pts);
     } else {
       final String newBase = conv.makeAllocVariableName(functionName,
@@ -857,6 +863,9 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
       address = conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID, pts);
     }
 
+    if (errorConditions != null) {
+      constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(address), address));
+    }
     return address;
   }
 

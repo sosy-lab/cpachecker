@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -55,6 +57,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression;
@@ -76,6 +79,7 @@ public class ExpressionToFormulaWithUFVisitor
                                           final String function,
                                           final SSAMapBuilder ssa,
                                           final Constraints constraints,
+                                          final @Nullable ErrorConditions errorConditions,
                                           final PointerTargetSetBuilder pts) {
 
     delegate = new ExpressionToFormulaVisitor(cToFormulaConverter, cfaEdge, function, ssa, constraints);
@@ -85,16 +89,24 @@ public class ExpressionToFormulaWithUFVisitor
     this.function = function;
     this.ssa = ssa;
     this.constraints = constraints;
+    this.errorConditions = errorConditions;
     this.pts = pts;
 
     this.baseVisitor = new BaseVisitor(conv, cfaEdge, pts);
+  }
+
+  private void addEqualBaseAdressConstraint(final Formula p1, final Formula p2) {
+    if (errorConditions != null) {
+      constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(p1),
+                                                    conv.makeBaseAddressOfTerm(p2)));
+    }
   }
 
   Formula asValueFormula(final Expression e, final CType type) {
     if (e.isValue()) {
       return e.asValue().getValue();
     } else if (e.asLocation().isAliased()) {
-      return conv.makeDereferece(type, e.asLocation().asAliased().getAddress(), ssa, pts);
+      return conv.makeDereference(type, e.asLocation().asAliased().getAddress(), ssa, errorConditions, pts);
     } else { // Unaliased location
       return conv.makeVariable(e.asLocation().asUnaliased().getVariableName(), type, ssa, pts);
     }
@@ -128,9 +140,10 @@ public class ExpressionToFormulaWithUFVisitor
                                         edge);
 
     final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, pts.getSize(elementType));
-
-    return AliasedLocation.ofAddress(conv.fmgr.makePlus(base.asAliasedLocation().getAddress(),
-                                     conv.fmgr.makeMultiply(coeff, index)));
+    final Formula baseAddress = base.asAliasedLocation().getAddress();
+    final Formula address = conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(coeff, index));
+    addEqualBaseAdressConstraint(baseAddress, address);
+    return AliasedLocation.ofAddress(address);
   }
 
   static CFieldReference eliminateArrow(final CFieldReference e, final CFAEdge edge)
@@ -175,7 +188,9 @@ public class ExpressionToFormulaWithUFVisitor
         final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
                                                     pts.getOffset((CCompositeType) fieldOwnerType, fieldName));
 
-        return AliasedLocation.ofAddress(conv.fmgr.makePlus(base.getAddress(), offset));
+        final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
+        addEqualBaseAdressConstraint(base.getAddress(), address);
+        return AliasedLocation.ofAddress(address);
       } else {
         throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
       }
@@ -322,7 +337,36 @@ public class ExpressionToFormulaWithUFVisitor
         final Variable baseVariable = operand.accept(baseVisitor);
         if (baseVariable == null) {
           final int oldUsedFieldsSize = usedFields.size();
-          final AliasedLocation addressExpression = operand.accept(this).asAliasedLocation();
+          AliasedLocation addressExpression = null;
+
+          if (operand instanceof CFieldReference) {
+            // for &(s->f) and &((*s).f) do special case because the pointer is
+            // not actually dereferenced and thus we don't want to add error conditions
+            // for invalid-deref
+            final CFieldReference field = (CFieldReference) operand;
+            CExpression fieldOwner = field.getFieldOwner();
+            boolean isDeref = field.isPointerDereference();
+            if (!isDeref && fieldOwner instanceof CPointerExpression) {
+              fieldOwner = ((CPointerExpression)fieldOwner).getOperand();
+              isDeref = true;
+            }
+            if (isDeref) {
+              final AliasedLocation base = fieldOwner.accept(this).asAliasedLocation();
+              final String fieldName = field.getFieldName();
+              final CPointerType pointerType = (CPointerType)PointerTargetSet.simplifyType(fieldOwner.getExpressionType());
+              final CCompositeType compositeType = (CCompositeType)PointerTargetSet.simplifyType(pointerType.getType());
+              usedFields.add(Pair.of(compositeType, fieldName));
+              final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
+                                                          pts.getOffset(compositeType, fieldName));
+              addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base.getAddress(), offset));
+              addEqualBaseAdressConstraint(base.getAddress(), addressExpression.getAddress());
+            }
+          }
+
+          if (addressExpression == null) {
+            addressExpression = operand.accept(this).asAliasedLocation();
+          }
+
           for (int i = oldUsedFieldsSize; i < usedFields.size(); i++) {
             addressedFields.add(usedFields.get(i));
           }
@@ -428,11 +472,13 @@ public class ExpressionToFormulaWithUFVisitor
         ret =  conv.fmgr.makePlus(f1, conv.fmgr.makeMultiply(f2,
                                                              getPointerTargetSizeLiteral((CPointerType) promT1,
                                                              calculationType)));
+        addEqualBaseAdressConstraint(ret, f1);
       } else if (!(promT1 instanceof CPointerType)) {
         // operand2 is a pointer => we should multiply the first summand by the size of the pointer target
         ret =  conv.fmgr.makePlus(f2, conv.fmgr.makeMultiply(f1,
                                                              getPointerTargetSizeLiteral((CPointerType) promT2,
                                                              calculationType)));
+        addEqualBaseAdressConstraint(ret, f2);
       } else {
         throw new UnrecognizedCCodeException("Can't add pointers", edge, exp);
       }
@@ -576,6 +622,7 @@ public class ExpressionToFormulaWithUFVisitor
   protected final String function;
   protected final SSAMapBuilder ssa;
   protected final Constraints constraints;
+  protected final @Nullable ErrorConditions errorConditions;
   protected final PointerTargetSetBuilder pts;
 
   private final BaseVisitor baseVisitor;
