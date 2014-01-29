@@ -1,7 +1,8 @@
 extern int __VERIFIER_nondet_int();
 
 int ssl3_connect(int initial_state ) // 12292
-{ int s__info_callback = __VERIFIER_nondet_int() ; // 0 
+{ 
+  int s__info_callback = __VERIFIER_nondet_int() ; // 0 
   int s__in_handshake = __VERIFIER_nondet_int() ; // -1 
   int s__state ;
   int s__new_session ;
@@ -34,15 +35,15 @@ int ssl3_connect(int initial_state ) // 12292
   int s__session__cipher ;
   int s__session__compress_meth ;
   int buf ;
-  unsigned long tmp ;
+  unsigned long tmp = __VERIFIER_nondet_int();
   unsigned long l ;
   int num1 = __VERIFIER_nondet_int() ; // 10 
-  int cb ;
-  int ret ;
+  int cb = 0 ;
+  int ret = -1 ;
   int new_state ;
   int state ;
-  int skip ;
-  int tmp___0 ;
+  int skip = 0 ;
+  int tmp___0 = 0 ;
   int tmp___1 = __VERIFIER_nondet_int() ; // 12288 
   int tmp___2 = __VERIFIER_nondet_int() ; // 9 
   int tmp___3 = __VERIFIER_nondet_int() ; // 1 
@@ -52,7 +53,7 @@ int ssl3_connect(int initial_state ) // 12292
   int tmp___7 = __VERIFIER_nondet_int() ; // 8 
   int tmp___8 = __VERIFIER_nondet_int() ; // 7 
   int tmp___9 = __VERIFIER_nondet_int() ; // 6 
-  int blastFlag ;
+  int blastFlag = 0;
   int __cil_tmp55 ;
   long __cil_tmp56 ;
   long __cil_tmp57 ;
@@ -64,498 +65,472 @@ int ssl3_connect(int initial_state ) // 12292
   long __cil_tmp63 ;
   long __cil_tmp64 ;
 
-  {
-;
-  s__state = initial_state; // s__state = 12292
-  blastFlag = 0;
-  tmp = __VERIFIER_nondet_int(); // 3 
-  cb = 0;
-  ret = -1;
-  skip = 0;
-  tmp___0 = 0;
-  if (s__info_callback != 0) { // 0 != 0
+  s__state = initial_state; 
+  if (s__info_callback != 0) { 
     cb = s__info_callback;
   } else {
-    if (s__ctx__info_callback != 0) { // 1 != 0
-      cb = s__ctx__info_callback; // cb = 1 
+    if (s__ctx__info_callback != 0) { 
+      cb = s__ctx__info_callback; 
     }
   }
-  s__in_handshake ++; // s__in_handshake = 0
-  int andi_tmp___1;
-  andi_tmp___1 = tmp___1 - 12288; // andi_tmp___1 = 0 
-  if (andi_tmp___1) {
-    int andi_tmp___2;
-    andi_tmp___2 = tmp___2 - 16384; 
-    if (andi_tmp___2) {
-
-    }
-  }
-  {
-  while (1) {
-    while_0_continue: /* CIL Label */ ;
-    state = s__state; // state = 12292
-    if (s__state == 12292) {
-      goto switch_1_12292;
-    } else {
-      if (s__state == 16384) {
-        goto switch_1_16384;
+  s__in_handshake ++; 
+    while (1) {
+      while_0_continue: /* CIL Label */ ;
+      state = s__state; // state = 12292
+      if (s__state == 12292) {
+	goto switch_1_12292;
       } else {
-        if (s__state == 4096) {
-          goto switch_1_4096;
-        } else {
-          if (s__state == 20480) {
-            goto switch_1_20480;
-          } else {
-            if (s__state == 4099) {
-              goto switch_1_4099;
-            } else {
-              if (s__state == 4368) {
-                goto switch_1_4368;
-              } else {
-                if (s__state == 4369) {
-                  goto switch_1_4369;
-                } else {
-                  if (s__state == 4384) {
-                    goto switch_1_4384;
-                  } else {
-                    if (s__state == 4385) {
-                      goto switch_1_4385;
-                    } else {
-                      if (s__state == 4400) {
-                        goto switch_1_4400;
-                      } else {
-                        if (s__state == 4401) {
-                          goto switch_1_4401;
-                        } else {
-                          if (s__state == 4416) {
-                            goto switch_1_4416;
-                          } else {
-                            if (s__state == 4417) {
-                              goto switch_1_4417;
-                            } else {
-                              if (s__state == 4432) {
-                                goto switch_1_4432;
-                              } else {
-                                if (s__state == 4433) {
-                                  goto switch_1_4433;
-                                } else {
-                                  if (s__state == 4448) {
-                                    goto switch_1_4448;
-                                  } else {
-                                    if (s__state == 4449) {
-                                      goto switch_1_4449;
-                                    } else {
-                                      if (s__state == 4464) {
-                                        goto switch_1_4464;
-                                      } else {
-                                        if (s__state == 4465) {
-                                          goto switch_1_4465;
-                                        } else {
-                                          if (s__state == 4466) {
-                                            goto switch_1_4466;
-                                          } else {
-                                            if (s__state == 4467) {
-                                              goto switch_1_4467;
-                                            } else {
-                                              if (s__state == 4480) {
-                                                goto switch_1_4480;
-                                              } else {
-                                                if (s__state == 4481) {
-                                                  goto switch_1_4481;
-                                                } else {
-                                                  if (s__state == 4496) {
-                                                    goto switch_1_4496;
-                                                  } else {
-                                                    if (s__state == 4497) {
-                                                      goto switch_1_4497;
-                                                    } else {
-                                                      if (s__state == 4512) {
-                                                        goto switch_1_4512;
-                                                      } else {
-                                                        if (s__state == 4513) {
-                                                          goto switch_1_4513;
-                                                        } else {
-                                                          if (s__state == 4528) {
-                                                            goto switch_1_4528;
-                                                          } else {
-                                                            if (s__state == 4529) {
-                                                              goto switch_1_4529;
-                                                            } else {
-                                                              if (s__state == 4560) {
-                                                                goto switch_1_4560;
-                                                              } else {
-                                                                if (s__state == 4561) {
-                                                                  goto switch_1_4561;
-                                                                } else {
-                                                                  if (s__state == 4352) {
-                                                                    goto switch_1_4352;
-                                                                  } else {
-                                                                    if (s__state == 3) {
-                                                                      goto switch_1_3;
-                                                                    } else {
-                                                                      goto switch_1_default;
-                                                                      if (0) {
-                                                                        switch_1_12292: 
-                                                                        s__new_session = 1;
-                                                                        s__state = 4096;
-                                                                        s__ctx__stats__sess_connect_renegotiate ++;
-                                                                        switch_1_16384: ;
-                                                                        switch_1_4096: ;
-                                                                        switch_1_20480: ;
-                                                                        switch_1_4099: 
-                                                                        s__server = 0;
-                                                                        if (cb != 0) {
-
-                                                                        }
-                                                                        {
-                                                                        __cil_tmp55 = s__version - 65280; // __cil_tmp55 = 768
-                                                                        if (__cil_tmp55 != 768) { // 768 != 768
-                                                                          ret = -1;
-                                                                          goto end;
-                                                                        }
-                                                                        }
-                                                                        s__type = 4096;
-                                                                        if (s__init_buf___0 == 0) { // 1 == 0
-                                                                          buf = __VERIFIER_nondet_int();
-                                                                          if (buf == 0) {
-                                                                            ret = -1;
-                                                                            goto end;
-                                                                          }
-                                                                          if (! tmp___3) {
-                                                                            ret = -1;
-                                                                            goto end;
-                                                                          }
-                                                                          s__init_buf___0 = buf;
-                                                                        }
-                                                                        if (! tmp___4) { // !1
-                                                                          ret = -1;
-                                                                          goto end;
-                                                                        }
-                                                                        if (! tmp___5) { // !1
-                                                                          ret = -1;
-                                                                          goto end;
-                                                                        }
-                                                                        s__state = 4368;
-                                                                        s__ctx__stats__sess_connect ++;
-                                                                        s__init_num = 0;
-                                                                        goto switch_1_break;
-                                                                        switch_1_4368: ;
-                                                                        switch_1_4369: 
-                                                                        s__shutdown = 0;
-                                                                        ret = __VERIFIER_nondet_int(); // 3
-                                                                        if (blastFlag == 0) {
-                                                                          blastFlag = 1;
-                                                                        }
-                                                                        if (ret <= 0) {
-                                                                          goto end;
-                                                                        }
-                                                                        s__state = 4384;
-                                                                        s__init_num = 0;
-                                                                        if (s__bbio != s__wbio) {
-
-                                                                        }
-                                                                        goto switch_1_break;
-                                                                        switch_1_4384: ;
-                                                                        switch_1_4385: 
-                                                                        ret = __VERIFIER_nondet_int(); // 4
-                                                                        if (blastFlag == 1) {
-                                                                          blastFlag = 2;
-                                                                        }
-                                                                        if (ret <= 0) {
-                                                                          goto end;
-                                                                        }
-                                                                        if (s__hit) { // 1
-                                                                          s__state = 4560;
-                                                                        } else {
-                                                                          s__state = 4400;
-                                                                        }
-                                                                        s__init_num = 0;
-                                                                        goto switch_1_break;
-                                                                        switch_1_4400: ;
-                                                                        switch_1_4401: ;
-
-									int andi_tmp___4;
-									andi_tmp___4 = s__s3__tmp__new_cipher__algorithms - 256;
-									if (andi_tmp___4) {
-                                                                          skip = 1;
-                                                                        } else {
-                                                                          ret = __VERIFIER_nondet_int();
-                                                                          if (blastFlag == 2) {
-                                                                            blastFlag = 3;
-                                                                          }
-                                                                          if (ret <= 0) {
-                                                                            goto end;
-                                                                          }
-                                                                        }
-                                                                        s__state = 4416;
-                                                                        s__init_num = 0;
-                                                                        goto switch_1_break;
-                                                                        switch_1_4416: ;
-                                                                        switch_1_4417: 
-                                                                        ret = __VERIFIER_nondet_int();
-                                                                        if (blastFlag == 3) {
-                                                                          blastFlag = 4;
-                                                                        }
-                                                                        if (ret <= 0) {
-                                                                          goto end;
-                                                                        }
-                                                                        s__state = 4432;
-                                                                        s__init_num = 0;
-                                                                        if (! tmp___6) {
-                                                                          ret = -1;
-                                                                          goto end;
-                                                                        }
-                                                                        goto switch_1_break;
-                                                                        switch_1_4432: ;
-                                                                        switch_1_4433: 
-                                                                        ret = __VERIFIER_nondet_int();
-                                                                        if (blastFlag == 4) {
-                                                                          goto ERROR;
-                                                                        }
-                                                                        if (ret <= 0) {
-                                                                          goto end;
-                                                                        }
-                                                                        s__state = 4448;
-                                                                        s__init_num = 0;
-                                                                        goto switch_1_break;
-                                                                        switch_1_4448: ;
-                                                                        switch_1_4449: 
-                                                                        ret = __VERIFIER_nondet_int();
-                                                                        if (blastFlag == 4) {
-                                                                          blastFlag = 5;
-                                                                        }
-                                                                        if (ret <= 0) {
-                                                                          goto end;
-                                                                        }
-                                                                        if (s__s3__tmp__cert_req) {
-                                                                          s__state = 4464;
-                                                                        } else {
-                                                                          s__state = 4480;
-                                                                        }
-                                                                        s__init_num = 0;
-                                                                        goto switch_1_break;
-                                                                        switch_1_4464: ;
-                                                                        switch_1_4465: ;
-                                                                        switch_1_4466: ;
-                                                                        switch_1_4467: 
-                                                                        ret = __VERIFIER_nondet_int();
-                                                                        if (ret <= 0) {
-                                                                          goto end;
-                                                                        }
-                                                                        s__state = 4480;
-                                                                        s__init_num = 0;
-                                                                        goto switch_1_break;
-                                                                        switch_1_4480: ;
-                                                                        switch_1_4481: 
-                                                                        ret = __VERIFIER_nondet_int();
-                                                                        if (ret <= 0) {
-                                                                          goto end;
-                                                                        }
-                                                                        l = (unsigned long )s__s3__tmp__new_cipher__algorithms;
-                                                                        if (s__s3__tmp__cert_req == 1) {
-                                                                          s__state = 4496;
-                                                                        } else {
-                                                                          s__state = 4512;
-                                                                          s__s3__change_cipher_spec = 0;
-                                                                        }
-                                                                        s__init_num = 0;
-                                                                        goto switch_1_break;
-                                                                        switch_1_4496: ;
-                                                                        switch_1_4497: 
-                                                                        ret = __VERIFIER_nondet_int();
-                                                                        if (ret <= 0) {
-                                                                          goto end;
-                                                                        }
-                                                                        s__state = 4512;
-                                                                        s__init_num = 0;
-                                                                        s__s3__change_cipher_spec = 0;
-                                                                        goto switch_1_break;
-                                                                        switch_1_4512: ;
-                                                                        switch_1_4513: 
-                                                                        ret = __VERIFIER_nondet_int(); // 0
-                                                                        if (ret <= 0) {
-                                                                          goto end;
-                                                                        }
-                                                                        s__state = 4528;
-                                                                        s__init_num = 0;
-                                                                        s__session__cipher = s__s3__tmp__new_cipher;
-                                                                        if (s__s3__tmp__new_compression == 0) {
-                                                                          s__session__compress_meth = 0;
-                                                                        } else {
-                                                                          s__session__compress_meth = s__s3__tmp__new_compression__id;
-                                                                        }
-                                                                        if (! tmp___7) {
-                                                                          ret = -1;
-                                                                          goto end;
-                                                                        }
-                                                                        if (! tmp___8) {
-                                                                          ret = -1;
-                                                                          goto end;
-                                                                        }
-                                                                        goto switch_1_break;
-                                                                        switch_1_4528: ;
-                                                                        switch_1_4529: 
-                                                                        ret = __VERIFIER_nondet_int();
-                                                                        if (ret <= 0) {
-                                                                          goto end;
-                                                                        }
-                                                                        s__state = 4352;
-                                                                        __cil_tmp56 = (long )s__s3__flags;
-                                                                        __cil_tmp57 = __cil_tmp56 + 5;
-                                                                        s__s3__flags = (int )__cil_tmp57;
-                                                                        if (s__hit) {
-                                                                          s__s3__tmp__next_state___0 = 3;
-                                                                          {
-                                                                          __cil_tmp58 = (long )s__s3__flags;
-										int andi_tmp___3;
-										andi_tmp___3 = __cil_tmp58 - 2L;
-                                                                          if (andi_tmp___3) {
-                                                                            s__state = 3;
-                                                                            __cil_tmp59 = (long )s__s3__flags;
-                                                                            __cil_tmp60 = __cil_tmp59 + 4L;
-                                                                            s__s3__flags = (int )__cil_tmp60;
-                                                                            s__s3__delay_buf_pop_ret = 0;
-                                                                          }
-                                                                          }
-                                                                        } else {
-                                                                          s__s3__tmp__next_state___0 = 4560;
-                                                                        }
-                                                                        s__init_num = 0;
-                                                                        goto switch_1_break;
-                                                                        switch_1_4560: ;
-                                                                        switch_1_4561: 
-                                                                        ret = __VERIFIER_nondet_int(); // 4
-                                                                        if (ret <= 0) {
-                                                                          goto end;
-                                                                        }
-                                                                        if (s__hit) { // 1
-                                                                          s__state = 4512;
-                                                                        } else {
-                                                                          s__state = 3;
-                                                                        }
-                                                                        s__init_num = 0;
-                                                                        goto switch_1_break;
-                                                                        switch_1_4352: 
-                                                                        {
-                                                                        __cil_tmp61 = (long )num1;
-                                                                        if (__cil_tmp61 > 0L) {
-                                                                          s__rwstate = 2;
-                                                                          num1 = tmp___9;
-                                                                          {
-                                                                          __cil_tmp62 = (long )num1;
-                                                                          if (__cil_tmp62 <= 0L) {
-                                                                            ret = -1;
-                                                                            goto end;
-                                                                          }
-                                                                          }
-                                                                          s__rwstate = 1;
-                                                                        }
-                                                                        }
-                                                                        s__state = s__s3__tmp__next_state___0;
-                                                                        goto switch_1_break;
-                                                                        switch_1_3: 
-                                                                        if (s__init_buf___0 != 0) {
-                                                                          s__init_buf___0 = 0;
-                                                                        }
-                                                                        {
-                                                                        __cil_tmp63 = (long )s__s3__flags;
-                                                                        __cil_tmp64 = __cil_tmp63 - 4L;
-                                                                        if (! __cil_tmp64) {
-
-                                                                        }
-                                                                        }
-                                                                        s__init_num = 0;
-                                                                        s__new_session = 0;
-                                                                        if (s__hit) {
-                                                                          s__ctx__stats__sess_hit ++;
-                                                                        }
-                                                                        ret = 1;
-                                                                        s__ctx__stats__sess_connect_good ++;
-                                                                        if (cb != 0) {
-
-                                                                        }
-                                                                        goto end;
-                                                                        switch_1_default: 
-                                                                        ret = -1;
-                                                                        goto end;
-                                                                      } else {
-                                                                        switch_1_break: ;
-                                                                      }
-                                                                    }
-                                                                  }
-                                                                }
-                                                              }
-                                                            }
-                                                          }
-                                                        }
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+	if (s__state == 16384) {
+	  goto switch_1_16384;
+	} else {
+	  if (s__state == 4096) {
+	    goto switch_1_4096;
+	  } else {
+	    if (s__state == 20480) {
+	      goto switch_1_20480;
+	    } else {
+	      if (s__state == 4099) {
+		goto switch_1_4099;
+	      } else {
+		if (s__state == 4368) {
+		  goto switch_1_4368;
+		} else {
+		  if (s__state == 4369) {
+		    goto switch_1_4369;
+		  } else {
+		    if (s__state == 4384) {
+		      goto switch_1_4384;
+		    } else {
+		      if (s__state == 4385) {
+			goto switch_1_4385;
+		      } else {
+			if (s__state == 4400) {
+			  goto switch_1_4400;
+			} else {
+			  if (s__state == 4401) {
+			    goto switch_1_4401;
+			  } else {
+			    if (s__state == 4416) {
+			      goto switch_1_4416;
+			    } else {
+			      if (s__state == 4417) {
+				goto switch_1_4417;
+			      } else {
+				if (s__state == 4432) {
+				  goto switch_1_4432;
+				} else {
+				  if (s__state == 4433) {
+				    goto switch_1_4433;
+				  } else {
+				    if (s__state == 4448) {
+				      goto switch_1_4448;
+				    } else {
+				      if (s__state == 4449) {
+					goto switch_1_4449;
+				      } else {
+					if (s__state == 4464) {
+					  goto switch_1_4464;
+					} else {
+					  if (s__state == 4465) {
+					    goto switch_1_4465;
+					  } else {
+					    if (s__state == 4466) {
+					      goto switch_1_4466;
+					    } else {
+					      if (s__state == 4467) {
+						goto switch_1_4467;
+					      } else {
+						if (s__state == 4480) {
+						  goto switch_1_4480;
+						} else {
+						  if (s__state == 4481) {
+						    goto switch_1_4481;
+						  } else {
+						    if (s__state == 4496) {
+						      goto switch_1_4496;
+						    } else {
+						      if (s__state == 4497) {
+							goto switch_1_4497;
+						      } else {
+							if (s__state == 4512) {
+							  goto switch_1_4512;
+							} else {
+							  if (s__state == 4513) {
+							    goto switch_1_4513;
+							  } else {
+							    if (s__state == 4528) {
+							      goto switch_1_4528;
+							    } else {
+							      if (s__state == 4529) {
+								goto switch_1_4529;
+							      } else {
+								if (s__state == 4560) {
+								  goto switch_1_4560;
+								} else {
+								  if (s__state == 4561) {
+								    goto switch_1_4561;
+								  } else {
+								    if (s__state == 4352) {
+								      goto switch_1_4352;
+								    } else {
+								      if (s__state == 3) {
+									goto switch_1_3;
+								      } else {
+									goto switch_1_default;
+									if (0) {
+									  switch_1_12292: 
+									    s__new_session = 1;
+									    s__state = 4096;
+									    s__ctx__stats__sess_connect_renegotiate ++;
+									    switch_1_16384: ;
+									    switch_1_4096: ;
+									    switch_1_20480: ;
+									    switch_1_4099: 
+									      s__server = 0;
+									      if (cb != 0) {
+										
+									      }
+									      {
+										__cil_tmp55 = s__version - 65280; // __cil_tmp55 = 768
+										if (__cil_tmp55 != 768) { // 768 != 768
+									  ret = -1;
+									  goto end;
+										}
+									      }
+									      s__type = 4096;
+									      if (s__init_buf___0 == 0) { // 1 == 0
+									  buf = __VERIFIER_nondet_int();
+									  if (buf == 0) {
+									    ret = -1;
+									    goto end;
+									  }
+									  if (! tmp___3) {
+									    ret = -1;
+									    goto end;
+									  }
+									  s__init_buf___0 = buf;
+									      }
+									      if (! tmp___4) { // !1
+									  ret = -1;
+									  goto end;
+									      }
+									      if (! tmp___5) { // !1
+									  ret = -1;
+									  goto end;
+									      }
+									      s__state = 4368;
+									      s__ctx__stats__sess_connect ++;
+									      s__init_num = 0;
+									      goto switch_1_break;
+									      switch_1_4368: ;
+									      switch_1_4369: 
+										s__shutdown = 0;
+										ret = __VERIFIER_nondet_int(); // 3
+										if (blastFlag == 0) {
+										  blastFlag = 1;
+										}
+										if (ret <= 0) {
+										  goto end;
+										}
+										s__state = 4384;
+										s__init_num = 0;
+										if (s__bbio != s__wbio) {
+										  
+										}
+										goto switch_1_break;
+										switch_1_4384: ;
+										switch_1_4385: 
+										  ret = __VERIFIER_nondet_int(); // 4
+										  if (blastFlag == 1) {
+										    blastFlag = 2;
+										  }
+										  if (ret <= 0) {
+										    goto end;
+										  }
+										  if (s__hit) { // 1
+									  s__state = 4560;
+										  } else {
+										    s__state = 4400;
+										  }
+										  s__init_num = 0;
+										  goto switch_1_break;
+										  switch_1_4400: ;
+										  switch_1_4401: ;
+										  
+										  int andi_tmp___4;
+										  andi_tmp___4 = s__s3__tmp__new_cipher__algorithms - 256;
+										  if (andi_tmp___4) {
+										    skip = 1;
+										  } else {
+										    ret = __VERIFIER_nondet_int();
+										    if (blastFlag == 2) {
+										      blastFlag = 3;
+										    }
+										    if (ret <= 0) {
+										      goto end;
+										    }
+										  }
+										  s__state = 4416;
+										  s__init_num = 0;
+										  goto switch_1_break;
+										  switch_1_4416: ;
+										  switch_1_4417: 
+										    ret = __VERIFIER_nondet_int();
+										    if (blastFlag == 3) {
+										      blastFlag = 4;
+										    }
+										    if (ret <= 0) {
+										      goto end;
+										    }
+										    s__state = 4432;
+										    s__init_num = 0;
+										    if (! tmp___6) {
+										      ret = -1;
+										      goto end;
+										    }
+										    goto switch_1_break;
+										    switch_1_4432: ;
+										    switch_1_4433: 
+										      ret = __VERIFIER_nondet_int();
+										      if (blastFlag == 4) {
+											goto ERROR;
+										      }
+										      if (ret <= 0) {
+											goto end;
+										      }
+										      s__state = 4448;
+										      s__init_num = 0;
+										      goto switch_1_break;
+										      switch_1_4448: ;
+										      switch_1_4449: 
+											ret = __VERIFIER_nondet_int();
+											if (blastFlag == 4) {
+											  blastFlag = 5;
+											}
+											if (ret <= 0) {
+											  goto end;
+											}
+											if (s__s3__tmp__cert_req) {
+											  s__state = 4464;
+											} else {
+											  s__state = 4480;
+											}
+											s__init_num = 0;
+											goto switch_1_break;
+											switch_1_4464: ;
+											switch_1_4465: ;
+											switch_1_4466: ;
+											switch_1_4467: 
+											  ret = __VERIFIER_nondet_int();
+											  if (ret <= 0) {
+											    goto end;
+											  }
+											  s__state = 4480;
+											  s__init_num = 0;
+											  goto switch_1_break;
+											  switch_1_4480: ;
+											  switch_1_4481: 
+											    ret = __VERIFIER_nondet_int();
+											    if (ret <= 0) {
+											      goto end;
+											    }
+											    l = (unsigned long )s__s3__tmp__new_cipher__algorithms;
+											    if (s__s3__tmp__cert_req == 1) {
+											      s__state = 4496;
+											    } else {
+											      s__state = 4512;
+											      s__s3__change_cipher_spec = 0;
+											    }
+											    s__init_num = 0;
+											    goto switch_1_break;
+											    switch_1_4496: ;
+											    switch_1_4497: 
+											      ret = __VERIFIER_nondet_int();
+											      if (ret <= 0) {
+												goto end;
+											      }
+											      s__state = 4512;
+											      s__init_num = 0;
+											      s__s3__change_cipher_spec = 0;
+											      goto switch_1_break;
+											      switch_1_4512: ;
+											      switch_1_4513: 
+												ret = __VERIFIER_nondet_int(); // 0
+												if (ret <= 0) {
+												  goto end;
+												}
+												s__state = 4528;
+												s__init_num = 0;
+												s__session__cipher = s__s3__tmp__new_cipher;
+												if (s__s3__tmp__new_compression == 0) {
+												  s__session__compress_meth = 0;
+												} else {
+												  s__session__compress_meth = s__s3__tmp__new_compression__id;
+												}
+												if (! tmp___7) {
+												  ret = -1;
+												  goto end;
+												}
+												if (! tmp___8) {
+												  ret = -1;
+												  goto end;
+												}
+												goto switch_1_break;
+												switch_1_4528: ;
+												switch_1_4529: 
+												  ret = __VERIFIER_nondet_int();
+												  if (ret <= 0) {
+												    goto end;
+												  }
+												  s__state = 4352;
+												  __cil_tmp56 = (long )s__s3__flags;
+												  __cil_tmp57 = __cil_tmp56 + 5;
+												  s__s3__flags = (int )__cil_tmp57;
+												  if (s__hit) {
+												    s__s3__tmp__next_state___0 = 3;
+												    {
+												      __cil_tmp58 = (long )s__s3__flags;
+												      int andi_tmp___3;
+												      andi_tmp___3 = __cil_tmp58 - 2L;
+												      if (andi_tmp___3) {
+													s__state = 3;
+													__cil_tmp59 = (long )s__s3__flags;
+													__cil_tmp60 = __cil_tmp59 + 4L;
+													s__s3__flags = (int )__cil_tmp60;
+													s__s3__delay_buf_pop_ret = 0;
+												      }
+												    }
+												  } else {
+												    s__s3__tmp__next_state___0 = 4560;
+												  }
+												  s__init_num = 0;
+												  goto switch_1_break;
+												  switch_1_4560: ;
+												  switch_1_4561: 
+												    ret = __VERIFIER_nondet_int(); // 4
+												    if (ret <= 0) {
+												      goto end;
+												    }
+												    if (s__hit) { // 1
+									  s__state = 4512;
+												    } else {
+												      s__state = 3;
+												    }
+												    s__init_num = 0;
+												    goto switch_1_break;
+												    switch_1_4352: 
+												    {
+												      __cil_tmp61 = (long )num1;
+												      if (__cil_tmp61 > 0L) {
+													s__rwstate = 2;
+													num1 = tmp___9;
+													{
+													  __cil_tmp62 = (long )num1;
+													  if (__cil_tmp62 <= 0L) {
+													    ret = -1;
+													    goto end;
+													  }
+													}
+													s__rwstate = 1;
+												      }
+												    }
+												    s__state = s__s3__tmp__next_state___0;
+												    goto switch_1_break;
+												    switch_1_3: 
+												      if (s__init_buf___0 != 0) {
+													s__init_buf___0 = 0;
+												      }
+												      {
+													__cil_tmp63 = (long )s__s3__flags;
+													__cil_tmp64 = __cil_tmp63 - 4L;
+													if (! __cil_tmp64) {
+													  
+													}
+												      }
+												      s__init_num = 0;
+												      s__new_session = 0;
+												      if (s__hit) {
+													s__ctx__stats__sess_hit ++;
+												      }
+												      ret = 1;
+												      s__ctx__stats__sess_connect_good ++;
+												      if (cb != 0) {
+													
+												      }
+												      goto end;
+												      switch_1_default: 
+													ret = -1;
+													goto end;
+									} else {
+									  switch_1_break: ;
+									}
+								      }
+								    }
+								  }
+								}
+							      }
+							    }
+							  }
+							}
+						      }
+						    }
+						  }
+						}
+					      }
+					    }
+					  }
+					}
+				      }
+				    }
+				  }
+				}
+			      }
+			    }
+			  }
+			}
+		      }
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	}
       }
-    }
-    if (! s__s3__tmp__reuse_message) {
-      if (! skip) {
-        if (s__debug) {
-          ret = __VERIFIER_nondet_int();
-          if (ret <= 0) {
-            goto end;
-          }
-        }
-        if (cb != 0) {
-          if (s__state != state) {
-            new_state = s__state;
-            s__state = state;
-            s__state = new_state;
-          }
-        }
+      if (! s__s3__tmp__reuse_message) {
+	if (! skip) {
+	  if (s__debug) {
+	    ret = __VERIFIER_nondet_int();
+	    if (ret <= 0) {
+	      goto end;
+	    }
+	  }
+	  if (cb != 0) {
+	    if (s__state != state) {
+	      new_state = s__state;
+	      s__state = state;
+	      s__state = new_state;
+	    }
+	  }
+	}
       }
+      skip = 0;
     }
-    skip = 0;
-  }
-  while_0_break: /* CIL Label */ ;
-  }
-
-  end: 
+    
+while_0_break: /* CIL Label */ ;
+  
+end: 
   s__in_handshake --;
-  if (cb != 0) {
-
-  }
   return (ret);
-  ERROR: 
+  
+ERROR: 
   return (-1);
-}
 }
 
 int main(void) 
-{ int s ;
-
-  {
-  {
-  s = 12292;
+{ 
   ssl3_connect(12292);
-  }
+  
   return (0);
-}
 }
 
