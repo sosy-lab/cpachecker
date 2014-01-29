@@ -1,58 +1,59 @@
 extern int __VERIFIER_nondet_int();
 
-int ssl3_connect(int initial_state ) // 12292
+int main()
 { 
-  int s__info_callback = __VERIFIER_nondet_int() ; // 0 
-  int s__in_handshake = __VERIFIER_nondet_int() ; // -1 
+  int initial_state = 12292;
+  int s__info_callback = __VERIFIER_nondet_int() ;
+  int s__in_handshake = __VERIFIER_nondet_int() ;
   int s__state ;
   int s__new_session ;
   int s__server ;
-  int s__version = __VERIFIER_nondet_int() ; // 66048 
+  int s__version = __VERIFIER_nondet_int() ;
   int s__type ;
   int s__init_num ;
-  int s__bbio = __VERIFIER_nondet_int() ; // 18 
-  int s__wbio = __VERIFIER_nondet_int() ; // 17 
-  int s__hit = __VERIFIER_nondet_int() ; // 1 
+  int s__bbio = __VERIFIER_nondet_int() ;
+  int s__wbio = __VERIFIER_nondet_int() ;
+  int s__hit = __VERIFIER_nondet_int() ;
   int s__rwstate ;
-  int s__init_buf___0 = __VERIFIER_nondet_int() ; // 1 
-  int s__debug = __VERIFIER_nondet_int() ; // 1 
+  int s__init_buf___0 = __VERIFIER_nondet_int() ;
+  int s__debug = __VERIFIER_nondet_int() ;
   int s__shutdown ;
-  int s__ctx__info_callback = __VERIFIER_nondet_int() ; // 1 
-  int s__ctx__stats__sess_connect_renegotiate = __VERIFIER_nondet_int() ; // 0 
-  int s__ctx__stats__sess_connect = __VERIFIER_nondet_int() ; // -1 
-  int s__ctx__stats__sess_hit = __VERIFIER_nondet_int() ; // 16 
-  int s__ctx__stats__sess_connect_good = __VERIFIER_nondet_int() ; // 15 
+  int s__ctx__info_callback = __VERIFIER_nondet_int() ;
+  int s__ctx__stats__sess_connect_renegotiate = __VERIFIER_nondet_int() ;
+  int s__ctx__stats__sess_connect = __VERIFIER_nondet_int() ;
+  int s__ctx__stats__sess_hit = __VERIFIER_nondet_int() ;
+  int s__ctx__stats__sess_connect_good = __VERIFIER_nondet_int() ;
   int s__s3__change_cipher_spec ;
-  int s__s3__flags = __VERIFIER_nondet_int() ; // 14 
+  int s__s3__flags = __VERIFIER_nondet_int() ;
   int s__s3__delay_buf_pop_ret ;
-  int s__s3__tmp__cert_req = __VERIFIER_nondet_int() ; // 1 
-  int s__s3__tmp__new_compression = __VERIFIER_nondet_int() ; // 13 
-  int s__s3__tmp__reuse_message = __VERIFIER_nondet_int() ; // 1 
-  int s__s3__tmp__new_cipher = __VERIFIER_nondet_int() ; // 12 
-  int s__s3__tmp__new_cipher__algorithms = __VERIFIER_nondet_int() ; // 256 
+  int s__s3__tmp__cert_req = __VERIFIER_nondet_int() ;
+  int s__s3__tmp__new_compression = __VERIFIER_nondet_int() ;
+  int s__s3__tmp__reuse_message = __VERIFIER_nondet_int() ;
+  int s__s3__tmp__new_cipher = __VERIFIER_nondet_int() ;
+  int s__s3__tmp__new_cipher__algorithms = __VERIFIER_nondet_int() ;
   int s__s3__tmp__next_state___0 ;
-  int s__s3__tmp__new_compression__id = __VERIFIER_nondet_int() ; // 11 
+  int s__s3__tmp__new_compression__id = __VERIFIER_nondet_int() ;
   int s__session__cipher ;
   int s__session__compress_meth ;
   int buf ;
   unsigned long tmp = __VERIFIER_nondet_int();
   unsigned long l ;
-  int num1 = __VERIFIER_nondet_int() ; // 10 
+  int num1 = __VERIFIER_nondet_int() ;
   int cb = 0 ;
   int ret = -1 ;
   int new_state ;
   int state ;
   int skip = 0 ;
   int tmp___0 = 0 ;
-  int tmp___1 = __VERIFIER_nondet_int() ; // 12288 
-  int tmp___2 = __VERIFIER_nondet_int() ; // 9 
-  int tmp___3 = __VERIFIER_nondet_int() ; // 1 
-  int tmp___4 = __VERIFIER_nondet_int() ; // 1 
-  int tmp___5 = __VERIFIER_nondet_int() ; // 1 
-  int tmp___6 = __VERIFIER_nondet_int() ; // 1 
-  int tmp___7 = __VERIFIER_nondet_int() ; // 8 
-  int tmp___8 = __VERIFIER_nondet_int() ; // 7 
-  int tmp___9 = __VERIFIER_nondet_int() ; // 6 
+  int tmp___1 = __VERIFIER_nondet_int() ;
+  int tmp___2 = __VERIFIER_nondet_int() ;
+  int tmp___3 = __VERIFIER_nondet_int() ;
+  int tmp___4 = __VERIFIER_nondet_int() ;
+  int tmp___5 = __VERIFIER_nondet_int() ;
+  int tmp___6 = __VERIFIER_nondet_int() ;
+  int tmp___7 = __VERIFIER_nondet_int() ;
+  int tmp___8 = __VERIFIER_nondet_int() ;
+  int tmp___9 = __VERIFIER_nondet_int() ;
   int blastFlag = 0;
   int __cil_tmp55 ;
   long __cil_tmp56 ;
@@ -75,8 +76,11 @@ int ssl3_connect(int initial_state ) // 12292
   }
   s__in_handshake ++; 
     while (1) {
-      while_0_continue: /* CIL Label */ ;
-      state = s__state; // state = 12292
+
+while_0_continue: /* CIL Label */ ;
+
+      state = s__state;
+      
       if (s__state == 12292) {
 	goto switch_1_12292;
       } else {
@@ -520,17 +524,10 @@ int ssl3_connect(int initial_state ) // 12292
 while_0_break: /* CIL Label */ ;
   
 end: 
-  s__in_handshake --;
   return (ret);
   
 ERROR: 
   return (-1);
 }
 
-int main(void) 
-{ 
-  ssl3_connect(12292);
-  
-  return (0);
-}
 
