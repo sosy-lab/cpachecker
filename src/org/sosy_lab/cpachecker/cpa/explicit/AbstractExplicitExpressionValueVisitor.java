@@ -928,7 +928,6 @@ public abstract class AbstractExplicitExpressionValueVisitor
     }
     ExplicitNumericValue numericValue = (ExplicitNumericValue) value;
 
-
     final CType type = targetType.getCanonicalType();
     if (type instanceof CSimpleType) {
       final CSimpleType st = (CSimpleType) type;
@@ -980,7 +979,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
                 logger.logf(Level.INFO,
                     "overflow in line %d: target-type is '%s', value %d is changed to %d.",
                     edge == null ? null : edge.getLineNumber(),
-                    targetType, value, result);
+                    targetType, value.asLong(), result);
               }
 
             } else {
@@ -990,7 +989,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
                 logger.logf(Level.INFO,
                     "overflow in line %d: value %s of c-type '%s' may be too big for java-type 'long'.",
                     edge == null ? null : edge.getLineNumber(),
-                    value, targetType);
+                    value.asLong(), targetType);
               }
             }
           }

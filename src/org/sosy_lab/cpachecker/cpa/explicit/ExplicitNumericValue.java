@@ -138,7 +138,7 @@ public class ExplicitNumericValue implements ExplicitValueBase {
   @Override
   public Long asLong() {
     if(getType().getType() == CBasicType.INT) {
-      return this.asLong();
+      return longValue();
     } else {
       return null;
     }
