@@ -41,6 +41,8 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -60,7 +62,11 @@ import com.google.common.collect.Iterables;
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
  */
+@Options(prefix = "cpa.automaton")
 class AutomatonTransferRelation implements TransferRelation {
+
+  @Option(description = "Collect information about matched (and traversed) tokens.")
+  private boolean collectTokenInformation = false;
 
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
@@ -183,7 +189,9 @@ class AutomatonTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
 
-    TokenCollector.getKnownToEdge(edge);
+    if (collectTokenInformation) {
+      TokenCollector.getKnownToEdge(edge);
+    }
 
     if (state.getInternalState().getTransitions().isEmpty()) {
       // shortcut
@@ -290,9 +298,11 @@ class AutomatonTransferRelation implements TransferRelation {
     } else {
       // stay in same state, no transitions to be executed here (no transition matched)
       AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(state.getVars(), state.getInternalState(), cpa, state.getMatches(), state.getFailedMatches() + failedMatches);
-      stateNewCounters.addNoMatchTokens(state.getTokensSinceLastMatch());
-      if (edge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
-        stateNewCounters.addNoMatchTokens(TokenCollector.getTokensFromCFAEdge(edge, true));
+      if (collectTokenInformation) {
+        stateNewCounters.addNoMatchTokens(state.getTokensSinceLastMatch());
+        if (edge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
+          stateNewCounters.addNoMatchTokens(TokenCollector.getTokensFromCFAEdge(edge, true));
+        }
       }
       return Collections.singleton(stateNewCounters);
     }
