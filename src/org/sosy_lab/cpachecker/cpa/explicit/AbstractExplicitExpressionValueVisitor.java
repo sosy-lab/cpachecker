@@ -222,7 +222,6 @@ public abstract class AbstractExplicitExpressionValueVisitor
     case BINARY_AND:
     case BINARY_OR:
     case BINARY_XOR: {
-
       result = arithmeticOperation(lVal, rVal, binaryOperator, calculationType, machineModel, logger);
       result = castCValue(result, binaryExpr.getExpressionType(), machineModel, logger, edge);
 
@@ -931,6 +930,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
     final CType type = targetType.getCanonicalType();
     if (type instanceof CSimpleType) {
       final CSimpleType st = (CSimpleType) type;
+      final CSimpleType simpleTargetType = (CSimpleType) targetType;
 
       switch (st.getType()) {
 
@@ -994,7 +994,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
             }
           }
 
-          return new ExplicitNumericValue(result);
+          return new ExplicitNumericValue(simpleTargetType, result);
 
         } else {
           // java-type "long" is too small for big types like UNSIGNED_LONGLONG,
@@ -1024,10 +1024,10 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
         if(size == 32) {
           // 32 bit means Java float
-          result = new ExplicitNumericValue(st, floatValue);
+          result = new ExplicitNumericValue(simpleTargetType, floatValue);
         } else if(size == 64) {
           // 64 bit means Java double
-          result = new ExplicitNumericValue(st, floatValue);
+          result = new ExplicitNumericValue(simpleTargetType, floatValue);
         } else {
           throw new AssertionError("Trying to cast to unsupported floating point type: "+st);
         }
@@ -1047,10 +1047,10 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
         if(size == 32) {
           // 32 bit means Java float
-          result = new ExplicitNumericValue(st, (float) doubleValue);
+          result = new ExplicitNumericValue(simpleTargetType, (float) doubleValue);
         } else if(size == 64) {
           // 64 bit means Java double
-          result = new ExplicitNumericValue(st, doubleValue);
+          result = new ExplicitNumericValue(simpleTargetType, doubleValue);
         } else {
           throw new AssertionError("Trying to cast to unsupported floating point type: "+st);
         }
