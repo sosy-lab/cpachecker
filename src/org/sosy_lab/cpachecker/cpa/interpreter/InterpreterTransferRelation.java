@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
@@ -53,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -1188,6 +1191,7 @@ public class InterpreterTransferRelation implements TransferRelation {
         if (declarationEdge.getDeclaration().getType() instanceof CPointerType) {
           return newElement;
         }
+
         // if this is a global variable, add to the list of global variables
         if(declarationEdge.getDeclaration().isGlobal())
         {
@@ -1195,6 +1199,28 @@ public class InterpreterTransferRelation implements TransferRelation {
           // global declarations are set to 0
           // FIXME this forgets initializers!
           newElement.assignConstant(varName, 0);
+        }
+
+        if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
+          CVariableDeclaration lVariableDeclaration = ((CVariableDeclaration)declarationEdge.getDeclaration());
+          CInitializer lInitializer = lVariableDeclaration.getInitializer();
+
+          if (lInitializer != null) {
+            if (lInitializer instanceof CInitializerExpression) {
+              CExpression lExpression = ((CInitializerExpression)lInitializer).getExpression();
+
+              try {
+                return handleAssignmentToVariable(newElement, varName, lExpression, declarationEdge);
+              } catch (UnrecognizedCCodeException | MissingInputException | ReadingFromNondetVariableException
+                  | AccessToUninitializedVariableException e) {
+                e.printStackTrace();
+                throw new RuntimeException("Unhandled variable initialization!");
+              }
+            }
+            else {
+              throw new RuntimeException("Unhandled variable initialization!");
+            }
+          }
         }
     }
     return newElement;
