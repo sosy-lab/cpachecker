@@ -671,12 +671,28 @@ cpa.explicit.precisionFile = no default value
 # whether or not to avoid restarting at assume edges after a refinement
 cpa.explicit.refiner.avoidAssumes = false
 
+# checkForRepeatedRefinements
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
 cpa.explicit.refiner.checkForRepeatedRefinements = true
 
+# whether or not to stop interpolation, when no increment was obtained from
+# the last error trace that was interpolated
+cpa.explicit.refiner.checkOnEmptyIncrement = false
+
+# perform check, and potential cut-off if incremental precision is found to
+# be enough
+cpa.explicit.refiner.checkOnIncrementalPrec = false
+
+# perform check on relevance of error path
+cpa.explicit.refiner.checkOnRelevance = false
+
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = true
+
+# the order in which error paths should be refined
+cpa.explicit.refiner.errorPathOrder = "DEFAULT"
+  allowed values: [DEFAULT, ZIGZAG]
 
 # whether or not to ignore the semantics of loop-leaving-assume-edges during
 # interpolation - this avoids to have loop-counters in the interpolant
