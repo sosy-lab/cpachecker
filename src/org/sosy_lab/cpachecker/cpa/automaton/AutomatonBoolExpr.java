@@ -196,6 +196,20 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
   }
 
+  static class MatchAssumeEdge implements AutomatonBoolExpr {
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      return pArgs.getCfaEdge() instanceof AssumeEdge ? CONST_TRUE : CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH ASSUME EDGE";
+    }
+
+  }
+
   static class MatchAssumeCase implements AutomatonBoolExpr {
 
     private final Optional<Boolean> matchPositiveCase;
@@ -252,9 +266,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   }
 
   static class MatchNonEmptyEdgeTokens extends TokenAwareAutomatonBoolExpr {
-
-    public MatchNonEmptyEdgeTokens() {
-    }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
@@ -317,6 +328,8 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       return "MATCH TOKENS " + matchTokens;
     }
   }
+
+
 
   static class SubsetMatchEdgeTokens extends MatchEdgeTokens {
 

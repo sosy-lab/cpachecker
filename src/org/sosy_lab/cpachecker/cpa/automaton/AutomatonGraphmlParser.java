@@ -266,8 +266,10 @@ public class AutomatonGraphmlParser {
             if (transitionToStopForNegatedTokensetMatch && !matchTokens.isEmpty()) {
               AutomatonBoolExpr trigger = new AutomatonBoolExpr.And(
                       new AutomatonBoolExpr.MatchNonEmptyEdgeTokens(),
-                      new AutomatonBoolExpr.Negation(
-                          new IntersectionMatchEdgeTokens(matchTokens)));
+                      new AutomatonBoolExpr.And(
+                          new AutomatonBoolExpr.Negation(new AutomatonBoolExpr.MatchAssumeEdge()),
+                          new AutomatonBoolExpr.Negation(
+                              new IntersectionMatchEdgeTokens(matchTokens))));
               AutomatonTransition tr = new AutomatonTransition(trigger, emptyAssertions, actions, AutomatonInternalState.BOTTOM);
               auxilaryTransitions.add(tr);
               transitions.add(tr);
