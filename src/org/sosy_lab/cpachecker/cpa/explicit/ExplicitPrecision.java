@@ -150,7 +150,7 @@ public class ExplicitPrecision implements Precision {
     return refinablePrecision.toString();
   }
 
-  ExplicitState computeAbstraction(ExplicitState state, CFANode location) {
+  public ExplicitState computeAbstraction(ExplicitState state, CFANode location) {
     refinablePrecision.setLocation(location);
 
     Collection<MemoryLocation> candidates = refinablePrecision.getAbstractionCandidates(state);
