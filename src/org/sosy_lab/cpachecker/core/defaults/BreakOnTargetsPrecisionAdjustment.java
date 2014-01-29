@@ -54,13 +54,13 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
 
   /**
    * the predefined limit determining at which number of found target states the analysis should receive a signal of
-   * @link {@link Action#BREAK}
+   * {@link Action#BREAK}
    */
   private final int foundTargetLimit;
 
   /**
    * the predefined limit of number of iterations since finding the first target, at which the analysis should receive a
-   * signal of @link {@link Action#BREAK}, despite the number of {@link #foundTargetCounter} was not yet reached.
+   * signal of {@link Action#BREAK}, despite the number of {@link #foundTargetCounter} was not yet reached.
    */
   private final int extraIterationsLimit;
 
