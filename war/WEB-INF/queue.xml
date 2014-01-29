@@ -2,7 +2,7 @@
 	<queue>
 		<name>cpachecker</name>
 		<mode>push</mode>
-		<rate>5/m</rate>
+		<rate>2/m</rate>
     	<bucket-size>1</bucket-size>
     	<max-concurrent-requests>1</max-concurrent-requests>
 		<retry-parameters>
