@@ -62,12 +62,24 @@
   <option name="cpa.predicate.refinement.timelimit=0"/>
   
   <sourcefiles name="Simple">
-    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+  	<includesfile>../programs/benchmarks/Simple.set</includesfile>
   </sourcefiles>
   
-  <!--<sourcefiles name="ProductLines">
-  	<includesfile>../programs/benchmarks/ProductLines.set</includesfile>
-  </sourcefiles>-->
+<!--   <sourcefiles name="ControlFlowInteger"> -->
+<!--   	<includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile> -->
+<!--   </sourcefiles> -->
+  
+  <sourcefiles name="Loops">
+  	<includesfile>../programs/benchmarks/Loops.set</includesfile>
+  </sourcefiles>
+  
+  <sourcefiles name="Sequentialized">
+  	<includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+  </sourcefiles>
+  
+  <sourcefiles name="Concurrency">
+  	<includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+  </sourcefiles>
   
   <rundefinition name="explicitAnalysis-Simple">
   	<option name="-explicitAnalysis-simple"></option>
@@ -75,6 +87,10 @@
   
   <rundefinition name="explicitAnalysis">
     <option name="-explicitAnalysis"/>
+  </rundefinition>
+  
+  <rundefinition name="predicateAnalysis">
+    <option name="-predicateAnalysis"/>
   </rundefinition>
 
   <columns>
