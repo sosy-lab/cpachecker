@@ -129,7 +129,6 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
    * This method resets the counter, if needed, e.g., when a refinement happened between calls to prec().
    *
    * @param pStates the current reached set
-   * @return
    */
   private void resetCountersIfNecessary(final UnmodifiableReachedSet pStates) {
     if (pStates.size() < previousReachedSetSize) {
