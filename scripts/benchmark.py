@@ -663,7 +663,7 @@ def handleCloudResults(benchmark, outputHandler):
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
 
     if not executedAllRuns:
-        logging.warning("Not all runs were executed in the cloud!")
+        logging.warning("Some expected result files could not be found")
     if runsProducedErrorOutput:
         logging.warning("Some runs produced unexpected warnings on stderr, please check the {0} files!"
                         .format(os.path.join(outputDir, '*.stdError')))
