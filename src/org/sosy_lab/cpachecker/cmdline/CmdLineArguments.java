@@ -122,6 +122,10 @@ class CmdLineArguments {
           || handleArgument0("-bb2", "cpatiger.fqlquery.bb2", "true", arg, properties) // use (basic block)^2 coverage as FQL query
           || handleArgument0("-bb3", "cpatiger.fqlquery.bb3", "true", arg, properties) // use (basic block)^3 coverage as FQL query
 
+          || handleArgument0("-pred", "cpatiger.predicate", "true", arg, properties)   // predicate analysis
+          || handleArgument0("-expsim", "cpatiger.explicit_simple", "true", arg, properties) // simple explicit analysis (no refinement)
+          || handleArgument0("-expref", "cpatiger.explicit_ref", "true", arg, properties)    // explicit analysis with refinement
+
           || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)

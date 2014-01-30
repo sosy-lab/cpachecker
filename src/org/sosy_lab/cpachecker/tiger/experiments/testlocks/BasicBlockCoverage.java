@@ -30,6 +30,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.tiger.cmdline.Main;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
+import org.sosy_lab.cpachecker.tiger.core.CPAtiger.AnalysisType;
 import org.sosy_lab.cpachecker.tiger.core.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.experiments.ExperimentalSeries;
 import org.sosy_lab.cpachecker.tiger.fql.PredefinedCoverageCriteria;
@@ -88,7 +89,7 @@ public class BasicBlockCoverage extends ExperimentalSeries {
   @Test
   public void test_locks_101a() throws Exception {
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
-    CPAtiger lFlleSh = new CPAtiger("test/programs/fql/locks/test_locks_5.c", "main", shutdownNotifier, System.out, true);
+    CPAtiger lFlleSh = new CPAtiger("test/programs/fql/locks/test_locks_5.c", "main", shutdownNotifier, System.out, AnalysisType.PREDICATE, true);
 
     LinkedList<TestCase> lTestSuite = new LinkedList<>();
 

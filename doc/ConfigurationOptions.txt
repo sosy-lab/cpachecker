@@ -1282,6 +1282,10 @@ memorysafety.check = false
 # instead of the current one.
 memorysafety.config = no default value
 
+# variables whose name contains this will be seen by InterpreterCPA as having
+# non-deterministic values
+noAutoInitPrefix = "__BLAST_NONDET"
+
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]

@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentEx
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
+import org.sosy_lab.cpachecker.tiger.core.CPAtiger.AnalysisType;
 import org.sosy_lab.cpachecker.tiger.core.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.tiger.util.NullOutputStream;
@@ -85,6 +86,9 @@ public class CPATigerMain {
       return;
     }
 
+    // set analysis type: predicate, explicit, ...
+    AnalysisType aType = getAnalysisType(cpaConfig);
+
     // create everything
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
     CPAtiger cpatiger = null;
@@ -116,7 +120,7 @@ public class CPATigerMain {
         lStopOnImpreciseExecution = true;
       }
 
-      cpatiger = new CPAtiger(options.programs, entryFunction, shutdownNotifier, lPrintStream, lStopOnImpreciseExecution);
+      cpatiger = new CPAtiger(options.programs, entryFunction, shutdownNotifier, lPrintStream, aType, lStopOnImpreciseExecution);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
@@ -189,6 +193,8 @@ public class CPATigerMain {
     System.err.flush();
     logManager.flush();
   }
+
+
 
   @Options
   private static class BootstrapOptions {
@@ -350,6 +356,28 @@ public class CPATigerMain {
         Closeables.closeQuietly(file);
       }
     }
+  }
+
+  private static AnalysisType getAnalysisType(Configuration cpaConfig) {
+    AnalysisType aType = AnalysisType.PREDICATE;
+    //String predStr = cpaConfig.getProperty("cpatiger.predicate");
+    String expsimStr = cpaConfig.getProperty("cpatiger.explicit_simple");
+    String exprefStr = cpaConfig.getProperty("cpatiger.explicit_ref");
+
+    //boolean pred = !Strings.isNullOrEmpty(predStr);
+    boolean expsim = !Strings.isNullOrEmpty(expsimStr);
+    boolean expref = !Strings.isNullOrEmpty(exprefStr);
+
+    if (expsim) {
+      aType = AnalysisType.EXPLICIT_SIMPLE;
+    }
+
+
+    if (expref) {
+      aType = AnalysisType.EXPLICIT_REF;
+    }
+
+    return aType;
   }
 
   private static PrintStream makePrintStream(OutputStream stream) {

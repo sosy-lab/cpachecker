@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.tiger.testgen.IncrementalARTReusingFQLTestGenerator;
+import org.sosy_lab.cpachecker.tiger.testgen.PrecisionCallback;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -154,6 +155,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private final FormulaMeasuring formulaMeasuring;
   private final PredicateMapWriter precisionWriter;
 
+  // for CPATiger
+  private PrecisionCallback precCallback;
+
   // statistics
   private StatCounter numberOfRefinementsWithStrategy2 = new StatCounter("Number of refs with location-based cutoff");
   private StatInt irrelevantPredsInItp = new StatInt(StatKind.SUM, "Number of irrelevant preds in interpolants");
@@ -206,6 +210,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     }
   }
 
+
   public PredicateAbstractionRefinementStrategy(final Configuration config,
       final LogManager pLogger, final FormulaManagerView pFormulaManager,
       final PredicateAbstractionManager pPredAbsMgr,
@@ -228,6 +233,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       precisionWriter = null;
     }
   }
+
+
+
 
   private ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates;
 
@@ -424,11 +432,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     // TODO reduce coupling
     IncrementalARTReusingFQLTestGenerator.getInstance().mOutput.println("TODO: reduce coupling!");
-    PredicatePrecision tmp = IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision;
+    PredicatePrecision tmp = (PredicatePrecision) precCallback.getPrecision();
     assert(tmp != null);
     //IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addGlobalPredicates(newPredicates.values());
     //IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addFunctionPredicates(mergePredicatesPerFunction(newPredicates));
-    IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addLocalPredicates(mergePredicatesPerLocation(newPredicates));
+    //IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addLocalPredicates(mergePredicatesPerLocation(newPredicates));
+    PredicatePrecision newprec = tmp.addLocalPredicates(mergePredicatesPerLocation(newPredicates));
+    precCallback.setPrecision(newprec);
     //IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addLocationInstancePredicates(newPredicates);
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
@@ -534,8 +544,14 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     return newPrecision;
   }
 
+
+  public void setPrecisionCallback(PrecisionCallback pPrecCallback) {
+    precCallback = pPrecCallback;
+  }
+
   @Override
   public Statistics getStatistics() {
     return new Stats();
   }
+
 }

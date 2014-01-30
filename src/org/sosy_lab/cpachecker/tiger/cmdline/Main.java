@@ -37,9 +37,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
+import org.sosy_lab.cpachecker.tiger.core.CPAtiger.AnalysisType;
 import org.sosy_lab.cpachecker.tiger.core.CPAtigerResult;
 import org.sosy_lab.cpachecker.tiger.util.NullOutputStream;
 import org.sosy_lab.cpachecker.tiger.util.cilly.Cilly;
+
 
 public class Main {
 
@@ -143,7 +145,7 @@ public class Main {
     }
 
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
-    CPAtiger lFShell = new CPAtiger(lSourceFileName, lEntryFunction, shutdownNotifier, lOutput, true);
+    CPAtiger lFShell = new CPAtiger(lSourceFileName, lEntryFunction, shutdownNotifier, lOutput, AnalysisType.PREDICATE, true);
 
     lFShell.setGoalIndices(lMinIndex, lMaxIndex);
 

@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
+import org.sosy_lab.cpachecker.tiger.core.CPAtiger.AnalysisType;
 import org.sosy_lab.cpachecker.tiger.core.CPAtigerResult;
 
 public class NondetToInput {
@@ -296,7 +297,7 @@ public class NondetToInput {
     System.out.println(lTestSuite);
 
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
-    CPAtiger lFShell3 = new CPAtiger(pSourceFile, pEntryFunction, shutdownNotifier, System.out, true);
+    CPAtiger lFShell3 = new CPAtiger(pSourceFile, pEntryFunction, shutdownNotifier, System.out, AnalysisType.PREDICATE, true);
     lFShell3.seed(lTestSuite);
     //FShell3Result lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");
     CPAtigerResult lResult = lFShell3.run("COVER \"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\".EDGES(@BASICBLOCKENTRY).\"EDGES(ID)*\"");

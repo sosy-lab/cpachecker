@@ -29,6 +29,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.tiger.testgen.PrecisionCallback;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -81,7 +82,7 @@ public abstract class PredicateRefiner implements Refiner {
         strategy);
   }
 
-  public static PredicateCPARefiner cpatiger_create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+  public static PredicateCPARefiner cpatiger_create(ConfigurableProgramAnalysis pCpa, PrecisionCallback precisionCallback) throws CPAException, InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " needs a PredicateCPA");
@@ -105,13 +106,15 @@ public abstract class PredicateRefiner implements Refiner {
 
     PathChecker pathChecker = new PathChecker(logger, pfmgr, solver);
 
-    RefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
+    PredicateAbstractionRefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
         config,
         logger,
         fmgr,
         predicateCpa.getPredicateManager(),
         staticRefiner,
         solver);
+
+    strategy.setPrecisionCallback(precisionCallback);
 
     return new PredicateCPARefiner(
         config,

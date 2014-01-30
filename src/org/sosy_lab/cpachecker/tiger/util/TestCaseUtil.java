@@ -367,6 +367,24 @@ public class TestCaseUtil {
     }
   }
 
+  /**
+   * Update statistics, when a spurious traces was reported.
+   * @param pIndex
+   * @param pResultFactory
+   * @param pGoalPrediction
+   */
+  public void updateImpreciseTestCaseStatistics( int pIndex, Factory pResultFactory, Prediction[] pGoalPrediction) {
+
+    mFeasibilityInformation.setStatus(pIndex, FeasibilityInformation.FeasibilityStatus.IMPRECISE);
+
+    InfeasibilityPropagation.Prediction lCurrentPrediction = pGoalPrediction[pIndex - 1];
+
+    if (!lCurrentPrediction.equals(InfeasibilityPropagation.Prediction.UNKNOWN)) {
+      throw new RuntimeException("missmatching prediction");
+    }
+  }
+
+
   private CFAEdge[] reconstructPath(CFA pCFA, TestCase pTestCase, FunctionEntryNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
     lComponentAnalyses.add(mLocationCPA);

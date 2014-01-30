@@ -87,10 +87,13 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
   private boolean mDoRestart = false;
   private long mRestartBound = 100000000; // 100 MB
   private PrintStream mOutput;
+  // type of analysis
+  private AnalysisType aType = AnalysisType.PREDICATE;
 
-  public CPAtiger(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier, PrintStream pOutput, boolean pStopOnImpreciseExecution) {
+  public CPAtiger(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier, PrintStream pOutput, AnalysisType pAType, boolean pStopOnImpreciseExecution) {
     mOutput = pOutput;
-    mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction, shutdownNotifier, pOutput, pStopOnImpreciseExecution);
+    aType = pAType;
+    mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction, shutdownNotifier, pOutput, aType, pStopOnImpreciseExecution);
   }
 
   public void doRestart() {
@@ -412,5 +415,14 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
 
     return lPropertiesFile;
   }
+
+
+
+  public enum AnalysisType {
+    PREDICATE, EXPLICIT_SIMPLE, EXPLICIT_REF;
+  }
+
+
+
 }
 
