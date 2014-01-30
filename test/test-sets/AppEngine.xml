@@ -82,15 +82,15 @@
   </sourcefiles>
   
   <rundefinition name="explicitAnalysis-Simple">
-  	<option name="-explicitAnalysis-simple"></option>
+  	<option name="-explicitAnalysis-NoRefiner"></option>
   </rundefinition>
   
   <rundefinition name="explicitAnalysis">
-    <option name="-explicitAnalysis"/>
+    <option name="-explicitAnalysis-ItpRefiner"/>
   </rundefinition>
   
   <rundefinition name="predicateAnalysis">
-    <option name="-predicateAnalysis"/>
+    <option name="-predicateAnalysis-PredAbsRefiner-ABEl"/>
   </rundefinition>
 
   <columns>
