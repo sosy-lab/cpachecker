@@ -41,7 +41,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -51,6 +50,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -361,7 +361,7 @@ public class CFACreator {
 
       // check the CFA of each function
       for (String functionName : cfa.getAllFunctionNames()) {
-        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName));
+        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), false);
       }
       stats.checkTime.stop();
 
@@ -464,7 +464,7 @@ public class CFACreator {
 
       // check the super CFA starting at the main function
       stats.checkTime.start();
-      assert CFACheck.check(mainFunction, null);
+      assert CFACheck.check(mainFunction, null, cfaReduction != null);
       stats.checkTime.stop();
 
       if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))

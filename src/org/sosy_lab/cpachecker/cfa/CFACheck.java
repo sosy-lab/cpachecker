@@ -50,8 +50,10 @@ public class CFACheck {
    * Traverse the CFA and run a series of checks at each node
    * @param cfa Node to start traversal from
    * @param nodes Optional set of all nodes in the CFA (may be null)
+   * @param pruned Whether the CFA was pruned and may be incomplete.
    */
-  public static boolean check(FunctionEntryNode cfa, Collection<CFANode> nodes) {
+  public static boolean check(FunctionEntryNode cfa, Collection<CFANode> nodes,
+      boolean pruned) {
 
     Set<CFANode> visitedNodes = new HashSet<>();
     Deque<CFANode> waitingNodeList = new ArrayDeque<>();
@@ -65,7 +67,7 @@ public class CFACheck {
 
         // The actual checks
         isConsistent(node);
-        checkEdgeCount(node);
+        checkEdgeCount(node, pruned);
       }
     }
 
@@ -89,7 +91,7 @@ public class CFACheck {
    * Verify that the number of edges and their types match.
    * @param pNode Node to be checked
    */
-  private static void checkEdgeCount(CFANode pNode) {
+  private static void checkEdgeCount(CFANode pNode, boolean pruned) {
 
     // check entering edges
     int entering = pNode.getNumEnteringEdges();
@@ -101,13 +103,18 @@ public class CFACheck {
     if (!(pNode instanceof FunctionExitNode)) {
       switch (pNode.getNumLeavingEdges()) {
       case 0:
-        // not possible to check this, this case occurs when CFA pruning is enabled
-//        assert false : "Dead end at node " + pNode;
+        if (!pruned) {
+          // not possible to check this when CFA was pruned
+          assert false : "Dead end at node " + pNode;
+        }
         break;
 
       case 1:
         CFAEdge edge = pNode.getLeavingEdge(0);
-        assert !(edge instanceof AssumeEdge) : "AssumeEdge does not appear in pair at node " + DEBUG_FORMAT.apply(pNode);
+        if (!pruned) {
+          // not possible to check this when CFA was pruned
+          assert !(edge instanceof AssumeEdge) : "AssumeEdge does not appear in pair at node " + DEBUG_FORMAT.apply(pNode);
+        }
         assert !(edge instanceof CFunctionSummaryStatementEdge) : "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node " + DEBUG_FORMAT.apply(pNode);
         break;
 
