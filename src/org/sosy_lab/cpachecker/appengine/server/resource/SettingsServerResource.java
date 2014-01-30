@@ -50,7 +50,7 @@ public class SettingsServerResource extends WadlServerResource implements Settin
     Map<String, String> settings = new HashMap<>();
     String timeLimit = CharMatcher.DIGIT.retainFrom(DefaultOptions.getDefault("limits.time.wall"));
     settings.put("timeLimit", timeLimit);
-    settings.put("retries", "2"); // see war/WEB-INF/queue.xml
+    settings.put("retries", String.valueOf(JobRunnerResource.MAX_RETRIES));
     settings.put("errorFileName", JobRunnerResource.ERROR_FILE_NAME);
     settings.put("statisticsFileName", DefaultOptions.getImmutableOptions().get("statistics.file"));
 

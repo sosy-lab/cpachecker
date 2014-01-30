@@ -30,6 +30,7 @@ import org.restlet.resource.Post;
 public interface JobRunnerResource {
 
   public static final String ERROR_FILE_NAME = "ERROR.txt";
+  public static final int MAX_RETRIES = 2;
 
   @Post
   public void runJob(Representation entity) throws Exception;

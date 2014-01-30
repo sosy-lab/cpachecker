@@ -100,7 +100,8 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     @SuppressWarnings("unchecked")
     Series<Header> headers = (Series<Header>) getRequestAttributes().get("org.restlet.http.headers");
     int retries = Integer.valueOf(headers.getFirstValue("X-AppEngine-TaskRetryCount"));
-    job.setStatistic(null); // clear any stats so if this is a retry it have get proper stats
+    job.setStatusMessage(null); // clear for case of retry
+    job.setStatistic(null); // clear for case of retry
     job.setRetries(retries);
     job.setRequestID((String) ApiProxy.getCurrentEnvironment().getAttributes().get("com.google.appengine.runtime.request_log_id"));
     job.setExecutionDate(new Date());

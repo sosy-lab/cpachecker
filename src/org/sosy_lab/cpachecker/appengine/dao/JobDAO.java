@@ -42,6 +42,8 @@ import com.google.appengine.api.log.LogServiceFactory;
 import com.google.appengine.api.log.RequestLogs;
 import com.google.appengine.api.taskqueue.Queue;
 import com.google.appengine.api.taskqueue.QueueFactory;
+import com.google.appengine.api.taskqueue.TaskHandle;
+import com.google.appengine.api.taskqueue.TaskOptions;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
@@ -141,6 +143,24 @@ public class JobDAO {
       return job;
     }
 
+    TaskHandle taskHandle = new TaskHandle(TaskOptions.Builder.withTaskName(job.getTaskName()), GAETaskQueueJobRunner.QUEUE_NAME);
+    Integer retryCount = taskHandle.getRetryCount();
+    // job never ran but was already retried
+    if (job.getRequestID() == null && retryCount != null && retryCount > 0) {
+      job.setStatusMessage("Waiting for retry. Already failed "+retryCount+" times.");
+      job.setRetries(retryCount);
+      job.setStatus(Status.PENDING); // re-schedule job
+      return JobDAO.save(job);
+    }
+
+    // job never ran and no retries are left
+    if (job.getRequestID() == null && retryCount != null && retryCount == JobRunnerResource.MAX_RETRIES) {
+      job.setStatusMessage("The job was never executed and all retries failed.");
+      job.setRetries(retryCount);
+      job.setStatus(Status.ERROR);
+      return JobDAO.save(job);
+    }
+
     if (job.getRequestID() != null && job.getStatisticReference() == null) {
       List<String> reqIDs = Collections.singletonList(job.getRequestID());
       LogQuery query = LogQuery.Builder.withRequestIds(reqIDs);
@@ -162,15 +182,17 @@ public class JobDAO {
             job.setStatusMessage(String.format("Running the job is done but the status did not reflect this."
                 + "Therefore the status was set to %s.", Status.ERROR));
 
-            JobFile error = new JobFile(JobRunnerResource.ERROR_FILE_NAME, job);
+            JobFile errorFile = JobFileDAO.loadByName(JobRunnerResource.ERROR_FILE_NAME, job);
+            if (errorFile == null) {
+              errorFile = new JobFile(JobRunnerResource.ERROR_FILE_NAME, job);
+            }
             StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append(record.getCombined());
             for (AppLogLine line : record.getAppLogLines()) {
               stringBuilder.append(line.getLogMessage());
             }
-            error.setContent(stringBuilder.toString());
+            errorFile.setContent(stringBuilder.toString());
             try {
-              JobFileDAO.save(error);
+              JobFileDAO.save(errorFile);
             } catch (IOException e) {
               // well, then there will be no explanation about the error.
             }
