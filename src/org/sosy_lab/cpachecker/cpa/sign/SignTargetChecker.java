@@ -83,7 +83,7 @@ public class SignTargetChecker {
         }
         case ZERO: {
           errorF = pFmgr.makeEqual(f, pFmgr.makeNumber(FormulaType.RationalType, 0));
-          errorF = pFmgr.makeNegate(errorF);
+          errorF = pFmgr.makeNot(errorF);
           break;
         }
         case PLUSMINUS: {
