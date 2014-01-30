@@ -150,7 +150,7 @@ public class CoreComponentsFactory {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
 
     } else {
-      algorithm = new CPAAlgorithm(cpa, logger, config, shutdownNotifier);
+      algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
       if(usePredicatedAnalysisAlgorithm){
         algorithm = new PredicatedAnalysisAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);

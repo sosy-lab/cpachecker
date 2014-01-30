@@ -212,7 +212,7 @@ public class InvariantsCPA extends AbstractCPA {
         ConfigurableProgramAnalysis cpa = new CPABuilder(configurationBuilder.build(), logManager, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
         ReachedSet reached = reachedSetFactory.create();
         reached.add(cpa.getInitialState(pNode), cpa.getInitialPrecision(pNode));
-        CPAAlgorithm targetFindingAlgorithm = new CPAAlgorithm(cpa, logManager, config, shutdownNotifier);
+        CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, config, shutdownNotifier);
 
         boolean changed = true;
         while (changed) {

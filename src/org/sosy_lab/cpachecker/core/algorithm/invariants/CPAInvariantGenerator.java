@@ -36,7 +36,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -44,6 +43,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -101,7 +101,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
     }
 
     invariantCPAs = new CPABuilder(invariantConfig, logger, pShutdownNotifier, reachedSetFactory).buildCPAs(cfa);
-    invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger, invariantConfig, pShutdownNotifier);
+    invariantAlgorithm = CPAAlgorithm.create(invariantCPAs, logger, invariantConfig, pShutdownNotifier);
     reached = new ReachedSetFactory(invariantConfig, logger).create();
   }
 
