@@ -2,43 +2,31 @@ extern int __VERIFIER_nondet_int();
 
 int main()
 { 
-	int s__info_callback = __VERIFIER_nondet_int() ;
-	int s__version = __VERIFIER_nondet_int() ;
-	int s__hit = __VERIFIER_nondet_int() ;
-	int s__init_buf___0 = __VERIFIER_nondet_int() ;
-	int s__debug = __VERIFIER_nondet_int() ;
-	int s__ctx__info_callback = __VERIFIER_nondet_int() ;
-	int s__s3__flags = __VERIFIER_nondet_int() ;
-	int s__s3__tmp__cert_req = __VERIFIER_nondet_int() ;
-	int s__s3__tmp__reuse_message = __VERIFIER_nondet_int() ;
-	int s__s3__tmp__new_cipher__algorithms = __VERIFIER_nondet_int() ;
-	unsigned long tmp = __VERIFIER_nondet_int();
-	int num1 = __VERIFIER_nondet_int() ;
-	int tmp___3 = __VERIFIER_nondet_int() ;
-	int tmp___4 = __VERIFIER_nondet_int() ;
-	int tmp___5 = __VERIFIER_nondet_int() ;
-	int tmp___6 = __VERIFIER_nondet_int() ;
-	int tmp___7 = __VERIFIER_nondet_int() ;
-	int tmp___8 = __VERIFIER_nondet_int() ;
-	int tmp___9 = __VERIFIER_nondet_int() ;
+	int s__init_buf___0 = __VERIFIER_nondet_int() ; // 1
+	int s__ctx__info_callback = __VERIFIER_nondet_int() ; // 1
+	int s__s3__flags = __VERIFIER_nondet_int() ; // -3
+	int s__s3__tmp__cert_req = __VERIFIER_nondet_int() ; // 2
+	int s__s3__tmp__reuse_message = __VERIFIER_nondet_int() ; // 1
+	int s__s3__tmp__new_cipher__algorithms = __VERIFIER_nondet_int() ; // 255
+	unsigned long tmp = __VERIFIER_nondet_int(); // 6
+	int num1 = __VERIFIER_nondet_int() ; // 1
+	int tmp___3 = __VERIFIER_nondet_int() ; // 0
+	int tmp___4 = __VERIFIER_nondet_int() ; // 1
+	int tmp___5 = __VERIFIER_nondet_int() ; // 1
+	int tmp___6 = __VERIFIER_nondet_int() ; // 1
+	int tmp___7 = __VERIFIER_nondet_int() ; // 1
+	int tmp___8 = __VERIFIER_nondet_int() ; // 1
+	int tmp___9 = __VERIFIER_nondet_int() ; // -2
 
 	int s__state = 12292 ;
 	int s__s3__tmp__next_state___0 ;
 	int buf ;
-	int cb = 0 ;
 	int ret = -1 ;
 	int new_state ;
 	int state ;
 	int skip = 0 ;
 	int blastFlag = 0;
 
-	if (s__info_callback != 0) { 
-		cb = s__info_callback;
-	} else {
-		if (s__ctx__info_callback != 0) { 
-			cb = s__ctx__info_callback; 
-		}
-	}
 	while (1) {
 
 		while_0_continue: /* CIL Label */ ;
@@ -152,12 +140,6 @@ int main()
 																																				switch_1_4096: ;
 																																				switch_1_20480: ;
 																																				switch_1_4099: 
-
-																																				if (s__version != 66048) {
-																																					ret = -1;
-																																					goto end;
-																																				}
-
 																																				if (s__init_buf___0 == 0) {
 																																					buf = __VERIFIER_nondet_int();
 																																					if (buf == 0) {
@@ -201,11 +183,7 @@ int main()
 																																				if (ret <= 0) {
 																																					goto end;
 																																				}
-																																				if (s__hit) {
-																																					s__state = 4560;
-																																				} else {
-																																					s__state = 4400;
-																																				}
+																																				s__state = 4560;
 																																				goto switch_1_break;
 																																				switch_1_4400: ;
 																																				switch_1_4401: ;
@@ -318,16 +296,10 @@ int main()
 																																				}
 																																				s__state = 4352;
 																																				s__s3__flags = s__s3__flags + 5;
-																																				if (s__hit) {
-																																					s__s3__tmp__next_state___0 = 3;
-
-																																					if (s__s3__flags != 2L) {
-																																						s__state = 3;
-																																						s__s3__flags = s__s3__flags + 4L;
-																																					}
-
-																																				} else {
-																																					s__s3__tmp__next_state___0 = 4560;
+																																				s__s3__tmp__next_state___0 = 3;
+																																				if (s__s3__flags != 2L) {
+																																					s__state = 3;
+																																					s__s3__flags = s__s3__flags + 4L;
 																																				}
 																																				goto switch_1_break;
 																																				switch_1_4560: ;
@@ -336,11 +308,7 @@ int main()
 																																				if (ret <= 0) {
 																																					goto end;
 																																				}
-																																				if (s__hit) {
-																																					s__state = 4512;
-																																				} else {
-																																					s__state = 3;
-																																				}
+																																				s__state = 4512;
 																																				goto switch_1_break;
 																																				switch_1_4352: 
 
@@ -403,11 +371,9 @@ int main()
 		}
 		if (! s__s3__tmp__reuse_message) {
 			if (! skip) {
-				if (s__debug) {
-					ret = __VERIFIER_nondet_int();
-					if (ret <= 0) {
-						goto end;
-					}
+				ret = __VERIFIER_nondet_int();
+				if (ret <= 0) {
+					goto end;
 				}
 			}
 		}
