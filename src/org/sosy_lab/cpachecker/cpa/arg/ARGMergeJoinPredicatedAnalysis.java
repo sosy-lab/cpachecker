@@ -207,13 +207,14 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
             covered = getCoveredNodeFromDifferentSubtree(subtreeNodes, c);
 
             if (covered != null) {
+              // delete edge from current to child and introduce covering
+              current.deleteChild(c);
+              (new ARGState(c.getWrappedState(),current)).setCovered(c);
               // remove coverage relation and relink
               covered.uncover();
               covered.replaceInARGWith(c);
               subtreeNodes.removeAll(getSubtreeNodes(c));
-              // delete edge from current to child and introduce covering
-              current.deleteChild(c);
-              new ARGState(c.getWrappedState(),current);
+
             } else {
               // possibly later needed do not delete subtree
               laterCovered.add(c);
@@ -230,22 +231,25 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
       while(changed){
         changed = false;
         for(ARGState later:laterCovered){
-          covered = getCoveredNodeFromDifferentSubtree(subtreeNodes, later);
-          if (covered != null) {
-            // remove coverage relation and relink
-            covered.uncover();
-            covered.replaceInARGWith(later);
-            subtreeNodes.removeAll(getSubtreeNodes(later));
-            // delete edge from parent and introduce covering
-            assert(later.getParents().size()<=1);
-            if (later.getParents().size() == 1) {
-              new ARGState(later.getWrappedState(), later.getParents().iterator().next());
-              later.getParents().iterator().next().deleteChild(later);
+          if(later.getCoveredByThis().size()!=0){
+            covered = getCoveredNodeFromDifferentSubtree(subtreeNodes, later);
+            if (covered != null) {
+              // delete edge from parent and introduce covering
+              assert(later.getParents().size()<=1);
+              if (later.getParents().size() == 1) {
+                (new ARGState(later.getWrappedState(), later.getParents().iterator().next())).setCovered(later);
+                later.getParents().iterator().next().deleteChild(later);
+              }
+              // remove coverage relation and relink
+              covered.uncover();
+              covered.replaceInARGWith(later);
+              subtreeNodes.removeAll(getSubtreeNodes(later));
+
+              // next iteration
+              laterCovered.remove(later);
+              changed = true;
+              break;
             }
-            // next iteration
-            laterCovered.remove(later);
-            changed = true;
-            break;
           }
         }
       }
