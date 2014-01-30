@@ -25,21 +25,12 @@ int main()
   int s__state = 12292 ;
   int s__s3__tmp__next_state___0 ;
   int buf ;
-  unsigned long l ;
   int cb = 0 ;
   int ret = -1 ;
   int new_state ;
   int state ;
   int skip = 0 ;
   int blastFlag = 0;
-  int __cil_tmp55 ;
-  long __cil_tmp56 ;
-  long __cil_tmp57 ;
-  long __cil_tmp58 ;
-  long __cil_tmp59 ;
-  long __cil_tmp60 ;
-  long __cil_tmp61 ;
-  long __cil_tmp62 ;
   
   if (s__info_callback != 0) { 
     cb = s__info_callback;
@@ -162,8 +153,7 @@ int main()
 									  switch_1_20480: ;
 									  switch_1_4099: 
 									    
-									    __cil_tmp55 = s__version - 65280;
-									    if (__cil_tmp55 != 768) {
+									      if (s__version != 66048) {
 									      ret = -1;
 									      goto end;
 									    }
@@ -220,9 +210,7 @@ int main()
 										switch_1_4400: ;
 										switch_1_4401: ;
 										
-										int andi_tmp___4;
-										andi_tmp___4 = s__s3__tmp__new_cipher__algorithms - 256;
-										if (andi_tmp___4) {
+										if (s__s3__tmp__new_cipher__algorithms != 256) {
 										  skip = 1;
 										} else {
 										  ret = __VERIFIER_nondet_int();
@@ -292,7 +280,6 @@ int main()
 											  if (ret <= 0) {
 											    goto end;
 											  }
-											  l = (unsigned long )s__s3__tmp__new_cipher__algorithms;
 											  if (s__s3__tmp__cert_req == 1) {
 											    s__state = 4496;
 											  } else {
@@ -330,20 +317,13 @@ int main()
 												  goto end;
 												}
 												s__state = 4352;
-												__cil_tmp56 = (long )s__s3__flags;
-												__cil_tmp57 = __cil_tmp56 + 5;
-												s__s3__flags = (int )__cil_tmp57;
+												s__s3__flags = s__s3__flags + 5;
 												if (s__hit) {
 												  s__s3__tmp__next_state___0 = 3;
 												  
-												  __cil_tmp58 = (long )s__s3__flags;
-												  int andi_tmp___3;
-												  andi_tmp___3 = __cil_tmp58 - 2L;
-												  if (andi_tmp___3) {
+												  if (s__s3__flags != 2L) {
 												    s__state = 3;
-												    __cil_tmp59 = (long )s__s3__flags;
-												    __cil_tmp60 = __cil_tmp59 + 4L;
-												    s__s3__flags = (int )__cil_tmp60;
+												    s__s3__flags = s__s3__flags + 4L;
 												  }
 												  
 												} else {
@@ -364,12 +344,10 @@ int main()
 												  goto switch_1_break;
 												  switch_1_4352: 
 												    
-												    __cil_tmp61 = (long )num1;
-												    if (__cil_tmp61 > 0L) {
+												    if (num1 > 0) {
 												      num1 = tmp___9;
 												      
-												      __cil_tmp62 = (long )num1;
-												      if (__cil_tmp62 <= 0L) {
+												      if (num1 <= 0) {
 													ret = -1;
 													goto end;
 												      }
