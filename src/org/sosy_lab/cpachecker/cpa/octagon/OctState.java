@@ -269,7 +269,7 @@ class OctState implements AbstractState {
                                      new HashMap<>(variableToCoeffMap),
                                      logger);
     newState.variableToIndexMap.put(varName, sizeOfVariables());
-    newState.variableToCoeffMap.put(varName, null);
+    newState.variableToCoeffMap.put(varName, coeffs);
 
     if (coeffs == null) {
       // TODO necessary???
@@ -342,6 +342,12 @@ class OctState implements AbstractState {
    * Note that this only works with integers!
    */
   public OctState addSmallerEqConstraint(String pRightVariableName, String pLeftVariableName) {
+    if (variableToCoeffMap.get(pLeftVariableName) instanceof OctIntervalCoefficients
+        || variableToCoeffMap.get(pRightVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pLeftVariableName, new OctIntervalCoefficients(sizeOfVariables(), getVariableIndexFor(pRightVariableName), 0, 1, true, false));
+      return assignedState.intersect(this);
+    }
+
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
@@ -354,6 +360,11 @@ class OctState implements AbstractState {
    * Note that this only works with integers!
    */
   public OctState addSmallerEqConstraint(String pVariableName, long pValueOfLiteral) {
+    if (variableToCoeffMap.get(pVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pVariableName, new OctIntervalCoefficients(sizeOfVariables(), 0, pValueOfLiteral, true, false));
+      return assignedState.intersect(this);
+    }
+
     int varIdx = getVariableIndexFor(pVariableName);
     return addConstraint(BinaryConstraints.PX, varIdx, -1, (int)pValueOfLiteral);
   }
@@ -363,6 +374,14 @@ class OctState implements AbstractState {
    * Note that this only works with integers!
    */
   public OctState addSmallerConstraint(String pRightVariableName, String pLeftVariableName) {
+    if (variableToCoeffMap.get(pLeftVariableName) instanceof OctIntervalCoefficients
+        || variableToCoeffMap.get(pRightVariableName) instanceof OctIntervalCoefficients) {
+      OctIntervalCoefficients coeffsRight = new OctIntervalCoefficients(sizeOfVariables(), getVariableIndexFor(pRightVariableName), 0, 1, true, false);
+      coeffsRight.setConstantValue(-1, -1);
+      OctState assignedState = makeAssignment(pLeftVariableName, coeffsRight);
+      return assignedState.intersect(this);
+    }
+
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
@@ -376,6 +395,11 @@ class OctState implements AbstractState {
    * Note that this only works with integers!
    */
   public OctState addSmallerConstraint(String pVariableName, long pValueOfLiteral) {
+    if (variableToCoeffMap.get(pVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pVariableName, new OctIntervalCoefficients(sizeOfVariables(), 0, pValueOfLiteral-1, true, false));
+      return assignedState.intersect(this);
+    }
+
     int varIdx = getVariableIndexFor(pVariableName);
 
     // set right index to -1 as it is not used
@@ -387,6 +411,12 @@ class OctState implements AbstractState {
    * Note that this only works with integers!
    */
   public OctState addGreaterEqConstraint(String pRightVariableName, String pLeftVariableName) {
+    if (variableToCoeffMap.get(pLeftVariableName) instanceof OctIntervalCoefficients
+        || variableToCoeffMap.get(pRightVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pLeftVariableName, new OctIntervalCoefficients(sizeOfVariables(), getVariableIndexFor(pRightVariableName), 1, 0, false, true));
+      return assignedState.intersect(this);
+    }
+
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
@@ -399,6 +429,11 @@ class OctState implements AbstractState {
    * Note that this only works with integers!
    */
   public OctState addGreaterEqConstraint(String pVariableName, long pValueOfLiteral) {
+    if (variableToCoeffMap.get(pVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pVariableName, new OctIntervalCoefficients(sizeOfVariables(), pValueOfLiteral, 0, false, true));
+      return assignedState.intersect(this);
+    }
+
     int varIdx = getVariableIndexFor(pVariableName);
 
     // set right index to -1 as it is not used
@@ -410,6 +445,14 @@ class OctState implements AbstractState {
    * Note that this only works with integers!
    */
   public OctState addGreaterConstraint(String pRightVariableName, String pLeftVariableName) {
+    if (variableToCoeffMap.get(pLeftVariableName) instanceof OctIntervalCoefficients
+        || variableToCoeffMap.get(pRightVariableName) instanceof OctIntervalCoefficients) {
+      OctIntervalCoefficients coeffsRight = new OctIntervalCoefficients(sizeOfVariables(), getVariableIndexFor(pRightVariableName), 1, 0, false, true);
+      coeffsRight.setConstantValue(1, 1);
+      OctState assignedState = makeAssignment(pLeftVariableName, coeffsRight);
+      return assignedState.intersect(this);
+    }
+
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
@@ -423,6 +466,11 @@ class OctState implements AbstractState {
    * Note that this only works with integers!
    */
   public OctState addGreaterConstraint(String pVariableName, long pValueOfLiteral) {
+    if (variableToCoeffMap.get(pVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pVariableName, new OctIntervalCoefficients(sizeOfVariables(), pValueOfLiteral+1, 0, false, true));
+      return assignedState.intersect(this);
+    }
+
     int varIdx = getVariableIndexFor(pVariableName);
 
     // set right index to -1 as it is not used
@@ -434,6 +482,11 @@ class OctState implements AbstractState {
    * Note that this only works with integers!
    */
   public OctState addEqConstraint(String pRightVariableName, String pLeftVariableName) {
+    if (variableToCoeffMap.get(pLeftVariableName) instanceof OctIntervalCoefficients
+        || variableToCoeffMap.get(pRightVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pLeftVariableName, new OctSimpleCoefficients(sizeOfVariables(), getVariableIndexFor(pRightVariableName), 1));
+      return assignedState.intersect(this);
+    }
     return addSmallerEqConstraint(pLeftVariableName, pRightVariableName)
            .addGreaterEqConstraint(pLeftVariableName, pRightVariableName);
   }
@@ -443,6 +496,10 @@ class OctState implements AbstractState {
    * Note that this only works with integers!
    */
   public OctState addEqConstraint(String pVariableName, long constantValue) {
+    if (variableToCoeffMap.get(pVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pVariableName, new OctSimpleCoefficients(sizeOfVariables(), constantValue));
+      return assignedState.intersect(this);
+    }
     return addSmallerEqConstraint(pVariableName, constantValue)
            .addGreaterEqConstraint(pVariableName, constantValue);
   }
@@ -455,8 +512,8 @@ class OctState implements AbstractState {
    */
   public List<OctState> addIneqConstraint(String rightVarName, String leftVarName) {
     List<OctState> list = new ArrayList<>();
-    list.add(addSmallerConstraint(leftVarName, rightVarName));
-    list.add(addGreaterConstraint(leftVarName, rightVarName));
+    list.add(addSmallerConstraint(rightVarName, leftVarName));
+    list.add(addGreaterConstraint(rightVarName, leftVarName));
     return list;
   }
 
@@ -472,6 +529,13 @@ class OctState implements AbstractState {
     list.add(addSmallerConstraint(varname, value));
     list.add(addGreaterConstraint(varname, value));
     return list;
+  }
+
+  public OctState intersect(OctState other) {
+    return new OctState(OctagonManager.intersection(octagon, other.octagon),
+                        HashBiMap.create(variableToIndexMap),
+                        new HashMap<>(variableToCoeffMap),
+                        logger);
   }
 
   public OctState removeLocalVars(String functionName) {

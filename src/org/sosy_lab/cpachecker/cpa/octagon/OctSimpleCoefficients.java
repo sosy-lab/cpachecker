@@ -398,44 +398,6 @@ public class OctSimpleCoefficients extends AOctCoefficients {
     return null;
   }
 
-  public IOctCoefficients greaterPart(IOctCoefficients oct) {
-    Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
-    if (!(hasOnlyConstantValue() && oct.hasOnlyConstantValue())) {
-      return null;
-    }
-
-    OctSimpleCoefficients test = greater(oct);
-    if (test != null && test.getConstantValue().equals(BigInteger.ONE)) {
-      return this;
-    }
-
-    if (oct instanceof OctIntervalCoefficients) {
-      // TODO
-    }
-    return null;
-  }
-
-  public IOctCoefficients smallerPart(IOctCoefficients oct) {
-    Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
-    if (!(hasOnlyConstantValue() && oct.hasOnlyConstantValue())) {
-      return null;
-    }
-
-    OctSimpleCoefficients test = smaller(oct);
-    if (test != null && test.getConstantValue().equals(BigInteger.ONE)) {
-      return this;
-    }
-    test = greaterEq(oct);
-    if (test != null && test.getConstantValue().equals(BigInteger.ONE)) {
-      return null;
-    }
-
-     if (oct instanceof OctIntervalCoefficients) {
-      // TODO
-    }
-    return null;
-  }
-
   /**
    * Sets the coefficient to a given value at a certain index.
    */
