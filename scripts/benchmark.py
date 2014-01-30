@@ -69,7 +69,6 @@ DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
 
 DEFAULT_APPENGINE_URI = 'http://dev.ba-lab.appspot.com'
 DEFAULT_APPENGINE_POLLINTERVAL = 180 # seconds (== 3 minutes)
-APPENGINE_TIMEOUT_GRACE_PERIOD = 120 # seconds (== 2 minutes)
 APPENGINE_SUBMITTER_THREAD = None
 APPENGINE_POLLER_THREAD = None
 APPENGINE_JOBS = []
@@ -234,13 +233,10 @@ class AppEnginePoller(threading.Thread):
                         response = json.loads(urllib2.urlopen(request).read())
                         status = response['status']
                         if status in ['DONE', 'TIMEOUT', 'ERROR']:
-                            if status == 'ERROR' and response['retries'] < APPENGINE_RETRIES:
-                                logging.debug('Job {0} finished with status ERROR. It has retries left and therefore might still succeed eventually.')
-                            else:
-                                logging.debug('Job {0} finished. Status: {1}'.format(jobID,status))
-                                job['status'] = status
-                                self.saveResult(job, response)
-                                finishedJobs += 1
+                            logging.debug('Job {0} finished. Status: {1}'.format(jobID,status))
+                            job['status'] = status
+                            self.saveResult(job, response)
+                            finishedJobs += 1
                             nextJobIndex += 1
                         else:
                             if status == 'PENDING':
@@ -450,7 +446,7 @@ def parseArgsForAppEngine(args, absWorkingDir):
         logLevel = 'INFO'
     options['log.level'] = logLevel
     
-    for arg in args:
+    for idx, arg in enumerate(args):
         if STOPPED_BY_INTERRUPT: break
         if '-noout' == arg:
             options['output.disable'] = True
@@ -464,13 +460,16 @@ def parseArgsForAppEngine(args, absWorkingDir):
             options['log.usedOptions.export'] = True
         elif '-nolog' == arg:
             options['log.level'] = 'OFF'
+        elif '-setprop' == arg:
+            keyVal = args[idx+1].split('=')
+            options[keyVal[0]] = keyVal[1]
         elif '-config' == arg:
-            conf = args[args.index('-config')+1]
+            conf = args[args.index(arg)+1]
             conf = conf if conf.endswith('.properties') else '{0}.properties'.format(conf)
             if os.path.isfile(os.path.join(absWorkingDir, 'config', conf)):
                 appengineArgs['configuration'] = conf
             else:
-                sys.exit('Given configuration file {0} is not a valid file.'.format(conf))  
+                sys.exit('Given configuration file {0} is not a valid file.'.format(conf))
         elif '-spec' == arg:
             spec = args[args.index('-spec')+1]
             spec = spec if spec.endswith('.spc') else '{0}.spc'.format(spec)
@@ -483,6 +482,12 @@ def parseArgsForAppEngine(args, absWorkingDir):
                 argName = arg[1:]
                 if os.path.isfile(os.path.join(absWorkingDir, 'config', argName + '.properties')):
                     appengineArgs['configuration'] = argName+'.properties'
+
+    if 'limits.time.wall' in options:
+        timeLimit = int(options['limits.time.wall'])
+        if timeLimit > DEFAULT_APPENGINE_TIMELIMIT:
+            logging.warn('Given timelimit is too large for App Engine. Using %i instead.'%DEFAULT_APPENGINE_TIMELIMIT)
+            options['limits.time.wall'] = DEFAULT_APPENGINE_TIMELIMIT
     
     appengineArgs['options'] = options
     return appengineArgs
@@ -713,13 +718,15 @@ def parseAppEngineResult(run):
     if hasErrOutFile:
         try:
             with open(run.logFile+'.stdErr', 'rt') as errFile:
-                lines = errFile.readlines()
-                if lines[0].strip() == 'NOT SUBMITTED':
+                lines = errFile.read()
+                if 'NOT SUBMITTED' in lines:
                     # TODO really aborted? semantic!
                     returnValue = 6 # aborted
-                    notSubmitted.append({'run':run, 'messages':lines[-1]})
+                    notSubmitted.append({'run':run, 'messages':lines})
+                elif 'java.lang.OutOfMemoryError' in lines:
+                    output += '\njava.lang.OutOfMemoryError'
                 else:
-                    result = json.loads(''.join(lines))
+                    result = json.loads(lines)
                     if result['status'] == 'ERROR':
                         returnValue = 18 # error
                         withError.append({'run':run, 'message':result['statusMessage']})
@@ -775,11 +782,6 @@ def handleAppEngineResults(benchmark, outputHandler):
 def getBenchmarkDataForAppEngine(benchmark):
     # TODO default CPU model??
     cpuModel = benchmark.requirements.cpuModel
-    
-    timeLimit = benchmark.rlimits.get(TIMELIMIT, DEFAULT_APPENGINE_TIMELIMIT)
-    if timeLimit > DEFAULT_APPENGINE_TIMELIMIT:
-        logging.warn('Given timelimit is too large for App Engine. Using %i seconds instead.'%DEFAULT_APPENGINE_TIMELIMIT)
-        timeLimit = DEFAULT_APPENGINE_TIMELIMIT
 
     numberOfRuns = sum(len(runSet.runs) for runSet in benchmark.runSets if runSet.shouldBeExecuted())
     
@@ -797,8 +799,7 @@ def getBenchmarkDataForAppEngine(benchmark):
         for run in runSet.runs:
             if STOPPED_BY_INTERRUPT: break
             logFile = os.path.relpath(run.logFile, benchmark.logFolder)
-            args = parseArgsForAppEngine(run.getCmdline()[1:-1], absWorkingDir)
-            args['options']['limits.time.wall'] = str(timeLimit)+'s'
+            args = parseArgsForAppEngine(run.getCmdline(), absWorkingDir)
             args['sourceFileName'] = run.sourcefile
             runDefinitions.append({'args':args,
                                    'debug':config.debug,
@@ -809,7 +810,7 @@ def getBenchmarkDataForAppEngine(benchmark):
 
     if not sourceFiles: sys.exit("Benchmark has nothing to run.")
     
-    return (cpuModel, timeLimit, numberOfRuns, runDefinitions, sourceFiles, absWorkingDir)
+    return (cpuModel, numberOfRuns, runDefinitions, sourceFiles, absWorkingDir)
 
 def executeBenchmarkInCloud(benchmark, outputHandler):
 
@@ -863,7 +864,7 @@ def executeBenchmarkInAppengine(benchmark, outputHandler):
         request = urllib2.Request(uri, headers=headers)
         response = json.loads(urllib2.urlopen(request).read())
         global DEFAULT_APPENGINE_TIMELIMIT, APPENGINE_STATS_FILENAME, APPENGINE_ERROR_FILENAME, APPENGINE_RETRIES
-        DEFAULT_APPENGINE_TIMELIMIT = response['timeLimit']
+        DEFAULT_APPENGINE_TIMELIMIT = int(response['timeLimit'])
         APPENGINE_STATS_FILENAME = response['statisticsFileName']
         APPENGINE_ERROR_FILENAME = response['errorFileName']
         APPENGINE_RETRIES = int(response['retries'])
@@ -872,7 +873,7 @@ def executeBenchmarkInAppengine(benchmark, outputHandler):
     except urllib2.URLError as e:
         sys.exit('The settings could not be pulled. {0} is not available. Error: {1}'.format(uri, e.reason))
     
-    (cpuModel, timeLimit, numberOfRuns, runDefinitions, sourceFiles, absWorkingDir) = getBenchmarkDataForAppEngine(benchmark)
+    (cpuModel, numberOfRuns, runDefinitions, sourceFiles, absWorkingDir) = getBenchmarkDataForAppEngine(benchmark)
     
     # submit jobs
     global APPENGINE_SUBMITTER_THREAD
