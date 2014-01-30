@@ -152,7 +152,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   private final Set<InvariantsFormula<CompoundInterval>> collectedInterestingAssumptions;
 
-  private Collection<InvariantsFormula<CompoundInterval>> environmentAndAssumptions = null;
+  private Iterable<InvariantsFormula<CompoundInterval>> environmentAndAssumptions = null;
 
   private volatile int hash = 0;
 
@@ -391,14 +391,18 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    *
    * @return the environment as a set equations of the variables with their values.
    */
-  public Set<InvariantsFormula<CompoundInterval>> getEnvironmentAsAssumptions() {
+  private Set<InvariantsFormula<CompoundInterval>> getEnvironmentAsAssumptions() {
     Set<InvariantsFormula<CompoundInterval>> environmentalAssumptions = new HashSet<>();
     CompoundStateFormulaManager ifm = CompoundStateFormulaManager.INSTANCE;
+
+    List<InvariantsFormula<CompoundInterval>> atomic = new ArrayList<>(1);
+    Deque<InvariantsFormula<CompoundInterval>> toCheck = new ArrayDeque<>(1);
     for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : this.environment.entrySet()) {
       InvariantsFormula<CompoundInterval> variable = ifm.asVariable(entry.getKey());
 
-      List<InvariantsFormula<CompoundInterval>> atomic = new ArrayList<>();
-      Deque<InvariantsFormula<CompoundInterval>> toCheck = new ArrayDeque<>();
+      atomic.clear();
+      toCheck.clear();
+
       toCheck.add(entry.getValue());
       while (!toCheck.isEmpty()) {
         InvariantsFormula<CompoundInterval> current = toCheck.poll();
@@ -430,19 +434,22 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * iterable.
    */
   public Iterable<InvariantsFormula<CompoundInterval>> getAssumptionsAndEnvironment() {
-    return Iterables.concat(this.assumptions, this.collectedInterestingAssumptions, new Iterable<InvariantsFormula<CompoundInterval>>() {
+    if (this.environmentAndAssumptions == null) {
+      this.environmentAndAssumptions = Iterables.concat(this.assumptions, this.collectedInterestingAssumptions, new Iterable<InvariantsFormula<CompoundInterval>>() {
 
-      private Iterable<InvariantsFormula<CompoundInterval>> lazyInner = null;
+        private Iterable<InvariantsFormula<CompoundInterval>> lazyInner = null;
 
-      @Override
-      public Iterator<InvariantsFormula<CompoundInterval>> iterator() {
-        if (lazyInner == null) {
-          lazyInner = getEnvironmentAsAssumptions();
+        @Override
+        public Iterator<InvariantsFormula<CompoundInterval>> iterator() {
+          if (lazyInner == null) {
+            lazyInner = getEnvironmentAsAssumptions();
+          }
+          return lazyInner.iterator();
         }
-        return lazyInner.iterator();
-      }
 
-    });
+      });
+    }
+    return this.environmentAndAssumptions;
   }
 
   /**
@@ -454,6 +461,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * @param pReplaceVisitor the replace visitor used to transform the assumptions correct in this state to assumptions correct in the new state.
    * @param pNewValue the new value of the assigned variable.
    * @param pVarName the name of the assigned variable.
+   *
    * @return <code>true</code> if the transfer of assumptions results in a valid state, <code>false</code> if it is bottom.
    */
   private boolean updateAssumptions(InvariantsState pTargetState, ReplaceVisitor<CompoundInterval> pReplaceVisitor,
@@ -828,11 +836,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       return true;
     }
     // Perform the implication check (if this state definitely implies the other one, it is less than or equal to it)
-    if (environmentAndAssumptions == null) {
-      environmentAndAssumptions = FluentIterable.from(getAssumptionsAndEnvironment()).toSet();
-    }
     for (InvariantsFormula<CompoundInterval> rightAssumption : pElement2.getAssumptionsAndEnvironment()) {
-      if (!CompoundStateFormulaManager.definitelyImplies(environmentAndAssumptions, rightAssumption, this.environment)) {
+      if (!CompoundStateFormulaManager.definitelyImplies(getAssumptionsAndEnvironment(), rightAssumption, this.environment)) {
         return false;
       }
     }

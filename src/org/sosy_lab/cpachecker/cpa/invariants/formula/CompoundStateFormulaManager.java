@@ -36,6 +36,8 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 
+import com.google.common.collect.FluentIterable;
+
 
 public enum CompoundStateFormulaManager {
 
@@ -88,12 +90,16 @@ public enum CompoundStateFormulaManager {
     return (pFormula instanceof Constant<?>) && ((Constant<CompoundInterval>) pFormula).getValue().isTop();
   }
 
-  public static boolean definitelyImplies(Collection<InvariantsFormula<CompoundInterval>> pFormulas, InvariantsFormula<CompoundInterval> pFormula) {
-    return definitelyImplies(pFormulas, pFormula, true, new HashMap<String, InvariantsFormula<CompoundInterval>>(), false);
+  public static boolean definitelyImplies(Iterable<InvariantsFormula<CompoundInterval>> pFormulas, InvariantsFormula<CompoundInterval> pFormula) {
+    return definitelyImplies(pFormulas, pFormula, new HashMap<String, InvariantsFormula<CompoundInterval>>());
   }
 
-  public static boolean definitelyImplies(Collection<InvariantsFormula<CompoundInterval>> pFormulas, InvariantsFormula<CompoundInterval> pFormula, Map<String, InvariantsFormula<CompoundInterval>> pBaseEnvironment) {
-    return definitelyImplies(pFormulas, pFormula, true, new HashMap<>(pBaseEnvironment), false);
+  public static boolean definitelyImplies(Iterable<InvariantsFormula<CompoundInterval>> pFormulas, InvariantsFormula<CompoundInterval> pFormula, Map<String, InvariantsFormula<CompoundInterval>> pBaseEnvironment) {
+    Map<String, InvariantsFormula<CompoundInterval>> newMap = new HashMap<>(pBaseEnvironment);
+    if (pFormula instanceof Collection<?>) {
+      return definitelyImplies((Collection<InvariantsFormula<CompoundInterval>>) pFormulas, pFormula, true, newMap, false);
+    }
+    return definitelyImplies(FluentIterable.from(pFormulas).toSet(), pFormula, true, newMap, false);
   }
 
   private static boolean definitelyImplies(Collection<InvariantsFormula<CompoundInterval>> pFormulas, InvariantsFormula<CompoundInterval> pFormula, boolean pExtend, Map<String, InvariantsFormula<CompoundInterval>> pEnvironment, boolean pEnvironmentComplete) {
