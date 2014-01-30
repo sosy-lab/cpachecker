@@ -48,8 +48,8 @@ class AutomatonTransition {
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
   private final AutomatonBoolExpr trigger;
   private final AutomatonBoolExpr assertion;
-  private final List<CStatement> assumption;
-  private final List<AutomatonAction> actions;
+  private final ImmutableList<CStatement> assumption;
+  private final ImmutableList<AutomatonAction> actions;
 
 
   /**
@@ -233,7 +233,7 @@ class AutomatonTransition {
     return true;
   }
 
-  public List<CStatement> getAssumptions() {
+  public ImmutableList<CStatement> getAssumptions() {
     return assumption;
   }
 }

@@ -41,9 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
@@ -106,14 +104,14 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private transient final ControlAutomatonCPA automatonCPA;
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
-  private final List<CStatement> assumptions;
+  private final ImmutableList<CStatement> assumptions;
   private int matches = 0;
   private int failedMatches = 0;
   private Set<Integer> tokensSinceLastMatch = null;
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
-      List<CStatement> pAssumptions, int successfulMatches, int failedMatches) {
+      ImmutableList<CStatement> pAssumptions, int successfulMatches, int failedMatches) {
 
     if (pInternalState == AutomatonInternalState.BOTTOM) {
       return pAutomatonCPA.getBottomState();
@@ -125,14 +123,14 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
       int successfulMatches, int failedMatches) {
-    List<CStatement> assumptions = ImmutableList.of();
+    ImmutableList<CStatement> assumptions = ImmutableList.of();
     return automatonStateFactory(pVars, pInternalState, pAutomatonCPA, assumptions, successfulMatches, failedMatches);
   }
 
   private AutomatonState(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState,
       ControlAutomatonCPA pAutomatonCPA,
-      List<CStatement> pAssumptions,
+      ImmutableList<CStatement> pAssumptions,
       int successfulMatches,
       int failedMatches) {
 
@@ -185,11 +183,12 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   }
 
   public List<CAssumeEdge> getAsAssumeEdges(CIdExpression name_of_return_Var, String cFunctionName) {
-    List<CAssumeEdge> result = new ArrayList<>();
+    if (assumptions.isEmpty()) {
+      return ImmutableList.of();
+    }
 
+    List<CAssumeEdge> result = new ArrayList<>(assumptions.size());
     for(CStatement statement : assumptions) {
-      CSimpleType cBool = new CSimpleType(false, false, CBasicType.BOOL, false, false, false, false, false, false, false);
-
 
       if(statement instanceof CAssignment) {
         CAssignment assignment = (CAssignment) statement;
@@ -198,7 +197,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
           CExpression expression = (CExpression) assignment.getRightHandSide();
           CBinaryExpression assumeExp =
-              new CBinaryExpression(assignment.getFileLocation(), cBool, CNumericTypes.INT, assignment.getLeftHandSide(),
+              new CBinaryExpression(assignment.getFileLocation(), CNumericTypes.BOOL, CNumericTypes.INT, assignment.getLeftHandSide(),
                   expression, CBinaryExpression.BinaryOperator.EQUALS);
 
           result.add(new CAssumeEdge(assignment.toASTString(), assignment.getFileLocation().getStartingLineNumber(),
@@ -320,7 +319,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     return AutomatonState.AutomatonAnalysisNamePrefix + automatonCPA.getAutomaton().getName();
   }
 
-  public List<CStatement> getAssumptions() {
+  public ImmutableList<CStatement> getAssumptions() {
     return assumptions;
   }
 

@@ -33,6 +33,7 @@ public class CNumericTypes {
   private CNumericTypes() { }
 
   // type constants
+  public final static CSimpleType BOOL          = new CSimpleType(false, false, CBasicType.BOOL, false, false, false, false, false, false, false);
   public final static CSimpleType CHAR          = new CSimpleType(false, false, CBasicType.CHAR, false, false, false, false, false, false, false);
   public static final CSimpleType SIGNED_CHAR   = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
   public final static CSimpleType INT           = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
