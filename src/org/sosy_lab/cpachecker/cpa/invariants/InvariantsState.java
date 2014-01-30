@@ -790,7 +790,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * @return <code>true</code> if the given edge has any exact evaluations left, <code>false</code>
    * otherwise.
    */
-  public boolean mayEvaluate(CFAEdge edge) {
+  private boolean mayEvaluate(CFAEdge edge) {
     return !this.precision.isUsingAbstractEvaluation() || !this.visitedEdges.contains(edge);
   }
 
@@ -799,7 +799,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    *
    * @return the assumptions made in this state.
    */
-  public Set<? extends InvariantsFormula<CompoundInterval>> getAssumptions() {
+  private Set<? extends InvariantsFormula<CompoundInterval>> getAssumptions() {
     return Collections.unmodifiableSet(this.assumptions);
   }
 
@@ -817,7 +817,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    *
    * @return the flag indicating whether or not to use bit vectors to represent the states.
    */
-  public boolean getUseBitvectors() {
+  private boolean getUseBitvectors() {
     return useBitvectors;
   }
 
@@ -875,6 +875,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       if (element1.visitedEdges.isEmpty()) {
         resultVisitedEdges = element2.visitedEdges;
       } else if (element2.visitedEdges.isEmpty()) {
+        resultVisitedEdges = element1.visitedEdges;
+      } else if (element1.visitedEdges.equals(element2.visitedEdges)) {
         resultVisitedEdges = element1.visitedEdges;
       } else {
         resultVisitedEdges = ImmutableSet.<CFAEdge>builder().addAll(element1.visitedEdges).addAll(element2.visitedEdges).build();
