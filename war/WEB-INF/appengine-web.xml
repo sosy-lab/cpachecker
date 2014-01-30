@@ -4,9 +4,9 @@
     <version>dev</version>
     <threadsafe>true</threadsafe>
     
-    <admin-console>
-  		<page name="Appstats" url="/appstats" />
-	</admin-console>
+<!--     <admin-console> -->
+<!--   		<page name="Appstats" url="/appstats" /> -->
+<!-- 	</admin-console> -->
 	
 	<static-error-handlers>
 		<handler file="errorpages/timeout.json" error-code="timeout" />
