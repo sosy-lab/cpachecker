@@ -1,37 +1,69 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<!-- Example file that demonstrates the use of CPAchecker. -->
-<benchmark tool="cpachecker" timelimit="10" memlimit="3000">
+<!--
+  Example file that demonstrates the use of CPAchecker.
+  This file can and should be used as a base for building own benchmark definitions.
+-->
+<benchmark tool="cpachecker" timelimit="900" hardtimelimit="1000" memlimit="8000" cpuCores="4">
+
+  <!-- Note that all paths to ../../test/programs need to be changed if you move this file. -->
 
   <!-- Global sourcefiles are used in every run definition. -->
-  <sourcefiles>
+  <sourcefiles name="locks">
     <include>../../test/programs/benchmarks/locks/*_5_*.c</include>
 
     <!-- Next line shows the use of a variable,
     in this case it has no effect, because of the path '../' after it. -->
-    <include>../../test/programs/${test_name}/../benchmarks/locks/*_6_*.c</include>
+    <include>../../test/programs/${benchmark_name}/../benchmarks/locks/*_6_*.c</include>
 
     <!-- Files can be "included" and "excluded". -->
     <include>../../test/programs/benchmarks/locks/*_1*_*.c</include>
     <exclude>../../test/programs/benchmarks/locks/*_13_*.c</exclude>
   </sourcefiles>
 
+  <sourcefiles name="DeviceDrivers64">
+    <includesfile>../../test/programs/benchmarks/DeviceDrivers64.set</includesfile>
+    <!-- Do not forget to specify the -64 option for 64bit files. -->
+    <option name="-64"/>
+  </sourcefiles>
+
   <!-- Global options for all run definitions. -->
-  <!-- Set the java heap size. -->
-  <option name="-heap">1000M</option>
-  <option name="-predicateAnalysis"/>
+  <!-- Set the Java heap size to some value lower than the memlimit. -->
+  <option name="-heap">7000M</option>
+
+  <!-- Set the time limit equal to the above value. -->
+  <option name="-timelimit">900s</option>
+
+  <!--
+    Always use property files as specification
+    to guarantee correct interpretation of the results.
+    The following will use the file ALL.prp in the same directory as the source file.
+    When using the cloud, they need to be specified with <requiredfiles>, too.
+  -->
+  <option name="-spec">${sourcefile_path}/ALL.prp</option>
+  <requiredfiles>../../test/programs/benchmarks/*/ALL.prp</requiredfiles>
 
 
-  <rundefinition name="with-output-files">
-    <!-- Variables can appear in option values, too. -->
-    <option name="-setprop">output.path=test/results/${benchmark_name}.${benchmark_date}.output/${sourcefile_name}/</option>
-  </rundefinition>
+  <!-- For final benchmarks for performance measurement, disable assertions. -->
+  <!-- <option name="-disable-java-assertions"/> -->
+
+  <!--
+    Do not use the shortcut configurations such as -predicateAnalysis
+    or -explicitAnalysis, instead use the long names
+    to have more meaningful names in the result tables.
+  -->
+  <option name="-predicateAnalysis-PredAbsRefiner-ABEl"/>
 
 
   <rundefinition name="noout">
     <!-- Recommended option "-noout", as the CPAchecker output files
          are normally not interesting for benchmarks. -->
     <option name="-noout"/>
+  </rundefinition>
+
+  <rundefinition name="with-output-files">
+    <!-- Variables can appear in option values, too. -->
+    <option name="-setprop">output.path=test/results/${benchmark_name}.${benchmark_date}.output/${sourcefile_name}/</option>
   </rundefinition>
 
 
@@ -42,9 +74,11 @@
     "numberOfDigits" gives the number of digits after the decimal separator,
     "title" the name of the column in the table.
     Both attributes are optional.
-  -->
+    These tags are not necessary here,
+    statistics can still be extracted after the benchmark run.
   <columns>
     <column title="total" numberOfDigits="1">time for CPAchecker</column>
     <column title="reached">reached set</column>
   </columns>
+  -->
 </benchmark>
