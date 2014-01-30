@@ -28,6 +28,8 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.AbstractEdgeBasedAbstractionStrategyFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategyFactories;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 
 import com.google.common.collect.ImmutableSet;
@@ -38,7 +40,10 @@ public class InvariantsPrecision implements Precision {
   public static final InvariantsPrecision NONE = new InvariantsPrecision(
       Collections.<CFAEdge>emptySet(),
       Collections.<InvariantsFormula<CompoundInterval>>emptySet(),
-      Collections.<String>emptySet(), 0, false, false) {
+      Collections.<String>emptySet(),
+      0,
+      false,
+      EdgeBasedAbstractionStrategyFactories.ALWAYS) {
 
     @Override
     public boolean isRelevant(CFAEdge pEdge) {
@@ -62,32 +67,32 @@ public class InvariantsPrecision implements Precision {
 
   private final boolean useBinaryVariableInterrelations;
 
-  private final boolean useAbstractEvaluation;
+  private final AbstractEdgeBasedAbstractionStrategyFactory edgeBasedAbstractionStrategyFactory;
 
   public InvariantsPrecision(Set<CFAEdge> pRelevantEdges,
       Set<InvariantsFormula<CompoundInterval>> pInterestingAssumptions,
       Set<String> pInterestingVariables, int pMaximumFormulaDepth,
       boolean pUseBinaryVariableInterrelations,
-      boolean pUseAbstractEvaluation) {
+      AbstractEdgeBasedAbstractionStrategyFactory pEdgeBasedAbstractionStrategyFactory) {
     this(pRelevantEdges == null ? null : ImmutableSet.<CFAEdge>copyOf(pRelevantEdges),
         ImmutableSet.<InvariantsFormula<CompoundInterval>>copyOf(pInterestingAssumptions),
         ImmutableSet.<String>copyOf(pInterestingVariables),
         pMaximumFormulaDepth,
         pUseBinaryVariableInterrelations,
-        pUseAbstractEvaluation);
+        pEdgeBasedAbstractionStrategyFactory);
   }
 
   public InvariantsPrecision(ImmutableSet<CFAEdge> pRelevantEdges,
       ImmutableSet<InvariantsFormula<CompoundInterval>> pInterestingAssumptions,
       ImmutableSet<String> pInterestingVariables, int pMaximumFormulaDepth,
       boolean pUseBinaryVariableInterrelations,
-      boolean pUseAbstractEvaluation) {
+      AbstractEdgeBasedAbstractionStrategyFactory pEdgeBasedAbstractionStrategyFactory) {
     this.relevantEdges = pRelevantEdges;
     this.interestingAssumptions = pInterestingAssumptions;
     this.interestingVariables = pInterestingVariables;
     this.maximumFormulaDepth = pMaximumFormulaDepth;
     this.useBinaryVariableInterrelations = pUseBinaryVariableInterrelations;
-    this.useAbstractEvaluation = pUseAbstractEvaluation;
+    this.edgeBasedAbstractionStrategyFactory = pEdgeBasedAbstractionStrategyFactory;
   }
 
   public boolean isRelevant(CFAEdge pEdge) {
@@ -136,8 +141,8 @@ public class InvariantsPrecision implements Precision {
     return this.useBinaryVariableInterrelations;
   }
 
-  public boolean isUsingAbstractEvaluation() {
-    return this.useAbstractEvaluation;
+  public AbstractEdgeBasedAbstractionStrategyFactory getEdgeBasedAbstractionStrategyFactory() {
+    return this.edgeBasedAbstractionStrategyFactory;
   }
 
 }

@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategyFactories;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundStateFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
@@ -126,8 +127,8 @@ public class InvariantsCPA extends AbstractCPA {
     @Option(description="whether or not to use a bit vector formula manager when extracting invariant approximations from states.")
     private boolean useBitvectors = false;
 
-    @Option(description="whether or not to use abstract evaluation to ensure termination when the merge operator is SEP or the limit for interesting variables or predicates is positive.")
-    private boolean useAbstractEvaluation = true;
+    @Option(description="controls whether to use abstract evaluation always, never, or only on already previously visited edges.")
+    private EdgeBasedAbstractionStrategyFactories edgeBasedAbstractionStrategyFactory = EdgeBasedAbstractionStrategyFactories.VISITED_EDGES;
 
   }
 
@@ -329,7 +330,7 @@ public class InvariantsCPA extends AbstractCPA {
         ImmutableSet.copyOf(limit(interestingVariables, options.interestingVariableLimit)),
         options.maximumFormulaDepth,
         options.useBinaryVariableInterrelations,
-        options.useAbstractEvaluation);
+        options.edgeBasedAbstractionStrategyFactory);
 
     initialPrecisionMap.put(pNode, precision);
 

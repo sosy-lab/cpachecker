@@ -757,6 +757,11 @@ cpa.invariants.analyzeRelevantVariablesOnly = true
 # locations only.
 cpa.invariants.analyzeTargetPathsOnly = true
 
+# controls whether to use abstract evaluation always, never, or only on
+# already previously visited edges.
+cpa.invariants.edgeBasedAbstractionStrategyFactory = VISITED_EDGES
+  enum:     [ALWAYS, VISITED_EDGES, NEVER]
+
 # the maximum number of predicates to consider as interesting. -1 one
 # disables the limit, but this is not recommended. 0 means that guessing
 # interesting predicates is disabled.
@@ -773,11 +778,6 @@ cpa.invariants.maximumFormulaDepth = 4
 # which merge operator to use for InvariantCPA
 cpa.invariants.merge = "JOIN"
   allowed values: [JOIN, SEP]
-
-# whether or not to use abstract evaluation to ensure termination when the
-# merge operator is SEP or the limit for interesting variables or predicates
-# is positive.
-cpa.invariants.useAbstractEvaluation = true
 
 # whether or not to collect information about binary variable interrelations.
 cpa.invariants.useBinaryVariableInterrelations = true
