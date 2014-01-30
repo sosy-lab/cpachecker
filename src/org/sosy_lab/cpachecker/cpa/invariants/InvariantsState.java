@@ -1086,10 +1086,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
             }
             if (pStrategy instanceof VisitedEdgesBasedAbstractionStrategy) {
               VisitedEdgesBasedAbstractionStrategy other = (VisitedEdgesBasedAbstractionStrategy) pStrategy;
-              if (visitedEdges.isEmpty()) {
+              if (this.visitedEdges == other.visitedEdges || other.visitedEdges.containsAll(this.visitedEdges)) {
                 return other;
               }
-              if (other.visitedEdges.isEmpty() || this.visitedEdges.equals(other.visitedEdges)) {
+              if (this.visitedEdges.containsAll(other.visitedEdges)) {
                 return this;
               }
               final ImmutableSet<CFAEdge> edges =
