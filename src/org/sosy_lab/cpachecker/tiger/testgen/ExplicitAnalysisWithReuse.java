@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.tiger.util.ARTReuse;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -75,7 +76,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 /**
  * Explicit analysis with explicit refiner that can reuse information.
  */
-public class ExplicitAnalysisWithReuse implements AnalysisWithReuse {
+public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCallback {
 
 
   private final LocationCPA mLocationCPA;
@@ -124,7 +125,8 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse {
     factory.set(lReachedSetFactory, ReachedSetFactory.class);
 
     try {
-      ConfigurableProgramAnalysis expCPA = factory.createInstance();
+      ExplicitCPA expCPA = (ExplicitCPA) factory.createInstance();
+
 
       if (lUseCache) {
         mExplicitCPA = new CacheCPA(expCPA);
@@ -211,6 +213,9 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse {
     if (expRefiner == null){
       try {
         expRefiner = DelegatingExplicitRefiner.create(lARTCPA);
+
+        expRefiner.registerPrecisionCallback(this);
+
       } catch (CPAException | InvalidConfigurationException e) {
         throw new RuntimeException(e);
       }
@@ -245,16 +250,14 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse {
     if (mReuseART) {
       ARTReuse.modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
 
-      /*mPrecision = (ExplicitPrecision) IncrementalARTReusingFQLTestGenerator.getInstance().getPrecision();
-
       if (mPrecision != null) {
         for (AbstractState lWaitlistElement : pReachedSet.getWaitlist()) {
           Precision lOldPrecision = pReachedSet.getPrecision(lWaitlistElement);
-          Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, mPrecision, PredicatePrecision.class);
+          Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, mPrecision, ExplicitPrecision.class);
 
           pReachedSet.updatePrecision(lWaitlistElement, lNewPrecision);
         }
-      }*/
+      }
     }
     else {
       pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
@@ -329,5 +332,15 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse {
 
     assert !reachable || lCounterexampleInfo != null;
     return Pair.of(reachable, lCounterexampleInfo);
+  }
+
+  @Override
+  public Precision getPrecision() {
+    return mPrecision;
+  }
+
+  @Override
+  public void setPrecision(Precision pNewPrec) {
+    mPrecision = (ExplicitPrecision) pNewPrec;
   }
 }

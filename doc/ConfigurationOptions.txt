@@ -1176,7 +1176,7 @@ cpa.predicate.useBitwiseAxioms = false
 cpa.predicate.useInvariantsForAbstraction = false
 
 # add special information to formulas about non-deterministic functions
-cpa.predicate.useNondetFlags = false
+cpa.predicate.useNondetFlags = true
 
 # Qualified name for class which checks that the computed abstraction adheres
 # to the desired property.

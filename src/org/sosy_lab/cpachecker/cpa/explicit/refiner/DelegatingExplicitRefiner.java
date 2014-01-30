@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.tiger.testgen.PrecisionCallback;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -123,6 +124,9 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
   private final CFA cfa;
 
   private final LogManager logger;
+
+  // callback interface for CPATiger
+  private PrecisionCallback precCallback;
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -384,5 +388,9 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     catch (InterruptedException e) {
       throw new CPAException("counterexample-check failed: ", e);
     }
+  }
+
+  public void registerPrecisionCallback(PrecisionCallback callmemaybe) {
+    precCallback = callmemaybe;
   }
 }

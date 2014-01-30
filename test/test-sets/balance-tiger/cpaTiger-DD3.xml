@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpatiger" timelimit="1800">
+  <option name="-heap">1200M</option>
+
+
+  <sourcefiles name="DD3">
+    <includesfile>../../programs/benchmarks/tiger-sets/DD3.set</includesfile>
+  </sourcefiles>
+
+  <rundefinition name="predicate-bb">
+	<option name="-bb"/>
+  </rundefinition>
+
+
+  <rundefinition name="explicit-sim-bb">
+	<option name="-bb"/>
+	<option name="-expsim"/>
+  </rundefinition>
+
+  <rundefinition name="explicit-ref-bb">
+	<option name="-bb"/>
+	<option name="-expref"/>
+  </rundefinition>
+
+  <columns>
+    <column title="time in reach">Time in reach</column>
+    <column title="goals">#Goals</column>
+    <column title="feasible">#Feasible</column>
+    <column title="infeasible">#Infeasible</column>
+    <column title="imprecise">#Imprecise</column>
+#Goals: 
+  </columns>
+</benchmark>
