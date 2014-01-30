@@ -2,9 +2,8 @@ extern int __VERIFIER_nondet_int();
 
 int main()
 { 
-	int s__init_buf___0 = __VERIFIER_nondet_int() ; // -1
+	int s__init_buf___0 = __VERIFIER_nondet_int() ; // -3
 	int s__s3__flags = __VERIFIER_nondet_int() ; // -3
-	unsigned long tmp = __VERIFIER_nondet_int(); // 5
 
 	int s__state = 12292 ;
 	int s__s3__tmp__next_state___0 ;
@@ -12,7 +11,6 @@ int main()
 	int ret = -1 ;
 	int new_state ;
 	int state ;
-	int skip = 0 ;
 	int blastFlag = 0;
 
 	while (1) {
@@ -22,7 +20,8 @@ int main()
 		state = s__state;
 
 		if (s__state == 12292) {
-			goto switch_1_12292;
+			s__state = 4096;
+			goto switch_1_4096;
 		} else {
 			if (s__state == 16384) {
 				goto switch_1_16384;
@@ -122,8 +121,6 @@ int main()
 																																		} else {
 																																			goto switch_1_default;
 																																			if (0) {
-																																				switch_1_12292: 
-																																				s__state = 4096;
 																																				switch_1_16384: ;
 																																				switch_1_4096: ;
 																																				switch_1_20480: ;
@@ -163,7 +160,6 @@ int main()
 																																				goto switch_1_break;
 																																				switch_1_4400: ;
 																																				switch_1_4401: ;
-																																				skip = 1;
 																																				s__state = 4416;
 																																				goto switch_1_break;
 																																				switch_1_4416: ;
@@ -308,7 +304,6 @@ int main()
 				}
 			}
 		}
-		skip = 0;
 	}
 
 	while_0_break: /* CIL Label */ ;
