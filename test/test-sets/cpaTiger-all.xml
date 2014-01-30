@@ -8,9 +8,19 @@
     <includesfile>../programs/fql/ntdrivers-simplified.set</includesfile>
   </sourcefiles>
 
-  <rundefinition name="explicit-simple-bb">
+  <rundefinition name="predicate-bb">
+	<option name="-bb"/>
+  </rundefinition>
+
+
+  <rundefinition name="explicit-sim-bb">
 	<option name="-bb"/>
 	<option name="-expsim"/>
+  </rundefinition>
+
+  <rundefinition name="explicit-ref-bb">
+	<option name="-bb"/>
+	<option name="-expref"/>
   </rundefinition>
 
   <columns>

@@ -994,7 +994,7 @@ cpa.predicate.nondetFunctions = {
       "random"}
 
 # Regexp pattern for functions that should be considered as giving a
-# non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
+# non-deterministic return value (c.f. cpa.predicate.nondetFunctions)
 cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
 
 # Handle field aliasing formulas.

@@ -8,7 +8,7 @@
     <includesfile>../programs/fql/ntdrivers-simplified.set</includesfile>
   </sourcefiles>
 
-  <rundefinition name="explicit-simple-bb">
+  <rundefinition name="explicit-ref-bb">
 	<option name="-bb"/>
 	<option name="-expsim"/>
   </rundefinition>

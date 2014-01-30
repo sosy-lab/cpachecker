@@ -260,16 +260,23 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     // choose analysis
     switch (analysisType){
     case PREDICATE :
-      this.mOutput.println("Running predicate analysis");
+      mOutput.println("Running predicate analysis");
       analysis = new PredicateAnalysisWithReuse(pSourceFileName, pEntryFunction, shutdownNotifier, lCFA,
           mLocationCPA, mCallStackCPA, mAssumeCPA);
       break;
 
     case EXPLICIT_SIMPLE :
-      this.mOutput.println("Running explicit analysis");
+      mOutput.println("Running simple explicit analysis");
       analysis = new ExplicitSimpleAnalysisWithReuse(pSourceFileName, pEntryFunction, shutdownNotifier, lCFA,
           mLocationCPA, mCallStackCPA, mAssumeCPA);
       break;
+
+    case EXPLICIT_REF :
+      mOutput.println("Running explicit analysis with refinement");
+      analysis = new ExplicitAnalysisWithReuse(pSourceFileName, pEntryFunction, shutdownNotifier, lCFA,
+          mLocationCPA, mCallStackCPA, mAssumeCPA);
+      break;
+
     }
 
 

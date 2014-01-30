@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithmWithCounterexampleInfo;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -50,15 +51,14 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.assume.AssumeCPA;
 import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.DelegatingExplicitRefiner;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
@@ -68,15 +68,14 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.tiger.util.ARTReuse;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 /**
- * Pure explicit analysis with reachability reuse.
+ * Explicit analysis with explicit refiner that can reuse information.
  */
-public class ExplicitSimpleAnalysisWithReuse implements AnalysisWithReuse {
+public class ExplicitAnalysisWithReuse implements AnalysisWithReuse {
 
 
   private final LocationCPA mLocationCPA;
@@ -94,8 +93,9 @@ public class ExplicitSimpleAnalysisWithReuse implements AnalysisWithReuse {
 
   public ExplicitPrecision mPrecision;
   private boolean lUseCache;
+  private DelegatingExplicitRefiner expRefiner;
 
-  public ExplicitSimpleAnalysisWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier,
+  public ExplicitAnalysisWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier,
       CFA lCFA, LocationCPA pmLocationCPA, CallstackCPA pmCallStackCPA,
       AssumeCPA pmAssumeCPA){
     mLocationCPA = pmLocationCPA;
@@ -158,19 +158,13 @@ public class ExplicitSimpleAnalysisWithReuse implements AnalysisWithReuse {
 
     pchecker = new PathChecker(mLogManager, predCPA.getPathFormulaManager(), predCPA.getSolver());
 
+
   }
 
   @Override
   public Pair<Boolean, CounterexampleInfo> analyse(CFA pCFA, ReachedSet pReachedSet,
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, GuardedEdgeAutomatonCPA pAutomatonCPA,
       FunctionEntryNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
-    /*
-     * CPAs should be arranged in a way such that frequently failing CPAs, i.e.,
-     * CPAs that are not able to produce successors, are treated first such that
-     * the compound CPA stops applying further transfer relations early. Here, we
-     * have to choose between the number of times a CPA produces no successors and
-     * the computational effort necessary to determine that there are no successors.
-     */
 
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
     lComponentAnalyses.add(mLocationCPA);
@@ -214,6 +208,16 @@ public class ExplicitSimpleAnalysisWithReuse implements AnalysisWithReuse {
       throw new RuntimeException(e);
     }
 
+    if (expRefiner == null){
+      try {
+        expRefiner = DelegatingExplicitRefiner.create(lARTCPA);
+      } catch (CPAException | InvalidConfigurationException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+
+
     CPAAlgorithm lBasicAlgorithm;
     try {
       lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration, ShutdownNotifier.create());
@@ -221,8 +225,12 @@ public class ExplicitSimpleAnalysisWithReuse implements AnalysisWithReuse {
       throw new RuntimeException(e1);
     }
 
-    CPAAlgorithm lAlgorithm = lBasicAlgorithm;
-
+    CEGARAlgorithmWithCounterexampleInfo lAlgorithm;
+    try {
+      lAlgorithm = new CEGARAlgorithmWithCounterexampleInfo(lBasicAlgorithm, this.expRefiner, mConfiguration, mLogManager);
+    } catch (InvalidConfigurationException | CPAException e) {
+      throw new RuntimeException(e);
+    }
 
     ARGStatistics lARTStatistics;
     try {
@@ -259,19 +267,42 @@ public class ExplicitSimpleAnalysisWithReuse implements AnalysisWithReuse {
 
     // run the algorithm
     boolean isSound = false;
+    CounterexampleInfo lCounterexampleInfo = null;
     try {
-      isSound = lAlgorithm.run(pReachedSet);
-
+      // isSound = lAlgorithm.run(pReachedSet);
+      Pair<Boolean, CounterexampleInfo> lResult = lAlgorithm.runWithCounterexample(pReachedSet);
+      isSound = lResult.getFirst();
+      lCounterexampleInfo = lResult.getSecond();
     } catch (CPAException | InterruptedException e) {
       throw new RuntimeException(e);
     }
 
     assert isSound;
-
-    CounterexampleInfo lCounterexampleInfo = null;
     Boolean reachable = false;
 
-    AbstractState lastState = pReachedSet.getLastState();
+    // check the counterexample
+    if (lCounterexampleInfo != null && !lCounterexampleInfo.isSpurious()){
+
+      ARGPath path = lCounterexampleInfo.getTargetPath();
+
+      try {
+        CounterexampleTraceInfo cexTrace = pchecker.checkPath(path.asEdgesList());
+
+        if (cexTrace.isSpurious()){
+          lCounterexampleInfo = CounterexampleInfo.spurious();
+        } else {
+          lCounterexampleInfo = CounterexampleInfo.feasible(path, cexTrace.getModel());
+        }
+
+      } catch (CPATransferException | InterruptedException e1) {
+        throw new RuntimeException(e1);
+      }
+      reachable = true;
+
+    }
+
+
+    /* AbstractState lastState = pReachedSet.getLastState();
     if (AbstractStates.isTargetState(lastState)){
       assert ARGUtils.checkARG(pReachedSet) : "ARG and reached set do not match before refinement";
       final ARGState lastStateARG = (ARGState) lastState;
@@ -294,7 +325,7 @@ public class ExplicitSimpleAnalysisWithReuse implements AnalysisWithReuse {
         throw new RuntimeException(e1);
       }
       reachable = true;
-    }
+    }*/
 
     assert !reachable || lCounterexampleInfo != null;
     return Pair.of(reachable, lCounterexampleInfo);
