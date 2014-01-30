@@ -156,7 +156,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
   @Override
   protected ExplicitValueBase visitDefault(CExpression pExp) {
-    return null;
+    return ExplicitValueBase.ExplicitUnknownValue.getInstance();
   }
 
   public void reset() {
@@ -168,9 +168,9 @@ public abstract class AbstractExplicitExpressionValueVisitor
   public ExplicitValueBase visit(final CBinaryExpression pE) throws UnrecognizedCCodeException {
 
     final ExplicitValueBase lVal = pE.getOperand1().accept(this);
-    if (lVal == null) { return null; }
+    if (lVal.isUnknown()) { return lVal; }
     final ExplicitValueBase rVal = pE.getOperand2().accept(this);
-    if (rVal == null) { return null; }
+    if (rVal.isUnknown()) { return rVal; }
     ExplicitValueBase result = calculateBinaryOperation(lVal, rVal, pE, machineModel, logger, edge);
 
     return result;
@@ -238,7 +238,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
       // TODO explicitfloat: handle values other than numeric ones
       if(!lVal.isNumericValue() || !rVal.isNumericValue()) {
         logger.logf(Level.FINE, "Parameter to boolean operation %s %s %s is not a numeric value.", lVal.toString(), binaryOperator.toString(), rVal.toString());
-        return null;
+        return ExplicitValueBase.ExplicitUnknownValue.getInstance();
       }
 
       final boolean tmp = booleanOperation((ExplicitNumericValue) lVal,
@@ -441,11 +441,11 @@ public abstract class AbstractExplicitExpressionValueVisitor
         return new ExplicitNumericValue(type, result);
       } else {
         logger.logf(Level.FINE, "unsupported type for result of binary operation %s", type.toString());
-        return null;
+        return ExplicitValueBase.ExplicitUnknownValue.getInstance();
       }
     } catch(ClassCastException e) {
       logger.logf(Level.FINE, "unsupported type for result of binary operation %s", calculationType.toString());
-      return null;
+      return ExplicitValueBase.ExplicitUnknownValue.getInstance();
     }
   }
 
@@ -484,12 +484,12 @@ public abstract class AbstractExplicitExpressionValueVisitor
   @Override
   public ExplicitValueBase visit(CComplexCastExpression pE) throws UnrecognizedCCodeException {
     // evaluation of complex numbers is not supported by now
-    return null;
+    return ExplicitValueBase.ExplicitUnknownValue.getInstance();
   }
 
   @Override
   public ExplicitValueBase visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
-    return null;
+    return ExplicitValueBase.ExplicitUnknownValue.getInstance();
   }
 
   @Override
@@ -514,7 +514,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
   @Override
   public ExplicitValueBase visit(CStringLiteralExpression pE) throws UnrecognizedCCodeException {
-    return null;
+    return ExplicitValueBase.ExplicitUnknownValue.getInstance();
   }
 
   @Override
@@ -528,7 +528,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
       return new ExplicitNumericValue(size);
 
     default: // TODO support more operators
-      return null;
+      return ExplicitValueBase.ExplicitUnknownValue.getInstance();
     }
   }
 
@@ -540,7 +540,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
         // TODO rewrite CEnumerator to handle ExplicitValueBase and not just Long
         return new ExplicitNumericValue(CNumericTypes.INT, enumerator.getValue());
       } else {
-        return null;
+        return ExplicitValueBase.ExplicitUnknownValue.getInstance();
       }
     }
 
@@ -556,13 +556,13 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
     final ExplicitValueBase value = unaryOperand.accept(this);
 
-    if (value == null && unaryOperator != UnaryOperator.SIZEOF) {
-      return null;
+    if (value.isUnknown() && unaryOperator != UnaryOperator.SIZEOF) {
+      return ExplicitValueBase.ExplicitUnknownValue.getInstance();
     }
 
     if (!value.isNumericValue()) {
       logger.logf(Level.FINE, "Invalid argument for unary operator %s: %s", unaryOperator.toString(), value.toString());
-      return null;
+      return ExplicitValueBase.ExplicitUnknownValue.getInstance();
     }
     ExplicitNumericValue numericValue = (ExplicitNumericValue) value;
 
@@ -585,7 +585,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
     case TILDE:
     default:
       // TODO handle unimplemented operators
-      return null;
+      return ExplicitValueBase.ExplicitUnknownValue.getInstance();
     }
   }
 
@@ -919,7 +919,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
    */
   public static ExplicitValueBase castCValue(@Nullable final ExplicitValueBase value, final CType targetType,
       final MachineModel machineModel, final LogManager logger, @Nullable final CFAEdge edge) {
-    if (value == null) { return null; }
+    if (value.isUnknown()) { return ExplicitValueBase.ExplicitUnknownValue.getInstance(); }
 
     // For now can only cast numeric value's
     if (!value.isNumericValue()) {

@@ -226,7 +226,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       if (exp instanceof JExpression) {
         // value = ((JExpression) exp).accept(visitor); TODO
-        value = null;
+        value = ExplicitValueBase.ExplicitUnknownValue.getInstance();
       } else if (exp instanceof CExpression) {
         value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
       } else {
@@ -237,7 +237,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramName, 0);
 
-      if (value == null) {
+      if (value.isUnknown()) {
         newElement.forget(formalParamName);
 
         if(isMissingCExpressionInformation(visitor, exp)) {
@@ -352,7 +352,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     ExplicitValueBase value = getExpressionValue(expression, CNumericTypes.INT, evv);
 
     // value is null, try to derive further information
-    if (value == null) {
+    if (value.isUnknown()) {
 
       ExplicitState element = state.clone();
       AssigningValueVisitor avv = new AssigningValueVisitor(element, truthValue);
@@ -404,7 +404,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     // get the variable name in the declarator
     String varName = decl.getName();
 
-    ExplicitValueBase initialValue = null;
+    ExplicitValueBase initialValue = ExplicitValueBase.ExplicitUnknownValue.getInstance();
 
     // get initial value
     IAInitializer init = decl.getInitializer();
@@ -609,7 +609,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     ExplicitValueBase value;
     if (exp instanceof JRightHandSide) {
        // value = ((JRightHandSide) exp).accept(visitor); TODO
-      value = null;
+      value = ExplicitValueBase.ExplicitUnknownValue.getInstance();
     } else if (exp instanceof CRightHandSide) {
        value = visitor.evaluate((CRightHandSide) exp, (CType) lType);
     } else {
@@ -617,7 +617,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     if (visitor.hasMissingPointer()) {
-      assert value == null;
+      assert value.isUnknown();
     }
 
     if (isMissingCExpressionInformation(visitor, exp)) {
@@ -631,7 +631,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     if (visitor.hasMissingFieldAccessInformation() || visitor.hasMissingEnumComparisonInformation()) {
       // This may happen if an object of class is created which could not be parsed,
       // In  such a case, forget about it
-      if (value != null) {
+      if (!value.isUnknown()) {
         newElement.forget(assignedVar);
         return newElement;
       } else {
@@ -651,7 +651,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 //      newElement.forgetAllWithPrefix(assignedVar + ".");
 //      newElement.forgetAllWithPrefix(assignedVar + "->");
 
-      if (value == null) {
+      if (value.isUnknown()) {
         // Don't erase it when there if it has yet to be evaluated
         if (missingInformationRightJExpression == null) {
           // TODO HasToBeErased Later
@@ -745,12 +745,12 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         // x is unknown, a binaryOperation (x==0), false-branch: set x=1L
         if ((binaryOperator == BinaryOperator.NOT_EQUALS && truthValue)
             || (binaryOperator == BinaryOperator.EQUALS && !truthValue)) {
-          if (leftValue == null && rightValue.equals(new ExplicitNumericValue(0L)) && isAssignable(lVarInBinaryExp)) {
+          if (leftValue.isUnknown() && rightValue.equals(new ExplicitNumericValue(0L)) && isAssignable(lVarInBinaryExp)) {
             MemoryLocation leftVariableName = getMemoryLocation(lVarInBinaryExp);
             assignableState.assignConstant(leftVariableName, new ExplicitNumericValue(1L));
           }
 
-          else if (rightValue == null && leftValue.equals(new ExplicitNumericValue(0L)) && isAssignable(rVarInBinaryExp)) {
+          else if (rightValue.isUnknown() && leftValue.equals(new ExplicitNumericValue(0L)) && isAssignable(rVarInBinaryExp)) {
             MemoryLocation rightVariableName = getMemoryLocation(rVarInBinaryExp);
             assignableState.assignConstant(rightVariableName, new ExplicitNumericValue(1L));
           }
@@ -1182,7 +1182,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       return pNewElement;
     }
 
-    ExplicitValueBase explicitValue = null;
+    ExplicitValueBase explicitValue = ExplicitValueBase.ExplicitUnknownValue.getInstance();
 
     if (pMissingInformation.hasKnownValue()) {
       explicitValue = pMissingInformation.getcExpressionValue();
@@ -1190,7 +1190,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       explicitValue = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
     }
 
-    if (explicitValue == null) {
+    if (explicitValue.isUnknown()) {
       // Always return the new Element
       // if you want to interrupt the calculation
       // in case it was changed before
@@ -1232,11 +1232,11 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     ExplicitValueBase value = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
 
-    if(value != null && value.equals(new ExplicitNumericValue(truthValue))) {
+    if(!value.isUnknown() && value.equals(new ExplicitNumericValue(truthValue))) {
       return null;
     } else {
 
-      if(value == null) {
+      if(value.isUnknown()) {
 
         // Try deriving further Information
         ExplicitState element = pNewElement.clone();
@@ -1333,10 +1333,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
      ExplicitValueBase value = notScopedFieldValue;
      if (missingInformationRightJExpression != null) {
-       value = null; // TODO handleMissingInformationRightJExpression(rttState);
+       value = ExplicitValueBase.ExplicitUnknownValue.getInstance(); // TODO handleMissingInformationRightJExpression(rttState);
      }
 
-     if (value != null) {
+     if (!value.isUnknown()) {
        newElement.assignConstant(scopedFieldName, value);
        return newElement;
      } else {

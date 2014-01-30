@@ -110,7 +110,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
     if (state.contains(memLoc)) {
       return state.getValueFor(memLoc);
     } else {
-      return null;
+      return ExplicitValueBase.ExplicitUnknownValue.getInstance();
     }
   }
 
@@ -119,13 +119,13 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
     MemoryLocation varLoc = evaluateMemoryLocation(pLValue);
 
     if (varLoc == null) {
-      return null;
+      return ExplicitValueBase.ExplicitUnknownValue.getInstance();
     }
 
     if (getState().contains(varLoc)) {
       return state.getValueFor(varLoc);
     } else {
-      return null;
+      return ExplicitValueBase.ExplicitUnknownValue.getInstance();
     }
   }
 
@@ -142,7 +142,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
   @Override
   protected ExplicitValueBase evaluateCPointerExpression(CPointerExpression pVarName) {
     missingPointer = true;
-    return null;
+    return ExplicitValueBase.ExplicitUnknownValue.getInstance();
   }
 
   public boolean canBeEvaluated(CExpression lValue) throws UnrecognizedCCodeException {

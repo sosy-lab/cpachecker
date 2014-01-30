@@ -143,4 +143,10 @@ public class ExplicitNumericValue implements ExplicitValueBase {
       return null;
     }
   }
+
+  @Override
+  public boolean isUnknown() {
+    return false;
+  }
+
 }

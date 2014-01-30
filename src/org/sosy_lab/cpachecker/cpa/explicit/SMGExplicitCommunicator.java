@@ -190,7 +190,7 @@ public class SMGExplicitCommunicator {
           }
 
           if (address.isUnknown()) {
-            return null;
+            return ExplicitValueBase.ExplicitUnknownValue.getInstance();
           } else if (address.getAsInt() == 0) {
             return new ExplicitNumericValue(1L);
           } else {
@@ -208,7 +208,7 @@ public class SMGExplicitCommunicator {
     @Override
     public ExplicitValueBase visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
       ExplicitValueBase result = super.visit(pE);
-      if (result != null) {
+      if (!result.isUnknown()) {
         return result;
       }
 
@@ -216,21 +216,21 @@ public class SMGExplicitCommunicator {
       CExpression op2 = pE.getOperand2();
 
       if (!(op1.getExpressionType().getCanonicalType() instanceof CPointerType)) {
-        return null;
+        return ExplicitValueBase.ExplicitUnknownValue.getInstance();
       }
       if (!(op2.getExpressionType().getCanonicalType() instanceof CPointerType)) {
-        return null;
+        return ExplicitValueBase.ExplicitUnknownValue.getInstance();
       }
 
       try {
         SMGAddressValue op1Value = evaluateSMGAddressExpression(op1);
         SMGAddressValue op2Value = evaluateSMGAddressExpression(op2);
         if (op1Value.isUnknown() || op2Value.isUnknown()) {
-          return null;
+          return ExplicitValueBase.ExplicitUnknownValue.getInstance();
         }
 
         if (op1Value.getOffset().isUnknown() || op2Value.getOffset().isUnknown()) {
-          return null;
+          return ExplicitValueBase.ExplicitUnknownValue.getInstance();
         }
         long op1Offset = op1Value.getOffset().getAsLong();
         long op2Offset = op2Value.getOffset().getAsLong();
@@ -249,7 +249,7 @@ public class SMGExplicitCommunicator {
         case LESS_EQUAL:
         case LESS_THAN:
           if (!op1Value.getObject().equals(op2Value.getObject())) {
-            return null;
+            return ExplicitValueBase.ExplicitUnknownValue.getInstance();
           }
           switch (pE.getOperator()) {
           case GREATER_EQUAL:
@@ -265,7 +265,7 @@ public class SMGExplicitCommunicator {
           }
 
         default:
-          return null;
+          return ExplicitValueBase.ExplicitUnknownValue.getInstance();
         }
       } catch (CPATransferException e) {
         UnrecognizedCCodeException e2 = new UnrecognizedCCodeException("Could not symbolically evaluate expression", pE);
@@ -287,7 +287,7 @@ public class SMGExplicitCommunicator {
     private ExplicitValueBase getValueFromLocation(MemoryLocation pMemloc, CExpression rValue) throws UnrecognizedCCodeException {
 
       if(pMemloc == null) {
-        return null;
+        return ExplicitValueBase.ExplicitUnknownValue.getInstance();
       }
 
       ExplicitState explState = getState();
@@ -308,7 +308,7 @@ public class SMGExplicitCommunicator {
         }
 
          if(value.isUnknown() || value.getAsInt() != 0) {
-           return null;
+           return ExplicitValueBase.ExplicitUnknownValue.getInstance();
          } else {
            return new ExplicitNumericValue(0L);
          }
