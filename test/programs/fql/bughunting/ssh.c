@@ -5,48 +5,26 @@ int main()
 	int s__init_buf___0 = __VERIFIER_nondet_int() ; // -3
 	int s__s3__flags = __VERIFIER_nondet_int() ; // -3
 
-	int s__state = 12292 ;
+	int s__state = 4096 ;
 	int s__s3__tmp__next_state___0 ;
 	int buf ;
 	int ret = -1 ;
 	int new_state ;
-	int state ;
-	int blastFlag = 0;
 
 	while (1) {
 
 		while_0_continue: /* CIL Label */ ;
 
-		state = s__state;
 
-		if (s__state == 12292) {
-			s__state = 4096;
-			goto switch_1_4096;
-		} else {
-			if (s__state == 16384) {
-				goto switch_1_16384;
-			} else {
 				if (s__state == 4096) {
 					goto switch_1_4096;
 				} else {
 					if (s__state == 20480) {
 						goto switch_1_20480;
 					} else {
-						if (s__state == 4099) {
-							goto switch_1_4099;
-						} else {
 							if (s__state == 4368) {
 								goto switch_1_4368;
 							} else {
-								if (s__state == 4369) {
-									goto switch_1_4369;
-								} else {
-									if (s__state == 4384) {
-										goto switch_1_4384;
-									} else {
-										if (s__state == 4385) {
-											goto switch_1_4385;
-										} else {
 											if (s__state == 4400) {
 												goto switch_1_4400;
 											} else {
@@ -120,39 +98,21 @@ int main()
 																																			goto switch_1_3;
 																																		} else {
 																																			goto switch_1_default;
-																																			if (0) {
-																																				switch_1_16384: ;
 																																				switch_1_4096: ;
 																																				switch_1_20480: ;
-																																				switch_1_4099: 
 																																				if (s__init_buf___0 == 0) {
 																																					buf = __VERIFIER_nondet_int();
 																																					if (buf == 0) {
-																																						ret = -1;
 																																						goto end;
 																																					}
 																																					s__init_buf___0 = buf;
 																																				}
-																																				s__state = 4368;
-																																				goto switch_1_break;
 																																				switch_1_4368: ;
-																																				switch_1_4369: 
 																																				ret = __VERIFIER_nondet_int();
-																																				if (blastFlag == 0) {
-																																					blastFlag = 1;
-																																				}
 																																				if (ret <= 0) {
 																																					goto end;
 																																				}
-																																				s__state = 4384;
-
-																																				goto switch_1_break;
-																																				switch_1_4384: ;
-																																				switch_1_4385: 
 																																				ret = __VERIFIER_nondet_int();
-																																				if (blastFlag == 1) {
-																																					blastFlag = 2;
-																																				}
 																																				if (ret <= 0) {
 																																					goto end;
 																																				}
@@ -160,45 +120,24 @@ int main()
 																																				goto switch_1_break;
 																																				switch_1_4400: ;
 																																				switch_1_4401: ;
-																																				s__state = 4416;
-																																				goto switch_1_break;
 																																				switch_1_4416: ;
 																																				switch_1_4417: 
 																																				ret = __VERIFIER_nondet_int();
-																																				if (blastFlag == 3) {
-																																					blastFlag = 4;
-																																				}
 																																				if (ret <= 0) {
 																																					goto end;
 																																				}
-																																				s__state = 4432;
-																																				goto switch_1_break;
 																																				switch_1_4432: ;
 																																				switch_1_4433: 
 																																				ret = __VERIFIER_nondet_int();
-																																				if (blastFlag == 4) {
-																																					goto ERROR;
-																																				}
 																																				if (ret <= 0) {
 																																					goto end;
 																																				}
-																																				s__state = 4448;
-																																				goto switch_1_break;
 																																				switch_1_4448: ;
 																																				switch_1_4449: 
 																																				ret = __VERIFIER_nondet_int();
-																																				if (blastFlag == 4) {
-																																					blastFlag = 5;
-																																				}
 																																				if (ret <= 0) {
 																																					goto end;
 																																				}
-																																				if (2) {
-																																					s__state = 4464;
-																																				} else {
-																																					s__state = 4480;
-																																				}
-																																				goto switch_1_break;
 																																				switch_1_4464: ;
 																																				switch_1_4465: ;
 																																				switch_1_4466: ;
@@ -207,8 +146,6 @@ int main()
 																																				if (ret <= 0) {
 																																					goto end;
 																																				}
-																																				s__state = 4480;
-																																				goto switch_1_break;
 																																				switch_1_4480: ;
 																																				switch_1_4481: 
 																																				ret = __VERIFIER_nondet_int();
@@ -223,16 +160,12 @@ int main()
 																																				if (ret <= 0) {
 																																					goto end;
 																																				}
-																																				s__state = 4512;
-																																				goto switch_1_break;
 																																				switch_1_4512: ;
 																																				switch_1_4513: 
 																																				ret = __VERIFIER_nondet_int();
 																																				if (ret <= 0) {
 																																					goto end;
 																																				}
-																																				s__state = 4528;
-																																				goto switch_1_break;
 																																				switch_1_4528: ;
 																																				switch_1_4529: 
 																																				ret = __VERIFIER_nondet_int();
@@ -263,14 +196,11 @@ int main()
 																																					s__init_buf___0 = 0;
 																																				}
 																																				ret = 1;
-
 																																				goto end;
 																																				switch_1_default: 
 																																				ret = -1;
 																																				goto end;
-																																			} else {
 																																				switch_1_break: ;
-																																			}
 																																		}
 																																	}
 																																}
@@ -296,14 +226,8 @@ int main()
 												}
 											}
 										}
-									}
-								}
-							}
-						}
 					}
 				}
-			}
-		}
 	}
 
 	while_0_break: /* CIL Label */ ;
