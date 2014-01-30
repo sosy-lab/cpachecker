@@ -9,7 +9,7 @@
 			<!--
 				NOTE:
 				When changing this value also update it in
-				org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource
+				org.sosy_lab.cpachecker.appengine.server.common.JobRunnerResource
 			-->
       		<task-retry-limit>2</task-retry-limit>
     	</retry-parameters>
