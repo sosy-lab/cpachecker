@@ -81,13 +81,14 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     // TODO: handle cases other than numeric values
     ExplicitNumericValue numericResult = value.asNumericValue();
     if(numericResult != null) {
-      switch(numericResult.getType().getType()) {
+      CSimpleType type = (CSimpleType) expr.getExpressionType();
+      switch(type.getType()) {
         case INT:
         case CHAR: {
           return Pair.<CExpression, Number> of(
               new CIntegerLiteralExpression(expr.getFileLocation(),
-                  expr.getExpressionType(), BigInteger.valueOf(numericResult.asLong())),
-                  numericResult.asLong());
+                  expr.getExpressionType(), BigInteger.valueOf(numericResult.longValue())),
+                  numericResult.longValue());
         }
         case FLOAT:
         case DOUBLE: {
@@ -132,12 +133,8 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     }
 
     // TODO: handle the case that it's not a CSimpleType or that it's not a number
-
-    CSimpleType type1 = (CSimpleType) pair1.getFirst().getExpressionType().getCanonicalType();
-    CSimpleType type2 = (CSimpleType) pair2.getFirst().getExpressionType().getCanonicalType();
-
-    ExplicitValueBase lVal = new ExplicitNumericValue(type1, pair1.getSecond());
-    ExplicitValueBase rVal = new ExplicitNumericValue(type2, pair2.getSecond());
+    ExplicitValueBase lVal = new ExplicitNumericValue(pair1.getSecond());
+    ExplicitValueBase rVal = new ExplicitNumericValue(pair2.getSecond());
     ExplicitValueBase result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
         lVal, rVal,
         expr, machineModel, logger, null);
@@ -166,7 +163,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     // TODO: handle the case that the result is not a numeric value
     CSimpleType type = (CSimpleType) pair.getFirst().getExpressionType().getCanonicalType();
     final ExplicitValueBase castedValue = ExplicitExpressionValueVisitor.castCValue(
-        new ExplicitNumericValue(type, pair.getSecond()), expr.getExpressionType(), machineModel, logger, null);
+        new ExplicitNumericValue(pair.getSecond()), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, null);
 
 
     return convertExplicitValueToPair(expr, castedValue);

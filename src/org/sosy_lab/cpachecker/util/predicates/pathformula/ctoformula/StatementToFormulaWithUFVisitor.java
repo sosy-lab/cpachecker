@@ -741,12 +741,10 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
       Integer value0 = tryEvaluateExpression(param0);
       Integer value1 = tryEvaluateExpression(param1);
       if (value0 != null && value1 != null) {
+        // We know that it's an integer because we know that value0 and value1 are integers
         Long result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
             new ExplicitNumericValue(value0.longValue()),  new ExplicitNumericValue(value1.longValue()), multiplication,
-            conv.machineModel, conv.logger, edge).asLong();
-        if (result == null) {
-          return null;
-        }
+            conv.machineModel, conv.logger, edge).asLong(CNumericTypes.INT);
 
         CExpression newParam = new CIntegerLiteralExpression(param0.getFileLocation(),
                                                  multiplication.getExpressionType(),

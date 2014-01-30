@@ -191,7 +191,7 @@ public class ExplicitExpressionValueVisitor extends AbstractExplicitExpressionVa
         return null;
       }
 
-      Long subscriptValue = subscript.accept(evv).asLong();
+      Long subscriptValue = subscript.accept(evv).asLong(subscript.getExpressionType());
 
       if(subscriptValue == null) {
         return null;

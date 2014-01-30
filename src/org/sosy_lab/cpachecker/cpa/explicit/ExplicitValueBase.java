@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 
 
 /**
@@ -41,8 +43,9 @@ public interface ExplicitValueBase {
   public ExplicitNumericValue asNumericValue();
 
   /** Return the long value if this is a long value, null otherwise. **/
-  public Long asLong();
+  public Long asLong(CType type);
 
+  /** Singleton class used to signify that the explicit value us unknown(could be anything). **/
   public static final class ExplicitUnknownValue implements ExplicitValueBase {
 
     private static final ExplicitUnknownValue instance = new ExplicitUnknownValue();
@@ -67,7 +70,7 @@ public interface ExplicitValueBase {
     }
 
     @Override
-    public Long asLong() {
+    public Long asLong(CType type) {
       return null;
     }
 

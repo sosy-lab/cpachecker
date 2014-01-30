@@ -83,7 +83,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -194,7 +193,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
     final BinaryOperator binaryOperator = binaryExpr.getOperator();
     final CType calculationType = binaryExpr.getCalculationType();
 
-    lVal = castCValue(lVal, calculationType, machineModel, logger, edge);
+    lVal = castCValue(lVal, binaryExpr.getOperand1().getExpressionType(), calculationType, machineModel, logger, edge);
     if (binaryOperator != BinaryOperator.SHIFT_LEFT && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
       /* For SHIFT-operations we do not cast the second operator.
        * We even do not need integer-promotion,
@@ -207,7 +206,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
        * or equal to the width of the promoted left operand,
        * the behavior is undefined.
        */
-      rVal = castCValue(rVal, calculationType, machineModel, logger, edge);
+      rVal = castCValue(rVal, binaryExpr.getOperand2().getExpressionType(), calculationType, machineModel, logger, edge);
     }
 
     ExplicitValueBase result;
@@ -223,7 +222,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
     case BINARY_OR:
     case BINARY_XOR: {
       result = arithmeticOperation(lVal, rVal, binaryOperator, calculationType, machineModel, logger);
-      result = castCValue(result, binaryExpr.getExpressionType(), machineModel, logger, edge);
+      result = castCValue(result, calculationType, binaryExpr.getExpressionType(), machineModel, logger, edge);
 
       break;
     }
@@ -428,17 +427,17 @@ public abstract class AbstractExplicitExpressionValueVisitor
         long lVal = lNum.getNumber().longValue();
         long rVal = rNum.getNumber().longValue();
         long result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
-        return new ExplicitNumericValue(type, result);
+        return new ExplicitNumericValue(result);
       } else if(type.getType() == CBasicType.DOUBLE) {
         double lVal = lNum.doubleValue();
         double rVal = rNum.doubleValue();
         double result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
-        return new ExplicitNumericValue(type, result);
+        return new ExplicitNumericValue(result);
       } else if(type.getType() == CBasicType.FLOAT) {
         float lVal = lNum.floatValue();
         float rVal = rNum.floatValue();
         float result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
-        return new ExplicitNumericValue(type, result);
+        return new ExplicitNumericValue(result);
       } else {
         logger.logf(Level.FINE, "unsupported type for result of binary operation %s", type.toString());
         return ExplicitValueBase.ExplicitUnknownValue.getInstance();
@@ -478,7 +477,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
   @Override
   public ExplicitValueBase visit(CCastExpression pE) throws UnrecognizedCCodeException {
-    return castCValue(pE.getOperand().accept(this), pE.getExpressionType(), machineModel, logger, edge);
+    return castCValue(pE.getOperand().accept(this), pE.getOperand().getExpressionType(), pE.getExpressionType(), machineModel, logger, edge);
   }
 
   @Override
@@ -494,12 +493,12 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
   @Override
   public ExplicitValueBase visit(CCharLiteralExpression pE) throws UnrecognizedCCodeException {
-    return new ExplicitNumericValue(CNumericTypes.CHAR, (long) pE.getCharacter());
+    return new ExplicitNumericValue((long) pE.getCharacter());
   }
 
   @Override
   public ExplicitValueBase visit(CFloatLiteralExpression pE) throws UnrecognizedCCodeException {
-    return new ExplicitNumericValue(CNumericTypes.DOUBLE, pE.getValue());
+    return new ExplicitNumericValue(pE.getValue());
   }
 
   @Override
@@ -538,7 +537,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
       CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
       if (enumerator.hasValue()) {
         // TODO rewrite CEnumerator to handle ExplicitValueBase and not just Long
-        return new ExplicitNumericValue(CNumericTypes.INT, enumerator.getValue());
+        return new ExplicitNumericValue(enumerator.getValue());
       } else {
         return ExplicitValueBase.ExplicitUnknownValue.getInstance();
       }
@@ -885,7 +884,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
    */
   public ExplicitValueBase evaluate(final CExpression pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
-    return castCValue(pExp.accept(this), pTargetType, machineModel, logger, edge);
+    return castCValue(pExp.accept(this), pExp.getExpressionType(), pTargetType, machineModel, logger, edge);
   }
 
   /**
@@ -899,7 +898,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
    */
   public ExplicitValueBase evaluate(final CRightHandSide pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
-    return castCValue(pExp.accept(this), pTargetType, machineModel, logger, edge);
+    return castCValue(pExp.accept(this), pExp.getExpressionType(), pTargetType, machineModel, logger, edge);
   }
 
 
@@ -917,7 +916,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
    * @param logger for logging
    * @param edge only for logging
    */
-  public static ExplicitValueBase castCValue(@Nullable final ExplicitValueBase value, final CType targetType,
+  public static ExplicitValueBase castCValue(@Nullable final ExplicitValueBase value, final CType sourceType, final CType targetType,
       final MachineModel machineModel, final LogManager logger, @Nullable final CFAEdge edge) {
     if (value.isUnknown()) { return ExplicitValueBase.ExplicitUnknownValue.getInstance(); }
 
@@ -930,7 +929,6 @@ public abstract class AbstractExplicitExpressionValueVisitor
     final CType type = targetType.getCanonicalType();
     if (type instanceof CSimpleType) {
       final CSimpleType st = (CSimpleType) type;
-      final CSimpleType simpleTargetType = (CSimpleType) targetType;
 
       switch (st.getType()) {
 
@@ -979,7 +977,7 @@ public abstract class AbstractExplicitExpressionValueVisitor
                 logger.logf(Level.INFO,
                     "overflow in line %d: target-type is '%s', value %d is changed to %d.",
                     edge == null ? null : edge.getLineNumber(),
-                    targetType, value.asLong(), result);
+                    targetType, value.asLong(sourceType), result);
               }
 
             } else {
@@ -989,12 +987,12 @@ public abstract class AbstractExplicitExpressionValueVisitor
                 logger.logf(Level.INFO,
                     "overflow in line %d: value %s of c-type '%s' may be too big for java-type 'long'.",
                     edge == null ? null : edge.getLineNumber(),
-                    value.asLong(), targetType);
+                    value.asLong(sourceType), targetType);
               }
             }
           }
 
-          return new ExplicitNumericValue(simpleTargetType, result);
+          return new ExplicitNumericValue(result);
 
         } else {
           // java-type "long" is too small for big types like UNSIGNED_LONGLONG,
@@ -1024,10 +1022,10 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
         if(size == 32) {
           // 32 bit means Java float
-          result = new ExplicitNumericValue(simpleTargetType, floatValue);
+          result = new ExplicitNumericValue(floatValue);
         } else if(size == 64) {
           // 64 bit means Java double
-          result = new ExplicitNumericValue(simpleTargetType, floatValue);
+          result = new ExplicitNumericValue(floatValue);
         } else {
           throw new AssertionError("Trying to cast to unsupported floating point type: "+st);
         }
@@ -1047,10 +1045,10 @@ public abstract class AbstractExplicitExpressionValueVisitor
 
         if(size == 32) {
           // 32 bit means Java float
-          result = new ExplicitNumericValue(simpleTargetType, (float) doubleValue);
+          result = new ExplicitNumericValue((float) doubleValue);
         } else if(size == 64) {
           // 64 bit means Java double
-          result = new ExplicitNumericValue(simpleTargetType, doubleValue);
+          result = new ExplicitNumericValue(doubleValue);
         } else {
           throw new AssertionError("Trying to cast to unsupported floating point type: "+st);
         }

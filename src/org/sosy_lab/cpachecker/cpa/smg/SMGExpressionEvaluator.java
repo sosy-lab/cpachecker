@@ -268,7 +268,7 @@ public class SMGExpressionEvaluator {
     if (value == null) {
       return SMGUnknownValue.getInstance();
     } else {
-      return SMGKnownExpValue.valueOf(value.asLong());
+      return SMGKnownExpValue.valueOf(value.asLong(rValue.getExpressionType()));
     }
   }
 

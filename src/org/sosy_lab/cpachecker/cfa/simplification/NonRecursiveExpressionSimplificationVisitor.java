@@ -128,7 +128,7 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
     }
 
     long result = ExplicitExpressionValueVisitor.calculateBinaryOperation(
-        new ExplicitNumericValue(v1), new ExplicitNumericValue(v2), expr, machineModel, logger, null).asLong();
+        new ExplicitNumericValue(v1), new ExplicitNumericValue(v2), expr, machineModel, logger, null).asLong(expr.getExpressionType());
 
     return new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(result));
@@ -143,7 +143,7 @@ public class NonRecursiveExpressionSimplificationVisitor extends DefaultCExpress
     }
 
     final long castedValue = ExplicitExpressionValueVisitor.castCValue(
-        new ExplicitNumericValue(v), expr.getExpressionType(), machineModel, logger, null).asLong();
+        new ExplicitNumericValue(v), expr.getOperand().getExpressionType(), expr.getExpressionType(), machineModel, logger, null).asLong(expr.getExpressionType());
 
     return new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(castedValue));

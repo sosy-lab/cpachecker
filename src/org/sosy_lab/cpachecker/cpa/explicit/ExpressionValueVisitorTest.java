@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -306,6 +307,7 @@ public class ExpressionValueVisitorTest {
     // System.out.println(String.format("(%s) %d == %d == %d", outType, in, expectedOut, value));
 
     // TODO explicitfloat: add floats to the test
-    Assert.assertTrue(expectedOut == value.asLong());
+    // We know it's of type int since we manually created a CIntegerLiteralExpression
+    Assert.assertTrue(expectedOut == value.asLong(CNumericTypes.INT));
   }
 }

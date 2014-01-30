@@ -36,6 +36,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -362,7 +363,8 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
       throw new InvalidQueryException("The Query \"" + pProperty
           + "\" is invalid. Could not split the property string correctly.");
     } else {
-      Long value = this.constantsMap.get(MemoryLocation.valueOf(parts[0])).asLong();
+      // The following is a hack
+      Long value = this.constantsMap.get(MemoryLocation.valueOf(parts[0])).asLong(CNumericTypes.INT);
 
       if (value == null) {
         return false;
@@ -442,7 +444,8 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     for (Map.Entry<MemoryLocation, ExplicitValueBase> entry : constantsMap.entrySet()) {
       RationalFormula var = nfmgr.makeVariable(entry.getKey().getAsSimpleString());
       // TODO explicitfloat: handle the case that it's not a long
-      RationalFormula val = nfmgr.makeNumber(entry.getValue().asLong());
+      // The following is a hack
+      RationalFormula val = nfmgr.makeNumber(entry.getValue().asLong(CNumericTypes.INT));
       formula = bfmgr.and(formula, nfmgr.equal(var, val));
     }
 
