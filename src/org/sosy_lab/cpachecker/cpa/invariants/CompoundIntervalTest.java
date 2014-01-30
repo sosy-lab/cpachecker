@@ -100,9 +100,8 @@ public class CompoundIntervalTest {
     CompoundInterval negOneOrZeroOrTenToInf = CompoundInterval.of(SimpleInterval.of(BigInteger.valueOf(-1), BigInteger.ZERO)).unionWith(CompoundInterval.singleton(10).extendToPositiveInfinity());
     assertEquals(negOneOrZeroOrTenToInf, zeroOrTenToInf.unionWith(negOne));
 
-    CompoundInterval one = CompoundInterval.singleton(1);
-    assertEquals(CompoundInterval.of(SimpleInterval.of(BigInteger.valueOf(-1), BigInteger.valueOf(1))), negOne.unionWith(one).unionWith(zero));
-    assertEquals(1, negOne.unionWith(one).unionWith(zero).getIntervals().size());
+    assertEquals(CompoundInterval.of(SimpleInterval.of(BigInteger.valueOf(-1), BigInteger.valueOf(1))), negOne.unionWith(CompoundInterval.one()).unionWith(zero));
+    assertEquals(1, negOne.unionWith(CompoundInterval.one()).unionWith(zero).getIntervals().size());
   }
 
   @Test
@@ -156,8 +155,7 @@ public class CompoundIntervalTest {
 
   @Test
   public void testNegate() {
-    CompoundInterval one = CompoundInterval.singleton(1);
-    assertEquals(CompoundInterval.singleton(-1), one.negate());
+    assertEquals(CompoundInterval.singleton(-1), CompoundInterval.one().negate());
     CompoundInterval twoToFour = CompoundInterval.of(SimpleInterval.of(BigInteger.valueOf(2), BigInteger.valueOf(4)));
     CompoundInterval negTwoToNegOne = CompoundInterval.of(SimpleInterval.of(BigInteger.valueOf(-2), BigInteger.valueOf(-1)));
     CompoundInterval negFourToNegTwo = CompoundInterval.of(SimpleInterval.of(BigInteger.valueOf(-4), BigInteger.valueOf(-2)));
@@ -169,22 +167,21 @@ public class CompoundIntervalTest {
   public void testIsSingleton() {
     CompoundInterval negOne = CompoundInterval.singleton(-1);
     CompoundInterval zero = CompoundInterval.singleton(0);
-    CompoundInterval one = CompoundInterval.singleton(1);
     CompoundInterval ten = CompoundInterval.singleton(10);
     assertTrue(negOne.isSingleton());
     assertTrue(zero.isSingleton());
-    assertTrue(one.isSingleton());
+    assertTrue(CompoundInterval.one().isSingleton());
     assertTrue(ten.isSingleton());
-    assertFalse(CompoundInterval.span(one, ten).isSingleton());
+    assertFalse(CompoundInterval.span(CompoundInterval.one(), ten).isSingleton());
     assertFalse(zero.unionWith(ten).isSingleton());
-    assertFalse(negOne.unionWith(CompoundInterval.span(one, ten)).isSingleton());
+    assertFalse(negOne.unionWith(CompoundInterval.span(CompoundInterval.one(), ten)).isSingleton());
   }
 
   @Test
   public void containsTest() {
     assertTrue(CompoundInterval.singleton(-1).contains(-1));
     assertTrue(CompoundInterval.singleton(0).contains(0));
-    assertTrue(CompoundInterval.singleton(1).contains(1));
+    assertTrue(CompoundInterval.one().contains(1));
     assertTrue(CompoundInterval.singleton(-1).contains(CompoundInterval.singleton(-1)));
     assertTrue(CompoundInterval.singleton(0).contains(CompoundInterval.singleton(0)));
     assertTrue(CompoundInterval.singleton(1).contains(CompoundInterval.singleton(1)));
@@ -240,6 +237,22 @@ public class CompoundIntervalTest {
     assertEquals(zeroToOne, CompoundInterval.top().binaryAnd(one));
     assertEquals(zeroToOne, one.binaryAnd(CompoundInterval.top()));
     CompoundInterval.top().binaryAnd(CompoundInterval.singleton(8));
+  }
+
+  @Test
+  public void testAbsolute() {
+    assertFalse(CompoundInterval.top().absolute().containsNegative());
+    assertEquals(CompoundInterval.one(), CompoundInterval.one().negate().absolute());
+    CompoundInterval twoToFour = CompoundInterval.of(SimpleInterval.of(BigInteger.valueOf(2), BigInteger.valueOf(4)));
+    CompoundInterval negTwoToNegOne = CompoundInterval.of(SimpleInterval.of(BigInteger.valueOf(-2), BigInteger.valueOf(-1)));
+    CompoundInterval negFourToNegTwo = CompoundInterval.of(SimpleInterval.of(BigInteger.valueOf(-4), BigInteger.valueOf(-2)));
+    CompoundInterval oneToTwo = CompoundInterval.of(SimpleInterval.of(BigInteger.ONE, BigInteger.valueOf(2)));
+    assertFalse(twoToFour.absolute().containsNegative());
+    assertFalse(negFourToNegTwo.absolute().containsNegative());
+    assertFalse(negFourToNegTwo.negate().absolute().containsNegative());
+    assertFalse(oneToTwo.absolute().containsNegative());
+    assertFalse(oneToTwo.negate().absolute().containsNegative());
+    assertFalse(negTwoToNegOne.unionWith(twoToFour).negate().absolute().containsNegative());
   }
 
 }

@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.util.Expression.Location;
@@ -104,8 +105,9 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
                                          final String function,
                                          final SSAMapBuilder ssa,
                                          final Constraints constraints,
+                                         final @Nullable ErrorConditions errorConditions,
                                          final PointerTargetSetBuilder pts) {
-    super(cToFormulaConverter, cfaEdge, function, ssa, constraints, pts);
+    super(cToFormulaConverter, cfaEdge, function, ssa, constraints, errorConditions, pts);
 
     this.statementDelegate = new StatementToFormulaVisitor(delegate);
     this.lvalueVisitor = lvalueVisitor;
@@ -203,6 +205,7 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
                           edge,
                           ssa,
                           constraints,
+                          errorConditions,
                           pts);
     }
   }
@@ -242,6 +245,7 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
                           edge,
                           ssa,
                           constraints,
+                          errorConditions,
                           pts);
     }
   }
@@ -456,6 +460,7 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
                           edge,
                           ssa,
                           constraints,
+                          errorConditions,
                           pts);
 
     addEssentialFields(lhsUsedFields, pts);
@@ -847,6 +852,7 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
                                  edge,
                                  ssa,
                                  constraints,
+                                 errorConditions,
                                  pts);
     } else {
       final String newBase = conv.makeAllocVariableName(functionName,
@@ -861,6 +867,9 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
       address = conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID, pts);
     }
 
+    if (errorConditions != null) {
+      constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(address), address));
+    }
     return address;
   }
 
@@ -868,10 +877,22 @@ public class StatementToFormulaWithUFVisitor extends ExpressionToFormulaWithUFVi
    * Handle calls to free()
    */
   private Value handleMemoryFree(final CFunctionCallExpression e,
-      final List<CExpression> parameters) throws UnrecognizedCCodeException {
+                                 final List<CExpression> parameters) throws UnrecognizedCCodeException {
     if (parameters.size() != 1) {
       throw new UnrecognizedCCodeException(
           String.format("free() called with %d parameters", parameters.size()), edge, e);
+    }
+
+    if (errorConditions != null) {
+      final Formula operand = asValueFormula(parameters.get(0).accept(this),
+                                                 PointerTargetSet.simplifyType(parameters.get(0).getExpressionType()));
+      BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
+
+      for (String base : pts.getAllBases()) {
+        Formula baseF = conv.makeConstant(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID, pts);
+        validFree = conv.bfmgr.or(validFree, conv.fmgr.makeEqual(operand, baseF));
+      }
+      errorConditions.addInvalidFreeCondition(conv.bfmgr.not(validFree));
     }
 
     return Value.nondetValue(); // free does not return anything, so nondet is ok

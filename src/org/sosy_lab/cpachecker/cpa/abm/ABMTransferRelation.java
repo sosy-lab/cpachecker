@@ -43,11 +43,11 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -321,7 +322,7 @@ public class ABMTransferRelation implements TransferRelation {
   private int depth = 0;
 
   private final LogManager logger;
-  private final CPAAlgorithm algorithm;
+  private final CPAAlgorithmFactory algorithmFactory;
   private final TransferRelation wrappedTransfer;
   private final ReachedSetFactory reachedSetFactory;
   private final Reducer wrappedReducer;
@@ -357,7 +358,7 @@ public class ABMTransferRelation implements TransferRelation {
       ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
-    algorithm = new CPAAlgorithm(abmCpa, logger, pConfig, pShutdownNotifier);
+    algorithmFactory = new CPAAlgorithmFactory(abmCpa, logger, pConfig, pShutdownNotifier);
     reachedSetFactory = pReachedSetFactory;
     wrappedTransfer = abmCpa.getWrappedCpa().getTransferRelation();
     wrappedReducer = abmCpa.getReducer();
@@ -536,6 +537,8 @@ public class ABMTransferRelation implements TransferRelation {
         abstractStateToReachedSet.put(initialState, reached);
       }
 
+      // CPAAlgorithm is not re-entrant due to statistics
+      CPAAlgorithm algorithm = algorithmFactory.newInstance();
       algorithm.run(reached);
 
       // if the element is an error element

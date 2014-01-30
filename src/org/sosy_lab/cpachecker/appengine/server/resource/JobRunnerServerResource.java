@@ -34,8 +34,10 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
 import org.restlet.data.Form;
+import org.restlet.engine.header.Header;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
+import org.restlet.util.Series;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,6 +48,7 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.FileLogFormatter;
+import org.sosy_lab.cpachecker.appengine.common.JobMappingThreadFactory;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
@@ -60,7 +63,6 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
-import com.google.appengine.api.ThreadManager;
 import com.google.apphosting.api.ApiProxy;
 import com.google.common.base.Charsets;
 import com.google.common.io.FileWriteMode;
@@ -86,19 +88,20 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
 
   @Override
   public void runJob(Representation entity) throws Exception {
-    Threads.setThreadFactory(ThreadManager.currentRequestThreadFactory());
     Form requestValues = new Form(entity);
     job = JobDAO.load(requestValues.getFirstValue("jobKey"));
 
-    /*
-     * Only process 'new' jobs. There seems to be a bug in the task queue that
-     * sometimes runs a task twice though it should only be run once.
-     */
-    if (job.getStatus() != Status.PENDING) { return; }
+    JobMappingThreadFactory.registerJobWithThread(job, Thread.currentThread());
+    Threads.setThreadFactory(new JobMappingThreadFactory());
 
-    Paths.setFactory(new GAEPathFactory(job));
+    Paths.setFactory(new GAEPathFactory(JobMappingThreadFactory.getMap()));
     errorPath = Paths.get(ERROR_FILE_NAME);
 
+    @SuppressWarnings("unchecked")
+    Series<Header> headers = (Series<Header>) getRequestAttributes().get("org.restlet.http.headers");
+    int retries = Integer.valueOf(headers.getFirstValue("X-AppEngine-TaskRetryCount"));
+    job.setStatistic(null); // clear any stats so if this is a retry it have get proper stats
+    job.setRetries(retries);
     job.setRequestID((String) ApiProxy.getCurrentEnvironment().getAttributes().get("com.google.appengine.runtime.request_log_id"));
     job.setExecutionDate(new Date());
     job.setStatus(Status.RUNNING);
@@ -199,13 +202,13 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
 
       // do not overwrite any previous status
       if (job.getStatus() != Status.ERROR && job.getStatus() != Status.TIMEOUT) {
+        dumpStatistics();
+        dumpLog();
+
         setResult();
         job.setTerminationDate(new Date());
         job.setStatus(Status.DONE);
         JobDAO.save(job);
-
-        dumpStatistics();
-        dumpLog();
       }
     }
   }
@@ -309,7 +312,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
   private void dumpStatistics() throws IOException {
     if (statsDumped) { return; }
 
-    if (config.getProperty("statistics.export").equals("false") || result == null) { return; }
+    if (config == null || config.getProperty("statistics.export").equals("false") || result == null) { return; }
 
     Path statisticsDumpFile = Paths.get(config.getProperty("statistics.file"));
     try (OutputStream out = statisticsDumpFile.asByteSink().openBufferedStream()) {
@@ -346,15 +349,16 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     Builder configurationBuilder = Configuration.builder();
     configurationBuilder.setOptions(DefaultOptions.getDefaultOptions());
 
-    if (job.getSpecification() != null) {
-      configurationBuilder.setOption("specification", "WEB-INF/specifications/" + job.getSpecification());
-    }
     if (job.getConfiguration() != null) {
       configurationBuilder.loadFromFile(Paths.get("WEB-INF", "configurations", job.getConfiguration()));
     }
     configurationBuilder
         .loadFromFile(Paths.get("WEB-INF", "default-options.properties"))
+        .setOption("analysis.programNames", job.getSourceFileName())
         .setOptions(job.getOptions());
+    if (job.getSpecification() != null) {
+      configurationBuilder.setOption("specification", "WEB-INF/specifications/" + job.getSpecification());
+    }
     Configuration configuration = configurationBuilder.build();
 
     FileTypeConverter fileTypeConverter = new FileTypeConverter(configuration);

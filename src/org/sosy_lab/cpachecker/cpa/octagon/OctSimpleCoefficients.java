@@ -277,7 +277,17 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public IOctCoefficients greaterEq(IOctCoefficients oct) {
+  public OctSimpleCoefficients not() {
+    Preconditions.checkArgument(hasOnlyConstantValue());
+    if (coefficients[size].equals(BigInteger.ZERO)) {
+      return new OctSimpleCoefficients(size, 1);
+    } else {
+      return new OctSimpleCoefficients(size);
+    }
+  }
+
+  @Override
+  public OctSimpleCoefficients greaterEq(IOctCoefficients oct) {
     Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
     if (hasOnlyConstantValue() && oct.hasOnlyConstantValue()) {
       if (oct instanceof OctSimpleCoefficients) {
@@ -294,7 +304,7 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public IOctCoefficients greater(IOctCoefficients oct) {
+  public OctSimpleCoefficients greater(IOctCoefficients oct) {
     Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
     if (hasOnlyConstantValue() && oct.hasOnlyConstantValue()) {
       if (oct instanceof OctSimpleCoefficients) {
@@ -311,7 +321,7 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public IOctCoefficients smallerEq(IOctCoefficients oct) {
+  public OctSimpleCoefficients smallerEq(IOctCoefficients oct) {
     Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
     if (hasOnlyConstantValue() && oct.hasOnlyConstantValue()) {
       if (oct instanceof OctSimpleCoefficients) {
@@ -328,7 +338,7 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public IOctCoefficients smaller(IOctCoefficients oct) {
+  public OctSimpleCoefficients smaller(IOctCoefficients oct) {
     Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
     if (hasOnlyConstantValue() && oct.hasOnlyConstantValue()) {
       if (oct instanceof OctSimpleCoefficients) {
@@ -345,7 +355,7 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public IOctCoefficients eq(IOctCoefficients oct) {
+  public OctSimpleCoefficients eq(IOctCoefficients oct) {
     Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
     if (oct instanceof OctSimpleCoefficients) {
       OctSimpleCoefficients tmp = (OctSimpleCoefficients) oct;
@@ -369,7 +379,7 @@ public class OctSimpleCoefficients extends AOctCoefficients {
   }
 
   @Override
-  public IOctCoefficients ineq(IOctCoefficients oct) {
+  public OctSimpleCoefficients ineq(IOctCoefficients oct) {
     Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
     if (hasOnlyConstantValue() && oct.hasOnlyConstantValue()) {
       if (oct instanceof OctSimpleCoefficients) {
@@ -384,6 +394,44 @@ public class OctSimpleCoefficients extends AOctCoefficients {
         }
         return new OctSimpleCoefficients(size, val);
       }
+    }
+    return null;
+  }
+
+  public IOctCoefficients greaterPart(IOctCoefficients oct) {
+    Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
+    if (!(hasOnlyConstantValue() && oct.hasOnlyConstantValue())) {
+      return null;
+    }
+
+    OctSimpleCoefficients test = greater(oct);
+    if (test != null && test.getConstantValue().equals(BigInteger.ONE)) {
+      return this;
+    }
+
+    if (oct instanceof OctIntervalCoefficients) {
+      // TODO
+    }
+    return null;
+  }
+
+  public IOctCoefficients smallerPart(IOctCoefficients oct) {
+    Preconditions.checkArgument(oct.size() == size, "Different size of coefficients.");
+    if (!(hasOnlyConstantValue() && oct.hasOnlyConstantValue())) {
+      return null;
+    }
+
+    OctSimpleCoefficients test = smaller(oct);
+    if (test != null && test.getConstantValue().equals(BigInteger.ONE)) {
+      return this;
+    }
+    test = greaterEq(oct);
+    if (test != null && test.getConstantValue().equals(BigInteger.ONE)) {
+      return null;
+    }
+
+     if (oct instanceof OctIntervalCoefficients) {
+      // TODO
     }
     return null;
   }

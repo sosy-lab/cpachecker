@@ -84,7 +84,14 @@
 
     <resultfiles> can be used to specify a file-name pattern matching all the result
     files created by the tool that should be transported back after executing the run
-    from the worker to the user's machine.
+    from the worker to the user's machine. Paths must be specified relative to
+    the longest common parent of the scripts directory and the specified files.
+    For example,
+    /home/user/workspace/CPAchecker/scripts and
+    /home/user/files/test.c
+    has /home/user/ as the common path. So, a file produced in
+    /home/user/workspace/CPAchecker/output/foo.bar can be referenced with
+    workspace/CPAchecker/output/foo.bar
   -->
 
   <!-- Example: -->

@@ -91,8 +91,12 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path inputFile = null;
 
-  @Option(description="signal the analysis to break in case of reached error state")
-  private boolean breakOnTargetState = true;
+  @Option(description="signal the analysis to break in case the given number of error state is reached ")
+  private int breakOnTargetState = 1;
+
+  @Option(description="the maximum number of iterations performed after the initial error is found, despite the limit"
+      + "given as cpa.automaton.breakOnTargetState is not yet reached")
+  private int extraIterationsLimit = -1;
 
   private final Automaton automaton;
   private final AutomatonState topState = new AutomatonState.TOP(this);
@@ -110,7 +114,14 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     config.inject(this, ControlAutomatonCPA.class);
 
     transferRelation = new AutomatonTransferRelation(this, logger);
-    precisionAdjustment = breakOnTargetState ? BreakOnTargetsPrecisionAdjustment.getInstance() : StaticPrecisionAdjustment.getInstance();
+
+    if (breakOnTargetState > 0) {
+      precisionAdjustment = BreakOnTargetsPrecisionAdjustment.getInstance(breakOnTargetState, extraIterationsLimit);
+    }
+
+    else {
+      precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    }
 
     if (pAutomaton != null) {
       this.automaton = pAutomaton;

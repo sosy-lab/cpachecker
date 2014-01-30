@@ -622,18 +622,21 @@ def _hasSwap():
     return True
 
 def _findCgroupMount(subsystem=None):
-    with open('/proc/mounts', 'rt') as mounts:
-        for mount in mounts:
-            mount = mount.split(' ')
-            if mount[2] == 'cgroup':
-                mountpoint = mount[1]
-                options = mount[3]
-                logging.debug('Found cgroup mount at {0} with options {1}'.format(mountpoint, options))
-                if subsystem:
-                    if subsystem in options.split(','):
+    try:
+        with open('/proc/mounts', 'rt') as mounts:
+            for mount in mounts:
+                mount = mount.split(' ')
+                if mount[2] == 'cgroup':
+                    mountpoint = mount[1]
+                    options = mount[3]
+                    logging.debug('Found cgroup mount at {0} with options {1}'.format(mountpoint, options))
+                    if subsystem:
+                        if subsystem in options.split(','):
+                            return mountpoint
+                    else:
                         return mountpoint
-                else:
-                    return mountpoint
+    except:
+        pass # /proc/mounts cannot be read
     return None
 
 

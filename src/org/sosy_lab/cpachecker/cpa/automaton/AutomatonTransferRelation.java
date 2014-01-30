@@ -41,8 +41,11 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -50,6 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.TokenCollector;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -58,7 +62,11 @@ import com.google.common.collect.Iterables;
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
  */
+@Options(prefix = "cpa.automaton")
 class AutomatonTransferRelation implements TransferRelation {
+
+  @Option(description = "Collect information about matched (and traversed) tokens.")
+  private boolean collectTokenInformation = false;
 
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
@@ -181,13 +189,17 @@ class AutomatonTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
 
+    if (collectTokenInformation) {
+      TokenCollector.getKnownToEdge(edge);
+    }
+
     if (state.getInternalState().getTransitions().isEmpty()) {
       // shortcut
       return Collections.singleton(state);
     }
 
     Collection<AutomatonState> lSuccessors = new HashSet<>(2);
-    AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state.getVars(), otherElements, edge, logger);
+    AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state, state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
     int failedMatches = 0;
     boolean nonDetState = state.getInternalState().isNonDetState();
@@ -203,6 +215,15 @@ class AutomatonTransferRelation implements TransferRelation {
       matchTime.start();
       ResultValue<Boolean> match = t.match(exprArgs);
       matchTime.stop();
+
+//      System.out.println("----------------------");
+//      System.out.println(t.getTrigger());
+//      System.out.println(t.getFollowState().getName());
+//      System.out.println(edge.getPredecessor().getNodeNumber());
+//      System.out.println(edge.getCode());
+//      System.out.println(match.getValue());
+
+
       if (match.canNotEvaluate()) {
         if (failOnUnknownMatch) {
           throw new CPATransferException("Automaton transition condition could not be evaluated: " + match.getFailureMessage());
@@ -266,7 +287,7 @@ class AutomatonTransferRelation implements TransferRelation {
         exprArgs.putTransitionVariables(transitionVariables);
         t.executeActions(exprArgs);
         actionTime.stop();
-        AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), cpa, state.getMatches() + 1, state.getFailedMatches());
+        AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), cpa, t.getAssumptions(), state.getMatches() + 1, state.getFailedMatches());
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {
           lSuccessors.add(lSuccessor);
         } else {
@@ -277,6 +298,12 @@ class AutomatonTransferRelation implements TransferRelation {
     } else {
       // stay in same state, no transitions to be executed here (no transition matched)
       AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(state.getVars(), state.getInternalState(), cpa, state.getMatches(), state.getFailedMatches() + failedMatches);
+      if (collectTokenInformation) {
+        stateNewCounters.addNoMatchTokens(state.getTokensSinceLastMatch());
+        if (edge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
+          stateNewCounters.addNoMatchTokens(TokenCollector.getTokensFromCFAEdge(edge, true));
+        }
+      }
       return Collections.singleton(stateNewCounters);
     }
   }

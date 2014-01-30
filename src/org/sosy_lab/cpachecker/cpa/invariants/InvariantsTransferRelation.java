@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -42,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -64,6 +65,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor.VariableNameExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -296,7 +298,33 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
         return handleAssignment(pElement, pFunctionReturnEdge.getSuccessor().getFunctionName(), pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pPrecision);
       }
-      return pElement;
+
+      Iterator<CExpression> actualParamIterator = summaryEdge.getExpression().getFunctionCallExpression().getParameterExpressions().iterator();
+      InvariantsState result = pElement;
+      for (String formalParamName : pFunctionReturnEdge.getPredecessor().getEntryNode().getFunctionParameterNames()) {
+        if (!actualParamIterator.hasNext()) {
+          break;
+        }
+        CExpression actualParam = actualParamIterator.next();
+        InvariantsFormula<CompoundInterval> actualParamFormula = actualParam.accept(getExpressionToFormulaVisitor(summaryEdge));
+        if (actualParamFormula instanceof Variable) {
+          String actualParamName = ((Variable<?>) actualParamFormula).getName();
+          String formalParamPrefixDeref = calledFunctionName + "::" + formalParamName + "->";
+          String formalParamPrefixAccess = calledFunctionName + "::" + formalParamName + ".";
+          for (Entry<? extends String, ? extends InvariantsFormula<CompoundInterval>> entry : pElement.getEnvironment().entrySet()) {
+            String varName = entry.getKey();
+            if (varName.startsWith(formalParamPrefixDeref)) {
+              String formalParamSuffix = varName.substring(formalParamPrefixDeref.length());
+              result = result.assign(false, actualParamName + "->" + formalParamSuffix, entry.getValue(), summaryEdge);
+            } else if (varName.startsWith(formalParamPrefixAccess)) {
+              String formalParamSuffix = varName.substring(formalParamPrefixAccess.length());
+              result = result.assign(false, actualParamName + "." + formalParamSuffix, entry.getValue(), summaryEdge);
+            }
+          }
+        }
+      }
+
+      return result;
   }
 
   public static String getVarName(CExpression pLhs, CFAEdge pEdge) throws UnrecognizedCCodeException {
@@ -313,12 +341,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
       if (var.getDeclaration() != null) {
         CSimpleDeclaration decl = var.getDeclaration();
 
-        if (!(decl instanceof CDeclaration || decl instanceof CParameterDeclaration)) {
-          throw new UnrecognizedCCodeException("unknown variable declaration", pEdge, var);
-        }
-
-        if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal()) {
-
+        if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal() || decl instanceof CEnumerator) {
         } else {
           varName = scope(varName, pFunctionName);
         }

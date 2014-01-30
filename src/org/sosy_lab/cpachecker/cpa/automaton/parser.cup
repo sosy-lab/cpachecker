@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -42,7 +43,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
+
 
 import com.google.common.base.Throwables;
 
@@ -58,6 +62,10 @@ parser code {:
       this.logger = pLogger;
       this.cparser = pCparser;
   }
+  
+  public List<CStatement> generateSourceASTOfBlock(String code) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+    return AutomatonASTComparator.generateSourceASTOfBlock(code, cparser);
+  }
 
   @Override
   public void report_error(String message, Object info) {
@@ -72,6 +80,7 @@ parser code {:
     AutomatonTransition trans = new AutomatonTransition(
         AutomatonBoolExpr.TRUE, 
         Collections.singletonList(pA),
+        new ArrayList<CStatement>(),
         Collections.<AutomatonAction>emptyList(),
         "OK");
     AutomatonInternalState okState = new AutomatonInternalState("OK", 
@@ -122,7 +131,7 @@ non terminal Map<String, AutomatonVariable> LocalDefs ;
 non terminal List<AutomatonInternalState> StateDefs ;
 non terminal List<AutomatonTransition> Transitions ;
 non terminal List<AutomatonBoolExpr> Assertions ;
-non terminal String Assume ;
+non terminal List<CStatement> Assume ;
 non terminal List<AutomatonAction> Actions ;
 
 non terminal AutomatonVariable LocalDef ;
@@ -201,12 +210,12 @@ Transitions   ::= Transition:t Transitions:lst {: lst.add(0, t); RESULT = lst; :
             | /* empty */ {: RESULT = new LinkedList<AutomatonTransition>(); :}
             ;
 
-Transition   ::= Bool:trigger  ARROW Assertions:ass Assume Actions:acts GOTO IDENTIFIER:follow SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, acts, follow.toString()); :}
-               | Bool:trigger  ARROW Assertions:ass Assume Actions:acts ERROR SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, acts, AutomatonInternalState.ERROR); :}
-               | Bool:trigger  ARROW Assertions:ass Assume Actions:acts STOP SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, acts, AutomatonInternalState.BOTTOM); :}
+Transition   ::= Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts GOTO IDENTIFIER:follow SEMICOLON
+              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, follow.toString()); :}
+               | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts ERROR SEMICOLON
+              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.ERROR); :}
+               | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts STOP SEMICOLON
+              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.BOTTOM); :}
               ;
 
 Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
@@ -214,8 +223,8 @@ Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
              ;
 Assertion  ::= ASSERT  Bool:b   {: RESULT = b; :};
 
-Assume    ::= ASSUME STRING_LITERAL:a {: RESULT = a.toString(); :}
-             | /* empty */ {: RESULT = ""; :};
+Assume    ::= ASSUME CURLYEXPR:a {: RESULT = parser.generateSourceASTOfBlock(a.toString()); :}
+             | /* empty */ {: RESULT = new ArrayList<CStatement>(); :};
 
 Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert at the beginning of the list to preserve the order.
             | /* empty */ {: RESULT = new LinkedList<AutomatonAction>(); :}

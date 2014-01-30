@@ -1140,8 +1140,9 @@ public class CompoundInterval {
     if (isSingleton() && containsZero()) {
       return this;
     }
+    CompoundInterval result;
     if (pState.isSingleton()) {
-      CompoundInterval result = bottom();
+      result = bottom();
       for (SimpleInterval interval : this.intervals) {
         if (!interval.isSingleton()) {
           // x & 1 always yields either 0 or 1
@@ -1151,12 +1152,50 @@ public class CompoundInterval {
         }
         result = result.unionWith(SimpleInterval.singleton(interval.getLowerBound().and(pState.getValue())));
       }
-      return result;
     } else if (isSingleton()) {
       return pState.binaryAnd(this);
+    } else {
+      result = top();
     }
-    // TODO maybe a more exact implementation is possible?
-    return top();
+    if (!result.isSingleton()) {
+      CompoundInterval absThis = absolute();
+      CompoundInterval absOther = pState.absolute();
+      BigInteger smallestUpperBound = null;
+      if (absThis.hasUpperBound()) {
+        smallestUpperBound = absThis.getUpperBound();
+      }
+      if (absOther.hasUpperBound()) {
+        smallestUpperBound = smallestUpperBound == null
+            ? absOther.getUpperBound()
+            : smallestUpperBound.min(absOther.getUpperBound());
+      }
+      assert smallestUpperBound == null || smallestUpperBound.signum() >= 0;
+      CompoundInterval range;
+      if (smallestUpperBound == null) {
+        range = zero().extendToPositiveInfinity();
+      } else {
+        range = CompoundInterval.of(SimpleInterval.of(BigInteger.ZERO, smallestUpperBound));
+      }
+      if (containsNegative() && pState.containsNegative()) {
+        range = range.unionWith(range.negate());
+      }
+      result = result.intersectWith(range);
+    }
+    return result;
+  }
+
+  /**
+   * Computes the state resulting from computing the absolute values of this
+   * state.
+   *
+   * @return the state resulting from computing the absolute values of this
+   * state.
+   */
+  public CompoundInterval absolute() {
+    if (!containsNegative()) {
+      return this;
+    }
+    return intersectWith(one().negate().extendToNegativeInfinity()).negate().unionWith(intersectWith(zero().extendToPositiveInfinity()));
   }
 
   /**

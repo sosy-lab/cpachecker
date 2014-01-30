@@ -17,6 +17,7 @@
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_1_true-unreach-label.cil.c</exclude>
+      <exclude>../programs/benchmarks/eca/Problem04_60_false-unreach-label.c</exclude>
       <exclude>../programs/benchmarks/eca/Problem06_60_false-unreach-label.c</exclude>
     </sourcefiles>
     <sourcefiles>

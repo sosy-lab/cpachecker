@@ -38,10 +38,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision.RefinablePrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -57,7 +57,7 @@ public class ExplicitCPAStatistics implements Statistics {
 
   private final ExplicitCPA cpa;
 
-  private AbstractARGBasedRefiner refiner = null;
+  private Refiner refiner = null;
 
   public ExplicitCPAStatistics(ExplicitCPA cpa) throws InvalidConfigurationException {
     this.cpa = cpa;
@@ -70,7 +70,7 @@ public class ExplicitCPAStatistics implements Statistics {
     return "ExplicitCPA";
   }
 
-  public void addRefiner(AbstractARGBasedRefiner refiner) {
+  public void addRefiner(Refiner refiner) {
     this.refiner = refiner;
   }
 

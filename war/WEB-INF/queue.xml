@@ -2,9 +2,16 @@
 	<queue>
 		<name>cpachecker</name>
 		<mode>push</mode>
-		<rate>5/s</rate>
+		<rate>2/m</rate>
+    	<bucket-size>1</bucket-size>
+    	<max-concurrent-requests>1</max-concurrent-requests>
 		<retry-parameters>
-      		<task-retry-limit>0</task-retry-limit>
+			<!--
+				NOTE:
+				When changing this value also update it in
+				org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource
+			-->
+      		<task-retry-limit>2</task-retry-limit>
     	</retry-parameters>
 	</queue>
 </queue-entries>

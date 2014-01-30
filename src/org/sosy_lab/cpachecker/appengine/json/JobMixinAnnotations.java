@@ -94,6 +94,9 @@ public abstract class JobMixinAnnotations {
     String sourceFileName;
 
     @JsonProperty
+    int retries;
+
+    @JsonProperty
     @JsonInclude(Include.ALWAYS)
     Result resultMessage;
 

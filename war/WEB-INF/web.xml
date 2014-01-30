@@ -58,10 +58,6 @@
 	<filter>
   		<filter-name>appstats</filter-name>
    		<filter-class>com.google.appengine.tools.appstats.AppstatsFilter</filter-class>
-   		<init-param>
-    		<param-name>logMessage</param-name>
-    		<param-value>Appstats available: /appstats/details?time={ID}</param-value>
-  		</init-param>
   		<init-param>
     		<param-name>calculateRpcCosts</param-name>
     		<param-value>true</param-value>

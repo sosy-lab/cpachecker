@@ -92,6 +92,25 @@ public interface CParser extends Parser {
   CAstNode parseSingleStatement(String code) throws CParserException, InvalidConfigurationException;
 
   /**
+   * Method for parsing a block of statements that contains exactly one function with exactly
+   * one block of statements. Only the List of ASTs for the block of statement is returned, the function
+   * declaration is stripped.
+   *
+   * Example input:
+   * void foo() { bar();a = 2; }
+   * Example output:
+   * AST for "<bar();, a = 2;>"
+   *
+   * This method guarantees that the AST does not contain CProblem nodes.
+   *
+   * @param code The code snippet as described above.
+   * @param dialect The parser dialect to use.
+   * @return The list of ASTs for the statement.
+   * @throws ParserException If parsing fails.
+   */
+  List<CAstNode> parseStatements(String code) throws CParserException, InvalidConfigurationException;
+
+  /**
    * Enum for clients of this class to choose the C dialect the parser uses.
    */
   public static enum Dialect {

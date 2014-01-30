@@ -31,31 +31,36 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Lists;
 
 public class ExplictFeasibilityChecker {
 
   private final CFA cfa;
   private final LogManager logger;
+  private final ExplicitTransferRelation transfer;
+  private final Configuration config;
 
   /**
    * This method acts as the constructor of the class.
+   * @throws CounterexampleAnalysisFailed
    */
-  public ExplictFeasibilityChecker(LogManager pLogger, CFA pCfa) {
+  public ExplictFeasibilityChecker(LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
     this.cfa    = pCfa;
     this.logger = pLogger;
+
+    config    = Configuration.builder().build();
+    transfer  = new ExplicitTransferRelation(config, logger, cfa);
   }
 
   /**
@@ -66,48 +71,48 @@ public class ExplictFeasibilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean isFeasible(final ARGPath path)
-      throws CPAException, InterruptedException {
+  public boolean isFeasible(final ARGPath path) throws CPAException, InterruptedException {
     try {
-      Configuration config = Configuration.builder().build();
-
-      TransferRelation transfer   = new ExplicitTransferRelation(config, logger, cfa);
-      AbstractState next          = new ExplicitState();
-      ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
-
-      for (Pair<ARGState, CFAEdge> pathElement : path) {
-        Collection<? extends AbstractState> successors = transfer.getAbstractSuccessors(
-            next,
-            precision,
-            pathElement.getSecond());
-
-        next = extractNextState(successors);
-
-        // path is not feasible
-        if (next == null && !pathElement.getFirst().isTarget()) {
-          return false;
-        }
-      }
-
-      // path is feasible
-      return true;
-    } catch (InvalidConfigurationException e) {
-      throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
+      return isFeasible(path, new ExplicitPrecision("", config, Optional.<VariableClassification>absent()));
+    }
+    catch (InvalidConfigurationException e) {
+      throw new CPAException("Configuring ExplictFeasibilityChecker failed: " + e.getMessage(), e);
     }
   }
 
   /**
-   * This method extracts the single successor out of the (hopefully singleton) successor collection.
+   * This method checks if the given path is feasible, when not tracking the given set of variables.
    *
-   * @param successors the collection of successors
-   * @return the successor, or null if none exists
+   * @param path the path to check
+   * @return true, if the path is feasible, else false
+   * @throws CPAException
+   * @throws InterruptedException
    */
-  private AbstractState extractNextState(Collection<? extends AbstractState> successors) {
-    if (successors.isEmpty()) {
-      return null;
-    } else {
-      assert (successors.size() == 1);
-      return Lists.newArrayList(successors).get(0);
+  public boolean isFeasible(final ARGPath path, final ExplicitPrecision pPrecision)
+      throws CPAException, InterruptedException {
+    try {
+      ExplicitState next = new ExplicitState();
+
+      for (Pair<ARGState, CFAEdge> pathElement : path) {
+        Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
+            next,
+            pPrecision,
+            pathElement.getSecond());
+
+        // no successors => path is infeasible
+        if(successors.isEmpty()) {
+          return false;
+        }
+
+        // get successor state and apply precision
+        next = pPrecision.computeAbstraction(successors.iterator().next(),
+            AbstractStates.extractLocation(pathElement.getFirst()));
+      }
+
+      // path is feasible
+      return true;
+    } catch (CPATransferException e) {
+      throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }
   }
 }

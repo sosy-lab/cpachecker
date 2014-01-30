@@ -26,25 +26,62 @@ package org.sosy_lab.cpachecker.appengine.io;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.io.AbstractPathFactory;
+import org.sosy_lab.common.io.FileSystemPath;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 
-
+/**
+ * This class is {@link AbstractPathFactory} that is specifically tailored to
+ * work on Google App Engine. The {@link Path} instances it creates depend on a
+ * {@link Job} instance.
+ */
 public class GAEPathFactory implements AbstractPathFactory {
 
   private Job job;
+  private Map<Thread, Job> threadJobMap;
 
+  /**
+   * Creates an instance that depends on the given {@link Job} when it creates
+   * {@link Path} instances.
+   *
+   * @param job The job to use when creating Path instances
+   */
   public GAEPathFactory(Job job) {
-    this.job = job;
+    this.job = checkNotNull(job);
   }
 
+  /**
+   * Creates an instance that uses the given map to retrieve a {@link Job}
+   * instance when a {@link Path} instance is created.
+   *
+   * @param map A map to retrieve the dependent Job from.
+   */
+  public GAEPathFactory(Map<Thread, Job> map) {
+    threadJobMap = checkNotNull(map);
+  }
+
+  /**
+   * Usually returns a {@link GAEPath} that depends on a {@link Job} set via one of
+   * the constructors. If no Job can be resolved a {@link FileSystemPath} instance
+   * is returned instead.
+   */
   @Override
   public Path getPath(@Nullable String path, @Nullable String... more) {
-    return new GAEPath(path, job, more);
+    Job jobForPath = job;
+    if (jobForPath == null) {
+      jobForPath = threadJobMap.get(Thread.currentThread()); //JobMappingThreadFactory.getJob(Thread.currentThread());
+    }
+
+    if (jobForPath == null) {
+      return new FileSystemPath(path, more);
+    } else {
+      return new GAEPath(path, jobForPath, more);
+    }
   }
 
   @Override

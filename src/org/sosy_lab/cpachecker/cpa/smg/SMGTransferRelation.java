@@ -100,9 +100,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitNumericValue;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitValueBase;
 import org.sosy_lab.cpachecker.cpa.explicit.SMGExplicitCommunicator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.AssumeVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.LValueAssignmentVisitor;
@@ -1612,6 +1611,8 @@ public class SMGTransferRelation implements TransferRelation {
     for (AbstractState ae : elements) {
       if(ae instanceof ExplicitState) {
         retVal = strengthen((ExplicitState) ae, (SMGState)element, cfaEdge);
+      } else if(ae instanceof AutomatonState) {
+        strengthen((AutomatonState) ae, (SMGState)element, cfaEdge);
       }
     }
 
@@ -1621,6 +1622,27 @@ public class SMGTransferRelation implements TransferRelation {
     hasChanged = false;
     oldState = null;
     return retVal;
+  }
+
+  private Collection<? extends AbstractState> strengthen(AutomatonState pAutomatonState, SMGState pElement,
+      CFAEdge pCfaEdge) throws CPATransferException {
+
+    List<CAssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(null, pCfaEdge.getPredecessor().getFunctionName());
+
+    SMGState newElement = new SMGState(pElement);
+
+    for (CAssumeEdge assume : assumptions) {
+      newElement = handleAssumption(newElement, assume.getExpression(), pCfaEdge, assume.getTruthAssumption());
+      if (newElement == null) {
+        break;
+      }
+    }
+
+    if (newElement == null) {
+      return Collections.emptyList();
+    } else {
+      return Collections.singleton(newElement);
+    }
   }
 
   private boolean hasChanged;
@@ -1795,7 +1817,7 @@ public class SMGTransferRelation implements TransferRelation {
             pMissingInformation.getMissingCExpressionInformation(),
             edge);
 
-    if (value != null && (value.equals(new ExplicitNumericValue(truthValue)))) {
+    if (value != null && value != truthValue) {
       return null;
     } else {
       hasChanged = true;
@@ -1812,7 +1834,7 @@ public class SMGTransferRelation implements TransferRelation {
         new SMGExplicitCommunicator(pExplicitState, functionName,
             pSmgState, machineModel, logger, edge);
 
-    return cc.evaluateExpression(rValue).asLong();
+    return cc.evaluateExpression(rValue);
   }
 
   @SuppressWarnings("unused")
@@ -1868,12 +1890,12 @@ public class SMGTransferRelation implements TransferRelation {
       SMGExplicitCommunicator cc = new SMGExplicitCommunicator(explicitState, functionName,
           pState, machineModel, logger, pCfaEdge);
 
-      ExplicitValueBase value = cc.evaluateExpression(pRValue);
+      Long value = cc.evaluateExpression(pRValue);
 
-      if (value == null || value.asLong() == null) {
+      if (value == null) {
         return SMGUnknownValue.getInstance();
       } else {
-        return SMGKnownExpValue.valueOf(value.asLong());
+        return SMGKnownExpValue.valueOf(value);
       }
     }
   }

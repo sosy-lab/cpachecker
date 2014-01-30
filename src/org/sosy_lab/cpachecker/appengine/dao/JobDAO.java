@@ -25,14 +25,18 @@ package org.sosy_lab.cpachecker.appengine.dao;
 
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
+import org.sosy_lab.cpachecker.appengine.entity.Job.Status;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
+import org.sosy_lab.cpachecker.appengine.server.common.JobRunnerResource;
 
+import com.google.appengine.api.log.AppLogLine;
 import com.google.appengine.api.log.LogQuery;
 import com.google.appengine.api.log.LogServiceFactory;
 import com.google.appengine.api.log.RequestLogs;
@@ -110,6 +114,8 @@ public class JobDAO {
     ofy().delete().keys(jobKeys).now();
     List<Key<JobFile>> fileKeys = ofy().load().type(JobFile.class).keys().list();
     ofy().delete().keys(fileKeys).now();
+    List<Key<JobStatistic>> statKeys = ofy().load().type(JobStatistic.class).keys().list();
+    ofy().delete().keys(statKeys).now();
 
     try {
       Queue queue = QueueFactory.getQueue(GAETaskQueueJobRunner.QUEUE_NAME);
@@ -141,12 +147,33 @@ public class JobDAO {
       for (RequestLogs record : LogServiceFactory.getLogService().fetch(query)) {
         if (record.isFinished()) {
 
+          // clear error file if the job has been retried but now succeeded
+          if (job.getStatus() == Status.DONE && job.getRetries() > 0) {
+            JobFile errorFile = JobFileDAO.loadByName(JobRunnerResource.ERROR_FILE_NAME, job);
+            if (errorFile != null) {
+              JobFileDAO.delete(errorFile);
+            }
+          }
+
           // Update status if job is done but the status does not reflect this
-          if (job.getStatus() == org.sosy_lab.cpachecker.appengine.entity.Job.Status.PENDING
-              || job.getStatus() == org.sosy_lab.cpachecker.appengine.entity.Job.Status.RUNNING) {
-            job.setStatus(org.sosy_lab.cpachecker.appengine.entity.Job.Status.ERROR);
+          if (job.getStatus() == Status.PENDING
+              || job.getStatus() == Status.RUNNING) {
+            job.setStatus(Status.ERROR);
             job.setStatusMessage(String.format("Running the job is done but the status did not reflect this."
-                + "Therefore the status was set to %s.", org.sosy_lab.cpachecker.appengine.entity.Job.Status.ERROR));
+                + "Therefore the status was set to %s.", Status.ERROR));
+
+            JobFile error = new JobFile(JobRunnerResource.ERROR_FILE_NAME, job);
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append(record.getCombined());
+            for (AppLogLine line : record.getAppLogLines()) {
+              stringBuilder.append(line.getLogMessage());
+            }
+            error.setContent(stringBuilder.toString());
+            try {
+              JobFileDAO.save(error);
+            } catch (IOException e) {
+              // well, then there will be no explanation about the error.
+            }
           }
 
           JobStatistic stats = new JobStatistic(job);

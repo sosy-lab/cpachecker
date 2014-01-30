@@ -337,6 +337,16 @@ cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption = true
 cfa.transformIntoSingleLoop.programCounterValueProviderFactory = INCREMENTAL
   enum:     [NODE_NUMBER, INCREMENTAL]
 
+# This option controls the size of the subgraphs referred to by program
+# counter values. The larger the subgraphs, the fewer program counter values
+# are required. Possible values are  MULTIPLE_PATHS, SINGLE_PATH and
+# SINGLE_EDGE, where MULTIPLE_PATHS has the largest subgraphs (and fewest
+# program counter values) and SINGLE_EDGE has the smallest subgraphs (and
+# most program counter values). The larger the subgraphs, the closer the
+# resulting graph will look like the original CFA.
+cfa.transformIntoSingleLoop.subgraphGrowthStrategy = no default value
+  enum:     [MULTIPLE_PATHS, SINGLE_PATH, SINGLE_EDGE]
+
 # combine sequences of simple edges into a single edge
 cfa.useMultiEdges = false
 
@@ -435,8 +445,12 @@ cpa.arg.refinements.file = "ARGRefinements.dot"
 # entries/exits
 cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
 
-# signal the analysis to break in case of reached error state
-cpa.automaton.breakOnTargetState = true
+# signal the analysis to break in case the given number of error state is
+# reached 
+cpa.automaton.breakOnTargetState = 1
+
+# Collect information about matched (and traversed) tokens.
+cpa.automaton.collectTokenInformation = false
 
 # export automaton to file
 cpa.automaton.dotExport = false
@@ -444,6 +458,11 @@ cpa.automaton.dotExport = false
 # file for saving the automaton in DOT format (%s will be replaced with
 # automaton name)
 cpa.automaton.dotExportFile = "%s.dot"
+
+# the maximum number of iterations performed after the initial error is
+# found, despite the limitgiven as cpa.automaton.breakOnTargetState is not
+# yet reached
+cpa.automaton.extraIterationsLimit = -1
 
 # file with automaton specification for ObserverAutomatonCPA and
 # ControlAutomatonCPA
@@ -652,12 +671,28 @@ cpa.explicit.precisionFile = no default value
 # whether or not to avoid restarting at assume edges after a refinement
 cpa.explicit.refiner.avoidAssumes = false
 
+# checkForRepeatedRefinements
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
 cpa.explicit.refiner.checkForRepeatedRefinements = true
 
+# whether or not to stop interpolation, when no increment was obtained from
+# the last error trace that was interpolated
+cpa.explicit.refiner.checkOnEmptyIncrement = false
+
+# perform check, and potential cut-off if incremental precision is found to
+# be enough
+cpa.explicit.refiner.checkOnIncrementalPrec = false
+
+# perform check on relevance of error path
+cpa.explicit.refiner.checkOnRelevance = false
+
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = true
+
+# the order in which error paths should be refined
+cpa.explicit.refiner.errorPathOrder = "DEFAULT"
+  allowed values: [DEFAULT, ZIGZAG]
 
 # whether or not to ignore the semantics of loop-leaving-assume-edges during
 # interpolation - this avoids to have loop-counters in the interpolant
@@ -1357,8 +1392,15 @@ reachedSet.file = "reached.txt"
 # matching condition.
 restartAlgorithm.configFiles = no default value
 
+spec.automatonDumpFile = no default value
+
 # Consider the negative semantics of tokens provided with path automatons.
 spec.considerNegativeSemanticsAttribute = true
+
+# Match the source code provided with the witness.
+spec.matchSourcecodeData = false
+
+spec.transitionToStopForNegatedTokensetMatch = true
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)

@@ -173,4 +173,9 @@ public class CParserWithTokenizer implements CParser {
   public CAstNode parseSingleStatement(String pCode) throws CParserException, InvalidConfigurationException {
     return realParser.parseSingleStatement(pCode);
   }
+
+  @Override
+  public List<CAstNode> parseStatements(String pCode) throws CParserException, InvalidConfigurationException {
+    return realParser.parseStatements(pCode);
+  }
 }

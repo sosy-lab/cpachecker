@@ -172,6 +172,50 @@ abstract class AbstractEclipseCParser<T> implements CParser {
     return new ASTConverter(config, new FunctionScope(), logger, machine, "", false, sa).convert(statements[0]);
   }
 
+  @Override
+  public List<CAstNode> parseStatements(String pCode) throws CParserException, InvalidConfigurationException {
+    // parse
+    IASTTranslationUnit ast = parse(wrapCode(pCode));
+
+    // strip wrapping function header
+    IASTDeclaration[] declarations = ast.getDeclarations();
+    if (   declarations == null
+        || declarations.length != 1
+        || !(declarations[0] instanceof IASTFunctionDefinition)) {
+      throw new CParserException("Not a single function: " + ast.getRawSignature());
+    }
+
+    IASTFunctionDefinition func = (IASTFunctionDefinition)declarations[0];
+    IASTStatement body = func.getBody();
+    if (!(body instanceof IASTCompoundStatement)) {
+      throw new CParserException("Function has an unexpected " + body.getClass().getSimpleName() + " as body: " + func.getRawSignature());
+    }
+
+    IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
+    if (statements.length == 1 && statements[0] == null || statements.length == 0) {
+      throw new CParserException("No statement found in function body: " + body);
+    }
+
+    Sideassignments sa = new Sideassignments();
+    sa.enterBlock();
+
+    ASTConverter converter = new ASTConverter(config, new FunctionScope(), logger, machine, "", false, sa);
+
+    List<CAstNode> nodeList = new ArrayList<>(statements.length);
+
+    for(IASTStatement statement : statements) {
+      if(statement != null) {
+        nodeList.add(converter.convert(statement));
+      }
+    }
+
+    if (nodeList.size() < 1) {
+      throw new CParserException("No statement found in function body: " + body);
+    }
+
+    return nodeList;
+  }
+
   protected static final int PARSER_OPTIONS =
             ILanguage.OPTION_IS_SOURCE_UNIT     // our code files are always source files, not header files
           | ILanguage.OPTION_NO_IMAGE_LOCATIONS // we don't use IASTName#getImageLocation(), so the parse doesn't need to create them

@@ -106,21 +106,27 @@ public enum CompoundStateFormulaManager {
     } else {
       formulas = pFormulas;
     }
+
+    // If any of the conjunctive parts is a disjunction, check try each disjunctive part
     for (InvariantsFormula<CompoundInterval> formula : formulas) {
       Collection<InvariantsFormula<CompoundInterval>> disjunctions = formula.accept(SPLIT_DISJUNCTIONS_VISITOR);
       if (disjunctions.size() > 1) {
-        ArrayList<InvariantsFormula<CompoundInterval>> newFormulas = new ArrayList<>(pFormulas);
+        ArrayList<InvariantsFormula<CompoundInterval>> newFormulas = new ArrayList<>(formulas);
+        Map<String, InvariantsFormula<CompoundInterval>> newBaseEnvironment = new HashMap<>(pEnvironment);
         newFormulas.remove(formula);
         for (InvariantsFormula<CompoundInterval> disjunctivePart : disjunctions) {
-          newFormulas.add(disjunctivePart);
-          if (!definitelyImplies(newFormulas, pFormula)) {
+          Collection<InvariantsFormula<CompoundInterval>> conjunctivePartsOfDisjunctivePart = disjunctivePart.accept(SPLIT_CONJUNCTIONS_VISITOR);
+          newFormulas.addAll(conjunctivePartsOfDisjunctivePart);
+          if (!definitelyImplies(newFormulas, pFormula, false, newBaseEnvironment, false)) {
             return false;
           }
-          newFormulas.remove(disjunctivePart);
+          newFormulas.removeAll(conjunctivePartsOfDisjunctivePart);
         }
         return true;
       }
     }
+
+    // Build the environment defined by the assumptions and check whether it contradicts or implies the proposed implication
     Map<String, InvariantsFormula<CompoundInterval>> tmpEnvironment = pEnvironment;
     PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(FORMULA_EVALUATION_VISITOR, tmpEnvironment);
     if (!pEnvironmentComplete) {
@@ -134,6 +140,7 @@ public enum CompoundStateFormulaManager {
       return true;
     }
 
+    // Build the environment defined by the proposed implication and check for contradictions
     Map<String, InvariantsFormula<CompoundInterval>> tmpEnvironment2 = new HashMap<>();
     CachingEvaluationVisitor<CompoundInterval> cachingEvaluationVisitor = new CachingEvaluationVisitor<>(tmpEnvironment, FORMULA_EVALUATION_VISITOR);
     outer:

@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.collect.Iterables;
 
-@Options(prefix="cpa")
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
@@ -116,10 +115,46 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  @Option(description="Which strategy to use for forced coverings (empty for none)",
-          name="forcedCovering")
-  @ClassOption(packagePrefix="org.sosy_lab.cpachecker")
-  private Class<? extends ForcedCovering> forcedCoveringClass = null;
+  @Options(prefix="cpa")
+  public static class CPAAlgorithmFactory {
+
+    @Option(description="Which strategy to use for forced coverings (empty for none)",
+            name="forcedCovering")
+    @ClassOption(packagePrefix="org.sosy_lab.cpachecker")
+    private Class<? extends ForcedCovering> forcedCoveringClass = null;
+    private final ForcedCovering forcedCovering;
+
+    private final ConfigurableProgramAnalysis cpa;
+    private final LogManager logger;
+    private final ShutdownNotifier shutdownNotifier;
+
+    public CPAAlgorithmFactory(ConfigurableProgramAnalysis cpa, LogManager logger,
+        Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      config.inject(this);
+      this.cpa = cpa;
+      this.logger = logger;
+      this.shutdownNotifier = pShutdownNotifier;
+
+      if (forcedCoveringClass != null) {
+        forcedCovering = Classes.createInstance(ForcedCovering.class, forcedCoveringClass,
+            new Class<?>[] {Configuration.class, LogManager.class, ConfigurableProgramAnalysis.class},
+            new Object[]   {config,              logger,           cpa});
+      } else {
+        forcedCovering = null;
+      }
+
+    }
+
+    public CPAAlgorithm newInstance() {
+      return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering);
+    }
+  }
+
+  public static CPAAlgorithm create(ConfigurableProgramAnalysis cpa, LogManager logger,
+      Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+    return new CPAAlgorithmFactory(cpa, logger, config, pShutdownNotifier).newInstance();
+  }
+
   private final ForcedCovering forcedCovering;
 
   private final CPAStatistics               stats = new CPAStatistics();
@@ -130,20 +165,13 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final ShutdownNotifier                   shutdownNotifier;
 
-  public CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
-      Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-    config.inject(this);
+  private CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
+      ShutdownNotifier pShutdownNotifier,
+      ForcedCovering pForcedCovering) {
     this.cpa = cpa;
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
-
-    if (forcedCoveringClass != null) {
-      forcedCovering = Classes.createInstance(ForcedCovering.class, forcedCoveringClass,
-          new Class<?>[] {Configuration.class, LogManager.class, ConfigurableProgramAnalysis.class},
-          new Object[]   {config,              logger,           cpa});
-    } else {
-      forcedCovering = null;
-    }
+    this.forcedCovering = pForcedCovering;
   }
 
   @Override

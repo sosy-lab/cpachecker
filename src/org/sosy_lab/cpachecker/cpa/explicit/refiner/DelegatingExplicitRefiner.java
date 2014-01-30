@@ -369,7 +369,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
   }
 
   /**
-   * This method checks if the given path is feasible, when not tracking the given set of variables.
+   * This method checks if the given path is feasible, when doing a full-precision check.
    *
    * @param path the path to check
    * @return true, if the path is feasible, else false
@@ -377,12 +377,12 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    */
   boolean isPathFeasable(ARGPath path) throws CPAException {
     try {
-      // create a new ExplicitPathChecker, which does not track any of the given variables
+      // create a new ExplicitPathChecker, which does check the given path at full precision
       ExplictFeasibilityChecker checker = new ExplictFeasibilityChecker(logger, cfa);
 
       return checker.isFeasible(path);
     }
-    catch (InterruptedException e) {
+    catch (InterruptedException | InvalidConfigurationException e) {
       throw new CPAException("counterexample-check failed: ", e);
     }
   }

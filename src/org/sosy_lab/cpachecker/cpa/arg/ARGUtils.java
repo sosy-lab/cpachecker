@@ -550,7 +550,7 @@ public class ARGUtils {
       String code = cfaEdgeWithAssignments.getAsCode();
 
       if(code != null) {
-        assumption = "ASSUME \"" + code + "\"";
+        assumption = "ASSUME {" + code + "}";
       }
     }
 

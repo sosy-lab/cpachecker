@@ -44,18 +44,21 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -357,6 +360,8 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
    */
   public static class CFAPathWithAssignments implements Iterable<Model.CFAPathWithAssignments.CFAEdgeWithAssignments> {
 
+    private static final String ADDRESS_PREFIX = "__ADDRESS_OF_";
+
     private final List<CFAEdgeWithAssignments> pathWithAssignments;
     private final Multimap<CFAEdge, AssignableTerm> assignableTerms;
 
@@ -369,11 +374,22 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
 
     public CFAPathWithAssignments(List<CFAEdge> pPath,
         Multimap<Integer, AssignableTerm> pAssignedTermsPosition,
-        Model pModel) {
+        Model pModel, Set<Constant> pConstants) {
 
       List<CFAEdgeWithAssignments> pathWithAssignments = new ArrayList<>(pPath.size());
 
       Multimap<CFAEdge, AssignableTerm> multimap = HashMultimap.create();
+
+      Map<String, Object> addressMap = new HashMap<>();
+
+      for (Constant constant : pConstants) {
+        String name = constant.getName();
+        if (name.startsWith(ADDRESS_PREFIX) && pModel.containsKey(constant)) {
+          addressMap.put(name, pModel.get(constant));
+        }
+      }
+
+      Map<String, Object> imAddressMap = ImmutableMap.copyOf(addressMap);
 
       for (int index = 0; index < pPath.size(); index++) {
         CFAEdge cfaEdge = pPath.get(index);
@@ -385,7 +401,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
           termSet.add(new Assignment(term, pModel.get(term)));
         }
 
-        CFAEdgeWithAssignments cfaEdgeWithAssignment = new CFAEdgeWithAssignments(cfaEdge, termSet);
+        CFAEdgeWithAssignments cfaEdgeWithAssignment = new CFAEdgeWithAssignments(cfaEdge, termSet, imAddressMap);
         pathWithAssignments.add(cfaEdgeWithAssignment);
         multimap.putAll(cfaEdge, terms);
       }
@@ -412,13 +428,17 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
 
       for (CFAEdge edge : pPath) {
 
-        if (index > pathWithAssignments.size()) { return null; }
+        if (index > pathWithAssignments.size()) {
+          return null;
+        }
 
         CFAEdgeWithAssignments cfaWithAssignment = pathWithAssignments.get(index);
 
-        if (!edge.equals(cfaWithAssignment.getCFAEdge())) { return null; }
+        if (!edge.equals(cfaWithAssignment.getCFAEdge())) {
+          return null;
+        }
 
-        result.add(new CFAEdgeWithAssignments(edge, cfaWithAssignment.getAssignments()));
+        result.add(cfaWithAssignment);
         index++;
       }
 
@@ -511,10 +531,13 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
 
       private final CFAEdge edge;
       private final Set<Assignment> assignments;
+      private final Map<String, Object> addressMap;
 
-      public CFAEdgeWithAssignments(CFAEdge pEdge, Set<Assignment> pAssignments) {
+      public CFAEdgeWithAssignments(CFAEdge pEdge, Set<Assignment> pAssignments,
+          Map<String, Object> pAddressMap) {
         edge = pEdge;
         assignments = pAssignments;
+        addressMap = pAddressMap;
       }
 
       public Set<Assignment> getAssignments() {
@@ -531,23 +554,48 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
       }
 
       @Nullable
-      public String getAsCode() {
+      private String getAsCode(CFAEdge pEdge) {
 
         if (assignments.size() < 0) {
           return null;
         }
 
-        if (edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-          return handleDeclaration(((ADeclarationEdge) edge).getDeclaration());
-        } else if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-          return handleStatement(((AStatementEdge) edge).getStatement());
-        } else if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-          return handleFunctionCall( ((FunctionCallEdge)edge));
-        } else if(edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
-          return handleReturnStatement(((AReturnStatementEdge)edge).getExpression());
+        if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+          return handleDeclaration(((ADeclarationEdge) pEdge).getDeclaration());
+        } else if (pEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+          return handleStatement(((AStatementEdge) pEdge).getStatement());
+        } else if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+          return handleFunctionCall( ((FunctionCallEdge)pEdge));
+        } else if(pEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
+          return handleMultiEdge((MultiEdge)pEdge);
         }
 
         return null;
+      }
+
+      @Nullable
+      public String getAsCode() {
+
+        return getAsCode(edge);
+      }
+
+      private String handleMultiEdge(MultiEdge pEdge) {
+
+        Set<String> result = new HashSet<>(pEdge.getEdges().size());
+
+        for (CFAEdge edge : pEdge) {
+          String code = getAsCode(edge);
+
+          if (code != null && !result.contains(code)) {
+            result.add(code);
+          }
+        }
+
+        if(result.size() < 1) {
+          return null;
+        } else {
+          return Joiner.on(" ").join(result);
+        }
       }
 
       private  String handleFunctionCall(FunctionCallEdge pFunctionCallEdge) {
@@ -566,6 +614,8 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
         if (formalParameters == null) {
           return null;
         }
+
+        //TODO Refactor, no splitting of strings!
 
         String[] parameterValuesAsCode = new String[formalParameters.size()];
 
@@ -610,41 +660,26 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
           return null;
         }
 
+        for(String value : parameterValuesAsCode) {
+          if(value == null) {
+            return null;
+          }
+        }
+
         Joiner joiner = Joiner.on(", ");
         String arguments = "(" + joiner.join(parameterValuesAsCode) + ")";
 
         return functionName + arguments + ";";
       }
 
-      private String handleReturnStatement(IAExpression pExpression) {
-
-        if (pExpression != null && assignments.size() == 1) {
-
-          Type expectedType = pExpression.getExpressionType();
-          Object value = getValueObject(pExpression.toASTString());
-
-          if (value == null) {
-            return null;
-          }
-
-          String valueAsCode = getValueAsCode(value, expectedType);
-
-          if (valueAsCode == null) {
-            return null;
-          }
-
-          return "return " + valueAsCode + ";";
-        }
-
-        return null;
-      }
-
-
       @Nullable
       private String handleAssignment(IAssignment assignment) {
 
         IALeftHandSide leftHandSide = assignment.getLeftHandSide();
-        Object value = getValueObject(leftHandSide.toASTString());
+
+        String functionName = edge.getPredecessor().getFunctionName();
+
+        Object value = getValueObject(leftHandSide, functionName);
 
         if (value == null) {
           return null;
@@ -657,46 +692,96 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
           return null;
         }
 
+        //TODO Check, what can and can't be parsed, and how to fix it
+
+        if (!(leftHandSide instanceof CIdExpression)) {
+          return null;
+        }
+
         return leftHandSide.toASTString() + " = " + valueAsCode + ";";
       }
 
-      @Nullable
-      private Object getValueObject(String pExpressionAst) {
-
+      private Object getValueObject(IALeftHandSide pLeftHandSide, String pFunctionName) {
 
         //If their is only one value, its the one we search
         if (assignments.size() == 1) {
           return assignments.iterator().next().getValue();
         }
 
-        Object value = null;
+        if (pLeftHandSide instanceof CIdExpression) {
+          return getValueObject(
+            ((CIdExpression) pLeftHandSide).getDeclaration(), pFunctionName);
+        } else if(pLeftHandSide instanceof CPointerExpression) {
+          return null;
+        }
+
+        return null;
+      }
+
+      @Nullable
+      private Object getValueObject(CSimpleDeclaration pVarDcl, String functionName) {
+
+        //If their is only one value, its the one we search
+        if (assignments.size() == 1) {
+          return assignments.iterator().next().getValue();
+        }
+
+        if (pVarDcl == null || functionName == null || (!(pVarDcl instanceof CVariableDeclaration)
+            && !(pVarDcl instanceof CParameterDeclaration))) {
+          return null;
+        }
+
+        String varName = pVarDcl.getName();
+        String assignableTermVarName;
+
+        if (pVarDcl instanceof CParameterDeclaration ||
+            (!((CVariableDeclaration) pVarDcl).isGlobal())) {
+          assignableTermVarName = functionName + "::" + varName;
+        } else {
+          assignableTermVarName = varName;
+        }
 
         for (Assignment assignment : assignments) {
 
-          String termName = assignment.getTerm().getName();
-          String[] termFunctionAndVariableName = termName.split("::");
+          AssignableTerm term = assignment.getTerm();
 
-          String termVariableName;
+          boolean termBelongsToVariable = false;
 
-          if (termFunctionAndVariableName.length == 1) {
-            termVariableName = termFunctionAndVariableName[0];
-          } else if(termFunctionAndVariableName.length == 2) {
-            termVariableName = termFunctionAndVariableName[1];
-          } else {
-            return null;
+          if (term instanceof Variable) {
+            termBelongsToVariable = belongsToVariable(assignableTermVarName, (Variable) term);
+          } else if (term instanceof Function) {
+            termBelongsToVariable = belongsToVariable(assignableTermVarName, (Function) term);
           }
 
-          if (termVariableName.equals(pExpressionAst)) {
-            if (value == null) {
-              value = assignment.getValue();
-            } else {
-              // More than one value found.
-              return null;
-            }
+          if (termBelongsToVariable) {
+            return assignment.getValue();
           }
         }
 
-        return value;
+        return null;
+      }
+
+      private boolean belongsToVariable(String pAssignableTermVarName, Function pFunc) {
+
+        if(pFunc.getArity() != 1) {
+          return false;
+        }
+
+        String variableAddress = ADDRESS_PREFIX + pAssignableTermVarName;
+
+        if (addressMap.containsKey(variableAddress)) {
+          Object addressValue = addressMap.get(variableAddress);
+          Object argumentValue = pFunc.getArgument(0);
+          if (addressValue.equals(argumentValue)) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      private boolean belongsToVariable(String pAssignableTermVarName, Variable pTerm) {
+        return pTerm.equals(pAssignableTermVarName);
       }
 
       @Nullable
@@ -732,20 +817,24 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
 
         if (dcl instanceof CVariableDeclaration) {
 
-          Object value = getValueObject(dcl.getName());
+          CVariableDeclaration varDcl = (CVariableDeclaration) dcl;
+
+          String functionName = edge.getPredecessor().getFunctionName();
+
+          Object value = getValueObject(varDcl, functionName);
 
           if (value == null) {
             return null;
           }
 
-          Type dclType = dcl.getType();
+          Type dclType = varDcl.getType();
           String valueAsCode = getValueAsCode(value, dclType);
 
           if (valueAsCode == null) {
             return null;
           }
 
-          return dclType.toASTString(dcl.getName()) + " = "
+          return varDcl.getName() + " = "
               + valueAsCode + ";";
         }
 
@@ -785,7 +874,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
 
           String value = this.value.toString();
 
-          return value.matches("(\\d*)|(.(\\d*))|((\\d*).)|((\\d*).(\\d*))") ? value : null;
+          return value.matches("((-)?)(\\d*)|(.(\\d*))|((\\d*).)|((\\d*).(\\d*))") ? value : null;
         }
 
         private String handleIntegerNumbers(CSimpleType pSimpleType) {
@@ -793,17 +882,23 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
           //TODO Check length in given constraints.
           String value = this.value.toString();
 
-          if (value.matches("\\d*")) {
+          if (value.matches("((-)?)\\d*")) {
             return value;
           } else {
             String[] numberParts = value.split("\\.");
 
             if (numberParts.length == 2 &&
                 numberParts[1].matches("0*") &&
-                numberParts[0].matches("\\d*")) {
+                numberParts[0].matches("((-)?)\\d*")) {
 
               return numberParts[0];
             }
+          }
+
+          value = handleFloatingPointNumbers(pSimpleType);
+
+          if(value != null) {
+            return "(int) " + value;
           }
 
           return null;
