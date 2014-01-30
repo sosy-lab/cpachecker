@@ -34,6 +34,12 @@
         	<td>${job.statusMessage}</td>
         </tr>
         </#if>
+        <#if (job.retries > 0 )>
+        <tr>
+        	<td>${msg.retries}</td>
+        	<td>${job.retries}</td>
+        </tr>
+        </#if>
         <#if job.resultOutcome??>
         <tr>
           <td>${msg.outcome}</td>
