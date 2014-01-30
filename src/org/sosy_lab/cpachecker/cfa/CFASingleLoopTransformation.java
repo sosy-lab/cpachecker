@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
@@ -878,10 +879,8 @@ public class CFASingleLoopTransformation {
     }
     int lineNumber = pNode.getLineNumber();
     String functionName = pNode.getFunctionName();
-    if (pNode instanceof org.sosy_lab.cpachecker.cfa.model.c.CLabelNode) {
-      result = new org.sosy_lab.cpachecker.cfa.model.c.CLabelNode(lineNumber, functionName, ((org.sosy_lab.cpachecker.cfa.model.c.CLabelNode) pNode).getLabel());
-    } else if (pNode instanceof org.sosy_lab.cpachecker.cfa.model.CLabelNode) {
-      result = new org.sosy_lab.cpachecker.cfa.model.CLabelNode(lineNumber, functionName, ((org.sosy_lab.cpachecker.cfa.model.CLabelNode) pNode).getLabel());
+    if (pNode instanceof CLabelNode) {
+      result = new CLabelNode(lineNumber, functionName, ((CLabelNode) pNode).getLabel());
     } else if (pNode instanceof CFunctionEntryNode) {
       CFunctionEntryNode functionEntryNode = (CFunctionEntryNode) pNode;
       FunctionExitNode functionExitNode = (FunctionExitNode) getOrCreateNewFromOld(functionEntryNode.getExitNode(), pNewToOldMapping);
