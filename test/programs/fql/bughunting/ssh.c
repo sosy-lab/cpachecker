@@ -24,13 +24,13 @@ int main()
 						goto switch_1_4401;
 					} else {
 						if (s__state == 4416) {
-							goto switch_1_4416;
+							goto switch_1_4401;
 						} else {
 							if (s__state == 4417) {
-								goto switch_1_4417;
+								goto switch_1_4401;
 							} else {
 								if (s__state == 4432) {
-									goto switch_1_4432;
+									goto switch_1_4401;
 								} else {
 									if (s__state == 4433) {
 										goto switch_1_4433;
@@ -87,19 +87,21 @@ int main()
 																										
 																										switch_1_4096: ;
 																										switch_1_20480: ;
-																										if (s__init_buf___0 == 0) {
+																										if (0) {
 																											buf = __VERIFIER_nondet_int();
 																											if (buf == 0) {
 																												goto end;
 																											}
-																											s__init_buf___0 = buf;
 																										}
 																										switch_1_4368: ;
 																										goto switch_1_4560;
 																										
+																										switch_1_4560: ;
+																										switch_1_4561: ;
+																										s__state = 4512;
+																										goto switch_1_break;
+																										
 																										switch_1_4401: ;
-																										switch_1_4416: ;
-																										switch_1_4417: ;
 																										switch_1_4432: ;
 																										switch_1_4433: ;
 																										switch_1_4448: ;
@@ -127,11 +129,6 @@ int main()
 																										if (s__s3__flags != -3) {
 																											goto end;
 																										}
-																										goto switch_1_break;
-																										
-																										switch_1_4560: ;
-																										switch_1_4561: ;
-																										s__state = 4512;
 																										goto switch_1_break;
 																										
 																										switch_1_break: ;
