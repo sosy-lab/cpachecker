@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.Model.Variable;
-import org.sosy_lab.cpachecker.tiger.testgen.IncrementalARTReusingFQLTestGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 public abstract class TestCase {
 
@@ -278,14 +278,10 @@ public abstract class TestCase {
   public static final String INPUT_PREFIX = "__VERIFIER_nondet_";
 
   public static TestCase fromCounterexample(Model pCounterexample, LogManager pLogManager) {
-    //Set<MathsatAssignable> lAssignables = pCounterexample.getAssignables();
-
     boolean lIsPrecise = true;
 
     SortedMap<Integer, Double> lNondetMap = new TreeMap<>();
-    //SortedMap<Integer, Boolean> lNondetFlagMap = new TreeMap<>();
-    // TODO do we need the nondet flag!!!
-    IncrementalARTReusingFQLTestGenerator.getInstance().mOutput.println("TODO: Due to using functions instead of variables for nondet values, we do not need nondet-flags anymore. (check!)");
+    SortedMap<Integer, Boolean> lNondetFlagMap = new TreeMap<>();
 
     for (Map.Entry<AssignableTerm, Object> lAssignment : pCounterexample.entrySet()) {
       AssignableTerm lTerm = lAssignment.getKey();
@@ -295,16 +291,14 @@ public abstract class TestCase {
         Variable lVar = (Variable)lTerm;
         String lName = lVar.getName();
 
-        if (lName.startsWith(INPUT_PREFIX)) {
+        if (lName.equals(PathFormulaManagerImpl.NONDET_VARIABLE)) {
           Integer lIndex = lVar.getSSAIndex();
 
           double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
 
           lNondetMap.put(lIndex, lDoubleValue);
         }
-        // TODO Do we need the NONDET_FLAG_VARIABLE?
-        //System.err.println("TODO: Do we need the NONDET_FLAG_VARIABLE?");
-        /*else if (lName.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+        else if (lName.equals(PathFormulaManagerImpl.NONDET_FLAG_VARIABLE)) {
           Integer lIndex = lVar.getSSAIndex();
 
           double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
@@ -315,7 +309,10 @@ public abstract class TestCase {
           else {
             lNondetFlagMap.put(lIndex, false);
           }
-        }*/
+        }
+        else if (lName.startsWith(INPUT_PREFIX)) {
+          throw new RuntimeException("nondet flags are only implemented for " + PathFormulaManagerImpl.NONDET_VARIABLE + " but not for " + lName);
+        }
       }
     }
 
@@ -323,10 +320,9 @@ public abstract class TestCase {
     LinkedList<Double> lValues = new LinkedList<>();
 
     for (Map.Entry<Integer, Double> lEntry : lNondetMap.entrySet()) {
-      //Integer lKey = lEntry.getKey();
+      Integer lKey = lEntry.getKey();
 
-      //if (lNondetFlagMap.get(lKey)) {
-      //if (true) {
+      if (lNondetFlagMap.get(lKey)) {
         Double lValue = lEntry.getValue();
 
         int lIntValue = lValue.intValue();
@@ -337,7 +333,7 @@ public abstract class TestCase {
 
         lInput.add(lIntValue);
         lValues.add(lValue);
-      //}
+      }
     }
 
     if (lIsPrecise) {

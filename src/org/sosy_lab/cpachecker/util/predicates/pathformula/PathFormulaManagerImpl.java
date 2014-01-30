@@ -104,8 +104,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
 
-  private static final String NONDET_VARIABLE = "__nondet__";
-  private static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
+  public static final String NONDET_VARIABLE = "__VERIFIER_nondet_int";
+  public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "__flag__";
   private static final CType NONDET_TYPE = CNumericTypes.INT;
   private final FormulaType<?> NONDET_FORMULA_TYPE;
 
@@ -116,7 +116,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final LogManager logger;
 
   @Option(description="add special information to formulas about non-deterministic functions")
-  private boolean useNondetFlags = false;
+  private boolean useNondetFlags = true;//false;
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, MachineModel pMachineModel)
@@ -192,6 +192,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
         for (int lIndex = lFlagIndex + 1; lIndex <= lNondetIndex; lIndex++) {
           Formula nondetVar = fmgr.makeVariable(NONDET_FORMULA_TYPE, NONDET_FLAG_VARIABLE, lIndex);
+          // When SSA maps of two blocks get merged, flags which do not
+          // occur in one SSA map get initialized to 0 for that branch.
+          // Therefore, we can distinguish which nondet. variables we have
+          // to extract from the model (the ones where the flag is set to 1).
           BooleanFormula lAssignment = fmgr.assignment(nondetVar, fmgr.makeNumber(NONDET_FORMULA_TYPE, 1));
           edgeFormula = bfmgr.and(edgeFormula, lAssignment);
         }
