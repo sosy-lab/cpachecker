@@ -34,6 +34,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -105,7 +106,7 @@ public class CFACheck {
       case 0:
         if (!pruned) {
           // not possible to check this when CFA was pruned
-          assert false : "Dead end at node " + pNode;
+          assert pNode instanceof CFATerminationNode : "Dead end at node " + pNode;
         }
         break;
 
