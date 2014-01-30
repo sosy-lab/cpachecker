@@ -59,7 +59,7 @@ public class FormulaEncodingOptions {
       "random");
 
   @Option(description="Regexp pattern for functions that should be considered as giving "
-    + "a non-deterministic return value (c.f. cpa.predicate.nondedFunctions)")
+    + "a non-deterministic return value (c.f. cpa.predicate.nondetFunctions)")
   private Pattern nondetFunctionsRegexp = Pattern.compile("^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*");
 
   @Option(description="Name of an external function that will be interpreted as if the function "
