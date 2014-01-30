@@ -2,21 +2,9 @@ extern int __VERIFIER_nondet_int();
 
 int main()
 { 
-	int s__init_buf___0 = __VERIFIER_nondet_int() ; // 1
-	int s__ctx__info_callback = __VERIFIER_nondet_int() ; // 1
+	int s__init_buf___0 = __VERIFIER_nondet_int() ; // -1
 	int s__s3__flags = __VERIFIER_nondet_int() ; // -3
-	int s__s3__tmp__cert_req = __VERIFIER_nondet_int() ; // 2
-	int s__s3__tmp__reuse_message = __VERIFIER_nondet_int() ; // 1
-	int s__s3__tmp__new_cipher__algorithms = __VERIFIER_nondet_int() ; // 255
-	unsigned long tmp = __VERIFIER_nondet_int(); // 6
-	int num1 = __VERIFIER_nondet_int() ; // 1
-	int tmp___3 = __VERIFIER_nondet_int() ; // 0
-	int tmp___4 = __VERIFIER_nondet_int() ; // 1
-	int tmp___5 = __VERIFIER_nondet_int() ; // 1
-	int tmp___6 = __VERIFIER_nondet_int() ; // 1
-	int tmp___7 = __VERIFIER_nondet_int() ; // 1
-	int tmp___8 = __VERIFIER_nondet_int() ; // 1
-	int tmp___9 = __VERIFIER_nondet_int() ; // -2
+	unsigned long tmp = __VERIFIER_nondet_int(); // 5
 
 	int s__state = 12292 ;
 	int s__s3__tmp__next_state___0 ;
@@ -146,19 +134,7 @@ int main()
 																																						ret = -1;
 																																						goto end;
 																																					}
-																																					if (! tmp___3) {
-																																						ret = -1;
-																																						goto end;
-																																					}
 																																					s__init_buf___0 = buf;
-																																				}
-																																				if (! tmp___4) {
-																																					ret = -1;
-																																					goto end;
-																																				}
-																																				if (! tmp___5) {
-																																					ret = -1;
-																																					goto end;
 																																				}
 																																				s__state = 4368;
 																																				goto switch_1_break;
@@ -187,18 +163,7 @@ int main()
 																																				goto switch_1_break;
 																																				switch_1_4400: ;
 																																				switch_1_4401: ;
-
-																																				if (s__s3__tmp__new_cipher__algorithms != 256) {
-																																					skip = 1;
-																																				} else {
-																																					ret = __VERIFIER_nondet_int();
-																																					if (blastFlag == 2) {
-																																						blastFlag = 3;
-																																					}
-																																					if (ret <= 0) {
-																																						goto end;
-																																					}
-																																				}
+																																				skip = 1;
 																																				s__state = 4416;
 																																				goto switch_1_break;
 																																				switch_1_4416: ;
@@ -211,10 +176,6 @@ int main()
 																																					goto end;
 																																				}
 																																				s__state = 4432;
-																																				if (! tmp___6) {
-																																					ret = -1;
-																																					goto end;
-																																				}
 																																				goto switch_1_break;
 																																				switch_1_4432: ;
 																																				switch_1_4433: 
@@ -236,7 +197,7 @@ int main()
 																																				if (ret <= 0) {
 																																					goto end;
 																																				}
-																																				if (s__s3__tmp__cert_req) {
+																																				if (2) {
 																																					s__state = 4464;
 																																				} else {
 																																					s__state = 4480;
@@ -258,11 +219,7 @@ int main()
 																																				if (ret <= 0) {
 																																					goto end;
 																																				}
-																																				if (s__s3__tmp__cert_req == 1) {
-																																					s__state = 4496;
-																																				} else {
-																																					s__state = 4512;
-																																				}
+																																				s__state = 4512;
 																																				goto switch_1_break;
 																																				switch_1_4496: ;
 																																				switch_1_4497: 
@@ -279,14 +236,6 @@ int main()
 																																					goto end;
 																																				}
 																																				s__state = 4528;
-																																				if (! tmp___7) {
-																																					ret = -1;
-																																					goto end;
-																																				}
-																																				if (! tmp___8) {
-																																					ret = -1;
-																																					goto end;
-																																				}
 																																				goto switch_1_break;
 																																				switch_1_4528: ;
 																																				switch_1_4529: 
@@ -310,17 +259,7 @@ int main()
 																																				}
 																																				s__state = 4512;
 																																				goto switch_1_break;
-																																				switch_1_4352: 
-
-																																				if (num1 > 0) {
-																																					num1 = tmp___9;
-
-																																					if (num1 <= 0) {
-																																						ret = -1;
-																																						goto end;
-																																					}
-																																				}
-
+																																				switch_1_4352:
 																																				s__state = s__s3__tmp__next_state___0;
 																																				goto switch_1_break;
 																																				switch_1_3: 
@@ -366,14 +305,6 @@ int main()
 							}
 						}
 					}
-				}
-			}
-		}
-		if (! s__s3__tmp__reuse_message) {
-			if (! skip) {
-				ret = __VERIFIER_nondet_int();
-				if (ret <= 0) {
-					goto end;
 				}
 			}
 		}
