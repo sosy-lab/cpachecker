@@ -34,6 +34,7 @@ import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefinitionStorage;
 
@@ -423,9 +424,10 @@ public class ReachingDefState implements AbstractState, Serializable {
 
     private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
       int nodeNumber = in.readInt();
-      entry = GlobalInfo.getInstance().getCFAInfo().getNodeByNodeNumber(nodeNumber);
+      CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
+      entry = cfaInfo.getNodeByNodeNumber(nodeNumber);
       nodeNumber = in.readInt();
-      exit = GlobalInfo.getInstance().getCFAInfo().getNodeByNodeNumber(nodeNumber);
+      exit = cfaInfo.getNodeByNodeNumber(nodeNumber);
     }
 
   }

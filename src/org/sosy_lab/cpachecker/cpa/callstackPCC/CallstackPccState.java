@@ -151,7 +151,7 @@ public class CallstackPccState implements AbstractState, Partitionable, Abstract
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     int nodeNumber = in.readInt();
-    callerNode = GlobalInfo.getInstance().getCFAInfo().getNodeByNodeNumber(nodeNumber);
+    callerNode = GlobalInfo.getInstance().getCFAInfo().get().getNodeByNodeNumber(nodeNumber);
   }
 
 }
