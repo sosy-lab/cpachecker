@@ -2074,7 +2074,7 @@ public class SMGTransferRelation implements TransferRelation {
 
   }
 
-  public interface SMGExplicitValue  extends SMGValue, ExplicitValueBase {
+  public interface SMGExplicitValue  extends SMGValue {
 
     public SMGExplicitValue negate();
 
@@ -2383,22 +2383,6 @@ public class SMGTransferRelation implements TransferRelation {
         return new SMGKnownExpValue(pValue);
       }
     }
-
-    @Override
-    public boolean isNumericValue() {
-      // TODO Auto-generated method stub
-      return false;
-    }
-
-    @Override
-    public ExplicitNumericValue asNumericValue() {
-      return null;
-    }
-
-    @Override
-    public Long asLong() {
-      return null;
-    }
   }
 
 
@@ -2496,22 +2480,6 @@ public class SMGTransferRelation implements TransferRelation {
 
     @Override
     public SMGObject getObject() {
-      return null;
-    }
-
-    @Override
-    public boolean isNumericValue() {
-      // TODO Auto-generated method stub
-      return false;
-    }
-
-    @Override
-    public ExplicitNumericValue asNumericValue() {
-      return null;
-    }
-
-    @Override
-    public Long asLong() {
       return null;
     }
   }
