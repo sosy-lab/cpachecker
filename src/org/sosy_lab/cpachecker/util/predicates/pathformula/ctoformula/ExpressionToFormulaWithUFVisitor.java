@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -242,7 +243,9 @@ public class ExpressionToFormulaWithUFVisitor
     final CType operandType = PointerTargetSet.simplifyType(operand.getExpressionType());
     if (CToFormulaWithUFConverter.isSimpleType(resultType)) {
       return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), edge));
-    } else if (resultType.equals(operandType)) { // Special case: conversion of non-scalar type to itself is allowed (and ignored)
+    } else if (CTypes.withoutConst(resultType).equals(CTypes.withoutConst(operandType))) {
+      // Special case: conversion of non-scalar type to itself is allowed (and ignored)
+      // Change of const modifier is ignored, too.
       return result;
     } else {
       throw new UnrecognizedCCodeException("Conversion to non-scalar type requested", edge, e);
