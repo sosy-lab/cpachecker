@@ -4,7 +4,8 @@
   <!-- try to make it more deterministic -->
   <option name="-setprop">cpa.predicate.mathsat5.furtherOptions=random_seed=42</option>
   <option name="-noout"/>
-  <option name="-spec">sv-comp</option>
+  <option name="-spec">test/programs/benchmarks/PropertyERROR.prp</option>
+  <requiredfiles>../programs/benchmarks/PropertyERROR.prp</requiredfiles>
   <option name="-heap">2000M</option>
   <option name="-setprop">limits.time.cpu=1min</option>
 
@@ -18,6 +19,7 @@
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
+      <exclude>../programs/benchmarks/eca/Problem13_60_false-unreach-label.c</exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
