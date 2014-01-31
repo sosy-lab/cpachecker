@@ -2,15 +2,20 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="900" hardtimelimit="1000" memlimit="15000" cpuCores="2">
   <option name="-noout"/>
-  <option name="-spec">sv-comp</option>
+  <option name="-spec">test/programs/benchmarks/PropertyERROR.prp</option>
+  <requiredfiles>../programs/benchmarks/PropertyERROR.prp</requiredfiles>
   <option name="-disable-java-assertions"/>
   <option name="-heap">13000M</option>
-  
+
   <sourcefiles name="BitVectors">
     <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
   </sourcefiles>
   <sourcefiles name="ControlFlowInteger">
     <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+    <!-- The following files are expected to have timeouts anyway. -->
+    <exclude>../programs/benchmarks/eca/Problem07_*</exclude>
+    <exclude>../programs/benchmarks/eca/Problem08_*</exclude>
+    <exclude>../programs/benchmarks/eca/Problem09_*</exclude>
   </sourcefiles>
   <sourcefiles name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
@@ -25,19 +30,13 @@
   <sourcefiles name="ProductLines">
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
   </sourcefiles>
+  <!--
   <sourcefiles name="Recursive">
     <includesfile>../programs/benchmarks/Recursive.set</includesfile>
   </sourcefiles>
+  -->
   <sourcefiles name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-    <!-- The following files are expected to have timeouts anyway. -->
-    <exclude>../programs/benchmarks/systemc/mem_slave_tlm.3_true.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/mem_slave_tlm.4_true.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/mem_slave_tlm.5_true.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/token_ring.10_true.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/token_ring.11_true.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/token_ring.12_true.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/token_ring.13_true.cil.c</exclude>
   </sourcefiles>
   <sourcefiles name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
