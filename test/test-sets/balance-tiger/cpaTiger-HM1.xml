@@ -5,7 +5,7 @@
 
 
   <sourcefiles name="HM1">
-    <includesfile>../../programs/benchmarks/tiger-sets/HM1.set</includesfile>
+    <includesfile>../../programs/fql/tiger-sets/HM1.set</includesfile>
   </sourcefiles>
 
   <rundefinition name="predicate-bb">

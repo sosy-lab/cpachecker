@@ -5,7 +5,7 @@
 
 
   <sourcefiles name="CF2">
-    <includesfile>../../programs/benchmarks/tiger-sets/CF2.set</includesfile>
+    <includesfile>../../programs/fql/tiger-sets/CF2.set</includesfile>
   </sourcefiles>
 
   <rundefinition name="predicate-bb">

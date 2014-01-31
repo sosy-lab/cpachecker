@@ -5,7 +5,7 @@
 
 
   <sourcefiles name="DD4">
-    <includesfile>../../programs/benchmarks/tiger-sets/DD2.set</includesfile>
+    <includesfile>../../programs/fql/tiger-sets/DD2.set</includesfile>
   </sourcefiles>
 
   <rundefinition name="predicate-bb">
