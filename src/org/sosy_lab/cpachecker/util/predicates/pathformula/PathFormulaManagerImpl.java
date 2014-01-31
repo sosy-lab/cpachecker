@@ -98,7 +98,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private boolean handlePointerAliasing = true;
 
   @Option(description = "Encode pointer aliasing information with uninterpreted functions (more precise) if pointer aliasing is handled.")
-  private boolean pointerAnalysisWithUFs = false;
+  private boolean pointerAnalysisWithUFs = true;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(

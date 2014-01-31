@@ -1035,7 +1035,7 @@ cpa.predicate.omitNonPointerInFieldAliasing = true
 
 # Encode pointer aliasing information with uninterpreted functions (more
 # precise) if pointer aliasing is handled.
-cpa.predicate.pointerAnalysisWithUFs = false
+cpa.predicate.pointerAnalysisWithUFs = true
 
 # Where to apply the found predicates to?
 cpa.predicate.precision.sharing = LOCATION
