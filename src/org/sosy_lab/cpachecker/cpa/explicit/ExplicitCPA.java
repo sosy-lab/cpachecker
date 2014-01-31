@@ -88,6 +88,13 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
       description="blacklist regex for variables that won't be tracked by ExplicitCPA")
   private String variableBlacklist = "";
 
+  @Option(description="enables target checking for explicit anlaysis, needed for predicated analysis")
+  private boolean doTargetCheck = false;
+
+  @Option(name="inPredicatedAnalysis",
+      description="enable if will be used in predicated analysis but all variables should be tracked, no refinement")
+  private boolean useInPredicatedAnalysisWithoutRefinement = false;
+
   @Option(name="refiner.performInitialStaticRefinement",
       description="use heuristic to extract a precision from the CFA statically on first refinement")
   private boolean performInitialStaticRefinement = false;
@@ -133,6 +140,10 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     reducer             = new ExplicitReducer();
     statistics          = new ExplicitCPAStatistics(this);
+
+    if (doTargetCheck) {
+      ExplicitState.initChecker(config);
+    }
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -172,7 +183,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
   }
 
   private ExplicitPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
-    if(refinementWithoutAbstraction(config)) {
+    if(refinementWithoutAbstraction(config) && !useInPredicatedAnalysisWithoutRefinement) {
       logger.log(Level.WARNING, "Explicit-Value analysis with refinement needs " +
             "ComponentAwareExplicitPrecisionAdjustment. Please set option cpa.composite.precAdjust to 'COMPONENT'");
     }

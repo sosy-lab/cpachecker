@@ -36,8 +36,12 @@ import java.util.Set;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -52,13 +56,21 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 
-public class ExplicitState implements AbstractQueryableState, FormulaReportingState, Serializable {
+public class ExplicitState implements AbstractQueryableState, FormulaReportingState, Serializable,
+    TargetableWithPredicatedAnalysis, AbstractStateWithTargetVariable {
+
   private static final long serialVersionUID = -3152134511524554357L;
 
   private static final Set<MemoryLocation> blacklist = new HashSet<>();
 
   static void addToBlacklist(MemoryLocation var) {
     blacklist.add(checkNotNull(var));
+  }
+
+  private static ExplicitTargetChecker checker = null;
+
+  static void initChecker(Configuration pConfig) throws InvalidConfigurationException{
+    checker = new ExplicitTargetChecker(pConfig);
   }
 
   /**
@@ -756,5 +768,28 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
         constantsMap = constantsMap.removeAndCopy(memoryLocation);
       }
     }
+  }
+
+  @Override
+  public boolean isTarget() {
+    return checker != null && checker.isTarget(constantsMap);
+  }
+
+  @Override
+  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+    if(isTarget()){
+      return ViolatedProperty.OTHER;
+    }
+    return null;
+  }
+
+  @Override
+  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
+    return checker==null? pFmgr.getBooleanFormulaManager().makeBoolean(false):checker.getErrorCondition(pFmgr);
+  }
+
+  @Override
+  public String getTargetVariableName() {
+    return checker== null?"":checker.getTargetVariableName();
   }
 }
