@@ -228,7 +228,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       for (String varName : this.environment.keySet()) {
         String prefix = pArray + "[";
         if (varName.startsWith(prefix)) {
-          String subscriptValueStr = varName.replace(prefix, "").replace("]", "");
+          String subscriptValueStr = varName.replace(prefix, "").replaceAll("].*", "");
           if (subscriptValueStr.equals("*") || value.contains(new BigInteger(subscriptValueStr))) {
             result = result.assign(varName, TOP, pEdge, ignoreEdge);
           }
