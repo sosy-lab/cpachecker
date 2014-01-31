@@ -10,5 +10,6 @@
 	
 	<static-error-handlers>
 		<handler file="errorpages/timeout.json" error-code="timeout" />
+		<handler file="errorpages/over_quota.json" error-code="over_quota" />
 	</static-error-handlers>
 </appengine-web-app>
