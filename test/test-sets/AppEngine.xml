@@ -1,73 +1,71 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="540">
+<benchmark tool="cpachecker" timelimit="540" memlimit="2000" cpuCores="2">
   <option name="-noout"/>
   <option name="-nolog"/>
   <option name="-spec">sv-comp</option>
+  <option name="-heap">1200M</option>
+  
+  <option name="-setprop">limits.time.wall=540</option>
   
   <!-- these options are set by default on App Engine -->
-  <option name="-setprop"/>
-  <option name="analysis.checkCounterexamples=false"/>
-  <option name="-setprop"/>
-  <option name="statistics.memory=false"/>
-  <option name="-setprop"/>
-  <option name="log.file=CPALog.txt"/>
-  <option name="-setprop"/>
-  <option name="log.useColors=false"/>
-  <option name="-setprop"/>
-  <option name="parser.usePreprocessor=false"/>
-  <option name="-setprop"/>
-  <option name="analysis.algorithm.CBMC=false"/>
-  <option name="-setprop"/>
-  <option name="analysis.algorithm.proofCheck=false"/>
-  <option name="-setprop"/>
-  <option name="configuration.dumpFile=UsedConfiguration.properties"/>
-  <option name="-setprop"/>
-  <option name="statistics.file=Statistics.txt"/>
-  <option name="-setprop"/>
-  <option name="cpa.predicate.solver=smtinterpol"/>
-  <option name="-setprop"/>
-  <option name="memorysafety.check=false"/>
-  <option name="-setprop"/>
-  <option name="limits.time.cpu=-1ns"/>
-  <option name="-setprop"/>
-  <option name="cpa.conditions.global.time.wall=-1"/>
-  <option name="-setprop"/>
-  <option name="cpa.conditions.global.time.cpu=-1"/>
-  <option name="-setprop"/>
-  <option name="cpa.conditions.global.time.cpu.hardlimit=-1"/>
-  <option name="-setprop"/>
-  <option name="cpa.conditions.global.time.wall.hardlimit=-1"/>
-  <option name="-setprop"/>
-  <option name="cpa.conditions.global.memory.heap=-1"/>
-  <option name="-setprop"/>
-  <option name="cpa.conditions.global.memory.process=-1"/>
-  <option name="-setprop"/>
-  <option name="cpa.conditions.global.reached.size=-1"/>
-  <option name="-setprop"/>
-  <option name="cpa.conditions.path.assignments.softThreshold = -1"/>
-  <option name="-setprop"/>
-  <option name="cpa.conditions.path.assignments.hardThreshold = -1"/>
-  <option name="-setprop"/>
-  <option name="cpa.conditions.path.assumeedges.limit=-1"/>
-  <option name="-setprop"/>
-  <option name="cpa.conditions.path.length.limit=-1"/>
-  <option name="-setprop"/>
-  <option name="cpa.conditions.path.repetitions.limit=-1"/>
-  <option name="-setprop"/>
-  <option name="cpa.monitor.limit=0"/>
-  <option name="-setprop"/>
-  <option name="cpa.monitor.pathcomputationlimit=0"/>
-  <option name="-setprop"/>
-  <option name="cpa.predicate.refinement.timelimit=0"/>
+  <option name="-setprop">analysis.checkCounterexamples=false</option>
+  <option name="-setprop">statistics.memory=false</option>
+  <option name="-setprop">log.file=CPALog.txt</option>
+  <option name="-setprop">log.useColors=false</option>
+  <option name="-setprop">parser.usePreprocessor=false</option>
+  <option name="-setprop">analysis.algorithm.CBMC=false</option>
+  <option name="-setprop">analysis.algorithm.proofCheck=false</option>
+  <option name="-setprop">configuration.dumpFile=UsedConfiguration.properties</option>
+  <option name="-setprop">statistics.file=Statistics.txt</option>
+  <option name="-setprop">cpa.predicate.solver=smtinterpol</option>
+  <option name="-setprop">memorysafety.check=false</option>
+  <option name="-setprop">limits.time.cpu=-1ns</option>
+  <option name="-setprop">cpa.conditions.global.time.wall=-1</option>
+  <option name="-setprop">cpa.conditions.global.time.cpu=-1</option>
+  <option name="-setprop">cpa.conditions.global.time.cpu.hardlimit=-1</option>
+  <option name="-setprop">cpa.conditions.global.time.wall.hardlimit=-1</option>
+  <option name="-setprop">cpa.conditions.global.memory.heap=-1</option>
+  <option name="-setprop">cpa.conditions.global.memory.process=-1</option>
+  <option name="-setprop">cpa.conditions.global.reached.size=-1</option>
+  <option name="-setprop">cpa.conditions.path.assignments.softThreshold=-1</option>
+  <option name="-setprop">cpa.conditions.path.assignments.hardThreshold=-1</option>
+  <option name="-setprop">cpa.conditions.path.assumeedges.limit=-1</option>
+  <option name="-setprop">cpa.conditions.path.length.limit=-1</option>
+  <option name="-setprop">cpa.conditions.path.repetitions.limit=-1</option>
+  <option name="-setprop">cpa.monitor.limit=0</option>
+  <option name="-setprop">cpa.monitor.pathcomputationlimit=0</option>
+  <option name="-setprop">cpa.predicate.refinement.timelimit=0</option>
   
   <sourcefiles name="Simple">
   	<includesfile>../programs/benchmarks/Simple.set</includesfile>
   </sourcefiles>
   
-<!--   <sourcefiles name="ControlFlowInteger"> -->
-<!--   	<includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile> -->
-<!--   </sourcefiles> -->
+  <sourcefiles name="ControlFlowInteger">
+  	<includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+  	<!-- program too large for App Engine -->
+  	<exclude>../programs/benchmarks/eca/Problem07_20_false-unreach-label.c</exclude>
+  	<exclude>../programs/benchmarks/eca/Problem07_30_false-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem07_40_false-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem07_60_false-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem08_10_false-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem08_50_false-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem08_60_false-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem09_10_false-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem09_20_false-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem09_60_false-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem07_00_true-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem07_10_true-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem07_50_true-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem08_00_true-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem08_20_true-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem08_30_true-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem08_40_true-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem09_00_true-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem09_30_true-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem09_40_true-unreach-label.c</exclude>
+	<exclude>../programs/benchmarks/eca/Problem09_50_true-unreach-label.c</exclude>
+  </sourcefiles>
   
   <sourcefiles name="Loops">
   	<includesfile>../programs/benchmarks/Loops.set</includesfile>
@@ -79,6 +77,10 @@
   
   <sourcefiles name="Concurrency">
   	<includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+  </sourcefiles>
+  
+  <sourcefiles name="ProductLines">
+  	<includesfile>../programs/benchmarks/ProductLines.set</includesfile>
   </sourcefiles>
   
   <rundefinition name="explicitAnalysis-Simple">
