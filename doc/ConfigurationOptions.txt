@@ -617,6 +617,9 @@ cpa.conditions.path.repetitions.limit = -1
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
 
+# Value which is allowed for the variable which is checked
+cpa.explicit.allowedValue = 0
+
 # restrict abstractions to assume edges
 cpa.explicit.blk.alwaysAtAssumes = false
 
@@ -628,6 +631,14 @@ cpa.explicit.blk.alwaysAtJoins = false
 
 # restrict abstractions to loop heads
 cpa.explicit.blk.alwaysAtLoops = false
+
+# enables target checking for explicit anlaysis, needed for predicated
+# analysis
+cpa.explicit.doTargetCheck = false
+
+# enable if will be used in predicated analysis but all variables should be
+# tracked, no refinement
+cpa.explicit.inPredicatedAnalysis = false
 
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
@@ -705,6 +716,10 @@ cpa.explicit.refiner.performInitialStaticRefinement = false
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# Variable name of the variable for which should be checked that its value is
+# globally a certain value 
+cpa.explicit.varName = ""
 
 # blacklist regex for variables that won't be tracked by ExplicitCPA
 cpa.explicit.variableBlacklist = ""
@@ -1285,6 +1300,10 @@ cpa.smg.runtimeCheck = NONE
 
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg.unknownOnUndefined = true
+
+# if enabled checks if states are target states (there exist warning for
+# uninitilized use of variables
+cpa.uninitvars.checkTarget = false
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
