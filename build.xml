@@ -44,7 +44,7 @@
     <condition property="os" value="windows">
         <os family="windows"/>
     </condition>
-    <target name="init">
+    <target name="init" depends="create-version-file">
         <echo message="Building ${ant.project.name} ${version}"/>
         <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
     </target>
