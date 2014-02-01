@@ -34,6 +34,7 @@ import org.restlet.representation.StringRepresentation;
 import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.server.common.JobRunnerResource;
 import org.sosy_lab.cpachecker.appengine.server.common.SettingsResource;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,6 +54,9 @@ public class SettingsServerResource extends WadlServerResource implements Settin
     settings.put("retries", String.valueOf(JobRunnerResource.MAX_RETRIES));
     settings.put("errorFileName", JobRunnerResource.ERROR_FILE_NAME);
     settings.put("statisticsFileName", DefaultOptions.getImmutableOptions().get("statistics.file"));
+    settings.put("cpacheckerVersion", CPAchecker.getVersion());
+    settings.put("CPUSpeed", "600Mhz"); // see appengine-web.xml
+    settings.put("RAM", "128M"); // see appengine-web.xml
 
     try {
       return new StringRepresentation(mapper.writeValueAsString(settings), MediaType.APPLICATION_JSON);

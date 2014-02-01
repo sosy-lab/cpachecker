@@ -7,6 +7,12 @@
 <!--     <admin-console> -->
 <!--   		<page name="Appstats" url="/appstats" /> -->
 <!-- 	</admin-console> -->
+
+	<!--
+		NOTE:
+		When changing performance settings update
+		org.sosy_lab.cpachecker.appengine.server.resource.SettingsServerResource 
+	 -->
 	
 	<static-error-handlers>
 		<handler file="errorpages/timeout.json" error-code="timeout" />
