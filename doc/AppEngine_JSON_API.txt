@@ -151,7 +151,7 @@ Units:
 - creationDate: UTC datetime
 - executionDate: UTC datetime
 - terminationDate: UTC datetime
-- statistic: see GET /job/{jobKey}/stats
+- statistic: see GET /job/{jobKey}/statistics
 
 Response
 --------
@@ -197,7 +197,7 @@ Response
 Deletes the job with the key {jobKey} and all associated files and statistic.
 
 
-# GET /jobs/{jobKey}/stats
+# GET /jobs/{jobKey}/statistics
 ==========================
 Returns statistics about the job with the key {jobKey}.
 
