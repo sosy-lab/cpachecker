@@ -42,8 +42,6 @@ import com.google.appengine.api.log.LogServiceFactory;
 import com.google.appengine.api.log.RequestLogs;
 import com.google.appengine.api.taskqueue.Queue;
 import com.google.appengine.api.taskqueue.QueueFactory;
-import com.google.appengine.api.taskqueue.TaskHandle;
-import com.google.appengine.api.taskqueue.TaskOptions;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
@@ -62,7 +60,7 @@ public class JobDAO {
 
   public static Job load(Key<Job> key) {
     Job job = ofy().load().key(key).now();
-    return retrieveAndSetStats(job);
+    return sanitizeStateAndSetStatistics(job);
   }
 
   public static List<Job> jobs() {
@@ -130,6 +128,30 @@ public class JobDAO {
     }
   }
 
+  /**
+   * Sets to following properties to null. Does not save the job!
+   * <ul>
+   * <li>executionDate</li>
+   * <li>resultMessage</li>
+   * <li>resultOutcome</li>
+   * <li>statistics</li>
+   * <li>statusMessage</li>
+   * <li>terminationDate</li>
+   * </ul>
+   *
+   * @param job The job to reset
+   * @return The given job
+   */
+  public static Job reset(Job job) {
+    job.setExecutionDate(null);
+    job.setResultMessage(null);
+    job.setResultOutcome(null);
+    job.setStatistic(null);
+    job.setStatusMessage(null);
+    job.setTerminationDate(null);
+    return job;
+  }
+
   public static void delete(Key<Job> key) {
     delete(load(key));
   }
@@ -138,77 +160,65 @@ public class JobDAO {
     return ObjectifyService.factory().allocateId(Job.class);
   }
 
-  private static Job retrieveAndSetStats(Job job) {
+  private static Job sanitizeStateAndSetStatistics(Job job) {
     if (job == null) {
       return job;
     }
 
-    TaskHandle taskHandle = new TaskHandle(TaskOptions.Builder.withTaskName(job.getTaskName()), GAETaskQueueJobRunner.QUEUE_NAME);
-    Integer retryCount = taskHandle.getRetryCount();
-    // job never ran but was already retried
-    if (job.getRequestID() == null && retryCount != null && retryCount > 0) {
-      job.setStatusMessage("Waiting for retry. Already failed "+retryCount+" times.");
-      job.setRetries(retryCount);
-      job.setStatus(Status.PENDING); // re-schedule job
-      return JobDAO.save(job);
-    }
-
-    // job never ran and no retries are left
-    if (job.getRequestID() == null && retryCount != null && retryCount == JobRunnerResource.MAX_RETRIES) {
-      job.setStatusMessage("The job was never executed and all retries failed.");
-      job.setRetries(retryCount);
-      job.setStatus(Status.ERROR);
-      return JobDAO.save(job);
-    }
-
+    // job has started and no statistics were set
     if (job.getRequestID() != null && job.getStatisticReference() == null) {
-      List<String> reqIDs = Collections.singletonList(job.getRequestID());
-      LogQuery query = LogQuery.Builder.withRequestIds(reqIDs);
+      LogQuery query = LogQuery.Builder.withRequestIds(Collections.singletonList(job.getRequestID()));
       for (RequestLogs record : LogServiceFactory.getLogService().fetch(query)) {
         if (record.isFinished()) {
-
-          // clear error file if the job has been retried but now succeeded
-          if (job.getStatus() == Status.DONE && job.getRetries() > 0) {
-            JobFile errorFile = JobFileDAO.loadByName(JobRunnerResource.ERROR_FILE_NAME, job);
-            if (errorFile != null) {
-              JobFileDAO.delete(errorFile);
-            }
-          }
-
-          // Update status if job is done but the status does not reflect this
-          if (job.getStatus() == Status.PENDING
-              || job.getStatus() == Status.RUNNING) {
+          if (job.getStatus() == Status.PENDING || job.getStatus() == Status.RUNNING) {
+            JobDAO.reset(job);
             job.setStatus(Status.ERROR);
-            job.setStatusMessage(String.format("Running the job is done but the status did not reflect this."
-                + "Therefore the status was set to %s.", Status.ERROR));
+            job.setStatusMessage("The job's request has finished but the job's status did not reflect this.");
+          }
 
-            JobFile errorFile = JobFileDAO.loadByName(JobRunnerResource.ERROR_FILE_NAME, job);
-            if (errorFile == null) {
-              errorFile = new JobFile(JobRunnerResource.ERROR_FILE_NAME, job);
-            }
-            StringBuilder stringBuilder = new StringBuilder();
-            for (AppLogLine line : record.getAppLogLines()) {
-              stringBuilder.append(line.getLogMessage());
-            }
-            errorFile.setContent(stringBuilder.toString());
-            try {
-              JobFileDAO.save(errorFile);
-            } catch (IOException e) {
-              // well, then there will be no explanation about the error.
+          if (record.getStatus() == 500) {
+            if (job.getRetries() < JobRunnerResource.MAX_RETRIES) {
+              JobDAO.reset(job);
+              job.setStatus(Status.PENDING);
+              job.setStatusMessage("Waiting for retry. Already failed "+(job.getRetries()+1)+" times.");
+            } else {
+              JobDAO.reset(job);
+              job.setStatus(Status.ERROR);
+              job.setStatusMessage("The job's request has finished, the job's status did not reflect this and no retries are left");
+
+              JobFile errorFile = JobFileDAO.loadByName(JobRunnerResource.ERROR_FILE_NAME, job);
+              if (errorFile == null) {
+                errorFile = new JobFile(JobRunnerResource.ERROR_FILE_NAME, job);
+              }
+              StringBuilder errorString = new StringBuilder();
+              errorString.append(record.getCombined());
+              for (AppLogLine line : record.getAppLogLines()) {
+                errorString.append(line.getLogMessage());
+              }
+              errorString.append(errorFile.getContent());
+              errorFile.setContent(errorString.toString());
+              try {
+                JobFileDAO.save(errorFile);
+              } catch (IOException e) {
+                // too bad, no information about the error can be saved.
+              }
             }
           }
 
-          JobStatistic stats = new JobStatistic(job);
-          stats.setCost(record.getCost());
-          stats.setHost(record.getHost());
-          stats.setLatency(record.getLatencyUsec());
-          stats.setEndTime(record.getEndTimeUsec());
-          stats.setStartTime(record.getStartTimeUsec());
-          stats.setPendingTime(record.getPendingTimeUsec());
-          stats.setMcycles(record.getMcycles());
+          if (job.getStatus() == Status.DONE || job.getStatus() == Status.ERROR || job.getStatus() == Status.TIMEOUT) {
+            JobStatistic stats = new JobStatistic(job);
+            stats.setCost(record.getCost());
+            stats.setHost(record.getHost());
+            stats.setLatency(record.getLatencyUsec());
+            stats.setEndTime(record.getEndTimeUsec());
+            stats.setStartTime(record.getStartTimeUsec());
+            stats.setPendingTime(record.getPendingTimeUsec());
+            stats.setMcycles(record.getMcycles());
 
-          JobStatisticDAO.save(stats);
-          job.setStatistic(stats);
+            JobStatisticDAO.save(stats);
+            job.setStatistic(stats);
+          }
+
           job = save(job);
         }
       }

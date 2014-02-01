@@ -91,6 +91,10 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     Form requestValues = new Form(entity);
     job = JobDAO.load(requestValues.getFirstValue("jobKey"));
 
+    if (job == null) {
+      return;
+    }
+
     JobMappingThreadFactory.registerJobWithThread(job, Thread.currentThread());
     Threads.setThreadFactory(new JobMappingThreadFactory());
 
@@ -100,8 +104,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     @SuppressWarnings("unchecked")
     Series<Header> headers = (Series<Header>) getRequestAttributes().get("org.restlet.http.headers");
     int retries = Integer.valueOf(headers.getFirstValue("X-AppEngine-TaskRetryCount"));
-    job.setStatusMessage(null); // clear for case of retry
-    job.setStatistic(null); // clear for case of retry
+    JobDAO.reset(job); // clear for case of retry
     job.setRetries(retries);
     job.setRequestID((String) ApiProxy.getCurrentEnvironment().getAttributes().get("com.google.appengine.runtime.request_log_id"));
     job.setExecutionDate(new Date());
@@ -141,8 +144,8 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
             break;
           } catch (Exception e) {
             log(Level.WARNING, "Error while trying to rescue results.", e);
+            retries++;
           }
-          retries++;
         } while (retries < 3);
 
         shutdownComplete = true;
