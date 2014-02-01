@@ -84,8 +84,8 @@
 		<get dest="${lib.dir.gae}" src="http://repo1.maven.org/maven2/org/freemarker/freemarker-gae/2.3.20/freemarker-gae-2.3.20.jar" usetimestamp="true" verbose="true"/>
 		<get dest="${lib.dir.gae}" src="http://repo1.maven.org/maven2/commons-fileupload/commons-fileupload/1.3/commons-fileupload-1.3.jar" usetimestamp="true" verbose="true"/>
 		<get dest="${lib.dir.gae}" src="http://repo1.maven.org/maven2/commons-io/commons-io/2.4/commons-io-2.4.jar" usetimestamp="true" verbose="true"/>
-		<get dest="${lib.dir.gae}" src="http://search.maven.org/remotecontent?filepath=com/google/guava/guava/15.0/guava-15.0.jar" usetimestamp="true" verbose="true">
-			<mapper type="merge" to="guava-15.0.jar"/>
+		<get dest="${lib.dir.gae}" src="http://search.maven.org/remotecontent?filepath=com/google/guava/guava/16.0/guava-16.0.jar" usetimestamp="true" verbose="true">
+			<mapper type="merge" to="guava-16.0.jar"/>
 		</get>
 	</target>
 	
