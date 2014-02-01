@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 
 /**
- * Runs analysis for a given test goal automaton. May resue reachability information from other runs.
+ * Runs analysis for a given test goal automaton. May reuse reachability information from other runs.
  */
 public interface AnalysisWithReuse {
 
@@ -46,10 +46,17 @@ public interface AnalysisWithReuse {
    * @param automatonCPA
    * @param entryNode
    * @param passingCPA
-   * @return
+   * @return a pair (is analysis sound, counterexample found).
+   * If analysis is sound and the counterexample is null, then the test goal is infeasible.
    */
   Pair<Boolean, CounterexampleInfo> analyse(CFA pCFA, ReachedSet reachedSet, NondeterministicFiniteAutomaton<GuardedEdgeLabel> previousAutomaton,
       GuardedEdgeAutomatonCPA automatonCPA, FunctionEntryNode entryNode, GuardedEdgeAutomatonCPA passingCPA);
+
+  /**
+   * Close the analysis orderly.
+   * @return
+   */
+  boolean finish();
 
 
 }

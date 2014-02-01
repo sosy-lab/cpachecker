@@ -89,6 +89,12 @@ public class CPATigerMain {
     // set analysis type: predicate, explicit, ...
     AnalysisType aType = getAnalysisType(cpaConfig);
 
+    long timelimit = 0;
+    String timelimitStr = cpaConfig.getProperty("cpatiger.timelimit");
+    if (!Strings.isNullOrEmpty(timelimitStr)){
+      timelimit = Long.parseLong(timelimitStr);
+    }
+
     // create everything
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
     CPAtiger cpatiger = null;
@@ -120,7 +126,7 @@ public class CPATigerMain {
         lStopOnImpreciseExecution = true;
       }
 
-      cpatiger = new CPAtiger(options.programs, entryFunction, shutdownNotifier, lPrintStream, aType, lStopOnImpreciseExecution);
+      cpatiger = new CPAtiger(options.programs, entryFunction, shutdownNotifier, lPrintStream, aType, timelimit, lStopOnImpreciseExecution);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
@@ -371,7 +377,6 @@ public class CPATigerMain {
     if (expsim) {
       aType = AnalysisType.EXPLICIT_SIMPLE;
     }
-
 
     if (expref) {
       aType = AnalysisType.EXPLICIT_REF;

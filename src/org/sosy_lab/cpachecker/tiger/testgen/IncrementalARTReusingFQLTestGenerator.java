@@ -151,6 +151,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private AnalysisType analysisType = AnalysisType.PREDICATE;
   // underlying analysis
   private AnalysisWithReuse analysis;
+  // time limit for a single reachability analysis (0=no limit)
+  private long timelimit;
+  // maximum time for reachability analysis
+  private long timeReachMax;
 
   private static IncrementalARTReusingFQLTestGenerator INSTANCE = null;
 
@@ -199,10 +203,11 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
   }
 
-  public IncrementalARTReusingFQLTestGenerator(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier, PrintStream pOutput, AnalysisType pAType, boolean pStopOnImpreciseExecution) {
+  public IncrementalARTReusingFQLTestGenerator(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier, PrintStream pOutput, AnalysisType pAType, long pTimelimit, boolean pStopOnImpreciseExecution) {
     assert (INSTANCE == null);
 
     analysisType = pAType;
+    timelimit = pTimelimit;
     mOutput = pOutput;
     mTimesInReach = 0;
     mTimeInReach = new TimeAccumulator();
@@ -262,19 +267,19 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     case PREDICATE :
       mOutput.println("Running predicate analysis");
       analysis = new PredicateAnalysisWithReuse(pSourceFileName, pEntryFunction, shutdownNotifier, lCFA,
-          mLocationCPA, mCallStackCPA, mAssumeCPA);
+          mLocationCPA, mCallStackCPA, mAssumeCPA, timelimit);
       break;
 
     case EXPLICIT_SIMPLE :
       mOutput.println("Running simple explicit analysis");
       analysis = new ExplicitSimpleAnalysisWithReuse(pSourceFileName, pEntryFunction, shutdownNotifier, lCFA,
-          mLocationCPA, mCallStackCPA, mAssumeCPA);
+          mLocationCPA, mCallStackCPA, mAssumeCPA, timelimit);
       break;
 
     case EXPLICIT_REF :
       mOutput.println("Running explicit analysis with refinement");
       analysis = new ExplicitAnalysisWithReuse(pSourceFileName, pEntryFunction, shutdownNotifier, lCFA,
-          mLocationCPA, mCallStackCPA, mAssumeCPA);
+          mLocationCPA, mCallStackCPA, mAssumeCPA, timelimit);
       break;
 
     }
@@ -371,6 +376,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     // set up utility variables
     int lFeasibleTestGoalsTimeSlot = 0;
     int lInfeasibleTestGoalsTimeSlot = 1;
+    int lImpreciseTestGoalsTimeSlot = 1;
+
 
     TimeAccumulator lTimeAccu = new TimeAccumulator(2);
 
@@ -522,6 +529,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoalAutomaton);
 
+      long timeReachThisStart = System.currentTimeMillis();
       lTimeReach.proceed();
 
       boolean lReachableViaGraphSearch = false;
@@ -540,8 +548,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         }
       }
 
-      Boolean reachable = false;
-      CounterexampleInfo lCounterexampleTraceInfo = null;
+      Boolean isSound = true;
+      CounterexampleInfo cex = null;
 
 
       if (lReachableViaGraphSearch) {
@@ -551,19 +559,24 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         Pair<Boolean, CounterexampleInfo> result = analysis.analyse(mWrapper.getCFA(), lPredicateReachedSet, lPreviousGoalAutomaton, lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
         mTimeInReach.pause();
 
-        lCounterexampleTraceInfo = result.getSecond();
+        isSound = result.getFirst();
+        cex = result.getSecond();
         // lPredicateReachedSet and lPreviousGoalAutomaton have to be in-sync.
         lPreviousGoalAutomaton = lAutomatonCPA.getAutomaton();
-        reachable = result.getFirst();
       }
       else {
         lNumberOfCFAInfeasibleGoals++;
       }
 
       lTimeReach.pause();
-      assert reachable != null;
+      long timeThisReach = System.currentTimeMillis() - timeReachThisStart;
+      if (timeThisReach > timeReachMax) {
+        timeReachMax = timeThisReach;
+      }
 
-      if (!reachable) {
+
+      if (!lReachableViaGraphSearch || (isSound && cex == null)){
+        // goal is unreachable
         mOutput.println("Goal #" + lIndex + " is infeasible!");
 
         if (lIsCovered) {
@@ -575,10 +588,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
 
         lTimeAccu.pause(lInfeasibleTestGoalsTimeSlot);
-
-        long lEndTime = System.currentTimeMillis();
-
-        lGoalRuntime[lIndex - 1] = lEndTime - lStartTime;
 
         if (lReachableViaGraphSearch && lInfeasibilityPropagation.getFirst()) {
           HashSet<CFAEdge> lTargetEdges = new HashSet<>();
@@ -627,42 +636,34 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           mOutput.println("(" + lPredictedElements + ")");
         }
       }
+      else if (!isSound || (cex.isSpurious())){
+        // analysis is imprecise
+        mOutput.println("Goal #" + lIndex + " lead to an imprecise execution!");
+        mTestCaseUtil.updateImpreciseTestCaseStatistics(lIndex, lResultFactory, lGoalPrediction);
+        lTimeAccu.pause(lImpreciseTestGoalsTimeSlot);
+      }
       else {
+        // goal is reachable
+        assert isSound && !cex.isSpurious();
 
         lTimeCover.proceed();
-
-        if (lCounterexampleTraceInfo.isSpurious()){
-          // analysis returned a spurious trace - report an imprecise result
-          mOutput.println("Goal #" + lIndex + " lead to an imprecise execution!");
-          mTestCaseUtil.updateImpreciseTestCaseStatistics(lIndex, lResultFactory, lGoalPrediction);
-        } else {
-          TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
-          mTestSuite.add(lTestCase);
-          mTestCaseUtil.reconstructPath(lTestCase, lIndex, lAutomatonCPA, lPassingCPA, lResultFactory, lGoal, lGoalPrediction);
-        }
+        TestCase lTestCase = TestCase.fromCounterexample(cex, mLogManager);
+        mTestSuite.add(lTestCase);
+        mTestCaseUtil.reconstructPath(lTestCase, lIndex, lAutomatonCPA, lPassingCPA, lResultFactory, lGoal, lGoalPrediction);
 
         lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
         lTimeCover.pause();
-
-        long lEndTime = System.currentTimeMillis();
-
-        lGoalRuntime[lIndex - 1] = lEndTime - lStartTime;
-
-
-
       }
+
+      long lEndTime = System.currentTimeMillis();
+      lGoalRuntime[lIndex - 1] = lEndTime - lStartTime;
     }
 
     mOutput.println("Goal #" + (lIndex) + " needed " + lGoalRuntime[lIndex - 1] + " ms");
-
     mOutput.println("Number of CFA infeasible test goals: " + lNumberOfCFAInfeasibleGoals);
-
     mOutput.println("Time in reach: " + mTimeInReach.getSeconds());
+    mOutput.println("Max time in reach: " + ((double) timeReachMax)/1000 + " s");
     mOutput.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
-
-    // TODO remove ... look at statistics
-    //System.out.println("#abstraction elements: " + mPredicateCPA.getAbstractionElementFactory().getNumberOfCreatedAbstractionElements());
-    //System.out.println("#nonabstraction elements: " + NonabstractionElement.INSTANCES);
 
     CPAtigerResult lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
 
@@ -671,6 +672,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }*/
 
     printStatistics(lResultFactory);
+    analysis.finish();
 
     // print per goal runtimes
     /*Arrays.sort(lGoalRuntime);
@@ -699,134 +701,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     mOutput.println("#Imprecise: " + mFeasibilityInformation.getNumberOfImpreciseTestgoals());
   }
 
- /*
-  private CounterexampleInfo reach(CFA pCFA, ReachedSet pReachedSet, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, GuardedEdgeAutomatonCPA pAutomatonCPA, FunctionEntryNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
-    mTimeInReach.proceed();
-    mTimesInReach++;
-
-
-
-    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
-    lComponentAnalyses.add(mLocationCPA);
-
-    lComponentAnalyses.add(mCallStackCPA);
-
-    List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<>(2);
-
-    if (pPassingCPA != null) {
-      lAutomatonCPAs.add(pPassingCPA);
-    }
-
-    lAutomatonCPAs.add(pAutomatonCPA);
-
-    int lProductAutomatonIndex = lComponentAnalyses.size();
-    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
-
-    lComponentAnalyses.add(mPredicateCPA);
-
-    lComponentAnalyses.add(mAssumeCPA);
-
-    ARGCPA lARTCPA;
-    try {
-      // create composite CPA
-      CPAFactory lCPAFactory = CompositeCPA.factory();
-      lCPAFactory.setChildren(lComponentAnalyses);
-      lCPAFactory.setConfiguration(mConfiguration);
-      lCPAFactory.setLogger(mLogManager);
-      lCPAFactory.set(pCFA, CFA.class);
-
-      ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
-
-      // create ART CPA
-      CPAFactory lARTCPAFactory = ARGCPA.factory();
-      lARTCPAFactory.setChild(lCPA);
-      lARTCPAFactory.setConfiguration(mConfiguration);
-      lARTCPAFactory.setLogger(mLogManager);
-
-      lARTCPA = (ARGCPA)lARTCPAFactory.createInstance();
-    } catch (InvalidConfigurationException | CPAException e) {
-      throw new RuntimeException(e);
-    }
-
-    CPAAlgorithm lBasicAlgorithm;
-    try {
-      lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration, ShutdownNotifier.create());
-    } catch (InvalidConfigurationException e1) {
-      throw new RuntimeException(e1);
-    }
-
-    PredicateCPARefiner lRefiner;
-    try {
-      lRefiner = PredicateRefiner.cpatiger_create(lARTCPA);
-    } catch (CPAException | InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    }
-
-    CEGARAlgorithmWithCounterexampleInfo lAlgorithm;
-    try {
-      lAlgorithm = new CEGARAlgorithmWithCounterexampleInfo(lBasicAlgorithm, lRefiner, mConfiguration, mLogManager);
-    } catch (InvalidConfigurationException | CPAException e) {
-      throw new RuntimeException(e);
-    }
-
-    ARGStatistics lARTStatistics;
-    try {
-      lARTStatistics = new ARGStatistics(mConfiguration, lARTCPA);
-    } catch (InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    }
-    Set<Statistics> lStatistics = new HashSet<>();
-    lStatistics.add(lARTStatistics);
-    lAlgorithm.collectStatistics(lStatistics);
-
-    if (mReuseART) {
-      ARTReuse.modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
-
-      if (mPrecision != null) {
-        for (AbstractState lWaitlistElement : pReachedSet.getWaitlist()) {
-          Precision lOldPrecision = pReachedSet.getPrecision(lWaitlistElement);
-          Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, mPrecision, PredicatePrecision.class);
-
-          pReachedSet.updatePrecision(lWaitlistElement, lNewPrecision);
-        }
-      }
-    }
-    else {
-      pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
-
-      AbstractState lInitialElement = lARTCPA.getInitialState(pEntryNode);
-      Precision lInitialPrecision = lARTCPA.getInitialPrecision(pEntryNode);
-
-      pReachedSet.add(lInitialElement, lInitialPrecision);
-    }
-
-    Pair<Boolean, CounterexampleInfo> lResult;
-
-    try {
-      lResult = lAlgorithm.runWithCounterexample(pReachedSet);
-
-      assert lResult.getFirst();
-    } catch (CPAException | InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-
-    CounterexampleInfo lCounterexampleInfo;
-
-    if (pReachedSet.getLastState() != null && ((ARGState)pReachedSet.getLastState()).isTarget()) {
-      lCounterexampleInfo = lResult.getSecond();
-
-      assert(lCounterexampleInfo != null);
-      assert(!lCounterexampleInfo.isSpurious());
-    }
-    else {
-      // we have shown the infeasibility of the test goal (given the assumption that the algorithm completed)
-      lCounterexampleInfo = null; // TODO I guess this can't stay like that
-    }
-
-    mTimeInReach.pause();
-
-    return lCounterexampleInfo;
-  }*/
 
   private boolean checkCoverage(TestCase pTestCase, FunctionEntryNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
@@ -1073,7 +947,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     return lProductAutomatonElement.isFinalState();
   }
-
 
 }
 

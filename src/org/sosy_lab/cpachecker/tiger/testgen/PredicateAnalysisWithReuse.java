@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -65,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
+import org.sosy_lab.cpachecker.tiger.core.algorithm.AlgorithmExecutorService;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.tiger.util.ARTReuse;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -91,15 +93,18 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
   private boolean lUseCache;
   private final CFA cfa;
   private final ShutdownNotifier shutdownNotifier;
+  private long timelimit;
+  private AlgorithmExecutorService executor;
 
   public PredicateAnalysisWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier pshutdownNotifier,
       CFA lCFA, LocationCPA pmLocationCPA, CallstackCPA pmCallStackCPA,
-      AssumeCPA pmAssumeCPA){
+      AssumeCPA pmAssumeCPA, long pTimelimit){
     mLocationCPA = pmLocationCPA;
     mCallStackCPA = pmCallStackCPA;
     mAssumeCPA = pmAssumeCPA;
     cfa = lCFA;
     shutdownNotifier = pshutdownNotifier;
+    timelimit = pTimelimit;
 
     try {
       mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction);
@@ -108,6 +113,7 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
       throw new RuntimeException(e);
     }
 
+    executor = AlgorithmExecutorService.getInstance();
   }
 
   @Override
@@ -197,8 +203,9 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
     }
 
     CPAAlgorithm lBasicAlgorithm;
+    ShutdownNotifier notifier = ShutdownNotifier.create();
     try {
-      lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration, ShutdownNotifier.create());
+      lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration, notifier);
     } catch (InvalidConfigurationException e1) {
       throw new RuntimeException(e1);
     }
@@ -249,31 +256,18 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
       pReachedSet.add(lInitialElement, lInitialPrecision);
     }
 
-    Pair<Boolean, CounterexampleInfo> lResult;
+    // run algorithm with an optionall timeout
+    boolean isSound = executor.execute(lAlgorithm, pReachedSet, notifier, timelimit, TimeUnit.SECONDS);
+    CounterexampleInfo cex = lAlgorithm.getCex();
 
 
-    try {
-      lResult = lAlgorithm.runWithCounterexample(pReachedSet);
-
-      assert lResult.getFirst();
-    } catch (CPAException | InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-
-    CounterexampleInfo lCounterexampleInfo = null;
-    Boolean reachable = false;
-
+    // TODO remove as useless
     if (pReachedSet.getLastState() != null && ((ARGState)pReachedSet.getLastState()).isTarget()) {
-      lCounterexampleInfo = lResult.getSecond();
-      reachable = true;
-
-      assert(lCounterexampleInfo != null);
-      assert(!lCounterexampleInfo.isSpurious());
+      assert(cex != null);
+      assert(!cex.isSpurious());
     }
 
-
-    assert !reachable || lCounterexampleInfo != null;
-    return Pair.of(reachable, lCounterexampleInfo);
+    return Pair.of(isSound, cex);
   }
 
   @Override
@@ -284,6 +278,12 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
   @Override
   public void setPrecision(Precision pNewPrec) {
     mPrecision = (PredicatePrecision) pNewPrec;
+  }
+
+  @Override
+  public boolean finish() {
+    executor.shutdownNow();
+    return true;
   }
 
 

@@ -150,6 +150,9 @@ public class CEGARAlgorithmWithCounterexampleInfo implements Algorithm, Statisti
   private final Algorithm algorithm;
   private final AbstractARGBasedRefiner mRefiner;
 
+  private CounterexampleInfo cex;
+
+
   // TODO Copied from CPABuilder, should be refactored into a generic implementation
   private AbstractARGBasedRefiner createInstance(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
 
@@ -221,7 +224,7 @@ public class CEGARAlgorithmWithCounterexampleInfo implements Algorithm, Statisti
   }
 
   public Pair<Boolean, CounterexampleInfo> runWithCounterexample(ReachedSet reached) throws CPAException, InterruptedException {
-    boolean isComplete        = true;
+    boolean isSound        = true;
     int initialReachedSetSize = reached.size();
 
     CounterexampleInfo lCounterexampleInfo;
@@ -235,7 +238,13 @@ public class CEGARAlgorithmWithCounterexampleInfo implements Algorithm, Statisti
         refinementSuccessful = false;
 
         // run algorithm
-        isComplete &= algorithm.run(reached);
+        try {
+          isSound &= algorithm.run(reached);
+        }
+        catch (InterruptedException e){
+          isSound = false;
+          break;
+        }
 
         // if there is any target state do refinement
         if (refinementNecessary(reached)) {
@@ -260,14 +269,20 @@ public class CEGARAlgorithmWithCounterexampleInfo implements Algorithm, Statisti
     }
     //return isComplete;
 
-    return Pair.<Boolean, CounterexampleInfo>of(isComplete, lCounterexampleInfo);
+    return Pair.<Boolean, CounterexampleInfo>of(isSound, lCounterexampleInfo);
   }
 
   @Override
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     Pair<Boolean, CounterexampleInfo> result = runWithCounterexample(reached);
 
+    cex = result.getSecond();
     return result.getFirst();
+  }
+
+
+  public CounterexampleInfo getCex() {
+    return cex;
   }
 
   private boolean refinementNecessary(ReachedSet reached) {

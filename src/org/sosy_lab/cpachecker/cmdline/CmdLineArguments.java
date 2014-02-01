@@ -135,6 +135,7 @@ class CmdLineArguments {
           || handleArgument1("-cp",            "java.classpath",          arg, argsIt, properties)
           || handleArgument1("-classpath",     "java.classpath",          arg, argsIt, properties)
 
+          || handleArgument1("-rtimelimit", "cpatiger.timelimit", arg, argsIt, properties) // time limit for a single analysis
           || handleArgument1("-fql", "cpatiger.fqlquery", arg, argsIt, properties) // FQL query
           || handleArgument1("-goal", "cpatiger.goal", arg, argsIt, properties) // process only the given goal
 
