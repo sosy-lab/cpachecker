@@ -21,12 +21,12 @@ ant -f gae-build.xml gae-install
 
 Afterwards you need to add the following JARs to the classpath:
 lib/gae/*.jar
-lib/appengine-java-sdk-1.8.8/lib/user/*.jar
-lib/appengine-java-sdk-1.8.8/lib/impl/appengine-api.jar
-lib/appengine-java-sdk-1.8.8/lib/impl/appengine-api-stubs.jar
-lib/appengine-java-sdk-1.8.8/lib/impl/appengine-api-labs.jar
-lib/appengine-java-sdk-1.8.8/lib/shared/servlet-api.jar
-lib/appengine-java-sdk-1.8.8/lib/testing/appengine-testing.jar
+lib/appengine-java-sdk-1.8.9/lib/user/*.jar
+lib/appengine-java-sdk-1.8.9/lib/impl/appengine-api.jar
+lib/appengine-java-sdk-1.8.9/lib/impl/appengine-api-stubs.jar
+lib/appengine-java-sdk-1.8.9/lib/impl/appengine-api-labs.jar
+lib/appengine-java-sdk-1.8.9/lib/shared/servlet-api.jar
+lib/appengine-java-sdk-1.8.9/lib/testing/appengine-testing.jar
 
 Also all App Engine related source code is excluded from the classpath by
 default. Therefore you need to remove "org/sosy_lab/cpachecker/appengine/"

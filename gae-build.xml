@@ -6,6 +6,8 @@
 	<property name="source.dir" value="${basedir}/src" />
 	<property name="specification.dir" value="${basedir}/config/specification"/>
 	<property name="configuration.dir" value="${basedir}/config"/>
+	
+	<property name="gae-sdk.name" value="appengine-java-sdk-1.8.9"/>
 
 	<property name="lib.dir" value="${basedir}/lib" />
 	<property name="lib.dir.gae" value="${lib.dir}/gae" />
@@ -13,7 +15,7 @@
 
 	<property name="class.dir" value="war/WEB-INF/classes" />
 
-	<property name="gae-sdk.dir" location="${lib.dir}/appengine-java-sdk-1.8.8" />
+	<property name="gae-sdk.dir" location="${lib.dir}/${gae-sdk.name}" />
 	<property name="gae-classes.dir" location="war/WEB-INF/classes" />
 	<property name="gae-dev.port" value="8888" />
 	<property name="gae-dev.debugport" value="9999" />
@@ -28,10 +30,10 @@
 		<fileset dir="${gae-sdk.dir}/lib">
 			<include name="shared/**/*.jar" />
 		</fileset>
-		<fileset dir="${lib.dir}/appengine-java-sdk-1.8.8">
+		<fileset dir="${lib.dir}/${gae-sdk.name}">
 			<include name="lib/impl/appengine-api*.jar" />
 		</fileset>
-		<fileset dir="${lib.dir}/appengine-java-sdk-1.8.8">
+		<fileset dir="${lib.dir}/${gae-sdk.name}">
 			<include name="lib/testing/appengine-testing.jar" />
 		</fileset>
 	</path>
@@ -57,7 +59,7 @@
 	<target name="gae-install" depends="gae-getjars,gae-getsdk,gae-unzipsdk" description="Downloads all necessary files and setup the classpath." />
 
 	<target name="gae-getsdk" description="Downloads the Google App Engine SDK.">
-		<get dest="${lib.dir}" src="http://googleappengine.googlecode.com/files/appengine-java-sdk-1.8.8.zip" usetimestamp="true" verbose="true"/>
+		<get dest="${lib.dir}" src="http://googleappengine.googlecode.com/files/${gae-sdk.name}.zip" usetimestamp="true" verbose="true"/>
 		<property name="gae-sdk-downloaded" value="true"/>
 	</target>
 
@@ -87,8 +89,8 @@
 		</get>
 	</target>
 	
-	<target name="gae-unzipsdk" description="Unzips the Google App Engine SDK." if="gae-sdk-downloaded">
-		<unzip src="${lib.dir}/appengine-java-sdk-1.8.8.zip" dest="${lib.dir}"></unzip>
+	<target name="gae-unzipsdk" description="Unzips the Google App Engine SDK." depends="gae-getsdk" if="gae-sdk-downloaded">
+		<unzip src="${lib.dir}/${gae-sdk.name}.zip" dest="${lib.dir}"></unzip>
 	</target>
 
 	<target name="gae-copyjars" description="Copies all JARs to the WAR.">
