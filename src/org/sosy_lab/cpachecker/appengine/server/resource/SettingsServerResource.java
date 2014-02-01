@@ -44,6 +44,7 @@ import com.google.common.base.CharMatcher;
 
 
 public class SettingsServerResource extends WadlServerResource implements SettingsResource {
+
   @Override
   public Representation getSettingsAsJson() throws IOException {
     ObjectMapper mapper = new ObjectMapper();

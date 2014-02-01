@@ -91,9 +91,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     Form requestValues = new Form(entity);
     job = JobDAO.load(requestValues.getFirstValue("jobKey"));
 
-    if (job == null) {
-      return;
-    }
+    if (job == null) { return; }
 
     JobMappingThreadFactory.registerJobWithThread(job, Thread.currentThread());
     Threads.setThreadFactory(new JobMappingThreadFactory());
@@ -106,7 +104,8 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     int retries = Integer.valueOf(headers.getFirstValue("X-AppEngine-TaskRetryCount"));
     JobDAO.reset(job); // clear for case of retry
     job.setRetries(retries);
-    job.setRequestID((String) ApiProxy.getCurrentEnvironment().getAttributes().get("com.google.appengine.runtime.request_log_id"));
+    job.setRequestID((String) ApiProxy.getCurrentEnvironment().getAttributes()
+        .get("com.google.appengine.runtime.request_log_id"));
     job.setExecutionDate(new Date());
     job.setStatus(Status.RUNNING);
     JobDAO.save(job);
@@ -116,6 +115,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     dumpConfiguration();
 
     ShutdownRequestListener listener = new ShutdownRequestListener() {
+
       @Override
       public void shutdownRequested(final String reason) {
         log(Level.WARNING, "Task timed out. Trying to rescue results.", reason);
@@ -163,6 +163,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
      * allows for setting the jobs status and potentially saving results.
      */
     cpaCheckerThread = Threads.newThread(new Runnable() {
+
       @Override
       public void run() {
         try {
@@ -183,6 +184,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     });
 
     UncaughtExceptionHandler handler = new UncaughtExceptionHandler() {
+
       @Override
       public void uncaughtException(Thread t, Throwable e) {
         doCatch(e);
@@ -380,8 +382,10 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
 
     @Override
     public void publish(LogRecord pRecord) {}
+
     @Override
     public void flush() {}
+
     @Override
     public void close() throws SecurityException {}
   }

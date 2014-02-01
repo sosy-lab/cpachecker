@@ -49,18 +49,16 @@ public class CPAcheckerApplication extends WadlApplication {
 
   @Override
   public Restlet createInboundRoot() {
-//    getTunnelService().setExtensionsTunnel(true);
     getEncoderService().setEnabled(true);
 
     try {
       Logger.selectLoggerLibrary(Logger.LIBRARY_JAVA);
     } catch (ClassNotFoundException _) {
-      // ignored because JUL logging will be available
+      // ignored because JUL logging is available
     }
 
     Router router = new Router(getContext());
 
-    // latest API
     router.attach("/", RootServerResource.class);
     router.attach("/jobs", JobsServerResource.class);
     router.attach("/jobs/{jobKey}", JobServerResource.class);
@@ -75,6 +73,11 @@ public class CPAcheckerApplication extends WadlApplication {
     return capabilitiesFilter;
   }
 
+  /**
+   * Returns the version of CPAchecker on Google App Engine
+   *
+   * @return The version string
+   */
   public static String getVersion() {
     try {
       return Paths.get("WEB-INF/VERSION.txt").asCharSource(Charsets.UTF_8).read();

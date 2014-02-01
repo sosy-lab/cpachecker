@@ -1,22 +1,3 @@
-package org.sosy_lab.cpachecker.appengine.server.resource;
-import org.restlet.data.MediaType;
-import org.restlet.data.Status;
-import org.restlet.ext.wadl.WadlServerResource;
-import org.restlet.representation.Representation;
-import org.restlet.representation.StringRepresentation;
-import org.restlet.resource.ResourceException;
-import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
-import org.sosy_lab.cpachecker.appengine.json.JobMixinAnnotations;
-import org.sosy_lab.cpachecker.appengine.json.JobStatisticMixinAnnotations;
-import org.sosy_lab.cpachecker.appengine.server.common.JobStatisticResource;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
-
 /*
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
@@ -40,6 +21,25 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+package org.sosy_lab.cpachecker.appengine.server.resource;
+
+import org.restlet.data.MediaType;
+import org.restlet.data.Status;
+import org.restlet.ext.wadl.WadlServerResource;
+import org.restlet.representation.Representation;
+import org.restlet.representation.StringRepresentation;
+import org.restlet.resource.ResourceException;
+import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
+import org.sosy_lab.cpachecker.appengine.entity.Job;
+import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
+import org.sosy_lab.cpachecker.appengine.json.JobMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.json.JobStatisticMixinAnnotations;
+import org.sosy_lab.cpachecker.appengine.server.common.JobStatisticResource;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
 
 public class JobStatisticServerResource extends WadlServerResource implements JobStatisticResource {
 

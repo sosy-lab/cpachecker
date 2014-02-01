@@ -37,7 +37,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public abstract class JobFileMixinAnnotations {
 
-  @JsonAutoDetect(getterVisibility=Visibility.NONE,fieldVisibility=Visibility.NONE)
+  @JsonAutoDetect(getterVisibility = Visibility.NONE, fieldVisibility = Visibility.NONE)
   public abstract class Minimal extends JobFile {
 
     @JsonProperty
@@ -50,6 +50,7 @@ public abstract class JobFileMixinAnnotations {
   }
 
   public abstract class Full extends Minimal {
+
     @JsonProperty
     String content;
 

@@ -50,9 +50,9 @@ public class GAETaskQueueJobRunner implements JobRunner {
     Queue queue = QueueFactory.getQueue(QUEUE_NAME);
     TaskHandle task = queue.add(
         TaskOptions.Builder
-        .withUrl(WORKER_PATH)
-        .taskName("job-"+jobKey)
-        .param("jobKey", jobKey));
+            .withUrl(WORKER_PATH)
+            .taskName("job-" + jobKey)
+            .param("jobKey", jobKey));
 
     job.setQueueName(task.getQueueName());
     job.setTaskName(task.getName());

@@ -147,7 +147,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
 
     if (errors.size() == 0) {
       getResponse().setStatus(Status.SUCCESS_CREATED);
-      redirectSeeOther("/jobs/"+createdJob.getKey());
+      redirectSeeOther("/jobs/" + createdJob.getKey());
       return getResponseEntity();
     }
 
@@ -203,7 +203,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
         return new StringRepresentation(mapper.writeValueAsString(errors), MediaType.APPLICATION_JSON);
       } else {
         getResponse().setStatus(Status.SUCCESS_CREATED);
-        getResponse().setLocationRef("/jobs/"+createdJob.getKey());
+        getResponse().setLocationRef("/jobs/" + createdJob.getKey());
         return new StringRepresentation(mapper.writeValueAsString(createdJob), MediaType.APPLICATION_JSON);
       }
     } catch (JsonProcessingException e) {

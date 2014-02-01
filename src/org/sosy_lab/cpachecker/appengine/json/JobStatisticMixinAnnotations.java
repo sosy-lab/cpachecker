@@ -33,9 +33,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public abstract class JobStatisticMixinAnnotations {
 
-  @JsonAutoDetect(getterVisibility=Visibility.NONE,fieldVisibility=Visibility.NONE)
-
+  @JsonAutoDetect(getterVisibility = Visibility.NONE, fieldVisibility = Visibility.NONE)
   public abstract class Minimal extends JobStatistic {
+
     @Override
     @JsonProperty
     public abstract String getKey();
@@ -52,6 +52,7 @@ public abstract class JobStatisticMixinAnnotations {
   }
 
   public abstract class Full extends Minimal {
+
     @JsonProperty
     double cost;
     @JsonProperty

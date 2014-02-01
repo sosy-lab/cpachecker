@@ -50,7 +50,8 @@ public class JobsResourceJSONModule extends SimpleModule {
   private class SettingsDeserializer extends JsonDeserializer<Map<String, Object>> {
 
     @Override
-    public Map<String, Object> deserialize(JsonParser parser, DeserializationContext pArg1) throws IOException, JsonProcessingException {
+    public Map<String, Object> deserialize(JsonParser parser, DeserializationContext pArg1) throws IOException,
+        JsonProcessingException {
       parser.enable(Feature.ALLOW_UNQUOTED_CONTROL_CHARS);
 
       Map<String, Object> settings = new HashMap<>();
@@ -87,7 +88,9 @@ public class JobsResourceJSONModule extends SimpleModule {
     }
 
     @Override
-    public Class<?> handledType() {return Map.class;}
+    public Class<?> handledType() {
+      return Map.class;
+    }
 
   }
 

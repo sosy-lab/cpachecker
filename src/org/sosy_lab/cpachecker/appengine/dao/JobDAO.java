@@ -47,8 +47,15 @@ import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
 
 
+/**
+ * This class provides methods for loading, saving and deletion of {@link Job}
+ * instances.
+ */
 public class JobDAO {
 
+  /**
+   * @see #load(Key)
+   */
   public static Job load(String key) {
     try {
       Key<Job> jobKey = Key.create(key);
@@ -58,15 +65,31 @@ public class JobDAO {
     }
   }
 
+  /**
+   * Retrieves and returns a job with the given key.
+   *
+   * @param key The key of the desired job
+   * @return The desired job or null if it cannot be found
+   */
   public static Job load(Key<Job> key) {
     Job job = ofy().load().key(key).now();
     return sanitizeStateAndSetStatistics(job);
   }
 
+  /**
+   * Returns a list containing all available jobs.
+   * @return
+   */
   public static List<Job> jobs() {
     return ofy().load().type(Job.class).list();
   }
 
+  /**
+   * Saves the given job.
+   *
+   * @param job The job to save
+   * @return The saved job
+   */
   public static Job save(Job job) {
     ofy().save().entity(job).now();
     return job;
@@ -80,6 +103,7 @@ public class JobDAO {
   public static void delete(final Job job) {
     if (job != null) {
       ofy().transact(new VoidWork() {
+
         @Override
         public void vrun() {
           try {
@@ -129,7 +153,7 @@ public class JobDAO {
   }
 
   /**
-   * Sets to following properties to null. Does not save the job!
+   * Sets the following properties to null. Does not save the job!
    * <ul>
    * <li>executionDate</li>
    * <li>resultMessage</li>
@@ -152,18 +176,33 @@ public class JobDAO {
     return job;
   }
 
+  /**
+   * @see #delete(Job)
+   */
   public static void delete(Key<Job> key) {
     delete(load(key));
   }
 
+  /**
+   * Allocates and returns a key that can be used to identify a job instance.
+   *
+   * @return A key for a job.
+   */
   public static Key<Job> allocateKey() {
     return ObjectifyService.factory().allocateId(Job.class);
   }
 
+  /**
+   * Retrieves the log entry associated with the given job and uses
+   * the entry together with the job's state to fix the job if it is in an
+   * undefined state.
+   * Also saves any statistics found in the log entry together with the job.
+   *
+   * @param job The job to sanitize.
+   * @return The given job instance
+   */
   private static Job sanitizeStateAndSetStatistics(Job job) {
-    if (job == null) {
-      return job;
-    }
+    if (job == null) { return job; }
 
     // job has started and no statistics were set
     if (job.getRequestID() != null && job.getStatisticReference() == null) {
@@ -180,7 +219,7 @@ public class JobDAO {
             if (job.getRetries() < JobRunnerResource.MAX_RETRIES) {
               JobDAO.reset(job);
               job.setStatus(Status.PENDING);
-              job.setStatusMessage("Waiting for retry. Already failed "+(job.getRetries()+1)+" times.");
+              job.setStatusMessage("Waiting for retry. Already failed " + (job.getRetries() + 1) + " times.");
             } else {
               JobDAO.reset(job);
               job.setStatus(Status.ERROR);

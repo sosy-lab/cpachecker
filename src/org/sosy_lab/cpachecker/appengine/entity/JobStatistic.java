@@ -39,8 +39,10 @@ import com.googlecode.objectify.annotation.Parent;
 @Entity
 public class JobStatistic {
 
-  @Id Long id;
-  @Parent Ref<Job> job;
+  @Id
+  Long id;
+  @Parent
+  Ref<Job> job;
   private double cost;
   private String host;
   private long latency;

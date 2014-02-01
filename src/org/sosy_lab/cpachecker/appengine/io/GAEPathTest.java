@@ -127,7 +127,7 @@ public class GAEPathTest extends DatabaseTest {
       out.write(new String("test").getBytes());
     }
 
-    assertEquals(oldContent+"test", file.getContent());
+    assertEquals(oldContent + "test", file.getContent());
   }
 
   @Test
@@ -137,7 +137,7 @@ public class GAEPathTest extends DatabaseTest {
       writer.write("test");
     }
 
-    assertEquals(oldContent+"test", file.getContent());
+    assertEquals(oldContent + "test", file.getContent());
   }
 
   @Test

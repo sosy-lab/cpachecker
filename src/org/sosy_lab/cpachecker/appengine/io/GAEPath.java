@@ -36,11 +36,21 @@ import com.google.common.io.CharSink;
 import com.google.common.io.CharSource;
 import com.google.common.io.FileWriteMode;
 
-
+/**
+ * This class extends a {@link FileSystemPath} and makes it work on Google App
+ * Engine. GAE does not allow writes to the file system and therefore any method
+ * that would do so is adapted to redirect writes to a fitting means.
+ */
 public class GAEPath extends FileSystemPath {
 
   private JobFile jobFile = null;
 
+  /**
+   * Constructs a new instance that depends on the given job.
+   *
+   * @see FileSystemPath#FileSystemPath(String, String...)
+   * @param job The job this instance depends on
+   */
   public GAEPath(String path, Job job, String... more) {
     super(path, more);
 
@@ -65,6 +75,10 @@ public class GAEPath extends FileSystemPath {
     return new DataStoreByteSink(jobFile, mode);
   }
 
+  /**
+   * If the file represented by this instance is available on the file system
+   * the returned ByteSource points to the file system.
+   */
   @Override
   public ByteSource asByteSource() {
     if (super.exists()) {
@@ -79,6 +93,10 @@ public class GAEPath extends FileSystemPath {
     return new DataStoreCharSink(jobFile, charset, mode);
   }
 
+  /**
+   * If the file represented by this instance is available on the file system
+   * the returned CharSource points to the file system.
+   */
   @Override
   public CharSource asCharSource(Charset charset) {
     if (super.exists()) {
@@ -97,6 +115,10 @@ public class GAEPath extends FileSystemPath {
     return true;
   }
 
+  /**
+   * Currently does nothing since implementing this method on GAE seems not
+   * feasible.
+   */
   @Override
   public void deleteOnExit() {
     // TODO how??
@@ -107,16 +129,25 @@ public class GAEPath extends FileSystemPath {
     return !isFile();
   }
 
+  /**
+   * Returns always true and does nothing.
+   */
   @Override
   public boolean mkdirs() {
     return true;
   }
 
+  /**
+   * Returns always true and does nothing.
+   */
   @Override
   public boolean exists() {
     return true;
   }
 
+  /**
+   * Returns always true and does nothing.
+   */
   @Override
   public boolean canRead() {
     return true;
@@ -124,6 +155,7 @@ public class GAEPath extends FileSystemPath {
 
   /**
    * Assumes a file always has an extension.
+   * For example: foo.bar or foo.bar.baz
    */
   @Override
   public boolean isFile() {

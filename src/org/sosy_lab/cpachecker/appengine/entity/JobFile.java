@@ -46,13 +46,19 @@ import com.googlecode.objectify.annotation.Parent;
 @Entity
 public class JobFile {
 
-  @Id private Long id;
-  @Parent private  Ref<Job> job;
-  @Index private String path;
-  @Index private String name;
+  @Id
+  private Long id;
+  @Parent
+  private Ref<Job> job;
+  @Index
+  private String path;
+  @Index
+  private String name;
   private String content;
-  @Ignore private Writer contentWriter;
-  @Ignore private ByteArrayOutputStream contentOutputStream;
+  @Ignore
+  private Writer contentWriter;
+  @Ignore
+  private ByteArrayOutputStream contentOutputStream;
 
   public JobFile() {
     init();
@@ -143,13 +149,15 @@ public class JobFile {
   /**
    * Flushes the content output stream before saving and sets the content to its contents.
    */
-  @OnSave void flushOuputStream() {
+  @OnSave
+  void flushOuputStream() {
     if (contentOutputStream != null && contentOutputStream.size() > 0) {
       content = contentOutputStream.toString();
     }
   }
 
-  @OnSave void storeName() {
+  @OnSave
+  void storeName() {
     name = getName();
   }
 
