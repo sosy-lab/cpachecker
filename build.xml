@@ -47,8 +47,10 @@
     <target name="init">
         <echo message="Building ${ant.project.name} ${version}"/>
         <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
-        <echo message="${version}" file="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
     </target>
+	<target name="create-version-file">
+		<echo message="${version}" file="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
+	</target>
     <target name="clean">
         <delete includeEmptyDirs="true">
             <fileset dir="." includes="${class.dir}/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
