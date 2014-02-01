@@ -32,6 +32,7 @@ import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
+import org.sosy_lab.cpachecker.appengine.server.CPAcheckerApplication;
 import org.sosy_lab.cpachecker.appengine.server.common.JobRunnerResource;
 import org.sosy_lab.cpachecker.appengine.server.common.SettingsResource;
 import org.sosy_lab.cpachecker.core.CPAchecker;
@@ -55,6 +56,7 @@ public class SettingsServerResource extends WadlServerResource implements Settin
     settings.put("errorFileName", JobRunnerResource.ERROR_FILE_NAME);
     settings.put("statisticsFileName", DefaultOptions.getImmutableOptions().get("statistics.file"));
     settings.put("cpacheckerVersion", CPAchecker.getVersion());
+    settings.put("cpacheckerOnGAEVersion", CPAcheckerApplication.getVersion());
     settings.put("CPUSpeed", "600Mhz"); // see appengine-web.xml
     settings.put("RAM", "128M"); // see appengine-web.xml
 

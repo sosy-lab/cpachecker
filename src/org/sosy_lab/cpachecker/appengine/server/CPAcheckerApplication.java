@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.appengine.server;
 
+import java.io.IOException;
+
 import org.restlet.Restlet;
 import org.restlet.ext.wadl.WadlApplication;
 import org.restlet.routing.Router;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
@@ -37,6 +40,7 @@ import org.sosy_lab.cpachecker.appengine.server.resource.JobsServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.SettingsServerResource;
 
+import com.google.common.base.Charsets;
 import com.googlecode.objectify.ObjectifyService;
 
 import freemarker.log.Logger;
@@ -69,6 +73,14 @@ public class CPAcheckerApplication extends WadlApplication {
     capabilitiesFilter.setNext(router);
 
     return capabilitiesFilter;
+  }
+
+  public static String getVersion() {
+    try {
+      return Paths.get("WEB-INF/VERSION.txt").asCharSource(Charsets.UTF_8).read();
+    } catch (IOException e) {
+      return "(unknown version)";
+    }
   }
 
   static {
