@@ -139,8 +139,11 @@ class Benchmark:
             sys.exit('The module for "{0}" does not define the necessary class.'.format(toolName))
 
         self.toolName = self.tool.getName()
-        self.executable = self.tool.getExecutable()
-        self.toolVersion = self.tool.getVersion(self.executable)
+        self.toolVersion = ''
+        self.executable = ''
+        if not config.appengine:
+            self.executable = self.tool.getExecutable()
+            self.toolVersion = self.tool.getVersion(self.executable)
 
         logging.debug("The tool to be benchmarked is {0}.".format(str(self.toolName)))
 
