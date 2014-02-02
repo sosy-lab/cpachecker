@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.DelegatingExplicitRefiner;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
@@ -74,7 +75,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 
-public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallback {
+public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallback<PredicatePrecision> {
 
   private final LocationCPA mLocationCPA;
   private final CallstackCPA mCallStackCPA;
@@ -87,29 +88,33 @@ public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallba
   // TODO probably make global
   private boolean mReuseART = true;
 
-  public PredicatePrecision mPrecision;
+  public PredicatePrecision mPPrecision;
+
   private boolean lUseCache;
   private DelegatingExplicitRefiner refiner;
   private AlgorithmExecutorService executor;
   private long timelimit;
-  private ShutdownNotifier shutdownNotifier;
-  private CFA lCFA;
+
+
 
   public ExplicitPredWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier,
       CFA lCFA, LocationCPA pmLocationCPA, CallstackCPA pmCallStackCPA,
-      AssumeCPA pmAssumeCPA, long pTimelimit){
+      AssumeCPA pmAssumeCPA, long pTimelimit)  {
     mLocationCPA = pmLocationCPA;
     mCallStackCPA = pmCallStackCPA;
     mAssumeCPA = pmAssumeCPA;
     timelimit = pTimelimit;
 
-    this.shutdownNotifier = shutdownNotifier;
-
     try {
       // add this option to initalize explict analysis to empty precision
       Collection<String> options = new ArrayList<>();
-      options.add("analysis.algorithm.CEGAR = true");
-      options.add("cpa.composite.precAdjust = COMPONENT");
+      options.add("analysis.traversal.order               = bfs");
+      options.add("analysis.traversal.useReversePostorder = true");
+      options.add("analysis.traversal.useCallstack        = true");
+      // uncomment this line NOT to use full explicit precision
+      ///options.add("analysis.algorithm.CEGAR                 = true");
+      options.add("cegar.refiner                          = cpa.explicit.refiner.DelegatingExplicitRefiner");
+      options.add("cpa.composite.precAdjust               = COMPONENT");
 
       mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction, options);
       mLogManager = new BasicLogManager(mConfiguration);
@@ -132,8 +137,7 @@ public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallba
 
     try {
       PredicateCPA lPredicateCPA = (PredicateCPA) lPredicateCPAFactory.createInstance();
-      lPredicateCPA.setPrecisioCallback(this);
-      mPrecision = (PredicatePrecision) lPredicateCPA.getInitialPrecision(null);
+      mPPrecision = (PredicatePrecision) lPredicateCPA.getInitialPrecision(null);
 
       if (lUseCache) {
         mPredicateCPA = new CacheCPA(lPredicateCPA);
@@ -145,7 +149,6 @@ public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallba
       throw new RuntimeException(e);
     }
 
-    this.lCFA = lCFA;
 
     // explicit abstraction CPA
     CPAFactory factory = ExplicitCPA.factory();
@@ -162,7 +165,8 @@ public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallba
 
     try {
       ExplicitCPA expCPA = (ExplicitCPA) factory.createInstance();
-
+      ExplicitPrecision expPrec = (ExplicitPrecision) expCPA.getInitialPrecision(null);
+      assert expPrec.getRefinablePrecision() instanceof ExplicitPrecision.FullPrecision;
 
       if (lUseCache) {
         mExplicitCPA = new CacheCPA(expCPA);
@@ -229,7 +233,7 @@ public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallba
 
     try {
       refiner = DelegatingExplicitRefiner.create(lARTCPA);
-      refiner.setPrecisionCallback(this);
+      refiner.setPredPrecisionCallback(this);
     } catch (CPAException | InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
@@ -263,10 +267,10 @@ public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallba
     if (mReuseART) {
       ARTReuse.modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
 
-      if (mPrecision != null) {
+      if (mPPrecision != null) {
         for (AbstractState lWaitlistElement : pReachedSet.getWaitlist()) {
           Precision lOldPrecision = pReachedSet.getPrecision(lWaitlistElement);
-          Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, mPrecision, PredicatePrecision.class);
+          Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, mPPrecision, PredicatePrecision.class);
 
           pReachedSet.updatePrecision(lWaitlistElement, lNewPrecision);
         }
@@ -281,7 +285,7 @@ public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallba
       pReachedSet.add(lInitialElement, lInitialPrecision);
     }
 
-    // run algorithm with an optionall timeout
+    // run algorithm with an optional timeout
     boolean isSound = executor.execute(lAlgorithm, pReachedSet, notifier, timelimit, TimeUnit.SECONDS);
     CounterexampleInfo cex = lAlgorithm.getCex();
 
@@ -295,16 +299,7 @@ public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallba
     return Pair.of(isSound, cex);
   }
 
-  @Override
-  public Precision getPrecision() {
-    return mPrecision;
-  }
 
-  @Override
-  public void setPrecision(Precision pNewPrec) {
-    mPrecision = (PredicatePrecision) pNewPrec;
-    System.out.println(mPrecision);
-  }
 
   @Override
   public boolean finish() {
@@ -314,5 +309,15 @@ public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallba
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {}
+
+  @Override
+  public PredicatePrecision getPrecision() {
+    return this.mPPrecision;
+  }
+
+  @Override
+  public void setPrecision(PredicatePrecision pNewPrec) {
+    this.mPPrecision = pNewPrec;
+  }
 
 }

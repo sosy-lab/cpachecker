@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.tiger.testgen.IncrementalARTReusingFQLTestGenerator;
-import org.sosy_lab.cpachecker.tiger.testgen.PrecisionCallback;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -123,11 +122,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateAbstractState topState;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final PredicateStaticRefiner staticRefiner;
-
-  // for CPATiger
-  private PrecisionCallback precCallback;
-
-
 
 
   protected PredicateCPA(Configuration config, LogManager logger,
@@ -332,8 +326,4 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
 
-  public void setPrecisioCallback(PrecisionCallback pPrecCallback) {
-    assert pPrecCallback != null;
-    precCallback = pPrecCallback;
-  }
 }

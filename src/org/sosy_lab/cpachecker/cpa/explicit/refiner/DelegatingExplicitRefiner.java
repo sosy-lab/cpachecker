@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictFeasibilityChec
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -125,7 +126,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
 
   private final LogManager logger;
 
-  private PrecisionCallback<ExplicitPrecision> precCallback;
+  private PrecisionCallback<ExplicitPrecision> precExpCallback;
 
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
@@ -145,7 +146,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
   }
 
   private static PredicateCPARefiner createBackupRefiner(final Configuration config,
-        final LogManager logger, final ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
+      final LogManager logger, final ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
 
     PredicateCPA predicateCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
 
@@ -154,41 +155,41 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     }
 
     else {
-        FormulaManagerFactory factory               = predicateCpa.getFormulaManagerFactory();
-        FormulaManagerView formulaManager           = predicateCpa.getFormulaManager();
-        Solver solver                               = predicateCpa.getSolver();
-        PathFormulaManager pathFormulaManager       = predicateCpa.getPathFormulaManager();
-        PredicateStaticRefiner extractor            = predicateCpa.getStaticRefiner();
+      FormulaManagerFactory factory               = predicateCpa.getFormulaManagerFactory();
+      FormulaManagerView formulaManager           = predicateCpa.getFormulaManager();
+      Solver solver                               = predicateCpa.getSolver();
+      PathFormulaManager pathFormulaManager       = predicateCpa.getPathFormulaManager();
+      PredicateStaticRefiner extractor            = predicateCpa.getStaticRefiner();
 
-        InterpolationManager manager = new InterpolationManager(
-            formulaManager,
-            pathFormulaManager,
-            solver,
-            factory,
-            config,
-            predicateCpa.getShutdownNotifier(),
-            logger);
+      InterpolationManager manager = new InterpolationManager(
+          formulaManager,
+          pathFormulaManager,
+          solver,
+          factory,
+          config,
+          predicateCpa.getShutdownNotifier(),
+          logger);
 
-        PathChecker pathChecker = new PathChecker(logger, pathFormulaManager, solver);
+      PathChecker pathChecker = new PathChecker(logger, pathFormulaManager, solver);
 
-        RefinementStrategy backupRefinementStrategy = new PredicateAbstractionRefinementStrategy(
-            config,
-            logger,
-            formulaManager,
-            predicateCpa.getPredicateManager(),
-            extractor,
-            solver);
+      RefinementStrategy backupRefinementStrategy = new PredicateAbstractionRefinementStrategy(
+          config,
+          logger,
+          formulaManager,
+          predicateCpa.getPredicateManager(),
+          extractor,
+          solver);
 
-        return new PredicateCPARefiner(
-            config,
-            logger,
-            cpa,
-            manager,
-            pathChecker,
-            formulaManager,
-            pathFormulaManager,
-            backupRefinementStrategy);
-      }
+      return new PredicateCPARefiner(
+          config,
+          logger,
+          cpa,
+          manager,
+          pathChecker,
+          formulaManager,
+          pathFormulaManager,
+          backupRefinementStrategy);
+    }
   }
 
   private static DelegatingExplicitRefiner initialiseExplicitRefiner(
@@ -299,9 +300,9 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       //      }
 
       // add precision to global storage
-      ExplicitPrecision callPrec = precCallback.getPrecision();
+      ExplicitPrecision callPrec = precExpCallback.getPrecision();
       ExplicitPrecision refinedCallPrec = new ExplicitPrecision(callPrec, increment);
-      precCallback.setPrecision(refinedCallPrec);
+      precExpCallback.setPrecision(refinedCallPrec);
 
 
       if (bddPrecision != null) {
@@ -398,16 +399,20 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     }
   }
 
-  public void setPrecisionCallback(PrecisionCallback<ExplicitPrecision> callme) {
-    precCallback = callme;
+  public void setExpPrecisionCallback(PrecisionCallback<ExplicitPrecision> callme) {
+    precExpCallback = callme;
 
-   /* if (this.predicatingRefiner != null){
-      RefinementStrategy strategy = predicatingRefiner.getStrategy();
+  }
 
-      if (strategy instanceof PredicateAbstractionRefinementStrategy){
-        PredicateAbstractionRefinementStrategy prstrategy = (PredicateAbstractionRefinementStrategy) strategy;
-        prstrategy.setPrecisionCallback(callme);
-      }
-    }*/
+  public void setPredPrecisionCallback(PrecisionCallback<PredicatePrecision> callme) {
+    assert predicatingRefiner != null ;
+
+    RefinementStrategy strategy = predicatingRefiner.getStrategy();
+
+    assert strategy instanceof PredicateAbstractionRefinementStrategy;
+
+    PredicateAbstractionRefinementStrategy prstrategy = (PredicateAbstractionRefinementStrategy) strategy;
+    prstrategy.setPrecisionCallback(callme);
+
   }
 }

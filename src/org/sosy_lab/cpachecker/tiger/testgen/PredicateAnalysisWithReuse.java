@@ -168,7 +168,6 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
 
       try {
         PredicateCPA lPredicateCPA = (PredicateCPA) lPredicateCPAFactory.createInstance();
-        lPredicateCPA.setPrecisioCallback(this);
         mPrecision = (PredicatePrecision) lPredicateCPA.getInitialPrecision(null);
 
         if (lUseCache) {

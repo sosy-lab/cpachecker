@@ -230,7 +230,7 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
 
     try {
       expRefiner = DelegatingExplicitRefiner.create(lARTCPA);
-      expRefiner.setPrecisionCallback(this);
+      expRefiner.setExpPrecisionCallback(this);
 
     } catch (CPAException | InvalidConfigurationException e) {
       throw new RuntimeException(e);
