@@ -152,8 +152,8 @@
           <table class="table table-condensed">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Value</th>
+                <th>${msg.name}</th>
+                <th>${msg.value}</th>
               </tr>
             </thead>
             <tbody>
