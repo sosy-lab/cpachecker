@@ -106,8 +106,28 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   public static final String NONDET_VARIABLE = "__VERIFIER_nondet_int";
   public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "__flag__";
-  private static final CType NONDET_TYPE = CNumericTypes.INT;
+  private static final CType NONDET_TYPE = CNumericTypes.SIGNED_INT;
   private final FormulaType<?> NONDET_FORMULA_TYPE;
+
+  public static final String NONDET_VARIABLE_LONG = "__VERIFIER_nondet_long";
+  public static final String NONDET_FLAG_VARIABLE_LONG = NONDET_VARIABLE_LONG + "__flag__";
+  private static final CType NONDET_TYPE_LONG = CNumericTypes.LONG_INT;
+  private final FormulaType<?> NONDET_FORMULA_TYPE_LONG;
+
+  public static final String NONDET_VARIABLE_UINT = "__VERIFIER_nondet_uint";
+  public static final String NONDET_FLAG_VARIABLE_UINT = NONDET_VARIABLE_UINT + "__flag__";
+  private static final CType NONDET_TYPE_UINT = CNumericTypes.INT;
+  private final FormulaType<?> NONDET_FORMULA_TYPE_UINT;
+
+  public static final String NONDET_VARIABLE_BOOL = "__VERIFIER_nondet_bool";
+  public static final String NONDET_FLAG_VARIABLE_BOOL = NONDET_VARIABLE_BOOL + "__flag__";
+  private static final CType NONDET_TYPE_BOOL = CNumericTypes.INT;
+  private final FormulaType<?> NONDET_FORMULA_TYPE_BOOL;
+
+  public static final String NONDET_VARIABLE_CHAR = "__VERIFIER_nondet_char";
+  public static final String NONDET_FLAG_VARIABLE_CHAR = NONDET_VARIABLE_CHAR + "__flag__";
+  private static final CType NONDET_TYPE_CHAR = CNumericTypes.SIGNED_CHAR;
+  private final FormulaType<?> NONDET_FORMULA_TYPE_CHAR;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -149,8 +169,16 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     if (!pointerAnalysisWithUFs) {
       NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
+      NONDET_FORMULA_TYPE_LONG = converter.getFormulaTypeFromCType(NONDET_TYPE_LONG);
+      NONDET_FORMULA_TYPE_UINT = converter.getFormulaTypeFromCType(NONDET_TYPE_UINT);
+      NONDET_FORMULA_TYPE_BOOL = converter.getFormulaTypeFromCType(NONDET_TYPE_BOOL);
+      NONDET_FORMULA_TYPE_CHAR = converter.getFormulaTypeFromCType(NONDET_TYPE_CHAR);
     } else {
       NONDET_FORMULA_TYPE = ((CToFormulaWithUFConverter) converter).getFormulaTypeFromCType(NONDET_TYPE, null);
+      NONDET_FORMULA_TYPE_LONG = ((CToFormulaWithUFConverter) converter).getFormulaTypeFromCType(NONDET_TYPE_LONG, null);
+      NONDET_FORMULA_TYPE_UINT = ((CToFormulaWithUFConverter) converter).getFormulaTypeFromCType(NONDET_TYPE_UINT, null);
+      NONDET_FORMULA_TYPE_BOOL = ((CToFormulaWithUFConverter) converter).getFormulaTypeFromCType(NONDET_TYPE_BOOL, null);
+      NONDET_FORMULA_TYPE_CHAR = ((CToFormulaWithUFConverter) converter).getFormulaTypeFromCType(NONDET_TYPE_CHAR, null);
     }
   }
 
@@ -171,6 +199,38 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
   }
 
+  // This method adds formulas to pEdgeFormula which encode a synchronization
+  // of the indices of the nondet variable and its flag variable.
+  public BooleanFormula encodeNondetFlags(BooleanFormula pEdgeFormula, SSAMapBuilder pSSA, String pNondetVariable, String pNondetFlagVariable, CType pNondetType, FormulaType<?> pNondetFormulaType) {
+    int lNondetIndex = pSSA.getIndex(pNondetVariable);
+    int lFlagIndex = pSSA.getIndex(pNondetFlagVariable);
+
+    BooleanFormula lNewFormula = pEdgeFormula;
+
+    if (lNondetIndex != lFlagIndex) {
+      if (lFlagIndex < 0) {
+        lFlagIndex = 1; // ssa indices start with 2, so next flag that is generated also uses index 2
+      }
+
+      for (int lIndex = lFlagIndex + 1; lIndex <= lNondetIndex; lIndex++) {
+        Formula nondetVar = fmgr.makeVariable(pNondetFormulaType, pNondetFlagVariable, lIndex);
+        // When SSA maps of two blocks get merged, flags which do not
+        // occur in one SSA map get initialized to 0 for that branch.
+        // Therefore, we can distinguish which nondet. variables we have
+        // to extract from the model (the ones where the flag is set to 1).
+        BooleanFormula lAssignment = fmgr.assignment(nondetVar, fmgr.makeNumber(pNondetFormulaType, 1));
+        lNewFormula = bfmgr.and(lNewFormula, lAssignment);
+      }
+
+      // update ssa index of nondet flag
+      pSSA.setIndex(pNondetFlagVariable, pNondetType, lNondetIndex);
+
+      return lNewFormula;
+    }
+
+    return null;
+  }
+
   @Override
   public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula,
                              final CFAEdge pEdge) throws CPATransferException {
@@ -180,6 +240,63 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       PathFormula pf = result.getFirst();
       SSAMapBuilder ssa = pf.getSsa().builder();
 
+      boolean lChangedFormula = false;
+
+      // synchronize SSA indices of int nondet variable and its flag variable
+      BooleanFormula lTmpFormula = encodeNondetFlags(pf.getFormula(), ssa, NONDET_VARIABLE, NONDET_FLAG_VARIABLE, NONDET_TYPE, NONDET_FORMULA_TYPE);
+
+      if (lTmpFormula == null) {
+        lTmpFormula = pf.getFormula();
+      }
+      else {
+        lChangedFormula = true;
+      }
+
+      // synchronize SSA indices of long nondet variable and its flag variable
+      BooleanFormula lTmpFormula_long = encodeNondetFlags(lTmpFormula, ssa, NONDET_VARIABLE_LONG, NONDET_FLAG_VARIABLE_LONG, NONDET_TYPE_LONG, NONDET_FORMULA_TYPE_LONG);
+
+      if (lTmpFormula_long == null) {
+        lTmpFormula_long = lTmpFormula;
+      }
+      else {
+        lChangedFormula = true;
+      }
+
+      // synchronize SSA indices of uint nondet variable and its flag variable
+      BooleanFormula lTmpFormula_uint = encodeNondetFlags(lTmpFormula_long, ssa, NONDET_VARIABLE_UINT, NONDET_FLAG_VARIABLE_UINT, NONDET_TYPE_UINT, NONDET_FORMULA_TYPE_UINT);
+
+      if (lTmpFormula_uint == null) {
+        lTmpFormula_uint = lTmpFormula_long;
+      }
+      else {
+        lChangedFormula = true;
+      }
+
+      // synchronize SSA indices of bool nondet variable and its flag variable
+      BooleanFormula lTmpFormula_bool = encodeNondetFlags(lTmpFormula_uint, ssa, NONDET_VARIABLE_BOOL, NONDET_FLAG_VARIABLE_BOOL, NONDET_TYPE_BOOL, NONDET_FORMULA_TYPE_BOOL);
+
+      if (lTmpFormula_bool == null) {
+        lTmpFormula_bool = lTmpFormula_uint;
+      }
+      else {
+        lChangedFormula = true;
+      }
+
+      // synchronize SSA indices of char nondet variable and its flag variable
+      BooleanFormula lTmpFormula_char = encodeNondetFlags(lTmpFormula_bool, ssa, NONDET_VARIABLE_CHAR, NONDET_FLAG_VARIABLE_CHAR, NONDET_TYPE_CHAR, NONDET_FORMULA_TYPE_CHAR);
+
+      if (lTmpFormula_char == null) {
+        lTmpFormula_char = lTmpFormula_bool;
+      }
+      else {
+        lChangedFormula = true;
+      }
+
+      if (lChangedFormula) {
+        result = Pair.of(new PathFormula(lTmpFormula_char, ssa.build(), pf.getLength()), result.getSecond());
+      }
+
+      /*
       int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
       int lFlagIndex = ssa.getIndex(NONDET_FLAG_VARIABLE);
 
@@ -201,12 +318,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         }
 
         // update ssa index of nondet flag
-        //setSsaIndex(ssa, Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
         ssa.setIndex(NONDET_FLAG_VARIABLE, NONDET_TYPE, lNondetIndex);
 
         result = Pair.of(new PathFormula(edgeFormula, ssa.build(), pf.getLength()),
                          result.getSecond());
-      }
+      }*/
     }
 
     return result;
@@ -335,7 +451,19 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         BooleanFormula t;
 
         if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE)) {
-          t = makeNondetFlagMerger(Math.max(i2, 1), i1);
+          t = makeNondetFlagMerger(Math.max(i2, 1), i1, NONDET_FLAG_VARIABLE, NONDET_FORMULA_TYPE);
+        }
+        else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_LONG)) {
+          t = makeNondetFlagMerger(Math.max(i2, 1), i1, NONDET_FLAG_VARIABLE_LONG, NONDET_FORMULA_TYPE_LONG);
+        }
+        else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_UINT)) {
+          t = makeNondetFlagMerger(Math.max(i2, 1), i1, NONDET_FLAG_VARIABLE_UINT, NONDET_FORMULA_TYPE_UINT);
+        }
+        else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_BOOL)) {
+          t = makeNondetFlagMerger(Math.max(i2, 1), i1, NONDET_FLAG_VARIABLE_BOOL, NONDET_FORMULA_TYPE_BOOL);
+        }
+        else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_CHAR)) {
+          t = makeNondetFlagMerger(Math.max(i2, 1), i1, NONDET_FLAG_VARIABLE_CHAR, NONDET_FORMULA_TYPE_CHAR);
         } else {
           t = makeSSAMerger(name, resultSSA.getType(name), Math.max(i2, 1), i1);
         }
@@ -349,8 +477,21 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         BooleanFormula t;
 
         if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE)) {
-          t = makeNondetFlagMerger(Math.max(i1, 1), i2);
-        } else {
+          t = makeNondetFlagMerger(Math.max(i1, 1), i2, NONDET_FLAG_VARIABLE, NONDET_FORMULA_TYPE);
+        }
+        else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_LONG)) {
+          t = makeNondetFlagMerger(Math.max(i1, 1), i2, NONDET_FLAG_VARIABLE_LONG, NONDET_FORMULA_TYPE_LONG);
+        }
+        else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_UINT)) {
+          t = makeNondetFlagMerger(Math.max(i1, 1), i2, NONDET_FLAG_VARIABLE_UINT, NONDET_FORMULA_TYPE_UINT);
+        }
+        else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_BOOL)) {
+          t = makeNondetFlagMerger(Math.max(i1, 1), i2, NONDET_FLAG_VARIABLE_BOOL, NONDET_FORMULA_TYPE_BOOL);
+        }
+        else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_CHAR)) {
+          t = makeNondetFlagMerger(Math.max(i1, 1), i2, NONDET_FLAG_VARIABLE_CHAR, NONDET_FORMULA_TYPE_CHAR);
+        }
+        else {
           t = makeSSAMerger(name, resultSSA.getType(name), Math.max(i1, 1), i2);
         }
 
@@ -405,14 +546,28 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           // => need correction term for i2
 
           if (useNondetFlags && index2 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE)) {
-            mergeFormula = makeNondetFlagMerger(index2, index1);
-          } else if (index2 > 0 && !symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
+            mergeFormula = makeNondetFlagMerger(index2, index1, NONDET_FLAG_VARIABLE, NONDET_FORMULA_TYPE);
+          }
+          else if (useNondetFlags && index2 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE_LONG)) {
+            mergeFormula = makeNondetFlagMerger(index2, index1, NONDET_FLAG_VARIABLE_LONG, NONDET_FORMULA_TYPE_LONG);
+          }
+          else if (useNondetFlags && index2 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE_UINT)) {
+            mergeFormula = makeNondetFlagMerger(index2, index1, NONDET_FLAG_VARIABLE_UINT, NONDET_FORMULA_TYPE_UINT);
+          }
+          else if (useNondetFlags && index2 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE_BOOL)) {
+            mergeFormula = makeNondetFlagMerger(index2, index1, NONDET_FLAG_VARIABLE_BOOL, NONDET_FORMULA_TYPE_BOOL);
+          }
+          else if (useNondetFlags && index2 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE_CHAR)) {
+            mergeFormula = makeNondetFlagMerger(index2, index1, NONDET_FLAG_VARIABLE_CHAR, NONDET_FORMULA_TYPE_CHAR);
+          }
+          else if (index2 > 0 && !symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
             mergeFormula = makeNondetMiddleVariableMerger(symbolName,
                                                           resultSSA.getType(symbolName),
                                                           index2,
                                                           index1,
                                                           pts2);
-          } else if (index2 > 0) {
+          }
+          else if (index2 > 0) {
             final CType symbolType = resultSSA.getType(symbolName);
             mergeFormula = makeNondetMiddleUFMerger(CToFormulaWithUFConverter.getUFName(symbolType),
                                                     symbolType,
@@ -429,8 +584,21 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           // => need correction term for i1
 
           if (useNondetFlags && index1 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE)) {
-            mergeFormula = makeNondetFlagMerger(index1, index2);
-          } else if (index1 > 0 && !symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
+            mergeFormula = makeNondetFlagMerger(index1, index2, NONDET_FLAG_VARIABLE, NONDET_FORMULA_TYPE);
+          }
+          else if (useNondetFlags && index1 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE_LONG)) {
+            mergeFormula = makeNondetFlagMerger(index1, index2, NONDET_FLAG_VARIABLE_LONG, NONDET_FORMULA_TYPE_LONG);
+          }
+          else if (useNondetFlags && index1 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE_UINT)) {
+            mergeFormula = makeNondetFlagMerger(index1, index2, NONDET_FLAG_VARIABLE_UINT, NONDET_FORMULA_TYPE_UINT);
+          }
+          else if (useNondetFlags && index1 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE_BOOL)) {
+            mergeFormula = makeNondetFlagMerger(index1, index2, NONDET_FLAG_VARIABLE_BOOL, NONDET_FORMULA_TYPE_BOOL);
+          }
+          else if (useNondetFlags && index1 > 0 && symbolName.equals(NONDET_FLAG_VARIABLE_CHAR)) {
+            mergeFormula = makeNondetFlagMerger(index1, index2, NONDET_FLAG_VARIABLE_CHAR, NONDET_FORMULA_TYPE_CHAR);
+          }
+          else if (index1 > 0 && !symbolName.startsWith(CToFormulaWithUFConverter.UF_NAME_PREFIX)) {
             mergeFormula = makeNondetMiddleVariableMerger(symbolName,
                                                           resultSSA.getType(symbolName),
                                                           index1,
@@ -619,8 +787,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return result;
   }
 
-  private BooleanFormula makeNondetFlagMerger(int iSmaller, int iBigger) {
-    return makeMerger(NONDET_FLAG_VARIABLE, iSmaller, iBigger, fmgr.makeNumber(NONDET_FORMULA_TYPE, 0));
+  private BooleanFormula makeNondetFlagMerger(int iSmaller, int iBigger, String pNondetFlagVariable, FormulaType<?> pNondetFormulaType) {
+    return makeMerger(pNondetFlagVariable, iSmaller, iBigger, fmgr.makeNumber(pNondetFormulaType, 0));
   }
 
   private BooleanFormula makeMerger(String var, int iSmaller, int iBigger, Formula pInitialValue) {

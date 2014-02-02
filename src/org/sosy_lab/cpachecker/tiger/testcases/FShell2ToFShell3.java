@@ -23,16 +23,10 @@
  */
 package org.sosy_lab.cpachecker.tiger.testcases;
 
-import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
 
 public class FShell2ToFShell3 {
 
@@ -43,6 +37,10 @@ public class FShell2ToFShell3 {
   }
 
   public static void translateTestsuite(PrintStream pOutputStream, String pFile) throws NumberFormatException, IOException {
+    // TODO implement
+    throw new RuntimeException("Implement!");
+
+    /*
     BufferedReader lReader = new BufferedReader(new FileReader(pFile));
 
     String lLine = null;
@@ -84,7 +82,7 @@ public class FShell2ToFShell3 {
       pOutputStream.println(lTestCase);
     }
 
-    lReader.close();
+    lReader.close();*/
   }
 
   public static void main(String[] args) throws IOException {

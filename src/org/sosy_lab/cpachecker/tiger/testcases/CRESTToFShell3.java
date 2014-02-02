@@ -23,14 +23,10 @@
  */
 package org.sosy_lab.cpachecker.tiger.testcases;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.LinkedList;
-import java.util.List;
 
 public class CRESTToFShell3 {
 
@@ -63,7 +59,10 @@ public class CRESTToFShell3 {
   }
 
   public static TestCase translate(InputStream pInputStream) throws IOException {
-    BufferedReader lReader = new BufferedReader(new InputStreamReader(pInputStream));
+    // TODO implement
+    throw new RuntimeException("Implement!");
+
+    /*BufferedReader lReader = new BufferedReader(new InputStreamReader(pInputStream));
 
     List<Integer> lInputValues = new LinkedList<>();
 
@@ -79,7 +78,7 @@ public class CRESTToFShell3 {
 
     TestCase lTestCase = new PreciseInputsTestCase(lInputValues);
 
-    return lTestCase;
+    return lTestCase;*/
   }
 
   /**

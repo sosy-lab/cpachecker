@@ -44,13 +44,13 @@ public class InterpreterCPA implements ConfigurableProgramAnalysis {
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
-  private int[] mInitialValuesForNondeterministicAssignments;
+  private int[][] mInitialValuesForNondeterministicAssignments;
 
-  public InterpreterCPA(int[] pInitialValuesForNondeterministicAssignments) {
+  public InterpreterCPA(int[][] pInitialValuesForNondeterministicAssignments) {
     this(pInitialValuesForNondeterministicAssignments, false);
   }
 
-  public InterpreterCPA(int[] pInitialValuesForNondeterministicAssignments, boolean pExtendInputs) {
+  public InterpreterCPA(int[][] pInitialValuesForNondeterministicAssignments, boolean pExtendInputs) {
     if (pInitialValuesForNondeterministicAssignments == null) {
       throw new IllegalArgumentException();
     }

@@ -23,48 +23,68 @@
  */
 package org.sosy_lab.cpachecker.tiger.testcases;
 
-import java.util.LinkedList;
 import java.util.List;
 
 public class ImpreciseInputsTestCase extends TestCase {
 
-  private double[] mExactInputValues;
+  private double[][] mExactInputValues;
 
-  public ImpreciseInputsTestCase(int[] pInputs, double[] pValues) {
+  public ImpreciseInputsTestCase(int[][] pInputs, double[][] pValues) {
     super(pInputs, false);
     copy(pValues);
   }
 
-  public ImpreciseInputsTestCase(List<Integer> pInputs, List<Double> pValues) {
+  public ImpreciseInputsTestCase(List<Integer>[] pInputs, List<Double>[] pValues) {
     super(pInputs, false);
     copy(pValues);
   }
 
   public PreciseInputsTestCase toPreciseTestCase() {
-    LinkedList<Integer> lApproximatedValues = new LinkedList<>();
+    int[][] lNewInputsMap = new int[TestCase.NUMBER_OF_NONDET_VARIABLES][];
 
-    for (Double lDoubleValue : mExactInputValues) {
-      Double lTmpValue = Math.abs(lDoubleValue) + 0.5;
-      int lApproxValue = (lDoubleValue >= 0)?lTmpValue.intValue():(-lTmpValue.intValue());
-      lApproximatedValues.add(lApproxValue);
+    for (int i = 0; i < TestCase.NUMBER_OF_NONDET_VARIABLES; i++) {
+      lNewInputsMap[i] = new int[getInputs()[i].length];
+
+      int lIndex = 0;
+      for (Double lDoubleValue : mExactInputValues[i]) {
+        Double lTmpValue = Math.abs(lDoubleValue) + 0.5;
+        lNewInputsMap[i][lIndex] = (lDoubleValue >= 0)?lTmpValue.intValue():(-lTmpValue.intValue());
+        lIndex++;
+      }
     }
 
-    return new PreciseInputsTestCase(lApproximatedValues);
+    return new PreciseInputsTestCase(lNewInputsMap);
   }
 
-  private void copy(double[] pValues) {
-    mExactInputValues = new double[pValues.length];
-    for (int i = 0; i < pValues.length; i++) {
-      mExactInputValues[i] = pValues[i];
+  private void copy(double[][] pValues) {
+    assert (pValues != null);
+    assert (pValues.length == TestCase.NUMBER_OF_NONDET_VARIABLES);
+
+    mExactInputValues = new double[TestCase.NUMBER_OF_NONDET_VARIABLES][];
+
+    for (int i = 0; i < TestCase.NUMBER_OF_NONDET_VARIABLES; i++) {
+      mExactInputValues[i] = new double[pValues[i].length];
+
+      for (int j = 0; j < pValues[i].length; j++) {
+        mExactInputValues[i][j] = pValues[i][j];
+      }
     }
   }
 
-  private void copy(List<Double> pValues) {
-    mExactInputValues = new double[pValues.size()];
-    int lIndex = 0;
-    for (Double lValue : pValues) {
-      mExactInputValues[lIndex] = lValue;
-      lIndex++;
+  private void copy(List<Double>[] pValues) {
+    assert (pValues != null);
+    assert (pValues.length == TestCase.NUMBER_OF_NONDET_VARIABLES);
+
+    mExactInputValues = new double[TestCase.NUMBER_OF_NONDET_VARIABLES][];
+
+    for (int i = 0; i < TestCase.NUMBER_OF_NONDET_VARIABLES; i++) {
+      mExactInputValues[i] = new double[pValues[i].size()];
+
+      int lIndex = 0;
+      for (Double lValue : pValues[i]) {
+        mExactInputValues[i][lIndex] = lValue;
+        lIndex++;
+      }
     }
   }
 
@@ -83,7 +103,7 @@ public class ImpreciseInputsTestCase extends TestCase {
     return super.toString() + " was <" + lBuffer.toString() + ">";
   }
 
-  public double[] getExactInputs() {
+  public double[][] getExactInputs() {
     return mExactInputValues;
   }
 

@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
+import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
 import org.sosy_lab.cpachecker.tiger.util.Wrapper;
 
 public class InterpreterCPATest {
@@ -83,7 +84,7 @@ public class InterpreterCPATest {
     // call stack CPA
     lComponentAnalyses.add(lCallStackCPA);
 
-    int[] lInputs = new int[0];
+    int[][] lInputs = new int[TestCase.NUMBER_OF_NONDET_VARIABLES][0];
 
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(lInputs);
@@ -172,7 +173,7 @@ public class InterpreterCPATest {
     // call stack CPA
     lComponentAnalyses.add(lCallStackCPA);
 
-    int[] lInputs = { 1, 0, 0 };
+    int[][] lInputs = { { 1, 0, 0 }, {}, {}, {}, {} };
 
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(lInputs);
@@ -261,7 +262,7 @@ public class InterpreterCPATest {
     // call stack CPA
     lComponentAnalyses.add(lCallStackCPA);
 
-    int[] lInputs = new int[0];
+    int[][] lInputs = new int[TestCase.NUMBER_OF_NONDET_VARIABLES][0];
 
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(lInputs, true);
@@ -349,7 +350,7 @@ public class InterpreterCPATest {
     // call stack CPA
     lComponentAnalyses.add(lCallStackCPA);
 
-    int[] lInputs = new int[0];
+    int[][] lInputs = new int[TestCase.NUMBER_OF_NONDET_VARIABLES][0];
 
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(lInputs, true);

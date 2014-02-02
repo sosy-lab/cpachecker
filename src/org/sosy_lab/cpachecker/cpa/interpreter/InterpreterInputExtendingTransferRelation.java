@@ -69,7 +69,8 @@ public class InterpreterInputExtendingTransferRelation extends
         int[] lInputs = new int[lElement.getInputs().length + 1];
 
         for (int lIndex = 0; lIndex < lInputs.length - 1; lIndex++) {
-          lInputs[lIndex] = lElement.getInputs()[lIndex];
+          throw new RuntimeException();
+          //lInputs[lIndex] = lElement.getInputs()[lIndex];
         }
 
 
@@ -94,7 +95,9 @@ public class InterpreterInputExtendingTransferRelation extends
         }
 
 
-        InterpreterElement lTmpElement = new InterpreterElement(lElement.getConstantsMap(), lElement.getPreviousElement(), lElement.getInputIndex(), lInputs);
+        //InterpreterElement lTmpElement = new InterpreterElement(lElement.getConstantsMap(), lElement.getPreviousElement(), lElement.getInputIndices(), lInputs);
+
+        InterpreterElement lTmpElement = null;
 
         pElement = lTmpElement;
 
@@ -104,6 +107,9 @@ public class InterpreterInputExtendingTransferRelation extends
         }
 
         lRedo = true;
+
+        throw new RuntimeException();
+
       }
     }
     while (lRedo);

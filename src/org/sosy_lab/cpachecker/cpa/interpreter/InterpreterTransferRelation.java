@@ -86,6 +86,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.tiger.fql.translators.cfa.ToTigerAssumeEdgeTranslator;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 public class InterpreterTransferRelation implements TransferRelation {
 
@@ -191,8 +192,11 @@ public class InterpreterTransferRelation implements TransferRelation {
 
       InterpreterElement lSuccessor = (InterpreterElement)successor;
 
-      if (lSuccessor.getInputIndex() != explicitElement.getInputIndex()) {
-        throw new RuntimeException();
+      // TODO make removable via assertion
+      for (int i = 0; i < TestCase.NUMBER_OF_NONDET_VARIABLES; i++) {
+        if (lSuccessor.getInputIndex(i) != explicitElement.getInputIndex(i)) {
+          throw new RuntimeException();
+        }
       }
 
       break;
@@ -335,7 +339,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
     assert (paramNames.size() == arguments.size());
 
-    InterpreterElement newElement = new InterpreterElement(element, element.getInputIndex(), element.getInputs());
+    InterpreterElement newElement = new InterpreterElement(element, element.getInputIndices(), element.getInputs());
 
     for(String globalVar:globalVars){
       if(element.contains(globalVar)){
@@ -1344,7 +1348,7 @@ public class InterpreterTransferRelation implements TransferRelation {
         if (lIdExpression.getName().startsWith(TestCase.INPUT_PREFIX)) {
           // a little hack ... we refer to __BLAST_NONDET (used in ESOP'13 CPAtiger version)
           // TODO change this later
-          return handleAssignmentOfVariable(element, lParam, "__BLAST_NONDET", functionName);
+          return handleAssignmentOfVariable(element, lParam, lIdExpression.getName(), functionName);
         }
       }
 
@@ -1620,12 +1624,49 @@ public class InterpreterTransferRelation implements TransferRelation {
   {
     String leftVarName = getvarName(lParam, functionName);
 
-    if (rParam.equals("__BLAST_NONDET")) {
-      InterpreterElement newElement = element.nextInputElement();
+    // TODO replace by other input variable names
+    if (rParam.equals(PathFormulaManagerImpl.NONDET_VARIABLE)) {
+      InterpreterElement newElement = element.nextInputElement(TestCase.NONDET_INT_INDEX);
 
       // We return the input of the current element, the successor element
       // will refer to the next input.
-      newElement.assignConstant(leftVarName, element.getCurrentInput());
+      newElement.assignConstant(leftVarName, element.getCurrentInput(TestCase.NONDET_INT_INDEX));
+
+      return newElement;
+    }
+    else if (rParam.equals(PathFormulaManagerImpl.NONDET_VARIABLE_BOOL)) {
+      InterpreterElement newElement = element.nextInputElement(TestCase.NONDET_BOOL_INDEX);
+
+      // We return the input of the current element, the successor element
+      // will refer to the next input.
+      newElement.assignConstant(leftVarName, element.getCurrentInput(TestCase.NONDET_BOOL_INDEX));
+
+      return newElement;
+    }
+    else if (rParam.equals(PathFormulaManagerImpl.NONDET_VARIABLE_CHAR)) {
+      InterpreterElement newElement = element.nextInputElement(TestCase.NONDET_CHAR_INDEX);
+
+      // We return the input of the current element, the successor element
+      // will refer to the next input.
+      newElement.assignConstant(leftVarName, element.getCurrentInput(TestCase.NONDET_CHAR_INDEX));
+
+      return newElement;
+    }
+    else if (rParam.equals(PathFormulaManagerImpl.NONDET_VARIABLE_LONG)) {
+      InterpreterElement newElement = element.nextInputElement(TestCase.NONDET_LONG_INDEX);
+
+      // We return the input of the current element, the successor element
+      // will refer to the next input.
+      newElement.assignConstant(leftVarName, element.getCurrentInput(TestCase.NONDET_LONG_INDEX));
+
+      return newElement;
+    }
+    else if (rParam.equals(PathFormulaManagerImpl.NONDET_VARIABLE_UINT)) {
+      InterpreterElement newElement = element.nextInputElement(TestCase.NONDET_UINT_INDEX);
+
+      // We return the input of the current element, the successor element
+      // will refer to the next input.
+      newElement.assignConstant(leftVarName, element.getCurrentInput(TestCase.NONDET_UINT_INDEX));
 
       return newElement;
     }

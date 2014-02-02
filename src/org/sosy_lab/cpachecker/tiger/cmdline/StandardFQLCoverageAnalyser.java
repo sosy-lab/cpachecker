@@ -568,11 +568,12 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
 
     InterpreterElement lInterpreterElement = (InterpreterElement)lEndNode.get(lInterpreterCPAIndex);
 
-    if (lInterpreterElement.getInputs().length != lInterpreterElement.getInputIndex()) {
+    throw new RuntimeException();
+    /*if (lInterpreterElement.getInputs().length != lInterpreterElement.getInputIndex()) {
       throw new RuntimeException("Unused Inputs!!!");
     }
 
-    return lPathElement.toArray();
+    return lPathElement.toArray();*/
   }
 }
 

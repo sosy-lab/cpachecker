@@ -29,6 +29,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -75,7 +76,13 @@ public class KLEEToFShell3 {
   public static TestCase translate(InputStream pInputStream) throws IOException {
     BufferedReader lReader = new BufferedReader(new InputStreamReader(pInputStream));
 
-    List<Integer> lInputValues = new LinkedList<>();
+    List<List<Integer>> lInputsMap = new ArrayList<>(TestCase.NUMBER_OF_NONDET_VARIABLES);
+
+    for (int i = 0; i < TestCase.NUMBER_OF_NONDET_VARIABLES; i++) {
+      lInputsMap.add(new LinkedList<Integer>());
+    }
+
+    List<Integer> lInputValues = lInputsMap.get(TestCase.NONDET_INT_INDEX);
 
     State lState = State.STARTED;
 
@@ -178,7 +185,10 @@ public class KLEEToFShell3 {
       throw new RuntimeException(lNumObjects + " vs. " + lInputValues.size());
     }
 
-    TestCase lTestCase = new PreciseInputsTestCase(lInputValues);
+    // TODO replace by something better!
+    List<Integer>[] lInputsMap2 = (List<Integer>[])lInputsMap.toArray();
+
+    TestCase lTestCase = new PreciseInputsTestCase(lInputsMap2);
 
     return lTestCase;
   }

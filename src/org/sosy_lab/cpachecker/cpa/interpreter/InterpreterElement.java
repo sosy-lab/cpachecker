@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.AccessToUninitializedVariableException;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.MissingInputException;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.ReadingFromNondetVariableException;
+import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 public class InterpreterElement implements AbstractState {
 
@@ -42,64 +44,92 @@ public class InterpreterElement implements AbstractState {
   private final InterpreterElement mPreviousElement;
 
   // TODO make final
-  private int mInputIndex;
-  private int[] mInputs;
+  private int[] mInputIndex;
+  private int[][] mInputs;
 
   @Option(description="variables whose name contains this will be seen by InterpreterCPA as having non-deterministic values")
   // TODO this is completely broken, name doesn't match, the option is never read from file etc.
   private String noAutoInitPrefix = "__BLAST_NONDET";
 
   public InterpreterElement() {
-    this(new int[0]);
+    this(new int[5][0]);
   }
 
-  public InterpreterElement(int[] pInputs) {
-    this(new HashMap<String, Long>(), null, 0, pInputs);
-  }
+  public InterpreterElement(int[][] pInputs) {
+    mConstantsMap = new HashMap<>();
+    mPreviousElement = null;
 
-  public InterpreterElement(InterpreterElement pPreviousContextElement, int pInputIndex, int[] pInputs) {
-    this(new HashMap<String, Long>(), pPreviousContextElement, pInputIndex, pInputs);
-  }
-
-  public InterpreterElement(Map<String, Long> pConstantsMap, InterpreterElement pPreviousContextElement, int pInputIndex, int[] pInputs) {
-    if (pInputs == null) {
-      throw new IllegalArgumentException();
+    mInputIndex = new int[TestCase.NUMBER_OF_NONDET_VARIABLES];
+    for (int i = 0; i < 5; i++) {
+      mInputIndex[i] = 0;
     }
-
-    mConstantsMap = pConstantsMap;
-    mPreviousElement = pPreviousContextElement;
-    mInputIndex = pInputIndex;
 
     mInputs = pInputs;
   }
 
-  public int getInputIndex() {
+  public InterpreterElement(InterpreterElement pPreviousContextElement, int[] pInputIndex, int[][] pInputs) {
+    this(new HashMap<String, Long>(), pPreviousContextElement, pInputIndex, pInputs);
+  }
+
+  public InterpreterElement(Map<String, Long> pConstantsMap, InterpreterElement pPreviousContextElement, int[] pInputIndex, int[][] pInputs) {
+    assert (pInputs != null);
+    assert (pInputIndex != null);
+
+    mConstantsMap = pConstantsMap;
+    mPreviousElement = pPreviousContextElement;
+
+    mInputIndex = new int[TestCase.NUMBER_OF_NONDET_VARIABLES];
+    for (int i = 0; i < TestCase.NUMBER_OF_NONDET_VARIABLES; i++) {
+      mInputIndex[i] = pInputIndex[i];
+    }
+
+    mInputs = pInputs;
+  }
+
+  public int getInputIndex(int pVariableIndex) {
+    return mInputIndex[pVariableIndex];
+  }
+
+  public int[] getInputIndices() {
     return mInputIndex;
   }
 
-  public int[] getInputs() {
+  public int[][] getInputs() {
     return mInputs;
   }
 
-  private void setInputIndex(int pIndex) {
-    mInputIndex = pIndex;
+  private void setInputIndex(int pVariableIndex, int pIndex) {
+    mInputIndex[pVariableIndex] = pIndex;
   }
 
   // TODO change
-  private void incIndex() {
-    mInputIndex = mInputIndex + 1;
+  private void incIndex(int pVariableIndex) {
+    mInputIndex[pVariableIndex] = mInputIndex[pVariableIndex] + 1;
   }
 
-  public int getCurrentInput() throws MissingInputException {
-    if (mInputIndex < 0) {
+  public int getCurrentInput(int pVariableIndex) throws MissingInputException {
+    if (mInputIndex[pVariableIndex] < 0) {
       throw new RuntimeException("Input index is 0");
     }
 
-    if (mInputIndex >= mInputs.length) {
-      throw new MissingInputException("__BLAST_NONDET");
+    if (mInputIndex[pVariableIndex] >= mInputs[pVariableIndex].length) {
+      switch (pVariableIndex) {
+      case TestCase.NONDET_BOOL_INDEX:
+        throw new MissingInputException(PathFormulaManagerImpl.NONDET_VARIABLE_BOOL);
+      case TestCase.NONDET_CHAR_INDEX:
+        throw new MissingInputException(PathFormulaManagerImpl.NONDET_VARIABLE_CHAR);
+      case TestCase.NONDET_INT_INDEX:
+        throw new MissingInputException(PathFormulaManagerImpl.NONDET_VARIABLE);
+      case TestCase.NONDET_LONG_INDEX:
+        throw new MissingInputException(PathFormulaManagerImpl.NONDET_VARIABLE_LONG);
+      case TestCase.NONDET_UINT_INDEX:
+        throw new MissingInputException(PathFormulaManagerImpl.NONDET_VARIABLE_UINT);
+      }
+
+      throw new MissingInputException("Unknown Nondet Variable");
     }
 
-    return mInputs[mInputIndex];
+    return mInputs[pVariableIndex][mInputIndex[pVariableIndex]];
   }
 
   /**
@@ -141,10 +171,10 @@ public class InterpreterElement implements AbstractState {
     return mPreviousElement;
   }
 
-  public InterpreterElement nextInputElement() {
+  public InterpreterElement nextInputElement(int pVariableIndex) {
     InterpreterElement lTmpElement = clone();
 
-    lTmpElement.incIndex();
+    lTmpElement.incIndex(pVariableIndex);
 
     return lTmpElement;
   }
@@ -155,7 +185,9 @@ public class InterpreterElement implements AbstractState {
 
     newElement.mInputs = mInputs;
 
-    newElement.setInputIndex(getInputIndex());
+    for (int i = 0; i < TestCase.NUMBER_OF_NONDET_VARIABLES; i++) {
+      newElement.setInputIndex(i, getInputIndex(i));
+    }
 
     return newElement;
   }
