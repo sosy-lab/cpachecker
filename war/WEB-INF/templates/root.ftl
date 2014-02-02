@@ -3,6 +3,7 @@
 <div class="container">
 
 <div class="row">
+
   <form action="/jobs" method="POST" enctype="multipart/form-data">
     <div class="col-md-6">
       <div class="panel panel-default">
@@ -118,22 +119,55 @@
           </div>
         </div>
       </div>
+    </div>
+  </form>
+</div>
 
-      <div class="panel panel-default">
+<hr>
+
+<div class="row">
+  
+  <div class="col-md-6">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+          <div class="panel-title">${msg.unsupportedConfigurations}</div>
+        </div>
+        <div class="panel-body">
+          <p>${msg.unsupportedConfigurationsDescription}</p>
+          <ul class="list-unstyled">
+          <#list unsupportedConfigs as config>
+            <li>${config}</li>
+          </#list>
+          </ul>
+        </div>
+      </div>
+  </div>
+  <div class="col-md-6">
+    <div class="panel panel-default">
         <div class="panel-heading">
           <div class="panel-title">${msg.presetOptions}</div>
         </div>
         <div class="panel-body">
           <p>${msg.presetOptionsDescription}</p>
-          <ul class="list-unstyled">
-          <#list defaultOptions?keys as option>
-            <li>${option} = ${defaultOptions[option]}</li>
-          </#list>
-          </ul>
+          <table class="table table-condensed">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <#list defaultOptions?keys?sort as option>
+                <tr>
+                  <td>${option}</td>
+                  <td>${defaultOptions[option]}</td>
+                </tr>
+              </#list>
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
-  </form>
+  </div>
 </div>
 
 <#include "_footer.ftl">

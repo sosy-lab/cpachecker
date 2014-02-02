@@ -160,6 +160,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
         .addData("defaultOptions", DefaultOptions.getImmutableOptions())
         .addData("specifications", DefaultOptions.getSpecifications())
         .addData("configurations", DefaultOptions.getConfigurations())
+        .addData("unsupportedConfigs", DefaultOptions.getUnsupportedConfigurations())
         .templateName("root.ftl")
         .build();
   }
