@@ -285,14 +285,14 @@ public class CPATigerMain {
         throw new InvalidConfigurationException("Verifying memory safety is not supported if option memorysafety.config is not specified.");
       }
       config = Configuration.builder()
-                            .loadFromFile(options.memsafetyConfig)
-                            .setOptions(cmdLineOptions)
-                            .clearOption("memorysafety.check")
-                            .clearOption("memorysafety.config")
-                            .clearOption("output.disable")
-                            .clearOption("output.path")
-                            .clearOption("rootDirectory")
-                            .build();
+          .loadFromFile(options.memsafetyConfig)
+          .setOptions(cmdLineOptions)
+          .clearOption("memorysafety.check")
+          .clearOption("memorysafety.config")
+          .clearOption("output.disable")
+          .clearOption("output.path")
+          .clearOption("rootDirectory")
+          .build();
     }
 
     return Pair.of(config, outputDirectory);
@@ -308,12 +308,12 @@ public class CPATigerMain {
     String outputDirectory = fileTypeConverter.getOutputDirectory();
 
     Configuration config = Configuration.builder()
-                        .copyFrom(pConfig)
-                        .addConverter(FileOption.class, fileTypeConverter)
-                        .build();
+        .copyFrom(pConfig)
+        .addConverter(FileOption.class, fileTypeConverter)
+        .build();
 
     Configuration.getDefaultConverters()
-                 .put(FileOption.class, fileTypeConverter);
+    .put(FileOption.class, fileTypeConverter);
 
     return Pair.of(config, outputDirectory);
   }
@@ -364,15 +364,30 @@ public class CPATigerMain {
     }
   }
 
+  /**
+   * Finds the analysis type from cmd arguments;
+   * @param cpaConfig
+   * @return
+   */
   private static AnalysisType getAnalysisType(Configuration cpaConfig) {
     AnalysisType aType = AnalysisType.PREDICATE;
-    //String predStr = cpaConfig.getProperty("cpatiger.predicate");
+    String predStr = cpaConfig.getProperty("cpatiger.predicate");
     String expsimStr = cpaConfig.getProperty("cpatiger.explicit_simple");
     String exprefStr = cpaConfig.getProperty("cpatiger.explicit_ref");
+    String exppredStr = cpaConfig.getProperty("cpatiger.explicit_predicate");
 
-    //boolean pred = !Strings.isNullOrEmpty(predStr);
+    boolean pred = !Strings.isNullOrEmpty(predStr);
     boolean expsim = !Strings.isNullOrEmpty(expsimStr);
     boolean expref = !Strings.isNullOrEmpty(exprefStr);
+    boolean expred = !Strings.isNullOrEmpty(exppredStr);
+
+    if (!pred && !expsim && !expref && !expred) {
+      pred = true;
+    }
+
+    if (pred) {
+      aType = AnalysisType.PREDICATE;
+    }
 
     if (expsim) {
       aType = AnalysisType.EXPLICIT_SIMPLE;
@@ -380,6 +395,10 @@ public class CPATigerMain {
 
     if (expref) {
       aType = AnalysisType.EXPLICIT_REF;
+    }
+
+    if (expred) {
+      aType = AnalysisType.EXPLICIT_PRED;
     }
 
     return aType;

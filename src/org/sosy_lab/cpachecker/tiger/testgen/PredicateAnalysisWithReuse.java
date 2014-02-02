@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.tiger.testgen;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -107,7 +108,29 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
     timelimit = pTimelimit;
 
     try {
-      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction);
+      // TODO update config
+      Collection<String> opts = new ArrayList<>();
+      opts.add("analysis.traversal.order = BFS");
+      opts.add("analysis.entryFunction = " + pEntryFunction);
+
+      // we want to use CEGAR algorithm
+      opts.add("analysis.useRefinement = true");
+      opts.add("cegar.refiner = " + org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner.class.getCanonicalName());
+
+      opts.add("cpa.predicate.addBranchingInformation = false");
+      opts.add("cpa.predicate.useNondetFlags = true");
+      opts.add("cpa.predicate.initAllVars = false");
+      //opts.add("cpa.predicate.noAutoInitPrefix = __BLAST_NONDET");
+      opts.add("cpa.predicate.blk.useCache = false");
+      //opts.add("cpa.predicate.mathsat.lvalsAsUIFs = true");
+      // we need theory combination for example for using uninterpreted functions used in conjunction with linear arithmetic (correctly)
+      // TODO caution: using dtc changes the results ... WRONG RESULTS !!!
+      //opts.add("cpa.predicate.mathsat.useDtc = true");
+      opts.add("cpa.interval.merge = JOIN");
+   // configuration of SMT solver
+      opts.add("cpa.predicate.solver.useIntegers = true"); // we exact input data
+
+      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction, opts);
       mLogManager = new BasicLogManager(mConfiguration);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -285,6 +308,9 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
     executor.shutdownNow();
     return true;
   }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {}
 
 
 

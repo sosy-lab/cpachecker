@@ -125,8 +125,6 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
 
   private final LogManager logger;
 
-  // callback interface for CPATiger
-  private PrecisionCallback precCallback;
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -232,6 +230,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
 
     // if path is infeasible, try to refine the precision
     if (!isPathFeasable(errorPath)) {
+      System.out.println("\t -> explicit refinement");
       if (performExplicitRefinement(reached, errorPath)) {
         return CounterexampleInfo.spurious();
       }
@@ -241,6 +240,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
 
     if(predicatingRefiner != null) {
       numberOfPredicateRefinements++;
+      System.out.println("\t -> predicate refinement");
       return predicatingRefiner.performRefinement(reached, errorPath);
     }
 
@@ -390,7 +390,16 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     }
   }
 
-  public void registerPrecisionCallback(PrecisionCallback callmemaybe) {
-    precCallback = callmemaybe;
+  public void setPrecisionCallback(PrecisionCallback callme) {
+    this.interpolatingRefiner.setPrecisionCallback(callme);
+
+    if (this.predicatingRefiner != null){
+      RefinementStrategy strategy = predicatingRefiner.getStrategy();
+
+      if (strategy instanceof PredicateAbstractionRefinementStrategy){
+        PredicateAbstractionRefinementStrategy prstrategy = (PredicateAbstractionRefinementStrategy) strategy;
+        prstrategy.setPrecisionCallback(callme);
+      }
+    }
   }
 }

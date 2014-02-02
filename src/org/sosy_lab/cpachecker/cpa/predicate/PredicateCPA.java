@@ -213,7 +213,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     // TODO reduce coupling!!!
     IncrementalARTReusingFQLTestGenerator.getInstance().mOutput.println("TODO: reduce coupling!");
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
-    PredicatePrecision iniprec = new PredicatePrecision(initialPrecision);
+    //PredicatePrecision iniprec = new PredicatePrecision(initialPrecision);
     //callbackPrec.setPrecision(iniprec);
 
     //initialPrecision = precisionBootstraper.prepareInitialPredicates();

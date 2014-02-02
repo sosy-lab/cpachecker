@@ -79,6 +79,11 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     this.constantsMap = pConstantsMap;
   }
 
+  public ExplicitState(ExplicitState pOld) {
+    this.constantsMap = pOld.constantsMap;
+    this.delta = ImmutableSet.copyOf(pOld.delta);
+  }
+
   /**
    * This method assigns a value to the variable and puts it in the map.
    *

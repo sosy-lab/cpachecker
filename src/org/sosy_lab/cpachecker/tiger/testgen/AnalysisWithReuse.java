@@ -27,6 +27,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
@@ -36,7 +37,7 @@ import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 /**
  * Runs analysis for a given test goal automaton. May reuse reachability information from other runs.
  */
-public interface AnalysisWithReuse {
+public interface AnalysisWithReuse extends StatisticsProvider {
 
   /**
    * Runs analysis with reachability reuse.

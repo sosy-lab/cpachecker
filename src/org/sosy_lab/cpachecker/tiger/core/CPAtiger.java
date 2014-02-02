@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -84,7 +85,6 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
   private int mMaxIndex = Integer.MAX_VALUE;
   private boolean mDoLogging = false;
   private boolean mDoAppendingLogging = false;
-  private boolean mDoRestart = false;
   private long mRestartBound = 100000000; // 100 MB
   private PrintStream mOutput;
   // type of analysis
@@ -97,7 +97,6 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
   }
 
   public void doRestart() {
-    mDoRestart = true;
   }
 
   public void setRestartBound(long pRestartBound) {
@@ -335,7 +334,13 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
   }
 
   public static Configuration createConfiguration(String pSourceFile, String pEntryFunction) throws InvalidConfigurationException {
-    File lPropertiesFile = CPAtiger.createPropertiesFile(pEntryFunction);
+    List<String> additionalOpts = new Vector<>();
+    File lPropertiesFile = CPAtiger.createPropertiesFile(pEntryFunction, additionalOpts);
+    return createConfiguration(Collections.singletonList(pSourceFile), lPropertiesFile.getAbsolutePath());
+  }
+
+  public static Configuration createConfiguration(String pSourceFile, String pEntryFunction, Collection<String> additionalOpts) throws InvalidConfigurationException {
+    File lPropertiesFile = CPAtiger.createPropertiesFile(pEntryFunction, additionalOpts);
     return createConfiguration(Collections.singletonList(pSourceFile), lPropertiesFile.getAbsolutePath());
   }
 
@@ -358,7 +363,7 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
     return lConfiguration;
   }
 
-  private static File createPropertiesFile(String pEntryFunction) {
+  private static File createPropertiesFile(String pEntryFunction, Collection<String> pAdditionalOpts) {
     if (pEntryFunction == null) {
       throw new IllegalArgumentException("Parameter pEntryFunction is null!");
     }
@@ -376,27 +381,6 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
       lWriter.println("cfa.removeIrrelevantForErrorLocations = false");
 
       //lWriter.println("log.consoleLevel = ALL");
-
-      //lWriter.println("analysis.traversal.order = DFS");
-      lWriter.println("analysis.traversal.order = BFS");
-      lWriter.println("analysis.entryFunction = " + pEntryFunction);
-
-      // we want to use CEGAR algorithm
-      lWriter.println("analysis.useRefinement = true");
-      lWriter.println("cegar.refiner = " + org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner.class.getCanonicalName());
-
-      lWriter.println("cpa.predicate.addBranchingInformation = false");
-      lWriter.println("cpa.predicate.useNondetFlags = true");
-      lWriter.println("cpa.predicate.initAllVars = false");
-      //lWriter.println("cpa.predicate.noAutoInitPrefix = __BLAST_NONDET");
-      lWriter.println("cpa.predicate.blk.useCache = false");
-      //lWriter.println("cpa.predicate.mathsat.lvalsAsUIFs = true");
-      // we need theory combination for example for using uninterpreted functions used in conjunction with linear arithmetic (correctly)
-      // TODO caution: using dtc changes the results ... WRONG RESULTS !!!
-      //lWriter.println("cpa.predicate.mathsat.useDtc = true");
-
-      lWriter.println("cpa.interval.merge = JOIN");
-
       // Logging information
       lWriter.println("log.level = OFF");
       lWriter.println("log.consoleLevel = OFF");
@@ -404,8 +388,11 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
       lWriter.println("cfa.exportPerFunction = false");
       lWriter.println("cfa.callgraph.export = false");
 
-      // configuration of SMT solver
-      lWriter.println("cpa.predicate.solver.useIntegers = true"); // we exact input data
+
+
+      for (String opt : pAdditionalOpts){
+        lWriter.println(opt);
+      }
 
       lWriter.close();
 
@@ -419,7 +406,7 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
 
 
   public enum AnalysisType {
-    PREDICATE, EXPLICIT_SIMPLE, EXPLICIT_REF;
+    PREDICATE, EXPLICIT_SIMPLE, EXPLICIT_REF, EXPLICIT_PRED;
   }
 
 

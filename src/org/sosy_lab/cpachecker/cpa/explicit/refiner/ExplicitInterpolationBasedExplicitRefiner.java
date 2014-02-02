@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.tiger.testgen.PrecisionCallback;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
@@ -121,6 +122,8 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+
+  private PrecisionCallback precCallback;
 
   protected ExplicitInterpolationBasedExplicitRefiner(Configuration config,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
@@ -415,5 +418,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     out.println("  number of explicit interpolations:                   " + numberOfInterpolations);
     out.println("  max. time for singe interpolation:                   " + timerInterpolation.printMaxTime());
     out.println("  total time for interpolation:                        " + timerInterpolation);
+  }
+
+  public void setPrecisionCallback(PrecisionCallback pCallme) {
+    precCallback = pCallme;
   }
 }

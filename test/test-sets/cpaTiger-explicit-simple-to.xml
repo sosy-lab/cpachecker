@@ -8,9 +8,10 @@
     <includesfile>../programs/fql/ntdrivers-simplified.set</includesfile>
   </sourcefiles>
 
-  <rundefinition name="explicit-ref-bb">
+  <rundefinition name="explicit-simple-bb-to">
 	<option name="-bb"/>
-	<option name="-expref"/>
+	<option name="-expsim"/>
+	<option name="-rtimelimit">1</option>
   </rundefinition>
 
   <columns>

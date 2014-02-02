@@ -158,7 +158,8 @@ public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisio
 
       // enforce thresholds for explicit element, by incorporating information from reached set and path condition element
       if (i == indexOfExplicitState) {
-        ExplicitState explicitState                 = (ExplicitState)oldState;
+        ExplicitState oldExplicitState                 = (ExplicitState)oldState;
+        ExplicitState explicitState                 =  new ExplicitState(oldExplicitState);
         ExplicitPrecision explicitPrecision         = (ExplicitPrecision)oldPrecision;
         LocationState location                      = AbstractStates.extractStateByType(composite, LocationState.class);
         AssignmentsInPathConditionState assignments = AbstractStates.extractStateByType(composite, AssignmentsInPathConditionState.class);
@@ -180,6 +181,13 @@ public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisio
         totalEnforcePathThreshold.start();
         Pair<ExplicitState, ExplicitPrecision> result = enforcePathThreshold(explicitState, explicitPrecision, assignments);
         totalEnforcePathThreshold.stop();
+
+        explicitState = result.getFirst();
+        explicitPrecision = result.getSecond();
+
+        if (!explicitState.equals(oldExplicitState) || !explicitPrecision.equals(oldPrecision)){
+          modified = true;
+        }
 
         outElements.add(result.getFirst());
         outPrecisions.add(result.getSecond());

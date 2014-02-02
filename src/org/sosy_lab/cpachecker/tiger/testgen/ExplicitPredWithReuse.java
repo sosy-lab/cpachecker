@@ -52,56 +52,50 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.assume.AssumeCPA;
 import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.DelegatingExplicitRefiner;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.core.algorithm.AlgorithmExecutorService;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.tiger.util.ARTReuse;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.util.predicates.PathChecker;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
-/**
- * Explicit analysis with explicit refiner that can reuse information.
- */
-public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCallback {
 
+public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallback {
 
   private final LocationCPA mLocationCPA;
   private final CallstackCPA mCallStackCPA;
   private final AssumeCPA mAssumeCPA;
-  // private final CFAPathCPA mCFAPathCPA;
-  private final ConfigurableProgramAnalysis mExplicitCPA;
+  private ConfigurableProgramAnalysis mExplicitCPA;
+  private ConfigurableProgramAnalysis mPredicateCPA;
 
   private final Configuration mConfiguration;
   private final LogManager mLogManager;
   // TODO probably make global
   private boolean mReuseART = true;
 
-  private final PathChecker pchecker;
-
-  public ExplicitPrecision mPrecision;
+  public PredicatePrecision mPrecision;
   private boolean lUseCache;
-  private DelegatingExplicitRefiner expRefiner;
+  private DelegatingExplicitRefiner refiner;
   private AlgorithmExecutorService executor;
   private long timelimit;
+  private ShutdownNotifier shutdownNotifier;
+  private CFA lCFA;
 
-  public ExplicitAnalysisWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier,
+  public ExplicitPredWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier,
       CFA lCFA, LocationCPA pmLocationCPA, CallstackCPA pmCallStackCPA,
       AssumeCPA pmAssumeCPA, long pTimelimit){
     mLocationCPA = pmLocationCPA;
@@ -109,16 +103,13 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
     mAssumeCPA = pmAssumeCPA;
     timelimit = pTimelimit;
 
+    this.shutdownNotifier = shutdownNotifier;
+
     try {
       // add this option to initalize explict analysis to empty precision
       Collection<String> options = new ArrayList<>();
       options.add("analysis.algorithm.CEGAR = true");
       options.add("cpa.composite.precAdjust = COMPONENT");
-      options.add("counterexample.continueAfterInfeasibleError = true");
-      options.add("analysis.traversal.order               = bfs");
-      options.add("analysis.traversal.useReversePostorder = true");
-      options.add("analysis.traversal.useCallstack        = true");
-      options.add("cegar.refiner                          = cpa.explicit.refiner.DelegatingExplicitRefiner");
 
       mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction, options);
       mLogManager = new BasicLogManager(mConfiguration);
@@ -126,13 +117,42 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
       throw new RuntimeException(e);
     }
 
-    // predicate abstraction CPA
+    CPAFactory lPredicateCPAFactory = PredicateCPA.factory();
+    lPredicateCPAFactory.set(lCFA, CFA.class);
+    lPredicateCPAFactory.setConfiguration(mConfiguration);
+    lPredicateCPAFactory.setLogger(mLogManager);
+    lPredicateCPAFactory.set(shutdownNotifier, ShutdownNotifier.class);
+    ReachedSetFactory lReachedSetFactory;
+    try {
+      lReachedSetFactory = new ReachedSetFactory(mConfiguration, mLogManager);
+    } catch (InvalidConfigurationException e1) {
+      throw new RuntimeException(e1);
+    }
+    lPredicateCPAFactory.set(lReachedSetFactory, ReachedSetFactory.class);
+
+    try {
+      PredicateCPA lPredicateCPA = (PredicateCPA) lPredicateCPAFactory.createInstance();
+      lPredicateCPA.setPrecisioCallback(this);
+      mPrecision = (PredicatePrecision) lPredicateCPA.getInitialPrecision(null);
+
+      if (lUseCache) {
+        mPredicateCPA = new CacheCPA(lPredicateCPA);
+      }
+      else {
+        mPredicateCPA = lPredicateCPA;
+      }
+    } catch (InvalidConfigurationException | CPAException e) {
+      throw new RuntimeException(e);
+    }
+
+    this.lCFA = lCFA;
+
+    // explicit abstraction CPA
     CPAFactory factory = ExplicitCPA.factory();
     factory.set(lCFA, CFA.class);
     factory.setConfiguration(mConfiguration);
     factory.setLogger(mLogManager);
     factory.set(shutdownNotifier, ShutdownNotifier.class);
-    ReachedSetFactory lReachedSetFactory;
     try {
       lReachedSetFactory = new ReachedSetFactory(mConfiguration, mLogManager);
     } catch (InvalidConfigurationException e1) {
@@ -153,28 +173,6 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
     } catch (InvalidConfigurationException | CPAException e) {
       throw new RuntimeException(e);
     }
-
-    // TODO change
-    CPAFactory lPredicateCPAFactory = PredicateCPA.factory();
-    lPredicateCPAFactory.set(lCFA, CFA.class);
-    lPredicateCPAFactory.setConfiguration(mConfiguration);
-    lPredicateCPAFactory.setLogger(mLogManager);
-    lPredicateCPAFactory.set(shutdownNotifier, ShutdownNotifier.class);
-    try {
-      lReachedSetFactory = new ReachedSetFactory(mConfiguration, mLogManager);
-    } catch (InvalidConfigurationException e1) {
-      throw new RuntimeException(e1);
-    }
-    lPredicateCPAFactory.set(lReachedSetFactory, ReachedSetFactory.class);
-
-    PredicateCPA predCPA = null;
-    try {
-      predCPA = (PredicateCPA) lPredicateCPAFactory.createInstance();
-    } catch (InvalidConfigurationException | CPAException e) {
-      throw new RuntimeException(e);
-    }
-
-    pchecker = new PathChecker(mLogManager, predCPA.getPathFormulaManager(), predCPA.getSolver());
 
     executor = AlgorithmExecutorService.getInstance();
 
@@ -202,6 +200,7 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
     lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
 
     lComponentAnalyses.add(mExplicitCPA);
+    lComponentAnalyses.add(mPredicateCPA);
 
     lComponentAnalyses.add(mAssumeCPA);
 
@@ -227,10 +226,10 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
       throw new RuntimeException(e);
     }
 
-    try {
-      expRefiner = DelegatingExplicitRefiner.create(lARTCPA);
-      expRefiner.setPrecisionCallback(this);
 
+    try {
+      refiner = DelegatingExplicitRefiner.create(lARTCPA);
+      refiner.setPrecisionCallback(this);
     } catch (CPAException | InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
@@ -246,7 +245,7 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
 
     CEGARAlgorithmWithCounterexampleInfo lAlgorithm;
     try {
-      lAlgorithm = new CEGARAlgorithmWithCounterexampleInfo(lBasicAlgorithm, this.expRefiner, mConfiguration, mLogManager);
+      lAlgorithm = new CEGARAlgorithmWithCounterexampleInfo(lBasicAlgorithm, this.refiner, mConfiguration, mLogManager);
     } catch (InvalidConfigurationException | CPAException e) {
       throw new RuntimeException(e);
     }
@@ -267,7 +266,7 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
       if (mPrecision != null) {
         for (AbstractState lWaitlistElement : pReachedSet.getWaitlist()) {
           Precision lOldPrecision = pReachedSet.getPrecision(lWaitlistElement);
-          Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, mPrecision, ExplicitPrecision.class);
+          Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, mPrecision, PredicatePrecision.class);
 
           pReachedSet.updatePrecision(lWaitlistElement, lNewPrecision);
         }
@@ -286,50 +285,12 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
     boolean isSound = executor.execute(lAlgorithm, pReachedSet, notifier, timelimit, TimeUnit.SECONDS);
     CounterexampleInfo cex = lAlgorithm.getCex();
 
-    // check the counterexample
-    if (isSound && cex != null && !cex.isSpurious()){
 
-      ARGPath path = cex.getTargetPath();
-
-      try {
-        CounterexampleTraceInfo cexTrace = pchecker.checkPath(path.asEdgesList());
-
-        if (cexTrace.isSpurious()){
-          cex = CounterexampleInfo.spurious();
-        } else {
-          cex = CounterexampleInfo.feasible(path, cexTrace.getModel());
-        }
-
-      } catch (CPATransferException | InterruptedException e1) {
-        throw new RuntimeException(e1);
-      }
+    // TODO remove as useless
+    if (pReachedSet.getLastState() != null && ((ARGState)pReachedSet.getLastState()).isTarget()) {
+      assert(cex != null);
+      assert(!cex.isSpurious());
     }
-
-
-    /* AbstractState lastState = pReachedSet.getLastState();
-    if (AbstractStates.isTargetState(lastState)){
-      assert ARGUtils.checkARG(pReachedSet) : "ARG and reached set do not match before refinement";
-      final ARGState lastStateARG = (ARGState) lastState;
-      assert lastStateARG.isTarget() : "Last element in reached is not a target state before refinement";
-
-      ARGPath path = ARGUtils.getOnePathTo(lastStateARG);
-      path.asEdgesList();
-
-      // check feasibility of the reported error path
-      try {
-        CounterexampleTraceInfo cexTrace = pchecker.checkPath(path.asEdgesList());
-
-        if (cexTrace.isSpurious()){
-          lCounterexampleInfo = CounterexampleInfo.spurious();
-        } else {
-          lCounterexampleInfo = CounterexampleInfo.feasible(path, cexTrace.getModel());
-        }
-
-      } catch (CPATransferException | InterruptedException e1) {
-        throw new RuntimeException(e1);
-      }
-      reachable = true;
-    }*/
 
     return Pair.of(isSound, cex);
   }
@@ -341,7 +302,8 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
 
   @Override
   public void setPrecision(Precision pNewPrec) {
-    mPrecision = (ExplicitPrecision) pNewPrec;
+    mPrecision = (PredicatePrecision) pNewPrec;
+    System.out.println(mPrecision);
   }
 
   @Override
@@ -352,4 +314,5 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {}
+
 }

@@ -357,4 +357,11 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(new Stats());
   }
+
+
+  public RefinementStrategy getStrategy() {
+    return strategy;
+  }
+
+
 }

@@ -125,6 +125,7 @@ class CmdLineArguments {
           || handleArgument0("-pred", "cpatiger.predicate", "true", arg, properties)   // predicate analysis
           || handleArgument0("-expsim", "cpatiger.explicit_simple", "true", arg, properties) // simple explicit analysis (no refinement)
           || handleArgument0("-expref", "cpatiger.explicit_ref", "true", arg, properties)    // explicit analysis with refinement
+          || handleArgument0("-exppred", "cpatiger.explicit_predicate", "true", arg, properties)    // explicit with predicate analysis
 
           || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
@@ -264,6 +265,14 @@ class CmdLineArguments {
   private static void printHelp() {
     System.out.println("CPAchecker " + CPAchecker.getVersion());
     System.out.println();
+    System.out.println();
+    System.out.println("ANALYSIS TYPE:");
+    System.out.println("-pred");
+    System.out.println("-expsim");
+    System.out.println("-expref");
+    System.out.println("-exppred");
+    System.out.println();
+
     System.out.println("OPTIONS:");
     System.out.println(" -config");
     System.out.println(" -cpas");
@@ -272,6 +281,7 @@ class CmdLineArguments {
     System.out.println(" -logfile");
     System.out.println(" -entryfunction");
     System.out.println(" -timelimit");
+    System.out.println(" -rtimelimit");
     System.out.println(" -cbmc");
     System.out.println(" -stats");
     System.out.println(" -nolog");

@@ -282,7 +282,15 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           mLocationCPA, mCallStackCPA, mAssumeCPA, timelimit);
       break;
 
+    case EXPLICIT_PRED :
+      mOutput.println("Running explicit analysis with predicate analysis");
+      analysis = new ExplicitPredWithReuse(pSourceFileName, pEntryFunction, shutdownNotifier, lCFA,
+          mLocationCPA, mCallStackCPA, mAssumeCPA, timelimit);
+      break;
+
     }
+
+    assert analysis != null;
 
 
     // we can collect test cases accross several run invocations and use them for coverage analysis
