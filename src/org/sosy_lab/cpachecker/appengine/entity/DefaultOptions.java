@@ -49,22 +49,44 @@ import org.sosy_lab.common.io.Paths;
  */
 public class DefaultOptions {
 
-  private static Map<String, String> allowedOptions;
+  private static Map<String, String> allowedOptions = new HashMap<>();
+  private static List<String> unsupportedConfigurations = new ArrayList<>();
   private Map<String, String> usedOptions = new HashMap<>();
+
+  static {
+    allowedOptions.put("analysis.machineModel", "Linux32");
+    allowedOptions.put("output.disable", "false");
+    allowedOptions.put("statistics.export", "true");
+    allowedOptions.put("log.usedOptions.export", "false");
+    allowedOptions.put("log.level", "OFF");
+    allowedOptions.put("limits.time.wall", "540s"); // 9 minutes
+
+    unsupportedConfigurations.add("chc.properties");
+    unsupportedConfigurations.add("lddAnalysis.properties");
+    unsupportedConfigurations.add("octagonAnalysis.properties");
+    unsupportedConfigurations.add("separationlogic.properties");
+    unsupportedConfigurations.add("explicitAnalysis-java-with-RTT.properties");
+    unsupportedConfigurations.add("explicitAnalysis-java.properties");
+    unsupportedConfigurations.add("predicateAnalysis-bitprecise.properties");
+    unsupportedConfigurations.add("predicateAnalysis-PredAbsRefiner-ABEl-bitprecise.properties");
+    unsupportedConfigurations.add("sv-comp14--02-challenge.properties");
+    unsupportedConfigurations.add("sv-comp14--05-predicateAnalysis-bitprecise.properties");
+    unsupportedConfigurations.add("sv-comp14--cex-check-predicateAnalysis-bitprecise.properties");
+
+    /*
+     * CPAs that do not work:
+     * cpa.chc.CHCCPA
+     * cpa.ldd.LDDAbstractionCPA
+     * cpa.octagon.OctagonCPA
+     * cpa.seplogic.SeplogicCPA
+     */
+  }
+
 
   /**
    * Returns the allowed options and their default values.
    */
   public static Map<String, String> getDefaultOptions() {
-    if (allowedOptions == null) {
-      allowedOptions = new HashMap<>();
-      allowedOptions.put("analysis.machineModel", "Linux32");
-      allowedOptions.put("output.disable", "false");
-      allowedOptions.put("statistics.export", "true");
-      allowedOptions.put("log.usedOptions.export", "false");
-      allowedOptions.put("log.level", "OFF");
-      allowedOptions.put("limits.time.wall", "540s"); // 9 minutes
-    }
     return allowedOptions;
   }
 
@@ -77,9 +99,7 @@ public class DefaultOptions {
    * @return True, if the option will be used, false otherwise.
    */
   public boolean setOption(String key, String value) {
-    if (!getDefaultOptions().containsKey(key)) {
-      return false;
-    }
+    if (!getDefaultOptions().containsKey(key)) { return false; }
 
     if (!getDefaultOptions().get(key).equals(value)) {
 
@@ -142,6 +162,16 @@ public class DefaultOptions {
    */
   public static String getDefault(String key) {
     return getDefaultOptions().get(key);
+  }
+
+  /**
+   * Returns a list of configuration files that are known not to work on Google
+   * App Engine.
+   *
+   * @return A list of unsupported configuration files.
+   */
+  public static List<String> getUnsupportedConfigurations() {
+    return unsupportedConfigurations;
   }
 
   /**
