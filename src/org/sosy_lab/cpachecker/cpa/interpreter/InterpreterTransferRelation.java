@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -491,6 +492,154 @@ public class InterpreterTransferRelation implements TransferRelation {
       throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
 
+  }
+
+  // boolean value indicates whether we were able to compute a value and the long value represents the value of the expression (if successful)
+  private Pair<Boolean, Long> evaluate(InterpreterElement pState, IAExpression pExpression, String pFunctionName) {
+    if (pExpression instanceof CLiteralExpression) { // TODO restrict to CIntegerLiteralExpression
+      CLiteralExpression lLiteral = (CLiteralExpression)pExpression;
+      CType expressionType = lLiteral.getExpressionType();
+
+      if (expressionType instanceof CSimpleType) {
+        CSimpleType lType = (CSimpleType)expressionType;
+
+        if (!lType.isImaginary() && !lType.isComplex()) {
+          String literalString = lLiteral.toASTString();
+
+          if (literalString.contains("L") || literalString.contains("U")){
+            literalString = literalString.replace("L", "");
+            literalString = literalString.replace("U", "");
+          }
+
+          long valueOfLiteral = Long.valueOf(literalString).intValue();
+
+          return Pair.of(true, valueOfLiteral);
+        }
+      }
+
+      return Pair.of(false, 0L);
+    }
+    else if (pExpression instanceof CIdExpression) {
+      CIdExpression lId = (CIdExpression)pExpression;
+      String lScopedVariableName = getvarName(lId.getName(), pFunctionName);
+
+      try {
+        long lValue = pState.getValueFor(lScopedVariableName);
+
+        return Pair.of(true, lValue);
+      } catch (ReadingFromNondetVariableException | AccessToUninitializedVariableException e) {
+        throw new RuntimeException(e);
+      }
+    }
+    else if (pExpression instanceof CCastExpression) {
+      // TODO this is rather a hack
+      CCastExpression lCastExpression = (CCastExpression)pExpression;
+      return evaluate(pState, lCastExpression.getOperand(), pFunctionName);
+    }
+    else if (pExpression instanceof CUnaryExpression) {
+      CUnaryExpression lUnaryExpression = (CUnaryExpression)pExpression;
+      UnaryOperator lOperator = lUnaryExpression.getOperator();
+
+      Pair<Boolean, Long> result;
+
+      switch (lOperator) {
+      case PLUS:
+        result = evaluate(pState, lUnaryExpression.getOperand(), pFunctionName);
+
+        if (result.getFirst()) {
+          return result;
+        }
+        break;
+      case MINUS:
+        result = evaluate(pState, lUnaryExpression.getOperand(), pFunctionName);
+
+        if (result.getFirst()) {
+          return Pair.of(true, -result.getSecond());
+        }
+        break;
+      case NOT:
+        result = evaluate(pState, lUnaryExpression.getOperand(), pFunctionName);
+
+        if (result.getFirst()) {
+          if (result.getSecond() != 0) {
+            return Pair.of(true, 0L);
+          }
+          else {
+            return Pair.of(true, 1L);
+          }
+        }
+        break;
+      default:
+        break;
+      }
+
+      return Pair.of(false, 0L);
+    }
+    else if (pExpression instanceof CBinaryExpression) {
+      CBinaryExpression lBinaryExpression = (CBinaryExpression)pExpression;
+
+      Pair<Boolean, Long> lValue1 = evaluate(pState, lBinaryExpression.getOperand1(), pFunctionName);
+      Pair<Boolean, Long> lValue2 = evaluate(pState, lBinaryExpression.getOperand2(), pFunctionName);
+
+      if (lValue1.getFirst() && lValue2.getFirst()) {
+        long result;
+
+        switch (lBinaryExpression.getOperator()) {
+        case MULTIPLY:
+          result = lValue1.getSecond() * lValue2.getSecond();
+          return Pair.of(true, result);
+        case DIVIDE:
+          result = lValue1.getSecond() / lValue2.getSecond();
+          return Pair.of(true, result);
+        case MODULO:
+          result = lValue1.getSecond() % lValue2.getSecond();
+          return Pair.of(true, result);
+        case PLUS:
+          result = lValue1.getSecond() + lValue2.getSecond();
+          return Pair.of(true, result);
+        case MINUS:
+          result = lValue1.getSecond() - lValue2.getSecond();
+          return Pair.of(true, result);
+        case SHIFT_LEFT:
+          result = lValue1.getSecond() << lValue2.getSecond();
+          return Pair.of(true, result);
+        case SHIFT_RIGHT:
+          result = lValue1.getSecond() >> lValue2.getSecond();
+          return Pair.of(true, result);
+        case LESS_THAN:
+          result = (lValue1.getSecond() < lValue2.getSecond())?1L:0L;
+          return Pair.of(true, result);
+        case GREATER_THAN:
+          result = (lValue1.getSecond() > lValue2.getSecond())?1L:0L;
+          return Pair.of(true, result);
+        case LESS_EQUAL:
+          result = (lValue1.getSecond() <= lValue2.getSecond())?1L:0L;
+          return Pair.of(true, result);
+        case GREATER_EQUAL:
+          result = (lValue1.getSecond() >= lValue2.getSecond())?1L:0L;
+          return Pair.of(true, result);
+        case BINARY_AND:
+          return Pair.of(false, 0L);
+        case BINARY_XOR:
+          return Pair.of(false, 0L);
+        case BINARY_OR:
+          return Pair.of(false, 0L);
+        case EQUALS:
+          result = (lValue1.getSecond() == lValue2.getSecond())?1L:0L;
+          return Pair.of(true, result);
+        case NOT_EQUALS:
+          result = (lValue1.getSecond() != lValue2.getSecond())?1L:0L;
+          return Pair.of(true, result);
+        default:
+          return Pair.of(false, 0L);
+        }
+      }
+      else {
+        return Pair.of(false, 0L);
+      }
+    }
+
+    return Pair.of(false, 0L);
   }
 
   private AbstractState propagateBooleanExpression(AbstractState element,
@@ -1074,14 +1223,124 @@ public class InterpreterTransferRelation implements TransferRelation {
       return lSuccessor;
     }
     else{
+      Pair<Boolean, Long> lValue1 = evaluate(newElement, op1, functionName);
+      Pair<Boolean, Long> lValue2 = evaluate(newElement, op2, functionName);
 
-     System.out.println(op2.toASTString());
-     System.out.println(op1.toASTString());
+      if (lValue1.getFirst() && lValue2.getFirst()) {
+        long result;
 
-    String varName = op1.toASTString();
-    // TODO forgetting
-    newElement.forget(varName);
-//      throw new UnrecognizedCFAEdgeException("Unhandled case " );
+        switch (opType) {
+        case MULTIPLY:
+          result = lValue1.getSecond() * lValue2.getSecond();
+          if (result == 0L) {
+            return InterpreterBottomElement.INSTANCE;
+          }
+          else {
+            return newElement;
+          }
+        case DIVIDE:
+          result = lValue1.getSecond() / lValue2.getSecond();
+          if (result == 0L) {
+            return InterpreterBottomElement.INSTANCE;
+          }
+          else {
+            return newElement;
+          }
+        case MODULO:
+          result = lValue1.getSecond() % lValue2.getSecond();
+          if (result == 0L) {
+            return InterpreterBottomElement.INSTANCE;
+          }
+          else {
+            return newElement;
+          }
+        case PLUS:
+          result = lValue1.getSecond() + lValue2.getSecond();
+          if (result == 0L) {
+            return InterpreterBottomElement.INSTANCE;
+          }
+          else {
+            return newElement;
+          }
+        case MINUS:
+          result = lValue1.getSecond() - lValue2.getSecond();
+          if (result == 0L) {
+            return InterpreterBottomElement.INSTANCE;
+          }
+          else {
+            return newElement;
+          }
+        case SHIFT_LEFT:
+          result = lValue1.getSecond() << lValue2.getSecond();
+          if (result == 0L) {
+            return InterpreterBottomElement.INSTANCE;
+          }
+          else {
+            return newElement;
+          }
+        case SHIFT_RIGHT:
+          result = lValue1.getSecond() >> lValue2.getSecond();
+          if (result == 0L) {
+            return InterpreterBottomElement.INSTANCE;
+          }
+          else {
+            return newElement;
+          }
+        case LESS_THAN:
+          if (lValue1.getSecond() < lValue2.getSecond()) {
+            return newElement;
+          }
+          else {
+            return InterpreterBottomElement.INSTANCE;
+          }
+        case GREATER_THAN:
+          if (lValue1.getSecond() > lValue2.getSecond()) {
+            return newElement;
+          }
+          else {
+            return InterpreterBottomElement.INSTANCE;
+          }
+        case LESS_EQUAL:
+          if (lValue1.getSecond() <= lValue2.getSecond()) {
+            return newElement;
+          }
+          else {
+            return InterpreterBottomElement.INSTANCE;
+          }
+        case GREATER_EQUAL:
+          if (lValue1.getSecond() >= lValue2.getSecond()) {
+            return newElement;
+          }
+          else {
+            return InterpreterBottomElement.INSTANCE;
+          }
+        case EQUALS:
+          if (lValue1.getSecond() == lValue2.getSecond()) {
+            return newElement;
+          }
+          else {
+            return InterpreterBottomElement.INSTANCE;
+          }
+        case NOT_EQUALS:
+          if (lValue1.getSecond() != lValue2.getSecond()) {
+            return newElement;
+          }
+          else {
+            return InterpreterBottomElement.INSTANCE;
+          }
+        case BINARY_AND:
+        case BINARY_XOR:
+        case BINARY_OR:
+        default:
+          break;
+        }
+      }
+
+      System.out.println(op1.toASTString() + " " + opType.toString() + " " + op2.toASTString());
+
+      String varName = op1.toASTString();
+      newElement.forget(varName);
+      // throw new UnrecognizedCFAEdgeException("Unhandled case " );
     }
 
     return newElement;
