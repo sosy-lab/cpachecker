@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project basedir="." default="gae-compile" name="CPAchecker on Google App Engine">
+<project basedir="." default="runserver" name="CPAchecker on Google App Engine">
 
 	<property name="ivy.lib.dir" value="${basedir}/lib/java" />
 	<property name="debuglevel" value="source,lines,vars" />
@@ -25,6 +25,9 @@
 
 	<path id="gae.classpath">
 		<pathelement path="${class.dir}" />
+		<fileset dir="${lib.dir}">
+			<include name="*.jar" />
+		</fileset>
 		<fileset dir="${lib.dir}/java">
 			<include name="**/*.jar" />
 		</fileset>
@@ -42,7 +45,7 @@
 		</fileset>
 	</path>
 
-	<target name="gae-tests" depends="gae-compile" description="Runs all JUnit tests.">
+	<target name="tests" depends="compile" description="Runs all JUnit tests.">
 		<property name="test.report.dir" value="output" />
 		<mkdir dir="${test.report.dir}" />
 		<junit fork="true" printSummary="true" showOutput="false" haltonfailure="true">
@@ -60,14 +63,14 @@
 		</junit>
 	</target>
 
-	<target name="gae-install" depends="gae-getjars,gae-getsdk,gae-unzipsdk" description="Downloads all necessary files and setup the classpath." />
+	<target name="install" depends="getjars,getsdk,unzipsdk" description="Downloads all necessary files and setup the classpath." />
 
-	<target name="gae-getsdk" description="Downloads the Google App Engine SDK.">
+	<target name="getsdk" description="Downloads the Google App Engine SDK.">
 		<get dest="${lib.dir}" src="http://googleappengine.googlecode.com/files/${gae-sdk.name}.zip" usetimestamp="true" verbose="true" />
 		<property name="gae-sdk-downloaded" value="true" />
 	</target>
 
-	<target name="gae-getjars" description="Downloads all necessary JARs.">
+	<target name="getjars" description="Downloads all necessary JARs.">
 		<get dest="${lib.dir.gae}" src="http://maven.restlet.org/org/restlet/gae/org.restlet/2.1.6/org.restlet-2.1.6.jar" usetimestamp="true" verbose="true" />
 		<get dest="${lib.dir.gae}" src="http://maven.restlet.org/org/restlet/gae/org.restlet.ext.fileupload/2.1.6/org.restlet.ext.fileupload-2.1.6.jar" usetimestamp="true" verbose="true" />
 		<get dest="${lib.dir.gae}" src="http://maven.restlet.org/org/restlet/gae/org.restlet.ext.freemarker/2.1.6/org.restlet.ext.freemarker-2.1.6.jar" usetimestamp="true" verbose="true" />
@@ -90,12 +93,12 @@
 		<get dest="${lib.dir.gae}" src="http://repo1.maven.org/maven2/commons-io/commons-io/2.4/commons-io-2.4.jar" usetimestamp="true" verbose="true" />
 	</target>
 
-	<target name="gae-unzipsdk" description="Unzips the Google App Engine SDK." depends="gae-getsdk" if="gae-sdk-downloaded">
+	<target name="unzipsdk" description="Unzips the Google App Engine SDK." depends="getsdk" if="gae-sdk-downloaded">
 		<unzip src="${lib.dir}/${gae-sdk.name}.zip" dest="${lib.dir}">
 		</unzip>
 	</target>
 
-	<target name="gae-copyjars" description="Copies all JARs to the WAR.">
+	<target name="copyjars" description="Copies all JARs to the WAR.">
 		<copy todir="war/WEB-INF/lib" flatten="true">
 			<fileset dir="${ivy.lib.dir}">
 				<include name="runtime/*.jar" />
@@ -113,7 +116,7 @@
 		</copy>
 	</target>
 
-	<target name="gae-copyspecifications" description="Copies all specifications to the WAR.">
+	<target name="copyspecifications" description="Copies all specifications to the WAR.">
 		<copy todir="war/WEB-INF/specifications" flatten="true">
 			<fileset dir="${specification.dir}">
 				<include name="*.spc" />
@@ -121,7 +124,7 @@
 		</copy>
 	</target>
 
-	<target name="gae-copyconfigurations" description="Copies all configurations to the WAR.">
+	<target name="copyconfigurations" description="Copies all configurations to the WAR.">
 		<copy todir="war/WEB-INF/configurations">
 			<fileset dir="${configuration.dir}">
 				<include name="**/*.properties" />
@@ -130,7 +133,7 @@
 		</copy>
 	</target>
 
-	<target name="gae-compile" depends="gae-copyjars,gae-copyspecifications,gae-copyconfigurations,gae-create-version-files" description="Compiles Java source and copies other source files to the WAR.">
+	<target name="compile" depends="copyjars,copyspecifications,copyconfigurations,create-version-files" description="Compiles Java source and copies other source files to the WAR.">
 		<mkdir dir="${gae-classes.dir}" />
 		<copy todir="${gae-classes.dir}">
 			<fileset dir="src">
@@ -144,11 +147,11 @@
 		</javac>
 	</target>
 
-	<target name="gae-runserver" depends="gae-compile" description="Starts the development server.">
+	<target name="runserver" depends="compile" description="Starts the development server.">
 		<dev_appserver war="war" port="${gae-dev.port}" />
 	</target>
 
-	<target name="gae-create-version-files" depends="cpachecker-create-version-file" description="Creates files containing the respective versions of CPAchecker and CPAchecker on GAE.">
+	<target name="create-version-files" depends="cpachecker-create-version-file" description="Creates files containing the respective versions of CPAchecker and CPAchecker on GAE.">
 		<exec executable="svnversion" outputproperty="gae.version" failonerror="false" failifexecutionfails="false" logError="false" error="/dev/null">
 			<env key="LANG" value="C" />
 		</exec>
