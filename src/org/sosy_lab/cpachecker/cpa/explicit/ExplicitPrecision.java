@@ -53,6 +53,7 @@ import com.google.common.collect.TreeMultimap;
 @Options(prefix="cpa.explicit.precision")
 public class ExplicitPrecision implements Precision {
 
+
   /**
    * the pattern describing variable names that are not being tracked - if it is null, no variables are black-listed
    */
@@ -124,6 +125,24 @@ public class ExplicitPrecision implements Precision {
     ignoreIntEqual        = original.ignoreIntEqual;
     ignoreIntAdd          = original.ignoreIntAdd;
   }
+
+  /**
+   * Returns a merge of precisions.
+   * @param pOther
+   * @return
+   */
+  public ExplicitPrecision mergeWith(ExplicitPrecision pOther) {
+    Multimap<CFANode, MemoryLocation> empty = HashMultimap.create();
+
+    ExplicitPrecision newPrec = new ExplicitPrecision(this, empty);
+    newPrec.getRefinablePrecision().join(pOther.getRefinablePrecision());
+
+    return newPrec;
+  }
+
+
+
+
 
   public RefinablePrecision getRefinablePrecision() {
     return refinablePrecision;
@@ -446,4 +465,8 @@ public class ExplicitPrecision implements Precision {
       return new HashSet<>(state.getDelta());
     }
   }
+
+
+
+
 }

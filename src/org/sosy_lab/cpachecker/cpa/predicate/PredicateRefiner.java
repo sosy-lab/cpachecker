@@ -82,7 +82,8 @@ public abstract class PredicateRefiner implements Refiner {
         strategy);
   }
 
-  public static PredicateCPARefiner cpatiger_create(ConfigurableProgramAnalysis pCpa, PrecisionCallback precisionCallback) throws CPAException, InvalidConfigurationException {
+  public static PredicateCPARefiner cpatiger_create(ConfigurableProgramAnalysis pCpa,
+      PrecisionCallback<PredicatePrecision> precisionCallback) throws CPAException, InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " needs a PredicateCPA");

@@ -156,7 +156,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private final PredicateMapWriter precisionWriter;
 
   // for CPATiger
-  private PrecisionCallback precCallback;
+  private PrecisionCallback<PredicatePrecision> precCallback;
 
   // statistics
   private StatCounter numberOfRefinementsWithStrategy2 = new StatCounter("Number of refs with location-based cutoff");
@@ -432,7 +432,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     // TODO reduce coupling
     IncrementalARTReusingFQLTestGenerator.getInstance().mOutput.println("TODO: reduce coupling!");
-    PredicatePrecision tmp = (PredicatePrecision) precCallback.getPrecision();
+    PredicatePrecision tmp = precCallback.getPrecision();
     assert(tmp != null);
     //IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addGlobalPredicates(newPredicates.values());
     //IncrementalARTReusingFQLTestGenerator.getInstance().mPrecision = tmp.addFunctionPredicates(mergePredicatesPerFunction(newPredicates));
@@ -545,7 +545,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
 
-  public void setPrecisionCallback(PrecisionCallback pPrecCallback) {
+  public void setPrecisionCallback(PrecisionCallback<PredicatePrecision> pPrecCallback) {
     precCallback = pPrecCallback;
   }
 

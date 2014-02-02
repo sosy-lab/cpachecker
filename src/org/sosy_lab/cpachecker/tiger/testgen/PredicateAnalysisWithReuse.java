@@ -76,7 +76,7 @@ import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 /**
  * Predicate analysis with reachability reuse.
  */
-public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionCallback {
+public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionCallback<PredicatePrecision> {
 
 
   private final LocationCPA mLocationCPA;
@@ -294,13 +294,13 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
   }
 
   @Override
-  public Precision getPrecision() {
+  public PredicatePrecision getPrecision() {
     return mPrecision;
   }
 
   @Override
-  public void setPrecision(Precision pNewPrec) {
-    mPrecision = (PredicatePrecision) pNewPrec;
+  public void setPrecision(PredicatePrecision pNewPrec) {
+    mPrecision = pNewPrec;
   }
 
   @Override

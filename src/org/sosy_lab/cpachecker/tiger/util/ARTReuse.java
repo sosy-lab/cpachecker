@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
+
 public class ARTReuse {
 
   public static void modifyReachedSet(ReachedSet pReachedSet, FunctionEntryNode pEntryNode, ARGCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
@@ -108,18 +109,85 @@ public class ARTReuse {
             else {
               // by removing the children, lARTElement gets added to the
               // worklist automatically
-
               /* TODO add removal of only non-isomorphic parts again */
-              while (!lARTElement.getChildren().isEmpty()) {
-                ARGState lChildElement = lARTElement.getChildren().iterator().next();
-
-                pARTReachedSet.removeSubtree(lChildElement);
-              }
+              removeElement(lARTElement, pARTReachedSet);
             }
           }
         }
       }
     }
+  }
+
+
+  /**
+   * Removes all children of the element from the reached set and adds the element it to the worklist.
+   * The element's precision is update to the sum of the children precisions.
+   * @param lARTElement
+   * @param pARTReachedSet
+   * @throws InvalidConfigurationException
+   */
+  /*private static void removeElementLazy(ARGState lARTElement, ReachedSet pReachedSet, ARGReachedSet pARTReachedSet) {
+
+    // TODO only predicate and explicit precisions are handled
+
+    // merge all children precision
+    Precision prec = pReachedSet.getPrecision(lARTElement);
+    PredicatePrecision predPrec = Precisions.extractPrecisionByType(prec, PredicatePrecision.class);
+    ExplicitPrecision expPrec = Precisions.extractPrecisionByType(prec, ExplicitPrecision.class);
+
+    if (predPrec == null && expPrec == null) {
+      assert false;
+    }
+
+    Collection<ARGState> children = lARTElement.getChildren();
+
+    for (ARGState child : children){
+      if (!pReachedSet.contains(child)) {
+        continue;
+      }
+
+      Precision cPrec = pReachedSet.getPrecision(child);
+
+      if (predPrec != null){
+        PredicatePrecision cPredPrec = Precisions.extractPrecisionByType(cPrec, PredicatePrecision.class);
+        predPrec = predPrec.mergeWith(cPredPrec);
+      }
+
+      if (expPrec != null){
+        ExplicitPrecision cExpPrec = Precisions.extractPrecisionByType(cPrec, ExplicitPrecision.class);
+        expPrec = expPrec.mergeWith(cExpPrec);
+      }
+
+    }
+
+    // update parent precision
+    if (predPrec != null){
+      Precisions.replaceByType(prec, predPrec, PredicatePrecision.class);
+    }
+
+    if (expPrec != null){
+      Precisions.replaceByType(prec, expPrec, ExplicitPrecision.class);
+    }
+
+    pReachedSet.updatePrecision(lARTElement, prec);
+
+    // remove children
+    removeElement(lARTElement, pARTReachedSet);
+
+  }*/
+
+  /**
+   * Removes all children of the element from the reached set and adds the element it to the worklist.
+   * @param lARTElement
+   * @param pARTReachedSet
+   */
+  private static void removeElement(ARGState lARTElement, ARGReachedSet pARTReachedSet) {
+    while (!lARTElement.getChildren().isEmpty()) {
+      ARGState lChildElement = lARTElement.getChildren().iterator().next();
+
+      pARTReachedSet.removeSubtree(lChildElement);
+    }
+
   }
 
   private static void modifyART(ReachedSet pReachedSet, ARGCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {

@@ -9,6 +9,7 @@
   </sourcefiles>
 
   <rundefinition name="predicate-bb">
+	<option name="-pred"/>
 	<option name="-bb"/>
   </rundefinition>
 

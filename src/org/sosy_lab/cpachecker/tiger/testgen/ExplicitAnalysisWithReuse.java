@@ -79,7 +79,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 /**
  * Explicit analysis with explicit refiner that can reuse information.
  */
-public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCallback {
+public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCallback<ExplicitPrecision> {
 
 
   private final LocationCPA mLocationCPA;
@@ -142,6 +142,7 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
 
     try {
       ExplicitCPA expCPA = (ExplicitCPA) factory.createInstance();
+      mPrecision = (ExplicitPrecision) expCPA.getInitialPrecision(null);
 
 
       if (lUseCache) {
@@ -335,13 +336,13 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
   }
 
   @Override
-  public Precision getPrecision() {
+  public ExplicitPrecision getPrecision() {
     return mPrecision;
   }
 
   @Override
-  public void setPrecision(Precision pNewPrec) {
-    mPrecision = (ExplicitPrecision) pNewPrec;
+  public void setPrecision(ExplicitPrecision pNewPrec) {
+    mPrecision =  pNewPrec;
   }
 
   @Override

@@ -125,6 +125,8 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
 
   private final LogManager logger;
 
+  private PrecisionCallback<ExplicitPrecision> precCallback;
+
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -296,6 +298,12 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       newPrecisionTypes.add(ExplicitPrecision.class);
       //      }
 
+      // add precision to global storage
+      ExplicitPrecision callPrec = precCallback.getPrecision();
+      ExplicitPrecision refinedCallPrec = new ExplicitPrecision(callPrec, increment);
+      precCallback.setPrecision(refinedCallPrec);
+
+
       if (bddPrecision != null) {
         BDDPrecision refinedBDDPrecision = new BDDPrecision(bddPrecision, increment);
         refinedPrecisions.add(refinedBDDPrecision);
@@ -390,16 +398,16 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     }
   }
 
-  public void setPrecisionCallback(PrecisionCallback callme) {
-    this.interpolatingRefiner.setPrecisionCallback(callme);
+  public void setPrecisionCallback(PrecisionCallback<ExplicitPrecision> callme) {
+    precCallback = callme;
 
-    if (this.predicatingRefiner != null){
+   /* if (this.predicatingRefiner != null){
       RefinementStrategy strategy = predicatingRefiner.getStrategy();
 
       if (strategy instanceof PredicateAbstractionRefinementStrategy){
         PredicateAbstractionRefinementStrategy prstrategy = (PredicateAbstractionRefinementStrategy) strategy;
         prstrategy.setPrecisionCallback(callme);
       }
-    }
+    }*/
   }
 }

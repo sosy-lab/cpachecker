@@ -28,10 +28,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 /**
  * Interface for storing and retrieving precision reused by analysis.
  */
-public interface PrecisionCallback {
+public interface PrecisionCallback<T extends Precision> {
 
-  public Precision getPrecision();
+  public T getPrecision();
 
-  public void setPrecision(Precision newPrec);
+  public void setPrecision(T newPrec);
 
 }
