@@ -69,7 +69,24 @@ Response
   "cpacheckerVersion" : "1.3",
   "cpacheckerOnGAEVersion" : "10790M", 
   "CPUSpeed" : "600Mhz",
-  "RAM" : "128M"
+  "RAM" : "128M",
+  "unsupportedConfigurations" : [
+  	"chc.properties",
+  	"lddAnalysis.properties"
+  ],
+  "configurations" : [
+  	"bmc-induction.properties",
+  	"bmc.properties"
+  ],
+  "defaultOptions" : {
+  	"statistics.memory" : "false",
+    "cpa.conditions.global.time.wall.hardlimit" : "-1",
+    "log.consoleLevel" : "OFF"
+  },
+  "specifications" : [
+  	"Assertion.spc",
+  	"AssumptionGuidingAutomaton.spc"
+  ]
 }
 
 
