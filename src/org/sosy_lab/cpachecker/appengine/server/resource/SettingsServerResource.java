@@ -50,7 +50,7 @@ public class SettingsServerResource extends WadlServerResource implements Settin
     ObjectMapper mapper = new ObjectMapper();
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
 
-    Map<String, String> settings = new HashMap<>();
+    Map<String, Object> settings = new HashMap<>();
     String timeLimit = CharMatcher.DIGIT.retainFrom(DefaultOptions.getDefault("limits.time.wall"));
     settings.put("timeLimit", timeLimit);
     settings.put("retries", String.valueOf(JobRunnerResource.MAX_RETRIES));
@@ -60,6 +60,10 @@ public class SettingsServerResource extends WadlServerResource implements Settin
     settings.put("cpacheckerOnGAEVersion", CPAcheckerApplication.getVersion());
     settings.put("CPUSpeed", "600Mhz"); // see appengine-web.xml
     settings.put("RAM", "128M"); // see appengine-web.xml
+    settings.put("defaultOptions", DefaultOptions.getImmutableOptions());
+    settings.put("specifications", DefaultOptions.getSpecifications());
+    settings.put("configurations", DefaultOptions.getConfigurations());
+    settings.put("unsupportedConfigurations", DefaultOptions.getUnsupportedConfigurations());
 
     try {
       return new StringRepresentation(mapper.writeValueAsString(settings), MediaType.APPLICATION_JSON);
