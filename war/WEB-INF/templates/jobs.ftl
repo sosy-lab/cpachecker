@@ -9,48 +9,73 @@
         <div class="panel-title">${msg.allJobs}</div>
       </div>
       <div class="panel-body">
-        <ul>
-        <#list jobs?sort_by("creationDate")?reverse as job>
-          <li>
-            <a href="/jobs/${job.key}">${job.creationDate?datetime}</a>
+        <table class="table table-bordered table-condensed table-hover table-jobs">
+            <tr>
+              <th>${msg.creationDate}</th>
+              <th>${msg.status}</th>
+              <th>${msg.outcome}</th>
+              <th>${msg.delete}</th>
+            </tr>
+          </thead>
+          <tbody>
+          <#list jobs?sort_by("creationDate")?reverse as job>
 
-            <#if job.status == "PENDING">
-              <span class="label label-default">${job.status}</span>
-            <#elseif job.status == "RUNNING">
-              <span class="label label-info">${job.status}</span>
-            <#elseif job.status == "ABORTED">
-              <span class="label label-warning">${job.status}</span>
-            <#elseif job.status == "TIMEOUT">
-              <span class="label label-danger">${job.status}</span>
-            <#elseif job.status == "ERROR">
-              <span class="label label-danger">${job.status}</span>
-            <#else>
-              <span class="label label-success">${job.status}</span>
-            </#if>
-            
-            <#if job.resultOutcome??>
+          <#if job.status == "PENDING">
+            <#assign statusLabel = "default">
+          <#elseif job.status == "RUNNING">
+            <#assign statusLabel = "info">
+          <#elseif job.status == "ABORTED">
+            <#assign statusLabel = "warning">
+          <#elseif job.status == "TIMEOUT">
+            <#assign statusLabel = "danger">
+          <#elseif job.status == "ERROR">
+            <#assign statusLabel = "danger">
+          <#else>
+            <#assign statusLabel = "success">
+          </#if>
+
+          <#if job.resultOutcome??>
             <#if job.resultOutcome == "NOT_YET_STARTED">
-              <span class="label label-default">${job.resultOutcome}</span>
+              <#assign outcomeLabel = "default">
             <#elseif job.resultOutcome == "UNKNOWN">
-              <span class="label label-warning">${job.resultOutcome}</span>
+              <#assign outcomeLabel = "warning">
             <#elseif job.resultOutcome == "FALSE">
-              <span class="label label-danger">${job.resultOutcome}</span>
+              <#assign outcomeLabel = "danger">
             <#else>
-              <span class="label label-success">${job.resultOutcome}</span>
+              <#assign outcomeLabel = "success">
             </#if>
-            </#if>
-            
-            <form action="/jobs/${job.key}?method=delete" method="post" style="display:inline">
-            	<button type="submit" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-trash"></span></button>
-            </form>
-          </li>
-        </#list>
-        </ul>
+          </#if>
+
+          <tr>
+            <td>
+              <a href="/jobs/${job.key}" class="hover-decorate">${job.creationDate?string("yyyy-MM-dd @ HH:mm:ss")}</a>
+            </td>
+            <td>
+              <a href="/jobs/${job.key}">
+                <span class="label label-${statusLabel}">${job.status}</span>
+              </a>
+            </td>
+            <td>
+              <a href="/jobs/${job.key}">
+              <#if job.resultOutcome??>
+                <span class="label label-${outcomeLabel}">${job.resultOutcome}</span>
+              <#else>
+                &nbsp;
+              </#if>
+              </a>
+            </td>
+            <td>
+              <form action="/jobs/${job.key}?method=delete" method="post" style="display:inline">
+            	 <button type="submit" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-trash"></span> ${msg.delete}</button>
+              </form>
+            </td>
+          </tr>
+          </#list>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
-
-<ul>
 
 </div>
 

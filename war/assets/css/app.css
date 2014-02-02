@@ -1,3 +1,16 @@
 .logo {
   width: 100px;
 }
+
+.table-jobs td a {
+  display: block;
+  text-decoration: none;
+}
+
+.table-jobs tr:hover td a.hover-decorate {
+  text-decoration: underline;
+}
+
+.table-jobs th, .table-jobs td {
+  text-align: center;
+}
