@@ -5,7 +5,7 @@
 
 
   <sourcefiles name="eca">
-    <includesfile>../../programs/fql/tiger-sets/eca.set</includesfile>
+    <includesfile>../../programs/fql/tiger-sets/cf/eca.set</includesfile>
   </sourcefiles>
 
   <rundefinition name="predicate-bb">
