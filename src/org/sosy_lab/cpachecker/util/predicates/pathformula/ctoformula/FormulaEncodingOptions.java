@@ -77,14 +77,6 @@ public class FormulaEncodingOptions {
                         "i.e. they can return either a valid pointer or zero.")
   private Set<String> memoryAllocationFunctionsWithZeroing = ImmutableSet.of("kzalloc", "calloc");
 
-  @Option(description = "When a string literal initializer is encountered, initialize the contents of the char array "
-                      + "with the contents of the string literal instead of just assigning a fresh non-det address "
-                      + "to it")
-  private boolean handleStringLiteralInitializers = false;
-
-  @Option(description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
-  private boolean handleImplicitInitialization = false;
-
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
   }
@@ -112,13 +104,5 @@ public class FormulaEncodingOptions {
 
   public boolean isMemoryAllocationFunctionWithZeroing(final String name) {
     return memoryAllocationFunctionsWithZeroing.contains(name);
-  }
-
-  public boolean handleStringLiteralInitializers() {
-    return handleStringLiteralInitializers;
-  }
-
-  public boolean handleImplicitInitialization() {
-    return handleImplicitInitialization;
   }
 }

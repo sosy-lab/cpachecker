@@ -947,7 +947,7 @@ cpa.predicate.handleFieldAliasing = false
 
 # If disabled, all implicitly initialized fields and elements are treated as
 # non-dets
-cpa.predicate.handleImplicitInitialization = false
+cpa.predicate.handleImplicitInitialization = true
 
 # Handle pointer aliasing for pointers with unknown values (coming from
 # uninitialized variables or external function calls). This is slow and
