@@ -100,39 +100,38 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
   private InvariantsState getSuccessor(CFAEdge pEdge, InvariantsPrecision pPrecision, InvariantsState pState) throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
     InvariantsState element = pState;
-    if (pPrecision != null && !pPrecision.isRelevant(pEdge)) {
-      element = pState.clear();
-    } else {
-      switch (pEdge.getEdgeType()) {
-      case BlankEdge:
-        break;
-      case FunctionReturnEdge:
-        element = handleFunctionReturn(element, (CFunctionReturnEdge) pEdge, pPrecision);
-        break;
-      case ReturnStatementEdge:
-        element = handleReturnStatement(element, (CReturnStatementEdge) pEdge, pPrecision);
-        break;
-      case AssumeEdge:
-        element = handleAssume(element, (CAssumeEdge) pEdge, pPrecision);
-        break;
-      case DeclarationEdge:
-        element = handleDeclaration(element, (CDeclarationEdge) pEdge, pPrecision);
-        break;
-      case FunctionCallEdge:
-        element = handleFunctionCall(element, (CFunctionCallEdge) pEdge, pPrecision);
-        break;
-      case StatementEdge:
-        element = handleStatement(element, (CStatementEdge) pEdge, pPrecision);
-        break;
-      case MultiEdge:
-        Iterator<CFAEdge> edgeIterator = ((MultiEdge) pEdge).iterator();
-        while (element != null && edgeIterator.hasNext()) {
-          element = getSuccessor(edgeIterator.next(), pPrecision, element);
-        }
-        break;
-      default:
-        throw new UnrecognizedCFAEdgeException(pEdge);
+    switch (pEdge.getEdgeType()) {
+    case BlankEdge:
+      break;
+    case FunctionReturnEdge:
+      element = handleFunctionReturn(element, (CFunctionReturnEdge) pEdge, pPrecision);
+      break;
+    case ReturnStatementEdge:
+      element = handleReturnStatement(element, (CReturnStatementEdge) pEdge, pPrecision);
+      break;
+    case AssumeEdge:
+      element = handleAssume(element, (CAssumeEdge) pEdge, pPrecision);
+      break;
+    case DeclarationEdge:
+      element = handleDeclaration(element, (CDeclarationEdge) pEdge, pPrecision);
+      break;
+    case FunctionCallEdge:
+      element = handleFunctionCall(element, (CFunctionCallEdge) pEdge, pPrecision);
+      break;
+    case StatementEdge:
+      element = handleStatement(element, (CStatementEdge) pEdge, pPrecision);
+      break;
+    case MultiEdge:
+      Iterator<CFAEdge> edgeIterator = ((MultiEdge) pEdge).iterator();
+      while (element != null && edgeIterator.hasNext()) {
+        element = getSuccessor(edgeIterator.next(), pPrecision, element);
       }
+      break;
+    default:
+      throw new UnrecognizedCFAEdgeException(pEdge);
+    }
+    if (element != null && pPrecision != null && !pPrecision.isRelevant(pEdge)) {
+      element = element.clear();
     }
     return element;
   }
@@ -250,7 +249,19 @@ public enum InvariantsTransferRelation implements TransferRelation {
       return handleAssignment(pElement, pEdge.getPredecessor().getFunctionName(), pEdge, leftHandSide, value, pPrecision);
     }
 
-    return pElement;
+    InvariantsState result = pElement;
+    if (pEdge.getStatement() instanceof CFunctionCall) {
+      CFunctionCall functionCall = (CFunctionCall) pEdge.getStatement();
+      CFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
+      if (functionCallExpression.getFunctionNameExpression().toString().equals("__CPROVER_assume")) {
+        ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
+        for (CExpression expression : functionCallExpression.getParameterExpressions()) {
+          result = result.assume(expression.accept(etfv), pEdge);
+        }
+      }
+    }
+
+    return result;
   }
 
   private InvariantsState handleAssignment(InvariantsState pElement, String pFunctionName, CFAEdge pEdge, CExpression pLeftHandSide, InvariantsFormula<CompoundInterval> pValue, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
