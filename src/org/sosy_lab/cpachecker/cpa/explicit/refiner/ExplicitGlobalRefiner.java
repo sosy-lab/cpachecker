@@ -149,44 +149,42 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     checker = new ExplictFeasibilityChecker(pLogger, pCfa);
   }
 
-  public static ARGState explicitTarget = null;
-
   @Override
   public boolean performRefinement(final ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "performing global refinement ...");
-
     totalTime.start();
     refinementCalls++;
 
+    final ARGReachedSet reached             = new ARGReachedSet(pReached, argCpa);
     final Collection<ARGState> errorStates  = getErrorStates(pReached);
     final Collection<ARGPath> errorPaths    = getErrorPaths(errorStates);
 
     totalOfTargetsFound += errorStates.size();
     totalOfPathsFound += errorPaths.size();
 
+    if (isAnyPathFeasible(reached, errorPaths)) {
+      totalTime.stop();
+      return false;
+    }
+
+    int highestItpPoint = Integer.MAX_VALUE;
+
+    Iterator<ARGPath> erroPathIterator = getErrorPathIterator(errorPaths);
     try {
       final Multimap<CFANode, MemoryLocation> globalIncrement = HashMultimap.create();
-      ARGState globalRoot = null;
       Set<ARGState> roots = new HashSet<>();
       Set<CFAEdge> interpolatedEdges = new HashSet<>();
 
       // perform refinement, potentially for each error path
-      Iterator<ARGPath> erroPathIterator = getErrorPathIterator(errorPaths);
+      erroPathIterator = getErrorPathIterator(errorPaths);
       while(erroPathIterator.hasNext()) {
         shutdownNotifier.shutdownIfNecessary();
         final ARGPath errorPath = erroPathIterator.next();
 
-        if(isErrorPathFeasible(errorPath)) {
-          explicitTarget = errorPath.getLast().getFirst();
-          return false;
-        }
-
         if(checkOnIncrementalPrec) {
-          boolean isFeasible = checker.isFeasible(errorPath);
-          final Precision tempPrecision                 = pReached.getPrecision(pReached.getLastState());
+          final Precision tempPrecision                 = pReached.getPrecision(errorPath.getLast().getFirst());
           final ExplicitPrecision tempOriginalPrecision = Precisions.extractPrecisionByType(tempPrecision, ExplicitPrecision.class);
-          isFeasible = checker.isFeasible(errorPath, new ExplicitPrecision(tempOriginalPrecision, globalIncrement));
-          if(!isFeasible) {
+          if(!checker.isFeasible(errorPath, new ExplicitPrecision(tempOriginalPrecision, globalIncrement))) {
             logger.log(Level.FINEST, "checking path with running, refined precision revealed that is is already infeasible");
             skipOnIncrementalPrec++;
             continue;
@@ -216,9 +214,9 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
         totalOfPathsItped++;
         final Multimap<CFANode, MemoryLocation> increment = getIncrementForSinglePath(errorPath);
         final ARGState currentRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false).getFirst();
+        highestItpPoint = Math.min(highestItpPoint, interpolatingRefiner.getInterpolationOffset());
         roots.add(currentRoot);
 
-        globalRoot = getRoot(globalRoot, currentRoot, errorPath);
         boolean globalIncrementIncreased = globalIncrement.putAll(increment);
 
         if(checkOnEmptyIncrement && !globalIncrementIncreased) {
@@ -238,37 +236,44 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       final ExplicitPrecision originalPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
       final ExplicitPrecision refinedPrecision  = new ExplicitPrecision(originalPrecision, globalIncrement);
 
-      final ARGReachedSet reached               = new ARGReachedSet(pReached, argCpa);
+      ARGState commonRoot = getCommonRoot(errorPaths, roots, highestItpPoint);
 
-      globalRoot = getCommonRoot(errorPaths, roots);
-
-      /* selection of refinement root for lazy abstraction needs some more thinking */
-      if(isRepeatedRefinementRoot(globalRoot)) {
-        //logger.log(Level.FINEST, "!!! REPEATED -> NON-LAZY !!! ");
-      }
-
-      if(doLazyAbstraction && !isRepeatedRefinementRoot(globalRoot)) {
-        reached.removeSubtree(globalRoot, refinedPrecision, ExplicitPrecision.class);
-
-        /* works for lazy abstraction
-        for(ARGState refinementRoot : roots) {
-          if(!refinementRoot.isDestroyed()) {
-            reached.removeSubtree(refinementRoot, refinedPrecision, ExplicitPrecision.class);
-          }
-        }
-         */
+      if(doLazyAbstraction/* && !isRepeatedRefinementRoot(commonRoot)*/) {
+        reached.removeSubtree(commonRoot, refinedPrecision, ExplicitPrecision.class);
       } else {
-        // remove the first child of the root node
         reached.removeSubtree(Iterables.getFirst(errorPaths, null).get(1).getFirst(), refinedPrecision, ExplicitPrecision.class);
       }
 
       logger.log(Level.FINEST, (from(pReached).filter(AbstractStates.IS_TARGET_STATE).size()), " target states remain in reached set");
-
+      assert ARGUtils.checkARG(pReached);
       return true;
 
     } finally {
       totalTime.stop();
     }
+  }
+
+  private boolean isAnyPathFeasible(final ARGReachedSet pReached, final Collection<ARGPath> errorPaths)
+      throws CPAException, InterruptedException {
+
+    ARGPath feasiblePath = null;
+    for(ARGPath currentPath : errorPaths) {
+      if(isErrorPathFeasible(currentPath)) {
+        feasiblePath = currentPath;
+      }
+    }
+
+    // remove all other target states, so that only one is left (for CEX-checker)
+    if(feasiblePath != null) {
+      for(ARGPath others : errorPaths) {
+        if(others != feasiblePath) {
+          pReached.removeSubtree(others.getLast().getFirst());
+        }
+      }
+      return true;
+    }
+
+    return false;
   }
 
   private boolean isErrorPathFeasible(final ARGPath errorPath)
@@ -287,7 +292,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       @Override
       public int compare(ARGPath path1, ARGPath path2) {
         if(path1.size() == path2.size()) {
-          return 0;
+          return 1;
         }
 
         else {
@@ -297,7 +302,8 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     });
 
     for(ARGState target : targetStates) {
-      errorPaths.add(ARGUtils.getOnePathTo(target));
+      ARGPath p = ARGUtils.getOnePathTo(target);
+      errorPaths.add(p);
     }
 
     return errorPaths;
@@ -315,17 +321,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     List<ARGState> targets = from(pReached)
         .transform(AbstractStates.toState(ARGState.class))
         .filter(AbstractStates.IS_TARGET_STATE)
-        .toList()
-      // sorting the collection might be a good idea, just to guarantee,
-      // that the same program shows the same behavior on reverification
-      // this should already be sorted, but just to be safe
-      /*
-      .toSortedList(new Comparator<AbstractState>() {
-        @Override
-        public int compare(final AbstractState o1, final AbstractState o2) {
-          return ((ARGState)o1).compareTo(((ARGState)o2));
-        }
-      })*/;
+        .toList();
 
     assert !targets.isEmpty();
     logger.log(Level.FINEST, "number of targets found: " + targets.size());
@@ -343,72 +339,26 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
   }
 
 
-  private ARGState getCommonRoot(Collection<ARGPath> pErrorPaths, Set<ARGState> roots) {
-    boolean allMatch = true;
-    int offset = 0;
-
+  private ARGState getCommonRoot(Collection<ARGPath> pErrorPaths, Set<ARGState> roots, int highestItpPoint) {
     List<ARGPath> errorPaths = Lists.newArrayList(pErrorPaths);
 
-    while(true) {
+    ARGPath shortestPath = errorPaths.get(0);
 
-      if(offset >= errorPaths.get(0).size()) {
-        logger.log(Level.FINEST, "PICKED INITIAL ELEMENT - maybe we screwed up badly !?!?!");
-        return errorPaths.get(0).get(1).getFirst();
+    for(int i = 0; i < shortestPath.size(); i++) {
+      ARGState currentState = shortestPath.get(i).getFirst();
+      if(i == highestItpPoint) {
+        return shortestPath.get(highestItpPoint).getFirst();
       }
-
-      ARGState toBeMatched = errorPaths.get(0).get(offset).getFirst();
-      for(int i = 1; i < errorPaths.size(); i++) {
-
-        if(offset >= errorPaths.get(i).size()) {
-          logger.log(Level.FINEST, "PICKED INITIAL ELEMENT - maybe we screwed up worse than badly !?!?!");
-          return errorPaths.get(0).get(1).getFirst();
+      for(int j = 0; j < errorPaths.size(); j++) {
+        ARGPath currentPath = errorPaths.get(j);
+        if(!currentState.equals(currentPath.get(i).getFirst())) {
+          return shortestPath.get(1).getFirst();
         }
-
-        ARGState matchable = errorPaths.get(i).get(offset).getFirst();
-        allMatch = allMatch && toBeMatched.equals(matchable);
-
-        if(roots.contains(matchable)) {
-          return matchable;
-        }
-      }
-
-      if(!allMatch) {
-        break;
-      }
-
-      offset++;
-    }
-
-    logger.log(Level.FINEST, "using common root at index " + (offset - 1));
-    return errorPaths.get(0).get(offset - 1).getFirst();
-  }
-
-  private ARGState getRoot(final ARGState globalRoot, final ARGState currentRoot, final ARGPath currentPath) {
-    // initial case, if no root was set yet
-    if(globalRoot == null) {
-      return currentRoot;
-    }
-
-    if(currentRoot.isOlderThan(globalRoot)) {
-      return globalRoot;
-    } else {
-      return currentRoot;
-    }
-/*
-    // otherwise, pick the higher node, i.e., either previous global root, or the current root
-    for(final Pair<ARGState, CFAEdge> currentElement : currentPath) {
-      final ARGState currentState = currentElement.getFirst();
-
-      if(currentState == globalRoot) {
-        return globalRoot;
-      } else if (currentState == currentRoot) {
-        return currentRoot;
       }
     }
 
     assert(false);
-
-    return null;*/
+    return null;
   }
 
   /**

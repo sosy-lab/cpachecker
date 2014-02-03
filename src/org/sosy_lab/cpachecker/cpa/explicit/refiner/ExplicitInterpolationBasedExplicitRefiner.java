@@ -100,6 +100,10 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    */
   private int interpolationOffset = -1;
 
+  public int getInterpolationOffset() {
+    return interpolationOffset;
+  }
+
   /**
    * a reference to the assignment-counting state, to make the precision increment aware of thresholds
    */
