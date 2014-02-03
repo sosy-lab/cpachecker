@@ -22,6 +22,11 @@
         <option name="-expref"/>
   </rundefinition>
 
+  <rundefinition name="explicit-pred-bb">
+        <option name="-bb"/>
+        <option name="-exppred"/>
+  </rundefinition>
+
   <columns>
     <column title="time in reach">Time in reach</column>
     <column title="goals">#Goals</column>
