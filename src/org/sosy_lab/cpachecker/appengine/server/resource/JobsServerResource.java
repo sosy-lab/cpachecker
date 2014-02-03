@@ -104,8 +104,8 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
           case "disableExportStatistics":
             options.setOption("statistics.export", "false");
             break;
-          case "logUsedOptions":
-            options.setOption("log.usedOptions.export", "true");
+          case "dumpConfig":
+            options.setOption("configuration.dumpFile", "UsedConfiguration.properties");
             break;
           case "logLevel":
             options.setOption("log.level", value);

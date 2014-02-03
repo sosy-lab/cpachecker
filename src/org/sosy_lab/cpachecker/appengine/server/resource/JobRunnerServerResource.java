@@ -320,7 +320,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
   private void dumpConfiguration() throws IOException {
     if (configDumped) { return; }
 
-    if (outputEnabled && config != null) {
+    if (config != null && config.getProperty("configuration.dumpFile") != null && !config.getProperty("configuration.dumpFile").equals("")) {
       Path configurationDumpFile = Paths.get(config.getProperty("configuration.dumpFile"));
       if (configurationDumpFile != null) {
         configurationDumpFile.asCharSink(Charsets.UTF_8).write(config.asPropertiesString());

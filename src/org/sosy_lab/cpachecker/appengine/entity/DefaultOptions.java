@@ -68,7 +68,7 @@ public class DefaultOptions {
     allowedOptions.put("analysis.machineModel", "Linux32");
     allowedOptions.put("output.disable", "false");
     allowedOptions.put("statistics.export", "true");
-    allowedOptions.put("log.usedOptions.export", "false");
+    allowedOptions.put("configuration.dumpFile", "");
     allowedOptions.put("log.level", "OFF");
     allowedOptions.put("limits.time.wall", "540s"); // 9 minutes
     allowedOptions.put("gae.instanceType", "FRONTEND");

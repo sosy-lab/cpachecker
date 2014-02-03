@@ -135,7 +135,7 @@ Required:
     "statistics.export" : "true",
     "log.level" : "FINER",
     "analysis.machineModel" : "Linux32",
-    "log.usedOptions.export" : "true",
+    "configuration.dumpFile" : ""UsedConfiguration.properties",
     "limits.time.wall" : "100",
     "gae.instanceType" : "FRONTEND"
   }

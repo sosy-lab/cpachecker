@@ -88,8 +88,8 @@
             </label>
           </div>
           <div class="checkbox">
-            <label for="logUsedOptions" class="control-label">
-              <input type="checkbox" name="logUsedOptions" id="logUsedOptions" value="log.usedOptions.export"> ${msg.logUsedOptions}
+            <label for="dumpConfig" class="control-label">
+              <input type="checkbox" name="dumpConfig" id="dumpConfig" value="configuration.dumpFile"> ${msg.dumpConfig}
             </label>
           </div>
           <div class="form-group">
