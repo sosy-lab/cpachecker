@@ -56,17 +56,24 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
+import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.AccessToUninitializedVariableException;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.MissingInputException;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.core.CPAtigerResult.Factory;
+import org.sosy_lab.cpachecker.tiger.fql.ast.FQLSpecification;
+import org.sosy_lab.cpachecker.tiger.fql.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
+import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.tiger.goals.clustering.InfeasibilityPropagation;
 import org.sosy_lab.cpachecker.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseInputsTestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 
 public class TestCaseUtil {
@@ -435,6 +442,11 @@ public class TestCaseUtil {
       lAlgorithm.run(lReachedSet);
     } catch (MissingInputException e) {
       throw e;
+    } catch (AccessToUninitializedVariableException e) {
+      // TODO we found a bug ... this is some success
+      // TODO 1) log this event properly
+      // TODO 2) reconstruct path with an ID* specification
+      throw new RuntimeException(e);
     } catch (CPAException | InterruptedException e) {
       throw new RuntimeException(e);
     }
@@ -465,6 +477,28 @@ public class TestCaseUtil {
     CFAPathStandardState lPathElement = (CFAPathStandardState)lEndNode.get(lCFAPathCPAIndex);
 
     return lPathElement.toArray();
+  }
+
+  private FQLSpecification lIdStarFQLSpecification = null;
+
+  public void seed(Iterable<TestCase> pTestSuite, CoverageSpecificationTranslator pCoverageSpecificationTranslator, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedEdgeLabel pOmegaLabel) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+    if (lIdStarFQLSpecification == null) {
+      try {
+        lIdStarFQLSpecification = FQLSpecification.parse("COVER \"EDGES(ID)*\" PASSING EDGES(ID)*");
+      } catch (Exception e1) {
+        throw new RuntimeException(e1);
+      }
+    }
+
+    ElementaryCoveragePattern lIdStarPattern = pCoverageSpecificationTranslator.mPathPatternTranslator.translate(lIdStarFQLSpecification.getPathPattern());
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lIdStarPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
+    GuardedEdgeAutomatonCPA lIdStarCPA = new GuardedEdgeAutomatonCPA(lAutomaton);
+
+    for (TestCase lTestCase : pTestSuite) {
+      CFAEdge[] lPath = reconstructPath(mWrapper.getCFA(), lTestCase, mWrapper.getEntry(), lIdStarCPA, null, mWrapper.getOmegaEdge().getSuccessor());
+
+      mGeneratedTestCases.put(lTestCase, lPath);
+    }
   }
 
 }

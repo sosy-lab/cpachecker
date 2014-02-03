@@ -1438,7 +1438,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 //  }
 
   private InterpreterElement handleDeclaration(InterpreterElement element,
-      CDeclarationEdge declarationEdge) {
+      CDeclarationEdge declarationEdge) throws AccessToUninitializedVariableException {
 
     InterpreterElement newElement = element.clone();
 
@@ -1474,8 +1474,9 @@ public class InterpreterTransferRelation implements TransferRelation {
 
               try {
                 return handleAssignmentToVariable(newElement, varName, lExpression, declarationEdge);
-              } catch (UnrecognizedCCodeException | MissingInputException | ReadingFromNondetVariableException
-                  | AccessToUninitializedVariableException e) {
+              } catch (AccessToUninitializedVariableException e) {
+                throw e;
+              } catch (UnrecognizedCCodeException | MissingInputException | ReadingFromNondetVariableException e) {
                 e.printStackTrace();
                 throw new RuntimeException("Unhandled variable initialization!");
               }

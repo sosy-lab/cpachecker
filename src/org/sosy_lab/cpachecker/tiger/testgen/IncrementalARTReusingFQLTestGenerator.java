@@ -186,21 +186,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   }
 
   public void seed(Iterable<TestCase> pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
-    FQLSpecification lIdStarFQLSpecification;
-    try {
-      lIdStarFQLSpecification = FQLSpecification.parse("COVER \"EDGES(ID)*\" PASSING EDGES(ID)*");
-    } catch (Exception e1) {
-      throw new RuntimeException(e1);
-    }
-    ElementaryCoveragePattern lIdStarPattern = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(lIdStarFQLSpecification.getPathPattern());
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lIdStarPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
-    GuardedEdgeAutomatonCPA lIdStarCPA = new GuardedEdgeAutomatonCPA(lAutomaton);
-
-    for (TestCase lTestCase : pTestSuite) {
-      CFAEdge[] lPath = reconstructPath(mWrapper.getCFA(), lTestCase, mWrapper.getEntry(), lIdStarCPA, null, mWrapper.getOmegaEdge().getSuccessor());
-
-      mGeneratedTestCases.put(lTestCase, lPath);
-    }
+    mTestCaseUtil.seed(pTestSuite, mCoverageSpecificationTranslator, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
   }
 
   public IncrementalARTReusingFQLTestGenerator(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier, PrintStream pOutput, AnalysisType pAType, long pTimelimit, boolean pStopOnImpreciseExecution) {

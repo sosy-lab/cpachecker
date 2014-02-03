@@ -152,6 +152,7 @@ public class InterpreterElement implements AbstractState {
   }
 
   public long getValueFor(String pVariableName) throws ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+    // TODO update to new nondet variables
     if (pVariableName.endsWith("::__BLAST_NONDET")) {
       throw new ReadingFromNondetVariableException();
     }
