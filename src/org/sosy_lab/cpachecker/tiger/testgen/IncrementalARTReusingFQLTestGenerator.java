@@ -92,6 +92,7 @@ import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.IncrementalCoverageSpec
 import org.sosy_lab.cpachecker.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.tiger.goals.clustering.ClusteredElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.goals.clustering.InfeasibilityPropagation;
+import org.sosy_lab.cpachecker.tiger.testcases.BuggyExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestSuite;
@@ -180,12 +181,12 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     mTestCaseUtil.setFeasibilityInformation(mFeasibilityInformation);
   }
 
-  public void setTestSuite(TestSuite pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+  public void setTestSuite(TestSuite pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException, BuggyExecutionException {
     mTestSuite = pTestSuite;
     seed(pTestSuite);
   }
 
-  public void seed(Iterable<TestCase> pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+  public void seed(Iterable<TestCase> pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException, BuggyExecutionException {
     mTestCaseUtil.seed(pTestSuite, mCoverageSpecificationTranslator, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
   }
 
@@ -693,6 +694,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     mOutput.println("#Feasible: " + mFeasibilityInformation.getNumberOfFeasibleTestgoals());
     mOutput.println("#Infeasible: " + mFeasibilityInformation.getNumberOfInfeasibleTestgoals());
     mOutput.println("#Imprecise: " + mFeasibilityInformation.getNumberOfImpreciseTestgoals());
+    mOutput.println("#BugRevealing: " + mFeasibilityInformation.getNumberOfBugRevealingTestgoals());
   }
 
 

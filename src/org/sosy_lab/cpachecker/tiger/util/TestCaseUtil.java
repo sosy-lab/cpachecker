@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.CoverageSpecificationTr
 import org.sosy_lab.cpachecker.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.tiger.goals.clustering.InfeasibilityPropagation;
 import org.sosy_lab.cpachecker.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
+import org.sosy_lab.cpachecker.tiger.testcases.BuggyExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseInputsTestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
@@ -145,6 +146,9 @@ public class TestCaseUtil {
     } catch (MissingInputException e) {
       mOutput.println("Goal #" + pIndex + " is imprecise!");
       updateImpreciseTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
+    } catch (BuggyExecutionException e) {
+      mOutput.println("Goal #" + pIndex + " reveals a bug!");
+      updateBuggyTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
     }
   }
 
@@ -275,43 +279,27 @@ public class TestCaseUtil {
         mOutput.println("Goal #" + pIndex + " is imprecise!");
         updateImpreciseTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
       }
+      catch (BuggyExecutionException e) {
+        mOutput.println("Goal #" + pIndex + " reveals a bug!");
+        updateBuggyTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
+      }
     //}
   }
 
-  public CFAEdge[] reconstructPathFromPreciseTestCase(TestCase pTestCase, int pIndex, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA, Factory pResultFactory, Goal pGoal, Prediction[] pGoalPrediction) throws MissingInputException {
+  public CFAEdge[] reconstructPathFromPreciseTestCase(TestCase pTestCase, int pIndex, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA, Factory pResultFactory, Goal pGoal, Prediction[] pGoalPrediction) throws MissingInputException, BuggyExecutionException {
     assert (pTestCase.isPrecise());
 
-    //CFAEdge[] lCFAPath = null;
-
-    //boolean lIsPrecise = true;
-
     try {
-      //lCFAPath =
       return reconstructPath(mWrapper.getCFA(), pTestCase, mWrapper.getEntry(), pAutomatonCPA, pPassingCPA, mWrapper.getOmegaEdge().getSuccessor());
     } catch (MissingInputException e) {
       throw e;
     } catch (InvalidConfigurationException | CPAException e) {
       throw new RuntimeException(e);
     } catch (ImpreciseExecutionException e) {
-      //return null;
-      /*lIsPrecise = false;
-      pTestCase = e.getTestCase();*/
+
     }
 
     return null;
-
-    /*
-    if (lIsPrecise) {
-      mOutput.println("Goal #" + pIndex + " is feasible!");
-      updatePreciseTestCaseStatistics(pTestCase, pIndex, pGoal, lCFAPath, pResultFactory, pGoalPrediction);
-    }
-    else {
-      mOutput.println("Goal #" + pIndex + " lead to an imprecise execution!");
-      updateImpreciseTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
-    }
-    */
-
-    //return lCFAPath;
   }
 
   public void reconstructPath(TestCase pTestCase, int pIndex, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA, Factory pResultFactory, Goal pGoal, Prediction[] pGoalPrediction) {
@@ -340,6 +328,9 @@ public class TestCaseUtil {
 
       } catch (MissingInputException e1) {
         throw new RuntimeException(e1);
+      } catch (BuggyExecutionException e) {
+        mOutput.println("Goal #" + pIndex + " reveals a bug!");
+        updateBuggyTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
       }
     }
     else {
@@ -355,11 +346,7 @@ public class TestCaseUtil {
 
     mFeasibilityInformation.setStatus(pIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
 
-    InfeasibilityPropagation.Prediction lCurrentPrediction = pGoalPrediction[pIndex - 1];
-
-    if (!lCurrentPrediction.equals(InfeasibilityPropagation.Prediction.UNKNOWN)) {
-      throw new RuntimeException("missmatching prediction");
-    }
+    assert (pGoalPrediction[pIndex - 1].equals(InfeasibilityPropagation.Prediction.UNKNOWN));
   }
 
   private void updateImpreciseTestCaseStatistics(TestCase pImpreciseTestCase, int pIndex, Factory pResultFactory, Prediction[] pGoalPrediction) {
@@ -367,11 +354,13 @@ public class TestCaseUtil {
 
     mFeasibilityInformation.setStatus(pIndex, FeasibilityInformation.FeasibilityStatus.IMPRECISE);
 
-    InfeasibilityPropagation.Prediction lCurrentPrediction = pGoalPrediction[pIndex - 1];
+    assert (pGoalPrediction[pIndex - 1].equals(InfeasibilityPropagation.Prediction.UNKNOWN));
+  }
 
-    if (!lCurrentPrediction.equals(InfeasibilityPropagation.Prediction.UNKNOWN)) {
-      throw new RuntimeException("missmatching prediction");
-    }
+  private void updateBuggyTestCaseStatistics(TestCase pBuggyTestCase, int pIndex, Factory pResultFactory, Prediction[] pGoalPrediction) {
+    mFeasibilityInformation.setStatus(pIndex, FeasibilityInformation.FeasibilityStatus.BUGGY);
+
+    assert (pGoalPrediction[pIndex - 1].equals(InfeasibilityPropagation.Prediction.UNKNOWN));
   }
 
   /**
@@ -392,7 +381,7 @@ public class TestCaseUtil {
   }
 
 
-  private CFAEdge[] reconstructPath(CFA pCFA, TestCase pTestCase, FunctionEntryNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+  private CFAEdge[] reconstructPath(CFA pCFA, TestCase pTestCase, FunctionEntryNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException, BuggyExecutionException {
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
     lComponentAnalyses.add(mLocationCPA);
 
@@ -443,10 +432,7 @@ public class TestCaseUtil {
     } catch (MissingInputException e) {
       throw e;
     } catch (AccessToUninitializedVariableException e) {
-      // TODO we found a bug ... this is some success
-      // TODO 1) log this event properly
-      // TODO 2) reconstruct path with an ID* specification
-      throw new RuntimeException(e);
+      throw new BuggyExecutionException(pTestCase, pCoverAutomatonCPA, pPassingAutomatonCPA);
     } catch (CPAException | InterruptedException e) {
       throw new RuntimeException(e);
     }
@@ -481,7 +467,7 @@ public class TestCaseUtil {
 
   private FQLSpecification lIdStarFQLSpecification = null;
 
-  public void seed(Iterable<TestCase> pTestSuite, CoverageSpecificationTranslator pCoverageSpecificationTranslator, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedEdgeLabel pOmegaLabel) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+  public void seed(Iterable<TestCase> pTestSuite, CoverageSpecificationTranslator pCoverageSpecificationTranslator, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedEdgeLabel pOmegaLabel) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException, BuggyExecutionException {
     if (lIdStarFQLSpecification == null) {
       try {
         lIdStarFQLSpecification = FQLSpecification.parse("COVER \"EDGES(ID)*\" PASSING EDGES(ID)*");

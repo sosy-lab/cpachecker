@@ -38,12 +38,14 @@ public class FeasibilityInformation {
     FEASIBLE,
     INFEASIBLE,
     IMPRECISE,
+    BUGGY,
     UNKNOWN
   }
 
   protected static final String FEASIBLE_ABBREV = "f";
   protected static final String INFEASIBLE_ABBREV = "if";
   protected static final String IMPRECISE_ABBREV = "ip";
+  protected static final String BUGGY_ABBREV = "b";
 
   private final Map<Integer, FeasibilityStatus> mFeasibilityInformation;
   private String mTestsuiteFilename;
@@ -51,6 +53,7 @@ public class FeasibilityInformation {
   private int mNumberOfInfeasibleTestgoals = 0;
   private int mNumberOfFeasibleTestgoals = 0;
   private int mNumberOfImpreciseTestgoals = 0;
+  private int mNumberOfBugRevealingTestgoals = 0;
 
   public FeasibilityInformation() {
     mFeasibilityInformation = new HashMap<>();
@@ -95,6 +98,9 @@ public class FeasibilityInformation {
         break;
       case IMPRECISE:
         lWriter.println(lEntry.getKey() + " " + IMPRECISE_ABBREV);
+        break;
+      case BUGGY:
+        lWriter.println(lEntry.getKey() + " " + BUGGY_ABBREV);
         break;
       }
     }
@@ -145,6 +151,9 @@ public class FeasibilityInformation {
         else if (lParts[1].toLowerCase().equals(IMPRECISE_ABBREV)) {
           lInformation.setStatus(lGoalIndex, FeasibilityStatus.IMPRECISE);
         }
+        else if (lParts[1].toLowerCase().equals(BUGGY_ABBREV)) {
+          lInformation.setStatus(lGoalIndex, FeasibilityStatus.BUGGY);
+        }
         else {
           lReader.close();
           throw new RuntimeException();
@@ -177,6 +186,10 @@ public class FeasibilityInformation {
     return mNumberOfImpreciseTestgoals;
   }
 
+  public int getNumberOfBugRevealingTestgoals() {
+    return mNumberOfBugRevealingTestgoals;
+  }
+
   public int getNumberOfTestgoals() {
     return mFeasibilityInformation.size();
   }
@@ -192,6 +205,9 @@ public class FeasibilityInformation {
       break;
     case IMPRECISE:
       mNumberOfImpreciseTestgoals++;
+      break;
+    case BUGGY:
+      mNumberOfBugRevealingTestgoals++;
       break;
     case UNKNOWN:
       // we don't store unknown

@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.core.interfaces.FQLCoverageAnalyser;
 import org.sosy_lab.cpachecker.tiger.core.interfaces.FQLTestGenerator;
 import org.sosy_lab.cpachecker.tiger.fql.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.tiger.testcases.BuggyExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.LoggingTestSuite;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
@@ -136,7 +137,7 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
     mDoAppendingLogging = true;
   }
 
-  public void seed(Collection<TestCase> pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+  public void seed(Collection<TestCase> pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException, BuggyExecutionException {
     mIncrementalARTReusingTestGenerator.seed(pTestSuite);
   }
 

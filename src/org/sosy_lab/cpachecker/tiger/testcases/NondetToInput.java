@@ -230,7 +230,7 @@ public class NondetToInput {
   }
 
 
-  public static void fshell2(String pSourceFile, String pEntryFunction, String pFQLQuery, int pLoopBound) throws IOException, InterruptedException, InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+  public static void fshell2(String pSourceFile, String pEntryFunction, String pFQLQuery, int pLoopBound) throws IOException, InterruptedException, InvalidConfigurationException, CPAException, ImpreciseExecutionException, BuggyExecutionException {
     /* a) prepare source file for FShell 2 test generation
      *    (e.g., replace __BLAST_NONDET by input())
      */

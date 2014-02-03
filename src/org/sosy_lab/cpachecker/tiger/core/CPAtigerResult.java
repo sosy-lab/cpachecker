@@ -41,13 +41,16 @@ public class CPAtigerResult {
 
     private Set<ElementaryCoveragePattern> mFeasibleTestGoals;
     private Set<ElementaryCoveragePattern> mInfeasibleTestGoals;
+    private Set<ElementaryCoveragePattern> mBugRevealingTestGoals;
     private Map<TestCase, Set<ElementaryCoveragePattern>> mTestSuite;
     private Set<TestCase> mImpreciseTestCases;
+    private Set<TestCase> mBugRevealingTestCases;
     private boolean mFinished = true;
 
     private Factory() {
       mFeasibleTestGoals = new HashSet<>();
       mInfeasibleTestGoals = new HashSet<>();
+      mBugRevealingTestGoals = new HashSet<>();
       mTestSuite = new HashMap<>();
       mImpreciseTestCases = new HashSet<>();
     }
@@ -84,6 +87,11 @@ public class CPAtigerResult {
       mImpreciseTestCases.add(pTestCase);
     }
 
+    public void addBugRevealingTestCase(ElementaryCoveragePattern pECP, TestCase pTestCase) {
+      mBugRevealingTestGoals.add(pECP);
+      mBugRevealingTestCases.add(pTestCase);
+    }
+
     private Set<ElementaryCoveragePattern> getTestSuite(TestCase pTestCase) {
       if (mTestSuite.containsKey(pTestCase)) {
         return mTestSuite.get(pTestCase);
@@ -107,7 +115,7 @@ public class CPAtigerResult {
     }
 
     public CPAtigerResult create(double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals) {
-      return new CPAtigerResult(mFeasibleTestGoals.size(), mInfeasibleTestGoals.size(), mTestSuite.keySet().size(), mImpreciseTestCases.size(), pTimeInReach, pTimeInCover, pTimeForFeasibleTestGoals, pTimeForInfeasibleTestGoals, mFinished);
+      return new CPAtigerResult(mFeasibleTestGoals.size(), mInfeasibleTestGoals.size(), mBugRevealingTestGoals.size(), mTestSuite.keySet().size(), mImpreciseTestCases.size(), pTimeInReach, pTimeInCover, pTimeForFeasibleTestGoals, pTimeForInfeasibleTestGoals, mFinished);
     }
 
   }
@@ -118,6 +126,7 @@ public class CPAtigerResult {
 
   private int mNumberOfFeasibleTestGoals;
   private int mNumberOfInfeasibleTestGoals;
+  private int mNumberOfBugRevealingTestGoals;
   private int mNumberOfTestCases;
   private int mNumberOfImpreciseTestCases;
   private double mTimeForFeasibleTestGoals; // seconds
@@ -126,9 +135,10 @@ public class CPAtigerResult {
   private double mTimeInCover; // seconds
   private boolean mFinished;
 
-  private CPAtigerResult(int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfTestCases, int pNumberOfImpreciseTestCases, double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals, boolean pFinished) {
+  private CPAtigerResult(int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfBugRevealingTestGoals, int pNumberOfTestCases, int pNumberOfImpreciseTestCases, double pTimeInReach, double pTimeInCover, double pTimeForFeasibleTestGoals, double pTimeForInfeasibleTestGoals, boolean pFinished) {
     mNumberOfFeasibleTestGoals = pNumberOfFeasibleTestGoals;
     mNumberOfInfeasibleTestGoals = pNumberOfInfeasibleTestGoals;
+    mNumberOfBugRevealingTestGoals = pNumberOfBugRevealingTestGoals;
     mNumberOfTestCases = pNumberOfTestCases;
     mNumberOfImpreciseTestCases = pNumberOfImpreciseTestCases;
     mTimeForFeasibleTestGoals = pTimeForFeasibleTestGoals;
@@ -152,6 +162,10 @@ public class CPAtigerResult {
 
   public int getNumberOfInfeasibleTestGoals() {
     return mNumberOfInfeasibleTestGoals;
+  }
+
+  public int getNumberOfBugRevealingTestGoals() {
+    return mNumberOfBugRevealingTestGoals;
   }
 
   public int getNumberOfTestCases() {

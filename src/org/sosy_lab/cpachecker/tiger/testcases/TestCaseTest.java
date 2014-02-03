@@ -94,7 +94,7 @@ public class TestCaseTest {
   }
 
   @Test
-  public void testCombination() throws IOException, InterruptedException, InvalidConfigurationException, CPAException, ImpreciseExecutionException {
+  public void testCombination() throws IOException, InterruptedException, InvalidConfigurationException, CPAException, ImpreciseExecutionException, BuggyExecutionException {
     NondetToInput.fshell2("test/programs/fql/locks/test_locks_15.c", "main", "COVER @BASICBLOCKENTRY", 3);
   }
 
