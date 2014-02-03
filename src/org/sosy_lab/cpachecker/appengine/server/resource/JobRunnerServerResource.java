@@ -40,14 +40,16 @@ import org.restlet.representation.Representation;
 import org.restlet.util.Series;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.concurrency.Threads;
+import org.sosy_lab.common.configuration.AbstractConfigurationBuilderFactory;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.Configuration.Builder;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.FileLogFormatter;
+import org.sosy_lab.cpachecker.appengine.common.GAEConfigurationBuilder;
 import org.sosy_lab.cpachecker.appengine.common.JobMappingThreadFactory;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
@@ -230,6 +232,8 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     // set status OK to pretend everything went fine so that the task will not be re-tried.
     getResponse().setStatus(org.restlet.data.Status.SUCCESS_OK);
 
+    Throwable originalThrowable = e;
+
     if (e.getCause() != null) {
       e = e.getCause();
     }
@@ -260,7 +264,7 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     }
 
     try {
-      saveStackTrace(e);
+      saveStackTrace(originalThrowable);
       setResult();
       job.setTerminationDate(new Date());
       JobDAO.save(job);
@@ -352,19 +356,26 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
   }
 
   private void buildConfiguration() throws IOException, InvalidConfigurationException {
-    Builder configurationBuilder = Configuration.builder();
+    Configuration.setBuilderFactory(new AbstractConfigurationBuilderFactory() {
+      @Override
+      public ConfigurationBuilder getBuilder() {
+        return new GAEConfigurationBuilder();
+      }
+    });
+
+    ConfigurationBuilder configurationBuilder = Configuration.builder();
     configurationBuilder.setOptions(DefaultOptions.getDefaultOptions());
 
     if (job.getConfiguration() != null) {
       configurationBuilder.loadFromFile(Paths.get("WEB-INF", "configurations", job.getConfiguration()));
     }
     configurationBuilder
-        .loadFromFile(Paths.get("WEB-INF", "default-options.properties"))
         .setOption("analysis.programNames", job.getSourceFileName())
         .setOptions(job.getOptions());
     if (job.getSpecification() != null) {
       configurationBuilder.setOption("specification", "WEB-INF/specifications/" + job.getSpecification());
     }
+
     Configuration configuration = configurationBuilder.build();
 
     FileTypeConverter fileTypeConverter = new FileTypeConverter(configuration);
