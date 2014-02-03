@@ -28,6 +28,7 @@
     <column title="feasible">#Feasible</column>
     <column title="infeasible">#Infeasible</column>
     <column title="imprecise">#Imprecise</column>
+    <column title="bugrevealing">#BugRevealing</column>
 #Goals: 
   </columns>
 </benchmark>
