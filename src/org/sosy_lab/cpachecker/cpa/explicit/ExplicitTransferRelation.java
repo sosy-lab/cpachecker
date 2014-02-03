@@ -380,9 +380,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       return element;
 
     } else if ((truthValue && value == 1L) || (!truthValue && value == 0L)) {
-      // we do not know more than before, and the assumption is fulfilled,
-      // so return the old state
-      return state;
+      // we do not know more than before, and the assumption is fulfilled, so return a copy of the old state
+      // we need to return a copy, otherwise precision adjustment might reset too much information, even on the original state
+      return state.clone();
 
     } else {
       // assumption not fulfilled
