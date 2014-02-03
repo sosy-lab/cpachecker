@@ -81,7 +81,12 @@ public class JobDAO {
    * @return
    */
   public static List<Job> jobs() {
-    return ofy().load().type(Job.class).list();
+    List<Job> jobs = ofy().load().type(Job.class).list();
+    for (Job job : jobs) {
+      sanitizeStateAndSetStatistics(job);
+    }
+
+    return jobs;
   }
 
   /**
@@ -158,6 +163,7 @@ public class JobDAO {
    * <li>executionDate</li>
    * <li>resultMessage</li>
    * <li>resultOutcome</li>
+   * <li>requestID</li>
    * <li>statistics</li>
    * <li>statusMessage</li>
    * <li>terminationDate</li>
@@ -170,6 +176,7 @@ public class JobDAO {
     job.setExecutionDate(null);
     job.setResultMessage(null);
     job.setResultOutcome(null);
+    job.setRequestID(null);
     job.setStatistic(null);
     job.setStatusMessage(null);
     job.setTerminationDate(null);
@@ -215,7 +222,7 @@ public class JobDAO {
             job.setStatusMessage("The job's request has finished but the job's status did not reflect this.");
           }
 
-          if (record.getStatus() == 500) {
+          if (record.getStatus() == 500 && job.getStatus() != Status.TIMEOUT) {
             if (job.getRetries() < JobRunnerResource.MAX_RETRIES) {
               JobDAO.reset(job);
               job.setStatus(Status.PENDING);
