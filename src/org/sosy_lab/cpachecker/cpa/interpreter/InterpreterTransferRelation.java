@@ -1233,100 +1233,100 @@ public class InterpreterTransferRelation implements TransferRelation {
         case MULTIPLY:
           result = lValue1.getSecond() * lValue2.getSecond();
           if (result == 0L) {
-            return InterpreterBottomElement.INSTANCE;
+            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
           }
           else {
-            return newElement;
+            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
           }
         case DIVIDE:
           result = lValue1.getSecond() / lValue2.getSecond();
           if (result == 0L) {
-            return InterpreterBottomElement.INSTANCE;
+            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
           }
           else {
-            return newElement;
+            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
           }
         case MODULO:
           result = lValue1.getSecond() % lValue2.getSecond();
           if (result == 0L) {
-            return InterpreterBottomElement.INSTANCE;
+            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
           }
           else {
-            return newElement;
+            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
           }
         case PLUS:
           result = lValue1.getSecond() + lValue2.getSecond();
           if (result == 0L) {
-            return InterpreterBottomElement.INSTANCE;
+            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
           }
           else {
-            return newElement;
+            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
           }
         case MINUS:
           result = lValue1.getSecond() - lValue2.getSecond();
           if (result == 0L) {
-            return InterpreterBottomElement.INSTANCE;
+            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
           }
           else {
-            return newElement;
+            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
           }
         case SHIFT_LEFT:
           result = lValue1.getSecond() << lValue2.getSecond();
           if (result == 0L) {
-            return InterpreterBottomElement.INSTANCE;
+            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
           }
           else {
-            return newElement;
+            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
           }
         case SHIFT_RIGHT:
           result = lValue1.getSecond() >> lValue2.getSecond();
           if (result == 0L) {
-            return InterpreterBottomElement.INSTANCE;
+            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
           }
           else {
-            return newElement;
+            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
           }
         case LESS_THAN:
           if (lValue1.getSecond() < lValue2.getSecond()) {
-            return newElement;
+            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
           }
           else {
-            return InterpreterBottomElement.INSTANCE;
+            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
           }
         case GREATER_THAN:
           if (lValue1.getSecond() > lValue2.getSecond()) {
-            return newElement;
+            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
           }
           else {
-            return InterpreterBottomElement.INSTANCE;
+            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
           }
         case LESS_EQUAL:
           if (lValue1.getSecond() <= lValue2.getSecond()) {
-            return newElement;
+            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
           }
           else {
-            return InterpreterBottomElement.INSTANCE;
+            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
           }
         case GREATER_EQUAL:
           if (lValue1.getSecond() >= lValue2.getSecond()) {
-            return newElement;
+            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
           }
           else {
-            return InterpreterBottomElement.INSTANCE;
+            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
           }
         case EQUALS:
           if (lValue1.getSecond() == lValue2.getSecond()) {
-            return newElement;
+            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
           }
           else {
-            return InterpreterBottomElement.INSTANCE;
+            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
           }
         case NOT_EQUALS:
           if (lValue1.getSecond() != lValue2.getSecond()) {
-            return newElement;
+            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
           }
           else {
-            return InterpreterBottomElement.INSTANCE;
+            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
           }
         case BINARY_AND:
         case BINARY_XOR:
