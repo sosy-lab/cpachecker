@@ -450,6 +450,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       lIndex++;
 
+      if (lIndex == 210){
+        System.out.println("REMOVEME");
+      }
+
 
       if (lGoalPrediction[lIndex - 1].equals(InfeasibilityPropagation.Prediction.INFEASIBLE)) {
         mOutput.println("Predicted as infeasible!");

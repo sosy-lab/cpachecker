@@ -11,6 +11,7 @@
 
   <rundefinition name="predicate-bb">
 	<option name="-bb"/>
+	<option name="-pred"/>
   </rundefinition>
 
   <rundefinition name="explicit-sim-bb">

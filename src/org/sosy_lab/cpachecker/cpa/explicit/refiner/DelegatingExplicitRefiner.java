@@ -233,7 +233,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
 
     // if path is infeasible, try to refine the precision
     if (!isPathFeasable(errorPath)) {
-      //System.out.println("\t -> explicit refinement");
+      System.out.println("\t -> explicit refinement");
       if (performExplicitRefinement(reached, errorPath)) {
         return CounterexampleInfo.spurious();
       }
@@ -243,7 +243,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
 
     if(predicatingRefiner != null) {
       numberOfPredicateRefinements++;
-      //System.out.println("\t -> predicate refinement");
+      System.out.println("\t -> predicate refinement");
       return predicatingRefiner.performRefinement(reached, errorPath);
     }
 
