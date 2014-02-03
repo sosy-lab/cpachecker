@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpatiger" timelimit="60" cpuCores="2" memlimit="6000">
+<benchmark tool="cpatiger" timelimit="900" cpuCores="2" memlimit="6000">
   <option name="-heap">4800M</option>
 
 
