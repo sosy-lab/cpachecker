@@ -34,6 +34,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -213,7 +214,7 @@ public class CPAMain {
     String configFile = cmdLineOptions.remove(CmdLineArguments.CONFIGURATION_FILE_OPTION);
 
     // create initial configuration from config file and command-line arguments
-    Configuration.Builder configBuilder = Configuration.builder();
+    ConfigurationBuilder configBuilder = Configuration.builder();
     if (configFile != null) {
       configBuilder.loadFromFile(configFile);
     }
