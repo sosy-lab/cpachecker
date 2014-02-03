@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.Instance;
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
@@ -81,6 +82,7 @@ public class Job {
   private String sourceFileName;
   private String queueName;
   private String taskName;
+  private Instance instanceType;
   private int retries;
   private Result resultOutcome;
   private String resultMessage;
@@ -268,6 +270,14 @@ public class Job {
 
   public void setTaskName(String pTaskName) {
     taskName = pTaskName;
+  }
+
+  public Instance getInstanceType() {
+    return instanceType;
+  }
+
+  public void setInstanceType(Instance pInstanceType) {
+    instanceType = pInstanceType;
   }
 
   public int getRetries() {

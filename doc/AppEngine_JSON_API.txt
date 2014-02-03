@@ -136,7 +136,8 @@ Required:
     "log.level" : "FINER",
     "analysis.machineModel" : "Linux32",
     "log.usedOptions.export" : "true",
-    "limits.time.wall" : "100"
+    "limits.time.wall" : "100",
+    "gae.instanceType" : "FRONTEND"
   }
 }
 
@@ -154,7 +155,8 @@ Errors
   "error.noProgram",
   "error.invalidLogLevel",
   "error.programTooLarge",
-  "error.couldNotUpload"
+  "error.couldNotUpload",
+  "error.invalidInstanceType"
 ]
 
 
@@ -184,6 +186,7 @@ Response
   "specification" : "sv-comp.spc",
   "configuration" : "explicitAnalysis.properties",
   "sourceFileName" : "example.c",
+  "instanceType" : "FRONTEND",
   "retries" : 0,
   "result" : "TRUE",
   "resultMessage" : "TRUE. No property violation found by chosen configuration.",

@@ -46,6 +46,7 @@ import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
 import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner;
+import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.Instance;
 import org.sosy_lab.cpachecker.appengine.common.JobRunner;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
@@ -114,6 +115,9 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
             break;
           case "wallTime":
             options.setOption("limits.time.wall", value);
+            break;
+          case "instanceType":
+            options.setOption("gae.instanceType", value);
             break;
           case "programText":
             if (program == null || program.isEmpty()) {
@@ -280,12 +284,22 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
       }
     }
 
+    Instance instanceType = Instance.FRONTEND;
+    if (createdJob.getOptions().containsKey("gae.instanceType")) {
+      try {
+        instanceType = Instance.valueOf(createdJob.getOptions().get("gae.instanceType"));
+      } catch (IllegalArgumentException e) {
+        errors.add("error.invalidInstanceType");
+      }
+    }
+    createdJob.setInstanceType(instanceType);
+
     if (errors.size() == 0) {
       try {
         JobFileDAO.save(program);
         createdJob.addFile(program);
         JobDAO.save(createdJob);
-        JobRunner jobRunner = new GAETaskQueueJobRunner();
+        JobRunner jobRunner = new GAETaskQueueJobRunner(instanceType);
         createdJob = jobRunner.run(createdJob);
       } catch (IOException e) {
         if (e.getCause() instanceof RequestTooLargeException) {

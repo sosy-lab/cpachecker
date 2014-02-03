@@ -65,6 +65,8 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
+import com.google.appengine.api.LifecycleManager;
+import com.google.appengine.api.LifecycleManager.ShutdownHook;
 import com.google.apphosting.api.ApiProxy;
 import com.google.common.base.Charsets;
 import com.google.common.io.FileWriteMode;
@@ -155,7 +157,15 @@ public class JobRunnerServerResource extends WadlServerResource implements JobRu
     };
 
     final ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
-    shutdownNotifier.registerAndCheckImmediately(listener);
+    shutdownNotifier.register(listener);
+
+    ShutdownHook shutdownHook = new ShutdownHook() {
+      @Override
+      public void shutdown() {
+        shutdownNotifier.requestShutdown("The backend is shutting down.");
+      }
+    };
+    LifecycleManager.getInstance().setShutdownHook(shutdownHook);
 
     final CPAchecker cpaChecker = new CPAchecker(config, logManager, shutdownNotifier);
 

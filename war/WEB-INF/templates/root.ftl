@@ -113,6 +113,13 @@
             </select>
           </div>
           <div class="form-group">
+            <label for="instanceType" class="control-label">${msg.instanceType}</label>
+            <select name="instanceType" id="instanceType" class="form-control input-sm">
+              <option value="FRONTEND" selcted>FRONTEND</option>
+              <option value="BACKEND">BACKEND</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label for="wallTime" class="control-label">${msg.wallTime}</label>
             <span class="help-block">${msg.wallTimeInfo}</span>
             <input type="text" name="wallTime" id="wallTime" class="form-control input-sm" value="${allowedOptions['limits.time.wall']}" />

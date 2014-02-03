@@ -33,8 +33,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.Instance;
 
 /**
  * Represents the options that may be set by a client.
@@ -47,11 +50,19 @@ import org.sosy_lab.common.io.Paths;
  * - specifications: A list of available specifications
  * - configurations: A list of available configurations
  */
+@Options
 public class DefaultOptions {
 
   private static Map<String, String> allowedOptions = new HashMap<>();
   private static List<String> unsupportedConfigurations = new ArrayList<>();
   private Map<String, String> usedOptions = new HashMap<>();
+  private String originalWalltimeLimit;
+
+  @Option(name = "gae.instanceType",
+      description = "The instance type to use when running CPAchecker on Google App Engine."
+          + "Frontend instances have a wall time limit of 9 minutes. Backends may run for up to 24 hours.",
+      values = { "FRONTEND", "BACKEND" })
+  private Instance instance = Instance.FRONTEND;
 
   static {
     allowedOptions.put("analysis.machineModel", "Linux32");
@@ -60,6 +71,7 @@ public class DefaultOptions {
     allowedOptions.put("log.usedOptions.export", "false");
     allowedOptions.put("log.level", "OFF");
     allowedOptions.put("limits.time.wall", "540s"); // 9 minutes
+    allowedOptions.put("gae.instanceType", "FRONTEND");
 
     unsupportedConfigurations.add("chc.properties");
     unsupportedConfigurations.add("lddAnalysis.properties");
@@ -81,7 +93,6 @@ public class DefaultOptions {
      * cpa.seplogic.SeplogicCPA
      */
   }
-
 
   /**
    * Returns the allowed options and their default values.
@@ -108,22 +119,31 @@ public class DefaultOptions {
         value = value.toUpperCase();
       }
 
-      // walltime must not be negative or too large
       if (key.equals("limits.time.wall")) {
-        int defaultValue;
-        int newValue;
-        try {
-          String cleanDefault = getDefault("limits.time.wall").replaceAll("[^0-9]*$", "");
-          String cleanValue = value.replaceAll("[^0-9]*$", "");
-          defaultValue = Integer.parseInt(cleanDefault);
-          newValue = Integer.parseInt(cleanValue);
+        // walltime must not be negative or too large on frontend instances
+        if (!getUsedOptions().containsKey("gae.instanceType")
+            || !getUsedOptions().get("gae.instanceType").equals("BACKEND")) {
+          originalWalltimeLimit = value;
+          int defaultValue;
+          int newValue;
+          try {
+            String cleanDefault = getDefault("limits.time.wall").replaceAll("[^0-9]*$", "");
+            String cleanValue = value.replaceAll("[^0-9]*$", "");
+            defaultValue = Integer.parseInt(cleanDefault);
+            newValue = Integer.parseInt(cleanValue);
 
-          if (newValue < 0 || newValue > defaultValue) {
+            if (newValue < 0 || newValue > defaultValue) {
+              value = getDefault("limits.time.wall");
+            }
+          } catch (NumberFormatException e) {
             value = getDefault("limits.time.wall");
           }
-        } catch (NumberFormatException e) {
-          value = getDefault("limits.time.wall");
         }
+      }
+
+      // backends can run forever. so recover a previously overwritten wall time limit
+      if (key.equals("gae.instanceType") && value.equals("BACKEND") && originalWalltimeLimit != null) {
+        usedOptions.put("limits.time.wall", originalWalltimeLimit);
       }
 
       usedOptions.put(key, value);
@@ -186,7 +206,6 @@ public class DefaultOptions {
     try (InputStream in = Paths.get("WEB-INF", "default-options.properties").asByteSource().openStream()) {
       properties.load(in);
     }
-
 
     for (String key : properties.stringPropertyNames()) {
       options.put(key, properties.getProperty(key));

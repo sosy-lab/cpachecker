@@ -182,7 +182,8 @@ class AppEngineSubmitter(threading.Thread):
             try:
                 request = urllib2.Request(uri, data, headers)
                 response = urllib2.urlopen(request)
-                jobID = response.info()['Location'][len(uri)+1:]
+                location = response.info()['Location']
+                jobID = location[location.rindex('/')+1:]
                 logging.debug('Submitted job: '+jobID)
                 APPENGINE_JOBS.append({'jobID':jobID, 'logFile':run['logFile'], 'status':''})
             except urllib2.HTTPError as e:

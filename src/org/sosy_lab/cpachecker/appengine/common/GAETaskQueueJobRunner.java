@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.appengine.common;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 
+import com.google.appengine.api.backends.BackendServiceFactory;
 import com.google.appengine.api.taskqueue.Queue;
 import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.appengine.api.taskqueue.TaskHandle;
@@ -34,25 +35,57 @@ import com.google.appengine.api.taskqueue.TaskOptions;
 
 public class GAETaskQueueJobRunner implements JobRunner {
 
+  public enum Instance {
+    /**
+     * A frontend instance will be used.
+     */
+    FRONTEND,
+    /**
+     * A backend instance wil be used.
+     */
+    BACKEND
+//    AUTO
+  }
+
   public static final String QUEUE_NAME = "cpachecker";
   public static final String WORKER_PATH = "/workers/run-job";
+  public static final String BACKEND_NAME = "job-worker";
+  private Instance instance;
 
   /**
    * Constructs a new instance.
    * The job submitted via {@link #run(Job)} will be enqueued immediately.
    */
-  public GAETaskQueueJobRunner() {}
+  public GAETaskQueueJobRunner() {
+//    instance = Instance.AUTO;
+    instance = Instance.FRONTEND;
+  }
+
+  /**
+   * Constructs a new instance that enqueues the job sumbitted via {@link #run(Job)}
+   * immediately.
+   *
+   * @param instancyType The instance type to use for processing the job.
+   */
+  public GAETaskQueueJobRunner(Instance instancyType) {
+    instance = instancyType;
+  }
 
   @Override
   public Job run(Job job) {
     String jobKey = job.getKey();
 
     Queue queue = QueueFactory.getQueue(QUEUE_NAME);
-    TaskHandle task = queue.add(
-        TaskOptions.Builder
-            .withUrl(WORKER_PATH)
-            .taskName("job-" + jobKey)
-            .param("jobKey", jobKey));
+    TaskOptions builder = TaskOptions.Builder
+      .withUrl(WORKER_PATH)
+      .taskName("job-" + jobKey)
+      .param("jobKey", jobKey);
+
+    if (instance == Instance.BACKEND) {
+      builder.header("Host", BackendServiceFactory.getBackendService().getBackendAddress(BACKEND_NAME));
+    }
+
+    TaskHandle task = queue.add(builder);
 
     job.setQueueName(task.getQueueName());
     job.setTaskName(task.getName());

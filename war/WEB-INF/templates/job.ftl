@@ -96,6 +96,12 @@
           <td>${job.sourceFileName}</td>
         </tr>
         </#if>
+        <#if job.instanceType??>
+        <tr>
+          <td>${msg.instanceType}</td>
+          <td>${job.instanceType}</td>
+        </tr>
+        </#if>
         <#if job.options?? >
         <tr>
           <td>${msg.options}</td>
