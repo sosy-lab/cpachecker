@@ -7,7 +7,7 @@
   <option name="-spec">test/programs/benchmarks/PropertyERROR.prp</option>
   <requiredfiles>../programs/benchmarks/PropertyERROR.prp</requiredfiles>
   <option name="-heap">2000M</option>
-  <option name="-setprop">limits.time.cpu=1min</option>
+  <option name="-timelimit">1min</option>
 
   <rundefinition>
     <sourcefiles>
@@ -20,6 +20,8 @@
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
       <exclude>../programs/benchmarks/eca/Problem13_60_false-unreach-label.c</exclude>
+      <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_false-unreach-label.cil.out.i.pp.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/token_ring.10_false-unreach-label_false-termination.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>

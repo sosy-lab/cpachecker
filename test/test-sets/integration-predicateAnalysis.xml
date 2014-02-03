@@ -7,7 +7,7 @@
   <option name="-spec">test/programs/benchmarks/PropertyERROR.prp</option>
   <requiredfiles>../programs/benchmarks/PropertyERROR.prp</requiredfiles>
   <option name="-heap">2000M</option>
-  <option name="-setprop">limits.time.cpu=1min</option>
+  <option name="-timelimit">1min</option>
 
   <rundefinition>
     <sourcefiles>
@@ -19,6 +19,8 @@
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
+      <exclude>../programs/benchmarks/eca/Problem03_40_true-unreach-label.c</exclude>
+      <exclude>../programs/benchmarks/eca/Problem18_00_false-unreach-label.c</exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>

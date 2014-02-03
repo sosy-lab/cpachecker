@@ -4,7 +4,7 @@
   <option name="-noout"/>
   <option name="-heap">512M</option>
   <option name="-preprocess" />
-  <option name="-setprop">limits.time.cpu=1min</option>
+  <option name="-timelimit">1min</option>
 
   <sourcefiles name="cpalien-okay">
     <includesfile>../programs/cpalien/cpalien.set</includesfile>

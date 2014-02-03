@@ -7,7 +7,7 @@
   <option name="-spec">test/programs/benchmarks/PropertyERROR.prp</option>
   <requiredfiles>../programs/benchmarks/PropertyERROR.prp</requiredfiles>
   <option name="-heap">2000M</option>
-  <option name="-setprop">limits.time.cpu=1min</option>
+  <option name="-timelimit">1min</option>
 
   <rundefinition>
     <sourcefiles>
