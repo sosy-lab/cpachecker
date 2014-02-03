@@ -128,7 +128,7 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
       //opts.add("cpa.predicate.mathsat.useDtc = true");
       opts.add("cpa.interval.merge = JOIN");
    // configuration of SMT solver
-      opts.add("cpa.predicate.solver.useIntegers = true"); // we exact input data
+      opts.add("cpa.predicate.solver.useIntegers = true"); // we need exact input data
 
       mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction, opts);
       mLogManager = new BasicLogManager(mConfiguration);

@@ -389,6 +389,7 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
       lWriter.println("cfa.exportPerFunction = false");
       lWriter.println("cfa.callgraph.export = false");
 
+      lWriter.println("cpa.predicate.solver.useIntegers = true"); // we need exact input data.
 
 
       for (String opt : pAdditionalOpts){
