@@ -1567,19 +1567,28 @@ public class CompoundInterval {
 
   /**
    * Creates a new compound state from the given simple interval.
-   * @param interval the interval to base this compound state on.
+   *
+   * @param interval the interval to base this compound state on. If the
+   * interval is {@code null}, bottom is returned.
+   *
    * @return a new compound state representation of the given simple interval.
    */
-  public static CompoundInterval of(SimpleInterval interval) {
+  public static CompoundInterval of(@Nullable SimpleInterval interval) {
+    if (interval == null) {
+      return bottom();
+    }
     return getInternal(interval);
   }
 
   /**
    * Gets a compound state representing the given big integer value.
+   *
    * @param pValue the value to be represented by the state.
+   *
    * @return a compound state representing the given big integer value.
    */
   public static CompoundInterval singleton(BigInteger pValue) {
+    Preconditions.checkNotNull(pValue);
     return CompoundInterval.of(SimpleInterval.singleton(pValue));
   }
 
