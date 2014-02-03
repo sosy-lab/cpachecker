@@ -39,6 +39,11 @@ public class NondeterministicFiniteAutomaton<T> {
       ID = pId;
     }
 
+    @Override
+    public String toString(){
+      return String.valueOf(ID);
+    }
+
   }
 
   private static class StatePool {
@@ -170,6 +175,17 @@ public class NondeterministicFiniteAutomaton<T> {
       }
 
       return false;
+    }
+
+
+    @Override
+    public String toString(){
+      if (mLabel != null){
+        return mSource + " -[" + mLabel + "]> " + mTarget;
+      } else {
+        return mSource + " -[Lambda]> " + mTarget;
+      }
+
     }
   }
 
@@ -341,7 +357,7 @@ public class NondeterministicFiniteAutomaton<T> {
   public String toString() {
     StringBuilder lBuffer = new StringBuilder();
 
-    lBuffer.append("Initial State: " + getInitialState().ID + "\n");
+    lBuffer.append("Initial State: " + getInitialState() + "\n");
 
     lBuffer.append("Final States: { ");
 
@@ -354,23 +370,13 @@ public class NondeterministicFiniteAutomaton<T> {
         lBuffer.append(", ");
       }
 
-      lBuffer.append(lFinalState.ID);
+      lBuffer.append(lFinalState);
     }
 
     lBuffer.append(" }\n");
 
     for (Edge lEdge : getEdges()) {
-      T lLabel = lEdge.getLabel();
-
-      String lLabelString;
-
-      if (lLabel != null) {
-        lLabelString = lLabel.toString();
-      } else {
-        lLabelString = "Lambda";
-      }
-
-      lBuffer.append(lEdge.getSource().ID + " -[" + lLabelString + "]> " + lEdge.getTarget().ID);
+      lBuffer.append(lEdge.toString());
       lBuffer.append("\n");
     }
 

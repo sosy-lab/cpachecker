@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Executes an algorithm with a timeout.
+ * Executes an algorithm with an optional timeout.
  */
 public class AlgorithmExecutorService {
 
@@ -62,7 +62,7 @@ public class AlgorithmExecutorService {
   }
 
   /**
-   * Executes the algorithm with a timeout.
+   * Executes the algorithm. If timeout is 0, then the algorithm has no time limit.
    * @param pAlgorithm
    * @param pReachedSet
    * @param pNotifier

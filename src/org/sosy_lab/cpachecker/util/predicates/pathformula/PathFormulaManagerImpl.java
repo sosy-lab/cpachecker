@@ -900,6 +900,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             break;
           }
         }
+
+        if (edge == null){
+          // could happen with non deterministic CPA;
+          continue;
+        }
+
         assert edge != null;
         BooleanFormula pred = bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId(), 0);
 
