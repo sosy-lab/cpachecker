@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger;
 import org.sosy_lab.cpachecker.tiger.core.CPAtiger.AnalysisType;
 import org.sosy_lab.cpachecker.tiger.core.CPAtigerResult;
+import org.sosy_lab.cpachecker.tiger.core.CPAtigerResult.Factory;
 import org.sosy_lab.cpachecker.tiger.core.interfaces.FQLTestGenerator;
 import org.sosy_lab.cpachecker.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.tiger.fql.ast.Edges;
@@ -92,6 +93,7 @@ import org.sosy_lab.cpachecker.tiger.fql.translators.ecp.IncrementalCoverageSpec
 import org.sosy_lab.cpachecker.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.tiger.goals.clustering.ClusteredElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.tiger.goals.clustering.InfeasibilityPropagation;
+import org.sosy_lab.cpachecker.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
 import org.sosy_lab.cpachecker.tiger.testcases.BuggyExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
@@ -158,6 +160,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private long timeReachMax;
 
   private static IncrementalARTReusingFQLTestGenerator INSTANCE = null;
+
+  private int lFeasibleTestGoalsTimeSlot = 0;
+  private int lInfeasibleTestGoalsTimeSlot = 1;
+  private int lImpreciseTestGoalsTimeSlot = 1;
 
   public void setAnalysisType(AnalysisType paType){
     analysisType = paType;
@@ -368,17 +374,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     GuardedEdgeAutomatonCPA lPassingCPA = getPassingCPA(lFQLSpecification);
 
-    // set up utility variables
-    int lFeasibleTestGoalsTimeSlot = 0;
-    int lInfeasibleTestGoalsTimeSlot = 1;
-    int lImpreciseTestGoalsTimeSlot = 1;
-
-
     TimeAccumulator lTimeAccu = new TimeAccumulator(2);
-
     TimeAccumulator lTimeReach = new TimeAccumulator();
     TimeAccumulator lTimeCover = new TimeAccumulator();
-
 
     boolean lUseGraphCPAOld = mUseGraphCPA;
 
@@ -386,11 +384,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       // deactivate graph search ... experiments showed graph search useless when we use infeasibility propagation
       // TODO investigate that issue in more detail
       mUseGraphCPA = false;
-
       CFANode lInitialNode = this.mAlphaLabel.getEdgeSet().iterator().next().getSuccessor();
-
       ClusteringCoverageSpecificationTranslator lTranslator = new ClusteringCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator, lInfeasibilityPropagation.getSecond(), lInitialNode);
-
       lNumberOfTestGoals = lTranslator.getNumberOfTestGoals();
 
       mOutput.println("Number of Test Goals: " + lNumberOfTestGoals);
@@ -402,14 +397,12 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
     else {
       IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
-
       mOutput.println("Determining the number of test goals ...");
 
       lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
       mOutput.println("Number of test goals: " + lNumberOfTestGoals);
 
       Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(lFQLSpecification.getCoverageSpecification());
-
       lGoalPatterns = new ElementaryCoveragePattern[lNumberOfTestGoals];
 
       for (int lGoalIndex = 0; lGoalIndex < lNumberOfTestGoals; lGoalIndex++) {
@@ -417,19 +410,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       }
     }
 
-
-    int lNumberOfCFAInfeasibleGoals = 0;
-
-    ReachedSet lPredicateReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lPreviousGoalAutomaton = null;
-
-    ReachedSet lGraphReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.DFS);
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lPreviousGraphGoalAutomaton = null;
-
-    CPAtigerResult.Factory lResultFactory = CPAtigerResult.factory();
-
-    int lIndex = 0;
-
+    CPAtigerResult.Factory lResultFactory = CPAtigerResult.factory(lNumberOfTestGoals);
     long[] lGoalRuntime = new long[lNumberOfTestGoals];
     InfeasibilityPropagation.Prediction[] lGoalPrediction = new InfeasibilityPropagation.Prediction[lNumberOfTestGoals];
 
@@ -438,22 +419,86 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       lGoalPrediction[i] = InfeasibilityPropagation.Prediction.UNKNOWN; // value indicating unknown prediction
     }
 
+    // run the loop
+    try {
+      runAllGoals(pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckReachWhenCovered, lInfeasibilityPropagation,
+          lResultFactory, lPassingCPA, lGoalPatterns, lGoalRuntime, lGoalPrediction, lTimeAccu, lTimeReach, lTimeCover);
+    } catch (InterruptedException e) {
+      // analysis interrupted - let it print the statistics
+    }
+
+    //mOutput.println("Number of CFA infeasible test goals: " + lNumberOfCFAInfeasibleGoals);
+    mOutput.println("Time in reach: " + mTimeInReach.getSeconds());
+    mOutput.println("Max time in reach: " + ((double) timeReachMax)/1000 + " s");
+    mOutput.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
+
+    CPAtigerResult lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(),
+        lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
+
+    /*if (lResult.getNumberOfTestGoals() != lNumberOfTestGoals) {
+      throw new RuntimeException();
+    }*/
+
+    printStatistics(lResultFactory, lNumberOfTestGoals);
+    analysis.finish();
+
+    // print per goal runtimes
+    /*Arrays.sort(lGoalRuntime);
+    for (int i = 0; i < lGoalRuntime.length; i++) {
+      System.out.println("#" + (i + 1) + ": " + lGoalRuntime[i] + " ms");
+    }*/
+
+    if (lInfeasibilityPropagation.getFirst()) {
+      mUseGraphCPA = lUseGraphCPAOld;
+    }
+
+    return lResult;
+  }
+
+
+  /**
+   * Run reachability analysis on the test-goal automata.
+   * @param pApplySubsumptionCheck
+   * @param pCheckReachWhenCovered
+   * @param pApplyInfeasibilityPropagation
+   * @param lInfeasibilityPropagation
+   * @param lPassingCPA
+   * @param lResultFactory
+   * @param lGoalPatterns
+   * @param lGoalRuntime
+   * @param lGoalPrediction
+   * @param lTimeReach
+   * @param lTimeAccu
+   * @param lTimeCover
+   * @throws InterruptedException
+   */
+  private void runAllGoals(boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation,
+      Factory lResultFactory, GuardedEdgeAutomatonCPA lPassingCPA, ElementaryCoveragePattern[] lGoalPatterns, long[] lGoalRuntime, Prediction[] lGoalPrediction,
+      TimeAccumulator lTimeAccu, TimeAccumulator lTimeReach, TimeAccumulator lTimeCover) throws InterruptedException {
+    int lIndex = 0;
+    int lNumberOfTestGoals = lGoalPatterns.length;
+
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lPreviousGoalAutomaton = null;
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lPreviousGraphGoalAutomaton = null;
+
+    int lNumberOfCFAInfeasibleGoals = 0;
+    ReachedSet lPredicateReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
+    ReachedSet lGraphReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.DFS);
 
 
     while (lIndex < lGoalPatterns.length) {
+      mShutdownNotifier.shutdownIfNecessary();
+
       if (lIndex > 0) {
         mOutput.println("Goal #" + (lIndex) + " needed " + lGoalRuntime[lIndex - 1] + " ms");
       }
 
       long lStartTime = System.currentTimeMillis();
-
-
       lIndex++;
 
-      if (lIndex == 210){
-        System.out.println("REMOVEME");
-      }
-
+     // if (lIndex == 6){
+     //   System.out.println("REMOVEME");
+     // }
 
       if (lGoalPrediction[lIndex - 1].equals(InfeasibilityPropagation.Prediction.INFEASIBLE)) {
         mOutput.println("Predicted as infeasible!");
@@ -463,10 +508,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         continue;
       }
 
-
       ElementaryCoveragePattern lGoalPattern = lGoalPatterns[lIndex - 1];
-
-
       mOutput.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
 
       // TODO change while loop to for loop
@@ -487,8 +529,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       }
 
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
-
-      //      /System.out.println(lGoal.getAutomaton());
 
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton = FQLSpecificationUtil.optimizeAutomaton(lGoal.getAutomaton(), mUseAutomatonOptimization);
 
@@ -572,7 +612,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       if (timeThisReach > timeReachMax) {
         timeReachMax = timeThisReach;
       }
-
 
       if (!lReachableViaGraphSearch || (isSound && cex == null)){
         // goal is unreachable
@@ -659,34 +698,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
 
     mOutput.println("Goal #" + (lIndex) + " needed " + lGoalRuntime[lIndex - 1] + " ms");
-    mOutput.println("Number of CFA infeasible test goals: " + lNumberOfCFAInfeasibleGoals);
-    mOutput.println("Time in reach: " + mTimeInReach.getSeconds());
-    mOutput.println("Max time in reach: " + ((double) timeReachMax)/1000 + " s");
-    mOutput.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
 
-    CPAtigerResult lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
-
-    /*if (lResult.getNumberOfTestGoals() != lNumberOfTestGoals) {
-      throw new RuntimeException();
-    }*/
-
-    printStatistics(lResultFactory);
-    analysis.finish();
-
-    // print per goal runtimes
-    /*Arrays.sort(lGoalRuntime);
-    for (int i = 0; i < lGoalRuntime.length; i++) {
-      System.out.println("#" + (i + 1) + ": " + lGoalRuntime[i] + " ms");
-    }*/
-
-    if (lInfeasibilityPropagation.getFirst()) {
-      mUseGraphCPA = lUseGraphCPAOld;
-    }
-
-    return lResult;
   }
 
-  private void printStatistics(CPAtigerResult.Factory pResultFactory) {
+  private void printStatistics(CPAtigerResult.Factory pResultFactory, int lNumberOfTestGoals) {
     mOutput.println("Generated Test Cases:");
 
     for (TestCase lTestCase : pResultFactory.getTestCases()) {
@@ -694,7 +709,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
 
     mOutput.println("INTERN:");
-    mOutput.println("#Goals: " + mFeasibilityInformation.getNumberOfTestgoals());
+    mOutput.println("#Goals: " + lNumberOfTestGoals);
     mOutput.println("#Feasible: " + mFeasibilityInformation.getNumberOfFeasibleTestgoals());
     mOutput.println("#Infeasible: " + mFeasibilityInformation.getNumberOfInfeasibleTestgoals());
     mOutput.println("#Imprecise: " + mFeasibilityInformation.getNumberOfImpreciseTestgoals());

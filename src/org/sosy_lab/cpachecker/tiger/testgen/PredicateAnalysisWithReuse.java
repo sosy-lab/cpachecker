@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.assume.AssumeCPA;
 import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
@@ -135,6 +134,7 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
     }
 
     executor = AlgorithmExecutorService.getInstance();
+
   }
 
   @Override
@@ -223,9 +223,10 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
     }
 
     CPAAlgorithm lBasicAlgorithm;
-    ShutdownNotifier notifier = ShutdownNotifier.create();
+    ShutdownNotifier algNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+
     try {
-      lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration, notifier);
+      lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration, algNotifier);
     } catch (InvalidConfigurationException e1) {
       throw new RuntimeException(e1);
     }
@@ -277,15 +278,14 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
     }
 
     // run algorithm with an optionall timeout
-    boolean isSound = executor.execute(lAlgorithm, pReachedSet, notifier, timelimit, TimeUnit.SECONDS);
+    boolean isSound = executor.execute(lAlgorithm, pReachedSet, algNotifier, timelimit, TimeUnit.SECONDS);
     CounterexampleInfo cex = lAlgorithm.getCex();
 
 
-    // TODO remove as useless
-    if (pReachedSet.getLastState() != null && ((ARGState)pReachedSet.getLastState()).isTarget()) {
+    /*if (pReachedSet.getLastState() != null && ((ARGState)pReachedSet.getLastState()).isTarget()) {
       assert(cex != null);
       assert(!cex.isSpurious());
-    }
+    }*/
 
     return Pair.of(isSound, cex);
   }

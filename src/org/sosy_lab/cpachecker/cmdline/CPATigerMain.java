@@ -97,6 +97,18 @@ public class CPATigerMain {
 
     // create everything
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
+
+    // This is for shutting down when Ctrl+C is caught.
+    ShutdownHook shutdownHook = new ShutdownHook(shutdownNotifier);
+    Runtime.getRuntime().addShutdownHook(shutdownHook);
+
+    // This is for actually forcing a termination when CPAchecker
+    // fails to shutdown within some time.
+    ShutdownRequestListener forcedExitOnShutdown =
+        ForceTerminationOnShutdown.createShutdownListener(logManager, shutdownHook);
+    shutdownNotifier.register(forcedExitOnShutdown);
+
+
     CPAtiger cpatiger = null;
     ResourceLimitChecker limits = null;
     MainOptions options = new MainOptions();
@@ -133,15 +145,7 @@ public class CPATigerMain {
       return;
     }
 
-    // This is for shutting down when Ctrl+C is caught.
-    ShutdownHook shutdownHook = new ShutdownHook(shutdownNotifier);
-    Runtime.getRuntime().addShutdownHook(shutdownHook);
 
-    // This is for actually forcing a termination when CPAchecker
-    // fails to shutdown within some time.
-    ShutdownRequestListener forcedExitOnShutdown =
-        ForceTerminationOnShutdown.createShutdownListener(logManager, shutdownHook);
-    shutdownNotifier.register(forcedExitOnShutdown);
 
     // run analysis
 

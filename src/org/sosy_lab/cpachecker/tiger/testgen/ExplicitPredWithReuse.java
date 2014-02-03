@@ -94,16 +94,17 @@ public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallba
   private DelegatingExplicitRefiner refiner;
   private AlgorithmExecutorService executor;
   private long timelimit;
+  private ShutdownNotifier shutdownNotifier;
 
 
-
-  public ExplicitPredWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier,
+  public ExplicitPredWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier pShutdownNotifier,
       CFA lCFA, LocationCPA pmLocationCPA, CallstackCPA pmCallStackCPA,
       AssumeCPA pmAssumeCPA, long pTimelimit)  {
     mLocationCPA = pmLocationCPA;
     mCallStackCPA = pmCallStackCPA;
     mAssumeCPA = pmAssumeCPA;
     timelimit = pTimelimit;
+    shutdownNotifier = pShutdownNotifier;
 
     try {
       // add this option to initalize explict analysis to empty precision
@@ -179,7 +180,6 @@ public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallba
     }
 
     executor = AlgorithmExecutorService.getInstance();
-
   }
 
   @Override
@@ -240,9 +240,10 @@ public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallba
 
 
     CPAAlgorithm lBasicAlgorithm;
-    ShutdownNotifier notifier = ShutdownNotifier.create();
+    ShutdownNotifier algNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+
     try {
-      lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration, notifier);
+      lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration, algNotifier);
     } catch (InvalidConfigurationException e1) {
       throw new RuntimeException(e1);
     }
@@ -286,7 +287,7 @@ public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallba
     }
 
     // run algorithm with an optional timeout
-    boolean isSound = executor.execute(lAlgorithm, pReachedSet, notifier, timelimit, TimeUnit.SECONDS);
+    boolean isSound = executor.execute(lAlgorithm, pReachedSet, algNotifier, timelimit, TimeUnit.SECONDS);
     CounterexampleInfo cex = lAlgorithm.getCex();
 
 

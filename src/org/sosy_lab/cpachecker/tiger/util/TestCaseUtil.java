@@ -419,7 +419,8 @@ public class TestCaseUtil {
     lCPAFactory.set(pCFA, CFA.class);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
 
-    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager, mConfiguration, mShutdownNotifier);
+    ShutdownNotifier notifier = ShutdownNotifier.create();
+    CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager, mConfiguration, notifier);
 
     AbstractState lInitialElement = lCPA.getInitialState(pEntry);
     Precision lInitialPrecision = lCPA.getInitialPrecision(pEntry);

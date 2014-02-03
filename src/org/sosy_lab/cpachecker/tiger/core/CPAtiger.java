@@ -91,9 +91,12 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
   // type of analysis
   private AnalysisType aType = AnalysisType.PREDICATE;
 
-  public CPAtiger(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier, PrintStream pOutput, AnalysisType pAType, long pTimelimit, boolean pStopOnImpreciseExecution) {
+  private ShutdownNotifier shutdownNotifier;
+
+  public CPAtiger(String pSourceFileName, String pEntryFunction, ShutdownNotifier pShutdownNotifier, PrintStream pOutput, AnalysisType pAType, long pTimelimit, boolean pStopOnImpreciseExecution) {
     mOutput = pOutput;
     aType = pAType;
+    shutdownNotifier = pShutdownNotifier;
     mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction, shutdownNotifier, pOutput, aType, pTimelimit, pStopOnImpreciseExecution);
   }
 

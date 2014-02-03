@@ -100,14 +100,16 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
   private DelegatingExplicitRefiner expRefiner;
   private AlgorithmExecutorService executor;
   private long timelimit;
+  private ShutdownNotifier shutdownNotifier;
 
-  public ExplicitAnalysisWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier,
+  public ExplicitAnalysisWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier pShutdownNotifier,
       CFA lCFA, LocationCPA pmLocationCPA, CallstackCPA pmCallStackCPA,
       AssumeCPA pmAssumeCPA, long pTimelimit){
     mLocationCPA = pmLocationCPA;
     mCallStackCPA = pmCallStackCPA;
     mAssumeCPA = pmAssumeCPA;
     timelimit = pTimelimit;
+    shutdownNotifier = pShutdownNotifier;
 
     try {
       // add this option to initalize explict analysis to empty precision
@@ -176,7 +178,6 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
     }
 
     pchecker = new PathChecker(mLogManager, predCPA.getPathFormulaManager(), predCPA.getSolver());
-
     executor = AlgorithmExecutorService.getInstance();
 
   }
@@ -238,9 +239,10 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
 
 
     CPAAlgorithm lBasicAlgorithm;
-    ShutdownNotifier notifier = ShutdownNotifier.create();
+    ShutdownNotifier algNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+
     try {
-      lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration, notifier);
+      lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration, algNotifier);
     } catch (InvalidConfigurationException e1) {
       throw new RuntimeException(e1);
     }
@@ -284,7 +286,7 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
     }
 
     // run algorithm with an optionall timeout
-    boolean isSound = executor.execute(lAlgorithm, pReachedSet, notifier, timelimit, TimeUnit.SECONDS);
+    boolean isSound = executor.execute(lAlgorithm, pReachedSet, algNotifier, timelimit, TimeUnit.SECONDS);
     CounterexampleInfo cex = lAlgorithm.getCex();
 
     // check the counterexample

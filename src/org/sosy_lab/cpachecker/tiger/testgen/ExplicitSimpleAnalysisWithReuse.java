@@ -99,14 +99,16 @@ public class ExplicitSimpleAnalysisWithReuse implements AnalysisWithReuse {
   private boolean lUseCache;
   private AlgorithmExecutorService executor;
   private long timelimit;
+  private ShutdownNotifier shutdownNotifier;
 
-  public ExplicitSimpleAnalysisWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier,
+  public ExplicitSimpleAnalysisWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier pShutdownNotifier,
       CFA lCFA, LocationCPA pmLocationCPA, CallstackCPA pmCallStackCPA,
       AssumeCPA pmAssumeCPA, long pTimelimit){
     mLocationCPA = pmLocationCPA;
     mCallStackCPA = pmCallStackCPA;
     mAssumeCPA = pmAssumeCPA;
     timelimit = pTimelimit;
+    shutdownNotifier = pShutdownNotifier;
 
     try {
       mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction);
@@ -163,7 +165,6 @@ public class ExplicitSimpleAnalysisWithReuse implements AnalysisWithReuse {
     }
 
     pchecker = new PathChecker(mLogManager, predCPA.getPathFormulaManager(), predCPA.getSolver());
-
     executor = AlgorithmExecutorService.getInstance();
 
   }
@@ -212,9 +213,10 @@ public class ExplicitSimpleAnalysisWithReuse implements AnalysisWithReuse {
     }
 
     CPAAlgorithm lBasicAlgorithm;
-    ShutdownNotifier notifier = ShutdownNotifier.create();
+    ShutdownNotifier algNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+
     try {
-      lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration, notifier);
+      lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager, mConfiguration, algNotifier);
     } catch (InvalidConfigurationException e1) {
       throw new RuntimeException(e1);
     }
@@ -244,15 +246,16 @@ public class ExplicitSimpleAnalysisWithReuse implements AnalysisWithReuse {
     }
 
     // run the algorithm with timeout
-    boolean isSound  = executor.execute(lAlgorithm, pReachedSet, notifier, timelimit, TimeUnit.SECONDS);
-    CounterexampleInfo lCounterexampleInfo;
+    boolean isSound  = executor.execute(lAlgorithm, pReachedSet, algNotifier, timelimit, TimeUnit.SECONDS);
+    CounterexampleInfo lCounterexampleInfo = null;
 
-    // see if a feasible counter-example was found
-    AbstractState lastState = pReachedSet.getLastState();
-    if (AbstractStates.isTargetState(lastState)){
-      lCounterexampleInfo = checkFeasibility(pReachedSet);
-    } else {
-      lCounterexampleInfo = null;
+    if (isSound){
+      // see if a feasible counter-example was found
+      AbstractState lastState = pReachedSet.getLastState();
+
+      if (AbstractStates.isTargetState(lastState)){
+        lCounterexampleInfo = checkFeasibility(pReachedSet);
+      }
     }
 
     return Pair.of(isSound, lCounterexampleInfo);
