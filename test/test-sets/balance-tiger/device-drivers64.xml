@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpatiger" timelimit="60" cpuCores="2" memlimit="6000">
+<benchmark tool="cpatiger" timelimit="900" hardtimelimit="1000" memlimit="6000" cpuCores="2">
   <option name="-heap">4800M</option>
 
 
@@ -12,21 +12,25 @@
   <rundefinition name="predicate-bb">
 	<option name="-bb"/>
 	<option name="-pred"/>
+	<option name="-pedantic"/>
   </rundefinition>
 
   <rundefinition name="explicit-sim-bb">
         <option name="-bb"/>
         <option name="-expsim"/>
+        <option name="-pedantic"/>
   </rundefinition>
 
   <rundefinition name="explicit-ref-bb">
         <option name="-bb"/>
         <option name="-expref"/>
+        <option name="-pedantic"/>
   </rundefinition>
 
   <rundefinition name="explicit-pred-bb">
         <option name="-bb"/>
         <option name="-exppred"/>
+        <option name="-pedantic"/>
   </rundefinition>
   
   <columns>
