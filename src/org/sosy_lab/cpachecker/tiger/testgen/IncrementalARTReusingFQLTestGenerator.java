@@ -100,6 +100,7 @@ import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestSuite;
 import org.sosy_lab.cpachecker.tiger.util.ARTReuse;
 import org.sosy_lab.cpachecker.tiger.util.FeasibilityInformation;
+import org.sosy_lab.cpachecker.tiger.util.FeasibilityInformation.FeasibilityStatus;
 import org.sosy_lab.cpachecker.tiger.util.TestCaseUtil;
 import org.sosy_lab.cpachecker.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.tiger.util.Wrapper;
@@ -498,7 +499,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
 
     // process goals
-    for(int lIndex = mMinIndex+1; lIndex<= lNumberOfTestGoals && lIndex <= mMaxIndex; lIndex++) {
+    int maxIndex = lNumberOfTestGoals < mMaxIndex ? lNumberOfTestGoals : mMaxIndex;
+
+    for(int lIndex = mMinIndex+1; lIndex<= maxIndex; lIndex++) {
       mShutdownNotifier.shutdownIfNecessary();
 
       long lStartTime = System.currentTimeMillis();
@@ -513,46 +516,45 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         continue;
       }
 
-      if (mFeasibilityInformation.isKnown(lIndex)) {
-        //mOutput.println("Stored information: " + mFeasibilityInformation.getStatus(lIndex));
-        // result is known
+      // check if the result is already known
+      boolean skip = false;
+
+      FeasibilityStatus status = mFeasibilityInformation.getStatus(lIndex);
+
+      switch (status) {
+
+      case FEASIBLE:
+        mOutput.println("Goal #" + lIndex + " is covered by an existing test case!");
+        skip = true;
+        break;
+
+      case INFEASIBLE:
+        // probably should come here
+        mOutput.println("Goal #" + lIndex + " predicted as infeasible!");
+        skip = true;
+        break;
+
+
+      case IMPRECISE:
+        // in theory we could be here, but don't know how exactly....
+        assert false;
+        break;
+
+      case BUGGY:
+        // in theory we could be here, but don't know how exactly....
+        assert false;
+        break;
+
+        default:   // i.e. UNKNWON
+          break;
+      }
+
+      if (skip){
         continue;
       }
 
+
       lTimeAccu.proceed();
-
-      boolean lIsCovered = false;
-
-      if (pApplySubsumptionCheck) {
-        // check whether some existing test case covers the goal lGoal
-        lIsCovered = applyCoverageCheck(lGoal, lGoal.getAutomaton(), lPassingCPA, lResultFactory);
-      }
-
-      if (lIsCovered) {
-        mOutput.println("Goal #" + lIndex + " is covered by an existing test case!");
-
-        mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
-
-        Prediction lCurrentPrediction = lGoalPrediction[lIndex-1];
-
-        switch (lCurrentPrediction) {
-        case UNKNOWN:
-          break;
-        default:
-          throw new RuntimeException("missmatching prediction: " + lCurrentPrediction);
-        }
-
-        if (!pCheckReachWhenCovered) {
-          long lEndTime = System.currentTimeMillis();
-
-          lGoalRuntime[lIndex-1] = lEndTime - lStartTime;
-
-          lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
-
-          mOutput.println("Goal #" + lIndex + " needed " + lGoalRuntime[lIndex-1] + " ms");
-          continue;
-        }
-      }
 
       GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton());
 
@@ -607,10 +609,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         // goal is unreachable
         mOutput.println("Goal #" + lIndex + " is infeasible!");
 
-       handleUnreachable(cex, lIndex, lAutomatonCPA, lPassingCPA, lResultFactory, lGoal, lGoalPrediction,
-           lReachableViaGraphSearch, lInfeasibilityPropagation);
+        handleUnreachable(cex, lIndex, lAutomatonCPA, lPassingCPA, lResultFactory, lGoal, lGoalPrediction,
+            lReachableViaGraphSearch, lInfeasibilityPropagation);
 
-       lTimeAccu.pause(lInfeasibleTestGoalsTimeSlot);
+        lTimeAccu.pause(lInfeasibleTestGoalsTimeSlot);
       }
       else if (!isSound || (cex.isSpurious())){
         // analysis is imprecise
@@ -625,7 +627,11 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         assert isSound && !cex.isSpurious();
         lTimeCover.proceed();
 
-        TestCase lTestCase = handleReachable(cex, lIndex, lAutomatonCPA, lPassingCPA, lResultFactory, lGoal, lGoalPrediction);
+        TestCase lTestCase = handleReachable(cex, lIndex,  lAutomatonCPA, lPassingCPA, lResultFactory, lGoal, lGoalPrediction);
+
+        if (pApplySubsumptionCheck) {
+          coverTestCases(lTestCase, lGoal, lGoals, lPassingCPA, lResultFactory, lIndex+1, maxIndex);
+        }
 
         mTestSuite.add(lTestCase);
         lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
@@ -639,6 +645,67 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
 
 
+  }
+
+  /**
+   * Check if remaning goals are cover by the test case.
+   * @param pLGoals
+   * @param pLTestCase
+   * @param pLGoal
+   * @param pLPassingCPA
+   * @param pLResultFactory
+   * @param pMMaxIndex
+   * @param pI
+   */
+  private void coverTestCases(TestCase lTestCase, Goal lGoal, Goal[] lGoals, GuardedEdgeAutomatonCPA pPassingCPA,
+      Factory pResultFactory, int start, int stop) {
+
+    assert stop <= lGoals.length && 0 <= start;
+    assert (lTestCase.isPrecise());
+
+    CFAEdge[] path = mGeneratedTestCases.get(lTestCase);
+    GuardedEdgeAutomatonCPA lAutomatonCPA = null;
+
+    mOutput.print("covers goals: ");
+
+    for (int i=start; i<stop; i++){
+
+      if (mFeasibilityInformation.isKnown(i)){
+        continue;
+      }
+
+      Goal goal = lGoals[i-1];
+      ThreeValuedAnswer lCoverageAnswer = CPAtiger.accepts(goal.getAutomaton(), path);
+
+      if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
+        pResultFactory.addFeasibleTestCase(goal.getPattern(), lTestCase);
+
+        //mOutput.println("Goal #" + i + " is covered by an existing test case!");
+        mFeasibilityInformation.setStatus(i, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
+        // TODO remove
+        mOutput.print(i+", ");
+
+      }
+      else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
+
+        if (lAutomatonCPA == null) {
+          // TODO reuse this CPA in run method
+          lAutomatonCPA = new GuardedEdgeAutomatonCPA(goal.getAutomaton());
+        }
+
+        try {
+          if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, pPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
+            pResultFactory.addFeasibleTestCase(goal.getPattern(), lTestCase);
+          }
+        } catch (InvalidConfigurationException | CPAException | ImpreciseExecutionException e) {
+          throw new RuntimeException(e);
+        }
+      }
+
+
+    }
+
+    mOutput.println();
   }
 
   /**
@@ -657,9 +724,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       GuardedEdgeAutomatonCPA lPassingCPA, Factory lResultFactory, Goal lGoal, Prediction[] lGoalPrediction,
       boolean lReachableViaGraphSearch, Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation) {
 
-   // if (lIsCovered) {
-   //   throw new RuntimeException("Inconsistent result of coverage check and reachability analysis!");
-   // }
+    // if (lIsCovered) {
+    //   throw new RuntimeException("Inconsistent result of coverage check and reachability analysis!");
+    // }
 
     mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.INFEASIBLE);
 
@@ -818,9 +885,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       long lStartTime = System.currentTimeMillis();
       lIndex++;
 
-     // if (lIndex == 6){
-     //   System.out.println("REMOVEME");
-     // }
+      // if (lIndex == 6){
+      //   System.out.println("REMOVEME");
+      // }
 
       if (lGoalPrediction[lIndex - 1].equals(Prediction.INFEASIBLE)) {
         mOutput.println("Predicted as infeasible!");
