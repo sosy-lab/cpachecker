@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.appengine.common;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 
@@ -32,10 +36,10 @@ import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.appengine.api.taskqueue.TaskHandle;
 import com.google.appengine.api.taskqueue.TaskOptions;
 
-
+@Options
 public class GAETaskQueueJobRunner implements JobRunner {
 
-  public enum Instance {
+  public enum InstanceType {
     /**
      * A frontend instance will be used.
      */
@@ -49,8 +53,17 @@ public class GAETaskQueueJobRunner implements JobRunner {
 
   public static final String QUEUE_NAME = "cpachecker";
   public static final String WORKER_PATH = "/workers/run-job";
-  public static final String BACKEND_NAME = "job-worker";
-  private Instance instance;
+  public static final String BACKEND_NAME = "job-worker-B1";
+
+  @Option(name = "gae.instanceType",
+      description = "The instance type to use when running CPAchecker on Google App Engine."
+          + "Frontend instances have a wall time limit of 9 minutes. Backends may run for up to 24 hours.",
+      values = { "FRONTEND", "BACKEND" })
+  private InstanceType instanceType = InstanceType.FRONTEND;
+
+  // TODO backend class option
+
+  // TODO queue type option
 
   /**
    * Constructs a new instance.
@@ -58,7 +71,7 @@ public class GAETaskQueueJobRunner implements JobRunner {
    */
   public GAETaskQueueJobRunner() {
 //    instance = Instance.AUTO;
-    instance = Instance.FRONTEND;
+    instanceType = InstanceType.FRONTEND;
   }
 
   /**
@@ -67,8 +80,8 @@ public class GAETaskQueueJobRunner implements JobRunner {
    *
    * @param instancyType The instance type to use for processing the job.
    */
-  public GAETaskQueueJobRunner(Instance instancyType) {
-    instance = instancyType;
+  public GAETaskQueueJobRunner(Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
   }
 
   @Override
@@ -81,12 +94,13 @@ public class GAETaskQueueJobRunner implements JobRunner {
       .taskName("job-" + jobKey)
       .param("jobKey", jobKey);
 
-    if (instance == Instance.BACKEND) {
+    if (instanceType == InstanceType.BACKEND) {
       builder.header("Host", BackendServiceFactory.getBackendService().getBackendAddress(BACKEND_NAME));
     }
 
     TaskHandle task = queue.add(builder);
 
+    job.setInstanceType(instanceType);
     job.setQueueName(task.getQueueName());
     job.setTaskName(task.getName());
     JobDAO.save(job);

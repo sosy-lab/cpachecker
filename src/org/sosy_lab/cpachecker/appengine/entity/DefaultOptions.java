@@ -33,11 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.Instance;
 
 /**
  * Represents the options that may be set by a client.
@@ -50,19 +47,12 @@ import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.Instance;
  * - specifications: A list of available specifications
  * - configurations: A list of available configurations
  */
-@Options
 public class DefaultOptions {
 
   private static Map<String, String> allowedOptions = new HashMap<>();
   private static List<String> unsupportedConfigurations = new ArrayList<>();
   private Map<String, String> usedOptions = new HashMap<>();
   private String originalWalltimeLimit;
-
-  @Option(name = "gae.instanceType",
-      description = "The instance type to use when running CPAchecker on Google App Engine."
-          + "Frontend instances have a wall time limit of 9 minutes. Backends may run for up to 24 hours.",
-      values = { "FRONTEND", "BACKEND" })
-  private Instance instance = Instance.FRONTEND;
 
   static {
     allowedOptions.put("analysis.machineModel", "Linux32");

@@ -27,7 +27,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.Instance;
+import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.InstanceType;
 import org.sosy_lab.cpachecker.appengine.entity.Job;
 import org.sosy_lab.cpachecker.appengine.entity.JobFile;
 import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
@@ -99,7 +99,7 @@ public abstract class JobMixinAnnotations {
 
     @JsonProperty
     @JsonInclude(Include.ALWAYS)
-    Instance instanceType;
+    InstanceType instanceType;
 
     @JsonProperty
     int retries;
