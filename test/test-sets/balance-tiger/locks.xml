@@ -10,7 +10,7 @@
 
   <rundefinition name="predicate-bb">
 	<option name="-bb"/>
-	<option name="-heap"/>
+	<option name="-pred"/>
 	<option name="-pedantic"/>
   </rundefinition>
 
