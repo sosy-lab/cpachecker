@@ -411,18 +411,11 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
 
     CPAtigerResult.Factory lResultFactory = CPAtigerResult.factory(lNumberOfTestGoals);
-    long[] lGoalRuntime = new long[lNumberOfTestGoals];
-    InfeasibilityPropagation.Prediction[] lGoalPrediction = new InfeasibilityPropagation.Prediction[lNumberOfTestGoals];
-
-    for (int i = 0; i < lGoalRuntime.length; i++) {
-      lGoalRuntime[i] = -1; // value indicating invalid value
-      lGoalPrediction[i] = InfeasibilityPropagation.Prediction.UNKNOWN; // value indicating unknown prediction
-    }
 
     // run the loop
     try {
       runAllGoals(pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pCheckReachWhenCovered, lInfeasibilityPropagation,
-          lResultFactory, lPassingCPA, lGoalPatterns, lGoalRuntime, lGoalPrediction, lTimeAccu, lTimeReach, lTimeCover);
+          lResultFactory, lPassingCPA, lGoalPatterns, lTimeAccu, lTimeReach, lTimeCover);
     } catch (InterruptedException e) {
       // analysis interrupted - let it print the statistics
     }
@@ -472,8 +465,329 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
    * @param lTimeCover
    * @throws InterruptedException
    */
-  private void runAllGoals(boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation,
-      Factory lResultFactory, GuardedEdgeAutomatonCPA lPassingCPA, ElementaryCoveragePattern[] lGoalPatterns, long[] lGoalRuntime, Prediction[] lGoalPrediction,
+  private void runAllGoals(boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered,
+      Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation,
+      Factory lResultFactory, GuardedEdgeAutomatonCPA lPassingCPA, ElementaryCoveragePattern[] lGoalPatterns,
+      TimeAccumulator lTimeAccu, TimeAccumulator lTimeReach, TimeAccumulator lTimeCover) throws InterruptedException {
+    mShutdownNotifier.shutdownIfNecessary();
+
+    int lNumberOfTestGoals = lGoalPatterns.length;
+
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lPreviousGoalAutomaton = null;
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lPreviousGraphGoalAutomaton = null;
+
+    //int lNumberOfCFAInfeasibleGoals = 0;
+    ReachedSet lPredicateReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
+    ReachedSet lGraphReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.DFS);
+    Prediction[] lGoalPrediction = new Prediction[lNumberOfTestGoals];
+
+    long[] lGoalRuntime = new long[lNumberOfTestGoals];
+
+    for (int i = 0; i < lNumberOfTestGoals; i++) {
+      lGoalRuntime[i] = -1; // value indicating invalid value
+      lGoalPrediction[i] = Prediction.UNKNOWN; // value indicating unknown prediction
+    }
+
+    // compute test goals
+    Goal[] lGoals = new Goal[lNumberOfTestGoals];
+
+    for (int i = 0; i < lNumberOfTestGoals; i++) {
+      ElementaryCoveragePattern lGoalPattern = lGoalPatterns[i];
+      Goal lGoal = constructGoal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  mUseAutomatonOptimization);
+      lGoals[i] = lGoal;
+    }
+
+    // process goals
+    for(int lIndex = mMinIndex+1; lIndex<= lNumberOfTestGoals && lIndex <= mMaxIndex; lIndex++) {
+      mShutdownNotifier.shutdownIfNecessary();
+
+      long lStartTime = System.currentTimeMillis();
+      mOutput.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
+
+      Goal lGoal = lGoals[lIndex-1];
+      Prediction prediction = lGoalPrediction[lIndex-1];
+
+      if (prediction.equals(Prediction.INFEASIBLE)) {
+        mOutput.println("Predicted as infeasible!");
+        mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.INFEASIBLE);
+        continue;
+      }
+
+      if (mFeasibilityInformation.isKnown(lIndex)) {
+        //mOutput.println("Stored information: " + mFeasibilityInformation.getStatus(lIndex));
+        // result is known
+        continue;
+      }
+
+      lTimeAccu.proceed();
+
+      boolean lIsCovered = false;
+
+      if (pApplySubsumptionCheck) {
+        // check whether some existing test case covers the goal lGoal
+        lIsCovered = applyCoverageCheck(lGoal, lGoal.getAutomaton(), lPassingCPA, lResultFactory);
+      }
+
+      if (lIsCovered) {
+        mOutput.println("Goal #" + lIndex + " is covered by an existing test case!");
+
+        mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
+
+        Prediction lCurrentPrediction = lGoalPrediction[lIndex-1];
+
+        switch (lCurrentPrediction) {
+        case UNKNOWN:
+          break;
+        default:
+          throw new RuntimeException("missmatching prediction: " + lCurrentPrediction);
+        }
+
+        if (!pCheckReachWhenCovered) {
+          long lEndTime = System.currentTimeMillis();
+
+          lGoalRuntime[lIndex-1] = lEndTime - lStartTime;
+
+          lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
+
+          mOutput.println("Goal #" + lIndex + " needed " + lGoalRuntime[lIndex-1] + " ms");
+          continue;
+        }
+      }
+
+      GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton());
+
+      long timeReachThisStart = System.currentTimeMillis();
+      lTimeReach.proceed();
+
+      boolean lReachableViaGraphSearch = false;
+
+      if (!lAutomatonCPA.getAutomaton().getFinalStates().isEmpty()) {
+        if (mUseGraphCPA) {
+          mTimeInReach.proceed();
+          mTimesInReach++;
+          lReachableViaGraphSearch = reachGraphSearch(lPreviousGraphGoalAutomaton, lGraphReachedSet, lAutomatonCPA,
+              mWrapper.getEntry(), lPassingCPA);
+          mTimeInReach.pause();
+
+          lPreviousGraphGoalAutomaton = lAutomatonCPA.getAutomaton();
+        }
+        else {
+          lReachableViaGraphSearch = true;
+        }
+      }
+
+      Boolean isSound = true;
+      CounterexampleInfo cex = null;
+
+
+      if (lReachableViaGraphSearch) {
+        //lCounterexampleTraceInfo = reach(mWrapper.getCFA(), lPredicateReachedSet, lPreviousGoalAutomaton, lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+        mTimeInReach.proceed();
+        mTimesInReach++;
+        Pair<Boolean, CounterexampleInfo> result = analysis.analyse(mWrapper.getCFA(), lPredicateReachedSet, lPreviousGoalAutomaton,
+            lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+        mTimeInReach.pause();
+
+        isSound = result.getFirst();
+        cex = result.getSecond();
+        // lPredicateReachedSet and lPreviousGoalAutomaton have to be in-sync.
+        lPreviousGoalAutomaton = lAutomatonCPA.getAutomaton();
+      }
+      else {
+        //lNumberOfCFAInfeasibleGoals++;
+      }
+
+      lTimeReach.pause();
+      long timeThisReach = System.currentTimeMillis() - timeReachThisStart;
+      if (timeThisReach > timeReachMax) {
+        timeReachMax = timeThisReach;
+      }
+
+      if (!lReachableViaGraphSearch || (isSound && cex == null)){
+        // goal is unreachable
+        mOutput.println("Goal #" + lIndex + " is infeasible!");
+
+       handleUnreachable(cex, lIndex, lAutomatonCPA, lPassingCPA, lResultFactory, lGoal, lGoalPrediction,
+           lReachableViaGraphSearch, lInfeasibilityPropagation);
+
+       lTimeAccu.pause(lInfeasibleTestGoalsTimeSlot);
+      }
+      else if (!isSound || (cex.isSpurious())){
+        // analysis is imprecise
+        mOutput.println("Goal #" + lIndex + " lead to an imprecise execution!");
+
+        handleImprecise(cex, lIndex, lAutomatonCPA, lPassingCPA, lResultFactory, lGoal, lGoalPrediction);
+
+        lTimeAccu.pause(lImpreciseTestGoalsTimeSlot);
+      }
+      else {
+        // goal seems to be reachable
+        assert isSound && !cex.isSpurious();
+        lTimeCover.proceed();
+
+        TestCase lTestCase = handleReachable(cex, lIndex, lAutomatonCPA, lPassingCPA, lResultFactory, lGoal, lGoalPrediction);
+
+        mTestSuite.add(lTestCase);
+        lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
+        lTimeCover.pause();
+      }
+
+      long lEndTime = System.currentTimeMillis();
+      lGoalRuntime[lIndex-1] = lEndTime - lStartTime;
+
+      mOutput.println("Goal #" + lIndex + " needed " + lGoalRuntime[lIndex-1] + " ms");
+    }
+
+
+  }
+
+  /**
+   * Handle information about unreachability of a test goal.
+   * @param cex
+   * @param lIndex
+   * @param lAutomatonCPA
+   * @param lPassingCPA
+   * @param lResultFactory
+   * @param lGoal
+   * @param lGoalPrediction
+   * @param lReachableViaGraphSearch
+   * @param lInfeasibilityPropagation
+   */
+  private void handleUnreachable(CounterexampleInfo cex, int lIndex, GuardedEdgeAutomatonCPA lAutomatonCPA,
+      GuardedEdgeAutomatonCPA lPassingCPA, Factory lResultFactory, Goal lGoal, Prediction[] lGoalPrediction,
+      boolean lReachableViaGraphSearch, Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation) {
+
+   // if (lIsCovered) {
+   //   throw new RuntimeException("Inconsistent result of coverage check and reachability analysis!");
+   // }
+
+    mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.INFEASIBLE);
+
+    lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
+
+
+    if (lReachableViaGraphSearch && lInfeasibilityPropagation.getFirst()) {
+      HashSet<CFAEdge> lTargetEdges = new HashSet<>();
+
+      ClusteredElementaryCoveragePattern lClusteredPattern = (ClusteredElementaryCoveragePattern)lGoal.getPattern();
+
+      ListIterator<ClusteredElementaryCoveragePattern> lRemainingPatterns = lClusteredPattern.getRemainingElementsInCluster();
+
+      int lTmpIndex = lIndex; // caution lIndex starts at 0
+
+      while (lRemainingPatterns.hasNext()) {
+        Prediction lPrediction = lGoalPrediction[lTmpIndex];
+
+        ClusteredElementaryCoveragePattern lRemainingPattern = lRemainingPatterns.next();
+
+        if (lPrediction.equals(Prediction.UNKNOWN)) {
+          lTargetEdges.add(lRemainingPattern.getLastSingletonCFAEdge());
+        }
+
+        lTmpIndex++;
+      }
+
+      Collection<CFAEdge> lFoundEdges = InfeasibilityPropagation.dfs2(lClusteredPattern.getCFANode(), lClusteredPattern.getLastSingletonCFAEdge(), lTargetEdges);
+
+      lRemainingPatterns = lClusteredPattern.getRemainingElementsInCluster();
+
+      lTmpIndex = lIndex;
+
+      int lPredictedElements = 0;
+
+      while (lRemainingPatterns.hasNext()) {
+        Prediction lPrediction = lGoalPrediction[lTmpIndex];
+
+        ClusteredElementaryCoveragePattern lRemainingPattern = lRemainingPatterns.next();
+
+        if (lPrediction.equals(Prediction.UNKNOWN)) {
+          if (!lFoundEdges.contains(lRemainingPattern.getLastSingletonCFAEdge())) {
+            lGoalPrediction[lTmpIndex] = Prediction.INFEASIBLE;
+            lPredictedElements++;
+          }
+        }
+
+        lTmpIndex++;
+      }
+
+      mOutput.println("(" + lPredictedElements + ")");
+    }
+  }
+
+  /**
+   * Handle imprecise reachability information.
+   * @param pCex
+   * @param pLIndex
+   * @param pLAutomatonCPA
+   * @param pLPassingCPA
+   * @param pLResultFactory
+   * @param pLGoal
+   * @param pLGoalPrediction
+   */
+  private void handleImprecise(CounterexampleInfo cex, int lIndex, GuardedEdgeAutomatonCPA lAutomatonCPA,
+      GuardedEdgeAutomatonCPA lPassingCPA, Factory lResultFactory, Goal lGoal, Prediction[] lGoalPrediction) {
+    mTestCaseUtil.updateImpreciseTestCaseStatistics(lIndex, lResultFactory, lGoalPrediction);
+
+  }
+
+  /**
+   * Process path that seems to satisfy the test goal.
+   * @param cex
+   * @param lIndex
+   * @param lAutomatonCPA
+   * @param lPassingCPA
+   * @param lResultFactory
+   * @param lGoal
+   * @param lGoalPrediction
+   * @return
+   */
+  private TestCase handleReachable(CounterexampleInfo cex, int lIndex, GuardedEdgeAutomatonCPA lAutomatonCPA,
+      GuardedEdgeAutomatonCPA lPassingCPA, Factory lResultFactory, Goal lGoal, Prediction[] lGoalPrediction) {
+
+    TestCase lTestCase = TestCase.fromCounterexample(cex, mLogManager);
+    mTestCaseUtil.reconstructPath(lTestCase, lIndex, lAutomatonCPA, lPassingCPA, lResultFactory, lGoal, lGoalPrediction);
+
+    return lTestCase;
+  }
+
+  /**
+   * Constructs a test goal from the given pattern.
+   * @param pLGoalPattern
+   * @param pMAlphaLabel
+   * @param pMInverseAlphaLabel
+   * @param pMOmegaLabel
+   * @param pMUseAutomatonOptimization
+   * @return
+   */
+  private Goal constructGoal(ElementaryCoveragePattern pGoalPattern, GuardedEdgeLabel pAlphaLabel,
+      GuardedEdgeLabel pInverseAlphaLabel, GuardedEdgeLabel pOmegaLabel, boolean pUseAutomatonOptimization) {
+
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton = ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
+    automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, mUseAutomatonOptimization);
+
+    Goal lGoal = new Goal(pGoalPattern, automaton);
+
+    return lGoal;
+  }
+
+  /**
+   * The original method
+   * @param pApplySubsumptionCheck
+   * @param pApplyInfeasibilityPropagation
+   * @param pCheckReachWhenCovered
+   * @param lInfeasibilityPropagation
+   * @param lResultFactory
+   * @param lPassingCPA
+   * @param lGoalPatterns
+   * @param lTimeAccu
+   * @param lTimeReach
+   * @param lTimeCover
+   * @throws InterruptedException
+   */
+  @SuppressWarnings("unused")
+  private void runAllGoalsOriginal(boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered,
+      Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation,
+      Factory lResultFactory, GuardedEdgeAutomatonCPA lPassingCPA, ElementaryCoveragePattern[] lGoalPatterns,
       TimeAccumulator lTimeAccu, TimeAccumulator lTimeReach, TimeAccumulator lTimeCover) throws InterruptedException {
     int lIndex = 0;
     int lNumberOfTestGoals = lGoalPatterns.length;
@@ -481,9 +795,17 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lPreviousGoalAutomaton = null;
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lPreviousGraphGoalAutomaton = null;
 
-    int lNumberOfCFAInfeasibleGoals = 0;
+    //int lNumberOfCFAInfeasibleGoals = 0;
     ReachedSet lPredicateReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
     ReachedSet lGraphReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.DFS);
+    Prediction[] lGoalPrediction = new Prediction[lNumberOfTestGoals];
+
+    long[] lGoalRuntime = new long[lNumberOfTestGoals];
+
+    for (int i = 0; i < lGoalRuntime.length; i++) {
+      lGoalRuntime[i] = -1; // value indicating invalid value
+      lGoalPrediction[i] = Prediction.UNKNOWN; // value indicating unknown prediction
+    }
 
 
     while (lIndex < lGoalPatterns.length) {
@@ -500,11 +822,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
      //   System.out.println("REMOVEME");
      // }
 
-      if (lGoalPrediction[lIndex - 1].equals(InfeasibilityPropagation.Prediction.INFEASIBLE)) {
+      if (lGoalPrediction[lIndex - 1].equals(Prediction.INFEASIBLE)) {
         mOutput.println("Predicted as infeasible!");
-
         mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.INFEASIBLE);
-
         continue;
       }
 
@@ -546,7 +866,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
         mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
 
-        InfeasibilityPropagation.Prediction lCurrentPrediction = lGoalPrediction[lIndex - 1];
+        Prediction lCurrentPrediction = lGoalPrediction[lIndex - 1];
 
         switch (lCurrentPrediction) {
         case UNKNOWN:
@@ -604,7 +924,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         lPreviousGoalAutomaton = lAutomatonCPA.getAutomaton();
       }
       else {
-        lNumberOfCFAInfeasibleGoals++;
+        //lNumberOfCFAInfeasibleGoals++;
       }
 
       lTimeReach.pause();
@@ -637,11 +957,11 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           int lTmpIndex = lIndex; // caution lIndex starts at 0
 
           while (lRemainingPatterns.hasNext()) {
-            InfeasibilityPropagation.Prediction lPrediction = lGoalPrediction[lTmpIndex];
+            Prediction lPrediction = lGoalPrediction[lTmpIndex];
 
             ClusteredElementaryCoveragePattern lRemainingPattern = lRemainingPatterns.next();
 
-            if (lPrediction.equals(InfeasibilityPropagation.Prediction.UNKNOWN)) {
+            if (lPrediction.equals(Prediction.UNKNOWN)) {
               lTargetEdges.add(lRemainingPattern.getLastSingletonCFAEdge());
             }
 
@@ -657,13 +977,13 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           int lPredictedElements = 0;
 
           while (lRemainingPatterns.hasNext()) {
-            InfeasibilityPropagation.Prediction lPrediction = lGoalPrediction[lTmpIndex];
+            Prediction lPrediction = lGoalPrediction[lTmpIndex];
 
             ClusteredElementaryCoveragePattern lRemainingPattern = lRemainingPatterns.next();
 
-            if (lPrediction.equals(InfeasibilityPropagation.Prediction.UNKNOWN)) {
+            if (lPrediction.equals(Prediction.UNKNOWN)) {
               if (!lFoundEdges.contains(lRemainingPattern.getLastSingletonCFAEdge())) {
-                lGoalPrediction[lTmpIndex] = InfeasibilityPropagation.Prediction.INFEASIBLE;
+                lGoalPrediction[lTmpIndex] = Prediction.INFEASIBLE;
                 lPredictedElements++;
               }
             }

@@ -38,6 +38,13 @@ public class Goal {
     mAutomaton = ToGuardedAutomatonTranslator.toAutomaton(mPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
   }
 
+
+  public Goal(ElementaryCoveragePattern pPattern, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+    mPattern = pPattern;
+    mAutomaton = pAutomaton;
+  }
+
+
   public ElementaryCoveragePattern getPattern() {
     return mPattern;
   }

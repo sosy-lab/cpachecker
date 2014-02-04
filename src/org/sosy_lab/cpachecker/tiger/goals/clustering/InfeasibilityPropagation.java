@@ -48,7 +48,7 @@ public class InfeasibilityPropagation {
 
   public static enum Prediction {
     UNKNOWN,
-    INFEASIBLE
+    INFEASIBLE;
   }
 
   /*private CFAEdge getSingletonCFAEdge(ElementaryCoveragePattern pPattern, int pIndex) {
