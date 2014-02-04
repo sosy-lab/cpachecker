@@ -1983,7 +1983,7 @@ public class InterpreterTransferRelation implements TransferRelation {
         }
       }
       else { // TODO fix
-        throw new RuntimeException();
+        throw new RuntimeException(expression.toASTString());
       }
       /*
       if (typeOfLiteral == CLiteralExpression.lk_string_literal) {
