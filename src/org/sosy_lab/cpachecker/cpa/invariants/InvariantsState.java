@@ -820,15 +820,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (pElement2 == null) {
       return false;
     }
-    // Only states with equal information regarding interesting assumptions and environment may be combined
-    if (!collectedInterestingAssumptions.equals(pElement2.collectedInterestingAssumptions)) {
-      return false;
-    }
-    // Only two checks remain to test for equality:
-    if (assumptions.equals(pElement2.assumptions)
-        && environment.equals(pElement2.environment)) {
-      return true;
-    }
     // Perform the implication check (if this state definitely implies the other one, it is less than or equal to it)
     for (InvariantsFormula<CompoundInterval> rightAssumption : pElement2.getAssumptionsAndEnvironment()) {
       if (!CompoundStateFormulaManager.definitelyImplies(getAssumptionsAndEnvironment(), rightAssumption, this.environment)) {
@@ -944,7 +935,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * the given assumption as true.
    *
    * @param pAssumption the additional assumption to consider.
-   * @return <code>true</code> if the state is not obviously unsound afterwards.
+   * @return <code>true</code> if the state is not obviously bottom afterwards.
    */
   private boolean collectInterestingAssumptions(InvariantsFormula<CompoundInterval> pAssumption) {
     if (precision.getInterestingAssumptions().isEmpty()) {
