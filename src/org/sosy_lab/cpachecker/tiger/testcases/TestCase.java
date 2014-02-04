@@ -388,12 +388,16 @@ public abstract class TestCase {
         if (lName.equals(PathFormulaManagerImpl.NONDET_VARIABLE)) {
           Integer lIndex = lVar.getSSAIndex();
 
+          assert(lIndex > 1);
+
           double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
 
           lNondetMaps.get(NONDET_INT_INDEX).put(lIndex, lDoubleValue);
         }
         else if (lName.equals(PathFormulaManagerImpl.NONDET_VARIABLE_LONG)) {
           Integer lIndex = lVar.getSSAIndex();
+
+          assert(lIndex > 1);
 
           double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
 
@@ -402,12 +406,16 @@ public abstract class TestCase {
         else if (lName.equals(PathFormulaManagerImpl.NONDET_VARIABLE_UINT)) {
           Integer lIndex = lVar.getSSAIndex();
 
+          assert(lIndex > 1);
+
           double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
 
           lNondetMaps.get(NONDET_UINT_INDEX).put(lIndex, lDoubleValue);
         }
         else if (lName.equals(PathFormulaManagerImpl.NONDET_VARIABLE_BOOL)) {
           Integer lIndex = lVar.getSSAIndex();
+
+          assert(lIndex > 1);
 
           double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
 
@@ -416,12 +424,16 @@ public abstract class TestCase {
         else if (lName.equals(PathFormulaManagerImpl.NONDET_VARIABLE_CHAR)) {
           Integer lIndex = lVar.getSSAIndex();
 
+          assert(lIndex > 1);
+
           double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
 
           lNondetMaps.get(NONDET_CHAR_INDEX).put(lIndex, lDoubleValue);
         }
         else if (lName.equals(PathFormulaManagerImpl.NONDET_FLAG_VARIABLE)) {
           Integer lIndex = lVar.getSSAIndex();
+
+          assert(lIndex > 1);
 
           double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
 
@@ -435,6 +447,8 @@ public abstract class TestCase {
         else if (lName.equals(PathFormulaManagerImpl.NONDET_FLAG_VARIABLE_LONG)) {
           Integer lIndex = lVar.getSSAIndex();
 
+          assert(lIndex > 1);
+
           double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
 
           if (lDoubleValue != 0.0) {
@@ -446,6 +460,8 @@ public abstract class TestCase {
         }
         else if (lName.equals(PathFormulaManagerImpl.NONDET_FLAG_VARIABLE_UINT)) {
           Integer lIndex = lVar.getSSAIndex();
+
+          assert(lIndex > 1);
 
           double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
 
@@ -459,6 +475,8 @@ public abstract class TestCase {
         else if (lName.equals(PathFormulaManagerImpl.NONDET_FLAG_VARIABLE_BOOL)) {
           Integer lIndex = lVar.getSSAIndex();
 
+          assert(lIndex > 1);
+
           double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
 
           if (lDoubleValue != 0.0) {
@@ -470,6 +488,8 @@ public abstract class TestCase {
         }
         else if (lName.equals(PathFormulaManagerImpl.NONDET_FLAG_VARIABLE_CHAR)) {
           Integer lIndex = lVar.getSSAIndex();
+
+          assert(lIndex > 1);
 
           double lDoubleValue = Double.parseDouble(lAssignment.getValue().toString());
 
@@ -495,6 +515,10 @@ public abstract class TestCase {
 
       for (Map.Entry<Integer, Double> lEntry : lNondetMaps.get(i).entrySet()) {
         Integer lKey = lEntry.getKey();
+
+        assert(lKey != null);
+        assert(lNondetFlagMaps.get(i) != null);
+        assert(lNondetFlagMaps.get(i).get(lKey) != null);
 
         if (lNondetFlagMaps.get(i).get(lKey)) {
           Double lValue = lEntry.getValue();

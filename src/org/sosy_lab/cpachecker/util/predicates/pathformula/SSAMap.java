@@ -119,6 +119,9 @@ public class SSAMap implements Serializable {
     }
 
     public void setIndex(String name, CType type, int idx) {
+
+      assert(!name.equals("__VERIFIER_nondet_int") || idx > 1);
+
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
       int oldIdx = getIndex(name);
       Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone!");
@@ -149,6 +152,9 @@ public class SSAMap implements Serializable {
     }
 
     public void setIndex(String name, FormulaList args, CType type, int idx) {
+
+      assert(!name.equals("__VERIFIER_nondet_int") || idx > 1);
+
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
 
       if (funcsBuilder == null) {

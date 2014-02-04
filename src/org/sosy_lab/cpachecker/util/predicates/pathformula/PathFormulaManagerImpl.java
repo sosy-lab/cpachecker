@@ -442,8 +442,36 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     for (Triple<String, Integer, Integer> difference : varDifferences) {
       String name = difference.getFirst();
-      int i1 = Objects.firstNonNull(difference.getSecond(), 1);
-      int i2 = Objects.firstNonNull(difference.getThird(), 1);
+
+      int i1;
+      int i2;
+
+      if (useNondetFlags &&
+          (name.equals(NONDET_VARIABLE) ||
+           name.equals(NONDET_VARIABLE_BOOL) ||
+           name.equals(NONDET_VARIABLE_CHAR) ||
+           name.equals(NONDET_VARIABLE_UINT) ||
+           name.equals(NONDET_VARIABLE_LONG) ||
+           name.equals(NONDET_FLAG_VARIABLE) ||
+           name.equals(NONDET_FLAG_VARIABLE_BOOL) ||
+           name.equals(NONDET_FLAG_VARIABLE_CHAR) ||
+           name.equals(NONDET_FLAG_VARIABLE_UINT) ||
+           name.equals(NONDET_FLAG_VARIABLE_LONG)
+              )) {
+        assert (difference.getSecond() == null || difference.getSecond() > 1);
+        assert (difference.getThird() == null || difference.getThird() > 1);
+
+        i1 = Objects.firstNonNull(difference.getSecond(), 2);
+        i2 = Objects.firstNonNull(difference.getThird(), 2);
+
+        if (i1 == i2) {
+          continue;
+        }
+      }
+      else {
+        i1 = Objects.firstNonNull(difference.getSecond(), 1);
+        i2 = Objects.firstNonNull(difference.getThird(), 1);
+      }
 
       if (i1 > i2 && i1 > 1) {
         // i2:smaller, i1:bigger
@@ -451,20 +479,30 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         BooleanFormula t;
 
         if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE)) {
-          t = makeNondetFlagMerger(Math.max(i2, 1), i1, NONDET_FLAG_VARIABLE, NONDET_FORMULA_TYPE);
+          t = makeNondetFlagMerger(Math.max(i2, 2), i1, NONDET_FLAG_VARIABLE, NONDET_FORMULA_TYPE);
         }
         else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_LONG)) {
-          t = makeNondetFlagMerger(Math.max(i2, 1), i1, NONDET_FLAG_VARIABLE_LONG, NONDET_FORMULA_TYPE_LONG);
+          t = makeNondetFlagMerger(Math.max(i2, 2), i1, NONDET_FLAG_VARIABLE_LONG, NONDET_FORMULA_TYPE_LONG);
         }
         else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_UINT)) {
-          t = makeNondetFlagMerger(Math.max(i2, 1), i1, NONDET_FLAG_VARIABLE_UINT, NONDET_FORMULA_TYPE_UINT);
+          t = makeNondetFlagMerger(Math.max(i2, 2), i1, NONDET_FLAG_VARIABLE_UINT, NONDET_FORMULA_TYPE_UINT);
         }
         else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_BOOL)) {
-          t = makeNondetFlagMerger(Math.max(i2, 1), i1, NONDET_FLAG_VARIABLE_BOOL, NONDET_FORMULA_TYPE_BOOL);
+          t = makeNondetFlagMerger(Math.max(i2, 2), i1, NONDET_FLAG_VARIABLE_BOOL, NONDET_FORMULA_TYPE_BOOL);
         }
         else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_CHAR)) {
-          t = makeNondetFlagMerger(Math.max(i2, 1), i1, NONDET_FLAG_VARIABLE_CHAR, NONDET_FORMULA_TYPE_CHAR);
-        } else {
+          t = makeNondetFlagMerger(Math.max(i2, 2), i1, NONDET_FLAG_VARIABLE_CHAR, NONDET_FORMULA_TYPE_CHAR);
+        }
+        else if (useNondetFlags &&
+            (name.equals(NONDET_VARIABLE) ||
+                name.equals(NONDET_VARIABLE_LONG) ||
+                name.equals(NONDET_VARIABLE_UINT) ||
+                name.equals(NONDET_VARIABLE_BOOL) ||
+                name.equals(NONDET_VARIABLE_CHAR)
+                )) {
+          t = makeSSAMerger(name, resultSSA.getType(name), Math.max(i2, 2), i1);
+        }
+        else {
           t = makeSSAMerger(name, resultSSA.getType(name), Math.max(i2, 1), i1);
         }
 
@@ -477,19 +515,28 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         BooleanFormula t;
 
         if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE)) {
-          t = makeNondetFlagMerger(Math.max(i1, 1), i2, NONDET_FLAG_VARIABLE, NONDET_FORMULA_TYPE);
+          t = makeNondetFlagMerger(Math.max(i1, 2), i2, NONDET_FLAG_VARIABLE, NONDET_FORMULA_TYPE);
         }
         else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_LONG)) {
-          t = makeNondetFlagMerger(Math.max(i1, 1), i2, NONDET_FLAG_VARIABLE_LONG, NONDET_FORMULA_TYPE_LONG);
+          t = makeNondetFlagMerger(Math.max(i1, 2), i2, NONDET_FLAG_VARIABLE_LONG, NONDET_FORMULA_TYPE_LONG);
         }
         else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_UINT)) {
-          t = makeNondetFlagMerger(Math.max(i1, 1), i2, NONDET_FLAG_VARIABLE_UINT, NONDET_FORMULA_TYPE_UINT);
+          t = makeNondetFlagMerger(Math.max(i1, 2), i2, NONDET_FLAG_VARIABLE_UINT, NONDET_FORMULA_TYPE_UINT);
         }
         else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_BOOL)) {
-          t = makeNondetFlagMerger(Math.max(i1, 1), i2, NONDET_FLAG_VARIABLE_BOOL, NONDET_FORMULA_TYPE_BOOL);
+          t = makeNondetFlagMerger(Math.max(i1, 2), i2, NONDET_FLAG_VARIABLE_BOOL, NONDET_FORMULA_TYPE_BOOL);
         }
         else if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE_CHAR)) {
-          t = makeNondetFlagMerger(Math.max(i1, 1), i2, NONDET_FLAG_VARIABLE_CHAR, NONDET_FORMULA_TYPE_CHAR);
+          t = makeNondetFlagMerger(Math.max(i1, 2), i2, NONDET_FLAG_VARIABLE_CHAR, NONDET_FORMULA_TYPE_CHAR);
+        }
+        else if (useNondetFlags &&
+            (name.equals(NONDET_VARIABLE) ||
+                name.equals(NONDET_VARIABLE_LONG) ||
+                name.equals(NONDET_VARIABLE_UINT) ||
+                name.equals(NONDET_VARIABLE_BOOL) ||
+                name.equals(NONDET_VARIABLE_CHAR)
+                )) {
+          t = makeSSAMerger(name, resultSSA.getType(name), Math.max(i1, 2), i2);
         }
         else {
           t = makeSSAMerger(name, resultSSA.getType(name), Math.max(i1, 1), i2);
@@ -817,6 +864,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private BooleanFormula makeSSAMerger(Variable var,
       FormulaList args, int iSmaller, int iBigger) {
     assert iSmaller < iBigger;
+
+    assert (!var.equals("__VERIFIER_nondet_int"));
 
     FormulaType<?> t = converter.getFormulaTypeFromCType(var.getType());
     Formula initialFunc = ffmgr.createFuncAndCall(var.getName(), iSmaller, t, fromList(args));
