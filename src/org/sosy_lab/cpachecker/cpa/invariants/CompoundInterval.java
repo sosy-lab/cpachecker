@@ -24,13 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import java.math.BigInteger;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Queue;
 
 import javax.annotation.Nullable;
 
@@ -75,11 +73,6 @@ public class CompoundInterval {
    * The list of intervals this state is composed from.
    */
   private final SimpleInterval[] intervals;
-
-  /**
-   * The lazy hashCode.
-   */
-  private Integer hashCode = null;
 
   /**
    * Constructs the bottom state. This should only be invoked by the constant declaration.
@@ -220,20 +213,18 @@ public class CompoundInterval {
       SimpleInterval interval = this.intervals[index];
       boolean currentInserted = false;
       if (interval.touches(lastInterval)) {
-        resultIntervals.remove(resultIntervals.size() - 1);
         lastInterval = union(interval, lastInterval);
-        resultIntervals.add(lastInterval);
+        resultIntervals.set(resultIntervals.size() - 1, lastInterval);
         currentInserted = true;
       }
       if (!inserted) {
         if (pOther.touches(lastInterval)) {
-          resultIntervals.remove(resultIntervals.size() - 1);
           lastInterval = union(pOther, lastInterval);
           if (lastInterval.touches(interval)) {
             lastInterval = union(lastInterval, interval);
             currentInserted = true;
           }
-          resultIntervals.add(lastInterval);
+          resultIntervals.set(resultIntervals.size() - 1, lastInterval);
           inserted = true;
         } else if (pOther.touches(interval)) {
           lastInterval = union(pOther, interval);
@@ -580,10 +571,7 @@ public class CompoundInterval {
 
   @Override
   public int hashCode() {
-    if (hashCode == null) {
-      hashCode = this.intervals.hashCode();
-    }
-    return hashCode;
+    return Arrays.hashCode(this.intervals);
   }
 
   /**
@@ -632,13 +620,13 @@ public class CompoundInterval {
     if (isTop()) { return bottom(); }
     if (isBottom()) { return top(); }
     CompoundInterval result = bottom();
-    Queue<SimpleInterval> queue = new ArrayDeque<>(Arrays.asList(this.intervals));
+    int index = 0;
     BigInteger currentLowerBound = null;
     if (!hasLowerBound()) {
-      currentLowerBound = queue.poll().getUpperBound().add(BigInteger.ONE);
+      currentLowerBound = this.intervals[index++].getUpperBound().add(BigInteger.ONE);
     }
-    while (!queue.isEmpty()) {
-      SimpleInterval current = queue.poll();
+    while (index < this.intervals.length) {
+      SimpleInterval current = this.intervals[index++];
       result = result.unionWith(createSimpleInterval(currentLowerBound, current.getLowerBound().subtract(BigInteger.ONE)));
       if (current.hasUpperBound()) {
         currentLowerBound = current.getUpperBound().add(BigInteger.ONE);
