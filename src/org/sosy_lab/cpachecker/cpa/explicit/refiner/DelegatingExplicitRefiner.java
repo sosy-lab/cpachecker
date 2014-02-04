@@ -300,10 +300,11 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       //      }
 
       // add precision to global storage
-      ExplicitPrecision callPrec = precExpCallback.getPrecision();
-      ExplicitPrecision refinedCallPrec = new ExplicitPrecision(callPrec, increment);
-      precExpCallback.setPrecision(refinedCallPrec);
-
+      if (precExpCallback != null){
+        ExplicitPrecision callPrec = precExpCallback.getPrecision();
+        ExplicitPrecision refinedCallPrec = new ExplicitPrecision(callPrec, increment);
+        precExpCallback.setPrecision(refinedCallPrec);
+      }
 
       if (bddPrecision != null) {
         BDDPrecision refinedBDDPrecision = new BDDPrecision(bddPrecision, increment);
