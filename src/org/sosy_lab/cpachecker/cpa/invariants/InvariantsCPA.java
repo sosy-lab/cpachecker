@@ -301,7 +301,7 @@ public class InvariantsCPA extends AbstractCPA {
           InvariantsFormula<CompoundInterval> assumption = ((CAssumeEdge) edge).getExpression().accept(etfv);
           relevantVariables.addAll(assumption.accept(COLLECT_VARS_VISITOR));
         } catch (UnrecognizedCCodeException e) {
-          this.logManager.logException(Level.SEVERE, e, "Found unrecognized C code on an edge. Cannot specify relevant variables explicitly. Considering all variables as relevant.");
+          this.logManager.logException(Level.WARNING, e, "Found unrecognized C code on an edge. Cannot specify relevant variables explicitly. Considering all variables as relevant.");
           specifyRelevantVariables = false;
         }
       }
