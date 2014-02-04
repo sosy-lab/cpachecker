@@ -643,6 +643,128 @@ public class InterpreterTransferRelation implements TransferRelation {
     return Pair.of(false, 0L);
   }
 
+  private AbstractState evaluate_split(IAExpression op1, IAExpression op2, BinaryOperator opType, InterpreterElement newElement, String functionName, boolean truthValue) throws AccessToUninitializedVariableException {
+    Pair<Boolean, Long> lValue1 = evaluate(newElement, op1, functionName);
+    Pair<Boolean, Long> lValue2 = evaluate(newElement, op2, functionName);
+
+    if (lValue1.getFirst() && lValue2.getFirst()) {
+      long result;
+
+      switch (opType) {
+      case MULTIPLY:
+        result = lValue1.getSecond() * lValue2.getSecond();
+        if (result == 0L) {
+          return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
+        }
+        else {
+          return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
+        }
+      case DIVIDE:
+        result = lValue1.getSecond() / lValue2.getSecond();
+        if (result == 0L) {
+          return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
+        }
+        else {
+          return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
+        }
+      case MODULO:
+        result = lValue1.getSecond() % lValue2.getSecond();
+        if (result == 0L) {
+          return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
+        }
+        else {
+          return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
+        }
+      case PLUS:
+        result = lValue1.getSecond() + lValue2.getSecond();
+        if (result == 0L) {
+          return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
+        }
+        else {
+          return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
+        }
+      case MINUS:
+        result = lValue1.getSecond() - lValue2.getSecond();
+        if (result == 0L) {
+          return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
+        }
+        else {
+          return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
+        }
+      case SHIFT_LEFT:
+        result = lValue1.getSecond() << lValue2.getSecond();
+        if (result == 0L) {
+          return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
+        }
+        else {
+          return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
+        }
+      case SHIFT_RIGHT:
+        result = lValue1.getSecond() >> lValue2.getSecond();
+        if (result == 0L) {
+          return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
+        }
+        else {
+          return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
+        }
+      case LESS_THAN:
+        if (lValue1.getSecond() < lValue2.getSecond()) {
+          return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
+        }
+        else {
+          return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
+        }
+      case GREATER_THAN:
+        if (lValue1.getSecond() > lValue2.getSecond()) {
+          return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
+        }
+        else {
+          return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
+        }
+      case LESS_EQUAL:
+        if (lValue1.getSecond() <= lValue2.getSecond()) {
+          return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
+        }
+        else {
+          return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
+        }
+      case GREATER_EQUAL:
+        if (lValue1.getSecond() >= lValue2.getSecond()) {
+          return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
+        }
+        else {
+          return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
+        }
+      case EQUALS:
+        if (lValue1.getSecond() == lValue2.getSecond()) {
+          return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
+        }
+        else {
+          return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
+        }
+      case NOT_EQUALS:
+        if (lValue1.getSecond() != lValue2.getSecond()) {
+          return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
+        }
+        else {
+          return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
+        }
+      case BINARY_AND:
+      case BINARY_XOR:
+      case BINARY_OR:
+      default:
+        break;
+      }
+    }
+
+    System.out.println(op1.toASTString() + " " + opType.toString() + " " + op2.toASTString());
+
+    String varName = op1.toASTString();
+    newElement.forget(varName); // this crashes the tool, so we should never actually return null
+
+    return null;
+  }
+
   private AbstractState propagateBooleanExpression(AbstractState element,
       BinaryOperator opType,IAExpression op1,
       IAExpression op2, String functionName, boolean truthValue)
@@ -1197,9 +1319,11 @@ public class InterpreterTransferRelation implements TransferRelation {
         }
       }
       else if(op2 instanceof CBinaryExpression){
-        String varName = op1.toASTString();
-        // TODO forgetting
-        newElement.forget(varName);
+        AbstractState result = evaluate_split(op1, op2, opType, newElement, functionName, truthValue);
+
+        assert (result != null);
+
+        return result;
       }
       else{
       String varName = op1.toASTString();
@@ -1224,124 +1348,11 @@ public class InterpreterTransferRelation implements TransferRelation {
       return lSuccessor;
     }
     else{
-      Pair<Boolean, Long> lValue1 = evaluate(newElement, op1, functionName);
-      Pair<Boolean, Long> lValue2 = evaluate(newElement, op2, functionName);
+      AbstractState result = evaluate_split(op1, op2, opType, newElement, functionName, truthValue);
 
-      if (lValue1.getFirst() && lValue2.getFirst()) {
-        long result;
+      assert (result != null);
 
-        switch (opType) {
-        case MULTIPLY:
-          result = lValue1.getSecond() * lValue2.getSecond();
-          if (result == 0L) {
-            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
-          }
-          else {
-            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
-          }
-        case DIVIDE:
-          result = lValue1.getSecond() / lValue2.getSecond();
-          if (result == 0L) {
-            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
-          }
-          else {
-            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
-          }
-        case MODULO:
-          result = lValue1.getSecond() % lValue2.getSecond();
-          if (result == 0L) {
-            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
-          }
-          else {
-            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
-          }
-        case PLUS:
-          result = lValue1.getSecond() + lValue2.getSecond();
-          if (result == 0L) {
-            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
-          }
-          else {
-            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
-          }
-        case MINUS:
-          result = lValue1.getSecond() - lValue2.getSecond();
-          if (result == 0L) {
-            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
-          }
-          else {
-            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
-          }
-        case SHIFT_LEFT:
-          result = lValue1.getSecond() << lValue2.getSecond();
-          if (result == 0L) {
-            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
-          }
-          else {
-            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
-          }
-        case SHIFT_RIGHT:
-          result = lValue1.getSecond() >> lValue2.getSecond();
-          if (result == 0L) {
-            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
-          }
-          else {
-            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
-          }
-        case LESS_THAN:
-          if (lValue1.getSecond() < lValue2.getSecond()) {
-            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
-          }
-          else {
-            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
-          }
-        case GREATER_THAN:
-          if (lValue1.getSecond() > lValue2.getSecond()) {
-            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
-          }
-          else {
-            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
-          }
-        case LESS_EQUAL:
-          if (lValue1.getSecond() <= lValue2.getSecond()) {
-            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
-          }
-          else {
-            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
-          }
-        case GREATER_EQUAL:
-          if (lValue1.getSecond() >= lValue2.getSecond()) {
-            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
-          }
-          else {
-            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
-          }
-        case EQUALS:
-          if (lValue1.getSecond() == lValue2.getSecond()) {
-            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
-          }
-          else {
-            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
-          }
-        case NOT_EQUALS:
-          if (lValue1.getSecond() != lValue2.getSecond()) {
-            return (truthValue)?newElement:InterpreterBottomElement.INSTANCE;
-          }
-          else {
-            return (truthValue)?InterpreterBottomElement.INSTANCE:newElement;
-          }
-        case BINARY_AND:
-        case BINARY_XOR:
-        case BINARY_OR:
-        default:
-          break;
-        }
-      }
-
-      System.out.println(op1.toASTString() + " " + opType.toString() + " " + op2.toASTString());
-
-      String varName = op1.toASTString();
-      newElement.forget(varName);
-      // throw new UnrecognizedCFAEdgeException("Unhandled case " );
+      return result;
     }
 
     return newElement;
