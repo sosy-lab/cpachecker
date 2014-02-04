@@ -505,16 +505,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       mShutdownNotifier.shutdownIfNecessary();
 
       long lStartTime = System.currentTimeMillis();
-      mOutput.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
+      //mOutput.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
 
       Goal lGoal = lGoals[lIndex-1];
-      Prediction prediction = lGoalPrediction[lIndex-1];
-
-      if (prediction.equals(Prediction.INFEASIBLE)) {
-        mOutput.println("Predicted as infeasible!");
-        mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.INFEASIBLE);
-        continue;
-      }
 
       // check if the result is already known
       boolean skip = false;
@@ -529,19 +522,19 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         break;
 
       case INFEASIBLE:
-        // probably should come here
+        //mOutput.println("Predicted as infeasible!");
         mOutput.println("Goal #" + lIndex + " predicted as infeasible!");
         skip = true;
         break;
 
 
       case IMPRECISE:
-        // in theory we could be here, but don't know how exactly....
+        // in theory we could be here, but don't know exactly how....
         assert false;
         break;
 
       case BUGGY:
-        // in theory we could be here, but don't know how exactly....
+        // in theory we could be here, but don't know exactly how....
         assert false;
         break;
 
@@ -552,7 +545,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       if (skip){
         continue;
       }
-
 
       lTimeAccu.proceed();
 
@@ -634,6 +626,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         }
 
         mTestSuite.add(lTestCase);
+        // TODO this could be imprecise or buggy
         lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
         lTimeCover.pause();
       }
@@ -666,7 +659,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     CFAEdge[] path = mGeneratedTestCases.get(lTestCase);
     GuardedEdgeAutomatonCPA lAutomatonCPA = null;
 
-    mOutput.print("covers goals: ");
+    //mOutput.print("covers goals: ");
 
     for (int i=start; i<stop; i++){
 
@@ -683,7 +676,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         //mOutput.println("Goal #" + i + " is covered by an existing test case!");
         mFeasibilityInformation.setStatus(i, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
         // TODO remove
-        mOutput.print(i+", ");
+        //mOutput.print(i+", ");
 
       }
       else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
@@ -705,7 +698,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     }
 
-    mOutput.println();
+    //mOutput.println();
   }
 
   /**
@@ -769,7 +762,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
         if (lPrediction.equals(Prediction.UNKNOWN)) {
           if (!lFoundEdges.contains(lRemainingPattern.getLastSingletonCFAEdge())) {
+            mFeasibilityInformation.setStatus(lTmpIndex+1, FeasibilityInformation.FeasibilityStatus.INFEASIBLE);
+            // TODO remove
             lGoalPrediction[lTmpIndex] = Prediction.INFEASIBLE;
+
             lPredictedElements++;
           }
         }
@@ -777,7 +773,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         lTmpIndex++;
       }
 
-      mOutput.println("(" + lPredictedElements + ")");
+      //mOutput.println("(" + lPredictedElements + ")");
     }
   }
 
