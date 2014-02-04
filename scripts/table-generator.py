@@ -286,7 +286,7 @@ class RunSetResult():
         self.columns = columns
 
     def getSourceFileNames(self):
-        return [file.get('name') for file in self.filelist if Util.getColumnValue(file, 'status')]
+        return [file.get('name') for file in self.filelist]
 
     def append(self, resultFile, resultElem):
         self.filelist += resultElem.findall('sourcefile')
@@ -715,7 +715,7 @@ def getStatsOfRunSet(runResults):
         if column.title == 'status':
             countCorrectTrue, countCorrectFalse, countCorrectProperty, countWrongTrue, countWrongFalse, countWrongProperty = getCategoryCount(statusList)
 
-            sum     = StatValue(len(statusList))
+            sum     = StatValue(len([status for (category, status) in statusList if status]))
             correct = StatValue(countCorrectTrue + countCorrectFalse + countCorrectProperty)
             score   = StatValue(result.SCORE_CORRECT_TRUE   * countCorrectTrue + \
                                 result.SCORE_CORRECT_FALSE * countCorrectFalse + \

@@ -1270,7 +1270,7 @@ def formatOptions(str):
   {{py:if simpleStatus in ['true', 'false']: cssClasses.append(simpleStatus)}}
   {{py:cssClasses = ' '.join(cssClasses)}}
   {{for column, value in zip(runResult.columns, runResult.values)}}
-  {{if column.title == 'status' and value}}
+  {{if column.title == 'status'}}
     {{if runResult.logFile}}
     <td class="status {{cssClasses}}" title="Click here to show output of tool"><a href="{{relpath(runResult.logFile, baseDir)|url}}">{{(value or '-').lower()}}</a></td>
     {{else}}
