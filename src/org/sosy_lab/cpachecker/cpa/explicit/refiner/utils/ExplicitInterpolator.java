@@ -134,7 +134,8 @@ public class ExplicitInterpolator {
   public Set<Pair<MemoryLocation, Long>> deriveInterpolant(
       List<CFAEdge> pErrorPath,
       int pOffset,
-      Map<MemoryLocation, Long> pInputInterpolant) throws CPAException, InterruptedException {
+      Map<MemoryLocation, Long> pInputInterpolant,
+      Set<String> relevantVariables) throws CPAException, InterruptedException {
     numberOfInterpolations = 0;
     currentOffset          = pOffset;
 
@@ -150,13 +151,31 @@ public class ExplicitInterpolator {
       return null;
     }
 
+    Set<Pair<MemoryLocation, Long>> interpolant = new HashSet<>();
+    if(relevantVariables != null) {
+      boolean relevantVariablesInItp = false;
+      for(MemoryLocation variable : initialState.getDifference(initialSuccessor)) {
+        if(relevantVariables.contains(variable.getAsSimpleString())) {
+          relevantVariablesInItp = true;
+        } else {
+          initialSuccessor.forget(variable.getAsSimpleString());
+        }
+      }
+
+      if(!relevantVariablesInItp) {
+        for(Map.Entry<MemoryLocation, Long> entry : pInputInterpolant.entrySet()) {
+          interpolant.add(Pair.of(entry.getKey(), entry.getValue()));
+        }
+
+        return interpolant;
+      }
+    }
+
     // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
     Iterable<CFAEdge> remainingErrorPath = skip(pErrorPath, currentOffset + 1);
     if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(remainingErrorPath, new ExplicitState())) {
       return Collections.emptySet();
     }
-
-    Set<Pair<MemoryLocation, Long>> interpolant = new HashSet<>();
     for (MemoryLocation currentMemoryLocation : determineInterpolationCandidates(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
       ExplicitState successor = initialSuccessor.clone();

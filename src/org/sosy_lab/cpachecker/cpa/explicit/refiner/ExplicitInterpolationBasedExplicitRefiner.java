@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.AssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionClosureCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -95,6 +96,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       + "this avoids to have loop-counters in the interpolant")
   private boolean ignoreAssumptionsInLoops = true;
 
+  @Option(description="slicedItp")
+  private boolean slicedItp = false;
+
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
    */
@@ -122,6 +126,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   // statistics
   private int numberOfInterpolations        = 0;
   private Timer timerInterpolation          = new Timer();
+  private Timer timerAssumptionClosure           = new Timer();
 
   private final CFA cfa;
   private final LogManager logger;
@@ -176,7 +181,6 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
       throws CPAException, InterruptedException {
     timerInterpolation.start();
-
     interpolationOffset                   = -1;
     assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
         AssignmentsInPathConditionState.class);
@@ -190,6 +194,15 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     for(Pair<ARGState, CFAEdge> elem : errorPath) {
       cfaTrace.add(elem.getSecond());
     }
+
+    timerAssumptionClosure.start();
+    AssumptionClosureCollector coll = new AssumptionClosureCollector();
+    Set<String> relevantVars = null;
+    if(slicedItp) {
+      relevantVars = coll.collectVariables(cfaTrace);
+    }
+    timerAssumptionClosure.stop();
+
     for (int i = 0; i < errorPath.size(); i++) {
       shutdownNotifier.shutdownIfNecessary();
       CFAEdge currentEdge = errorPath.get(i).getSecond();
@@ -207,7 +220,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
       // do interpolation
       Map<MemoryLocation, Long> inputInterpolant = new HashMap<>(currentInterpolant);
-      Set<Pair<MemoryLocation, Long>> interpolant = interpolator.deriveInterpolant(cfaTrace, i, inputInterpolant);
+      Set<Pair<MemoryLocation, Long>> interpolant = interpolator.deriveInterpolant(cfaTrace, i, inputInterpolant, relevantVars);
       numberOfInterpolations += interpolator.getNumberOfInterpolations();
 
       // early stop once we are past the first statement that made a path feasible for the first time
@@ -420,5 +433,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     out.println("  number of explicit interpolations:                   " + numberOfInterpolations);
     out.println("  max. time for singe interpolation:                   " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
     out.println("  total time for interpolation:                        " + timerInterpolation);
+    out.println("  total time for assumption closure:                   " + timerAssumptionClosure);
+    out.println("  max. time for assumption closure:                    " + timerAssumptionClosure.getMaxTime().formatAs(TimeUnit.SECONDS));
   }
 }
