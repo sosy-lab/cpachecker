@@ -11,8 +11,11 @@
 
   <rundefinition>
     <sourcefiles>
-      <includesfile>../programs/simple/simple.set</includesfile>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
+      <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    </sourcefiles>
+    <sourcefiles>
+      <includesfile>../programs/simple/simple.set</includesfile>
       <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
