@@ -220,7 +220,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
       // do interpolation
       Map<MemoryLocation, Long> inputInterpolant = new HashMap<>(currentInterpolant);
-      Set<Pair<MemoryLocation, Long>> interpolant = interpolator.deriveInterpolant(cfaTrace, i, inputInterpolant, relevantVars);
+      Map<MemoryLocation, Long> interpolant = interpolator.deriveInterpolant(cfaTrace, i, inputInterpolant, relevantVars);
       numberOfInterpolations += interpolator.getNumberOfInterpolations();
 
       // early stop once we are past the first statement that made a path feasible for the first time
@@ -228,11 +228,11 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
         timerInterpolation.stop();
         return increment;
       }
-      for (Pair<MemoryLocation, Long> element : interpolant) {
-        if (element.getSecond() == null) {
-          currentInterpolant.remove(element.getFirst());
+      for (Map.Entry<MemoryLocation, Long> element : interpolant.entrySet()) {
+        if (element.getValue() == null) {
+          currentInterpolant.remove(element.getKey());
         } else {
-          currentInterpolant.put(element.getFirst(), element.getSecond());
+          currentInterpolant.put(element.getKey(), element.getValue());
         }
       }
 
