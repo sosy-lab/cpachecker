@@ -694,7 +694,7 @@ def signal_handler_ignore(signum, frame):
 
 if __name__ == "__main__":
     # ignore SIGTERM
-    signal.signal(signal.SIGTERM, signal_handler_ignore)
+#    signal.signal(signal.SIGTERM, signal_handler_ignore)
     try:
         sys.exit(main())
     except KeyboardInterrupt: # this block is reached, when interrupt is thrown before or after a run set execution
