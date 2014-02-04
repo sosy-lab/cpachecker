@@ -53,7 +53,7 @@ public class GAETaskQueueJobRunner implements JobRunner {
 
   public static final String QUEUE_NAME = "cpachecker";
   public static final String WORKER_PATH = "/workers/run-job";
-  public static final String BACKEND_NAME = "job-worker-B1";
+  public static final String BACKEND_NAME = "job-worker-b1";
 
   @Option(name = "gae.instanceType",
       description = "The instance type to use when running CPAchecker on Google App Engine."

@@ -1,5 +1,5 @@
 <backends>
-	<backend name="job-worker-B1"> <!-- 128MM, 600MHz -->
+	<backend name="job-worker-b1"> <!-- 128MM, 600MHz -->
 		<class>B1</class>
 		<instances>2</instances>
 		<max-concurrent-requests>2</max-concurrent-requests>
