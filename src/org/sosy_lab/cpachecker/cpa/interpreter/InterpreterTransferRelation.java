@@ -495,7 +495,8 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   // boolean value indicates whether we were able to compute a value and the long value represents the value of the expression (if successful)
-  private Pair<Boolean, Long> evaluate(InterpreterElement pState, IAExpression pExpression, String pFunctionName) {
+  private Pair<Boolean, Long> evaluate(InterpreterElement pState, IAExpression pExpression, String pFunctionName)
+      throws AccessToUninitializedVariableException {
     if (pExpression instanceof CLiteralExpression) { // TODO restrict to CIntegerLiteralExpression
       CLiteralExpression lLiteral = (CLiteralExpression)pExpression;
       CType expressionType = lLiteral.getExpressionType();
@@ -527,7 +528,7 @@ public class InterpreterTransferRelation implements TransferRelation {
         long lValue = pState.getValueFor(lScopedVariableName);
 
         return Pair.of(true, lValue);
-      } catch (ReadingFromNondetVariableException | AccessToUninitializedVariableException e) {
+      } catch (ReadingFromNondetVariableException e) {
         throw new RuntimeException(e);
       }
     }
