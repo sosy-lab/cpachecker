@@ -6,10 +6,6 @@
 ../../../benchmarks/loops/sum01_false-unreach-label_true-termination.i
 ../../../benchmarks/loops/sum01_true-unreach-label_true-termination.c
 ../../../benchmarks/loops/sum01_true-unreach-label_true-termination.i
-../../../benchmarks/loops/sum03_false-unreach-label_true-termination.c
-../../../benchmarks/loops/sum03_false-unreach-label_true-termination.i
-../../../benchmarks/loops/sum03_true-unreach-label_false-termination.c
-../../../benchmarks/loops/sum03_true-unreach-label_false-termination.i
 ../../../benchmarks/loops/sum04_false-unreach-label_true-termination.c
 ../../../benchmarks/loops/sum04_false-unreach-label_true-termination.i
 ../../../benchmarks/loops/sum04_true-unreach-label_true-termination.c
@@ -40,13 +36,3 @@
 ../../../benchmarks/loops/trex04_true-unreach-label_false-termination.i
 ../../../benchmarks/loops/vogal_false-unreach-label.c
 ../../../benchmarks/loops/vogal_false-unreach-label.i
-../../../benchmarks/loops/vogal_true-unreach-label.c
-../../../benchmarks/loops/vogal_true-unreach-label.i
-../../../benchmarks/loops/while_infinite_loop_1_true-unreach-label_false-termination.c
-../../../benchmarks/loops/while_infinite_loop_1_true-unreach-label_false-termination.i
-../../../benchmarks/loops/while_infinite_loop_2_true-unreach-label_false-termination.c
-../../../benchmarks/loops/while_infinite_loop_2_true-unreach-label_false-termination.i
-../../../benchmarks/loops/while_infinite_loop_3_true-unreach-label_false-termination.c
-../../../benchmarks/loops/while_infinite_loop_3_true-unreach-label_false-termination.i
-../../../benchmarks/loops/while_infinite_loop_4_false-unreach-label_true-termination.c
-../../../benchmarks/loops/while_infinite_loop_4_false-unreach-label_true-termination.i
