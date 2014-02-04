@@ -117,7 +117,7 @@ public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallba
       options.add("cegar.refiner                          = cpa.explicit.refiner.DelegatingExplicitRefiner");
       options.add("cpa.composite.precAdjust               = COMPONENT");
 
-      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction, options);
+      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction, options, false);
       mLogManager = new BasicLogManager(mConfiguration);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);

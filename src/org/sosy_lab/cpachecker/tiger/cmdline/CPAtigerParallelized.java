@@ -270,7 +270,7 @@ public class CPAtigerParallelized {
     FunctionEntryNode lMainFunction;
 
     try {
-      Configuration mConfiguration = CPAtiger.createConfiguration(pSourceFile, pEntryFunction);
+      Configuration mConfiguration = CPAtiger.createConfiguration(pSourceFile, pEntryFunction, false);
       LogManager mLogManager = new BasicLogManager(mConfiguration);
 
       lCFAMap = CPAtiger.getCFA(pSourceFile, mConfiguration, mLogManager).getAllFunctions();

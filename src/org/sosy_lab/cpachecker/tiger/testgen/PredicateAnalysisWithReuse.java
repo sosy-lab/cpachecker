@@ -127,7 +127,7 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
       //opts.add("cpa.predicate.mathsat.useDtc = true");
       opts.add("cpa.interval.merge = JOIN");
 
-      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction, opts);
+      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction, opts, false);
       mLogManager = new BasicLogManager(mConfiguration);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);

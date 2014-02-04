@@ -197,7 +197,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     mTestCaseUtil.seed(pTestSuite, mCoverageSpecificationTranslator, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
   }
 
-  public IncrementalARTReusingFQLTestGenerator(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier, PrintStream pOutput, AnalysisType pAType, long pTimelimit, boolean pStopOnImpreciseExecution) {
+  public IncrementalARTReusingFQLTestGenerator(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier, PrintStream pOutput, AnalysisType pAType, long pTimelimit, boolean pStopOnImpreciseExecution, boolean pPrintCFAs) {
     assert (INSTANCE == null);
 
     analysisType = pAType;
@@ -213,7 +213,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     CFA lCFA;
 
     try {
-      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction);
+      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction, pPrintCFAs);
       mLogManager = new BasicLogManager(mConfiguration);
 
       lCFA = CPAtiger.getCFA(pSourceFileName, mConfiguration, mLogManager);

@@ -93,11 +93,11 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
 
   private ShutdownNotifier shutdownNotifier;
 
-  public CPAtiger(String pSourceFileName, String pEntryFunction, ShutdownNotifier pShutdownNotifier, PrintStream pOutput, AnalysisType pAType, long pTimelimit, boolean pStopOnImpreciseExecution) {
+  public CPAtiger(String pSourceFileName, String pEntryFunction, ShutdownNotifier pShutdownNotifier, PrintStream pOutput, AnalysisType pAType, long pTimelimit, boolean pStopOnImpreciseExecution, boolean pPrintCFAs) {
     mOutput = pOutput;
     aType = pAType;
     shutdownNotifier = pShutdownNotifier;
-    mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction, shutdownNotifier, pOutput, aType, pTimelimit, pStopOnImpreciseExecution);
+    mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction, shutdownNotifier, pOutput, aType, pTimelimit, pStopOnImpreciseExecution, pPrintCFAs);
   }
 
   public void doRestart() {
@@ -337,14 +337,14 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
     }
   }
 
-  public static Configuration createConfiguration(String pSourceFile, String pEntryFunction) throws InvalidConfigurationException {
+  public static Configuration createConfiguration(String pSourceFile, String pEntryFunction, boolean pPrintCFAs) throws InvalidConfigurationException {
     List<String> additionalOpts = new Vector<>();
-    File lPropertiesFile = CPAtiger.createPropertiesFile(pEntryFunction, additionalOpts);
+    File lPropertiesFile = CPAtiger.createPropertiesFile(pEntryFunction, additionalOpts, pPrintCFAs);
     return createConfiguration(Collections.singletonList(pSourceFile), lPropertiesFile.getAbsolutePath());
   }
 
-  public static Configuration createConfiguration(String pSourceFile, String pEntryFunction, Collection<String> additionalOpts) throws InvalidConfigurationException {
-    File lPropertiesFile = CPAtiger.createPropertiesFile(pEntryFunction, additionalOpts);
+  public static Configuration createConfiguration(String pSourceFile, String pEntryFunction, Collection<String> additionalOpts, boolean pPrintCFAs) throws InvalidConfigurationException {
+    File lPropertiesFile = CPAtiger.createPropertiesFile(pEntryFunction, additionalOpts, pPrintCFAs);
     return createConfiguration(Collections.singletonList(pSourceFile), lPropertiesFile.getAbsolutePath());
   }
 
@@ -367,7 +367,7 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
     return lConfiguration;
   }
 
-  private static File createPropertiesFile(String pEntryFunction, Collection<String> pAdditionalOpts) {
+  private static File createPropertiesFile(String pEntryFunction, Collection<String> pAdditionalOpts, boolean pPrintCFAs) {
     if (pEntryFunction == null) {
       throw new IllegalArgumentException("Parameter pEntryFunction is null!");
     }
@@ -388,9 +388,12 @@ public class CPAtiger implements FQLTestGenerator, FQLCoverageAnalyser {
       // Logging information
       lWriter.println("log.level = OFF");
       lWriter.println("log.consoleLevel = OFF");
-      lWriter.println("cfa.export = false");
-      lWriter.println("cfa.exportPerFunction = false");
-      lWriter.println("cfa.callgraph.export = false");
+
+      if (!pPrintCFAs) {
+        lWriter.println("cfa.export = false");
+        lWriter.println("cfa.exportPerFunction = false");
+        lWriter.println("cfa.callgraph.export = false");
+      }
 
       lWriter.println("cpa.predicate.solver.useIntegers = true"); // we need exact input data.
 

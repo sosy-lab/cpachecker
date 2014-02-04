@@ -122,7 +122,7 @@ public class ExplicitAnalysisWithReuse implements AnalysisWithReuse, PrecisionCa
       options.add("analysis.traversal.useCallstack        = true");
       options.add("cegar.refiner                          = cpa.explicit.refiner.DelegatingExplicitRefiner");
 
-      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction, options);
+      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction, options, false);
       mLogManager = new BasicLogManager(mConfiguration);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);

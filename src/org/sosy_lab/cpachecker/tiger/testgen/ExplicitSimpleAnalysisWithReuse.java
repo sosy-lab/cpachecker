@@ -111,7 +111,7 @@ public class ExplicitSimpleAnalysisWithReuse implements AnalysisWithReuse {
     shutdownNotifier = pShutdownNotifier;
 
     try {
-      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction);
+      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction, false);
       mLogManager = new BasicLogManager(mConfiguration);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);

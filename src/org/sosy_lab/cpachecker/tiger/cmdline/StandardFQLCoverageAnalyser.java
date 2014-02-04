@@ -190,7 +190,7 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     CFA lCFA;
 
     try {
-      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction);
+      mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction, false);
       mLogManager = new BasicLogManager(mConfiguration);
 
       lCFA = CPAtiger.getCFA(pSourceFileName, mConfiguration, mLogManager);

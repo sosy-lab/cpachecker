@@ -73,7 +73,7 @@ public class PathPatternTranslatorTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -112,7 +112,7 @@ public class PathPatternTranslatorTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -151,7 +151,7 @@ public class PathPatternTranslatorTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -190,7 +190,7 @@ public class PathPatternTranslatorTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 

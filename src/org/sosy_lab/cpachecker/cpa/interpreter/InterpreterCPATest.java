@@ -100,7 +100,7 @@ public class InterpreterCPATest {
     CFA lCFA;
 
     try {
-      lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+      lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
       lLogManager = new BasicLogManager(lConfiguration);
 
       lCFA = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager);
@@ -189,7 +189,7 @@ public class InterpreterCPATest {
     CFA lCFA;
 
     try {
-      lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+      lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
       lLogManager = new BasicLogManager(lConfiguration);
 
       lCFA = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager);
@@ -278,7 +278,7 @@ public class InterpreterCPATest {
     CFA lCFA;
 
     try {
-      lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+      lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
       lLogManager = new BasicLogManager(lConfiguration);
 
       lCFA = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager);
@@ -366,7 +366,7 @@ public class InterpreterCPATest {
     CFA lCFA;
 
     try {
-      lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+      lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
       lLogManager = new BasicLogManager(lConfiguration);
 
       lCFA = CPAtiger.getCFA(lSourceFileName, lConfiguration, lLogManager);

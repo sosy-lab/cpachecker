@@ -58,7 +58,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -75,7 +75,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -98,7 +98,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -121,7 +121,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -146,7 +146,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -174,7 +174,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -195,7 +195,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -216,7 +216,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -241,7 +241,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -264,7 +264,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -306,7 +306,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -334,7 +334,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -367,7 +367,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -395,7 +395,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -428,7 +428,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -461,7 +461,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -494,7 +494,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -529,7 +529,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -546,7 +546,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -574,7 +574,7 @@ public class TargetGraphTest {
 
     String lEntryFunction = "foo";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 

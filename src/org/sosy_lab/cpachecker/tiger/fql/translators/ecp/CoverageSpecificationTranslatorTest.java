@@ -74,7 +74,7 @@ public class CoverageSpecificationTranslatorTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -125,7 +125,7 @@ public class CoverageSpecificationTranslatorTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -176,7 +176,7 @@ public class CoverageSpecificationTranslatorTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 
@@ -227,7 +227,7 @@ public class CoverageSpecificationTranslatorTest {
 
     String lEntryFunction = "main";
 
-    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction);
+    Configuration lConfiguration = CPAtiger.createConfiguration(lSourceFileName, lEntryFunction, true);
 
     LogManager lLogManager = new BasicLogManager(lConfiguration);
 

@@ -138,7 +138,12 @@ public class CPATigerMain {
         lStopOnImpreciseExecution = true;
       }
 
-      cpatiger = new CPAtiger(options.programs, entryFunction, shutdownNotifier, lPrintStream, aType, timelimit, lStopOnImpreciseExecution);
+      boolean lPrintCFAs = false;
+      if (!Strings.isNullOrEmpty(cpaConfig.getProperty("cpatiger.printcfas"))) {
+        lPrintCFAs = true;
+      }
+
+      cpatiger = new CPAtiger(options.programs, entryFunction, shutdownNotifier, lPrintStream, aType, timelimit, lStopOnImpreciseExecution, lPrintCFAs);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
