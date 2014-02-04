@@ -26,19 +26,4 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 public abstract class AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
-  private Integer lazyHashCode = null;
-
-  protected abstract int hashCodeInternal();
-
-  @Override
-  public abstract boolean equals(Object pOther);
-
-  @Override
-  public int hashCode() {
-    if (this.lazyHashCode == null) {
-      this.lazyHashCode = hashCodeInternal();
-    }
-    return this.lazyHashCode;
-  }
-
 }

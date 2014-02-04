@@ -85,7 +85,7 @@ public class Modulo<ConstantType> extends AbstractFormula<ConstantType> implemen
   }
 
   @Override
-  protected int hashCodeInternal() {
+  public int hashCode() {
     return getNumerator().hashCode() % getDenominator().hashCode();
   }
 

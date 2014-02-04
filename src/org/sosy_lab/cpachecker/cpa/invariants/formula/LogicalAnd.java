@@ -84,7 +84,7 @@ public class LogicalAnd<ConstantType> extends AbstractFormula<ConstantType> impl
   }
 
   @Override
-  protected int hashCodeInternal() {
+  public int hashCode() {
     return getOperand1().hashCode() & getOperand2().hashCode();
   }
 

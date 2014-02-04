@@ -101,7 +101,7 @@ public class LogicalNot<ConstantType> extends AbstractFormula<ConstantType> impl
   }
 
   @Override
-  protected int hashCodeInternal() {
+  public int hashCode() {
     return -getNegated().hashCode();
   }
 

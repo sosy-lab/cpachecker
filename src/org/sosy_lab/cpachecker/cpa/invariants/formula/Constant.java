@@ -73,7 +73,7 @@ public class Constant<T> extends AbstractFormula<T> implements InvariantsFormula
   }
 
   @Override
-  protected int hashCodeInternal() {
+  public int hashCode() {
     return getValue().hashCode();
   }
 

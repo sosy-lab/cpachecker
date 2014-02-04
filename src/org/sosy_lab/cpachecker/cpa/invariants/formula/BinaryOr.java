@@ -83,7 +83,7 @@ public class BinaryOr<ConstantType> extends AbstractFormula<ConstantType> implem
   }
 
   @Override
-  protected int hashCodeInternal() {
+  public int hashCode() {
     return getOperand1().hashCode() & getOperand2().hashCode();
   }
 
