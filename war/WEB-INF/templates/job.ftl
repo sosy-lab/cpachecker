@@ -9,7 +9,7 @@
       <div class="panel-title">${msg.status}</div>
     </div>
     <div class="panel-body">
-      <table class="table-condensed">
+      <table class="table table-condensed">
         <tr>
           <td>${msg.status}</td>
           <td>
@@ -106,11 +106,16 @@
         <tr>
           <td>${msg.options}</td>
           <td>
-          	<ul class="list-unstyled">
-          	<#list job.options?keys as option>
-          		<li>${option} = ${job.options[option]}</li>
-          	</#list>
-          	</ul>
+            <table class="table-condensed">
+              <tbody>
+                <#list job.options?keys as option>
+                <tr>
+                  <td>${option}</td>
+                  <td>${job.options[option]}</td>
+                </tr>
+                </#list>
+              </tbody>
+            </table>
           </td>
         </tr>
         </#if>
@@ -118,29 +123,50 @@
         <tr>
           <td>${msg.statistic}</td>
           <td>
-          	<ul class="list-unstyled">
+            <table class="table-condensed">
           	<#if job.statistic.startTime?has_content>
-          		<li>${msg.startTime}: ${(job.statistic.startTime/1000)?number_to_datetime}</li>
+              <tr>
+          		  <td>${msg.startTime}</td>
+                <td>${(job.statistic.startTime/1000)?number_to_datetime}</td>
+              </tr>
           	</#if>
           	<#if job.statistic.endTime?has_content>
-          		<li>${msg.endTime}: ${(job.statistic.endTime/1000)?number_to_datetime}</li>
+              <tr>
+          		  <td>${msg.endTime}</td>
+                <td>${(job.statistic.endTime/1000)?number_to_datetime}</td>
+              </tr>
           	</#if>
           	<#if job.statistic.latency?has_content>
-          		<li>${msg.latency}: ${job.statistic.latency/1000000} ${msg.seconds}</li>
+              <tr>
+          		  <td>${msg.latency}</td>
+                <td>${job.statistic.latency/1000000} ${msg.seconds}</td>
+              </tr>
           	</#if>
           	<#if job.statistic.pendingTime?has_content>
-          		<li>${msg.pendingTime}: ${job.statistic.pendingTime/1000000} ${msg.seconds}</li>
+              <tr>
+          		  <td>${msg.pendingTime}</td>
+                <td>${job.statistic.pendingTime/1000000} ${msg.seconds}</td>
+              </tr>
           	</#if>
           	<#if job.statistic.mcyclesInSeconds?has_content>
-          		<li>${msg.machineCyclesInSeconds}: ${job.statistic.mcyclesInSeconds} ${msg.seconds}</li>
+              <tr>
+          		  <td>${msg.machineCyclesInSeconds}</td>
+                <td>${job.statistic.mcyclesInSeconds} ${msg.seconds}</td>
+              </tr>
           	</#if>
           	<#if (job.statistic.cost > 0)>
-          		<li>${msg.estimatedCosts}: ${job.statistic.cost?string("##.##")} USD</li>
+              <tr>
+          		  <td>${msg.estimatedCosts}</td>
+                <td>${job.statistic.cost?string("##.##")} USD</td>
+              </tr>
           	</#if>
           	<#if job.statistic.host?has_content>
-          		<li>${msg.host}: ${job.statistic.host}</li>
+              <tr>
+          		  <td>${msg.host}</td>
+                <td>${job.statistic.host}</td>
+              </tr>
           	</#if>
-          	</ul>
+          	</table>
           </td>
         </tr>
         </#if>
@@ -160,10 +186,9 @@
     </div>
     <div class="panel-body">
       <ul>
-        <#list files as file>
-          <#assign name = file.path?substring(file.path?last_index_of("/")+1)>
+        <#list files?sort_by("name") as file>
           <li>
-            <a href="/jobs/${job.key}/files/${file.key}">${name}</a>
+            <a href="/jobs/${job.key}/files/${file.key}">${file.name}</a>
           </li>
         </#list>
       </ul>

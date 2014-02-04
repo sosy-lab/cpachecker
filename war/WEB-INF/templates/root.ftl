@@ -32,7 +32,12 @@
               <option value="">${msg.noSpec}</option>
               <option value="" disabled>-------------------</option>
               <#list specifications?sort as specification>
-                <option value="${specification}">${specification}</option>
+                <#if specification == "default.spc">
+                  <#assign selected = "selected">
+                <#else>
+                  <#assign selected = "">
+                </#if>
+                <option value="${specification}" ${selected}>${specification}</option>
               </#list>
             </select>
           </div>
@@ -66,6 +71,7 @@
             <label for="programText" class="control-label">${msg.programText}</label>
             <textarea name="programText" id="programText" rows="3" class="form-control"></textarea>
           </div>
+          <span class="help-block">${msg.submissionDisclaimer}</span>
           <button type="submit" class="btn btn-primary">${msg.submitJob}</button>
         </div>
       </div>
@@ -99,10 +105,10 @@
               <option value="FINEST">FINEST</option>
               <option value="FINER">FINER</option>
               <option value="FINE">FINE</option>
-              <option value="INFO">INFO</option>
+              <option value="INFO" selected>INFO</option>
               <option value="WARNING">WARNING</option>
               <option value="SEVERE">SEVERE</option>
-              <option value="OFF" selected>OFF</option>
+              <option value="OFF">OFF</option>
             </select>
           </div>
           <div class="form-group">
@@ -134,44 +140,16 @@
 
 <div class="row">
   
-  <div class="col-md-6">
+  <div class="col-md-12">
     <div class="panel panel-default">
         <div class="panel-heading">
-          <div class="panel-title">${msg.unsupportedConfigurations}</div>
+          <div class="panel-title">${msg.unsupportedFeatures}</div>
         </div>
         <div class="panel-body">
-          <p>${msg.unsupportedConfigurationsDescription}</p>
-          <ul class="list-unstyled">
-          <#list unsupportedConfigs as config>
-            <li>${config}</li>
-          </#list>
+          <p>${msg.unsupportedFeaturesDescription}</p>
+          <ul>
+            ${msg.unsupportedFeaturesListItems}
           </ul>
-        </div>
-      </div>
-  </div>
-  <div class="col-md-6">
-    <div class="panel panel-default">
-        <div class="panel-heading">
-          <div class="panel-title">${msg.presetOptions}</div>
-        </div>
-        <div class="panel-body">
-          <p>${msg.presetOptionsDescription}</p>
-          <table class="table table-condensed">
-            <thead>
-              <tr>
-                <th>${msg.name}</th>
-                <th>${msg.value}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <#list defaultOptions?keys?sort as option>
-                <tr>
-                  <td>${option}</td>
-                  <td>${defaultOptions[option]}</td>
-                </tr>
-              </#list>
-            </tbody>
-          </table>
         </div>
       </div>
   </div>
