@@ -1,0 +1,7 @@
+../../../benchmarks/product-lines/elevator*_false-unreach-label.*.c
+../../../benchmarks/product-lines/elevator*_true-unreach-label.*.c
+../../../benchmarks/product-lines/email*_false-unreach-label.*.c
+../../../benchmarks/product-lines/email*_true-unreach-label.*.c
+../../../benchmarks/product-lines/minepump*_false-unreach-label.*.c
+../../../benchmarks/product-lines/minepump*_true-unreach-label.*.c
+
