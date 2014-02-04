@@ -4,7 +4,7 @@
 
 <div class="row">
 
-  <form action="/jobs" method="POST" enctype="multipart/form-data">
+  <form action="/tasks" method="POST" enctype="multipart/form-data">
     <div class="col-md-6">
       <div class="panel panel-default">
         <div class="panel-heading">

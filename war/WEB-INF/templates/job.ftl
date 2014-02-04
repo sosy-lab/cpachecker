@@ -15,10 +15,10 @@
           <td>
             <#if job.status == "PENDING">
             <span class="label label-default">${job.status}</span>
-            <a href="/jobs/${job.key}">${msg.statusRefresh}</a>
+            <a href="/tasks/${job.key}">${msg.statusRefresh}</a>
             <#elseif job.status == "RUNNING">
             <span class="label label-info">${job.status}</span>
-            <a href="/jobs/${job.key}">${msg.statusRefresh}</a>
+            <a href="/tasks/${job.key}">${msg.statusRefresh}</a>
             <#elseif job.status == "TIMEOUT">
             <span class="label label-danger">${job.status}</span>
             <#elseif job.status == "ERROR">
@@ -172,7 +172,7 @@
         </#if>
       </table>
       <hr />
-      <form action="/jobs/${job.key}?method=delete" method="post" style="display:inline">
+      <form action="/tasks/${job.key}?method=delete" method="post" style="display:inline">
       	<button type="submit" class="btn btn-sm btn-danger"><span class="glyphicon glyphicon-trash"></span> ${msg.delete}</button>
       </form>
     </div>
@@ -188,7 +188,7 @@
       <ul>
         <#list files?sort_by("name") as file>
           <li>
-            <a href="/jobs/${job.key}/files/${file.key}">${file.name}</a>
+            <a href="/tasks/${job.key}/files/${file.key}">${file.name}</a>
           </li>
         </#list>
       </ul>

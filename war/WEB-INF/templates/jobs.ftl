@@ -48,15 +48,15 @@
 
           <tr>
             <td>
-              <a href="/jobs/${job.key}" class="hover-decorate">${job.creationDate?string("yyyy-MM-dd @ HH:mm:ss")}</a>
+              <a href="/tasks/${job.key}" class="hover-decorate">${job.creationDate?string("yyyy-MM-dd @ HH:mm:ss")}</a>
             </td>
             <td>
-              <a href="/jobs/${job.key}">
+              <a href="/tasks/${job.key}">
                 <span class="label label-${statusLabel}">${job.status}</span>
               </a>
             </td>
             <td>
-              <a href="/jobs/${job.key}">
+              <a href="/tasks/${job.key}">
               <#if job.resultOutcome??>
                 <span class="label label-${outcomeLabel}">${job.resultOutcome}</span>
               <#else>
@@ -65,7 +65,7 @@
               </a>
             </td>
             <td>
-              <form action="/jobs/${job.key}?method=delete" method="post" style="display:inline">
+              <form action="/tasks/${job.key}?method=delete" method="post" style="display:inline">
             	 <button type="submit" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-trash"></span> ${msg.delete}</button>
               </form>
             </td>

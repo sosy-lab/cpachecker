@@ -176,7 +176,7 @@ class AppEngineSubmitter(threading.Thread):
             with open(run['sourcefile'], 'r') as f:
                 args['programText'] = f.read()
             
-            uri = config.appengineURI+'/jobs'
+            uri = config.appengineURI+'/tasks'
             data = json.dumps(args)
             headers = {'Content-type':'application/json', 'Accept':'application/json'}
             try:
@@ -224,7 +224,7 @@ class AppEnginePoller(threading.Thread):
                 else:
                     try:
                         logging.debug('Polling job: '+jobID)
-                        uri = config.appengineURI+'/jobs/'+jobID
+                        uri = config.appengineURI+'/tasks/'+jobID
                         headers = {'Accept':'application/json'}
                         request = urllib2.Request(uri, headers=headers)
                         response = json.loads(urllib2.urlopen(request).read())
@@ -267,7 +267,7 @@ class AppEnginePoller(threading.Thread):
         headers = {'Accept':'text/plain'}
 
         try:
-            uri = config.appengineURI+'/jobs/'+jobID+'/files/' + APPENGINE_SETTINGS['statisticsFileName']
+            uri = config.appengineURI+'/tasks/'+jobID+'/files/' + APPENGINE_SETTINGS['statisticsFileName']
             request = urllib2.Request(uri, headers=headers)
             response = urllib2.urlopen(request).read()
             filewriter.writeFile(response, logFile)
@@ -283,7 +283,7 @@ class AppEnginePoller(threading.Thread):
         status = job['status']
         if status in ['ERROR','TIMEOUT']:
             try:
-                uri = config.appengineURI+'/jobs/'+jobID+'/files/' + APPENGINE_SETTINGS['errorFileName']
+                uri = config.appengineURI+'/tasks/'+jobID+'/files/' + APPENGINE_SETTINGS['errorFileName']
                 request = urllib2.Request(uri, headers=headers)
                 response = urllib2.urlopen(request).read()
                 response = 'Job ID: {0}\n{1}'.format(jobID, response)
@@ -294,7 +294,7 @@ class AppEnginePoller(threading.Thread):
         if config.appengineDeleteWhenDone:
             try:
                 headers = {'Accept':'application/json'}
-                uri = config.appengineURI+'/jobs/'+jobID
+                uri = config.appengineURI+'/tasks/'+jobID
                 request = urllib2.Request(uri, headers=headers)
                 request.get_method = lambda: 'DELETE'
                 urllib2.urlopen(request).read()

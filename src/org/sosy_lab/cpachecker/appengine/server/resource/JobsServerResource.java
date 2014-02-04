@@ -44,9 +44,11 @@ import org.restlet.ext.servlet.ServletUtils;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
 import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner;
-import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.Instance;
+import org.sosy_lab.cpachecker.appengine.common.GAETaskQueueJobRunner.InstanceType;
 import org.sosy_lab.cpachecker.appengine.common.JobRunner;
 import org.sosy_lab.cpachecker.appengine.dao.JobDAO;
 import org.sosy_lab.cpachecker.appengine.dao.JobFileDAO;
@@ -151,7 +153,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
 
     if (errors.size() == 0) {
       getResponse().setStatus(Status.SUCCESS_CREATED);
-      redirectSeeOther("/jobs/" + createdJob.getKey());
+      redirectSeeOther("/tasks/" + createdJob.getKey());
       return getResponseEntity();
     }
 
@@ -164,7 +166,6 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
         .addData("defaultOptions", DefaultOptions.getImmutableOptions())
         .addData("specifications", DefaultOptions.getSpecifications())
         .addData("configurations", DefaultOptions.getConfigurations())
-        .addData("unsupportedConfigs", DefaultOptions.getUnsupportedConfigurations())
         .templateName("root.ftl")
         .build();
   }
@@ -208,7 +209,7 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
         return new StringRepresentation(mapper.writeValueAsString(errors), MediaType.APPLICATION_JSON);
       } else {
         getResponse().setStatus(Status.SUCCESS_CREATED);
-        getResponse().setLocationRef("/jobs/" + createdJob.getKey());
+        getResponse().setLocationRef("/tasks/" + createdJob.getKey());
         return new StringRepresentation(mapper.writeValueAsString(createdJob), MediaType.APPLICATION_JSON);
       }
     } catch (JsonProcessingException e) {
@@ -284,29 +285,37 @@ public class JobsServerResource extends WadlServerResource implements JobsResour
       }
     }
 
-    Instance instanceType = Instance.FRONTEND;
     if (createdJob.getOptions().containsKey("gae.instanceType")) {
       try {
-        instanceType = Instance.valueOf(createdJob.getOptions().get("gae.instanceType"));
+        InstanceType.valueOf(createdJob.getOptions().get("gae.instanceType"));
       } catch (IllegalArgumentException e) {
         errors.add("error.invalidInstanceType");
       }
     }
-    createdJob.setInstanceType(instanceType);
 
     if (errors.size() == 0) {
       try {
         JobFileDAO.save(program);
         createdJob.addFile(program);
         JobDAO.save(createdJob);
-        JobRunner jobRunner = new GAETaskQueueJobRunner(instanceType);
-        createdJob = jobRunner.run(createdJob);
       } catch (IOException e) {
         if (e.getCause() instanceof RequestTooLargeException) {
           errors.add("error.programTooLarge");
         } else {
           errors.add("error.couldNotUpload");
         }
+      }
+    }
+
+    if (errors.size() == 0) {
+      try {
+        Configuration config = Configuration.builder()
+            .setOptions(createdJob.getOptions())
+            .build();
+        JobRunner jobRunner = new GAETaskQueueJobRunner(config);
+        jobRunner.run(createdJob);
+      } catch (InvalidConfigurationException e) {
+        errors.add("error.invalidConfiguration");
       }
     }
 

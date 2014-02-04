@@ -91,7 +91,7 @@ Response
 
 
 
-# GET /jobs
+# GET /tasks
 ===========
 Returns a list of all jobs that are stored in the datastore.
 
@@ -108,7 +108,7 @@ Response
 
 
 
-# POST /jobs
+# POST /tasks
 ============
 Creates a new job.
 
@@ -160,12 +160,12 @@ Errors
 ]
 
 
-# DELETE /jobs
+# DELETE /tasks
 ==============
 Deletes all jobs and their associated files and statistic.
 
 
-# GET /jobs/{jobKey}
+# GET /tasks/{jobKey}
 ====================
 Returns the job with the key {jobKey}.
 
@@ -215,12 +215,12 @@ Response
 
 
 
-# DELETE /jobs/{jobKey}
+# DELETE /tasks/{jobKey}
 =======================
 Deletes the job with the key {jobKey} and all associated files and statistic.
 
 
-# GET /jobs/{jobKey}/statistics
+# GET /tasks/{jobKey}/statistics
 ==========================
 Returns statistics about the job with the key {jobKey}.
 
@@ -250,7 +250,7 @@ Response
 
 
 
-# GET /jobs/{jobKey}/files/{fileKey}
+# GET /tasks/{jobKey}/files/{fileKey}
 ====================================
 Returns the file with the key {fileKey} belonging to the job with the key {jobKey}.
 
@@ -268,7 +268,7 @@ Response
 
 
 
-# GET /jobs/{jobKey}/files/{fileName}
+# GET /tasks/{jobKey}/files/{fileName}
 ======================================
 Returns the content of the file with the name {fileName} belonging to the job
 with the key {jobKey}.

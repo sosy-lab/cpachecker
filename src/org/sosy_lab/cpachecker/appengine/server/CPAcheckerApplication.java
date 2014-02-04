@@ -60,10 +60,10 @@ public class CPAcheckerApplication extends WadlApplication {
     Router router = new Router(getContext());
 
     router.attach("/", RootServerResource.class);
-    router.attach("/jobs", JobsServerResource.class);
-    router.attach("/jobs/{jobKey}", JobServerResource.class);
-    router.attach("/jobs/{jobKey}/statistics", JobStatisticServerResource.class);
-    router.attach("/jobs/{jobKey}/files/{fileKey}", JobFileServerResource.class);
+    router.attach("/tasks", JobsServerResource.class);
+    router.attach("/tasks/{jobKey}", JobServerResource.class);
+    router.attach("/tasks/{jobKey}/statistics", JobStatisticServerResource.class);
+    router.attach("/tasks/{jobKey}/files/{fileKey}", JobFileServerResource.class);
     router.attach("/workers/run-job", JobRunnerServerResource.class);
     router.attach("/settings", SettingsServerResource.class);
 

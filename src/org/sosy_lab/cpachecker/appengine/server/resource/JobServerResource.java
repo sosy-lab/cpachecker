@@ -81,7 +81,7 @@ public class JobServerResource extends WadlServerResource implements JobResource
 
     // only send redirect if it is a browser call
     if (variant == null || !variant.getMediaType().equals(MediaType.APPLICATION_JSON)) {
-      getResponse().redirectSeeOther("/jobs");
+      getResponse().redirectSeeOther("/tasks");
     }
     return getResponseEntity();
   }

@@ -219,10 +219,10 @@ public class JobDAO {
           if (job.getStatus() == Status.PENDING || job.getStatus() == Status.RUNNING) {
             JobDAO.reset(job);
             job.setStatus(Status.ERROR);
-            job.setStatusMessage("The job's request has finished but the job's status did not reflect this.");
+            job.setStatusMessage("The task's request has finished but the task's status did not reflect this.");
           }
 
-          if (record.getStatus() == 500 && job.getStatus() != Status.TIMEOUT) {
+          if (record.getStatus() == 500 && job.getStatus() != Status.TIMEOUT && job.getStatus() != Status.DONE) {
             if (job.getRetries() < JobRunnerResource.MAX_RETRIES) {
               JobDAO.reset(job);
               job.setStatus(Status.PENDING);
@@ -230,7 +230,7 @@ public class JobDAO {
             } else {
               JobDAO.reset(job);
               job.setStatus(Status.ERROR);
-              job.setStatusMessage("The job's request has finished, the job's status did not reflect this and no retries are left");
+              job.setStatusMessage("The task's request has finished, the task's status did not reflect this and no retries are left");
 
               JobFile errorFile = JobFileDAO.loadByName(JobRunnerResource.ERROR_FILE_NAME, job);
               if (errorFile == null) {

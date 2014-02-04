@@ -42,7 +42,6 @@ public class RootServerResource extends WadlServerResource implements RootResour
         .addData("defaultOptions", DefaultOptions.getImmutableOptions())
         .addData("specifications", DefaultOptions.getSpecifications())
         .addData("configurations", DefaultOptions.getConfigurations())
-        .addData("unsupportedConfigs", DefaultOptions.getUnsupportedConfigurations())
         .templateName("root.ftl")
         .build();
   }
