@@ -1,0 +1,7 @@
+set terminal pdf
+set xlabel(labX)
+set ylabel(labY)
+set xrange [0:100]
+set yrange [0:100]
+set output 'file.pdf'
+plot file using 1:2 notitle, x notitle

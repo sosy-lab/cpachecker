@@ -23,8 +23,10 @@ step1.
 
        ./getProcessedData.py  fileX fileY col new_data_file 
 
+ex. ./getProcessedData.py results.all-bb-noreuse.csv results.all-bb.csv 7 proccesed-pred-bb
+
 where column = (7 for predicate, 18 for expsim, 29 for expred, 40 for exppred)
 
 
 step2.
-gnuplot -e "file='time-pred-bb';labX='Naive input generation (%)';labY='Input generation with reuse (%)'" processed_plot.plg 
+gnuplot -e "file='proccesed-pred-bb';labX='Naive input generation (%)';labY='Input generation with reuse (%)'" processed_plot.plg 

@@ -1,43 +1,58 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpatiger-to" timelimit="915" hardtimelimit="1015" memlimit="6000" cpuCores="2">
+<benchmark tool="cpatiger-to" timelimit="930" hardtimelimit="1030" memlimit="6000" cpuCores="2">
   <option name="-heap">4800M</option>
 
 
-  <sourcefiles name="ntdrivers-simplified">
+  <sourcefiles name="ntdrivers-simplified-bb-noreuse-to">
     <includesfile>../../programs/fql/tiger-sets/cf/ntdrivers-simplified.set</includesfile>
   </sourcefiles>
 
   <rundefinition name="predicate-bb">
+	<option name="-noreuse"/>
+	<option name="-noout"/>
+	<option name="-disable-java-assertions"/>
+	<option name="-stats"/>
 	<option name="-bb"/>
 	<option name="-pred"/>
 	<option name="-pedantic"/>
 	<option name="-forceto">900</option> <!-- interrupts the process after the time, before it gets killed -->
-	<option name="-noreuse"/>
   </rundefinition>
 
   <rundefinition name="explicit-sim-bb">
+	<option name="-noreuse"/>
+	<option name="-noout"/>
+	<option name="-disable-java-assertions"/>
+	<option name="-stats"/>
+	<option name="-rtimelimit">30</option>
         <option name="-bb"/>
         <option name="-expsim"/>
         <option name="-pedantic"/>
 	<option name="-forceto">900</option> <!-- interrupts the process after the time, before it gets killed -->
-	<option name="-noreuse"/>
   </rundefinition>
 
   <rundefinition name="explicit-ref-bb">
+	<option name="-noreuse"/>
+	<option name="-noout"/>
+	<option name="-disable-java-assertions"/>
+	<option name="-stats"/>
+	<option name="-rtimelimit">30</option>
         <option name="-bb"/>
         <option name="-expref"/>
         <option name="-pedantic"/>
-	<option name="-forceto">900</option> <!-- interrupts the process after the time, before it gets killed -->
-	<option name="-noreuse"/>
+<option name="-forceto">900</option> <!-- interrupts the process after the time, before it gets killed -->
   </rundefinition>
 
   <rundefinition name="explicit-pred-bb">
+	<option name="-noreuse"/>
+	<option name="-noout"/>
+	<option name="-disable-java-assertions"/>
+	<option name="-stats"/>
+	<option name="-rtimelimit">30</option>
         <option name="-bb"/>
         <option name="-exppred"/>
         <option name="-pedantic"/>
 	<option name="-forceto">900</option> <!-- interrupts the process after the time, before it gets killed -->
-	<option name="-noreuse"/>
   </rundefinition>
 
   <columns>

@@ -3,11 +3,12 @@
 <benchmark tool="cpatiger-to" timelimit="930" hardtimelimit="1030" memlimit="6000" cpuCores="2">
   <option name="-heap">4800M</option>
 
-  <sourcefiles name="eca">
-    <includesfile>../../programs/fql/tiger-sets/cf/eca.set</includesfile>
+  <sourcefiles name="locks-noreuse">
+    <includesfile>../../programs/fql/tiger-sets/cf/locks.set</includesfile>
   </sourcefiles>
 
   <rundefinition name="predicate-bb">
+	<option name="-noreuse"/>
 	<option name="-noout"/>
 	<option name="-disable-java-assertions"/>
 	<option name="-stats"/>
@@ -18,10 +19,10 @@
   </rundefinition>
 
   <rundefinition name="explicit-sim-bb">
+	<option name="-noreuse"/>
 	<option name="-noout"/>
 	<option name="-disable-java-assertions"/>
 	<option name="-stats"/>
-	<option name="-rtimelimit">30</option>
         <option name="-bb"/>
         <option name="-expsim"/>
         <option name="-pedantic"/>
@@ -29,10 +30,10 @@
   </rundefinition>
 
   <rundefinition name="explicit-ref-bb">
+	<option name="-noreuse"/>
 	<option name="-noout"/>
 	<option name="-disable-java-assertions"/>
 	<option name="-stats"/>
-	<option name="-rtimelimit">30</option>
         <option name="-bb"/>
         <option name="-expref"/>
         <option name="-pedantic"/>
@@ -40,10 +41,10 @@
   </rundefinition>
 
   <rundefinition name="explicit-pred-bb">
+	<option name="-noreuse"/>
 	<option name="-noout"/>
 	<option name="-disable-java-assertions"/>
 	<option name="-stats"/>
-	<option name="-rtimelimit">30</option>
         <option name="-bb"/>
         <option name="-exppred"/>
         <option name="-pedantic"/>
@@ -57,5 +58,6 @@
     <column title="infeasible">#Infeasible</column>
     <column title="imprecise">#Imprecise</column>
     <column title="bugrevealing">#BugRevealing</column>
+#Goals: 
   </columns>
 </benchmark>
