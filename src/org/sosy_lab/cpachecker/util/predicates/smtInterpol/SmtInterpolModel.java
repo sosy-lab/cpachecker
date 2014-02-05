@@ -29,6 +29,7 @@ import java.util.Map;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.Model.Constant;
 import org.sosy_lab.cpachecker.core.Model.Function;
 import org.sosy_lab.cpachecker.core.Model.TermType;
 import org.sosy_lab.cpachecker.core.Model.Variable;
@@ -59,7 +60,7 @@ class SmtInterpolModel {
     }
   }
 
-  private static Variable toVariable(Term t) {
+  private static AssignableTerm toVariable(Term t) {
     if (!SmtInterpolUtil.isVariable(t)) {
       throw new IllegalArgumentException("Given term is no variable! (" + t.toString() + ")");
     }
@@ -69,7 +70,11 @@ class SmtInterpolModel {
     TermType lType = toSmtInterpolType(appTerm.getSort());
 
     Pair<String, Integer> lSplitName = FormulaManagerView.parseName(lName);
-    return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
+    if (lSplitName.getSecond() != null) {
+      return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
+    } else {
+      return new Constant(lSplitName.getFirst(), lType);
+    }
   }
 
 
