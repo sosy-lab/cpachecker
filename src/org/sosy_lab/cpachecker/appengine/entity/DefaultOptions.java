@@ -36,6 +36,8 @@ import java.util.Properties;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 
+import com.google.common.base.Charsets;
+
 /**
  * Represents the options that may be set by a client.
  * Setting options not defined by this class might cause the application
@@ -50,7 +52,7 @@ import org.sosy_lab.common.io.Paths;
 public class DefaultOptions {
 
   private static Map<String, String> allowedOptions = new HashMap<>();
-  private static List<String> unsupportedConfigurations = new ArrayList<>();
+  private static List<String> unsupportedConfigurations;
   private Map<String, String> usedOptions = new HashMap<>();
   private String originalWalltimeLimit;
 
@@ -62,18 +64,6 @@ public class DefaultOptions {
     allowedOptions.put("log.level", "OFF");
     allowedOptions.put("limits.time.wall", "540s"); // 9 minutes
     allowedOptions.put("gae.instanceType", "FRONTEND");
-
-    unsupportedConfigurations.add("chc.properties");
-    unsupportedConfigurations.add("lddAnalysis.properties");
-    unsupportedConfigurations.add("octagonAnalysis.properties");
-    unsupportedConfigurations.add("separationlogic.properties");
-    unsupportedConfigurations.add("explicitAnalysis-java-with-RTT.properties");
-    unsupportedConfigurations.add("explicitAnalysis-java.properties");
-    unsupportedConfigurations.add("predicateAnalysis-bitprecise.properties");
-    unsupportedConfigurations.add("predicateAnalysis-PredAbsRefiner-ABEl-bitprecise.properties");
-    unsupportedConfigurations.add("sv-comp14--02-challenge.properties");
-    unsupportedConfigurations.add("sv-comp14--05-predicateAnalysis-bitprecise.properties");
-    unsupportedConfigurations.add("sv-comp14--cex-check-predicateAnalysis-bitprecise.properties");
 
     /*
      * CPAs that do not work:
@@ -180,7 +170,12 @@ public class DefaultOptions {
    *
    * @return A list of unsupported configuration files.
    */
-  public static List<String> getUnsupportedConfigurations() {
+  public static List<String> getUnsupportedConfigurations() throws IOException {
+    if (unsupportedConfigurations == null) {
+      unsupportedConfigurations = Paths.get("WEB-INF", "unsupported-configurations.txt")
+          .asCharSource(Charsets.UTF_8).readLines();
+    }
+
     return unsupportedConfigurations;
   }
 
@@ -249,7 +244,7 @@ public class DefaultOptions {
    *
    * @return The available configuration files.
    */
-  public static List<String> getConfigurations() {
+  public static List<String> getConfigurations() throws IOException {
     Path configurationDir = Paths.get("WEB-INF/configurations");
     File[] files = configurationDir.toFile().listFiles(new FilenameFilter() {
 
@@ -264,6 +259,8 @@ public class DefaultOptions {
     for (File file : files) {
       configurations.add(file.getName());
     }
+
+    configurations.removeAll(getUnsupportedConfigurations());
     return configurations;
   }
 }
