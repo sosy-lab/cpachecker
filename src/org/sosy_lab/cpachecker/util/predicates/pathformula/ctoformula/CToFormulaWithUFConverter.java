@@ -40,7 +40,6 @@ import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -74,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -117,11 +117,12 @@ public class CToFormulaWithUFConverter extends CtoFormulaConverter {
 
   public CToFormulaWithUFConverter(final FormulaEncodingWithUFOptions pOptions,
                                    final FormulaManagerView formulaManagerView,
-                                   final @Nonnull CFA cfa,
+                                   final MachineModel pMachineModel,
+                                   final Optional<VariableClassification> pVariableClassification,
                                    final LogManager logger)
   throws InvalidConfigurationException {
-    super(pOptions, formulaManagerView, cfa.getMachineModel(), logger);
-    variableClassification = cfa.getVarClassification();
+    super(pOptions, formulaManagerView, pMachineModel, logger);
+    variableClassification = pVariableClassification;
     options = pOptions;
   }
 

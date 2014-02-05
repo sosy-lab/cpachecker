@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.util.ArrayList;
@@ -33,8 +32,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -60,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
@@ -82,6 +80,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.withUF.pointerTarget.
 
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -125,17 +124,18 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, MachineModel pMachineModel)
           throws InvalidConfigurationException {
-    this(pFmgr, config, pLogger, null, pMachineModel);
+    this(pFmgr, config, pLogger, pMachineModel, Optional.<VariableClassification>absent());
   }
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, CFA pCFA)
+      Configuration config, LogManager pLogger, CFA pCfa)
           throws InvalidConfigurationException {
-    this(pFmgr, config, pLogger, pCFA, pCFA.getMachineModel());
+    this(pFmgr, config, pLogger, pCfa.getMachineModel(), pCfa.getVarClassification());
   }
 
-  private PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, @Nullable CFA pCfa, MachineModel pMachineModel)
+  public PathFormulaManagerImpl(FormulaManagerView pFmgr,
+      Configuration config, LogManager pLogger, MachineModel pMachineModel,
+      Optional<VariableClassification> pVariableClassification)
           throws InvalidConfigurationException {
     config.inject(this, PathFormulaManagerImpl.class);
 
@@ -149,7 +149,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     ffmgr = fmgr.getFunctionFormulaManager();
     logger = pLogger;
 
-    converter = createConverter(pFmgr, config, pLogger, pMachineModel, pCfa);
+    converter = createConverter(pFmgr, config, pLogger, pMachineModel, pVariableClassification);
 
     if (!pointerAnalysisWithUFs) {
       NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
@@ -159,12 +159,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   private CtoFormulaConverter createConverter(FormulaManagerView pFmgr, Configuration config, LogManager pLogger,
-      MachineModel pMachineModel, @Nullable CFA pCFA) throws InvalidConfigurationException {
+      MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification)
+          throws InvalidConfigurationException {
     if (handlePointerAliasing) {
       if (pointerAnalysisWithUFs) {
-        checkNotNull(pCFA, "Pointer analysis with UF requires CFA for VariableClassification");
         final FormulaEncodingWithUFOptions options = new FormulaEncodingWithUFOptions(config);
-        return new CToFormulaWithUFConverter(options, pFmgr, pCFA, pLogger);
+        return new CToFormulaWithUFConverter(options, pFmgr, pMachineModel, pVariableClassification, pLogger);
       } else {
         final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
         return new PointerAliasHandling(options, config, pFmgr, pMachineModel, pLogger);
