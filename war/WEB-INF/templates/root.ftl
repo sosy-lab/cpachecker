@@ -32,12 +32,13 @@
               <option value="">${msg.noSpec}</option>
               <option value="" disabled>-------------------</option>
               <#list specifications?sort as specification>
+              	<#assign name = specification?substring(0, specification?last_index_of("."))>
                 <#if specification == "default.spc">
                   <#assign selected = "selected">
                 <#else>
                   <#assign selected = "">
                 </#if>
-                <option value="${specification}" ${selected}>${specification}</option>
+                <option value="${specification}" ${selected}>${name}</option>
               </#list>
             </select>
           </div>
@@ -51,7 +52,8 @@
               <option value="">${msg.noConfig}</option>
               <option value="" disabled>-------------------</option>
               <#list configurations?sort as configuration>
-                <option value="${configuration}">${configuration}</option>
+              	<#assign name = configuration?substring(0, configuration?last_index_of("."))>
+                <option value="${configuration}">${name}</option>
               </#list>
             </select>
           </div>
