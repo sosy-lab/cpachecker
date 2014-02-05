@@ -1,13 +1,2 @@
-../../../benchmarks/locks/test_locks_10_true-unreach-label.c
-../../../benchmarks/locks/test_locks_11_true-unreach-label_false-termination.c
-../../../benchmarks/locks/test_locks_12_true-unreach-label_false-termination.c
-../../../benchmarks/locks/test_locks_13_true-unreach-label.c
-../../../benchmarks/locks/test_locks_14_false-unreach-label.c
-../../../benchmarks/locks/test_locks_14_true-unreach-label.c
-../../../benchmarks/locks/test_locks_15_false-unreach-label.c
-../../../benchmarks/locks/test_locks_15_true-unreach-label_false-termination.c
-../../../benchmarks/locks/test_locks_5_true-unreach-label_false-termination.c
-../../../benchmarks/locks/test_locks_6_true-unreach-label_false-termination.c
-../../../benchmarks/locks/test_locks_7_true-unreach-label_false-termination.c
-../../../benchmarks/locks/test_locks_8_true-unreach-label_false-termination.c
-../../../benchmarks/locks/test_locks_9_true-unreach-label.c
+../../../benchmarks/locks/*_false-unreach-label*.c
+../../../benchmarks/locks/*_true-unreach-label*.c

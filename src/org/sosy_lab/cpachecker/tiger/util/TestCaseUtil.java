@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.tiger.testcases.BuggyExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.tiger.testcases.ImpreciseInputsTestCase;
 import org.sosy_lab.cpachecker.tiger.testcases.TestCase;
+import org.sosy_lab.cpachecker.tiger.util.FeasibilityInformation.FeasibilityStatus;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 
@@ -200,7 +201,7 @@ public class TestCaseUtil {
     }
   }
 
-  public void reconstructPathFromImpreciseTestCase2(TestCase pTestCase, int pIndex, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA, Factory pResultFactory, Goal pGoal, Prediction[] pGoalPrediction) {
+  public FeasibilityStatus reconstructPathFromImpreciseTestCase2(TestCase pTestCase, int pIndex, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA, Factory pResultFactory, Goal pGoal, Prediction[] pGoalPrediction) {
     assert (!pTestCase.isPrecise());
     assert (pTestCase instanceof ImpreciseInputsTestCase);
 
@@ -259,6 +260,8 @@ public class TestCaseUtil {
         if (lCFAPath != null) {
           mOutput.println("Goal #" + pIndex + " is feasible!");
           updatePreciseTestCaseStatistics(lPreciseTestCase, pIndex, pGoal, lCFAPath, pResultFactory, pGoalPrediction);
+
+          return FeasibilityStatus.FEASIBLE;
         }
         else {
           mOutput.println("Goal #" + pIndex + " lead to an imprecise execution!");
@@ -273,15 +276,21 @@ public class TestCaseUtil {
 
             throw new RuntimeException("Imprecise simulation!");
           }
+
+          return FeasibilityStatus.IMPRECISE;
         }
 
       } catch (MissingInputException e) {
         mOutput.println("Goal #" + pIndex + " is imprecise!");
         updateImpreciseTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
+
+        return FeasibilityStatus.IMPRECISE;
       }
       catch (BuggyExecutionException e) {
         mOutput.println("Goal #" + pIndex + " reveals a bug!");
         updateBuggyTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
+
+        return FeasibilityStatus.BUGGY;
       }
     //}
   }
@@ -302,7 +311,7 @@ public class TestCaseUtil {
     return null;
   }
 
-  public void reconstructPath(TestCase pTestCase, int pIndex, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA, Factory pResultFactory, Goal pGoal, Prediction[] pGoalPrediction) {
+  public FeasibilityStatus reconstructPath(TestCase pTestCase, int pIndex, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA, Factory pResultFactory, Goal pGoal, Prediction[] pGoalPrediction) {
     if (pTestCase.isPrecise()) {
       try {
         CFAEdge[] lCFAPath = reconstructPathFromPreciseTestCase(pTestCase, pIndex, pAutomatonCPA, pPassingCPA, pResultFactory, pGoal, pGoalPrediction);
@@ -310,6 +319,7 @@ public class TestCaseUtil {
         if (lCFAPath != null) {
           mOutput.println("Goal #" + pIndex + " is feasible!");
           updatePreciseTestCaseStatistics(pTestCase, pIndex, pGoal, lCFAPath, pResultFactory, pGoalPrediction);
+          return FeasibilityStatus.FEASIBLE;
         }
         else {
           mOutput.println("Goal #" + pIndex + " lead to an imprecise execution!");
@@ -324,6 +334,8 @@ public class TestCaseUtil {
 
             throw new RuntimeException("Imprecise simulation!");
           }
+
+          return FeasibilityStatus.IMPRECISE;
         }
 
       } catch (MissingInputException e1) {
@@ -331,10 +343,12 @@ public class TestCaseUtil {
       } catch (BuggyExecutionException e) {
         mOutput.println("Goal #" + pIndex + " reveals a bug!");
         updateBuggyTestCaseStatistics(pTestCase, pIndex, pResultFactory, pGoalPrediction);
+
+        return FeasibilityStatus.BUGGY;
       }
     }
     else {
-      reconstructPathFromImpreciseTestCase2(pTestCase, pIndex, pAutomatonCPA, pPassingCPA, pResultFactory, pGoal, pGoalPrediction);
+      return reconstructPathFromImpreciseTestCase2(pTestCase, pIndex, pAutomatonCPA, pPassingCPA, pResultFactory, pGoal, pGoalPrediction);
     }
   }
 

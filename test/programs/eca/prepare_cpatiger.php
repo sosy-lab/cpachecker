@@ -20,7 +20,7 @@ function run() {
     $preprocessedSource = replaceMain($preprocessedSource);
   
     // default error labels (0 - 59)
-    for($j = 0; $j < 60; $j++) {
+    for($j = 0; $j <= 60; $j=$j+10) {
       $finalProgramSource = setErrorLabel($j, $preprocessedSource);
 
       $state = 'unknown';

@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpatiger-to" timelimit="915" hardtimelimit="1015" memlimit="6000" cpuCores="2">
+<benchmark tool="cpatiger-to" timelimit="930" hardtimelimit="1030" memlimit="6000" cpuCores="2">
   <option name="-heap">4800M</option>
 
-  <sourcefiles name="loops">
-    <includesfile>../../programs/fql/tiger-sets/cf/loops.set</includesfile>
+  <sourcefiles name="ssh-simplified">
+    <includesfile>../../programs/fql/tiger-sets/cf/ssh-simplified.set</includesfile>
   </sourcefiles>
 
   <rundefinition name="predicate-bb">

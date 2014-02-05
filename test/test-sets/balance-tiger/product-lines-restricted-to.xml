@@ -1,10 +1,22 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpatiger-to" timelimit="915" hardtimelimit="1015" memlimit="6000" cpuCores="2">
+<benchmark tool="cpatiger-to" timelimit="930" hardtimelimit="1030" memlimit="6000" cpuCores="2">
   <option name="-heap">4800M</option>
 
-  <sourcefiles name="ssh-simplified">
-    <includesfile>../../programs/fql/tiger-sets/cf/ssh-simplified.set</includesfile>
+  <sourcefiles name="product-lines">
+    <includesfile>../../programs/fql/tiger-sets/cf/productlines.set</includesfile>
+	<exclude>../../programs/benchmarks/product-lines/email_spec1_product16_false-unreach-label.cil.c</exclude>
+	<exclude>../../programs/benchmarks/product-lines/email_spec6_product12_false-unreach-label.cil.c</exclude>
+	<exclude>../../programs/benchmarks/product-lines/email_spec0_product37_true-unreach-label.cil.c</exclude>
+	<exclude>../../programs/benchmarks/product-lines/email_spec0_product11_true-unreach-label.cil.c</exclude>
+	<exclude>../../programs/benchmarks/product-lines/email_spec0_product38_true-unreach-label.cil.c</exclude>
+	<exclude>../../programs/benchmarks/product-lines/email_spec0_product40_true-unreach-label.cil.c</exclude>
+	<exclude>../../programs/benchmarks/product-lines/email_spec11_product37_true-unreach-label.cil.c</exclude>
+	<exclude>../../programs/benchmarks/product-lines/email_spec11_product39_true-unreach-label.cil.c</exclude>
+	<exclude>../../programs/benchmarks/product-lines/email_spec11_product40_true-unreach-label.cil.c</exclude>
+	<exclude>../../programs/benchmarks/product-lines/email_spec1_product12_true-unreach-label.cil.c</exclude>
+	<exclude>../../programs/benchmarks/product-lines/email_spec8_product14_true-unreach-label.cil.c</exclude>
+	<exclude>../../programs/benchmarks/product-lines/email_spec9_product12_true-unreach-label.cil.c</exclude>
   </sourcefiles>
 
   <rundefinition name="predicate-bb">

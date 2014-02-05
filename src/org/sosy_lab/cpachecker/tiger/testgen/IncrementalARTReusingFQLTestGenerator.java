@@ -619,13 +619,16 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         assert isSound && !cex.isSpurious();
         lTimeCover.proceed();
 
-        TestCase lTestCase = handleReachable(cex, lIndex,  lAutomatonCPA, lPassingCPA, lResultFactory, lGoal, lGoalPrediction);
+        Pair<FeasibilityStatus, TestCase> pair = handleReachable(cex, lIndex,  lAutomatonCPA, lPassingCPA, lResultFactory, lGoal, lGoalPrediction);
+        TestCase lTestCase = pair.getSecond();
+        status = pair.getFirst();
 
-        if (pApplySubsumptionCheck) {
+        if (pApplySubsumptionCheck && status.equals(FeasibilityStatus.FEASIBLE)) {
           coverTestCases(lTestCase, lGoal, lGoals, lPassingCPA, lResultFactory, lIndex+1, maxIndex);
+          mTestSuite.add(lTestCase);
         }
 
-        mTestSuite.add(lTestCase);
+
         // TODO this could be imprecise or buggy
         lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
         lTimeCover.pause();
@@ -804,13 +807,13 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
    * @param lGoalPrediction
    * @return
    */
-  private TestCase handleReachable(CounterexampleInfo cex, int lIndex, GuardedEdgeAutomatonCPA lAutomatonCPA,
+  private Pair<FeasibilityStatus, TestCase> handleReachable(CounterexampleInfo cex, int lIndex, GuardedEdgeAutomatonCPA lAutomatonCPA,
       GuardedEdgeAutomatonCPA lPassingCPA, Factory lResultFactory, Goal lGoal, Prediction[] lGoalPrediction) {
 
     TestCase lTestCase = TestCase.fromCounterexample(cex, mLogManager);
-    mTestCaseUtil.reconstructPath(lTestCase, lIndex, lAutomatonCPA, lPassingCPA, lResultFactory, lGoal, lGoalPrediction);
+    FeasibilityStatus status = mTestCaseUtil.reconstructPath(lTestCase, lIndex, lAutomatonCPA, lPassingCPA, lResultFactory, lGoal, lGoalPrediction);
 
-    return lTestCase;
+    return Pair.of(status, lTestCase);
   }
 
   /**
