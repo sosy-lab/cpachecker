@@ -90,6 +90,10 @@ def toSimpleList(listOfPairs):
     return simpleList
 
 
+def flatten(list):
+    return [value for sublist in list for value in sublist]
+
+
 def getCopyOfXMLElem(elem):
     """
     This method returns a shallow copy of a XML-Element.

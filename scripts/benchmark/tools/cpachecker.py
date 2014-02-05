@@ -17,6 +17,16 @@ if __name__ == "__main__":
 import benchmark.util as Util
 import benchmark.tools.template
 
+REQUIRED_PATHS = [
+                  "lib/java/runtime",
+                  "lib/JavaParser",
+                  "lib/*.jar",
+                  "lib/native",
+                  "scripts",
+                  "cpachecker.jar",
+                  "config",
+                  ]
+
 class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
@@ -39,7 +49,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
     def getProgrammFiles(self, executable):
         executableDir = os.path.join(os.path.dirname(executable),"../")
-        return [os.path.join(executableDir, path) for path in ["lib", "scripts", "cpachecker.jar", "config"]]
+        return Util.flatten(Util.expandFileNamePattern(path, executableDir) for path in REQUIRED_PATHS)
 
 
     def getWorkingDirectory(self, executable):
