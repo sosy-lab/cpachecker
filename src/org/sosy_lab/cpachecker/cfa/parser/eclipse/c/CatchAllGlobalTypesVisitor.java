@@ -60,6 +60,7 @@ class CatchAllGlobalTypesVisitor extends ASTVisitor {
 
   // Data structure for storing global declarations
   private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.IADeclaration, String>> globalDeclarations = Lists.newArrayList();
+  private final Sideassignments sideAssignmentStack;
 
   private final GlobalScope fileScope;
   private final ASTConverter astCreator;
@@ -68,7 +69,7 @@ class CatchAllGlobalTypesVisitor extends ASTVisitor {
   private final LogManager logger;
 
 
-  public CatchAllGlobalTypesVisitor(Configuration config, LogManager pLogger, MachineModel pMachine, String staticVariablePrefix) throws InvalidConfigurationException {
+  public CatchAllGlobalTypesVisitor(Configuration config, LogManager pLogger, MachineModel pMachine, String staticVariablePrefix, Sideassignments sideAssignmentStack) throws InvalidConfigurationException {
     logger = pLogger;
     machine = pMachine;
     fileScope = new GlobalScope(new HashMap<String, CSimpleDeclaration>(),
@@ -76,12 +77,13 @@ class CatchAllGlobalTypesVisitor extends ASTVisitor {
                                 new HashMap<String, CComplexTypeDeclaration>(),
                                 new HashMap<String, CTypeDefDeclaration>(),
                                 new HashSet<String>());
-    astCreator = new ASTConverter(config, fileScope, logger, machine, staticVariablePrefix, true);
+    astCreator = new ASTConverter(config, fileScope, logger, machine, staticVariablePrefix, true, sideAssignmentStack);
 
 
     shouldVisitDeclarations = true;
     shouldVisitEnumerators = true;
     shouldVisitTranslationUnit = true;
+    this.sideAssignmentStack = sideAssignmentStack;
   }
 
   public CComplexType lookupType(String qualifiedName) {
@@ -112,14 +114,14 @@ class CatchAllGlobalTypesVisitor extends ASTVisitor {
     final List<CDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
-    if (!astCreator.getAndResetConditionalExpressions().isEmpty()
-        || !astCreator.getAndResetPostSideAssignments().isEmpty()) {
+    if (sideAssignmentStack.hasConditionalExpression()
+        || sideAssignmentStack.hasPostSideAssignments()) {
       throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
     }
 
     String rawSignature = sd.getRawSignature();
 
-    for (CAstNode astNode : astCreator.getAndResetPreSideAssignments()) {
+    for (CAstNode astNode : sideAssignmentStack.getAndResetPreSideAssignments()) {
       if (astNode instanceof CComplexTypeDeclaration) {
         // already registered
         globalDeclarations.add(Pair.of((IADeclaration)astNode, rawSignature));

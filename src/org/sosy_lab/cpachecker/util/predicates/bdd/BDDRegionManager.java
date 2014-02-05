@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
 import static com.google.common.base.Preconditions.*;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import java.io.PrintStream;
@@ -41,12 +42,12 @@ import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -204,7 +205,7 @@ public class BDDRegionManager implements RegionManager {
         .put(cleanupQueueSize)
         .put(cleanupTimer)
 
-        .put("Time for BDD garbage collection", Timer.formatTime(stats.sumtime) + " (in " + stats.num + " runs)")
+        .put("Time for BDD garbage collection", TimeSpan.ofMillis(stats.sumtime).formatAs(SECONDS) + " (in " + stats.num + " runs)")
         ;
 
       // Cache stats are disabled in JFactory (CACHESTATS = false)

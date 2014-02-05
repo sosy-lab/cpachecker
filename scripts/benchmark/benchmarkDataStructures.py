@@ -139,8 +139,11 @@ class Benchmark:
             sys.exit('The module for "{0}" does not define the necessary class.'.format(toolName))
 
         self.toolName = self.tool.getName()
-        self.executable = self.tool.getExecutable()
-        self.toolVersion = self.tool.getVersion(self.executable)
+        self.toolVersion = ''
+        self.executable = ''
+        if not config.appengine:
+            self.executable = self.tool.getExecutable()
+            self.toolVersion = self.tool.getVersion(self.executable)
 
         logging.debug("The tool to be benchmarked is {0}.".format(str(self.toolName)))
 
@@ -210,7 +213,7 @@ class Benchmark:
             self._requiredFiles.extend(requiredFiles)
 
         # get requirements
-        self.requirements = Requirements(rootTag.findall("require"), self.rlimits, config.cloudCpuModel)
+        self.requirements = Requirements(rootTag.findall("require"), self.rlimits, config.cloudCPUModel)
 
         self.resultFilesPattern = None
         resultFilesTags = rootTag.findall("resultfiles")
@@ -484,6 +487,7 @@ class Run():
         self.wallTime = 0
         self.memUsage = None
         self.host = None
+        self.category = result.CATEGORY_UNKNOWN
 
 
     def getCmdline(self):
@@ -493,10 +497,30 @@ class Run():
         return args;
 
 
-    def afterExecution(self, returnvalue, output):
+    def getPropFile(self):
+        # get prp-file from options
+        prpfile = None
+        for option in self.options:
+            if option.endswith('.prp'):
+                assert prpfile == None
+                prpfile = option
+                break
+
+        #if prpfile is None and not logPrpfileOnlyOnce:
+        #    logging.warn("Could not find propertyfile in options. This will be logged only once!")
+
+        # prpfile is relative to toolWorkingDir, we need it relativ to currentWorkingDir
+        if prpfile is not None:
+            prpfile = os.path.join(self.benchmark.tool.getWorkingDirectory(self.benchmark.executable), prpfile)
+            assert os.path.isfile(prpfile)
+
+        return prpfile
+
+
+    def afterExecution(self, returnvalue, output, forceTimeout=False):
 
         rlimits = self.benchmark.rlimits
-        isTimeout = self._isTimeout()
+        isTimeout = forceTimeout or self._isTimeout()
 
         # calculation: returnvalue == (returncode * 256) + returnsignal
         # highest bit of returnsignal shows only whether a core file was produced, we clear it
@@ -504,6 +528,7 @@ class Run():
         returncode = returnvalue >> 8
         logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
         self.status = self.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
+        self.category = result.getResultCategory(self.sourcefile, self.status, self.getPropFile())
         self.benchmark.tool.addColumnValues(output, self.columns)
 
         # Tools sometimes produce a result even after a timeout.
@@ -511,13 +536,15 @@ class Run():
         # here. if this is the case.
         # However, we don't want to forget more specific results like SEGFAULT,
         # so we do this only if the result is a "normal" one like TRUE.
-        if self.status in [result.STR_TRUE, result.STR_FALSE, result.STR_UNKNOWN] and isTimeout:
+        if self.status in result.STR_LIST and isTimeout:
             self.status = "TIMEOUT"
+            self.category = result.CATEGORY_ERROR
         if returnsignal == 9 \
                 and MEMLIMIT in rlimits \
                 and self.memUsage \
-                and int(self.memUsage) >= (rlimits[MEMLIMIT] * 1024 * 1024):
+                and int(self.memUsage) >= (rlimits[MEMLIMIT] * 1024 * 1024 * 0.999):
             self.status = 'OUT OF MEMORY'
+            self.category = result.CATEGORY_ERROR
 
 
     def _isTimeout(self):
@@ -552,7 +579,7 @@ class Requirements:
     If no values are found, at least the limits are used as requirements.
     If the user gives a cpuModel, it overrides the previous cpuModel.
     '''
-    def __init__(self, tags, rlimits, cloudCpuModel):
+    def __init__(self, tags, rlimits, cloudCPUModel):
         
         self.cpuModel = None
         self.memory   = None
@@ -586,8 +613,8 @@ class Requirements:
         if self.memory is None:
             self.memory = rlimits.get(MEMLIMIT, None)
 
-        if cloudCpuModel is not None: # user-given model -> override value
-            self.cpuModel = cloudCpuModel
+        if cloudCPUModel is not None: # user-given model -> override value
+            self.cpuModel = cloudCPUModel
 
         if self.cpuCores is not None and self.cpuCores <= 0:
             raise Exception('Invalid value {} for required CPU cores.'.format(self.cpuCores))

@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -75,17 +76,19 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
 
     // instantiate parallel threads and check if elements form transitive closure
     //TODO possibly instantiate (and start) threads earlier in constructor
-    CheckingHelper[] threads = new CheckingHelper[numThreads-1];
+    CheckingHelper[] helper = new CheckingHelper[numThreads-1];
+    Thread[] helperThreads = new Thread[numThreads-1];
     int length = reachedSet.length/numThreads;
 
-    for (int i = 0; i < threads.length; i++) {
+    for (int i = 0; i < helper.length; i++) {
       shutdownNotifier.shutdownIfNecessary();
-      threads[i] = new CheckingHelper(i * length, length, initialPrec);
-      threads[i].start();
+      helper[i] = new CheckingHelper(i * length, length, initialPrec);
+      helperThreads[i] = Threads.newThread(helper[i]);
+      helperThreads[i].start();
     }
 
     Collection<? extends AbstractState> successors;
-    for (int i = length * threads.length; i < reachedSet.length; i++) {
+    for (int i = length * helper.length; i < reachedSet.length; i++) {
 
       shutdownNotifier.shutdownIfNecessary();
       stats.increaseIteration();
@@ -116,9 +119,9 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
       }
     }
 
-    for (int i = 0; i < threads.length; i++) {
-      threads[i].join();
-      if (!threads[i].result) { return false; }
+    for (int i = 0; i < helper.length; i++) {
+      helperThreads[i].join();
+      if (!helper[i].result) { return false; }
     }
 
     stats.getPropertyCheckingTimer().start();
@@ -129,7 +132,7 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
     }
   }
 
-  protected class CheckingHelper extends Thread {
+  protected class CheckingHelper implements Runnable {
 
     private int start;
     private int numElem;

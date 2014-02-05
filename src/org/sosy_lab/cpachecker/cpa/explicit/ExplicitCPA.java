@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Collection;
@@ -39,6 +38,8 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -71,7 +72,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.io.Files;
 
 @Options(prefix="cpa.explicit")
 public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, StatisticsProvider, ProofChecker {
@@ -88,13 +88,20 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
       description="blacklist regex for variables that won't be tracked by ExplicitCPA")
   private String variableBlacklist = "";
 
+  @Option(description="enables target checking for explicit anlaysis, needed for predicated analysis")
+  private boolean doTargetCheck = false;
+
+  @Option(name="inPredicatedAnalysis",
+      description="enable if will be used in predicated analysis but all variables should be tracked, no refinement")
+  private boolean useInPredicatedAnalysisWithoutRefinement = false;
+
   @Option(name="refiner.performInitialStaticRefinement",
       description="use heuristic to extract a precision from the CFA statically on first refinement")
   private boolean performInitialStaticRefinement = false;
 
   @Option(description="get an initial precison from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private File initialPrecisionFile = null;
+  private Path initialPrecisionFile = null;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ExplicitCPA.class);
@@ -133,6 +140,10 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     reducer             = new ExplicitReducer();
     statistics          = new ExplicitCPAStatistics(this);
+
+    if (doTargetCheck) {
+      ExplicitState.initChecker(config);
+    }
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -172,7 +183,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
   }
 
   private ExplicitPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
-    if(refinementWithoutAbstraction(config)) {
+    if(refinementWithoutAbstraction(config) && !useInPredicatedAnalysisWithoutRefinement) {
       logger.log(Level.WARNING, "Explicit-Value analysis with refinement needs " +
             "ComponentAwareExplicitPrecisionAdjustment. Please set option cpa.composite.precAdjust to 'COMPONENT'");
     }
@@ -191,7 +202,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
    * @return true, if refinement is enabled, but abstraction is not available, else false
    */
   private boolean refinementWithoutAbstraction(Configuration config) {
-    return Boolean.parseBoolean(config.getProperty("analysis.useRefinement")) &&
+    return Boolean.parseBoolean(config.getProperty("analysis.algorithm.CEGAR")) &&
             !config.getProperty("cpa.composite.precAdjust").equals("COMPONENT");
   }
 

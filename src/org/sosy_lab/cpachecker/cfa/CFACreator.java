@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.findLoops;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -39,16 +39,18 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Path;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -102,7 +104,7 @@ public class CFACreator {
   @Option(name="parser.transformTokensToLines",
       description="Preprocess the given C files before parsing: Put every single token onto a new line. "
       + "Then the line number corresponds to the token number.")
-  private boolean transformTokensToLines = true;
+  private boolean transformTokensToLines = false;
 
   @Option(name="analysis.entryFunction", regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
       description="entry function")
@@ -155,12 +157,12 @@ public class CFACreator {
   @Option(name="cfa.callgraph.file",
       description="file name for call graph as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportFunctionCallsFile = new Path("functionCalls.dot");
+  private Path exportFunctionCallsFile = Paths.get("functionCalls.dot");
 
   @Option(name="cfa.file",
       description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportCfaFile = new Path("cfa.dot");
+  private Path exportCfaFile = Paths.get("cfa.dot");
 
   @Option(name="cfa.checkNullPointers",
       description="while this option is activated, before each use of a "
@@ -172,6 +174,12 @@ public class CFACreator {
       description="When a function pointer array element is written with a variable as index, "
           + "create a series of if-else edges with explicit indizes instead.")
   private boolean expandFunctionPointerArrayAssignments = false;
+
+  @Option(name="cfa.transformIntoSingleLoop",
+      description="This option causes the control flow automaton to be "
+        + "transformed into the automaton of an equivalent program with one "
+        + "single loop and an artificial program counter.")
+  private boolean transformIntoSingleLoop = false;
 
   @Option(description="C or Java?")
   private Language language = Language.C;
@@ -230,7 +238,19 @@ public class CFACreator {
       parser = EclipseParsers.getJavaParser(logger, config);
       break;
     case C:
-      parser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
+      CParser outerParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
+
+      if (transformTokensToLines) {
+        outerParser = new CParserWithTokenizer(outerParser);
+      }
+
+      if (usePreprocessor) {
+        CPreprocessor preprocessor = new CPreprocessor(config, logger);
+        outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
+      }
+
+      parser = outerParser;
+
       break;
     default:
       throw new AssertionError();
@@ -251,82 +271,77 @@ public class CFACreator {
   /**
    * Parse a file and create a CFA, including all post-processing etc.
    *
-   * @param sourceFiles  The file to parse.
+   * @param sourceFiles  The files to parse.
    * @return A representation of the CFA.
    * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    * @throws InterruptedException
    */
-  public CFA parseFileAndCreateCFA(String[] sourceFiles)
+  public CFA parseFileAndCreateCFA(List<String> sourceFiles)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
-    Preconditions.checkArgument(sourceFiles.length > 0, "At least one source file must be provided!");
+    Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
 
     stats.totalTime.start();
     try {
 
       // FIRST, parse file(s) and create CFAs for each function
       logger.log(Level.FINE, "Starting parsing of file");
-      ParseResult c = null;
+      ParseResult c;
 
       if (language == Language.C) {
         checkIfValidFiles(sourceFiles);
       }
 
-      if (language == Language.C) {
-        CPreprocessor preprocessor = new CPreprocessor(config, logger);
-        if(sourceFiles.length == 1) {
-          String program = sourceFiles[0];
-          if (usePreprocessor) {
-            String programCode = preprocessor.preprocess(program);
-            if (programCode.isEmpty()) {
-              throw new CParserException("Preprocessor returned empty program");
-            }
-            c = parser.parseString(programCode);
-          } else {
-            c = parser.parseFile(program);
-          }
-
+      if (sourceFiles.size() == 1) {
+        /*
+         * The program file has to parsed as String since Google App Engine does not allow
+         * writes to the file system and therefore the input file is stored elsewhere.
+         */
+        String sourceFileName = sourceFiles.get(0);
+        if (usePreprocessor) {
+          c = parser.parseFile(sourceFileName);
         } else {
-          // when there is more than one file which should be evaluated, the
-          // programdenotations are separated from each other and a prefix for
-          // static variables is generated
-
-          List<Pair<String, String>> programFragments = new ArrayList<>();
-          int counter = 0;
-          String staticVarPrefix;
-          for(String fileName : sourceFiles) {
-            String[] tmp = fileName.split("/");
-            staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
-
-            if (usePreprocessor) {
-              String fileContent = preprocessor.preprocess(fileName);
-              programFragments.add(Pair.of(fileContent, staticVarPrefix));
-              if (fileContent.isEmpty()) {
-                throw new CParserException("Preprocessor returned empty program");
-              }
-            } else {
-              programFragments.add(Pair.of(fileName, staticVarPrefix));
-            }
-          }
-
-          if (usePreprocessor) {
-            c = ((CParser)parser).parseString(programFragments);
-          } else {
-            c = ((CParser)parser).parseFile(programFragments);
-          }
+          String code = Paths.get(sourceFileName).asCharSource(Charset.defaultCharset()).read();
+          c = parser.parseString(code);
         }
+      } else {
+        // when there is more than one file which should be evaluated, the
+        // programdenotations are separated from each other and a prefix for
+        // static variables is generated
+        if (language != Language.C) {
+          throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
+        }
+
+        List<Pair<String, String>> programFragments = new ArrayList<>();
+        int counter = 0;
+        String staticVarPrefix;
+        for (String fileName : sourceFiles) {
+          String[] tmp = fileName.split("/");
+          staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
+
+          /*
+           * The program file has to parsed as String since Google App Engine does not allow
+           * writes to the file system and therefore the input file is stored elsewhere.
+           */
+          String code = Paths.get(fileName).asCharSource(Charset.defaultCharset()).read();
+          programFragments.add(Pair.of(code, staticVarPrefix));
+        }
+
+        c = ((CParser)parser).parseFile(programFragments);
       }
 
       logger.log(Level.FINE, "Parser Finished");
 
-      if (c == null || c.isEmpty()) {
+      if (c.isEmpty()) {
         switch (language) {
         case JAVA:
           throw new JParserException("No methods found in program");
         case C:
           throw new CParserException("No functions found in program");
+        default:
+          throw new AssertionError();
         }
       }
 
@@ -350,7 +365,7 @@ public class CFACreator {
 
       // check the CFA of each function
       for (String functionName : cfa.getAllFunctionNames()) {
-        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName));
+        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), false);
       }
       stats.checkTime.stop();
 
@@ -441,11 +456,19 @@ public class CFACreator {
 
       stats.processingTime.stop();
 
-      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
+      final ImmutableCFA immutableCFA;
+
+      if (transformIntoSingleLoop) {
+        stats.processingTime.start();
+        immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config).apply(cfa);
+        stats.processingTime.stop();
+      } else {
+        immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
+      }
 
       // check the super CFA starting at the main function
       stats.checkTime.start();
-      assert CFACheck.check(mainFunction, null);
+      assert CFACheck.check(mainFunction, null, cfaReduction != null);
       stats.checkTime.stop();
 
       if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
@@ -462,11 +485,11 @@ public class CFACreator {
     }
   }
 
-  private FunctionEntryNode getJavaMainMethod(String[] sourceFiles, Map<String, FunctionEntryNode> cfas)
+  private FunctionEntryNode getJavaMainMethod(List<String> sourceFiles, Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
 
-    Preconditions.checkArgument(sourceFiles.length == 1, "Multiple input files not supported by 'getJavaMainMethod'");
-    String mainClassName = sourceFiles[0];
+    Preconditions.checkArgument(sourceFiles.size() == 1, "Multiple input files not supported by 'getJavaMainMethod'");
+    String mainClassName = sourceFiles.get(0);
 
     // try specified function
     FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
@@ -492,28 +515,25 @@ public class CFACreator {
     return mainFunction;
   }
 
-  private void checkIfValidFiles(String[] sourceFiles) throws InvalidConfigurationException {
+  private void checkIfValidFiles(List<String> sourceFiles) throws InvalidConfigurationException {
     for (String file : sourceFiles) {
       checkIfValidFile(file);
     }
   }
 
   private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
-    File file = new File(fileDenotation);
+    Path file = Paths.get(fileDenotation);
 
     try {
-      org.sosy_lab.common.Files.checkReadableFile(file);
+      Files.checkReadableFile(file);
     } catch (FileNotFoundException e) {
       throw new InvalidConfigurationException(e.getMessage());
     }
   }
 
-  private FunctionEntryNode getCMainFunction(String[] sourceFiles,
+  private FunctionEntryNode getCMainFunction(List<String> sourceFiles,
       final Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
-
-    Preconditions.checkArgument(sourceFiles.length == 1, "Multiple input files not supported by 'getCMainFunction'");
-    String filename = sourceFiles[0];
 
     // try specified function
     FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
@@ -531,21 +551,23 @@ public class CFACreator {
       // only one function available, take this one
       return Iterables.getOnlyElement(cfas.values());
 
-    } else {
+    } else if (sourceFiles.size() == 1) {
+      String filename = sourceFiles.get(0);
+
       // get the AAA part out of a filename like test/program/AAA.cil.c
-      filename = (new File(filename)).getName(); // remove directory
+      filename = (Paths.get(filename)).getName(); // remove directory
 
       int indexOfDot = filename.indexOf('.');
       String baseFilename = indexOfDot >= 1 ? filename.substring(0, indexOfDot) : filename;
 
       // try function with same name as file
       mainFunction = cfas.get(baseFilename);
-
-      if (mainFunction == null) {
-        throw new InvalidConfigurationException("No entry function found, please specify one.");
-      }
-      return mainFunction;
     }
+
+    if (mainFunction == null) {
+      throw new InvalidConfigurationException("No entry function found, please specify one.");
+    }
+    return mainFunction;
   }
 
   private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(MutableCFA cfa) {
@@ -692,7 +714,7 @@ public class CFACreator {
 
   private void exportCFAAsync(final CFA cfa) {
     // execute asynchronously, this may take several seconds for large programs on slow disks
-    new Thread(new Runnable() {
+    Threads.newThread(new Runnable() {
       @Override
       public void run() {
         // running the following in parallel is thread-safe

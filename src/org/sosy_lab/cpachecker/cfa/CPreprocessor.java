@@ -48,7 +48,8 @@ public class CPreprocessor {
                       "May contain binary name and arguments, but won't be expanded by a shell. " +
                       "The source file name will be appended to this string. " +
                       "The preprocessor needs to print the output to stdout.")
-  private String preprocessor = "cpp";
+
+  private String preprocessor = "cpp -P"; // -P  Inhibit generation of linemarkers (this make problems when running a tokenizer)
 
   private final LogManager logger;
 

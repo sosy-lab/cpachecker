@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
@@ -40,6 +39,8 @@ import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormula
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+
+import com.google.common.collect.ImmutableList;
 
 // "Formula Manager tester"
 public class FMtester {
@@ -70,7 +71,7 @@ public class FMtester {
     try {
       logger = new BasicLogManager(config);
       cfac = new CFACreator(config, logger, shutdownNotifier);
-      CFA cfa = cfac.parseFileAndCreateCFA(new String[]{testfile});
+      CFA cfa = cfac.parseFileAndCreateCFA(ImmutableList.of(testfile));
       root = cfa.getMainFunction();
 
       // construct FormulaManager, and extended one
@@ -78,7 +79,7 @@ public class FMtester {
       FormulaManagerView emgr = new FormulaManagerView(fmgr, config, logger);
       //
 
-      pfmgr = new PathFormulaManagerImpl(emgr, config, logger, MachineModel.LINUX32);
+      pfmgr = new PathFormulaManagerImpl(emgr, config, logger, cfa);
     } catch (Exception e) {
       System.err.println(e.getMessage());
     }

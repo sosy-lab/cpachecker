@@ -234,7 +234,7 @@ public class PointerTargetSet implements Serializable {
    * <p>
    * The method should be used everywhere the type of any expression is determined. This is because the encoding uses
    * types for naming of the UFs as well as for over-approximating points-to sets (may-aliases). To make the encoding
-   * precise enough the types should correspond to actually different types (requiring explicit cases to be
+   * precise enough the types should correspond to actually different types (requiring explicit casts to be
    * converted to one another), so {@link CCompositeType}s, corresponding  {@link CElaboratedType}s and
    * {@link CTypedefType}s shouldn't be distinguished and are converted to the same canonical type by this method.
    * </p>

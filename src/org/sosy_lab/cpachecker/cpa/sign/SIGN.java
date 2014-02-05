@@ -65,6 +65,11 @@ public enum SIGN {
     return false;
   }
 
+  public boolean intersects(SIGN sign) {
+    if ((sign.numVal & this.numVal) != 0) { return true; }
+    return false;
+  }
+
   public static SIGN min(SIGN sign0, SIGN sign1) {
     if(sign0.isSubsetOf(sign1)) {
       return sign0;

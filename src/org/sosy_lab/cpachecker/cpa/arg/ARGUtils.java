@@ -45,6 +45,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.Model.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.Model.CFAPathWithAssignments.CFAEdgeWithAssignments;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -443,10 +447,26 @@ public class ARGUtils {
    * @param sb Where to write the automaton to
    * @param pRootState The root of the ARG
    * @param pPathStates The states along the path
+   * @param pCounterExample Given to try to write exact variable assignment values
+   * into the automaton, may be null
    * @throws IOException
    */
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
-      Set<ARGState> pPathStates, String name) throws IOException {
+      Set<ARGState> pPathStates, String name, CounterexampleInfo pCounterExample) throws IOException {
+
+    Map<ARGState, CFAEdgeWithAssignments> valueMap = null;
+
+    if (pCounterExample != null) {
+      Model model = pCounterExample.getTargetPathModel();
+      if (model != null) {
+        CFAPathWithAssignments cfaPath = model.getAssignedTermsPerEdge();
+        if (cfaPath != null) {
+          ARGPath targetPath = pCounterExample.getTargetPath();
+          valueMap = model.getexactVariableValues(targetPath);
+        }
+      }
+    }
+
     sb.append("CONTROL AUTOMATON " + name + "\n\n");
     sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
 
@@ -508,7 +528,8 @@ public class ARGUtils {
           if (child.isTarget()) {
             sb.append("ERROR");
           } else {
-            sb.append("GOTO ARG" + child.getStateId());
+            String assumption = getAssumption(valueMap, s);
+            sb.append(assumption + "GOTO ARG" + child.getStateId());
           }
           sb.append(";\n");
         }
@@ -516,6 +537,24 @@ public class ARGUtils {
       sb.append("    TRUE -> STOP;\n\n");
     }
     sb.append("END AUTOMATON\n");
+  }
+
+  private static String getAssumption(Map<ARGState, CFAEdgeWithAssignments> pValueMap, ARGState pState) {
+
+    String assumption = "";
+
+    if (pValueMap != null && pValueMap.containsKey(pState)) {
+
+      CFAEdgeWithAssignments cfaEdgeWithAssignments = pValueMap.get(pState);
+
+      String code = cfaEdgeWithAssignments.getAsCode();
+
+      if(code != null) {
+        assumption = "ASSUME {" + code + "}";
+      }
+    }
+
+    return assumption;
   }
 
   private static void escape(String s, Appendable appendTo) throws IOException {

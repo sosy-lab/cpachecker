@@ -41,6 +41,7 @@ public class TemplatePathFormulaBuilder {
 
   private PathFormulaManagerImpl pfmgr;
 
+  @SuppressWarnings("deprecation")
   public TemplatePathFormulaBuilder() {
     // Use this constructor if you only want a default configuration.
 
@@ -58,6 +59,7 @@ public class TemplatePathFormulaBuilder {
 
   }
 
+  @SuppressWarnings("deprecation")
   public TemplatePathFormulaBuilder(Configuration config,
                     LogManager logger, MachineModel machineModel) {
     // Use this constructor if you have a config and logger already.

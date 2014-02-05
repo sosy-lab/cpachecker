@@ -65,6 +65,8 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
   @Option(name="stop", values={"sep", "join"},
       description="which stop operator to use for UninitializedVariablesCPA?")
   private String stopType = "sep";
+  @Option (description="if enabled checks if states are target states (there exist warning for uninitilized use of variables")
+  private boolean checkTarget = false;
 
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
@@ -93,6 +95,11 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     } else if (stopType.equals("join")) {
       stopOp = new StopJoinOperator(domain);
     }
+
+    if(checkTarget){
+      printWarnings = "true";
+    }
+    UninitializedVariablesState.init(checkTarget);
 
     this.abstractDomain = domain;
     this.mergeOperator = mergeOp;

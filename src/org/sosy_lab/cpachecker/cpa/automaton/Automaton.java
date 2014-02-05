@@ -117,7 +117,8 @@ public class Automaton {
 
   private static String formatState(AutomatonInternalState s, String color) {
     String name = s.getName().replace("_predefinedState_", "");
-    return String.format("%d [shape=\"circle\" color=\"%s\" label=\"%s\"]\n", s.getStateId(), color, name);
+    String shape = s.getDoesMatchAll() ? "doublecircle" : "circle";
+    return String.format("%d [shape=\"" + shape + "\" color=\"%s\" label=\"%s\"]\n", s.getStateId(), color, name);
   }
 
   private static String formatTransition(AutomatonInternalState sourceState, AutomatonTransition t) {

@@ -27,6 +27,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -45,7 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-
+@Options(prefix="cpa.sign")
 public class SignCPA implements ConfigurableProgramAnalysis {
 
   private SignDomain domain;
@@ -60,12 +61,13 @@ public class SignCPA implements ConfigurableProgramAnalysis {
 
   @Option(name="stop", toUppercase=true, values={"SEP", "JOIN"},
       description="which stop operator to use for SignCPA")
-  private String stopType = "JOIN";
+  private String stopType = "SEP";
 
   private StopOperator stop;
   private MergeOperator merge;
 
   public SignCPA(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
     logger = pLogger;
     domain = new SignDomain();
     transfer = new SignTransferRelation(logger);

@@ -117,6 +117,7 @@ class CFABuilder extends ASTVisitor {
   private String staticVariablePrefix;
   private CatchAllGlobalTypesVisitor preBuildTypeChecker = null;
   private IASTTranslationUnit ast = null;
+  private Sideassignments sideAssignmentStack = null;
 
   public CFABuilder(Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
     logger = pLogger;
@@ -133,12 +134,13 @@ class CFABuilder extends ASTVisitor {
 
   public void analyzeTranslationUnit(IASTTranslationUnit ast, String staticVariablePrefix) throws InvalidConfigurationException {
     this.staticVariablePrefix = staticVariablePrefix;
+    sideAssignmentStack = new Sideassignments();
     fileScope = new GlobalScope(new HashMap<String, CSimpleDeclaration>(),
                                 new HashMap<String, CFunctionDeclaration>(),
                                 new HashMap<String, CComplexTypeDeclaration>(),
                                 new HashMap<String, CTypeDefDeclaration>(),
                                 globalScope.getTypes().keySet());
-    astCreator = new ASTConverter(config, fileScope, logger, machine, staticVariablePrefix, true);
+    astCreator = new ASTConverter(config, fileScope, logger, machine, staticVariablePrefix, true, sideAssignmentStack);
     functionDeclarations.add(Pair.of((List<IASTFunctionDefinition>)new ArrayList<IASTFunctionDefinition>(), Pair.of(staticVariablePrefix, fileScope)));
 
     preBuildTypeChecker = null;
@@ -151,6 +153,7 @@ class CFABuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTDeclaration declaration) {
+    sideAssignmentStack.enterBlock();
     IASTFileLocation fileloc = declaration.getFileLocation();
 
     if (declaration instanceof IASTSimpleDeclaration) {
@@ -162,8 +165,8 @@ class CFABuilder extends ASTVisitor {
 
       // add forward declaration to list of global declarations
       CFunctionDeclaration functionDefinition = astCreator.convert(fd);
-      if (!astCreator.getAndResetPreSideAssignments().isEmpty()
-          || !astCreator.getAndResetPostSideAssignments().isEmpty()) {
+      if (sideAssignmentStack.hasPreSideAssignments()
+          || sideAssignmentStack.hasPostSideAssignments()) {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
 
@@ -173,6 +176,7 @@ class CFABuilder extends ASTVisitor {
         eliminateableDuplicates.add(functionDefinition.toASTString());
       }
 
+      sideAssignmentStack.leaveBlock();
       return PROCESS_SKIP;
 
     } else if (declaration instanceof IASTProblemDeclaration) {
@@ -182,12 +186,14 @@ class CFABuilder extends ASTVisitor {
       // #define  __attribute__(x)  /*NOTHING*/
       // or insert "parser.dialect = GNUC" into properties file
       visit(((IASTProblemDeclaration)declaration).getProblem());
+      sideAssignmentStack.leaveBlock();
       return PROCESS_SKIP;
 
     } else if (declaration instanceof IASTASMDeclaration) {
       // TODO Assembler code is ignored here
       encounteredAsm = true;
       logger.log(Level.FINER, "Ignoring inline assembler code at line", fileloc.getStartingLineNumber());
+      sideAssignmentStack.leaveBlock();
       return PROCESS_SKIP;
 
     } else {
@@ -201,20 +207,21 @@ class CFABuilder extends ASTVisitor {
 
     //these are unneccesary semicolons which would cause an abort of CPAchecker
     if (sd.getDeclarators().length == 0  && sd.getDeclSpecifier() instanceof IASTSimpleDeclSpecifier) {
+      sideAssignmentStack.leaveBlock();
       return PROCESS_SKIP;
     }
 
     final List<CDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
-    if (!astCreator.getAndResetConditionalExpressions().isEmpty()
-        || !astCreator.getAndResetPostSideAssignments().isEmpty()) {
+    if (sideAssignmentStack.hasConditionalExpression()
+        || sideAssignmentStack.hasPostSideAssignments()) {
       throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
     }
 
     String rawSignature = sd.getRawSignature();
 
-    for (CAstNode astNode : astCreator.getAndResetPreSideAssignments()) {
+    for (CAstNode astNode : sideAssignmentStack.getAndResetPreSideAssignments()) {
       if (astNode instanceof CComplexTypeDeclaration) {
         // already registered
         globalDeclarations.add(Pair.of((IADeclaration)astNode, rawSignature));
@@ -261,6 +268,7 @@ class CFABuilder extends ASTVisitor {
       }
     }
 
+    sideAssignmentStack.leaveBlock();
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
   }
 
@@ -282,7 +290,7 @@ class CFABuilder extends ASTVisitor {
       // only instantiate the typechecker if it was not already instantiated
       if(preBuildTypeChecker == null) {
         try {
-          preBuildTypeChecker = new CatchAllGlobalTypesVisitor(config, logger, machine, staticVariablePrefix);
+          preBuildTypeChecker = new CatchAllGlobalTypesVisitor(config, logger, machine, staticVariablePrefix, sideAssignmentStack);
           ast.accept(preBuildTypeChecker);
         } catch (InvalidConfigurationException e) {
           throw new CFAGenerationRuntimeException("Invalid configuration");
@@ -306,6 +314,12 @@ class CFABuilder extends ASTVisitor {
       if (areEqual) {
         if (counter == 0) {
           newD = globalScope.getTypes().get(newType.getQualifiedName());
+          CComplexTypeDeclaration decl;
+          if (( decl = fileScope.getTypes().get(newType.getQualifiedName())) != null) {
+            if (areEqualTypes(decl.getType(), newD.getType())) {
+              break;
+            }
+          }
           used = fileScope.registerTypeDeclaration(newD);
           break;
 
@@ -425,7 +439,17 @@ class CFABuilder extends ASTVisitor {
           }
         }
       }
+    } else {
+
+    // in files where only a forwards declaration can be found but no complete
+    // type we assume that this type is equal to the before found type with the
+    // same name this also works when the elaborated type is the old type, the
+    // first type found which has the same name and a complete type will now be
+    // the realType of the oldType
+    areEqual = ((forwardType.getCanonicalType() instanceof CElaboratedType && forwardType.getName().equals(oldType.getName()))
+               || (oldType.getCanonicalType() instanceof CElaboratedType && oldType.getName().equals(forwardType.getName())));
     }
+
     return areEqual;
   }
 
@@ -488,7 +512,7 @@ class CFABuilder extends ASTVisitor {
         CFAFunctionBuilder functionBuilder;
 
         try {
-          functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine, pair.getSecond().getFirst());
+          functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine, pair.getSecond().getFirst(), sideAssignmentStack);
         } catch (InvalidConfigurationException e) {
           throw new CFAGenerationRuntimeException("Invalid configuration");
         }
@@ -576,7 +600,7 @@ class CFABuilder extends ASTVisitor {
         CFAFunctionBuilder functionBuilder;
 
         try {
-          functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine, pair.getSecond().getFirst());
+          functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine, pair.getSecond().getFirst(), sideAssignmentStack);
         } catch (InvalidConfigurationException e) {
           throw new CFAGenerationRuntimeException("Invalid configuration");
         }

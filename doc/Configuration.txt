@@ -32,8 +32,8 @@ The following command-line arguments are allowed:
 -noout			sets "output.disable=true"
 -stats			sets "statistics.print = true"
 -entryfunction <FUNC>	sets "analysis.entryFunction = <FUNC>"
--cbmc			sets "analysis.useCBMC = true"
--timelimit <TIME>	sets "cpa.conditions.global.time.wall = <TIME>"
+-cbmc			sets "analysis.checkCounterexamples = true"
+-timelimit <TIME>	sets "limits.time.cpu = <TIME>"
 -32			sets "analysis.machineModel = Linux32" (this is the default)
 -64			sets "analysis.machineModel = Linux64"
 -skipRecursion		sets "cpa.callstack.skipRecursion = true" and "analysis.summaryEdges = true"

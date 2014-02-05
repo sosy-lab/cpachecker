@@ -23,14 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
@@ -38,9 +47,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.TokenCollector;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Sets;
 
 /**
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
@@ -186,25 +196,183 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
   }
 
-  static class MatchEdgeTokens implements AutomatonBoolExpr {
+  static class MatchAssumeEdge implements AutomatonBoolExpr {
 
-    private final Set<Integer> matchTokens;
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      return pArgs.getCfaEdge() instanceof AssumeEdge ? CONST_TRUE : CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH ASSUME EDGE";
+    }
+
+  }
+
+  static class MatchAssumeCase implements AutomatonBoolExpr {
+
+    private final Optional<Boolean> matchPositiveCase;
+
+    public MatchAssumeCase(Optional<Boolean> pMatchPositiveCase) {
+      matchPositiveCase = pMatchPositiveCase;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      if (matchPositiveCase.isPresent()) {
+        if (pArgs.getCfaEdge() instanceof AssumeEdge) {
+          AssumeEdge a = (AssumeEdge) pArgs.getCfaEdge();
+          if (matchPositiveCase.get() == a.getTruthAssumption()) {
+            return CONST_TRUE;
+          }
+        }
+      }
+
+      return CONST_FALSE;
+    }
+
+    public Optional<Boolean> getMatchNegativeCase() {
+      return matchPositiveCase;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH ASSUME CASE " + matchPositiveCase;
+    }
+  }
+
+  static abstract class TokenAwareAutomatonBoolExpr implements AutomatonBoolExpr {
+    protected boolean handleAsEpsilonEdge(CFAEdge edge) {
+      if (edge instanceof BlankEdge) {
+        return true;
+      } else if (edge instanceof CDeclarationEdge) {
+        CDeclarationEdge declEdge = (CDeclarationEdge) edge;
+        CDeclaration decl = declEdge.getDeclaration();
+        if (decl instanceof CFunctionDeclaration) {
+          return true;
+        } else if (decl instanceof CTypeDeclaration) {
+          return true;
+        } else if (decl instanceof CVariableDeclaration) {
+          CVariableDeclaration varDecl = (CVariableDeclaration) decl;
+          if (varDecl.getInitializer() == null) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    }
+  }
+
+  static class MatchNonEmptyEdgeTokens extends TokenAwareAutomatonBoolExpr {
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      Set<Integer> edgeTokens;
+      if (handleAsEpsilonEdge(pArgs.getCfaEdge())) {
+        edgeTokens = Collections.emptySet();
+      } else {
+        edgeTokens = TokenCollector.getTokensFromCFAEdge(pArgs.getCfaEdge(), true);
+      }
+
+      return edgeTokens.size() > 0 ? CONST_TRUE : CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH NONEMPTY TOKENS";
+    }
+
+  }
+
+  static abstract class MatchEdgeTokens extends TokenAwareAutomatonBoolExpr {
+
+    protected final Set<Integer> matchTokens;
 
     public MatchEdgeTokens(Set<Integer> pTokens) {
       matchTokens = pTokens;
     }
 
+    protected abstract boolean tokensMatching(Set<Integer> cfaEdgeTokens);
+
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      Set<Integer> edgeTokens = CFAUtils.getTokensFromCFAEdge(pArgs.getCfaEdge());
-      boolean match = edgeTokens.equals(matchTokens);
+      boolean match = false;
+
+      Set<Integer> edgeTokens;
+      if (handleAsEpsilonEdge(pArgs.getCfaEdge())) {
+        edgeTokens = Collections.emptySet();
+      } else {
+        edgeTokens = TokenCollector.getTokensFromCFAEdge(pArgs.getCfaEdge(), true);
+      }
+
+      match = tokensMatching(edgeTokens);
+
+      if (!match) {
+        Set<Integer> tokensSinceLastMatch = pArgs.getState().getTokensSinceLastMatch();
+        if (!tokensSinceLastMatch.isEmpty()) {
+          match = tokensMatching(tokensSinceLastMatch);
+        }
+      }
+
       return match ? CONST_TRUE : CONST_FALSE;
+    }
+
+    public Set<Integer> getMatchTokens() {
+      return matchTokens;
     }
 
     @Override
     public String toString() {
       return "MATCH TOKENS " + matchTokens;
     }
+  }
+
+
+
+  static class SubsetMatchEdgeTokens extends MatchEdgeTokens {
+
+    public SubsetMatchEdgeTokens(Set<Integer> pTokens) {
+      super(pTokens);
+    }
+
+    @Override
+    protected boolean tokensMatching(Set<Integer> cfaEdgeTokens) {
+      if (matchTokens.isEmpty()) {
+        return cfaEdgeTokens.isEmpty();
+      } else {
+        return cfaEdgeTokens.containsAll(matchTokens);
+      }
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH TOKENS SUBSET " + matchTokens;
+    }
+
+  }
+
+  static class IntersectionMatchEdgeTokens extends MatchEdgeTokens {
+
+    public IntersectionMatchEdgeTokens(Set<Integer> pTokens) {
+      super(pTokens);
+    }
+
+    @Override
+    protected boolean tokensMatching(Set<Integer> cfaEdgeTokens) {
+      if (matchTokens.isEmpty()) {
+        return cfaEdgeTokens.isEmpty();
+      } else {
+        return Sets.intersection(cfaEdgeTokens, matchTokens).size() > 0;
+      }
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH TOKENS INTERSECT " + matchTokens;
+    }
+
   }
 
   /**
@@ -497,6 +665,14 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     public String toString() {
       return "(" + a + " || " + b + ")";
     }
+
+    public AutomatonBoolExpr getA() {
+      return a;
+    }
+
+    public AutomatonBoolExpr getB() {
+      return b;
+    }
   }
 
 
@@ -549,6 +725,14 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     public String toString() {
       return "(" + a + " && " + b + ")";
     }
+
+    public AutomatonBoolExpr getA() {
+      return a;
+    }
+
+    public AutomatonBoolExpr getB() {
+      return b;
+    }
   }
 
 
@@ -579,6 +763,10 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public String toString() {
       return "!" + a;
+    }
+
+    public AutomatonBoolExpr getA() {
+      return a;
     }
   }
 

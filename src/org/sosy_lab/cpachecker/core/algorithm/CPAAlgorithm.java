@@ -27,18 +27,19 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -59,7 +60,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.collect.Iterables;
 
-@Options(prefix="cpa")
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
@@ -100,7 +100,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Number of times stopped:         " + countStop);
       out.println("Number of times breaked:         " + countBreak);
       out.println();
-      out.println("Total time for CPA algorithm:     " + totalTimer + " (Max: " + totalTimer.printMaxTime() + ")");
+      out.println("Total time for CPA algorithm:     " + totalTimer + " (Max: " + totalTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
       out.println("  Time for choose from waitlist:  " + chooseTimer);
       if (forcedCoveringTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for forced covering:       " + forcedCoveringTimer);
@@ -115,10 +115,46 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  @Option(description="Which strategy to use for forced coverings (empty for none)",
-          name="forcedCovering")
-  @ClassOption(packagePrefix="org.sosy_lab.cpachecker")
-  private Class<? extends ForcedCovering> forcedCoveringClass = null;
+  @Options(prefix="cpa")
+  public static class CPAAlgorithmFactory {
+
+    @Option(description="Which strategy to use for forced coverings (empty for none)",
+            name="forcedCovering")
+    @ClassOption(packagePrefix="org.sosy_lab.cpachecker")
+    private Class<? extends ForcedCovering> forcedCoveringClass = null;
+    private final ForcedCovering forcedCovering;
+
+    private final ConfigurableProgramAnalysis cpa;
+    private final LogManager logger;
+    private final ShutdownNotifier shutdownNotifier;
+
+    public CPAAlgorithmFactory(ConfigurableProgramAnalysis cpa, LogManager logger,
+        Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      config.inject(this);
+      this.cpa = cpa;
+      this.logger = logger;
+      this.shutdownNotifier = pShutdownNotifier;
+
+      if (forcedCoveringClass != null) {
+        forcedCovering = Classes.createInstance(ForcedCovering.class, forcedCoveringClass,
+            new Class<?>[] {Configuration.class, LogManager.class, ConfigurableProgramAnalysis.class},
+            new Object[]   {config,              logger,           cpa});
+      } else {
+        forcedCovering = null;
+      }
+
+    }
+
+    public CPAAlgorithm newInstance() {
+      return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering);
+    }
+  }
+
+  public static CPAAlgorithm create(ConfigurableProgramAnalysis cpa, LogManager logger,
+      Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+    return new CPAAlgorithmFactory(cpa, logger, config, pShutdownNotifier).newInstance();
+  }
+
   private final ForcedCovering forcedCovering;
 
   private final CPAStatistics               stats = new CPAStatistics();
@@ -129,20 +165,13 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final ShutdownNotifier                   shutdownNotifier;
 
-  public CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
-      Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-    config.inject(this);
+  private CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
+      ShutdownNotifier pShutdownNotifier,
+      ForcedCovering pForcedCovering) {
     this.cpa = cpa;
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
-
-    if (forcedCoveringClass != null) {
-      forcedCovering = Classes.createInstance(ForcedCovering.class, forcedCoveringClass,
-          new Class<?>[] {Configuration.class, LogManager.class, ConfigurableProgramAnalysis.class},
-          new Object[]   {config,              logger,           cpa});
-    } else {
-      forcedCovering = null;
-    }
+    this.forcedCovering = pForcedCovering;
   }
 
   @Override
@@ -151,14 +180,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     try {
       return run0(reachedSet);
     } finally {
-      stats.totalTimer.stop();
-      stats.chooseTimer.stop();
-      stats.precisionTimer.stop();
-      stats.transferTimer.stop();
-      stats.mergeTimer.stop();
-      stats.stopTimer.stop();
-      stats.addTimer.stop();
-      stats.forcedCoveringTimer.stop();
+      stats.totalTimer.stopIfRunning();
+      stats.chooseTimer.stopIfRunning();
+      stats.precisionTimer.stopIfRunning();
+      stats.transferTimer.stopIfRunning();
+      stats.mergeTimer.stopIfRunning();
+      stats.stopTimer.stopIfRunning();
+      stats.addTimer.stopIfRunning();
+      stats.forcedCoveringTimer.stopIfRunning();
     }
   }
 

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.pcc.propertychecker;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;

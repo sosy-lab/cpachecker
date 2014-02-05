@@ -6,7 +6,7 @@
          locally for one machine if necessary. -->
     <property file="build.properties"/>
 
-    <property name="version" value="1.2-svn"/> <!-- change here for a release -->
+    <property name="version" value="1.3-svn"/> <!-- change here for a release -->
 
     <!-- The following properties may be set via file build.properties or command line to change the build behavior. -->
     <!-- <property name="ivy.disable" value=""/> --> <!-- Disable ivy completely. -->
@@ -31,7 +31,7 @@
 
     <path id="CPAchecker.classpath">
         <pathelement location="${class.dir}"/>
-        <fileset dir="lib" includes="*.jar" excludes="appengine-java-sdk-1.8.8/**,gae/**"/>
+        <fileset dir="lib" includes="*.jar" excludes="appengine-*/**,gae/**"/>
         <fileset dir="lib/JavaParser" includes="*.jar"/>
         <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar"/>
     </path>
@@ -44,11 +44,13 @@
     <condition property="os" value="windows">
         <os family="windows"/>
     </condition>
-    <target name="init">
+    <target name="init" depends="create-version-file">
         <echo message="Building ${ant.project.name} ${version}"/>
         <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
-        <echo message="${version}" file="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
     </target>
+	<target name="create-version-file">
+		<echo message="${version}" file="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
+	</target>
     <target name="clean">
         <delete includeEmptyDirs="true">
             <fileset dir="." includes="${class.dir}/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
@@ -174,6 +176,7 @@
         </jar>
     </target>
 
+    <!-- Release for Windows -->
     <target name="zip" depends="jar">
         <property name="namez" value="CPAchecker-${version}-windows"/>
         <zip destfile="${namez}.zip" whenempty="fail">
@@ -183,6 +186,7 @@
         </zip>
     </target>
 
+    <!-- Release for GNU/Linux -->
     <target name="tar" depends="jar">
         <property name="namet" value="CPAchecker-${version}-unix"/>
         <tar destfile="${namet}.tar.bz2" compression="bzip2">

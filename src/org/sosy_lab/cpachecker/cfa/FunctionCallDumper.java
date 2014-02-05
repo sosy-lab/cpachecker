@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -55,7 +56,7 @@ public class FunctionCallDumper {
     final FunctionEntryNode main = pCfa.getMainFunction();
     final String mainFunction = main.getFunctionName();
 
-    // get all functioncalls
+    // get all function calls
     final CFAFunctionCallFinder finder = new CFAFunctionCallFinder();
     final FunctionEntryNode functionEntry = pCfa.getFunctionHead(mainFunction);
     CFATraversal.dfs().traverseOnce(functionEntry, finder);
@@ -64,25 +65,24 @@ public class FunctionCallDumper {
     pAppender.append("digraph functioncalls {\n");
     pAppender.append("rankdir=LR;\n\n"); // node-order from Left to Right is nicer
 
-    // write each function only once
-    final Set<String> usedFunctions = new HashSet<>();
+    // write each caller-callee pair only once
+    final Set<Pair<String, String>> callerCalleePair = new HashSet<>();
 
     // external functions are not part of functionNames
     final Set<String> functionNames = pCfa.getAllFunctionNames();
 
-    usedFunctions.add(mainFunction);
+    callerCalleePair.add(Pair.of("init", mainFunction));
     pAppender.append(mainFunction + " [shape=\"box\", color=blue];\n");
 
-    for (final String functionName : finder.functionCalls.keys()) {
-      for (final String calledFunction : finder.functionCalls.get(functionName)) {
-        if (usedFunctions.add(calledFunction)) {
-          if (functionNames.contains(calledFunction)) {
-            pAppender.append(functionName + " -> " + calledFunction + ";\n");
-          } else {
-            // call of external function
-            pAppender.append(calledFunction + " [shape=\"box\", color=grey];\n");
-            pAppender.append(functionName + " -> " + calledFunction + ";\n");
+    for (final String callerFunctionName : finder.functionCalls.keys()) {
+      for (final String calleeFunctionName : finder.functionCalls.get(callerFunctionName)) {
+        if (callerCalleePair.add(Pair.of(callerFunctionName, calleeFunctionName))) {
+          // call to external function
+          if (!functionNames.contains(calleeFunctionName)) {
+            pAppender.append(calleeFunctionName + " [shape=\"box\", color=grey];\n");
           }
+
+          pAppender.append(callerFunctionName + " -> " + calleeFunctionName + ";\n");
         }
       }
     }

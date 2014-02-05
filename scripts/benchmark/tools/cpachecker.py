@@ -17,6 +17,16 @@ if __name__ == "__main__":
 import benchmark.util as Util
 import benchmark.tools.template
 
+REQUIRED_PATHS = [
+                  "lib/java/runtime",
+                  "lib/JavaParser",
+                  "lib/*.jar",
+                  "lib/native",
+                  "scripts",
+                  "cpachecker.jar",
+                  "config",
+                  ]
+
 class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
@@ -39,7 +49,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
     def getProgrammFiles(self, executable):
         executableDir = os.path.join(os.path.dirname(executable),"../")
-        return [os.path.join(executableDir, path) for path in ["lib", "scripts", "cpachecker.jar", "config"]]
+        return Util.flatten(Util.expandFileNamePattern(path, executableDir) for path in REQUIRED_PATHS)
 
 
     def getWorkingDirectory(self, executable):
@@ -144,7 +154,6 @@ class Tool(benchmark.tools.template.BaseTool):
         else:
             status = ''
 
-        property = None
         for line in output.splitlines():
             if 'java.lang.OutOfMemoryError' in line:
                 status = 'OUT OF JAVA MEMORY'
@@ -170,17 +179,15 @@ class Tool(benchmark.tools.template.BaseTool):
                 elif 'Parsing failed' in line:
                     status = 'ERROR (parsing failed)'
 
-            elif line.startswith('Found violation of property '):
-                property = re.match('Found violation of property ([^ ]*) .*', line).group(1)
-
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
-                if line.startswith('SAFE'):
+                if line.startswith('TRUE'):
                     newStatus = result.STR_TRUE
-                elif line.startswith('UNSAFE'):
-                    newStatus = result.STR_FALSE
-                    if property:
-                        newStatus = newStatus + '(' + property + ')'
+                elif line.startswith('FALSE'):
+                    newStatus = result.STR_FALSE_LABEL
+                    match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
+                    if match:
+                        newStatus = newStatus + '(' + match.group(1) + ')'
                 else:
                     newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
                 if newStatus:

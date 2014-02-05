@@ -63,7 +63,7 @@ class Tool(benchmark.tools.template.BaseTool):
             status = result.STR_TRUE
 
         elif "Error Location <<ERROR_LOCATION>> is reachable via the following path" in output:
-            status = result.STR_FALSE
+            status = result.STR_FALSE_LABEL
 
         else:
             status = result.STR_UNKNOWN

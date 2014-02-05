@@ -84,7 +84,7 @@ public class Multiply<ConstantType> extends AbstractFormula<ConstantType> implem
   }
 
   @Override
-  protected int hashCodeInternal() {
+  public int hashCode() {
     return getFactor1().hashCode() * getFactor2().hashCode();
   }
 

@@ -160,6 +160,9 @@ public class SignCExpressionVisitor
   }
 
   private static SIGN evaluateUnaryExpression(UnaryOperator operator, SIGN operand) {
+    if(operand == SIGN.ZERO) {
+      return SIGN.ZERO;
+    }
     if(operator == UnaryOperator.PLUS && operand == SIGN.MINUS
         || operator == UnaryOperator.MINUS && operand == SIGN.PLUS) {
       return SIGN.MINUS;
@@ -172,6 +175,11 @@ public class SignCExpressionVisitor
     if(pLeft == SIGN.MINUS && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)
         || (pLeftExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pLeftExp).getValue().equals(BigInteger.ONE) && pRight == SIGN.MINUS) {
       return SIGN.MINUS0;
+    }
+    // Special case: +0 + 1 => +, 1 + +0 => +
+    if(pLeft == SIGN.PLUS0 && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)
+        || (pLeftExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pLeftExp).getValue().equals(BigInteger.ONE) && pRight == SIGN.PLUS0) {
+      return SIGN.PLUS;
     }
     SIGN leftToRightResult = evaluateNonCommutativePlusOperator(pLeft, pRight);
     SIGN rightToLeftResult = evaluateNonCommutativePlusOperator(pRight, pLeft);
@@ -198,6 +206,10 @@ public class SignCExpressionVisitor
     // Special case: + - 1 => +0
     if(pLeft == SIGN.PLUS && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)) {
       return SIGN.PLUS0;
+    }
+    // Special case: -0 - 1 => -
+    if(pLeft == SIGN.MINUS0 && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)) {
+      return SIGN.MINUS;
     }
     if(pRight == SIGN.ZERO) {
       return pLeft;

@@ -29,8 +29,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.sosy_lab.common.NestedTimer;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.time.NestedTimer;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
@@ -182,7 +182,7 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
       if (count == 0) {
         solveTime.stop();
         enumTime.startOuter();
-        regionTime = enumTime.getInnerTimer();
+        regionTime = enumTime.getCurentInnerTimer();
       }
 
       regionTime.start();

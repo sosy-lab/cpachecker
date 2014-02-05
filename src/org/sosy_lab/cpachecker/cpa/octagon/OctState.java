@@ -23,8 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
@@ -89,20 +96,29 @@ class OctState implements AbstractState {
 
   // mapping from variable name to its identifier
   private BiMap<String, Integer> variableToIndexMap;
+  private Map<String, IOctCoefficients> variableToCoeffMap;
 
-  private OctState previousState;
+  private LogManager logger;
 
   // also top element
-  public OctState() {
+  public OctState(LogManager log) {
     octagon = OctagonManager.universe(0);
     variableToIndexMap = HashBiMap.create();
-    previousState = null;
+    variableToCoeffMap = new HashMap<>();
+    logger = log;
+
+    // cleanup old octagons
+    Octagon.removePhantomReferences();
   }
 
-  public OctState(Octagon oct, BiMap<String, Integer> map, OctState previousElement) {
+  public OctState(Octagon oct, BiMap<String, Integer> map, Map<String, IOctCoefficients> coeffMap, LogManager log) {
     octagon = oct;
     variableToIndexMap = map;
-    this.previousState = previousElement;
+    variableToCoeffMap = coeffMap;
+    logger = log;
+
+    // cleanup old octagons
+    Octagon.removePhantomReferences();
   }
 
   @Override
@@ -111,21 +127,43 @@ class OctState implements AbstractState {
       return false;
     }
     OctState otherOct = (OctState) pObj;
-    return this.octagon.equals(otherOct.octagon);
+
+    return Objects.equals(variableToIndexMap, otherOct.variableToIndexMap)
+           && this.octagon.equals(otherOct.octagon);
+  }
+
+  protected int isLessOrEquals(OctState state) {
+    // TODO is this right???
+    if (isEmpty()) {
+      return 1;
+    }
+
+    if (variableToIndexMap.equals(state.variableToIndexMap)) {
+      return OctagonManager.isIncludedInLazy(octagon, state.octagon);
+    } else {
+
+      logger.log(Level.FINEST, "----------\n" + variableToIndexMap.keySet() + "\n"+ state.variableToIndexMap.keySet());
+      if (variableToIndexMap.keySet().containsAll(state.variableToIndexMap.keySet())) {
+        Octagon newOct = OctagonManager.copy(octagon);
+        newOct = OctagonManager.removeDimension(newOct, variableToIndexMap.size()-state.variableToIndexMap.size());
+        return OctagonManager.isIncludedInLazy(newOct, state.octagon);
+      } else {
+        return 2;
+      }
+    }
   }
 
   @Override
   public int hashCode() {
-    return octagon.hashCode();
-  }
-
-  public void printOctagon() {
-    OctagonManager.print(octagon);
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(variableToIndexMap);
+    return result;
   }
 
   @Override
   public String toString() {
-    return variableToIndexMap + " [octagon]: " + octagon;
+    return OctagonManager.print(octagon, variableToIndexMap.inverse());
   }
 
   public Octagon getOctagon() {
@@ -136,16 +174,12 @@ class OctState implements AbstractState {
     return variableToIndexMap.size();
   }
 
-  public OctState getPreviousState() {
-    return previousState;
-  }
-
-  public void setPreviousState(OctState pPreviousElement) {
-    this.previousState = pPreviousElement;
-  }
-
   public BiMap<String, Integer> getVariableToIndexMap() {
     return variableToIndexMap;
+  }
+
+  public Map<String, IOctCoefficients> getVariableToCoeffMap() {
+    return variableToCoeffMap;
   }
 
   public boolean isEmpty() {
@@ -161,175 +195,365 @@ class OctState implements AbstractState {
       newMap.put(e.getKey(), e.getValue());
     }
 
-    return new OctState(newOct, newMap, this.previousState);
+    Map<String, IOctCoefficients> newCoeffMap = new HashMap<>();
+    for (Entry<String, IOctCoefficients> e: variableToCoeffMap.entrySet()) {
+      newCoeffMap.put(e.getKey(), e.getValue());
+    }
+
+    return new OctState(newOct, newMap, newCoeffMap, logger);
   }
 
   /**
    * This method sets the coefficients/ the value of a variable to undefined.
    */
-  public void forget(String pVariableName) {
-    OctagonManager.forget(octagon, getVariableIndexFor(pVariableName));
+  public OctState forget(String pVariableName) {
+    Map<String, IOctCoefficients> map = new HashMap<>(variableToCoeffMap);
+    map.put(pVariableName, null);
+    return new OctState(OctagonManager.forget(octagon, getVariableIndexFor(pVariableName)),
+                        HashBiMap.create(variableToIndexMap),
+                        map,
+                        logger);
   }
 
   /**
-   * Returns the index of the variable, or null if it is not in the map.
+   * Returns the index of the variable, if the variable is not already in the map
+   * a new variable is declarated and this is index gets returned then.
    */
   protected Integer getVariableIndexFor(String pVariableName) {
     return variableToIndexMap.get(pVariableName);
   }
 
+  protected boolean existsVariable(String variableName) {
+    return variableToIndexMap.containsKey(variableName);
+  }
+
+  public OctState declareVariable(String varName, IOctCoefficients oct) {
+    if (oct instanceof OctSimpleCoefficients || oct == null) {
+      return declareVariable(varName, (OctSimpleCoefficients)oct);
+    } else if (oct instanceof OctIntervalCoefficients) {
+      return declareVariable(varName, (OctIntervalCoefficients)oct);
+    }
+    throw new IllegalArgumentException("Unkown subtype of OctCoefficients.");
+  }
+
   /**
    * This method declares a variable.
    */
-  public void declareVariable(String pVariableName) {
-    assert (!variableToIndexMap.containsKey(pVariableName));
-    variableToIndexMap.put(pVariableName, sizeOfVariables());
-    octagon = OctagonManager.addDimensionAndEmbed(octagon, 1);
+  private OctState declareVariable(String varName, OctSimpleCoefficients coeffs) {
+    assert (!variableToIndexMap.containsKey(varName));
+    OctState newState = new OctState(OctagonManager.addDimensionAndEmbed(octagon, 1),
+                                     HashBiMap.create(variableToIndexMap),
+                                     new HashMap<>(variableToCoeffMap),
+                                     logger);
+    newState.variableToIndexMap.put(varName, sizeOfVariables());
+    newState.variableToCoeffMap.put(varName, coeffs);
+
+    if (coeffs == null) {
+      // TODO necessary???
+      newState.octagon = OctagonManager.forget(newState.octagon, newState.getVariableIndexFor(varName));
+    } else {
+      NumArray arr = coeffs.getNumArray();
+      newState.octagon = OctagonManager.assingVar(newState.octagon, newState.getVariableIndexFor(varName), arr);
+      OctagonManager.num_clear_n(arr, coeffs.size());
+    }
+    return newState;
+  }
+
+  /**
+   * This method declares a variable.
+   */
+  private OctState declareVariable(String varName, OctIntervalCoefficients coeffs) {
+    assert (!variableToIndexMap.containsKey(varName));
+    OctState newState = new OctState(OctagonManager.addDimensionAndEmbed(octagon, 1),
+                                     HashBiMap.create(variableToIndexMap),
+                                     new HashMap<>(variableToCoeffMap),
+                                     logger);
+    newState.variableToIndexMap.put(varName, sizeOfVariables());
+    newState.variableToCoeffMap.put(varName, coeffs);
+
+    if (coeffs == null) {
+      // TODO necessary???
+      newState.octagon = OctagonManager.forget(newState.octagon, newState.getVariableIndexFor(varName));
+    } else {
+      NumArray arr = coeffs.getNumArray();
+      newState.octagon = OctagonManager.intervAssingVar(newState.octagon, newState.getVariableIndexFor(varName), arr);
+      OctagonManager.num_clear_n(arr, coeffs.size());
+    }
+    return newState;
+  }
+
+  public OctState makeAssignment(String leftVarName, IOctCoefficients oct) {
+    if (oct instanceof OctSimpleCoefficients || oct == null) {
+      return makeAssignment(leftVarName, (OctSimpleCoefficients)oct);
+    } else if (oct instanceof OctIntervalCoefficients) {
+      return makeAssignment(leftVarName, (OctIntervalCoefficients)oct);
+    }
+    throw new IllegalArgumentException("Unkown subtype of OctCoefficients.");
   }
 
   /**
    * This method makes an assignment to a variable
    */
-  public void makeAssignment(String leftVarName, OctCoefficients oct) {
+  private OctState makeAssignment(String leftVarName, OctSimpleCoefficients oct) {
     NumArray arr = oct.getNumArray();
-    octagon = OctagonManager.assingVar(octagon, getVariableIndexFor(leftVarName), arr);
+    OctState newState = new OctState(OctagonManager.assingVar(octagon, getVariableIndexFor(leftVarName), arr),
+                                     HashBiMap.create(variableToIndexMap),
+                                     new HashMap<>(variableToCoeffMap),
+                                     logger);
     OctagonManager.num_clear_n(arr, oct.size());
+    newState.variableToCoeffMap.put(leftVarName, oct);
+    return newState;
+  }
+
+  /**
+   * This method makes an interval assignment to a variable. The OctCoefficients
+   * need to be twice as long as for normal assignments! (upper and lower bound)
+   */
+  private OctState makeAssignment(String leftVarName, OctIntervalCoefficients oct) {
+    NumArray arr = oct.getNumArray();
+    OctState newState = new OctState(OctagonManager.intervAssingVar(octagon, getVariableIndexFor(leftVarName), arr),
+                                     HashBiMap.create(variableToIndexMap),
+                                     new HashMap<>(variableToCoeffMap),
+                                     logger);
+    OctagonManager.num_clear_n(arr, oct.size());
+    newState.variableToCoeffMap.put(leftVarName, oct);
+    return newState;
   }
 
   /**
    * Helper method for all addXXXXConstraint methods
    */
-  private void addConstraint(BinaryConstraints cons, int leftIndex, int rightIndex, int constantValue) {
+  private OctState addConstraint(BinaryConstraints cons, int leftIndex, int rightIndex, int constantValue) {
     NumArray arr = OctagonManager.init_num_t(4);
     OctagonManager.num_set_int(arr, 0, cons.getNumber());
     OctagonManager.num_set_int(arr, 1, leftIndex);
     OctagonManager.num_set_int(arr, 2, rightIndex);
     OctagonManager.num_set_int(arr, 3, constantValue);
-    octagon = OctagonManager.addBinConstraint(octagon, 1, arr);
+    OctState newState = new OctState(OctagonManager.addBinConstraint(octagon, 1, arr),
+                                     HashBiMap.create(variableToIndexMap),
+                                     new HashMap<>(variableToCoeffMap),
+                                     logger);
     OctagonManager.num_clear_n(arr, 4);
+    return newState;
   }
 
   /**
    * This method adds a smaller constraint between two variables (p.e. a <= b).
    * Note that this only works with integers!
    */
-  public void addSmallerEqConstraint(String pRightVariableName, String pLeftVariableName) {
+  public OctState addSmallerEqConstraint(String pRightVariableName, String pLeftVariableName) {
+    if (variableToCoeffMap.get(pLeftVariableName) instanceof OctIntervalCoefficients
+        || variableToCoeffMap.get(pRightVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pLeftVariableName, new OctIntervalCoefficients(sizeOfVariables(), getVariableIndexFor(pRightVariableName), 0, 1, true, false));
+      return assignedState.intersect(this);
+    }
+
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
     // use 0 as constant value, we don't need it
-    addConstraint(BinaryConstraints.PXMY, lVarIdx, rVarIdx, 0);
+    return addConstraint(BinaryConstraints.PXMY, lVarIdx, rVarIdx, 0);
   }
 
   /**
    * This method adds a smaller equal constraint between a variable and a long (p.e. a <= 3).
    * Note that this only works with integers!
    */
-  public void addSmallerEqConstraint(String pVariableName, long pValueOfLiteral) {
+  public OctState addSmallerEqConstraint(String pVariableName, long pValueOfLiteral) {
+    if (variableToCoeffMap.get(pVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pVariableName, new OctIntervalCoefficients(sizeOfVariables(), 0, pValueOfLiteral, true, false));
+      return assignedState.intersect(this);
+    }
+
     int varIdx = getVariableIndexFor(pVariableName);
-    addConstraint(BinaryConstraints.PX, varIdx, 0, (int)pValueOfLiteral);
+    return addConstraint(BinaryConstraints.PX, varIdx, -1, (int)pValueOfLiteral);
   }
 
   /**
    * This method adds a smaller constraint between two variables (p.e. a < b).
    * Note that this only works with integers!
    */
-  public void addSmallerConstraint(String pRightVariableName, String pLeftVariableName) {
+  public OctState addSmallerConstraint(String pRightVariableName, String pLeftVariableName) {
+    if (variableToCoeffMap.get(pLeftVariableName) instanceof OctIntervalCoefficients
+        || variableToCoeffMap.get(pRightVariableName) instanceof OctIntervalCoefficients) {
+      OctIntervalCoefficients coeffsRight = new OctIntervalCoefficients(sizeOfVariables(), getVariableIndexFor(pRightVariableName), 0, 1, true, false);
+      coeffsRight.setConstantValue(-1, -1);
+      OctState assignedState = makeAssignment(pLeftVariableName, coeffsRight);
+      return assignedState.intersect(this);
+    }
+
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
     // we want the lefthandside to be really smaller than the righthandside
     // so we use -1 as a constant value
-    addConstraint(BinaryConstraints.PXMY, lVarIdx, rVarIdx, -1);
+    return addConstraint(BinaryConstraints.PXMY, lVarIdx, rVarIdx, -1);
   }
 
   /**
    * This method adds a smaller constraint between a variable and a long (p.e. a < 3).
    * Note that this only works with integers!
    */
-  public void addSmallerConstraint(String pVariableName, long pValueOfLiteral) {
+  public OctState addSmallerConstraint(String pVariableName, long pValueOfLiteral) {
+    if (variableToCoeffMap.get(pVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pVariableName, new OctIntervalCoefficients(sizeOfVariables(), 0, pValueOfLiteral-1, true, false));
+      return assignedState.intersect(this);
+    }
+
     int varIdx = getVariableIndexFor(pVariableName);
 
     // set right index to -1 as it is not used
-    addConstraint(BinaryConstraints.PX, varIdx, -1, (int)pValueOfLiteral-1);
+    return addConstraint(BinaryConstraints.PX, varIdx, -1, (int)pValueOfLiteral-1);
   }
 
   /**
    * This method adds a greater equal constraint between two variables (p.e. a >= b).
    * Note that this only works with integers!
    */
-  public void addGreaterEqConstraint(String pRightVariableName, String pLeftVariableName) {
+  public OctState addGreaterEqConstraint(String pRightVariableName, String pLeftVariableName) {
+    if (variableToCoeffMap.get(pLeftVariableName) instanceof OctIntervalCoefficients
+        || variableToCoeffMap.get(pRightVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pLeftVariableName, new OctIntervalCoefficients(sizeOfVariables(), getVariableIndexFor(pRightVariableName), 1, 0, false, true));
+      return assignedState.intersect(this);
+    }
+
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
     // use 0 as constant value, we don't need it
-    addConstraint(BinaryConstraints.MXPY, lVarIdx, rVarIdx, 0);
+    return addConstraint(BinaryConstraints.MXPY, lVarIdx, rVarIdx, 0);
   }
 
   /**
    * This method adds a greater equal constraint between a variable and a literal (p.e. a >= 3).
    * Note that this only works with integers!
    */
-  public void addGreaterEqConstraint(String pVariableName, long pValueOfLiteral) {
+  public OctState addGreaterEqConstraint(String pVariableName, long pValueOfLiteral) {
+    if (variableToCoeffMap.get(pVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pVariableName, new OctIntervalCoefficients(sizeOfVariables(), pValueOfLiteral, 0, false, true));
+      return assignedState.intersect(this);
+    }
+
     int varIdx = getVariableIndexFor(pVariableName);
 
     // set right index to -1 as it is not used
-    addConstraint(BinaryConstraints.MX, varIdx, -1, (int)-pValueOfLiteral);
+    return addConstraint(BinaryConstraints.MX, varIdx, -1, (int)-pValueOfLiteral);
   }
 
   /**
    * This method adds a greater constraint between two variables (p.e. a > b).
    * Note that this only works with integers!
    */
-  public void addGreaterConstraint(String pRightVariableName, String pLeftVariableName) {
+  public OctState addGreaterConstraint(String pRightVariableName, String pLeftVariableName) {
+    if (variableToCoeffMap.get(pLeftVariableName) instanceof OctIntervalCoefficients
+        || variableToCoeffMap.get(pRightVariableName) instanceof OctIntervalCoefficients) {
+      OctIntervalCoefficients coeffsRight = new OctIntervalCoefficients(sizeOfVariables(), getVariableIndexFor(pRightVariableName), 1, 0, false, true);
+      coeffsRight.setConstantValue(1, 1);
+      OctState assignedState = makeAssignment(pLeftVariableName, coeffsRight);
+      return assignedState.intersect(this);
+    }
+
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
     // we want the lefthandside to be really greater than the righthandside
     // so we use -1 as a constant value
-    addConstraint(BinaryConstraints.MXPY, lVarIdx, rVarIdx, -1);
+    return addConstraint(BinaryConstraints.MXPY, lVarIdx, rVarIdx, -1);
   }
 
   /**
    * This method adds a greater constraint between a variable and a literal (p.e. a > 3).
    * Note that this only works with integers!
    */
-  public void addGreaterConstraint(String pVariableName, long pValueOfLiteral) {
+  public OctState addGreaterConstraint(String pVariableName, long pValueOfLiteral) {
+    if (variableToCoeffMap.get(pVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pVariableName, new OctIntervalCoefficients(sizeOfVariables(), pValueOfLiteral+1, 0, false, true));
+      return assignedState.intersect(this);
+    }
+
     int varIdx = getVariableIndexFor(pVariableName);
 
     // set right index to -1 as it is not used
-    addConstraint(BinaryConstraints.MX, varIdx, -1, (-1 - (int)pValueOfLiteral));
+    return addConstraint(BinaryConstraints.MX, varIdx, -1, (-1 - (int)pValueOfLiteral));
   }
 
   /**
    * This method adds an equality constraint between two variables (p.e. a == b).
    * Note that this only works with integers!
    */
-  public void addEqConstraint(String pRightVariableName, String pLeftVariableName) {
-    addSmallerEqConstraint(pLeftVariableName, pRightVariableName);
-    addGreaterEqConstraint(pLeftVariableName, pRightVariableName);
+  public OctState addEqConstraint(String pRightVariableName, String pLeftVariableName) {
+    if (variableToCoeffMap.get(pLeftVariableName) instanceof OctIntervalCoefficients
+        || variableToCoeffMap.get(pRightVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pLeftVariableName, new OctSimpleCoefficients(sizeOfVariables(), getVariableIndexFor(pRightVariableName), 1));
+      return assignedState.intersect(this);
+    }
+    return addSmallerEqConstraint(pLeftVariableName, pRightVariableName)
+           .addGreaterEqConstraint(pLeftVariableName, pRightVariableName);
   }
 
   /**
    * This method adds an equality constraint between a variable and a literal (p.e. a == 3).
    * Note that this only works with integers!
    */
-  public void addEqConstraint(String pVariableName, long constantValue) {
-    addSmallerEqConstraint(pVariableName, constantValue);
-    addGreaterEqConstraint(pVariableName, constantValue);
+  public OctState addEqConstraint(String pVariableName, long constantValue) {
+    if (variableToCoeffMap.get(pVariableName) instanceof OctIntervalCoefficients) {
+      OctState assignedState = makeAssignment(pVariableName, new OctSimpleCoefficients(sizeOfVariables(), constantValue));
+      return assignedState.intersect(this);
+    }
+    return addSmallerEqConstraint(pVariableName, constantValue)
+           .addGreaterEqConstraint(pVariableName, constantValue);
   }
 
-  // keep sizeOfpreviousElem dimensions at the beginning and remove the rest
-  public void removeLocalVariables(OctState prevState) {
-    int noOfLocalVars = (sizeOfVariables()- prevState.sizeOfVariables());
+  /**
+   * This method emulates an inequality constraint for assumptions with two variables.
+   * There is no inequality constraint possible in the normal way with the octagon library,
+   * as workaraound we added a state for a smaller constraint, and a state for a greater constraint.
+   * Note that it only works if both variables are Integers!
+   */
+  public List<OctState> addIneqConstraint(String rightVarName, String leftVarName) {
+    List<OctState> list = new ArrayList<>();
+    list.add(addSmallerConstraint(rightVarName, leftVarName));
+    list.add(addGreaterConstraint(rightVarName, leftVarName));
+    return list;
+  }
 
-    for (int i = sizeOfVariables(); i>prevState.sizeOfVariables(); i--) {
-      String s = variableToIndexMap.inverse().get(i-1);
-      variableToIndexMap.remove(s);
+  /**
+   * This method emulates an inequality constraint for assumptions with a variable
+   * and a long/int.
+   * There is no inequality constraint possible in the normal way with the octagon library,
+   * as workaraound we added a state for a smaller constraint, and a state for a greater constraint.
+   * Note that it only works if both variables are Integers!
+   */
+  public List<OctState> addIneqConstraint(String varname, long value) {
+    List<OctState> list = new ArrayList<>();
+    list.add(addSmallerConstraint(varname, value));
+    list.add(addGreaterConstraint(varname, value));
+    return list;
+  }
+
+  public OctState intersect(OctState other) {
+    return new OctState(OctagonManager.intersection(octagon, other.octagon),
+                        HashBiMap.create(variableToIndexMap),
+                        new HashMap<>(variableToCoeffMap),
+                        logger);
+  }
+
+  public OctState removeLocalVars(String functionName) {
+
+    List<String> keysToRemove = new ArrayList<>();
+    for (String var : variableToIndexMap.keySet()) {
+      if (var.startsWith(functionName+"::")) {
+        keysToRemove.add(var);
+      }
     }
 
-    octagon = OctagonManager.removeDimension(octagon, noOfLocalVars);
-    assert (OctagonManager.dimension(octagon) == sizeOfVariables());
-  }
+    OctState newState = new OctState(OctagonManager.removeDimension(octagon, keysToRemove.size()),
+                                     HashBiMap.create(variableToIndexMap),
+                                     new HashMap<>(variableToCoeffMap),
+                                     logger);
+    newState.variableToIndexMap.keySet().removeAll(keysToRemove);
 
+    assert (OctagonManager.dimension(newState.octagon) == newState.sizeOfVariables());
+    return newState;
+  }
 }

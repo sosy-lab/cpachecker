@@ -53,7 +53,7 @@ public class Variable<ConstantType> extends AbstractFormula<ConstantType> implem
   }
 
   @Override
-  protected int hashCodeInternal() {
+  public int hashCode() {
     return getName().hashCode();
   }
 

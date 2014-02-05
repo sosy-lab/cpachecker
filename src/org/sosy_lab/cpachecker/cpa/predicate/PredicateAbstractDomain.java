@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;

@@ -23,21 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -80,7 +80,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Option(name="dotExportFile",
       description="file for saving the automaton in DOT format (%s will be replaced with automaton name)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File exportFile = new File("%s.dot");
+  private Path exportFile = Paths.get("%s.dot");
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
@@ -89,10 +89,14 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Option(required=false,
       description="file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private File inputFile = null;
+  private Path inputFile = null;
 
-  @Option(description="signal the analysis to break in case of reached error state")
-  private boolean breakOnTargetState = true;
+  @Option(description="signal the analysis to break in case the given number of error state is reached ")
+  private int breakOnTargetState = 1;
+
+  @Option(description="the maximum number of iterations performed after the initial error is found, despite the limit"
+      + "given as cpa.automaton.breakOnTargetState is not yet reached")
+  private int extraIterationsLimit = -1;
 
   private final Automaton automaton;
   private final AutomatonState topState = new AutomatonState.TOP(this);
@@ -110,7 +114,14 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     config.inject(this, ControlAutomatonCPA.class);
 
     transferRelation = new AutomatonTransferRelation(this, logger);
-    precisionAdjustment = breakOnTargetState ? BreakOnTargetsPrecisionAdjustment.getInstance() : StaticPrecisionAdjustment.getInstance();
+
+    if (breakOnTargetState > 0) {
+      precisionAdjustment = BreakOnTargetsPrecisionAdjustment.getInstance(breakOnTargetState, extraIterationsLimit);
+    }
+
+    else {
+      precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    }
 
     if (pAutomaton != null) {
       this.automaton = pAutomaton;
@@ -121,10 +132,10 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     } else {
       List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger, cfa.getMachineModel());
       if (lst.isEmpty()) {
-        throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.getAbsolutePath());
+        throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.toAbsolutePath());
       } else if (lst.size() > 1) {
         throw new InvalidConfigurationException("Found " + lst.size()
-            + " automata in the File " + inputFile.getAbsolutePath()
+            + " automata in the File " + inputFile.toAbsolutePath()
             + " The CPA can only handle ONE Automaton!");
       }
 
@@ -133,8 +144,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
 
     if (export && exportFile != null) {
-      String fileName = String.format(exportFile.getAbsolutePath(), automaton.getName());
-      try (Writer w = Files.openOutputFile(new Path(fileName))) {
+      String fileName = String.format(exportFile.toAbsolutePath().getPath(), automaton.getName());
+      try (Writer w = Files.openOutputFile(Paths.get(fileName))) {
         automaton.writeDotFile(w);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
@@ -155,7 +166,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this);
+    return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0);
   }
 
   @Override

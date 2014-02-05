@@ -28,13 +28,12 @@ import static com.google.common.collect.Iterables.skip;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -131,10 +130,11 @@ public class ExplicitInterpolator {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public Set<Pair<MemoryLocation, Long>> deriveInterpolant(
+  public Map<MemoryLocation, Long> deriveInterpolant(
       List<CFAEdge> pErrorPath,
       int pOffset,
-      Map<MemoryLocation, Long> pInputInterpolant) throws CPAException, InterruptedException {
+      Map<MemoryLocation, Long> pInputInterpolant,
+      Set<String> relevantVariables) throws CPAException, InterruptedException {
     numberOfInterpolations = 0;
     currentOffset          = pOffset;
 
@@ -150,22 +150,37 @@ public class ExplicitInterpolator {
       return null;
     }
 
+    if(relevantVariables != null) {
+      boolean relevantVariablesInItp = false;
+      for(MemoryLocation variable : initialState.getDifference(initialSuccessor)) {
+        if(relevantVariables.contains(variable.getAsSimpleString())) {
+          relevantVariablesInItp = true;
+        } else {
+          initialSuccessor.forget(variable.getAsSimpleString());
+        }
+      }
+
+      if(!relevantVariablesInItp) {
+        return pInputInterpolant;
+      }
+    }
+
     // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
     Iterable<CFAEdge> remainingErrorPath = skip(pErrorPath, currentOffset + 1);
     if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(remainingErrorPath, new ExplicitState())) {
-      return Collections.emptySet();
+      return Collections.emptyMap();
     }
 
-    Set<Pair<MemoryLocation, Long>> interpolant = new HashSet<>();
+    Map<MemoryLocation, Long> interpolant = new HashMap<>();
     for (MemoryLocation currentMemoryLocation : determineInterpolationCandidates(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
       ExplicitState successor = initialSuccessor.clone();
 
       // remove the value of the current and all already-found-to-be-irrelevant variables from the successor
       successor.forget(currentMemoryLocation);
-      for (Pair<MemoryLocation, Long> interpolantVariable : interpolant) {
-        if (interpolantVariable.getSecond() == null) {
-          successor.forget(interpolantVariable.getFirst());
+      for (Map.Entry<MemoryLocation, Long> interpolantVariable : interpolant.entrySet()) {
+        if (interpolantVariable.getValue() == null) {
+          successor.forget(interpolantVariable.getKey());
         }
       }
 
@@ -173,9 +188,9 @@ public class ExplicitInterpolator {
       isFeasible = isRemainingPathFeasible(remainingErrorPath, successor);
 
       if (isFeasible) {
-        interpolant.add(Pair.of(currentMemoryLocation, initialSuccessor.getValueFor(currentMemoryLocation)));
+        interpolant.put(currentMemoryLocation, initialSuccessor.getValueFor(currentMemoryLocation));
       } else {
-        interpolant.add(Pair.<MemoryLocation, Long>of(currentMemoryLocation, null));
+        interpolant.put(currentMemoryLocation, null);
       }
     }
 

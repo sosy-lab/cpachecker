@@ -85,7 +85,7 @@ public class ShiftLeft<ConstantType> extends AbstractFormula<ConstantType> imple
   }
 
   @Override
-  protected int hashCodeInternal() {
+  public int hashCode() {
     return getShifted().hashCode() << getShiftDistance().hashCode();
   }
 

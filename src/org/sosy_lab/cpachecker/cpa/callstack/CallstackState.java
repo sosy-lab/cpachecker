@@ -129,6 +129,6 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     int nodeNumber = in.readInt();
-    callerNode = GlobalInfo.getInstance().getCFAInfo().getNodeByNodeNumber(nodeNumber);
+    callerNode = GlobalInfo.getInstance().getCFAInfo().get().getNodeByNodeNumber(nodeNumber);
   }
 }

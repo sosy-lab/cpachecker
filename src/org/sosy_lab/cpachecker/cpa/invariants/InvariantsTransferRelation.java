@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -37,12 +38,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -54,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -62,6 +65,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor.VariableNameExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -96,42 +100,38 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
   private InvariantsState getSuccessor(CFAEdge pEdge, InvariantsPrecision pPrecision, InvariantsState pState) throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
     InvariantsState element = pState;
-    if (pPrecision != null && !pPrecision.isRelevant(pEdge)) {
-      element = pState.clear();
-    } else {
-      switch (pEdge.getEdgeType()) {
-      case BlankEdge:
-        break;
-      case FunctionReturnEdge:
-        element = handleFunctionReturn(element, (CFunctionReturnEdge) pEdge, pPrecision);
-        break;
-      case ReturnStatementEdge:
-        element = handleReturnStatement(element, (CReturnStatementEdge) pEdge, pPrecision);
-        break;
-      case AssumeEdge:
-        element = handleAssume(element, (CAssumeEdge) pEdge, pPrecision);
-        break;
-
-      case DeclarationEdge:
-        element = handleDeclaration(element, (CDeclarationEdge) pEdge, pPrecision);
-        break;
-
-      case FunctionCallEdge:
-        element = handleFunctionCall(element, (CFunctionCallEdge) pEdge, pPrecision);
-        break;
-
-      case StatementEdge:
-        element = handleStatement(element, (CStatementEdge) pEdge, pPrecision);
-        break;
-      case MultiEdge:
-        Iterator<CFAEdge> edgeIterator = ((MultiEdge) pEdge).iterator();
-        while (element != null && edgeIterator.hasNext()) {
-          element = getSuccessor(edgeIterator.next(), pPrecision, element);
-        }
-        break;
-      default:
-        throw new UnrecognizedCFAEdgeException(pEdge);
+    switch (pEdge.getEdgeType()) {
+    case BlankEdge:
+      break;
+    case FunctionReturnEdge:
+      element = handleFunctionReturn(element, (CFunctionReturnEdge) pEdge, pPrecision);
+      break;
+    case ReturnStatementEdge:
+      element = handleReturnStatement(element, (CReturnStatementEdge) pEdge, pPrecision);
+      break;
+    case AssumeEdge:
+      element = handleAssume(element, (CAssumeEdge) pEdge, pPrecision);
+      break;
+    case DeclarationEdge:
+      element = handleDeclaration(element, (CDeclarationEdge) pEdge, pPrecision);
+      break;
+    case FunctionCallEdge:
+      element = handleFunctionCall(element, (CFunctionCallEdge) pEdge, pPrecision);
+      break;
+    case StatementEdge:
+      element = handleStatement(element, (CStatementEdge) pEdge, pPrecision);
+      break;
+    case MultiEdge:
+      Iterator<CFAEdge> edgeIterator = ((MultiEdge) pEdge).iterator();
+      while (element != null && edgeIterator.hasNext()) {
+        element = getSuccessor(edgeIterator.next(), pPrecision, element);
       }
+      break;
+    default:
+      throw new UnrecognizedCFAEdgeException(pEdge);
+    }
+    if (element != null && pPrecision != null && !pPrecision.isRelevant(pEdge)) {
+      element = element.clear();
     }
     return element;
   }
@@ -234,11 +234,34 @@ public enum InvariantsTransferRelation implements TransferRelation {
       CAssignment assignment = (CAssignment)pEdge.getStatement();
       ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
       CExpression leftHandSide = assignment.getLeftHandSide();
+      CRightHandSide rightHandSide = assignment.getRightHandSide();
       InvariantsFormula<CompoundInterval> value = assignment.getRightHandSide().accept(etfv);
+      if (CompoundStateFormulaManager.isDefinitelyTop(value) && rightHandSide instanceof CFunctionCallExpression) {
+        CFunctionCallExpression cFunctionCallExpression = (CFunctionCallExpression) rightHandSide;
+        CExpression functionNameExpression = cFunctionCallExpression.getFunctionNameExpression();
+        if (functionNameExpression instanceof CIdExpression) {
+          CIdExpression idExpression = (CIdExpression) functionNameExpression;
+          if (idExpression.getName().equals("__VERIFIER_nondet_uint")) {
+            value = CompoundStateFormulaManager.INSTANCE.asConstant(CompoundInterval.zero().extendToPositiveInfinity());
+          }
+        }
+      }
       return handleAssignment(pElement, pEdge.getPredecessor().getFunctionName(), pEdge, leftHandSide, value, pPrecision);
     }
 
-    return pElement;
+    InvariantsState result = pElement;
+    if (pEdge.getStatement() instanceof CFunctionCall) {
+      CFunctionCall functionCall = (CFunctionCall) pEdge.getStatement();
+      CFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
+      if (functionCallExpression.getFunctionNameExpression().toString().equals("__CPROVER_assume")) {
+        ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
+        for (CExpression expression : functionCallExpression.getParameterExpressions()) {
+          result = result.assume(expression.accept(etfv), pEdge);
+        }
+      }
+    }
+
+    return result;
   }
 
   private InvariantsState handleAssignment(InvariantsState pElement, String pFunctionName, CFAEdge pEdge, CExpression pLeftHandSide, InvariantsFormula<CompoundInterval> pValue, InvariantsPrecision pPrecision) throws UnrecognizedCCodeException {
@@ -286,7 +309,33 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
         return handleAssignment(pElement, pFunctionReturnEdge.getSuccessor().getFunctionName(), pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pPrecision);
       }
-      return pElement;
+
+      Iterator<CExpression> actualParamIterator = summaryEdge.getExpression().getFunctionCallExpression().getParameterExpressions().iterator();
+      InvariantsState result = pElement;
+      for (String formalParamName : pFunctionReturnEdge.getPredecessor().getEntryNode().getFunctionParameterNames()) {
+        if (!actualParamIterator.hasNext()) {
+          break;
+        }
+        CExpression actualParam = actualParamIterator.next();
+        InvariantsFormula<CompoundInterval> actualParamFormula = actualParam.accept(getExpressionToFormulaVisitor(summaryEdge));
+        if (actualParamFormula instanceof Variable) {
+          String actualParamName = ((Variable<?>) actualParamFormula).getName();
+          String formalParamPrefixDeref = calledFunctionName + "::" + formalParamName + "->";
+          String formalParamPrefixAccess = calledFunctionName + "::" + formalParamName + ".";
+          for (Entry<? extends String, ? extends InvariantsFormula<CompoundInterval>> entry : pElement.getEnvironment().entrySet()) {
+            String varName = entry.getKey();
+            if (varName.startsWith(formalParamPrefixDeref)) {
+              String formalParamSuffix = varName.substring(formalParamPrefixDeref.length());
+              result = result.assign(false, actualParamName + "->" + formalParamSuffix, entry.getValue(), summaryEdge);
+            } else if (varName.startsWith(formalParamPrefixAccess)) {
+              String formalParamSuffix = varName.substring(formalParamPrefixAccess.length());
+              result = result.assign(false, actualParamName + "." + formalParamSuffix, entry.getValue(), summaryEdge);
+            }
+          }
+        }
+      }
+
+      return result;
   }
 
   public static String getVarName(CExpression pLhs, CFAEdge pEdge) throws UnrecognizedCCodeException {
@@ -303,12 +352,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
       if (var.getDeclaration() != null) {
         CSimpleDeclaration decl = var.getDeclaration();
 
-        if (!(decl instanceof CDeclaration || decl instanceof CParameterDeclaration)) {
-          throw new UnrecognizedCCodeException("unknown variable declaration", pEdge, var);
-        }
-
-        if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal()) {
-
+        if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal() || decl instanceof CEnumerator) {
         } else {
           varName = scope(varName, pFunctionName);
         }

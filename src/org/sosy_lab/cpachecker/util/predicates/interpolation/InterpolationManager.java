@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -51,12 +50,14 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -83,7 +84,6 @@ import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 
 @Options(prefix="cpa.predicate.refinement")
@@ -97,9 +97,9 @@ public final class InterpolationManager {
   private int reusedFormulasOnSolverStack = 0;
 
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println("  Counterexample analysis:            " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.printMaxTime() + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
-    if (cexAnalysisGetUsefulBlocksTimer.getMaxTime() != 0) {
-      out.println("    Cex.focusing:                     " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
+    out.println("  Counterexample analysis:            " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
+    if (cexAnalysisGetUsefulBlocksTimer.getNumberOfIntervals() > 0) {
+      out.println("    Cex.focusing:                     " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
     }
     out.println("    Refinement sat check:             " + satCheckTimer);
     if (reuseInterpolationEnvironment && satCheckTimer.getNumberOfIntervals() > 0) {
@@ -193,7 +193,7 @@ public final class InterpolationManager {
       executor = null;
     } else {
       // important to use daemon threads here, because we never have the chance to stop the executor
-      executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
+      executor = Executors.newSingleThreadExecutor(Threads.threadFactoryBuilder().setDaemon(true).build());
     }
 
     if (reuseInterpolationEnvironment) {
@@ -708,11 +708,11 @@ public final class InterpolationManager {
   }
 
   private void dumpFormulaToFile(String name, BooleanFormula f, int i) {
-    File dumpFile = formatFormulaOutputFile(name, i);
+    Path dumpFile = formatFormulaOutputFile(name, i);
     fmgr.dumpFormulaToFile(f, dumpFile);
   }
 
-  private File formatFormulaOutputFile(String formula, int index) {
+  private Path formatFormulaOutputFile(String formula, int index) {
     return fmgr.formatFormulaOutputFile("interpolation", cexAnalysisTimer.getNumberOfIntervals(), formula, index);
   }
 

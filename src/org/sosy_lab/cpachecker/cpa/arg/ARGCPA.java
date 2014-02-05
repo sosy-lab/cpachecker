@@ -200,7 +200,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     super.collectStatistics(pStatsCollection);
   }
 
-  Map<ARGState, CounterexampleInfo> getCounterexamples() {
+  public Map<ARGState, CounterexampleInfo> getCounterexamples() {
     return Collections.unmodifiableMap(counterexamples);
   }
 
@@ -246,7 +246,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     return stopOperator.isCoveredBy(pElement, pOtherElement, wrappedProofChecker);
   }
 
-
   @Override
   public void postProcess(ReachedSet pReached) throws InterruptedException {
     if (innerPostProcessor != null) {
@@ -255,5 +254,14 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     for (PostProcessor postProcessor : postProcessors) {
       postProcessor.postProcess(pReached);
     }
+  }
+
+  void exportCounterexample(ReachedSet pReached, ARGState pTargetState,
+    CounterexampleInfo pCounterexampleInfo, int cexIndex) {
+    stats.exportCounterexample(pReached, pTargetState, pCounterexampleInfo, cexIndex, null, true);
+  }
+
+  boolean shouldPrintErrorPathImmediately() {
+    return stats.shouldDumpErrorPathImmediately();
   }
 }

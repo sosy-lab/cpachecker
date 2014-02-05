@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.octagon;
 
 import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
 
+import com.google.common.collect.BiMap;
+
 
 public class OctagonManager {
 
@@ -87,8 +89,8 @@ public class OctagonManager {
     long l = J_universe(n);
     return new Octagon(l);
   }
-  public static void free(Octagon oct) {
-    J_free(oct.getOctId());
+  static void free(Long oct) {
+    J_free(oct);
   }
 
   public static Octagon copy(Octagon oct) {
@@ -219,7 +221,31 @@ public class OctagonManager {
     return new Octagon(l);
   }
 
-  public static void print(Octagon oct) {
+  public static void printNum(NumArray arr, int size) {
+      J_printNum(arr.getArray(), size);
+  }
+
+  public static void printOct(Octagon oct) {
     J_print(oct.getOctId());
   }
+
+  public static String print(Octagon oct, BiMap<Integer, String> map) {
+    StringBuilder str = new StringBuilder();
+    int size = dimension(oct);
+    long pointer = oct.getOctId();
+    str.append(map.values() + "\n");
+    str.append("octagon (id: " + pointer + ") (size: " + size + ")\n");
+    if (isEmpty(oct)) {
+      str.append("[Empty]\n");
+      return str.toString();
+    }
+    for (int i = 0; i < size*2; i++) {
+      for (int j = 0; j < size*2; j++) {
+        str.append(J_getValueFor(pointer, i, j) + ", ");
+      }
+      str.append("\n");
+    }
+    return str.toString();
+  }
+
 }

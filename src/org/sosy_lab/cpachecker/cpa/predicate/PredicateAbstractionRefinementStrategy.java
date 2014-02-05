@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPr
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -38,10 +37,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -49,8 +46,12 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -136,7 +137,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Option(name="refinement.dumpPredicatesFile",
       description="File name for the predicates dumped after refinements.")
   @FileOption(Type.OUTPUT_FILE)
-  private File dumpPredicatesFile = new File("refinement%04d-predicates.prec");
+  private Path dumpPredicatesFile = Paths.get("refinement%04d-predicates.prec");
 
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
@@ -146,6 +147,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
 
   protected final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PredicateAbstractionManager predAbsMgr;
@@ -173,7 +175,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private class Stats implements Statistics {
     @Override
     public String getName() {
-      return "Predicate Abstraction Refiner";
+      return "Predicate-Abstraction Refiner";
     }
 
     @Override
@@ -206,7 +208,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   public PredicateAbstractionRefinementStrategy(final Configuration config,
-      final LogManager pLogger, final FormulaManagerView pFormulaManager,
+      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      final FormulaManagerView pFormulaManager,
       final PredicateAbstractionManager pPredAbsMgr,
       final PredicateStaticRefiner pStaticRefiner, final Solver pSolver)
           throws CPAException, InvalidConfigurationException {
@@ -215,6 +218,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     config.inject(this, PredicateAbstractionRefinementStrategy.class);
 
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     fmgr = pFormulaManager;
     bfmgr = pFormulaManager.getBooleanFormulaManager();
     predAbsMgr = pPredAbsMgr;
@@ -253,6 +257,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
       PredicatePrecision heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
 
+      shutdownNotifier.shutdownIfNecessary();
       pReached.removeSubtree(refinementRoot, heuristicPrecision, PredicatePrecision.class);
 
       heuristicsCount++;
@@ -427,7 +432,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     assert targetStatePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
 
     if (dumpPredicates && dumpPredicatesFile != null) {
-      Path precFile = new Path(String.format(dumpPredicatesFile.getPath(), precisionUpdate.getUpdateCount()));
+      Path precFile = Paths.get(String.format(dumpPredicatesFile.getPath(), precisionUpdate.getUpdateCount()));
       try (Writer w = Files.openOutputFile(precFile)) {
         precisionWriter.writePredicateMap(
             ImmutableSetMultimap.copyOf(newPredicates),

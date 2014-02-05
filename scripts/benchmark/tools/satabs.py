@@ -25,7 +25,7 @@ class Tool(benchmark.tools.template.BaseTool):
             status = result.STR_TRUE
         elif "VERIFICATION FAILED" in output:
             assert returncode == 10
-            status = result.STR_FALSE
+            status = result.STR_FALSE_LABEL
         elif returnsignal == 9:
             status = "TIMEOUT"
         elif returnsignal == 6:

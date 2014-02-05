@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
@@ -37,7 +38,13 @@ import com.google.common.collect.BiMap;
 
 class OctDomain implements AbstractDomain {
 
-  static long totaltime = 0;
+  private static long totaltime = 0;
+  private LogManager logger;
+
+
+  public OctDomain(LogManager log) {
+    logger = log;
+  }
 
   @Override
   public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
@@ -52,7 +59,7 @@ class OctDomain implements AbstractDomain {
       return true;
     }
 
-    int result = OctagonManager.isIncludedInLazy(octState1.getOctagon(), octState2.getOctagon());
+    int result = octState1.isLessOrEquals(octState2);
     if (result == 1) {
       totaltime = totaltime + (System.currentTimeMillis() - start);
       return true;
@@ -84,9 +91,11 @@ class OctDomain implements AbstractDomain {
     Octagon newOctagon = OctagonManager.union(octEl1.getOctagon(), octEl2.getOctagon());
     BiMap<String, Integer> newMap =
       octEl1.sizeOfVariables() > octEl2.sizeOfVariables()? octEl1.getVariableToIndexMap() : octEl2.getVariableToIndexMap();
+    Map<String, IOctCoefficients> newCoeffMap =
+        octEl1.sizeOfVariables() > octEl2.sizeOfVariables()? octEl1.getVariableToCoeffMap() : octEl2.getVariableToCoeffMap();
 
       // TODO should it be null
-      return new OctState(newOctagon, newMap, null);
+      return new OctState(newOctagon, newMap, newCoeffMap, logger);
       // TODO add widening
       //    return LibraryAccess.widening(octEl1, octEl2);
   }

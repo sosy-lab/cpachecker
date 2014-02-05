@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;

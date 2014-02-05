@@ -35,19 +35,23 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.management.JMException;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Path;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -91,7 +95,7 @@ class MainCPAStatistics implements Statistics {
   @Option(name="reachedSet.file",
       description="print reached set to text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputFile = new Path("reached.txt");
+  private Path outputFile = Paths.get("reached.txt");
 
   @Option(name="coverage.export",
       description="print coverage info to file")
@@ -100,7 +104,7 @@ class MainCPAStatistics implements Statistics {
   @Option(name="coverage.file",
       description="print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputCoverageFile = new Path("coverage.info");
+  private Path outputCoverageFile = Paths.get("coverage.info");
 
   @Option(name="statistics.memory",
     description="track memory usage of JVM during runtime")
@@ -110,6 +114,7 @@ class MainCPAStatistics implements Statistics {
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final MemoryStatistics memStats;
+  private Thread memStatsThread;
 
   private final Timer programTime = new Timer();
   final Timer creationTime = new Timer();
@@ -131,8 +136,8 @@ class MainCPAStatistics implements Statistics {
 
     if (monitorMemoryUsage) {
       memStats = new MemoryStatistics(pLogger);
-      memStats.setDaemon(true);
-      memStats.start();
+      memStatsThread = Threads.newThread(memStats, "CPAchecker memory statistics collector", true);
+      memStatsThread.start();
     } else {
       memStats = null;
     }
@@ -230,7 +235,7 @@ class MainCPAStatistics implements Statistics {
       programTime.stop();
     }
     if (memStats != null) {
-      memStats.interrupt(); // stop memory statistics collection
+      memStatsThread.interrupt(); // stop memory statistics collection
     }
 
     if (result != Result.NOT_YET_STARTED) {
@@ -502,22 +507,26 @@ class MainCPAStatistics implements Statistics {
       cfaCreatorStatistics.printStatistics(out, result, reached);
     }
     out.println("Time for Analysis:            " + analysisTime);
-    out.println("CPU time for analysis:        " + Timer.formatTime(analysisCpuTime/1000/1000));
+    out.println("CPU time for analysis:        " + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
     out.println("Total time for CPAchecker:    " + programTime);
-    out.println("Total CPU time for CPAchecker:" + Timer.formatTime(programCpuTime/1000/1000));
+    out.println("Total CPU time for CPAchecker:" + TimeSpan.ofNanos(programCpuTime).formatAs(TimeUnit.SECONDS));
   }
 
   private void printMemoryStatistics(PrintStream out) {
-    MemoryStatistics.printGcStatistics(out);
+    if (monitorMemoryUsage) {
+      MemoryStatistics.printGcStatistics(out);
 
-    if (memStats != null) {
-      try {
-        memStats.join(); // thread should have terminated already,
-                         // but wait for it to ensure memory visibility
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
+      if (memStats != null) {
+        try {
+          memStatsThread.join(); // thread should have terminated already,
+                                 // but wait for it to ensure memory visibility
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+        if (!memStatsThread.isAlive()) {
+          memStats.printStatistics(out);
+        }
       }
-      memStats.printStatistics(out);
     }
   }
 

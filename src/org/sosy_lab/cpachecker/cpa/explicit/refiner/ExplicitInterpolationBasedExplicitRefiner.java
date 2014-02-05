@@ -31,14 +31,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.AssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionClosureCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -94,10 +96,17 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       + "this avoids to have loop-counters in the interpolant")
   private boolean ignoreAssumptionsInLoops = true;
 
+  @Option(description="slicedItp")
+  private boolean slicedItp = false;
+
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
    */
   private int interpolationOffset = -1;
+
+  public int getInterpolationOffset() {
+    return interpolationOffset;
+  }
 
   /**
    * a reference to the assignment-counting state, to make the precision increment aware of thresholds
@@ -107,16 +116,17 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   /**
    * the set of assume-edges that leave loop structures
    */
-  private Set<CAssumeEdge> loopLeavingAssumes = new HashSet<CAssumeEdge>();
+  private Set<CAssumeEdge> loopLeavingAssumes = new HashSet<>();
 
   /**
    * the set of memory locations appearing in the loop-leaving-assume-edges
    */
-  private Set<MemoryLocation> loopLeavingMemoryLocations = new HashSet<MemoryLocation>();
+  private Set<MemoryLocation> loopLeavingMemoryLocations = new HashSet<>();
 
   // statistics
   private int numberOfInterpolations        = 0;
   private Timer timerInterpolation          = new Timer();
+  private Timer timerAssumptionClosure           = new Timer();
 
   private final CFA cfa;
   private final LogManager logger;
@@ -171,7 +181,6 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
       throws CPAException, InterruptedException {
     timerInterpolation.start();
-
     interpolationOffset                   = -1;
     assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
         AssignmentsInPathConditionState.class);
@@ -185,6 +194,15 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     for(Pair<ARGState, CFAEdge> elem : errorPath) {
       cfaTrace.add(elem.getSecond());
     }
+
+    timerAssumptionClosure.start();
+    AssumptionClosureCollector coll = new AssumptionClosureCollector();
+    Set<String> relevantVars = null;
+    if(slicedItp) {
+      relevantVars = coll.collectVariables(cfaTrace);
+    }
+    timerAssumptionClosure.stop();
+
     for (int i = 0; i < errorPath.size(); i++) {
       shutdownNotifier.shutdownIfNecessary();
       CFAEdge currentEdge = errorPath.get(i).getSecond();
@@ -202,7 +220,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
       // do interpolation
       Map<MemoryLocation, Long> inputInterpolant = new HashMap<>(currentInterpolant);
-      Set<Pair<MemoryLocation, Long>> interpolant = interpolator.deriveInterpolant(cfaTrace, i, inputInterpolant);
+      Map<MemoryLocation, Long> interpolant = interpolator.deriveInterpolant(cfaTrace, i, inputInterpolant, relevantVars);
       numberOfInterpolations += interpolator.getNumberOfInterpolations();
 
       // early stop once we are past the first statement that made a path feasible for the first time
@@ -210,11 +228,11 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
         timerInterpolation.stop();
         return increment;
       }
-      for (Pair<MemoryLocation, Long> element : interpolant) {
-        if (element.getSecond() == null) {
-          currentInterpolant.remove(element.getFirst());
+      for (Map.Entry<MemoryLocation, Long> element : interpolant.entrySet()) {
+        if (element.getValue() == null) {
+          currentInterpolant.remove(element.getKey());
         } else {
-          currentInterpolant.put(element.getFirst(), element.getSecond());
+          currentInterpolant.put(element.getKey(), element.getValue());
         }
       }
 
@@ -247,7 +265,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    * @param variableName the name of the variable to add to the increment at the given edge
    */
   private void addToPrecisionIncrement(Multimap<CFANode, MemoryLocation> increment, CFAEdge currentEdge, MemoryLocation variableName) {
-    if(assignments == null || !assignments.variableExceedsThreshold(variableName.getAsSimpleString())) {
+    if(assignments == null ||
+        (assignments.variableExceedsSoftThreshold(variableName.getAsSimpleString()) &&
+            !assignments.variableExceedsHardThreshold(variableName.getAsSimpleString()))) {
       increment.put(currentEdge.getSuccessor(), variableName);
     }
   }
@@ -411,7 +431,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     out.println("  number of explicit interpolations:                   " + numberOfInterpolations);
-    out.println("  max. time for singe interpolation:                   " + timerInterpolation.printMaxTime());
+    out.println("  max. time for singe interpolation:                   " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
     out.println("  total time for interpolation:                        " + timerInterpolation);
+    out.println("  total time for assumption closure:                   " + timerAssumptionClosure);
+    out.println("  max. time for assumption closure:                    " + timerAssumptionClosure.getMaxTime().formatAs(TimeUnit.SECONDS));
   }
 }

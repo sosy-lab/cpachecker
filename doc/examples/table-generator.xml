@@ -15,7 +15,7 @@
          if there is not default set of columns given directly inside the <table> tag -->
   </result>
 
-  <union>
+  <union title="My title">
     <!-- Merge the result of several runs into one column in the table. -->
     <result filename="test/results/benchmark-cpachecker-part1.11-??-??.????.results.xml"/>
     <result filename="test/results/benchmark-cpachecker-part2.11-??-??.????.results.xml"/>

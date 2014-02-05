@@ -45,7 +45,7 @@ import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
@@ -167,7 +167,53 @@ abstract class AbstractEclipseCParser<T> implements CParser {
       throw new CParserException("Not exactly one statement in function body: " + body);
     }
 
-    return new ASTConverter(config, new FunctionScope(), logger, machine, "", false).convert(statements[0]);
+    Sideassignments sa = new Sideassignments();
+    sa.enterBlock();
+    return new ASTConverter(config, new FunctionScope(), logger, machine, "", false, sa).convert(statements[0]);
+  }
+
+  @Override
+  public List<CAstNode> parseStatements(String pCode) throws CParserException, InvalidConfigurationException {
+    // parse
+    IASTTranslationUnit ast = parse(wrapCode(pCode));
+
+    // strip wrapping function header
+    IASTDeclaration[] declarations = ast.getDeclarations();
+    if (   declarations == null
+        || declarations.length != 1
+        || !(declarations[0] instanceof IASTFunctionDefinition)) {
+      throw new CParserException("Not a single function: " + ast.getRawSignature());
+    }
+
+    IASTFunctionDefinition func = (IASTFunctionDefinition)declarations[0];
+    IASTStatement body = func.getBody();
+    if (!(body instanceof IASTCompoundStatement)) {
+      throw new CParserException("Function has an unexpected " + body.getClass().getSimpleName() + " as body: " + func.getRawSignature());
+    }
+
+    IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
+    if (statements.length == 1 && statements[0] == null || statements.length == 0) {
+      throw new CParserException("No statement found in function body: " + body);
+    }
+
+    Sideassignments sa = new Sideassignments();
+    sa.enterBlock();
+
+    ASTConverter converter = new ASTConverter(config, new FunctionScope(), logger, machine, "", false, sa);
+
+    List<CAstNode> nodeList = new ArrayList<>(statements.length);
+
+    for(IASTStatement statement : statements) {
+      if(statement != null) {
+        nodeList.add(converter.convert(statement));
+      }
+    }
+
+    if (nodeList.size() < 1) {
+      throw new CParserException("No statement found in function body: " + body);
+    }
+
+    return nodeList;
   }
 
   protected static final int PARSER_OPTIONS =
@@ -283,7 +329,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
       // parse them as functions.
       macrosBuilder.put("__builtin_va_arg", "__builtin_va_arg");
       macrosBuilder.put("__builtin_constant_p", "__builtin_constant_p");
-      macrosBuilder.put("__builtin_types_compatible_p", "__builtin_types_compatible_p");
+      macrosBuilder.put("__builtin_types_compatible_p(t1,t2)", "__builtin_types_compatible_p(({t1 arg1; arg1;}), ({t2 arg2; arg2;}))");
       macrosBuilder.put("__offsetof__", "__offsetof__");
 
       macrosBuilder.put("__func__", "\"__func__\"");

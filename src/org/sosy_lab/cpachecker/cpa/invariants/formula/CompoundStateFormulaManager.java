@@ -36,6 +36,8 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 
+import com.google.common.collect.FluentIterable;
+
 
 public enum CompoundStateFormulaManager {
 
@@ -88,12 +90,16 @@ public enum CompoundStateFormulaManager {
     return (pFormula instanceof Constant<?>) && ((Constant<CompoundInterval>) pFormula).getValue().isTop();
   }
 
-  public static boolean definitelyImplies(Collection<InvariantsFormula<CompoundInterval>> pFormulas, InvariantsFormula<CompoundInterval> pFormula) {
-    return definitelyImplies(pFormulas, pFormula, true, new HashMap<String, InvariantsFormula<CompoundInterval>>(), false);
+  public static boolean definitelyImplies(Iterable<InvariantsFormula<CompoundInterval>> pFormulas, InvariantsFormula<CompoundInterval> pFormula) {
+    return definitelyImplies(pFormulas, pFormula, new HashMap<String, InvariantsFormula<CompoundInterval>>());
   }
 
-  public static boolean definitelyImplies(Collection<InvariantsFormula<CompoundInterval>> pFormulas, InvariantsFormula<CompoundInterval> pFormula, Map<String, InvariantsFormula<CompoundInterval>> pBaseEnvironment) {
-    return definitelyImplies(pFormulas, pFormula, true, new HashMap<>(pBaseEnvironment), false);
+  public static boolean definitelyImplies(Iterable<InvariantsFormula<CompoundInterval>> pFormulas, InvariantsFormula<CompoundInterval> pFormula, Map<String, InvariantsFormula<CompoundInterval>> pBaseEnvironment) {
+    Map<String, InvariantsFormula<CompoundInterval>> newMap = new HashMap<>(pBaseEnvironment);
+    if (pFormula instanceof Collection<?>) {
+      return definitelyImplies((Collection<InvariantsFormula<CompoundInterval>>) pFormulas, pFormula, true, newMap, false);
+    }
+    return definitelyImplies(FluentIterable.from(pFormulas).toSet(), pFormula, true, newMap, false);
   }
 
   private static boolean definitelyImplies(Collection<InvariantsFormula<CompoundInterval>> pFormulas, InvariantsFormula<CompoundInterval> pFormula, boolean pExtend, Map<String, InvariantsFormula<CompoundInterval>> pEnvironment, boolean pEnvironmentComplete) {
@@ -106,21 +112,27 @@ public enum CompoundStateFormulaManager {
     } else {
       formulas = pFormulas;
     }
+
+    // If any of the conjunctive parts is a disjunction, check try each disjunctive part
     for (InvariantsFormula<CompoundInterval> formula : formulas) {
       Collection<InvariantsFormula<CompoundInterval>> disjunctions = formula.accept(SPLIT_DISJUNCTIONS_VISITOR);
       if (disjunctions.size() > 1) {
-        ArrayList<InvariantsFormula<CompoundInterval>> newFormulas = new ArrayList<>(pFormulas);
+        ArrayList<InvariantsFormula<CompoundInterval>> newFormulas = new ArrayList<>(formulas);
+        Map<String, InvariantsFormula<CompoundInterval>> newBaseEnvironment = new HashMap<>(pEnvironment);
         newFormulas.remove(formula);
         for (InvariantsFormula<CompoundInterval> disjunctivePart : disjunctions) {
-          newFormulas.add(disjunctivePart);
-          if (!definitelyImplies(newFormulas, pFormula)) {
+          Collection<InvariantsFormula<CompoundInterval>> conjunctivePartsOfDisjunctivePart = disjunctivePart.accept(SPLIT_CONJUNCTIONS_VISITOR);
+          newFormulas.addAll(conjunctivePartsOfDisjunctivePart);
+          if (!definitelyImplies(newFormulas, pFormula, false, newBaseEnvironment, false)) {
             return false;
           }
-          newFormulas.remove(disjunctivePart);
+          newFormulas.removeAll(conjunctivePartsOfDisjunctivePart);
         }
         return true;
       }
     }
+
+    // Build the environment defined by the assumptions and check whether it contradicts or implies the proposed implication
     Map<String, InvariantsFormula<CompoundInterval>> tmpEnvironment = pEnvironment;
     PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(FORMULA_EVALUATION_VISITOR, tmpEnvironment);
     if (!pEnvironmentComplete) {
@@ -134,6 +146,7 @@ public enum CompoundStateFormulaManager {
       return true;
     }
 
+    // Build the environment defined by the proposed implication and check for contradictions
     Map<String, InvariantsFormula<CompoundInterval>> tmpEnvironment2 = new HashMap<>();
     CachingEvaluationVisitor<CompoundInterval> cachingEvaluationVisitor = new CachingEvaluationVisitor<>(tmpEnvironment, FORMULA_EVALUATION_VISITOR);
     outer:

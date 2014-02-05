@@ -150,7 +150,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       }
 
       private Object readResolve() throws ObjectStreamException {
-        CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo();
+        CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
         return cfaInfo.getLocationStateFactory().getState(cfaInfo.getNodeByNodeNumber(nodeNumber));
       }
     }

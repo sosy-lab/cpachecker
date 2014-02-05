@@ -44,6 +44,7 @@ public class AutomatonInternalState {
       Collections.singletonList(new AutomatonTransition(
                                     AutomatonBoolExpr.TRUE,
                                     Collections.<AutomatonBoolExpr>emptyList(),
+                                    null,
                                     Collections.<AutomatonAction>emptyList(),
                                     BOTTOM)),
       true, false);
@@ -95,6 +96,10 @@ public class AutomatonInternalState {
 
   public boolean isTarget() {
     return mIsTarget;
+  }
+
+  public boolean getDoesMatchAll() {
+    return mAllTransitions;
   }
 
   public List<AutomatonTransition> getTransitions() {

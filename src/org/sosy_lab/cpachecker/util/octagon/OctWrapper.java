@@ -114,6 +114,8 @@ class OctWrapper {
   // TODO implement rest of the functions
 
   static native void J_print(long oct);    //void oct_print (const oct_t* m)
+  static native void J_printNum(long numArr, int k);
+  static native double J_getValueFor(long oct, long valI, long valJ);
 
   /* For debuggin purposes */
   static native long getRandomOct();

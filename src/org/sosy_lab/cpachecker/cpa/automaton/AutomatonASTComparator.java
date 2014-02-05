@@ -68,9 +68,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Provides methods for generating, comparing and printing the ASTs generated from String.
@@ -97,6 +101,13 @@ class AutomatonASTComparator {
     String tmp = addFunctionDeclaration(pSource);
 
     return parse(tmp, parser);
+  }
+
+  static List<CStatement> generateSourceASTOfBlock(String pSource, CParser parser)
+      throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+    String tmp = addFunctionDeclaration(pSource);
+
+    return parseBlockOfStatements(tmp, parser);
   }
 
   @VisibleForTesting
@@ -153,6 +164,41 @@ class AutomatonASTComparator {
       throw new InvalidAutomatonException("Error during parsing C code \""
           + code + "\": " + e.getMessage());
     }
+  }
+
+  /**
+   * Parse the assumption of a automaton, which are C assignments,
+   * return statements or function calls, into a list of
+   * CStatements with the Eclipse CDT parser. If an error occurs,
+   * an empty list will be returned, and the error will be logged.
+   *
+   *
+   * @param code The C code to parse.
+   * @return The AST.
+   * @throws InvalidAutomatonException
+   * @throws InvalidConfigurationException
+   * @throws CParserException
+   */
+  private static List<CStatement> parseBlockOfStatements(String code, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+    List<CAstNode> statements;
+
+    statements = parser.parseStatements(code);
+
+    for(CAstNode statement : statements) {
+      if(!(statement instanceof CStatement)) {
+        throw new InvalidAutomatonException("Code in assumption: <"
+      + statement.toASTString() + "> is not a valid assumption.");
+      }
+    }
+
+    Function<CAstNode, CStatement> function = new Function<CAstNode, CStatement>() {
+      @Override
+      public CStatement apply(CAstNode statement) {
+        return (CStatement) statement;
+      }
+    };
+
+    return ImmutableList.copyOf(Lists.transform(statements, function));
   }
 
 

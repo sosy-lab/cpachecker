@@ -29,6 +29,7 @@ def main(argv=None):
         args = data.get("args", [])
         env = data.get("env", {})
         debugEnabled = data.get("debug", False)
+        logfileSize = data.get("maxLogfileSize", 20) # MB
 
         if debugEnabled:
             logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s",
@@ -49,7 +50,7 @@ def main(argv=None):
         logging.debug("runExecutor.executeRun() started.")
 
         (wallTime, cpuTime, memUsage, returnvalue, output) = \
-            runExecutor.executeRun(args, rlimits, outputFileName, environments=env);
+            runExecutor.executeRun(args, rlimits, outputFileName, environments=env, maxLogfileSize=logfileSize);
 
         logging.debug("runExecutor.executeRun() ended.")
 

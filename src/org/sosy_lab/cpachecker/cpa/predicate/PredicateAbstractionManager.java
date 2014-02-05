@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayDeque;
@@ -42,17 +41,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Path;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.time.NestedTimer;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
@@ -73,6 +72,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -476,20 +476,21 @@ public class PredicateAbstractionManager {
       }
     }
 
-    long abstractionTime = stats.abstractionSolveTime.getLengthOfLastInterval()
-        + stats.abstractionEnumTime.getLengthOfLastOuterInterval();
+    long abstractionTime = TimeSpan.sum(stats.abstractionSolveTime.getLengthOfLastInterval(),
+                                        stats.abstractionEnumTime.getLengthOfLastOuterInterval())
+                                   .asMillis();
     logger.log(Level.FINEST, "Computing abstraction took", abstractionTime, "ms");
     logger.log(Level.ALL, "Abstraction result is", result);
 
     if (dumpHardAbstractions && abstractionTime > 10000) {
       // we want to dump "hard" problems...
-      File dumpFile;
+      Path dumpFile;
 
       dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
       fmgr.dumpFormulaToFile(f, dumpFile);
 
       dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
-      try (Writer w = Files.openOutputFile(Path.fromFile(dumpFile))) {
+      try (Writer w = dumpFile.asCharSink(Charsets.UTF_8).openStream()) {
         Joiner.on('\n').appendTo(w, predicates);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");
@@ -682,7 +683,7 @@ public class PredicateAbstractionManager {
           byte predVal = cartesianAbstractionCache.get(cacheKey);
           stats.numCartesianAbsPredicatesCached++;
 
-          stats.abstractionEnumTime.getInnerTimer().start();
+          stats.abstractionEnumTime.getCurentInnerTimer().start();
           Region v = p.getAbstractVariable();
           if (predVal == -1) { // pred is false
             stats.numCartesianAbsPredicates++;
@@ -694,7 +695,7 @@ public class PredicateAbstractionManager {
           } else {
             assert predVal == 0 : "predicate value is neither false, true, nor unknown";
           }
-          stats.abstractionEnumTime.getInnerTimer().stop();
+          stats.abstractionEnumTime.getCurentInnerTimer().stop();
 
         } else {
           logger.log(Level.ALL, "DEBUG_1",
@@ -714,10 +715,10 @@ public class PredicateAbstractionManager {
 
           if (isTrue) {
             stats.numCartesianAbsPredicates++;
-            stats.abstractionEnumTime.getInnerTimer().start();
+            stats.abstractionEnumTime.getCurentInnerTimer().start();
             Region v = p.getAbstractVariable();
             absbdd = rmgr.makeAnd(absbdd, v);
-            stats.abstractionEnumTime.getInnerTimer().stop();
+            stats.abstractionEnumTime.getCurentInnerTimer().stop();
 
             predVal = 1;
           } else {
@@ -728,11 +729,11 @@ public class PredicateAbstractionManager {
 
             if (isFalse) {
               stats.numCartesianAbsPredicates++;
-              stats.abstractionEnumTime.getInnerTimer().start();
+              stats.abstractionEnumTime.getCurentInnerTimer().start();
               Region v = p.getAbstractVariable();
               v = rmgr.makeNot(v);
               absbdd = rmgr.makeAnd(absbdd, v);
-              stats.abstractionEnumTime.getInnerTimer().stop();
+              stats.abstractionEnumTime.getCurentInnerTimer().stop();
 
               predVal = -1;
             }

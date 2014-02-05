@@ -44,16 +44,17 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Path;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -123,11 +124,11 @@ public class VariableClassification {
 
   @Option(name = "logfile", description = "Dump variable classification to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path dumpfile = new Path("VariableClassification.log");
+  private Path dumpfile = Paths.get("VariableClassification.log");
 
   @Option(description = "Dump variable type mapping to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path typeMapFile = new Path("VariableTypeMapping.txt");
+  private Path typeMapFile = Paths.get("VariableTypeMapping.txt");
 
   @Option(description = "Print some information about the variable classification.")
   private boolean printStatsOnStartup = false;
@@ -1033,7 +1034,7 @@ public class VariableClassification {
     return Pair.of(function, name);
   }
 
-  private boolean isGlobal(CExpression exp) {
+  public static boolean isGlobal(CExpression exp) {
     if (exp instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
       if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
@@ -1944,6 +1945,19 @@ public class VariableClassification {
     }
   }
 
+  public static String getScopedName(CFAEdge edge, CIdExpression expr) {
+    if (isGlobal(expr)) {
+      return expr.getName();
+    } else {
+      String function = edge.getPredecessor().getFunctionName();
+      return function + SCOPE_SEPARATOR + expr.getName();
+    }
+  }
+
+  public static String getScoped(String function, String name) {
+    return function + SCOPE_SEPARATOR + name;
+  }
+
   private static class VariableOrField {
     private static class Variable extends VariableOrField {
       private Variable(final @Nullable String function, final @Nonnull String name) {
@@ -1961,7 +1975,7 @@ public class VariableClassification {
 
       @Override
       public String toString() {
-        return function + SCOPE_SEPARATOR + name;
+        return getScoped(function, name);
       }
 
       @Override

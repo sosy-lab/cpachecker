@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -337,7 +338,7 @@ public class CFASecondPassBuilder {
     AssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(), edge.getLineNumber(),
         edge.getPredecessor(), edge.getSuccessor(), assumeExp, true);
 
-    CFANode elseNode = new CFANode(edge.getLineNumber(), edge.getPredecessor().getFunctionName());
+    CFANode elseNode = new CFATerminationNode(edge.getLineNumber(), edge.getPredecessor().getFunctionName());
     AssumeEdge falseEdge = new CAssumeEdge(edge.getRawStatement(), edge.getLineNumber(),
         edge.getPredecessor(), elseNode, assumeExp, false);
 
