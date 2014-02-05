@@ -62,11 +62,6 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   private int hardThreshold = -1;
 
   /**
-   * the reference to the current element
-   */
-  private UniqueAssignmentsInPathConditionState currentState = null;
-
-  /**
    * the maximal number of assignments over all variables for all elements seen to far
    */
   private int maxNumberOfAssignments = 0;
@@ -81,15 +76,15 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   }
 
   @Override
-  public AvoidanceReportingState getAbstractSuccessor(AbstractState element, CFAEdge edge) {
-    UniqueAssignmentsInPathConditionState successor = new UniqueAssignmentsInPathConditionState();
-    successor.mapping = ((UniqueAssignmentsInPathConditionState)element).mapping;
-    successor.maximum = ((UniqueAssignmentsInPathConditionState)element).maximum;
+  public AvoidanceReportingState getAbstractSuccessor(AbstractState pElement, CFAEdge pEdge) {
+    UniqueAssignmentsInPathConditionState current   = (UniqueAssignmentsInPathConditionState)pElement;
 
-    currentState            = successor;
-    maxNumberOfAssignments  = Math.max(maxNumberOfAssignments, currentState.getMaximum());
+    UniqueAssignmentsInPathConditionState successor = new UniqueAssignmentsInPathConditionState(current.maximum,
+        HashMultimap.create(current.mapping));
 
-    return currentState;
+    maxNumberOfAssignments  = Math.max(maxNumberOfAssignments, successor.getMaximum());
+
+    return successor;
   }
 
   @Override
@@ -113,15 +108,25 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   }
 
   public class UniqueAssignmentsInPathConditionState implements AbstractState, AvoidanceReportingState {
+
     /**
      * the maximal number of assignments over all variables
      */
-    private int maximum = 0;
+    private int maximum;
 
     /**
      * the mapping from variable name to the set of assigned values to this variable
      */
-    private Multimap<String, Long> mapping = HashMultimap.create();
+    private Multimap<String, Long> mapping;
+
+    private UniqueAssignmentsInPathConditionState() {
+      this(0, HashMultimap.<String, Long>create());
+    }
+
+    public UniqueAssignmentsInPathConditionState(int pMaximum, Multimap<String, Long> pMapping) {
+      maximum = pMaximum;
+      mapping = pMapping;
+    }
 
     /**
      * This method returns the maximal number of assignments over all variables.
@@ -173,22 +178,16 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      * @param explicitValueState the ExplicitState from which to obtain assignment information
      */
     public void updateAssignmentInformation(ExplicitState explicitValueState) {
-      Multimap<String, Long> newMapping = HashMultimap.create(mapping);
-      explicitValueState.addToValueMapping(newMapping);
+      explicitValueState.addToValueMapping(mapping);
 
-      if(!mapping.equals(newMapping)) {
-        currentState.mapping = newMapping;
-        currentState.maximum = maximum;
-
-        for (String variableName : currentState.mapping.keys()) {
-          currentState.maximum = Math.max(currentState.maximum, currentState.mapping.get(variableName).size());
-        }
+      for (String variableName : mapping.keys()) {
+        maximum = Math.max(maximum, mapping.get(variableName).size());
       }
     }
 
     @Override
     public String toString() {
-      return currentState.mapping.toString() + " [" + currentState.maximum + "]";
+      return mapping.toString() + " [" + maximum + "]";
     }
   }
 }
