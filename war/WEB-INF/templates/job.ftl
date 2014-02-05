@@ -81,19 +81,19 @@
         <#if job.specification??>
         <tr>
           <td>${msg.specification}</td>
-          <td>${job.specification}</td>
+          <td>${job.specification?html}</td>
         </tr>
         </#if>
         <#if job.configuration??>
         <tr>
           <td>${msg.configuration}</td>
-          <td>${job.configuration}</td>
+          <td>${job.configuration?html}</td>
         </tr>
         </#if>
         <#if job.sourceFileName??>
         <tr>
           <td>${msg.sourceFileName}</td>
-          <td>${job.sourceFileName}</td>
+          <td>${job.sourceFileName?html}</td>
         </tr>
         </#if>
         <#if job.instanceType??>
@@ -111,7 +111,7 @@
                 <#list job.options?keys as option>
                 <tr>
                   <td>${option}</td>
-                  <td>${job.options[option]}</td>
+                  <td>${job.options[option]?html}</td>
                 </tr>
                 </#list>
               </tbody>
@@ -188,7 +188,7 @@
       <ul>
         <#list files?sort_by("name") as file>
           <li>
-            <a href="/tasks/${job.key}/files/${file.key}">${file.name}</a>
+            <a href="/tasks/${job.key}/files/${file.key}">${file.name?html}</a>
           </li>
         </#list>
       </ul>
