@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.util.ArrayList;
@@ -32,6 +33,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -118,6 +121,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(description="add special information to formulas about non-deterministic functions")
   private boolean useNondetFlags = false;
 
+  @Deprecated
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, MachineModel pMachineModel)
           throws InvalidConfigurationException {
@@ -130,8 +134,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     this(pFmgr, config, pLogger, pCFA, pCFA.getMachineModel());
   }
 
-  public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, CFA pCfa, MachineModel pMachineModel)
+  private PathFormulaManagerImpl(FormulaManagerView pFmgr,
+      Configuration config, LogManager pLogger, @Nullable CFA pCfa, MachineModel pMachineModel)
           throws InvalidConfigurationException {
     config.inject(this, PathFormulaManagerImpl.class);
 
@@ -155,10 +159,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   private CtoFormulaConverter createConverter(FormulaManagerView pFmgr, Configuration config, LogManager pLogger,
-      MachineModel pMachineModel, CFA pCFA) throws InvalidConfigurationException {
+      MachineModel pMachineModel, @Nullable CFA pCFA) throws InvalidConfigurationException {
     if (handlePointerAliasing) {
       if (pointerAnalysisWithUFs) {
-        assert pCFA != null : "Pointer analysis with UF requires CFA for VariableClassification";
+        checkNotNull(pCFA, "Pointer analysis with UF requires CFA for VariableClassification");
         final FormulaEncodingWithUFOptions options = new FormulaEncodingWithUFOptions(config);
         return new CToFormulaWithUFConverter(options, pFmgr, pCFA, pLogger);
       } else {
