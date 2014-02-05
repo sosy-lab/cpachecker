@@ -1,0 +1,30 @@
+       
+--- To get a time plot: ----
+input: 
+       - fileX - csv file with values for naive analysis
+       - fileY - csv file with value for the analysis with reuse
+       - col   - column you want to print (use columns 3, 14, 25, 36 for predicate, expsim, expref, exppred analysis, respectivly)
+
+
+step1: generate data fro gnuplot
+	./getTimeData.py  fileX fileY col new_data_file
+
+ex. ./getTimeData.py results.all-bb-noreuse.csv results.all-bb.csv 3 time-pred-bb
+
+step2: export the plot
+gnuplot -e "file='time-pred-bb';labX='Naive input generation (s)';labY='Input generation with reuse (s)'" time_plot.plg 
+
+this create 'file.pdf' with the plot
+
+
+--- To get a "processed plot" ----
+
+step1. 
+
+       ./getProcessedData.py  fileX fileY col new_data_file 
+
+where column = (7 for predicate, 18 for expsim, 29 for expred, 40 for exppred)
+
+
+step2.
+gnuplot -e "file='time-pred-bb';labX='Naive input generation (%)';labY='Input generation with reuse (%)'" processed_plot.plg 
