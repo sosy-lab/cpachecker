@@ -131,12 +131,13 @@ class Worker(threading.Thread):
         """
         self.outputHandler.outputBeforeRun(run)
 
+        benchmark = run.runSet.benchmark
         (run.wallTime, run.cpuTime, run.memUsage, returnvalue, output) = \
             self.runExecutor.executeRun(
-                run.getCmdline(), run.benchmark.rlimits, run.logFile,
+                run.getCmdline(), benchmark.rlimits, run.logFile,
                 myCpuIndex=self.numberOfThread,
-                environments=run.benchmark.getEnvironments(),
-                runningDir=run.benchmark.workingDirectory(),
+                environments=benchmark.getEnvironments(),
+                runningDir=benchmark.workingDirectory(),
                 maxLogfileSize=config.maxLogfileSize)
 
         if self.runExecutor.PROCESS_KILLED:
@@ -781,6 +782,7 @@ def handleAppEngineResults(benchmark, outputHandler):
     if isOverQuota:
         logging.warning("Quota exceeded! Not all runs could be processed!")
     
+
 def getBenchmarkDataForAppEngine(benchmark):
     # TODO default CPU model??
     cpuModel = benchmark.requirements.cpuModel
@@ -813,6 +815,7 @@ def getBenchmarkDataForAppEngine(benchmark):
     if not sourceFiles: sys.exit("Benchmark has nothing to run.")
     
     return (cpuModel, numberOfRuns, runDefinitions, sourceFiles, absWorkingDir)
+
 
 def executeBenchmarkInCloud(benchmark, outputHandler):
 

@@ -468,7 +468,6 @@ class Run():
     def __init__(self, sourcefile, fileOptions, runSet):
         self.sourcefile = sourcefile
         self.runSet = runSet
-        self.benchmark = runSet.benchmark
         self.specificOptions = fileOptions # options that are specific for this run
         self.logFile = runSet.logFolder + os.path.basename(sourcefile) + ".log"
         
@@ -479,7 +478,7 @@ class Run():
 
         # Copy columns for having own objects in run
         # (we need this for storing the results in them).
-        self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.benchmark.columns]
+        self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.runSet.benchmark.columns]
 
         # dummy values, for output in case of interrupt
         self.status = ""
@@ -491,7 +490,7 @@ class Run():
 
 
     def getCmdline(self):
-        args = self.benchmark.tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
+        args = self.runSet.benchmark.tool.getCmdline(self.runSet.benchmark.executable, self.options, self.sourcefile)
         args = [os.path.expandvars(arg) for arg in args]
         args = [os.path.expanduser(arg) for arg in args]
         return args;
@@ -511,7 +510,7 @@ class Run():
 
         # prpfile is relative to toolWorkingDir, we need it relativ to currentWorkingDir
         if prpfile is not None:
-            prpfile = os.path.join(self.benchmark.tool.getWorkingDirectory(self.benchmark.executable), prpfile)
+            prpfile = os.path.join(self.runSet.benchmark.tool.getWorkingDirectory(self.runSet.benchmark.executable), prpfile)
             assert os.path.isfile(prpfile)
 
         return prpfile
@@ -519,7 +518,7 @@ class Run():
 
     def afterExecution(self, returnvalue, output, forceTimeout=False):
 
-        rlimits = self.benchmark.rlimits
+        rlimits = self.runSet.benchmark.rlimits
         isTimeout = forceTimeout or self._isTimeout()
 
         # calculation: returnvalue == (returncode * 256) + returnsignal
@@ -527,9 +526,9 @@ class Run():
         returnsignal = returnvalue & 0x7F
         returncode = returnvalue >> 8
         logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
-        self.status = self.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
+        self.status = self.runSet.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
         self.category = result.getResultCategory(self.sourcefile, self.status, self.getPropFile())
-        self.benchmark.tool.addColumnValues(output, self.columns)
+        self.runSet.benchmark.tool.addColumnValues(output, self.columns)
 
         # Tools sometimes produce a result even after a timeout.
         # This should not be counted, so we overwrite the result with TIMEOUT
@@ -549,7 +548,7 @@ class Run():
 
     def _isTimeout(self):
         ''' try to find out whether the tool terminated because of a timeout '''
-        rlimits = self.benchmark.rlimits
+        rlimits = self.runSet.benchmark.rlimits
         if SOFTTIMELIMIT in rlimits:
             limit = rlimits[SOFTTIMELIMIT]
         elif TIMELIMIT in rlimits:
