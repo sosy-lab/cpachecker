@@ -65,7 +65,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.AssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionClosureCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
@@ -111,7 +111,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   /**
    * a reference to the assignment-counting state, to make the precision increment aware of thresholds
    */
-  private AssignmentsInPathConditionState assignments = null;
+  private UniqueAssignmentsInPathConditionState assignments = null;
 
   /**
    * the set of assume-edges that leave loop structures
@@ -126,7 +126,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   // statistics
   private int numberOfInterpolations        = 0;
   private Timer timerInterpolation          = new Timer();
-  private Timer timerAssumptionClosure           = new Timer();
+  private Timer timerAssumptionClosure      = new Timer();
 
   private final CFA cfa;
   private final LogManager logger;
@@ -183,7 +183,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     timerInterpolation.start();
     interpolationOffset                   = -1;
     assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
-        AssignmentsInPathConditionState.class);
+        UniqueAssignmentsInPathConditionState.class);
 
     ExplicitInterpolator interpolator             = new ExplicitInterpolator(logger, shutdownNotifier, cfa,
                                                       loopLeavingAssumes, loopLeavingMemoryLocations);
