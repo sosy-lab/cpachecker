@@ -589,12 +589,6 @@ cpa.conditions.global.time.wall = -1
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
-# whether or not to track unique assignments only
-cpa.conditions.path.assignments.demandUniqueness = true
-
-# file name where to put the extended stats file
-cpa.conditions.path.assignments.extendedStatsFile = no default value
-
 # (hard) threshold for assignments (-1 for infinite)
 cpa.conditions.path.assignments.hardThreshold = -1
 
@@ -712,6 +706,12 @@ cpa.explicit.refiner.ignoreAssumptionsInLoops = true
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
 cpa.explicit.refiner.performInitialStaticRefinement = false
+
+# slicedItp
+cpa.explicit.refiner.slicedItp = false
+
+# slicedPrecision
+cpa.explicit.refiner.slicedPrecision = false
 
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"

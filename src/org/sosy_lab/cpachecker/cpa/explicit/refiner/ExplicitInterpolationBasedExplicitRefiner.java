@@ -99,6 +99,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   @Option(description="slicedItp")
   private boolean slicedItp = false;
 
+  @Option(description="slicedPrecision")
+  private boolean slicedPrecision = false;
+
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
    */
@@ -126,7 +129,6 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   // statistics
   private int numberOfInterpolations        = 0;
   private Timer timerInterpolation          = new Timer();
-  private Timer timerAssumptionClosure      = new Timer();
 
   private final CFA cfa;
   private final LogManager logger;
@@ -195,13 +197,26 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       cfaTrace.add(elem.getSecond());
     }
 
-    timerAssumptionClosure.start();
     AssumptionClosureCollector coll = new AssumptionClosureCollector();
     Set<String> relevantVars = null;
     if(slicedItp) {
       relevantVars = coll.collectVariables(cfaTrace);
+
+      if(slicedPrecision) {
+        for(String var : relevantVars) {
+          String[] s = var.split("::");
+
+          if(s.length == 1) {
+            addToPrecisionIncrement(increment, cfaTrace.get(0), MemoryLocation.valueOf(s[0]));
+          } else {
+            addToPrecisionIncrement(increment, cfaTrace.get(0), MemoryLocation.valueOf(s[0], s[1], 0));
+          }
+        }
+
+        timerInterpolation.stop();
+        return increment;
+      }
     }
-    timerAssumptionClosure.stop();
 
     for (int i = 0; i < errorPath.size(); i++) {
       shutdownNotifier.shutdownIfNecessary();
@@ -302,7 +317,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       boolean isRepeatedRefinement) throws RefinementFailedException {
 
     if(interpolationOffset == -1) {
-      throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);
+      if(!slicedPrecision) {
+        throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);
+      }
     }
 
     // if doing lazy abstraction, use the node closest to the root node where new information is present
@@ -433,7 +450,5 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     out.println("  number of explicit interpolations:                   " + numberOfInterpolations);
     out.println("  max. time for singe interpolation:                   " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
     out.println("  total time for interpolation:                        " + timerInterpolation);
-    out.println("  total time for assumption closure:                   " + timerAssumptionClosure);
-    out.println("  max. time for assumption closure:                    " + timerAssumptionClosure.getMaxTime().formatAs(TimeUnit.SECONDS));
   }
 }
