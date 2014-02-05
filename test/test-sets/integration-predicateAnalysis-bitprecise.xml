@@ -13,6 +13,7 @@
     <sourcefiles>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+      <exclude>../programs/benchmarks/ntdrivers/diskperf_true-unreach-label.i.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>../programs/simple/simple.set</includesfile>
