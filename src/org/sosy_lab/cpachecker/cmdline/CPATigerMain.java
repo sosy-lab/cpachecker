@@ -143,7 +143,13 @@ public class CPATigerMain {
         lPrintCFAs = true;
       }
 
-      cpatiger = new CPAtiger(options.programs, entryFunction, shutdownNotifier, lPrintStream, aType, timelimit, lStopOnImpreciseExecution, lPrintCFAs);
+      boolean noReuse = false;
+      if (!Strings.isNullOrEmpty(cpaConfig.getProperty("cpatiger.noreuse"))) {
+        noReuse = true;
+      }
+
+      cpatiger = new CPAtiger(options.programs, entryFunction, shutdownNotifier, lPrintStream, aType, timelimit,
+          lStopOnImpreciseExecution, lPrintCFAs, noReuse);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);

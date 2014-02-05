@@ -197,7 +197,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     mTestCaseUtil.seed(pTestSuite, mCoverageSpecificationTranslator, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
   }
 
-  public IncrementalARTReusingFQLTestGenerator(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier, PrintStream pOutput, AnalysisType pAType, long pTimelimit, boolean pStopOnImpreciseExecution, boolean pPrintCFAs) {
+  public IncrementalARTReusingFQLTestGenerator(String pSourceFileName, String pEntryFunction, ShutdownNotifier shutdownNotifier,
+      PrintStream pOutput, AnalysisType pAType, long pTimelimit, boolean pStopOnImpreciseExecution,
+      boolean pPrintCFAs, boolean pNoReuse) {
     assert (INSTANCE == null);
 
     analysisType = pAType;
@@ -205,6 +207,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     mOutput = pOutput;
     mTimesInReach = 0;
     mTimeInReach = new TimeAccumulator();
+    mReuseART = !pNoReuse;
 
     INSTANCE = this;
 

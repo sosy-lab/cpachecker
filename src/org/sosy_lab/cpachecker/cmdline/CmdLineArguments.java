@@ -128,6 +128,8 @@ class CmdLineArguments {
           || handleArgument0("-expref", "cpatiger.explicit_ref", "true", arg, properties)    // explicit analysis with refinement
           || handleArgument0("-exppred", "cpatiger.explicit_predicate", "true", arg, properties)    // explicit with predicate analysis
 
+          || handleArgument0("-noreuse", "cpatiger.noreuse", "true", arg, properties)    // don't reuse reachability information
+
           || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
