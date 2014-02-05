@@ -13,6 +13,7 @@ explicitAnalysis-java.properties
 predicateAnalysis-proofcheck.properties
 predicateAnalysis-proofgen.properties
 predicateAnalysis-bitprecise.properties
+predicateAnalysis-Invariants.properties
 predicateAnalysis-PredAbsRefiner-ABEl-bitprecise.properties
 sv-comp14--02-challenge.properties
 sv-comp14--05-predicateAnalysis-bitprecise.properties
