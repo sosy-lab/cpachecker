@@ -1652,7 +1652,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // fall-through (case before has no "break")
     final CFANode oldNode = locStack.pop();
-    if (oldNode.getNumEnteringEdges() > 0) {
+    if (oldNode.getNumEnteringEdges() > 0
+        || oldNode instanceof CLabelNode) {
       final BlankEdge blankEdge =
           new BlankEdge("", filelocStart, oldNode, caseNode, "fall through");
       addToCFA(blankEdge);
