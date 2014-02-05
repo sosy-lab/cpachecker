@@ -98,13 +98,14 @@ public class PredicateAnalysisWithReuse implements AnalysisWithReuse, PrecisionC
 
   public PredicateAnalysisWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier pshutdownNotifier,
       CFA lCFA, LocationCPA pmLocationCPA, CallstackCPA pmCallStackCPA,
-      AssumeCPA pmAssumeCPA, long pTimelimit){
+      AssumeCPA pmAssumeCPA, long pTimelimit, boolean pMReuseART){
     mLocationCPA = pmLocationCPA;
     mCallStackCPA = pmCallStackCPA;
     mAssumeCPA = pmAssumeCPA;
     cfa = lCFA;
     shutdownNotifier = pshutdownNotifier;
     timelimit = pTimelimit;
+    mReuseART = pMReuseART;
 
     try {
       // TODO update config

@@ -91,7 +91,7 @@ public class ExplicitSimpleAnalysisWithReuse implements AnalysisWithReuse {
   private final Configuration mConfiguration;
   private final LogManager mLogManager;
   // TODO probably make global
-  private boolean mReuseART = true;
+  private boolean  mReuseART = true;
 
   private final PathChecker pchecker;
 
@@ -103,12 +103,13 @@ public class ExplicitSimpleAnalysisWithReuse implements AnalysisWithReuse {
 
   public ExplicitSimpleAnalysisWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier pShutdownNotifier,
       CFA lCFA, LocationCPA pmLocationCPA, CallstackCPA pmCallStackCPA,
-      AssumeCPA pmAssumeCPA, long pTimelimit){
+      AssumeCPA pmAssumeCPA, long pTimelimit, boolean pMReuseART){
     mLocationCPA = pmLocationCPA;
     mCallStackCPA = pmCallStackCPA;
     mAssumeCPA = pmAssumeCPA;
     timelimit = pTimelimit;
     shutdownNotifier = pShutdownNotifier;
+    mReuseART = pMReuseART;
 
     try {
       mConfiguration = CPAtiger.createConfiguration(pSourceFileName, pEntryFunction, false);

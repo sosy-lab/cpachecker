@@ -264,25 +264,25 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     case PREDICATE :
       mOutput.println("Running predicate analysis");
       analysis = new PredicateAnalysisWithReuse(pSourceFileName, pEntryFunction, shutdownNotifier, lCFA,
-          mLocationCPA, mCallStackCPA, mAssumeCPA, timelimit);
+          mLocationCPA, mCallStackCPA, mAssumeCPA, timelimit, mReuseART);
       break;
 
     case EXPLICIT_SIMPLE :
       mOutput.println("Running simple explicit analysis");
       analysis = new ExplicitSimpleAnalysisWithReuse(pSourceFileName, pEntryFunction, shutdownNotifier, lCFA,
-          mLocationCPA, mCallStackCPA, mAssumeCPA, timelimit);
+          mLocationCPA, mCallStackCPA, mAssumeCPA, timelimit, mReuseART);
       break;
 
     case EXPLICIT_REF :
       mOutput.println("Running explicit analysis with refinement");
       analysis = new ExplicitAnalysisWithReuse(pSourceFileName, pEntryFunction, shutdownNotifier, lCFA,
-          mLocationCPA, mCallStackCPA, mAssumeCPA, timelimit);
+          mLocationCPA, mCallStackCPA, mAssumeCPA, timelimit, mReuseART);
       break;
 
     case EXPLICIT_PRED :
       mOutput.println("Running explicit analysis with predicate analysis");
       analysis = new ExplicitPredWithReuse(pSourceFileName, pEntryFunction, shutdownNotifier, lCFA,
-          mLocationCPA, mCallStackCPA, mAssumeCPA, timelimit);
+          mLocationCPA, mCallStackCPA, mAssumeCPA, timelimit, mReuseART);
       break;
 
     }
@@ -425,9 +425,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
 
     //mOutput.println("Number of CFA infeasible test goals: " + lNumberOfCFAInfeasibleGoals);
-    mOutput.println("Time in reach: " + mTimeInReach.getSeconds());
-    mOutput.println("Max time in reach: " + ((double) timeReachMax)/1000 + " s");
-    mOutput.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
+    System.out.println("Time in reach: " + mTimeInReach.getSeconds());
+    System.out.println("Max time in reach: " + ((double) timeReachMax)/1000 + " s");
+    System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
 
     CPAtigerResult lResult = lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(),
         lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
@@ -511,6 +511,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       //mOutput.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
 
       Goal lGoal = lGoals[lIndex-1];
+
+      //System.out.println(lGoal.getAutomaton());
 
       // check if the result is already known
       boolean skip = false;
@@ -1098,11 +1100,11 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
 
     mOutput.println("INTERN:");
-    mOutput.println("#Goals: " + lNumberOfTestGoals);
-    mOutput.println("#Feasible: " + mFeasibilityInformation.getNumberOfFeasibleTestgoals());
-    mOutput.println("#Infeasible: " + mFeasibilityInformation.getNumberOfInfeasibleTestgoals());
-    mOutput.println("#Imprecise: " + mFeasibilityInformation.getNumberOfImpreciseTestgoals());
-    mOutput.println("#BugRevealing: " + mFeasibilityInformation.getNumberOfBugRevealingTestgoals());
+    System.out.println("#Goals: " + lNumberOfTestGoals);
+    System.out.println("#Feasible: " + mFeasibilityInformation.getNumberOfFeasibleTestgoals());
+    System.out.println("#Infeasible: " + mFeasibilityInformation.getNumberOfInfeasibleTestgoals());
+    System.out.println("#Imprecise: " + mFeasibilityInformation.getNumberOfImpreciseTestgoals());
+    System.out.println("#BugRevealing: " + mFeasibilityInformation.getNumberOfBugRevealingTestgoals());
   }
 
 

@@ -202,7 +202,7 @@ public class TargetGraphUtil {
       FunctionSummaryEdge lCallToReturnEdge = lCFANode.getLeavingSummaryEdge();
 
       if (lNumberOfLeavingEdges == 0 && lCallToReturnEdge == null) {
-        assert(lCFANode instanceof FunctionExitNode);
+       // assert(lCFANode instanceof FunctionExitNode);
 
         lBuilder.addFinalNode(lNode);
       }

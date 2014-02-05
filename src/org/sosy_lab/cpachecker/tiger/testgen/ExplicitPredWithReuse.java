@@ -99,12 +99,13 @@ public class ExplicitPredWithReuse implements AnalysisWithReuse, PrecisionCallba
 
   public ExplicitPredWithReuse(String pSourceFileName, String pEntryFunction, ShutdownNotifier pShutdownNotifier,
       CFA lCFA, LocationCPA pmLocationCPA, CallstackCPA pmCallStackCPA,
-      AssumeCPA pmAssumeCPA, long pTimelimit)  {
+      AssumeCPA pmAssumeCPA, long pTimelimit, boolean pMReuseART)  {
     mLocationCPA = pmLocationCPA;
     mCallStackCPA = pmCallStackCPA;
     mAssumeCPA = pmAssumeCPA;
     timelimit = pTimelimit;
     shutdownNotifier = pShutdownNotifier;
+    mReuseART = pMReuseART;
 
     try {
       // add this option to initalize explict analysis to empty precision
