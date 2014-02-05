@@ -27,13 +27,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
@@ -66,7 +67,7 @@ public class ARGDumper implements PostProcessor {
       //generate source code out of given ARG / ReachedSet
       ARGState argRoot = (ARGState) pReached.getFirstState();
       try {
-        Files.writeFile(dumpFile, ARGToCTranslator.translateARG(argRoot, pReached, addDefaultInclude));
+        Files.writeFile(Paths.get(dumpFile), ARGToCTranslator.translateARG(argRoot, pReached, addDefaultInclude));
         t.stop();
         System.out.println("ARGToC translation took " + t);
       } catch (IOException e) {
