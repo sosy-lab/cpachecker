@@ -4,7 +4,7 @@
   <option name="-heap">4800M</option>
 
   <sourcefiles name="product-lines-r-noreuse">
-    <includesfile>../../programs/fql/tiger-sets/cf/productlines-restricted.set</includesfile>
+    <includesfile>../../programs/fql/tiger-sets/cf/product-lines-restricted.set</includesfile>
   </sourcefiles>
 
   <rundefinition name="predicate-bb">

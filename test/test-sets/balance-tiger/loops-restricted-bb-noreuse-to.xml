@@ -3,11 +3,12 @@
 <benchmark tool="cpatiger-to" timelimit="930" hardtimelimit="1030" memlimit="6000" cpuCores="2">
   <option name="-heap">4800M</option>
 
-  <sourcefiles name="product-lines-r">
-    <includesfile>../../programs/fql/tiger-sets/cf/product-lines-restricted.set</includesfile>
+  <sourcefiles name="loops-restricted-noreuse">
+    <includesfile>../../programs/fql/tiger-sets/cf/loops-restricted.set</includesfile>
   </sourcefiles>
 
   <rundefinition name="predicate-bb">
+	<option name="-noreuse"/>
 	<option name="-noout"/>
 	<option name="-disable-java-assertions"/>
 	<option name="-stats"/>
@@ -18,6 +19,7 @@
   </rundefinition>
 
   <rundefinition name="explicit-sim-bb">
+	<option name="-noreuse"/>
 	<option name="-noout"/>
 	<option name="-disable-java-assertions"/>
 	<option name="-stats"/>
@@ -29,6 +31,7 @@
   </rundefinition>
 
   <rundefinition name="explicit-ref-bb">
+	<option name="-noreuse"/>
 	<option name="-noout"/>
 	<option name="-disable-java-assertions"/>
 	<option name="-stats"/>
@@ -40,6 +43,7 @@
   </rundefinition>
 
   <rundefinition name="explicit-pred-bb">
+	<option name="-noreuse"/>
 	<option name="-noout"/>
 	<option name="-disable-java-assertions"/>
 	<option name="-stats"/>

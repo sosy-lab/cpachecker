@@ -140,7 +140,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private boolean mUseAutomatonOptimization = true;
   private boolean mUseGraphCPA = false; // TODO disabled it since it causes a bug when doing FQL queries with PASSING clause
   private boolean mReuseART = true;
-  private boolean mUseInfeasibilityPropagation = true;
+  private boolean mUseInfeasibilityPropagation = false;
 
   private FeasibilityInformation mFeasibilityInformation;
   private TestSuite mTestSuite;
