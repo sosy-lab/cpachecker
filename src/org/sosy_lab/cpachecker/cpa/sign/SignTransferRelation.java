@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -72,7 +74,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class SignTransferRelation extends ForwardingTransferRelation<SignState, SingletonPrecision> {
 
-  private LogManager logger;
+  LogManager logger;
 
   private Set<String> globalVariables = new HashSet<>();
 
@@ -291,7 +293,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
 
   @Override
   protected SignState handleAssumption(CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption)
-      throws CPATransferException {
+      throws CPATransferException {// TODO more complex things
     // Analyse only expressions of the form x op y
     if(!(pExpression instanceof CBinaryExpression)) {
       return state;
@@ -345,8 +347,12 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     if(pStatement instanceof AExpressionStatement){
       return state;
     }
-
-    throw new UnrecognizedCodeException("only assignments are supported at this time", edge);
+    // only function call f(); to external method: assume that it does not change global state
+    //TODO check really only external methods?
+    if(pStatement instanceof AFunctionCallStatement) {
+      return state;
+    }
+      throw new UnrecognizedCodeException("only assignments are supported at this time", edge);
   }
 
   private SignState handleAssignment(IAssignment pAssignExpr)
@@ -354,8 +360,16 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     IAExpression left = pAssignExpr.getLeftHandSide();
     // a = ...
     if(left instanceof AIdExpression) {
+      if(!(left.getExpressionType() instanceof CSimpleType)){ // TODO also consider arrays, pointer, etc.?
+        return state;
+      }
       String scopedId = getScopedVariableName(left, functionName);
       return handleAssignmentToVariable(state, scopedId, pAssignExpr.getRightHandSide());
+    }
+    // TODO become more precise, handle &x, (int *) x on right hand side, deal with int* x = s;
+    // p->x = .., c.x =
+    if(left instanceof CFieldReference){
+      return state;
     }
     throw new UnrecognizedCodeException("left operand has to be an id expression", edge);
   }
