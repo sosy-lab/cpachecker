@@ -44,14 +44,7 @@ CORELIMIT = runexecutor.CORELIMIT
 SOFTTIMELIMIT = 'softtimelimit'
 HARDTIMELIMIT = 'hardtimelimit'
 
-
-def getOptionsFromXML(optionsTag):
-    '''
-    This function searches for options in a tag
-    and returns a list with command-line arguments.
-    '''
-    return Util.toSimpleList((option.get("name"), option.text)
-               for option in optionsTag.findall("option"))
+PROPERTY_TAG = "propertyfile"
 
 
 def substituteVars(oldList, runSet, sourcefile=None):
@@ -194,8 +187,9 @@ class Benchmark:
         if not os.path.isdir(self.logFolder):
             os.makedirs(self.logFolder)
 
-        # get global options
-        self.options = getOptionsFromXML(rootTag)
+        # get global options and propertyFiles
+        self.options = Util.getListFromXML(rootTag)
+        self.propertyFiles = Util.getListFromXML(rootTag, tag=PROPERTY_TAG, attributes=[])
 
         # get columns
         self.columns = Benchmark.loadColumns(rootTag.find("columns"))
@@ -204,13 +198,13 @@ class Benchmark:
         globalSourcefilesTags = rootTag.findall("sourcefiles")
 
         # get required files
-        self._requiredFiles = []
+        self._requiredFiles = set()
         baseDir = os.path.dirname(self.benchmarkFile)
         for requiredFilesTag in rootTag.findall('requiredfiles'):
             requiredFiles = Util.expandFileNamePattern(requiredFilesTag.text, baseDir)
             if not requiredFiles:
                 logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(requiredFilesTag.text))
-            self._requiredFiles.extend(requiredFiles)
+            self._requiredFiles = self._requiredFiles.union(requiredFiles)
 
         # get requirements
         self.requirements = Requirements(rootTag.findall("require"), self.rlimits, config.cloudCPUModel)
@@ -237,7 +231,11 @@ class Benchmark:
 
 
     def requiredFiles(self):
-        return self._requiredFiles + self.tool.getProgrammFiles(self.executable)
+        return self._requiredFiles.union(self.tool.getProgrammFiles(self.executable))
+
+
+    def addRequiredFiles(self, files=[]):
+        self._requiredFiles = self._requiredFiles.union(files)
 
 
     def workingDirectory(self):
@@ -295,7 +293,8 @@ class RunSet:
             self.logFolder += self.realName + "."
 
         # get all run-set-specific options from rundefinitionTag
-        self.options = benchmark.options + getOptionsFromXML(rundefinitionTag)
+        self.options = benchmark.options + Util.getListFromXML(rundefinitionTag)
+        self.propertyFiles = benchmark.propertyFiles + Util.getListFromXML(rundefinitionTag, tag=PROPERTY_TAG, attributes=[])
 
         # get all runs, a run contains one sourcefile with options
         self.blocks = self.extractRunsFromXML(globalSourcefilesTags + rundefinitionTag.findall("sourcefiles"))
@@ -351,11 +350,12 @@ class RunSet:
             sourcefiles = self.getSourcefilesFromXML(sourcefilesTag, baseDir)
 
             # get file-specific options for filenames
-            fileOptions = getOptionsFromXML(sourcefilesTag)
+            fileOptions = Util.getListFromXML(sourcefilesTag)
+            propertyFiles = Util.getListFromXML(sourcefilesTag, tag=PROPERTY_TAG, attributes=[])
 
             currentRuns = []
             for sourcefile in sourcefiles:
-                currentRuns.append(Run(sourcefile, fileOptions, self))
+                currentRuns.append(Run(sourcefile, fileOptions, self, propertyFiles))
 
             blocks.append(SourcefileSet(sourcefileSetName, index, currentRuns))
         return blocks
@@ -465,16 +465,31 @@ class Run():
     A Run contains one sourcefile and options.
     """
 
-    def __init__(self, sourcefile, fileOptions, runSet):
+    def __init__(self, sourcefile, fileOptions, runSet, propertyFiles=[]):
         self.sourcefile = sourcefile
         self.runSet = runSet
         self.specificOptions = fileOptions # options that are specific for this run
         self.logFile = runSet.logFolder + os.path.basename(sourcefile) + ".log"
-        
+
         # lets reduce memory-consumption: if 2 lists are equal, do not use the second one
         self.options = runSet.options + fileOptions if fileOptions else runSet.options # all options to be used when executing this run
         substitutedOptions = substituteVars(self.options, runSet, sourcefile)
         if substitutedOptions != self.options: self.options = substitutedOptions # for less memory again
+
+        # get propertyfile for Run: if available, use the last one
+        if propertyFiles:
+            self.propertyfile = propertyFiles[-1]
+        elif runSet.propertyFiles:
+            self.propertyfile = runSet.propertyFiles[-1]
+        else:
+            self.propertyfile = None
+
+        # replace run-specific stuff in the propertyfile and add it to the set of required files
+        if self.propertyfile is not None:
+            substitutedPropertyfile = substituteVars([self.propertyfile], runSet, sourcefile)
+            assert len(substitutedPropertyfile) == 1
+            self.propertyfile = substitutedPropertyfile[0]
+            self.runSet.benchmark.addRequiredFiles([self.propertyfile])
 
         # Copy columns for having own objects in run
         # (we need this for storing the results in them).
@@ -490,30 +505,10 @@ class Run():
 
 
     def getCmdline(self):
-        args = self.runSet.benchmark.tool.getCmdline(self.runSet.benchmark.executable, self.options, self.sourcefile)
+        args = self.runSet.benchmark.tool.getCmdline(self.runSet.benchmark.executable, self.options, self.sourcefile, self.propertyfile)
         args = [os.path.expandvars(arg) for arg in args]
         args = [os.path.expanduser(arg) for arg in args]
         return args;
-
-
-    def getPropFile(self):
-        # get prp-file from options
-        prpfile = None
-        for option in self.options:
-            if option.endswith('.prp'):
-                assert prpfile == None
-                prpfile = option
-                break
-
-        #if prpfile is None and not logPrpfileOnlyOnce:
-        #    logging.warn("Could not find propertyfile in options. This will be logged only once!")
-
-        # prpfile is relative to toolWorkingDir, we need it relativ to currentWorkingDir
-        if prpfile is not None:
-            prpfile = os.path.join(self.runSet.benchmark.tool.getWorkingDirectory(self.runSet.benchmark.executable), prpfile)
-            assert os.path.isfile(prpfile)
-
-        return prpfile
 
 
     def afterExecution(self, returnvalue, output, forceTimeout=False):
@@ -527,7 +522,7 @@ class Run():
         returncode = returnvalue >> 8
         logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
         self.status = self.runSet.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
-        self.category = result.getResultCategory(self.sourcefile, self.status, self.getPropFile())
+        self.category = result.getResultCategory(self.sourcefile, self.status, self.propertyfile)
         self.runSet.benchmark.tool.addColumnValues(output, self.columns)
 
         # Tools sometimes produce a result even after a timeout.

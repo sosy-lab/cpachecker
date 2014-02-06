@@ -77,21 +77,15 @@ def removeAll(list, elemToRemove):
     return [elem for elem in list if elem != elemToRemove]
 
 
-def toSimpleList(listOfPairs):
-    """
-    This function converts a list of pairs to a list.
-    Each pair of key and value is divided into 2 listelements.
-    All "None"-values are removed.
-    """
-    simpleList = []
-    for (key, value) in listOfPairs:
-        if key is not None:    simpleList.append(key)
-        if value is not None:  simpleList.append(value)
-    return simpleList
+def flatten(iterable, exclude=[]):
+    return [value for sublist in iterable for value in sublist if not value in exclude]
 
 
-def flatten(list):
-    return [value for sublist in list for value in sublist]
+def getListFromXML(elem, tag="option", attributes=["name"]):
+    '''
+    This function searches for all "option"-tags and returns a list with all attributes and texts.
+    '''
+    return flatten(([option.get(attr) for attr in attributes] + [option.text] for option in elem.findall(tag)), exclude=[None])
 
 
 def getCopyOfXMLElem(elem):
