@@ -71,6 +71,10 @@ analysis.algorithm.conditionAdjustment = false
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
+# use a predicated analysis which proves if the program satisfies a specified
+# property with the help of a PredicateCPA to separate differnt program paths
+analysis.algorithm.predicatedAnalysis = false
+
 # use a proof check algorithm to validate a previously generated proof
 analysis.algorithm.proofCheck = false
 
@@ -112,10 +116,6 @@ analysis.interprocedural = true
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
-
-# use a predicated analysis which proves if the program satisfies a specified
-# property with the help of a PredicateCPA to separate differnt program paths
-analysis.predicatedAnalysis = false
 
 # A String, denoting the programs to be analyzed
 analysis.programNames = no default value
@@ -707,12 +707,18 @@ cpa.explicit.refiner.ignoreAssumptionsInLoops = true
 # refinement
 cpa.explicit.refiner.performInitialStaticRefinement = false
 
+<<<<<<< .mine
+# slicedItp
+cpa.explicit.refiner.slicedItp = false
+
+=======
 # slicedItp
 cpa.explicit.refiner.slicedItp = false
 
 # slicedPrecision
 cpa.explicit.refiner.slicedPrecision = false
 
+>>>>>>> .r10895
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
