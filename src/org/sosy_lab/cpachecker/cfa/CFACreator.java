@@ -30,11 +30,13 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.logging.Level;
@@ -60,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
@@ -76,6 +79,7 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -385,6 +389,41 @@ public class CFACreator {
       if (language == Language.C && fptrCallEdges) {
         CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, c.getGlobalDeclarations(), config, logger);
         fptrResolver.resolveFunctionPointers();
+      }
+
+      // Transform dummy loops into edges to termination nodes
+      List<CFANode> toAdd = new ArrayList<>(1);
+      for (CFANode node : cfa.getAllNodes()) {
+        Set<CFANode> visited = new HashSet<>();
+        Queue<CFANode> waitlist = new ArrayDeque<>();
+        waitlist.offer(node);
+        visited.add(node);
+        while (!waitlist.isEmpty()) {
+          CFANode current = waitlist.poll();
+          for (CFAEdge leavingBlankEdge : CFAUtils.leavingEdges(current).filter(BlankEdge.class).toList()) {
+            CFANode succ = leavingBlankEdge.getSuccessor();
+            if (succ == node) {
+              leavingBlankEdge.getPredecessor().removeLeavingEdge(leavingBlankEdge);
+              leavingBlankEdge.getSuccessor().removeEnteringEdge(leavingBlankEdge);
+              CFANode terminationNode = new CFATerminationNode(node.getLineNumber(), node.getFunctionName());
+              BlankEdge terminationEdge =
+                  new BlankEdge(leavingBlankEdge.getRawStatement(),
+                      leavingBlankEdge.getLineNumber(),
+                      leavingBlankEdge.getPredecessor(),
+                      terminationNode,
+                      leavingBlankEdge.getDescription());
+              terminationEdge.getPredecessor().addLeavingEdge(terminationEdge);
+              terminationEdge.getSuccessor().addEnteringEdge(terminationEdge);
+              toAdd.add(terminationNode);
+            }
+            if (visited.add(succ)) {
+              waitlist.offer(succ);
+            }
+          }
+        }
+      }
+      for (CFANode nodeToAdd : toAdd) {
+        cfa.addNode(nodeToAdd);
       }
 
       // THIRD, do read-only post-processings on each single function CFA
