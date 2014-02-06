@@ -277,13 +277,11 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    *
    * @param increment the current increment
    * @param currentEdge the current edge for which to add a new variable
-   * @param variableName the name of the variable to add to the increment at the given edge
+   * @param memoryLocation the name of the variable to add to the increment at the given edge
    */
-  private void addToPrecisionIncrement(Multimap<CFANode, MemoryLocation> increment, CFAEdge currentEdge, MemoryLocation variableName) {
-    if(assignments == null ||
-        (assignments.variableExceedsSoftThreshold(variableName.getAsSimpleString()) &&
-            !assignments.variableExceedsHardThreshold(variableName.getAsSimpleString()))) {
-      increment.put(currentEdge.getSuccessor(), variableName);
+  private void addToPrecisionIncrement(Multimap<CFANode, MemoryLocation> increment, CFAEdge currentEdge, MemoryLocation memoryLocation) {
+    if(assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
+      increment.put(currentEdge.getSuccessor(), memoryLocation);
     }
   }
 

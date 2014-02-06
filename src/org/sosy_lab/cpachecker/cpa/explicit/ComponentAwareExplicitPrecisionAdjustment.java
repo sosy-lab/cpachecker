@@ -300,15 +300,26 @@ public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisio
       ExplicitPrecision precision,
       UniqueAssignmentsInPathConditionState assignments) {
     if (assignments != null) {
-      assignments.updateAssignmentInformation(state);
 
       // forget the value for all variables that exceed their threshold
       for (MemoryLocation memoryLocation: state.getDelta()) {
-        if (assignments.variableExceedsSoftThreshold(memoryLocation.getAsSimpleString())) {
-
-          if(!precision.isTracking(memoryLocation)
-              || assignments.variableExceedsHardThreshold(memoryLocation.getAsSimpleString())) {
+        // current memory location is already in (refineable) precision, so check against hard threshold
+        if(precision.isTracking(memoryLocation)) {
+          if(assignments.wouldExceedHardThreshold(state, memoryLocation)) {
             state.forget(memoryLocation);
+          }
+          else {
+            assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));
+          }
+        }
+
+        // otherwise, check against soft threshold
+        else {
+          if(assignments.wouldExceedSoftThreshold(state, memoryLocation)) {
+            state.forget(memoryLocation);
+          }
+          else {
+            assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));
           }
         }
       }

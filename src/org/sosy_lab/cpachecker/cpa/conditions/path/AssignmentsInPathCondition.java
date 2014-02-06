@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
 import java.io.PrintStream;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -39,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -117,13 +120,13 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     /**
      * the mapping from variable name to the set of assigned values to this variable
      */
-    private Multimap<String, Long> mapping;
+    private Multimap<MemoryLocation, Long> mapping;
 
     private UniqueAssignmentsInPathConditionState() {
-      this(0, HashMultimap.<String, Long>create());
+      this(0, HashMultimap.<MemoryLocation, Long>create());
     }
 
-    public UniqueAssignmentsInPathConditionState(int pMaximum, Multimap<String, Long> pMapping) {
+    public UniqueAssignmentsInPathConditionState(int pMaximum, Multimap<MemoryLocation, Long> pMapping) {
       maximum = pMaximum;
       mapping = pMapping;
     }
@@ -148,46 +151,80 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
 
     /**
-    * This method decides if the number of assignments for the given variable exceeds the soft threshold.
+    * This method decides if the number of assignments for the given variable would exceed the soft threshold, taking
+    * into account the current assignment from the given explicit-value state.
     *
-    * @param variableName the variable to check
-    * @return true, if the number of assignments for the given variable exceeds the soft threshold, else false
+    * @param state the current assignment in form of a explicit-value state
+    * @param memoryLocation the variable to check
+    * @return true, if the number of assignments for the given variable would exceed the soft threshold, else false
     */
-    public boolean variableExceedsSoftThreshold(String variableName) {
-      return softThreshold > -1
-          && mapping.containsKey(variableName)
-          && mapping.get(variableName).size() > softThreshold;
-    }
-
-    /**
-    * This method decides if the number of assignments for the given variable exceeds the hard threshold.
-    *
-    * @param variableName the variable to check
-    * @return true, if the number of assignments for the given variable exceeds the hard threshold, else false
-    */
-    public boolean variableExceedsHardThreshold(String variableName) {
-      return hardThreshold > -1
-          && mapping.containsKey(variableName)
-          && mapping.get(variableName).size() > hardThreshold;
-    }
-
-    /**
-     * This method updates the unique assignment information stored in this state with assignment information from an
-     * explicit-value state. So, this method basically does what strengthen would do.
-     *
-     * @param explicitValueState the ExplicitState from which to obtain assignment information
-     */
-    public void updateAssignmentInformation(ExplicitState explicitValueState) {
-      explicitValueState.addToValueMapping(mapping);
-
-      for (String variableName : mapping.keys()) {
-        maximum = Math.max(maximum, mapping.get(variableName).size());
+    public boolean wouldExceedSoftThreshold(ExplicitState state, MemoryLocation memoryLocation) {
+      if(softThreshold == -1) {
+        return false;
       }
+
+      Set<Long> values = new HashSet<>(mapping.get(memoryLocation));
+      values.add(state.getValueFor(memoryLocation));
+
+      return values.size() > softThreshold;
+    }
+
+    /**
+    * This method decides if the number of assignments for the given memory location exceeds the soft threshold.
+    *
+    * @param memoryLocation the memory location to check
+    * @return true, if the number of assignments for the given memory location exceeds the soft threshold, else false
+    */
+    public boolean exceedsSoftThreshold(MemoryLocation memoryLocation) {
+      return softThreshold > -1
+          && mapping.containsKey(memoryLocation)
+          && mapping.get(memoryLocation).size() > softThreshold;
+    }
+
+    /**
+    * This method decides if the number of assignments for the given variable would exceed the hard threshold, taking
+    * into account the current assignment from the given explicit-value state.
+    *
+    * @param state the current assignment in form of a explicit-value state
+    * @param memoryLocation the variable to check
+    * @return true, if the number of assignments for the given variable would exceed the hard threshold, else false
+    */
+    public boolean wouldExceedHardThreshold(ExplicitState state, MemoryLocation memoryLocation) {
+      if(hardThreshold == -1) {
+        return false;
+      }
+
+      Set<Long> values = new HashSet<>(mapping.get(memoryLocation));
+      values.add(state.getValueFor(memoryLocation));
+
+      return values.size() > hardThreshold;
+    }
+
+    /**
+    * This method decides if the number of assignments for the given memory location exceeds the hard threshold.
+    *
+    * @param memoryLocation the memory location to check
+    * @return true, if the number of assignments for the given memory location exceeds the hard threshold, else false
+    */
+    public boolean exceedsHardThreshold(MemoryLocation memoryLocation) {
+      return hardThreshold > -1
+          && mapping.containsKey(memoryLocation)
+          && mapping.get(memoryLocation).size() > hardThreshold;
+    }
+
+    /**
+     * This method updates this state's unique assignment information with an assignment of the given memory location.
+     *
+     * @param memoryLocation the memory location for which to set assignment information
+     */
+    public void updateAssignmentInformation(MemoryLocation memoryLocation, Long value) {
+      mapping.put(memoryLocation, value);
+      maximum = Math.max(maximum, mapping.get(memoryLocation).size());
     }
 
     @Override
     public String toString() {
-      return mapping.toString() + " [" + maximum + "]";
+      return mapping.toString() + " [max: " + maximum + "]";
     }
   }
 }
