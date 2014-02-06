@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -35,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -66,6 +68,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionClosureCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
@@ -77,6 +80,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.explicit.refiner")
@@ -184,10 +188,10 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
         UniqueAssignmentsInPathConditionState.class);
 
-    ExplicitInterpolator interpolator             = new ExplicitInterpolator(logger, shutdownNotifier, cfa,
+    ExplicitInterpolator interpolator           = new ExplicitInterpolator(logger, shutdownNotifier, cfa,
                                                       loopLeavingAssumes, loopLeavingMemoryLocations);
-    Map<MemoryLocation, Long> currentInterpolant  = new HashMap<>();
-    Multimap<CFANode, MemoryLocation> increment   = HashMultimap.create();
+    ExplicitValueInterpolant currentInterpolant = ExplicitValueInterpolant.getInitialInterpolant();
+    Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
 
     List<CFAEdge> cfaTrace = Lists.newArrayList();
     for(Pair<ARGState, CFAEdge> elem : errorPath) {
@@ -221,7 +225,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
       if (currentEdge instanceof BlankEdge) {
         // add the current interpolant to the increment
-        for (MemoryLocation variableName : currentInterpolant.keySet()) {
+        for (MemoryLocation variableName : currentInterpolant.getMemoryLocations()) {
           addToPrecisionIncrement(increment, currentEdge, variableName);
         }
         continue;
@@ -231,35 +235,26 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       }
 
       // do interpolation
-      Map<MemoryLocation, Long> inputInterpolant = new HashMap<>(currentInterpolant);
-      Map<MemoryLocation, Long> interpolant = interpolator.deriveInterpolant(cfaTrace, i, inputInterpolant, relevantVars);
+      currentInterpolant = interpolator.deriveInterpolant(cfaTrace, i, currentInterpolant, relevantVars);
       numberOfInterpolations += interpolator.getNumberOfInterpolations();
 
       // early stop once we are past the first statement that made a path feasible for the first time
-      if (interpolant == null) {
+      if (currentInterpolant.isFalse()) {
         timerInterpolation.stop();
         return increment;
-      }
-      for (Map.Entry<MemoryLocation, Long> element : interpolant.entrySet()) {
-        if (element.getValue() == null) {
-          currentInterpolant.remove(element.getKey());
-        } else {
-          currentInterpolant.put(element.getKey(), element.getValue());
-        }
       }
 
       // remove variables from the interpolant that belong to the scope of the returning function
       // this is done one iteration after returning from the function, as the special FUNCTION_RETURN_VAR is needed that long
       if (i > 0 && errorPath.get(i - 1).getSecond().getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
-        currentInterpolant = clearInterpolant(currentInterpolant, errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
+        currentInterpolant.clearScope(errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
       }
 
       // add the current interpolant to the increment
-      for (MemoryLocation variableName : currentInterpolant.keySet()) {
+      for (MemoryLocation variableName : currentInterpolant.getMemoryLocations()) {
         if (interpolationOffset == -1) {
           interpolationOffset = i + 1;
         }
-
         addToPrecisionIncrement(increment, currentEdge, variableName);
       }
     }
@@ -280,23 +275,6 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     if(assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
       increment.put(currentEdge.getSuccessor(), memoryLocation);
     }
-  }
-
-  /**
-   * This method removes variables from the interpolant that belong to the scope of the given function.
-   *
-   * @param currentInterpolant the current interpolant
-   * @param functionName the name of the function for which to remove variables
-   * @return the current interpolant with the respective variables removed
-   */
-  private Map<MemoryLocation, Long> clearInterpolant(Map<MemoryLocation, Long> currentInterpolant, String functionName) {
-    for (Iterator<MemoryLocation> variableNames = currentInterpolant.keySet().iterator(); variableNames.hasNext(); ) {
-      if (variableNames.next().isOnFunctionStack(functionName)) {
-        variableNames.remove();
-      }
-    }
-
-    return currentInterpolant;
   }
 
   /**
@@ -449,5 +427,75 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
   public int getInterpolationOffset() {
     return interpolationOffset;
+  }
+  
+  public static class ExplicitValueInterpolant {
+    private final Map<MemoryLocation, Long> data;
+    
+    public static final ExplicitValueInterpolant TRUE  = new ExplicitValueInterpolant();
+    public static final ExplicitValueInterpolant FALSE = new ExplicitValueInterpolant((Map<MemoryLocation, Long>)null);
+    
+    private static ExplicitValueInterpolant getInitialInterpolant() {
+      return new ExplicitValueInterpolant();
+    }
+/*
+    private static ExplicitValueInterpolant getTrueInterpolant() {
+      return new ExplicitValueInterpolant();
+    }
+
+    private static ExplicitValueInterpolant getFalseInterpolant() {
+      ExplicitValueInterpolant falseItp = new ExplicitValueInterpolant();
+      falseItp.data = null;
+      
+      return falseItp;
+    }
+*/
+    private ExplicitValueInterpolant() {
+      data = new HashMap<>();
+    }
+    
+    public ExplicitValueInterpolant(Map<MemoryLocation, Long> pData) {
+      data = pData;
+    }
+/*
+    private ExplicitValueInterpolant(ExplicitValueInterpolant other) {
+      data = Maps.newHashMap(other.data);
+    }
+*/
+    private Set<MemoryLocation> getMemoryLocations() {
+      return Collections.unmodifiableSet(data.keySet());
+    }
+    
+    private boolean isFalse() {
+      return data == null;
+    }
+    
+    private boolean isTrue() {
+      return data.isEmpty();
+    }
+    
+    private void clearScope(String functionName) {
+      for (Iterator<MemoryLocation> variableNames = data.keySet().iterator(); variableNames.hasNext(); ) {
+        if (variableNames.next().isOnFunctionStack(functionName)) {
+          variableNames.remove();
+        }
+      }     
+    }
+    
+    public ExplicitState toExplicitValueState() {
+      return new ExplicitState(PathCopyingPersistentTreeMap.copyOf(data));
+    }
+    
+    public String toString() {
+      if(isFalse()) {
+        return "FALSE";
+      }
+      
+      if(isTrue()) {
+        return "TRUE";
+      }
+      
+      return data.toString();
+    }
   }
 }

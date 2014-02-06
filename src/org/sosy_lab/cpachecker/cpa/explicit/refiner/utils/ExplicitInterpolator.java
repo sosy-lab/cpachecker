@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.ExplicitInterpolationBasedExplicitRefiner.ExplicitValueInterpolant;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
@@ -114,18 +115,18 @@ public class ExplicitInterpolator {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public Map<MemoryLocation, Long> deriveInterpolant(
+  public ExplicitValueInterpolant deriveInterpolant(
       List<CFAEdge> pErrorPath,
       int pOffset,
-      Map<MemoryLocation, Long> pInputInterpolant,
+      ExplicitValueInterpolant pInputInterpolant,
       Set<String> relevantVariables) throws CPAException, InterruptedException {
     numberOfInterpolations = 0;
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
-    ExplicitState initialState      = new ExplicitState(PathCopyingPersistentTreeMap.copyOf(pInputInterpolant));
+    ExplicitState initialState      = pInputInterpolant.toExplicitValueState();
     ExplicitState initialSuccessor  = getInitialSuccessor(initialState, pErrorPath.get(pOffset));
     if (initialSuccessor == null) {
-      return null;
+      return ExplicitValueInterpolant.FALSE;
     }
 
     if(relevantVariables != null) {
@@ -146,7 +147,7 @@ public class ExplicitInterpolator {
     // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
     Iterable<CFAEdge> remainingErrorPath = skip(pErrorPath, pOffset + 1);
     if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(remainingErrorPath, new ExplicitState())) {
-      return Collections.emptyMap();
+      return ExplicitValueInterpolant.TRUE;
     }
 
     Map<MemoryLocation, Long> interpolant = new HashMap<>();
@@ -169,8 +170,17 @@ public class ExplicitInterpolator {
         interpolant.put(currentMemoryLocation, null);
       }
     }
+    
+    Map<MemoryLocation, Long> finalInterpolant = new HashMap<>();
+    for (Map.Entry<MemoryLocation, Long> element : interpolant.entrySet()) {
+      if (element.getValue() == null) {
+        finalInterpolant.remove(element.getKey());
+      } else {
+        finalInterpolant.put(element.getKey(), element.getValue());
+      }
+    }
 
-    return interpolant;
+    return new ExplicitValueInterpolant(finalInterpolant);
   }
 
   /**
