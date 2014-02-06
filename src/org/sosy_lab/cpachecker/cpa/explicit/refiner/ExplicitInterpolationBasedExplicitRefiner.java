@@ -96,20 +96,17 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       + "this avoids to have loop-counters in the interpolant")
   private boolean ignoreAssumptionsInLoops = true;
 
-  @Option(description="slicedItp")
-  private boolean slicedItp = false;
+  @Option(description="whether or not to use use-definition information from the error paths to optimize the "
+      + "interpolation process")
+  private boolean applyUseDefInformationForItp = true;
 
-  @Option(description="slicedPrecision")
-  private boolean slicedPrecision = false;
+  @Option(description="whether or not the obtain a precision from use-definition information instead of interpolation")
+  private boolean generateUseDefBasedPrecision = false;
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
    */
   private int interpolationOffset = -1;
-
-  public int getInterpolationOffset() {
-    return interpolationOffset;
-  }
 
   /**
    * a reference to the assignment-counting state, to make the precision increment aware of thresholds
@@ -199,10 +196,10 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
     AssumptionClosureCollector coll = new AssumptionClosureCollector();
     Set<String> relevantVars = null;
-    if(slicedItp) {
+    if(applyUseDefInformationForItp) {
       relevantVars = coll.collectVariables(cfaTrace);
 
-      if(slicedPrecision) {
+      if(generateUseDefBasedPrecision) {
         for(String var : relevantVars) {
           String[] s = var.split("::");
 
@@ -315,7 +312,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       boolean isRepeatedRefinement) throws RefinementFailedException {
 
     if(interpolationOffset == -1) {
-      if(!slicedPrecision) {
+      if(!generateUseDefBasedPrecision) {
         throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);
       }
     }
@@ -448,5 +445,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     out.println("  number of explicit interpolations:                   " + numberOfInterpolations);
     out.println("  max. time for singe interpolation:                   " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
     out.println("  total time for interpolation:                        " + timerInterpolation);
+  }
+
+  public int getInterpolationOffset() {
+    return interpolationOffset;
   }
 }

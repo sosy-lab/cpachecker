@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -67,17 +66,28 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
   /**
    * the set of global variables declared in the given path
    */
-  Set<String> globalVariables = new HashSet<>();
+  private final Set<String> globalVariables = new HashSet<>();
+
+  /**
+   * the set of variables in the transitive-closure of the assume edges
+   */
+  private final Set<String> collectedVariables = new HashSet<>();
 
   /**
    * the set of variables for which to find the referencing ones
    */
-  Collection<String> dependingVariables = new HashSet<>();
+  private final Set<String> dependingVariables = new HashSet<>();
 
   /**
    * the set of relevant edges, on which variables where collected
    */
-  Set<CFAEdge> relevantEdges = new HashSet<>();
+  private final Set<CFAEdge> relevantEdges = new HashSet<>();
+
+  /**
+   * the last traversed function return edge - needed as we go backwards through the edges to obtain the
+   * FunctionSummaryEdge corresponding to a currently visited ReturnStatementEdge
+   */
+  private FunctionReturnEdge previousFunctionReturnEdge = null;
 
   /**
    * This method acts as the constructor of the class.
@@ -93,7 +103,6 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
   public Set<String> collectVariables(List<CFAEdge> path) {
     determineGlobalVariables(path);
 
-    Set<String> collectedVariables = new HashSet<>();
     for (int i = path.size() - 1; i >= 0; i--) {
       CFAEdge edge = path.get(i);
       collectVariables(edge, collectedVariables);
@@ -130,8 +139,6 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
     return declaration.isGlobal() && !(declaration instanceof CFunctionDeclaration);
   }
 
-  FunctionReturnEdge previousFunctionReturnEdge = null;
-
   /**
    * This method collects the referenced variables in a edge into the mapping of collected variables.
    *
@@ -155,15 +162,15 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
 
       if (declaration.getName() != null) {
-        String name = declaration.getName();
+        String variableName = declaration.getName();
 
         if(!declaration.isGlobal()) {
-          name = scoped(name, currentFunction);
+          variableName = scoped(variableName, currentFunction);
         }
 
-        if (dependingVariables.contains(name)) {
-          dependingVariables.remove(name);
-          collectedVariables.add(name);
+        if (dependingVariables.contains(variableName)) {
+          dependingVariables.remove(variableName);
+          collectedVariables.add(variableName);
           relevantEdges.add(edge);
 
           if(((CVariableDeclaration)declaration).getInitializer() instanceof CInitializerExpression) {
@@ -172,7 +179,6 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
               collectVariables(edge, initializer.getExpression());
             }
           }
-
         }
       }
       break;
