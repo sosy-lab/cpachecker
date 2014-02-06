@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
@@ -79,6 +81,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -103,9 +106,6 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   @Option(description="whether or not to use use-definition information from the error paths to optimize the "
       + "interpolation process")
   private boolean applyUseDefInformationForItp = true;
-
-  @Option(description="whether or not the obtain a precision from use-definition information instead of interpolation")
-  private boolean generateUseDefBasedPrecision = false;
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
@@ -193,30 +193,11 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     ExplicitValueInterpolant currentInterpolant = ExplicitValueInterpolant.getInitialInterpolant();
     Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
 
-    List<CFAEdge> cfaTrace = Lists.newArrayList();
-    for(Pair<ARGState, CFAEdge> elem : errorPath) {
-      cfaTrace.add(elem.getSecond());
-    }
+    List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
 
-    AssumptionClosureCollector coll = new AssumptionClosureCollector();
-    Set<String> relevantVars = null;
+    Set<String> relevantVariables = null;
     if(applyUseDefInformationForItp) {
-      relevantVars = coll.collectVariables(cfaTrace);
-
-      if(generateUseDefBasedPrecision) {
-        for(String var : relevantVars) {
-          String[] s = var.split("::");
-
-          if(s.length == 1) {
-            addToPrecisionIncrement(increment, cfaTrace.get(0), MemoryLocation.valueOf(s[0]));
-          } else {
-            addToPrecisionIncrement(increment, cfaTrace.get(0), MemoryLocation.valueOf(s[0], s[1], 0));
-          }
-        }
-
-        timerInterpolation.stop();
-        return increment;
-      }
+      relevantVariables = new AssumptionClosureCollector().collectVariables(cfaTrace);
     }
 
     for (int i = 0; i < errorPath.size(); i++) {
@@ -235,7 +216,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       }
 
       // do interpolation
-      currentInterpolant = interpolator.deriveInterpolant(cfaTrace, i, currentInterpolant, relevantVars);
+      currentInterpolant = interpolator.deriveInterpolant(cfaTrace, i, currentInterpolant, relevantVariables);
       numberOfInterpolations += interpolator.getNumberOfInterpolations();
 
       // early stop once we are past the first statement that made a path feasible for the first time
@@ -290,9 +271,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       boolean isRepeatedRefinement) throws RefinementFailedException {
 
     if(interpolationOffset == -1) {
-      if(!generateUseDefBasedPrecision) {
-        throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);
-      }
+      throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);
     }
 
     // if doing lazy abstraction, use the node closest to the root node where new information is present
