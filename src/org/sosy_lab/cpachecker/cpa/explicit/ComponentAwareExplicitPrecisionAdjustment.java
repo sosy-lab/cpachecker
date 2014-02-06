@@ -140,9 +140,6 @@ public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisio
     assert (composite.getWrappedStates().size() == precision.getPrecisions().size());
 
     int indexOfExplicitState = getIndexOfExplicitState(composite);
-    if (indexOfExplicitState == -1) {
-      throw new CPAException("The ComponentAwareExplicitPrecisionAdjustment needs an ExplicitState");
-    }
 
     ImmutableList.Builder<AbstractState> outElements  = ImmutableList.builder();
     ImmutableList.Builder<Precision> outPrecisions    = ImmutableList.builder();
