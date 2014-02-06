@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -46,6 +47,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -65,6 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -98,6 +101,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   // the previously analyzed counterexample to detect repeated counterexamples
   private List<BooleanFormula> lastErrorPath = null;
+  // needed for refinement in predicated analysis due to relink of elements during merge
+  private boolean recomputePathFormulae;
 
   // statistics
   private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
@@ -141,6 +146,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final LogManager logger;
 
   private final PathFormulaManager pfmgr;
+  private FormulaManagerView fmgr;
   private final InterpolationManager formulaManager;
   private final PathChecker pathChecker;
   private final RefinementStrategy strategy;
@@ -162,8 +168,14 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     formulaManager = pInterpolationManager;
     pathChecker = pPathChecker;
     pfmgr = pPathFormulaManager;
+    fmgr = pFormulaManager;
     strategy = pStrategy;
-
+    String value = config.getProperty("analysis.algorithm.predicatedAnalysis");
+    if (value != null) {
+      recomputePathFormulae = Boolean.parseBoolean(value);
+    } else {
+      recomputePathFormulae = false;
+    }
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
   }
 
@@ -192,7 +204,12 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
 
     // create list of formulas on path
-    final List<BooleanFormula> formulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirst().getFirst());
+    final List<BooleanFormula> formulas;
+    if (recomputePathFormulae) {
+      formulas = recomputeFormulasForPath(allStatesTrace, abstractionStatesTrace.size());
+    } else {
+      formulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirst().getFirst());
+    }
     assert abstractionStatesTrace.size() == formulas.size();
 
 
@@ -251,6 +268,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
   }
 
+
   static List<ARGState> transformPath(ARGPath pPath) {
     List<ARGState> result = from(pPath)
       .skip(1)
@@ -304,6 +322,31 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     } finally {
       getFormulasForPathTime.stop();
     }
+  }
+
+  protected List<BooleanFormula> recomputeFormulasForPath(ARGPath pAllStatesTrace, int initialSize)
+      throws CPATransferException {
+    ArrayList<BooleanFormula> list = new ArrayList<>(initialSize);
+    PathFormula pathFormula = pfmgr.makeEmptyPathFormula();
+    pathFormula = pfmgr.makeAnd(pathFormula, pAllStatesTrace.getFirst().getSecond());
+    ARGState last = pAllStatesTrace.get(pAllStatesTrace.size()-2).getFirst();
+    for (Pair<ARGState, CFAEdge> pair : pAllStatesTrace.subList(1, pAllStatesTrace.size()-2)) {
+      if (PredicateAbstractState.getPredicateState(pair.getFirst()).isAbstractionState()) {
+        list.add(pathFormula.getFormula());
+        pathFormula = pfmgr.makeEmptyPathFormula(pathFormula);
+      } else {
+        if(PredicateAbstractState.getPredicateState(pair.getFirst()).isAbstractionState()) {
+          System.out.println(pathFormula.getLength());
+        }
+      }
+      if (pair.getFirst() != last) {
+        pathFormula = pfmgr.makeAnd(pathFormula, pair.getSecond());
+      } else {
+        pathFormula = pfmgr.makeAnd(pathFormula, last.getErrorCondition(fmgr));
+      }
+    }
+    list.add(pathFormula.getFormula());
+    return list;
   }
 
   private Pair<ARGPath, CounterexampleTraceInfo> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo counterexample) throws InterruptedException {
