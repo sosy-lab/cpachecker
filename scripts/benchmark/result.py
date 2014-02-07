@@ -129,9 +129,10 @@ def getResultCategory(filename, status, propertyFile=None):
     if status == STR_UNKNOWN:
         category = CATEGORY_UNKNOWN
     elif status in STR_LIST:
-        if status == STR_TRUE and not fileStatuses:
+        commonBugs = set(propertiesToCheck).intersection(set(fileStatuses)) # list of bugs, that are searched and part of the filename
+        if status == STR_TRUE and not commonBugs:
             category = CATEGORY_CORRECT
-        elif status in propertiesToCheck and status in fileStatuses:
+        elif status in commonBugs:
             category = CATEGORY_CORRECT
         else:
             category = CATEGORY_WRONG
