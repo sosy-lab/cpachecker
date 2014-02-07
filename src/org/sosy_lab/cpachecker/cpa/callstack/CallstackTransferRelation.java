@@ -95,10 +95,16 @@ public class CallstackTransferRelation implements TransferRelation {
     }
     case AssumeEdge: {
       CallstackState element = (CallstackState) pElement;
+      String predecessorFunctionName = pCfaEdge.getPredecessor().getFunctionName();
       String successorFunctionName = pCfaEdge.getSuccessor().getFunctionName();
-      if (!successorFunctionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)
-          && !successorFunctionName.equals(element.getCurrentFunction())
-          && pCfaEdge instanceof CFASingleLoopTransformation.ProgramCounterValueAssumeEdge) {
+      boolean successorIsInCallstackContext = successorFunctionName.equals(element.getCurrentFunction());
+      boolean isArtificialPCVEdge = pCfaEdge instanceof CFASingleLoopTransformation.ProgramCounterValueAssumeEdge;
+      boolean isSuccessorAritificialPCNode = successorFunctionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      boolean isPredecessorAritificialPCNode = predecessorFunctionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      boolean isFunctionTransition = !successorFunctionName.equals(predecessorFunctionName);
+      if (!successorIsInCallstackContext
+          && ((!isSuccessorAritificialPCNode && isArtificialPCVEdge)
+              || isPredecessorAritificialPCNode && isFunctionTransition)) {
         /*
          * This edge is syntactically reachable, but makes no sense from this
          * state, as it would change function without passing a function entry
