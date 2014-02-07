@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -245,6 +246,8 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   static abstract class TokenAwareAutomatonBoolExpr implements AutomatonBoolExpr {
     protected boolean handleAsEpsilonEdge(CFAEdge edge) {
       if (edge instanceof BlankEdge) {
+        return true;
+      } else if (edge instanceof CFunctionReturnEdge) {
         return true;
       } else if (edge instanceof CDeclarationEdge) {
         CDeclarationEdge declEdge = (CDeclarationEdge) edge;
