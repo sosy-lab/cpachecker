@@ -345,7 +345,7 @@ public class CFACreator {
         }
       }
 
-      final FunctionEntryNode mainFunction;
+      FunctionEntryNode mainFunction;
 
       switch (language) {
       case JAVA:
@@ -357,6 +357,7 @@ public class CFACreator {
       default:
         throw new AssertionError();
       }
+      assert mainFunction != null;
 
 
       MutableCFA cfa = new MutableCFA(machineModel, c.getFunctions(), c.getCFANodes(), mainFunction, language);
@@ -496,6 +497,8 @@ public class CFACreator {
       if (transformIntoSingleLoop) {
         stats.processingTime.start();
         immutableCFA = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config).apply(cfa);
+        mainFunction = immutableCFA.getMainFunction();
+        assert mainFunction != null;
         stats.processingTime.stop();
       } else {
         immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);

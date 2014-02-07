@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -38,6 +41,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Set;
+import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
@@ -65,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -788,7 +793,7 @@ public class CFASingleLoopTransformation {
    * @param pOldNode the node to remove the edges from.
    * @param pNewNode the node to add the edges to.
    */
-  private static void replaceInStructure(CFANode pOldNode, CFANode pNewNode) {
+  private void replaceInStructure(CFANode pOldNode, CFANode pNewNode) {
     Map<CFANode, CFANode> newToOld = new HashMap<>();
     newToOld.put(pOldNode, pNewNode);
     CFAEdge oldEdge;
@@ -872,7 +877,7 @@ public class CFASingleLoopTransformation {
    * @return a copy of the given node, possibly reused from the provided
    * mapping.
    */
-  private static CFANode getOrCreateNewFromOld(CFANode pNode, Map<CFANode, CFANode> pNewToOldMapping) {
+  private CFANode getOrCreateNewFromOld(CFANode pNode, Map<CFANode, CFANode> pNewToOldMapping) {
     CFANode result = pNewToOldMapping.get(pNode);
     if (result != null) {
       return result;
@@ -907,6 +912,28 @@ public class CFASingleLoopTransformation {
         }
       }
       result = functionExitNode;
+    } else if (pNode instanceof CFATerminationNode) {
+      result = new CFATerminationNode(lineNumber, functionName);
+    } else if (pNode.getClass() != CFANode.class) {
+      Class<? extends CFANode> clazz = pNode.getClass();
+      Class<?>[] requiredParameterTypes = new Class<?>[] { int.class, String.class };
+      for (Constructor<?> cons : clazz.getConstructors()) {
+        if (cons.isAccessible() && Arrays.equals(cons.getParameterTypes(), requiredParameterTypes)) {
+          try {
+            result = (CFANode) cons.newInstance(lineNumber, functionName);
+            break;
+          } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+              | InvocationTargetException e) {
+            result = null;
+          }
+        }
+      }
+      if (result == null) {
+        result = new CFANode(lineNumber, functionName);
+        this.logger.log(Level.WARNING, "Unknown node type " + clazz + "; created copy as instance of base type CFANode.");
+      } else {
+        this.logger.log(Level.WARNING, "Unknown node type " + clazz + "; created copy by reflection.");
+      }
     } else {
       result = new CFANode(lineNumber, functionName);
     }
@@ -928,7 +955,7 @@ public class CFASingleLoopTransformation {
    *
    * @return a new edge with the given predecessor and successor.
    */
-  private static CFAEdge copyCFAEdgeWithNewNodes(CFAEdge pEdge, CFANode pNewPredecessor, CFANode pNewSuccessor, final Map<CFANode, CFANode> pNewToOldMapping) {
+  private CFAEdge copyCFAEdgeWithNewNodes(CFAEdge pEdge, CFANode pNewPredecessor, CFANode pNewSuccessor, final Map<CFANode, CFANode> pNewToOldMapping) {
     String rawStatement = pEdge.getRawStatement();
     int lineNumber = pEdge.getLineNumber();
     switch (pEdge.getEdgeType()) {
@@ -1008,7 +1035,7 @@ public class CFASingleLoopTransformation {
    *
    * @return a new edge with the given predecessor and successor.
    */
-  private static CFAEdge copyCFAEdgeWithNewNodes(CFAEdge pEdge, final Map<CFANode, CFANode> pNewToOldMapping) {
+  private CFAEdge copyCFAEdgeWithNewNodes(CFAEdge pEdge, final Map<CFANode, CFANode> pNewToOldMapping) {
     CFANode newPredecessor = getOrCreateNewFromOld(pEdge.getPredecessor(), pNewToOldMapping);
     CFANode newSuccessor = getOrCreateNewFromOld(pEdge.getSuccessor(), pNewToOldMapping);
     return copyCFAEdgeWithNewNodes(pEdge, newPredecessor, newSuccessor, pNewToOldMapping);
