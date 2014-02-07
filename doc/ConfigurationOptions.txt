@@ -641,6 +641,10 @@ cpa.explicit.initAssumptionVars = false
 # get an initial precison from file
 cpa.explicit.initialPrecisionFile = no default value
 
+# whether or not to ignore the semantics of loop-leaving-assume-edges during
+# interpolation - this avoids to have loop-counters in the interpolant
+cpa.explicit.interpolation.ignoreLoopsExitAssumes = true
+
 # which merge operator to use for ExplicitCPA
 cpa.explicit.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -673,7 +677,7 @@ cpa.explicit.precision.sharing = "scope"
 # target file to hold the exported precision
 cpa.explicit.precisionFile = no default value
 
-# whether or not to use use-definition information from the error paths to
+# whether or not to use use-definition information from the error pathsto
 # optimize the interpolation process
 cpa.explicit.refiner.applyUseDefInformationForItp = true
 
@@ -702,10 +706,6 @@ cpa.explicit.refiner.doLazyAbstraction = true
 # the order in which error paths should be refined
 cpa.explicit.refiner.errorPathOrder = "DEFAULT"
   allowed values: [DEFAULT, ZIGZAG]
-
-# whether or not to ignore the semantics of loop-leaving-assume-edges during
-# interpolation - this avoids to have loop-counters in the interpolant
-cpa.explicit.refiner.ignoreAssumptionsInLoops = true
 
 # use heuristic to extract a precision from the CFA statically on first
 # refinement

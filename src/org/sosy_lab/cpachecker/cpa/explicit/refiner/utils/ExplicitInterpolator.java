@@ -27,21 +27,25 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 import static com.google.common.collect.Iterables.skip;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
@@ -49,17 +53,27 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.ExplicitInterpolationBasedExplicitRefiner.ExplicitValueInterpolant;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
+@Options(prefix="cpa.explicit.interpolation")
 public class ExplicitInterpolator {
+  @Option(description="whether or not to ignore the semantics of loop-leaving-assume-edges during interpolation - "
+      + "this avoids to have loop-counters in the interpolant")
+  private boolean ignoreLoopsExitAssumes = true;
+  
   /**
    * the shutdownNotifier in use
    */
   private final ShutdownNotifier shutdownNotifier;
+
+  /**
+   * the current cfa
+   */
+  private final CFA cfa;
 
   /**
    * the transfer relation in use
@@ -72,38 +86,42 @@ public class ExplicitInterpolator {
   private final ExplicitPrecision precision;
 
   /**
+   * the set of assume edges leading out of loops
+   */
+  private final Set<CAssumeEdge> loopExitAssumes = new HashSet<>();
+
+  /**
+   * the set of memory locations appearing in assume edges leading out of loops
+   */
+  private final Set<MemoryLocation> loopExitMemoryLocations = new HashSet<>();
+
+  /**
    * the number of interpolations
    */
   private int numberOfInterpolations = 0;
 
   /**
-   * the set of assume edges leading out of loops
-   */
-  private final Set<CAssumeEdge> loopLeavingAssumes;
-
-  /**
-   * the set of memory locations appearing in assume edges leading out of loops
-   */
-  private final Set<MemoryLocation> loopLeavingMemoryLocations;
-
-  /**
    * This method acts as the constructor of the class.
    */
-  public ExplicitInterpolator(final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa, final Set<CAssumeEdge> pLoopLeavingAssumes, final Set<MemoryLocation> pLoopLeavingMemoryLocations)
-          throws CPAException {
-    shutdownNotifier = pShutdownNotifier;
+  public ExplicitInterpolator(final Configuration pConfig,final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
+          throws InvalidConfigurationException {
+    
+    pConfig.inject(this);
+    
+
     try {
-      Configuration config = Configuration.builder().build();
+      shutdownNotifier  = pShutdownNotifier;
 
-      transfer              = new ExplicitTransferRelation(config, pLogger, pCfa);
-      precision             = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
-
-      loopLeavingAssumes          = pLoopLeavingAssumes;
-      loopLeavingMemoryLocations  = pLoopLeavingMemoryLocations;
+      cfa               = pCfa;
+      transfer          = new ExplicitTransferRelation(Configuration.builder().build(), pLogger, pCfa);
+      precision         = new ExplicitPrecision("", Configuration.builder().build(),
+          Optional.<VariableClassification>absent());
+      
+      initializeLoopInformation();
     }
     catch (InvalidConfigurationException e) {
-      throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
+      throw new InvalidConfigurationException("Invalid configuration for checking path: " + e.getMessage(), e);
     }
   }
 
@@ -128,7 +146,7 @@ public class ExplicitInterpolator {
     }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
-    ExplicitState initialState      = pInputInterpolant.toExplicitValueState();
+    ExplicitState initialState      = pInputInterpolant.createExplicitValueState();
     ExplicitState initialSuccessor  = getInitialSuccessor(initialState, pErrorPath.get(pOffset));
     if (initialSuccessor == null) {
       return ExplicitValueInterpolant.FALSE;
@@ -202,7 +220,7 @@ public class ExplicitInterpolator {
 
     // move loop-variables to the front - being checked for relevance earlier minimizes their impact on feasibility
     for(MemoryLocation currentMemoryLocation : trackedMemoryLocations) {
-      if(loopLeavingMemoryLocations.contains(currentMemoryLocation)) {
+      if(loopExitMemoryLocations.contains(currentMemoryLocation)) {
         reOrderedMemoryLocations.add(0, currentMemoryLocation);
       } else {
         reOrderedMemoryLocations.add(currentMemoryLocation);
@@ -251,8 +269,7 @@ public class ExplicitInterpolator {
     numberOfInterpolations++;
 
     for(CFAEdge currentEdge : remainingErrorPath) {
-
-      if(loopLeavingAssumes.contains(currentEdge)) {
+      if(loopExitAssumes.contains(currentEdge)) {
         continue;
       }
 
@@ -268,5 +285,38 @@ public class ExplicitInterpolator {
       state = successors.iterator().next();
     }
     return true;
+  }
+
+  /**
+   * This method initializes the loop-information which is used during interpolation.
+   */
+  private void initializeLoopInformation() {
+    for(Loop l : cfa.getLoopStructure().get().values()) {
+      for(CFAEdge currentEdge : l.getOutgoingEdges()) {
+        if(currentEdge instanceof CAssumeEdge) {
+          loopExitAssumes.add((CAssumeEdge)currentEdge);
+        }
+      }
+    }
+
+    for(CAssumeEdge assumeEdge : loopExitAssumes) {
+      CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
+      assumeEdge.getExpression().accept(collector);
+
+      for (CIdExpression id : collector.getReferencedIdExpressions()) {
+        String scope = ForwardingTransferRelation.isGlobal(id) ? null : assumeEdge.getPredecessor().getFunctionName();
+
+        if(scope == null) {
+          loopExitMemoryLocations.add(MemoryLocation.valueOf(id.getName()));
+        } else {
+          loopExitMemoryLocations.add(MemoryLocation.valueOf(scope, id.getName(), 0));
+        }
+      }
+    }
+
+    // clear the set of assume edges if the respective option is not set
+    if(!ignoreLoopsExitAssumes) {
+      loopExitAssumes.clear();
+    }
   }
 }
