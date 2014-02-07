@@ -70,8 +70,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -273,6 +275,8 @@ public class CFASingleLoopTransformation {
     Set<CFANode> visited = new HashSet<>();
     Set<CFAEdge> visitedEdges = new HashSet<>();
     Map<CFANode, CFANode> tmpMap = new HashMap<>();
+    AcyclicGraph subgraph = null;
+    Set<FunctionCallEdge> functionCallEdgesToFix = new HashSet<>();
     while (!nodes.isEmpty()) {
       this.shutdownNotifier.shutdownIfNecessary();
       CFANode subgraphRoot = nodes.poll();
@@ -298,7 +302,8 @@ public class CFASingleLoopTransformation {
       }
 
       // Get an acyclic sub graph
-      final AcyclicGraph subgraph = new AcyclicGraph(subgraphRoot, this.subgraphGrowthStrategy);
+      subgraph = subgraph == null ? new AcyclicGraph(subgraphRoot, subgraphGrowthStrategy) : subgraph.reset(subgraphRoot);
+
       Deque<CFANode> waitlist = new ArrayDeque<>();
       waitlist.add(subgraphRoot);
       while (!waitlist.isEmpty()) {
@@ -316,7 +321,9 @@ public class CFASingleLoopTransformation {
 
           // Add the edge to the subgraph if no cycle is introduced by it
           if ((!visited.contains(next) || subgraph.containsNode(next))
-              && subgraph.isFurtherGrowthDesired()
+              && (edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
+                || next instanceof CFATerminationNode
+                || subgraph.isFurtherGrowthDesired())
               && subgraph.offerEdge(edge)) {
             waitlist.add(next);
           } else {
@@ -324,39 +331,76 @@ public class CFASingleLoopTransformation {
              * The cycle is avoided by making the edge leave the subgraph
              */
             removeFromNodes(edge);
+            assert tmpMap.isEmpty();
 
             /*
-             * Edges should stay with their original predecessor, thus a
-             * dummy successor is introduced between the edge and the original
-             * successor
+             * Function call edges should stay with their successor, thus a
+             * dummy predecessor is introduced between the original predecessor
+             * and the edge.
              */
-            assert tmpMap.isEmpty();
-            tmpMap.put(current, current);
-            CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(edge, tmpMap);
-            // The replacement edge is added in place of the old edge
-            addToNodes(replacementEdge);
-            if (isDummyEdge(edge)) {
-              dummyEdges.remove(edge);
-              dummyEdges.add(replacementEdge);
-            }
-
-            subgraph.addEdge(replacementEdge);
-
-            if (!(replacementEdge.getSuccessor() instanceof CFATerminationNode)) {
+            if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+              tmpMap.put(next, next);
+              FunctionCallEdge fce = (FunctionCallEdge) edge;
+              tmpMap.put(fce.getSummaryEdge().getSuccessor(), fce.getSummaryEdge().getSuccessor());
+              CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(edge, tmpMap);
+              // The replacement edge is added in place of the old edge
+              addToNodes(replacementEdge);
+              if (isDummyEdge(edge)) {
+                dummyEdges.remove(edge);
+                dummyEdges.add(replacementEdge);
+              }
               /*
                * Create the dummy edge, but do not add it to the nodes, as it
                * will be replaced by an edge to the loop head anyway
                */
-              CFANode dummy = replacementEdge.getSuccessor();
-              CFAEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), dummy, next, DUMMY_EDGE);
+              CFANode dummy = replacementEdge.getPredecessor();
+              CFAEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), current, dummy, DUMMY_EDGE);
               dummyEdges.add(dummyEdge);
 
+              // Create the actual edge in the new graph
+              CFAEdge newEdge = copyCFAEdgeWithNewNodes(replacementEdge, globalNewToOld);
+              addToNodes(newEdge);
+              functionCallEdgesToFix.add((FunctionCallEdge) newEdge);
+
               // Compute the program counter for the replaced edge and map the nodes to it
-              CFANode newPredecessor = getOrCreateNewFromOld(dummy, globalNewToOld);
-              CFANode newSuccessor = getOrCreateNewFromOld(next, globalNewToOld);
+              CFANode newPredecessor = getOrCreateNewFromOld(current, globalNewToOld);
+              CFANode newSuccessor = getOrCreateNewFromOld(dummy, globalNewToOld);
               int pcToSuccessor = programCounterValueProvider.getPCValueFor(newSuccessor);
               newPredecessorsToPC.put(pcToSuccessor, newPredecessor);
               newSuccessorsToPC.put(pcToSuccessor, newSuccessor);
+            } else {
+              /*
+               * Other edges should stay with their original predecessor, thus a
+               * dummy successor is introduced between the edge and the original
+               * successor
+               */
+              tmpMap.put(current, current);
+              CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(edge, tmpMap);
+              // The replacement edge is added in place of the old edge
+              addToNodes(replacementEdge);
+              if (isDummyEdge(edge)) {
+                dummyEdges.remove(edge);
+                dummyEdges.add(replacementEdge);
+              }
+
+              subgraph.addEdge(replacementEdge);
+
+              if (!(replacementEdge.getSuccessor() instanceof CFATerminationNode)) {
+                /*
+                 * Create the dummy edge, but do not add it to the nodes, as it
+                 * will be replaced by an edge to the loop head anyway
+                 */
+                CFANode dummy = replacementEdge.getSuccessor();
+                CFAEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), dummy, next, DUMMY_EDGE);
+                dummyEdges.add(dummyEdge);
+
+                // Compute the program counter for the replaced edge and map the nodes to it
+                CFANode newPredecessor = getOrCreateNewFromOld(dummy, globalNewToOld);
+                CFANode newSuccessor = getOrCreateNewFromOld(next, globalNewToOld);
+                int pcToSuccessor = programCounterValueProvider.getPCValueFor(newSuccessor);
+                newPredecessorsToPC.put(pcToSuccessor, newPredecessor);
+                newSuccessorsToPC.put(pcToSuccessor, newSuccessor);
+              }
             }
             tmpMap.clear();
           }
@@ -373,6 +417,9 @@ public class CFASingleLoopTransformation {
         assert subgraph.containsNode(oldEdge.getSuccessor()) : "None of the edges must leave the subgraph at this point";
         assert subgraph.containsNode(oldEdge.getPredecessor()) : "None of the edges must enter the subgraph at this point";
         CFAEdge newEdge = copyCFAEdgeWithNewNodes(oldEdge, globalNewToOld);
+        if (newEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+          functionCallEdgesToFix.add((FunctionCallEdge) newEdge);
+        }
         addToNodes(newEdge);
       }
     }
@@ -463,6 +510,48 @@ public class CFASingleLoopTransformation {
     connectLoopHeadToSubgraphEntryNodes(loopHead, newSuccessorsToPC, pcIdExpression, mainLocation,
         new CBinaryExpressionBuilder(pInputCFA.getMachineModel(), logger));
 
+    /*
+     * All function call edges calling functions where the summary edge
+     * successor, i.e. the node succeeding the function call predecessor in the
+     * caller function, is now a successor of the artificial decision tree need
+     * to be fixed in that their summary edge must now point to a different
+     * successor: The predecessor of the assignment edge assigning the program
+     * counter value that leads to the old successor...
+     */
+    for (FunctionCallEdge fce : functionCallEdgesToFix) {
+      FunctionEntryNode entryNode = fce.getSuccessor();
+      FunctionExitNode exitNode = entryNode.getExitNode();
+      FunctionSummaryEdge oldSummaryEdge = fce.getSummaryEdge();
+      CFANode oldSummarySuccessor = fce.getSummaryEdge().getSuccessor();
+      Integer pcValue = newSuccessorsToPC.inverse().get(oldSummarySuccessor);
+      if (pcValue != null) {
+        // Find the correct new successor
+        for (CFANode potentialNewSummarySuccessor : CFAUtils.successorsOf(exitNode)) {
+          if (potentialNewSummarySuccessor.getNumLeavingEdges() == 1) {
+            CFAEdge potentialPCValueAssignmentEdge = potentialNewSummarySuccessor.getLeavingEdge(0);
+            if (potentialPCValueAssignmentEdge instanceof ProgramCounterValueAssignmentEdge) {
+              ProgramCounterValueAssignmentEdge programCounterValueAssignmentEdge =
+                  (ProgramCounterValueAssignmentEdge) potentialPCValueAssignmentEdge;
+              if (programCounterValueAssignmentEdge.getProgramCounterValue() == pcValue) {
+                // Fix the edge
+                FunctionSummaryEdge newSummaryEdge = (FunctionSummaryEdge) copyCFAEdgeWithNewNodes(oldSummaryEdge, oldSummaryEdge.getPredecessor(), potentialNewSummarySuccessor, globalNewToOld);
+                oldSummaryEdge.getPredecessor().removeLeavingSummaryEdge(oldSummaryEdge);
+                oldSummaryEdge.getSuccessor().removeEnteringSummaryEdge(oldSummaryEdge);
+                newSummaryEdge.getPredecessor().addLeavingSummaryEdge(newSummaryEdge);
+                oldSummaryEdge = newSummaryEdge.getSuccessor().getEnteringSummaryEdge();
+                if (oldSummaryEdge != null) {
+                  oldSummaryEdge.getSuccessor().removeEnteringSummaryEdge(oldSummaryEdge);
+                  oldSummaryEdge.getPredecessor().removeLeavingSummaryEdge(oldSummaryEdge);
+                }
+                newSummaryEdge.getSuccessor().addEnteringSummaryEdge(newSummaryEdge);
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+
     // Skip the program counter initialization if it is never used
     if (newPredecessorsToPC.size() <= 1) {
       removeFromNodes(pcDeclarationEdge);
@@ -510,8 +599,8 @@ public class CFASingleLoopTransformation {
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
   private ImmutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException, InterruptedException {
-    Map<String, FunctionEntryNode> functions = null;
-    SortedSetMultimap<String, CFANode> allNodes = null;
+    Map<String, FunctionEntryNode> functions = new HashMap<>();
+    SortedSetMultimap<String, CFANode> allNodes = TreeMultimap.create();
     FunctionExitNode artificialFunctionExitNode = new FunctionExitNode(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
     FunctionEntryNode artificialFunctionEntryNode =
         new FunctionEntryNode(0, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, artificialFunctionExitNode, null, Collections.<String>emptyList());
@@ -519,11 +608,12 @@ public class CFASingleLoopTransformation {
     while (changed) {
       this.shutdownNotifier.shutdownIfNecessary();
       changed = false;
-      functions = new HashMap<>();
-      allNodes = TreeMultimap.create();
+      functions.clear();
+      allNodes.clear();
       Queue<CFANode> waitlist = new ArrayDeque<>();
       waitlist.add(pStartNode);
       while (!waitlist.isEmpty()) {
+        this.shutdownNotifier.shutdownIfNecessary();
         CFANode current = waitlist.poll();
         String functionName = current.getFunctionName();
         if (allNodes.put(functionName, current)) {
@@ -653,10 +743,7 @@ public class CFASingleLoopTransformation {
     for (Map.Entry<Integer, CFANode> newPredecessorToPC : pNewPredecessorsToPC.entries()) {
       int pcToSet = newPredecessorToPC.getKey();
       CFANode subgraphPredecessor = newPredecessorToPC.getValue();
-      CStatement statement = new CExpressionAssignmentStatement(pMainLocation, pPCIdExpression,
-          new CIntegerLiteralExpression(pMainLocation, CNumericTypes.INT, BigInteger.valueOf(pcToSet)));
-      CFAEdge edgeToLoopHead = new CStatementEdge(String.format("%s = %d;", pPCIdExpression.getName(), pcToSet),
-          statement, subgraphPredecessor.getLineNumber(), subgraphPredecessor, pLoopHead);
+      CFAEdge edgeToLoopHead = createProgramCounterAssumeEdge(pMainLocation, subgraphPredecessor, pLoopHead, pPCIdExpression, pcToSet);
       edgeToLoopHead.getPredecessor().addLeavingEdge(edgeToLoopHead);
       edgeToLoopHead.getSuccessor().addEnteringEdge(edgeToLoopHead);
     }
@@ -745,7 +832,7 @@ public class CFASingleLoopTransformation {
   }
 
   /**
-   * Gets all nodes of the given control flow automaton in breath first search
+   * Gets all nodes of the given control flow automaton in breadth first search
    * order with the function entry nodes as start nodes for the search.
    *
    * @param pInputCFA the control flow automaton to extract the nodes from.
@@ -969,13 +1056,25 @@ public class CFASingleLoopTransformation {
     case DeclarationEdge:
       CDeclarationEdge declarationEdge = (CDeclarationEdge) pEdge;
       return new CDeclarationEdge(rawStatement, lineNumber, pNewPredecessor, pNewSuccessor, declarationEdge.getDeclaration());
-    case FunctionCallEdge:
+    case FunctionCallEdge: {
       if (!(pNewSuccessor instanceof FunctionEntryNode)) {
         throw new IllegalArgumentException("The successor of a function call edge must be a function entry node.");
       }
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pEdge;
+      CFunctionSummaryEdge functionSummaryEdge = (CFunctionSummaryEdge) copyCFAEdgeWithNewNodes(functionCallEdge.getSummaryEdge(), pNewToOldMapping);
+      CFANode summaryEdgePredecessor = functionSummaryEdge.getPredecessor();
+      CFANode summaryEdgeSuccessor = functionSummaryEdge.getSuccessor();
+      if (summaryEdgePredecessor.getLeavingSummaryEdge() != null) {
+        summaryEdgePredecessor.removeLeavingSummaryEdge(summaryEdgePredecessor.getLeavingSummaryEdge());
+      }
+      if (summaryEdgeSuccessor.getEnteringSummaryEdge() != null) {
+        summaryEdgeSuccessor.removeEnteringSummaryEdge(summaryEdgeSuccessor.getEnteringSummaryEdge());
+      }
+      functionSummaryEdge.getPredecessor().addLeavingSummaryEdge(functionSummaryEdge);
+      functionSummaryEdge.getSuccessor().addEnteringSummaryEdge(functionSummaryEdge);
       Optional<CFunctionCall> cFunctionCall = functionCallEdge.getRawAST();
-      return new CFunctionCallEdge(rawStatement, lineNumber, pNewPredecessor, (CFunctionEntryNode) pNewSuccessor, cFunctionCall.orNull(), functionCallEdge.getSummaryEdge());
+      return new CFunctionCallEdge(rawStatement, lineNumber, pNewPredecessor, (CFunctionEntryNode) pNewSuccessor, cFunctionCall.orNull(), functionSummaryEdge);
+    }
     case FunctionReturnEdge:
       if (!(pNewPredecessor instanceof FunctionExitNode)) {
         throw new IllegalArgumentException("The predecessor of a function return edge must be a function exit node.");
@@ -1175,6 +1274,40 @@ public class CFASingleLoopTransformation {
 
   }
 
+  public static interface ProgramCounterValueAssignmentEdge extends CFAEdge {
+
+    public int getProgramCounterValue();
+
+  }
+
+  private static class CProgramCounterValueAssignmentEdge extends CStatementEdge implements ProgramCounterValueAssignmentEdge {
+
+    private int pcValue;
+
+    public CProgramCounterValueAssignmentEdge(String pRawStatement, CStatement pStatement, int pLineNumber,
+        CFANode pPredecessor, CFANode pSuccessor, int pPCValue) {
+      super(pRawStatement, pStatement, pLineNumber, pPredecessor, pSuccessor);
+      this.pcValue = pPCValue;
+    }
+
+    @Override
+    public int getProgramCounterValue() {
+      return this.pcValue;
+    }
+
+  }
+
+  private static CProgramCounterValueAssignmentEdge createProgramCounterAssumeEdge(FileLocation pLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor,
+      CIdExpression pPCIdExpression,
+      int pPCValue) {
+    String rawStatement = String.format("%s = %d",  pPCIdExpression.getName(), pPCValue);
+    CExpression assignmentExpression = new CIntegerLiteralExpression(pLocation, CNumericTypes.INT, BigInteger.valueOf(pPCValue));
+    CStatement statement = new CExpressionAssignmentStatement(pLocation, pPCIdExpression, assignmentExpression);
+    return new CProgramCounterValueAssignmentEdge(rawStatement, statement , 0, pPredecessor, pSuccessor, pPCValue);
+  }
+
   /**
    * Edges of this interface are CFA assume edges used in the single loop
    * transformation. They are artificial edges used to encode the control flow
@@ -1366,6 +1499,20 @@ public class CFASingleLoopTransformation {
         }
       }
       return false;
+    }
+
+    /**
+     * Resets the graph.
+     *
+     * @param pNewRootNode the new root node.
+     *
+     * @return this graph.
+     */
+    public AcyclicGraph reset(CFANode pNewRootNode) {
+      this.edges.clear();
+      this.nodes.clear();
+      this.nodes.add(pNewRootNode);
+      return this;
     }
 
     /**
