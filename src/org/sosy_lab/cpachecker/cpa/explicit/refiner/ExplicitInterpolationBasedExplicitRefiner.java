@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -81,9 +82,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.explicit.refiner")
@@ -180,68 +179,81 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       loopLeavingAssumes.clear();
     }
   }
+  
+  protected List<ExplicitValueInterpolant> performInterpolation(ARGPath errorPath,
+      ExplicitValueInterpolant interpolant) throws CPAException, InterruptedException {
 
-  protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
-      throws CPAException, InterruptedException {
-    timerInterpolation.start();
-    interpolationOffset                   = -1;
-    assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
-        UniqueAssignmentsInPathConditionState.class);
-
-    ExplicitInterpolator interpolator           = new ExplicitInterpolator(logger, shutdownNotifier, cfa,
+    ExplicitInterpolator interpolator = new ExplicitInterpolator(logger, shutdownNotifier, cfa,
                                                       loopLeavingAssumes, loopLeavingMemoryLocations);
-    ExplicitValueInterpolant currentInterpolant = ExplicitValueInterpolant.getInitialInterpolant();
-    Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
-
+    
     List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
 
+    // TODO: this should go into (constructor?) of interpolator, anyway
+    // unless we use relevant edges, too ...
     Set<String> relevantVariables = null;
     if(applyUseDefInformationForItp) {
       relevantVariables = new AssumptionClosureCollector().collectVariables(cfaTrace);
     }
+    
+    List<ExplicitValueInterpolant> itps = new ArrayList<>(cfaTrace.size());
 
     for (int i = 0; i < errorPath.size(); i++) {
       shutdownNotifier.shutdownIfNecessary();
       CFAEdge currentEdge = errorPath.get(i).getSecond();
 
       if (currentEdge instanceof BlankEdge) {
-        // add the current interpolant to the increment
-        for (MemoryLocation variableName : currentInterpolant.getMemoryLocations()) {
-          addToPrecisionIncrement(increment, currentEdge, variableName);
-        }
+        itps.add(interpolant);
         continue;
       }
+      
       else if (currentEdge instanceof CFunctionReturnEdge) {
         currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
       }
-
+      
       // do interpolation
-      currentInterpolant = interpolator.deriveInterpolant(cfaTrace, i, currentInterpolant, relevantVariables);
+      interpolant = interpolator.deriveInterpolant(cfaTrace, i, interpolant, relevantVariables);
       numberOfInterpolations += interpolator.getNumberOfInterpolations();
 
       // early stop once we are past the first statement that made a path feasible for the first time
-      if (currentInterpolant.isFalse()) {
-        timerInterpolation.stop();
-        return increment;
+      if (interpolant.isFalse()) {
+        return itps;
       }
 
       // remove variables from the interpolant that belong to the scope of the returning function
       // this is done one iteration after returning from the function, as the special FUNCTION_RETURN_VAR is needed that long
       if (i > 0 && errorPath.get(i - 1).getSecond().getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
-        currentInterpolant.clearScope(errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
+        interpolant.clearScope(errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
       }
-
-      // add the current interpolant to the increment
-      for (MemoryLocation variableName : currentInterpolant.getMemoryLocations()) {
-        if (interpolationOffset == -1) {
-          interpolationOffset = i + 1;
-        }
-        addToPrecisionIncrement(increment, currentEdge, variableName);
-      }
+      
+      itps.add(interpolant);
     }
+    
+    return itps;
+  }
 
+  protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
+      throws CPAException, InterruptedException {
+    
+    assignments = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
+        UniqueAssignmentsInPathConditionState.class);
+    
+    Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
+
+    timerInterpolation.start();
+    List<ExplicitValueInterpolant> itps = performInterpolation(errorPath, ExplicitValueInterpolant.getInitialInterpolant());
     timerInterpolation.stop();
 
+    interpolationOffset = -1;
+    int i               = 0;
+    for(ExplicitValueInterpolant itp : itps) {
+      addToPrecisionIncrement(increment, errorPath.get(i).getSecond(), itp);
+
+      if(!itp.isFalse() && !itp.isTrue() && interpolationOffset == -1) {
+        interpolationOffset = i + 1;
+      }
+      i++;
+    }
+    
     return increment;
   }
 
@@ -252,9 +264,13 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    * @param currentEdge the current edge for which to add a new variable
    * @param memoryLocation the name of the variable to add to the increment at the given edge
    */
-  private void addToPrecisionIncrement(Multimap<CFANode, MemoryLocation> increment, CFAEdge currentEdge, MemoryLocation memoryLocation) {
-    if(assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
-      increment.put(currentEdge.getSuccessor(), memoryLocation);
+  private void addToPrecisionIncrement(Multimap<CFANode, MemoryLocation> increment,
+      CFAEdge currentEdge,
+      ExplicitValueInterpolant itp) {
+    for(MemoryLocation memoryLocation : itp.getMemoryLocations()) {
+      if(assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
+        increment.put(currentEdge.getSuccessor(), memoryLocation);
+      }
     }
   }
 
