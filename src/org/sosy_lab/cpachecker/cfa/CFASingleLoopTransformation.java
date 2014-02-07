@@ -340,23 +340,25 @@ public class CFASingleLoopTransformation {
               dummyEdges.add(replacementEdge);
             }
 
-            /*
-             * Create the dummy edge, but do not add it to the nodes, as it
-             * will be replaced by an edge to the loop head anyway
-             */
-            CFANode dummy = replacementEdge.getSuccessor();
-            CFAEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), dummy, next, DUMMY_EDGE);
-            dummyEdges.add(dummyEdge);
-
             subgraph.addEdge(replacementEdge);
-            tmpMap.clear();
 
-            // Compute the program counter for the replaced edge and map the nodes to it
-            CFANode newPredecessor = getOrCreateNewFromOld(dummy, globalNewToOld);
-            CFANode newSuccessor = getOrCreateNewFromOld(next, globalNewToOld);
-            int pcToSuccessor = programCounterValueProvider.getPCValueFor(newSuccessor);
-            newPredecessorsToPC.put(pcToSuccessor, newPredecessor);
-            newSuccessorsToPC.put(pcToSuccessor, newSuccessor);
+            if (!(replacementEdge.getSuccessor() instanceof CFATerminationNode)) {
+              /*
+               * Create the dummy edge, but do not add it to the nodes, as it
+               * will be replaced by an edge to the loop head anyway
+               */
+              CFANode dummy = replacementEdge.getSuccessor();
+              CFAEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), dummy, next, DUMMY_EDGE);
+              dummyEdges.add(dummyEdge);
+
+              // Compute the program counter for the replaced edge and map the nodes to it
+              CFANode newPredecessor = getOrCreateNewFromOld(dummy, globalNewToOld);
+              CFANode newSuccessor = getOrCreateNewFromOld(next, globalNewToOld);
+              int pcToSuccessor = programCounterValueProvider.getPCValueFor(newSuccessor);
+              newPredecessorsToPC.put(pcToSuccessor, newPredecessor);
+              newSuccessorsToPC.put(pcToSuccessor, newSuccessor);
+            }
+            tmpMap.clear();
           }
         }
       }
