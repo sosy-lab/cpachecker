@@ -34,6 +34,7 @@ CATEGORY_CORRECT = 'correct'
 CATEGORY_WRONG   = 'wrong'
 CATEGORY_UNKNOWN = 'unknown'
 CATEGORY_ERROR   = 'error'
+CATEGORY_MISSING = 'missing'
 
 STR_TRUE = 'true'
 STR_UNKNOWN = 'unknown'
@@ -126,7 +127,7 @@ def getResultCategory(filename, status, propertyFile=None):
         
         # Without propertyfile we do not return correct or wrong results, but always UNKNOWN.
         if propertyFile is None: 
-            category = CATEGORY_UNKNOWN
+            category = CATEGORY_MISSING
         else:
             fileStatuses = _statusesOfFile(filename)
             propertiesToCheck = _statusesOfPropertyFile(propertyFile)
@@ -148,7 +149,7 @@ def calculateScore(category, status):
         return SCORE_CORRECT_TRUE if status == STR_TRUE else SCORE_CORRECT_FALSE
     elif category == CATEGORY_WRONG:
         return SCORE_WRONG_TRUE if status == STR_TRUE else SCORE_WRONG_FALSE
-    elif category in [CATEGORY_UNKNOWN, CATEGORY_ERROR]:
+    elif category in [CATEGORY_UNKNOWN, CATEGORY_ERROR, CATEGORY_MISSING]:
         return SCORE_UNKNOWN
     else:
         assert False, 'impossible category {0}'.format(category)

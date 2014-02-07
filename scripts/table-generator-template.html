@@ -21,11 +21,11 @@
   tbody tr:first-child td { border-top:3px solid black}
   tfoot tr:first-child td { border-top:3px solid black}
   .status { text-align: center; }
-  .correct { color:green}
-  .wrong { color:red; font-weight: bold; }
-  .unknown { color:orange; font-weight: bold; }
-  .error { color:magenta; font-weight: bold; }
-  .correctValue, .wrongValue, .errorValue, .unknownValue { font-family: monospace }
+  .status.correct { color:green}
+  .status.wrong { color:red; font-weight: bold; }
+  .status.unknown { color:orange; font-weight: bold; }
+  .status.error { color:magenta; font-weight: bold; }
+  .value { font-family: monospace }
   .score { text-align:center; font-size:large; font-weight:bold; }
   a { color: inherit; text-decoration: none; display: block; }
   a:hover, .clickable:hover { background: lime; cursor: pointer; }
@@ -793,7 +793,7 @@ function sortData(data) {
 // returns the textcontent of a cell as numeral
 function getValue(cell, title) {
     var value;
-    if (graphData.showCorrectOnly && !cell.hasClass('correct') && !cell.hasClass('correctValue')) {
+    if (graphData.showCorrectOnly && !cell.hasClass('correct')) {
         value = Number.NaN;  // using 'null' as unknown value causes problems in the plot
 
     } else if (title === 'status') {
@@ -1273,7 +1273,7 @@ def formatOptions(str):
     <td class="status {{runResult.category}}">{{(value or '-').lower()}}</td>
     {{endif}}
   {{else}}
-  <td class="{{runResult.category}}Value">{{value or '-'}}</td>
+  <td class="{{runResult.category}} value">{{value or '-'}}</td>
   {{endif}}
   {{endfor}}
   {{endfor}}
