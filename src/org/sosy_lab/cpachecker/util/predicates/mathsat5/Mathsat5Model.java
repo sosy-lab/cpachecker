@@ -209,7 +209,7 @@ class Mathsat5Model {
     // TODO: calculate negative value?
     String term = matcher.group(1);
     String lengthValue = matcher.group(2);
-    long length = Long.valueOf(lengthValue);
+    long length = Long.parseLong(lengthValue);
     Object value;
     if (length < 64) {
       value = Long.valueOf(term);
