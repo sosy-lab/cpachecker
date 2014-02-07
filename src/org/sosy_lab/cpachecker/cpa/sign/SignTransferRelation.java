@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -154,9 +155,9 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   private static class IdentifierValuePair {
-    CIdExpression identifier;
+    CExpression identifier;
     SIGN value;
-    public IdentifierValuePair(CIdExpression pIdentifier, SIGN pValue) {
+    public IdentifierValuePair(CExpression pIdentifier, SIGN pValue) {
       super();
       identifier = pIdentifier;
       value = pValue;
@@ -183,11 +184,11 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   private Optional<IdentifierValuePair> evaluateAssumption(CBinaryExpression pAssumeExp, boolean truthAssumption, CFAEdge pCFAEdge)  {
-    Optional<CIdExpression> optStrongestId = getStrongestIdentifier(pAssumeExp, pCFAEdge);
+    Optional<CExpression> optStrongestId = getStrongestIdentifier(pAssumeExp, pCFAEdge);
     if(!optStrongestId.isPresent()) {
       return Optional.absent(); // No refinement possible, since no strongest identifier was found
     }
-    CIdExpression strongestId = optStrongestId.get();
+    CExpression strongestId = optStrongestId.get();
     logger.log(Level.FINER, "Filtered strongest identifier " + strongestId + " from assume expression" + pAssumeExp);
     CExpression refinementExpression = getRefinementExpression(strongestId, pAssumeExp);
     BinaryOperator resultOp = !truthAssumption ? negateComparisonOperator(pAssumeExp.getOperator()) : pAssumeExp.getOperator();
@@ -209,7 +210,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     throw new IllegalArgumentException("Argument pExp is not part of pBinExp");
   }
 
-  private Optional<IdentifierValuePair> evaluateAssumption(CIdExpression pIdExp, BinaryOperator pOp, SIGN pResultSign, boolean pIdentIsLeft) {
+  private Optional<IdentifierValuePair> evaluateAssumption(CExpression pIdExp, BinaryOperator pOp, SIGN pResultSign, boolean pIdentIsLeft) {
     boolean equalZero = false;
     switch(pOp) {
     case GREATER_EQUAL:
@@ -250,7 +251,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     return Optional.absent();
   }
 
-  private CExpression getRefinementExpression(CIdExpression pStrongestIdent, CBinaryExpression pBinExp) {
+  private CExpression getRefinementExpression(CExpression pStrongestIdent, CBinaryExpression pBinExp) {
     if(pStrongestIdent == pBinExp.getOperand1()) {
       return pBinExp.getOperand2();
     } else if(pStrongestIdent == pBinExp.getOperand2()) {
@@ -259,19 +260,19 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     throw new IllegalArgumentException("Strongest identifier is not part of binary expression");
   }
 
-  private List<CIdExpression> filterIdentifier(CBinaryExpression pAssumeExp) {
-    List<CIdExpression> result = new ArrayList<>();
-    if((pAssumeExp.getOperand1() instanceof CIdExpression)) {
-      result.add((CIdExpression)pAssumeExp.getOperand1());
+  private List<CExpression> filterIdentifier(CBinaryExpression pAssumeExp) {
+    List<CExpression> result = new ArrayList<>();
+    if((pAssumeExp.getOperand1() instanceof CIdExpression) || (pAssumeExp.getOperand1() instanceof CFieldReference)) {
+      result.add(pAssumeExp.getOperand1());
     }
-    if((pAssumeExp.getOperand2() instanceof CIdExpression)) {
-      result.add((CIdExpression)pAssumeExp.getOperand2());
+    if((pAssumeExp.getOperand2() instanceof CIdExpression)|| (pAssumeExp.getOperand2() instanceof CFieldReference)) {
+      result.add(pAssumeExp.getOperand2());
     }
     return result;
   }
 
-  private Optional<CIdExpression> getStrongestIdentifier(CBinaryExpression pAssumeExp, CFAEdge pCFAEdge) {
-    List<CIdExpression> result = filterIdentifier(pAssumeExp);
+  private Optional<CExpression> getStrongestIdentifier(CBinaryExpression pAssumeExp, CFAEdge pCFAEdge) {
+    List<CExpression> result = filterIdentifier(pAssumeExp); // TODO
     if(result.isEmpty()) {
       return Optional.absent();
     }
@@ -359,8 +360,8 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       throws CPATransferException {
     IAExpression left = pAssignExpr.getLeftHandSide();
     // a = ...
-    if(left instanceof AIdExpression) {
-      if(!(left.getExpressionType() instanceof CSimpleType)){ // TODO also consider arrays, pointer, etc.?
+    if(left instanceof AIdExpression) {// TODO also consider arrays, pointer, etc.?
+      if(!((left.getExpressionType() instanceof CSimpleType)|| (left.getExpressionType() instanceof CTypedefType))){
         return state;
       }
       String scopedId = getScopedVariableName(left, functionName);
@@ -369,7 +370,8 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     // TODO become more precise, handle &x, (int *) x on right hand side, deal with int* x = s;
     // p->x = .., c.x =
     if(left instanceof CFieldReference){
-      return state;
+      String scopedId = getScopedVariableName(left, functionName);
+      return handleAssignmentToVariable(state, scopedId, pAssignExpr.getRightHandSide());
     }
     throw new UnrecognizedCodeException("left operand has to be an id expression", edge);
   }

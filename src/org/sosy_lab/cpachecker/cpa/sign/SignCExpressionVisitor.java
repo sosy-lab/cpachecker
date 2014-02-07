@@ -32,6 +32,7 @@ import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
@@ -70,10 +72,10 @@ public class SignCExpressionVisitor
 
   @Override
   public SIGN visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCodeException {
+    // TODO possibly treat typedef types differently
     // e.g. x = non_det() where non_det is extern, unknown function allways assume returns any value
-    if(pIastFunctionCallExpression.getExpressionType() instanceof CSimpleType){
-      return SIGN.ALL;
-    }
+    if (pIastFunctionCallExpression.getExpressionType() instanceof CSimpleType
+        || pIastFunctionCallExpression.getExpressionType() instanceof CTypedefType) { return SIGN.ALL; }
     return null;
   }
 
@@ -89,7 +91,7 @@ public class SignCExpressionVisitor
 
   @Override
   public SIGN visit(CFieldReference e) throws UnrecognizedCodeException {
-    return SIGN.ALL; // TODO possibly may become preciser
+    return state.getSignMap().getSignForVariable(transferRel.getScopedVariableName(e));
   }
 
   @Override
@@ -167,6 +169,11 @@ public class SignCExpressionVisitor
 
   @Override
   public SIGN visit(CStringLiteralExpression e) throws UnrecognizedCodeException {
+    return SIGN.ALL;
+  }
+
+  @Override
+  public SIGN visit(CCharLiteralExpression e) throws UnrecognizedCodeException {
     return SIGN.ALL;
   }
 
