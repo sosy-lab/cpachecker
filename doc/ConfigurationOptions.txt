@@ -641,6 +641,10 @@ cpa.explicit.initAssumptionVars = false
 # get an initial precison from file
 cpa.explicit.initialPrecisionFile = no default value
 
+# whether or not to use use-definition information from the error pathsto
+# optimize the interpolation process
+cpa.explicit.interpolation.applyUseDefInformation = true
+
 # whether or not to ignore the semantics of loop-leaving-assume-edges during
 # interpolation - this avoids to have loop-counters in the interpolant
 cpa.explicit.interpolation.ignoreLoopsExitAssumes = true
@@ -676,10 +680,6 @@ cpa.explicit.precision.sharing = "scope"
 
 # target file to hold the exported precision
 cpa.explicit.precisionFile = no default value
-
-# whether or not to use use-definition information from the error pathsto
-# optimize the interpolation process
-cpa.explicit.refiner.applyUseDefInformationForItp = true
 
 # whether or not to avoid restarting at assume edges after a refinement
 cpa.explicit.refiner.avoidAssumes = false

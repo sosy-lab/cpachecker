@@ -176,7 +176,7 @@ public class ExplicitUseDefinitionBasedRefiner extends AbstractARGBasedRefiner i
     }
 
     Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
-    for(String var : new AssumptionClosureCollector().collectVariables(cfaTrace)) {
+    for(String var : new AssumptionClosureCollector().obtainUseDefInformation(cfaTrace)) {
       String[] s = var.split("::");
      
       // just add to BOGUS LOCATION

@@ -91,10 +91,6 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   @Option(description="whether or not to avoid restarting at assume edges after a refinement")
   private boolean avoidAssumes = false;
 
-  @Option(description="whether or not to use use-definition information from the error paths" +
-  		"to optimize the interpolation process")
-  private boolean applyUseDefInformationForItp = true;
-
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
    */
@@ -131,19 +127,11 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       ExplicitValueInterpolant interpolant) throws CPAException, InterruptedException {
 
     List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
-
-    // TODO: this should go into (constructor?) of interpolator, anyway
-    // unless we use relevant edges, too ...
-    Set<String> relevantVariables = null;
-    if(applyUseDefInformationForItp) {
-      relevantVariables = new AssumptionClosureCollector().collectVariables(cfaTrace);
-    }
-    
     List<ExplicitValueInterpolant> pathInterpolants = new ArrayList<>(errorPath.size());
     for (int i = 0; i < errorPath.size(); i++) {
       shutdownNotifier.shutdownIfNecessary();
 
-      interpolant = interpolator.deriveInterpolant(cfaTrace, i, interpolant, relevantVariables);
+      interpolant = interpolator.deriveInterpolant(cfaTrace, i, interpolant);
       numberOfInterpolations += interpolator.getNumberOfInterpolations();        
 
       // stop once interpolant is false

@@ -90,6 +90,11 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
   private FunctionReturnEdge previousFunctionReturnEdge = null;
 
   /**
+   * the path being traversed the last time, used for caching
+   */
+  private List<CFAEdge> previousPath;
+
+  /**
    * This method acts as the constructor of the class.
    */
   public AssumptionClosureCollector() { }
@@ -100,12 +105,16 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
    * @param path the path to analyze
    * @return the mapping of location to referenced variables in the given path
    */
-  public Set<String> collectVariables(List<CFAEdge> path) {
-    determineGlobalVariables(path);
+  public Set<String> obtainUseDefInformation(List<CFAEdge> path) {
+    if(path != previousPath) {
+      determineGlobalVariables(path);
 
-    for (int i = path.size() - 1; i >= 0; i--) {
-      CFAEdge edge = path.get(i);
-      collectVariables(edge, collectedVariables);
+      for (int i = path.size() - 1; i >= 0; i--) {
+        CFAEdge edge = path.get(i);
+        collectVariables(edge, collectedVariables);
+      }
+
+      previousPath = path;
     }
 
     return collectedVariables;
