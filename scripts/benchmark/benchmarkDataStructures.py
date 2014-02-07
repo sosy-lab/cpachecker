@@ -460,6 +460,9 @@ class SourcefileSet():
         self.runs = runs
 
 
+loggedMissingPropertyFiles = set()
+
+
 class Run():
     """
     A Run contains one sourcefile and options.
@@ -485,8 +488,11 @@ class Run():
             self.propertyfile = None
 
         # replace run-specific stuff in the propertyfile and add it to the set of required files
-        if self.propertyfile is not None:
-            
+        if self.propertyfile is None:
+            if not self.propertyfile in loggedMissingPropertyFiles:
+                loggedMissingPropertyFiles.add(self.propertyfile)
+                logging.warning('No propertyfile specified. Results will be handled as UNKNOWN.')
+        else:
             # we check two cases: direct filename or user-defined substitution, one of them must be a 'file'
             # TODO: do we need the second case? it is equal to previous used option "-spec ${sourcefile_path}/ALL.prp"
             expandedPropertyFiles = Util.expandFileNamePattern(self.propertyfile, self.runSet.benchmark.baseDir)
@@ -498,9 +504,11 @@ class Run():
             elif substitutedPropertyfiles and os.path.isfile(substitutedPropertyfiles[0]):
                 self.propertyfile = substitutedPropertyfiles[0]
             else:
-                logging.warning('Pattern {0} in propertyfile tag did not match any file. It will be ignored.'.format(self.propertyfile))
+                if not self.propertyfile in loggedMissingPropertyFiles:
+                    loggedMissingPropertyFiles.add(self.propertyfile)
+                    logging.warning('Pattern {0} in propertyfile tag did not match any file. It will be ignored.'.format(self.propertyfile))
                 self.propertyfile = None
-            
+
             self.runSet.benchmark.addRequiredFile(self.propertyfile)
 
         # Copy columns for having own objects in run
