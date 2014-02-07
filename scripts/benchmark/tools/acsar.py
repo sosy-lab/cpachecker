@@ -16,7 +16,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'Acsar'
 
 
-    def getCmdline(self, executable, options, sourcefile):
+    def getCmdline(self, executable, options, sourcefile, propertyfile):
         # create tmp-files for acsar, acsar needs special error-labels
         self.prepSourcefile = self._prepareSourcefile(sourcefile)
 

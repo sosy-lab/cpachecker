@@ -38,7 +38,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'Threader'
 
 
-    def getCmdline(self, executable, options, sourcefile):
+    def getCmdline(self, executable, options, sourcefile, propertyfile):
         workingDir = self.getWorkingDirectory(executable)
         return [os.path.relpath(executable, start=workingDir)] + options + [os.path.relpath(sourcefile, start=workingDir)]
 
