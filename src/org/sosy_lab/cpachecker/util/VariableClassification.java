@@ -408,7 +408,7 @@ public class VariableClassification {
           if (loopExitIncDecConditionVariables.containsEntry(function, var)) {
             type += 16;
           }
-          w.append(String.format("%s::%s\t%d\n", function, var, type));
+          w.append(String.format("%s::%s\t%d%n", function, var, type));
         }
       }
     } catch (IOException e) {

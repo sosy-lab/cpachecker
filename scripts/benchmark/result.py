@@ -89,11 +89,7 @@ def _statusesOfFile(filename):
 
 
 def _statusesOfPropertyFile(propertyFile):
-    assert propertyFile is None or os.path.isfile(propertyFile)
-    
-    if propertyFile is None:
-        # if we have no prpfile, lets use default case: 'every property'
-        return FALSE_SUBSTRINGS.values()
+    assert os.path.isfile(propertyFile)
     
     statuses = []
     with open(propertyFile) as f:
@@ -123,18 +119,25 @@ def getResultCategory(filename, status, propertyFile=None):
     This function return a string
     that shows the relation between status and file.
     '''
-    fileStatuses = _statusesOfFile(filename)
-    propertiesToCheck = _statusesOfPropertyFile(propertyFile)
 
     if status == STR_UNKNOWN:
         category = CATEGORY_UNKNOWN
     elif status in STR_LIST:
-        if status == STR_TRUE and not fileStatuses:
-            category = CATEGORY_CORRECT
-        elif status in propertiesToCheck and status in fileStatuses:
-            category = CATEGORY_CORRECT
+        
+        # Without propertyfile we do not return correct or wrong results, but always UNKNOWN.
+        if propertyFile is None: 
+            category = CATEGORY_UNKNOWN
         else:
-            category = CATEGORY_WRONG
+            fileStatuses = _statusesOfFile(filename)
+            propertiesToCheck = _statusesOfPropertyFile(propertyFile)
+            commonBugs = set(propertiesToCheck).intersection(set(fileStatuses)) # list of bugs, that are searched and part of the filename
+            if status == STR_TRUE and not commonBugs:
+                category = CATEGORY_CORRECT
+            elif status in commonBugs:
+                category = CATEGORY_CORRECT
+            else:
+                category = CATEGORY_WRONG
+
     else:
         category = CATEGORY_ERROR
     return category

@@ -4,10 +4,11 @@
   <!-- try to make it more deterministic -->
   <option name="-setprop">cpa.predicate.mathsat5.furtherOptions=random_seed=42</option>
   <option name="-noout"/>
-  <option name="-spec">test/programs/benchmarks/PropertyERROR.prp</option>
-  <requiredfiles>../programs/benchmarks/PropertyERROR.prp</requiredfiles>
+
   <option name="-heap">2000M</option>
   <option name="-timelimit">1min</option>
+
+  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
 
   <rundefinition>
     <sourcefiles>

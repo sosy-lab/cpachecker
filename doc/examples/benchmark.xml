@@ -68,6 +68,11 @@
     and not guaranteed to be supported in the future at all.
     C.f. benchmark-cpachecker.xml for an example.
 
+    The tag <propertyfile> defines the specification to be checked.
+    This will be given to the verifier and will be used for the score calculations.
+    This tag can appear also within a <sourcefiles> tag.
+    The variables defined above are allowed inside this tag.
+
     There are three more top-level tags that are used only when the verifier cloud is used:
 
     <requiredfiles> can be used to specify additional files that are needed

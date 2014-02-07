@@ -42,13 +42,15 @@ public class GAETaskQueueJobRunner implements JobRunner {
   public enum InstanceType {
     /**
      * A frontend instance will be used.
+     * A time limit applies.
      */
     FRONTEND,
     /**
-     * A backend instance wil be used.
+     * A backend instance will be used.
+     * This instance type imposes no time limit. Therefore limits.time.wall may
+     * be set to anything.
      */
     BACKEND
-//    AUTO
   }
 
   public static final String QUEUE_NAME = "cpachecker";
@@ -57,20 +59,16 @@ public class GAETaskQueueJobRunner implements JobRunner {
 
   @Option(name = "gae.instanceType",
       description = "The instance type to use when running CPAchecker on Google App Engine."
-          + "Frontend instances have a wall time limit of 9 minutes. Backends may run for up to 24 hours.",
+          + "Frontend instances have a wall time limit of 9 minutes. Backends may run for up to 24 hours."
+          + "However, instance hours on backends are limited",
       values = { "FRONTEND", "BACKEND" })
   private InstanceType instanceType = InstanceType.FRONTEND;
-
-  // TODO backend class option
-
-  // TODO queue type option
 
   /**
    * Constructs a new instance.
    * The job submitted via {@link #run(Job)} will be enqueued immediately.
    */
   public GAETaskQueueJobRunner() {
-//    instance = Instance.AUTO;
     instanceType = InstanceType.FRONTEND;
   }
 

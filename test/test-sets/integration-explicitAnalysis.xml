@@ -3,11 +3,11 @@
 <benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
 
   <option name="-noout"/>
-  <option name="-spec">test/programs/benchmarks/PropertyERROR.prp</option>
-  <requiredfiles>../programs/benchmarks/PropertyERROR.prp</requiredfiles>
   <option name="-heap">2000M</option>
   <option name="-explicitAnalysis"/>
   <option name="-timelimit">1min</option>
+
+  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
 
   <rundefinition>
     <sourcefiles>

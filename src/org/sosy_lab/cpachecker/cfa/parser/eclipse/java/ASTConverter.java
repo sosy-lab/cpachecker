@@ -1885,7 +1885,7 @@ public class ASTConverter {
     case DOUBLE:
       return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr, e));
     }
-    return new JIntegerLiteralExpression(getFileLocation(e), BigInteger.valueOf(Long.valueOf(e.getToken())));
+    return new JIntegerLiteralExpression(getFileLocation(e), BigInteger.valueOf(Long.parseLong(e.getToken())));
   }
 
 

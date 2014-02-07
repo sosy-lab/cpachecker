@@ -45,6 +45,8 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
     wrappedMerge = pWrappedMerge;
   }
 
+  // may cause problems during refinement, relink of elements may lead to non-matching abstraction formulae
+  // need to compute path formulae for refinement as done if predicated analysis is enabled
   @Override
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision) throws CPAException,
       InterruptedException {
@@ -72,9 +74,6 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
     if (retElement.equals(wrappedState2)) { return pState2; }
 
     ARGState mergedElement = new ARGState(retElement, null);
-    if(argElement2.getStateId()==149) {
-      System.out.println(argElement2.getStateId());
-    }
     // now replace argElement2 by mergedElement in ARG
     // deleteChildren(argElement2);
     deleteChildren2(argElement2);

@@ -23,8 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -35,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -46,26 +51,21 @@ import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.AssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssumptionClosureCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
@@ -73,7 +73,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
@@ -92,45 +91,25 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   @Option(description="whether or not to avoid restarting at assume edges after a refinement")
   private boolean avoidAssumes = false;
 
-  @Option(description="whether or not to ignore the semantics of loop-leaving-assume-edges during interpolation - "
-      + "this avoids to have loop-counters in the interpolant")
-  private boolean ignoreAssumptionsInLoops = true;
-
-  @Option(description="slicedItp")
-  private boolean slicedItp = false;
-
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
    */
   private int interpolationOffset = -1;
 
-  public int getInterpolationOffset() {
-    return interpolationOffset;
-  }
-
   /**
    * a reference to the assignment-counting state, to make the precision increment aware of thresholds
    */
-  private AssignmentsInPathConditionState assignments = null;
-
-  /**
-   * the set of assume-edges that leave loop structures
-   */
-  private Set<CAssumeEdge> loopLeavingAssumes = new HashSet<>();
-
-  /**
-   * the set of memory locations appearing in the loop-leaving-assume-edges
-   */
-  private Set<MemoryLocation> loopLeavingMemoryLocations = new HashSet<>();
+  private UniqueAssignmentsInPathConditionState assignments = null;
 
   // statistics
   private int numberOfInterpolations        = 0;
   private Timer timerInterpolation          = new Timer();
-  private Timer timerAssumptionClosure           = new Timer();
 
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+
+  private final ExplicitInterpolator interpolator;
 
   protected ExplicitInterpolationBasedExplicitRefiner(Configuration config,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
@@ -141,119 +120,63 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     logger           = pLogger;
     cfa              = pCfa;
     shutdownNotifier = pShutdownNotifier;
-
-    initializeLoopInformation();
+    interpolator     = new ExplicitInterpolator(config, logger, shutdownNotifier, cfa);
   }
+  
+  protected List<ExplicitValueInterpolant> performInterpolation(ARGPath errorPath,
+      ExplicitValueInterpolant interpolant) throws CPAException, InterruptedException {
 
-  /**
-   * This method initializes the loop-information which is used during interpolation.
-   */
-  private void initializeLoopInformation() {
-    for(Loop l : cfa.getLoopStructure().get().values()) {
-      for(CFAEdge currentEdge : l.getOutgoingEdges()) {
-        if(currentEdge instanceof CAssumeEdge) {
-          loopLeavingAssumes.add((CAssumeEdge)currentEdge);
-        }
-      }
-    }
-
-    for(CAssumeEdge assumeEdge : loopLeavingAssumes) {
-      CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
-      assumeEdge.getExpression().accept(collector);
-
-      for (CIdExpression id : collector.getReferencedIdExpressions()) {
-        String scope = ForwardingTransferRelation.isGlobal(id) ? null : assumeEdge.getPredecessor().getFunctionName();
-
-        if(scope == null) {
-          loopLeavingMemoryLocations.add(MemoryLocation.valueOf(id.getName()));
-        } else {
-          loopLeavingMemoryLocations.add(MemoryLocation.valueOf(scope, id.getName(), 0));
-        }
-      }
-    }
-
-    // clear the set of assume edges if the respective option is not set
-    if(!ignoreAssumptionsInLoops) {
-      loopLeavingAssumes.clear();
-    }
-  }
-
-  protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
-      throws CPAException, InterruptedException {
-    timerInterpolation.start();
-    interpolationOffset                   = -1;
-    assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
-        AssignmentsInPathConditionState.class);
-
-    ExplicitInterpolator interpolator             = new ExplicitInterpolator(logger, shutdownNotifier, cfa,
-                                                      loopLeavingAssumes, loopLeavingMemoryLocations);
-    Map<MemoryLocation, Long> currentInterpolant  = new HashMap<>();
-    Multimap<CFANode, MemoryLocation> increment   = HashMultimap.create();
-
-    List<CFAEdge> cfaTrace = Lists.newArrayList();
-    for(Pair<ARGState, CFAEdge> elem : errorPath) {
-      cfaTrace.add(elem.getSecond());
-    }
-
-    timerAssumptionClosure.start();
-    AssumptionClosureCollector coll = new AssumptionClosureCollector();
-    Set<String> relevantVars = null;
-    if(slicedItp) {
-      relevantVars = coll.collectVariables(cfaTrace);
-    }
-    timerAssumptionClosure.stop();
-
+    List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
+    List<ExplicitValueInterpolant> pathInterpolants = new ArrayList<>(errorPath.size());
     for (int i = 0; i < errorPath.size(); i++) {
       shutdownNotifier.shutdownIfNecessary();
-      CFAEdge currentEdge = errorPath.get(i).getSecond();
 
-      if (currentEdge instanceof BlankEdge) {
-        // add the current interpolant to the increment
-        for (MemoryLocation variableName : currentInterpolant.keySet()) {
-          addToPrecisionIncrement(increment, currentEdge, variableName);
+      interpolant = interpolator.deriveInterpolant(cfaTrace, i, interpolant);
+      numberOfInterpolations += interpolator.getNumberOfInterpolations();        
+
+      // stop once interpolant is false
+      if (interpolant.isFalse()) {
+        while (i++ < errorPath.size()) {
+          pathInterpolants.add(ExplicitValueInterpolant.FALSE);
         }
-        continue;
-      }
-      else if (currentEdge instanceof CFunctionReturnEdge) {
-        currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
-      }
-
-      // do interpolation
-      Map<MemoryLocation, Long> inputInterpolant = new HashMap<>(currentInterpolant);
-      Map<MemoryLocation, Long> interpolant = interpolator.deriveInterpolant(cfaTrace, i, inputInterpolant, relevantVars);
-      numberOfInterpolations += interpolator.getNumberOfInterpolations();
-
-      // early stop once we are past the first statement that made a path feasible for the first time
-      if (interpolant == null) {
-        timerInterpolation.stop();
-        return increment;
-      }
-      for (Map.Entry<MemoryLocation, Long> element : interpolant.entrySet()) {
-        if (element.getValue() == null) {
-          currentInterpolant.remove(element.getKey());
-        } else {
-          currentInterpolant.put(element.getKey(), element.getValue());
-        }
+        return pathInterpolants;
       }
 
       // remove variables from the interpolant that belong to the scope of the returning function
       // this is done one iteration after returning from the function, as the special FUNCTION_RETURN_VAR is needed that long
       if (i > 0 && errorPath.get(i - 1).getSecond().getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
-        currentInterpolant = clearInterpolant(currentInterpolant, errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
+        interpolant.clearScope(errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
       }
 
-      // add the current interpolant to the increment
-      for (MemoryLocation variableName : currentInterpolant.keySet()) {
-        if (interpolationOffset == -1) {
-          interpolationOffset = i + 1;
-        }
-
-        addToPrecisionIncrement(increment, currentEdge, variableName);
-      }
+      pathInterpolants.add(interpolant);
     }
 
+    return pathInterpolants;
+  }
+
+  protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
+      throws CPAException, InterruptedException {
+    
+    assignments = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
+        UniqueAssignmentsInPathConditionState.class);
+    
+    Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
+
+    timerInterpolation.start();
+    List<ExplicitValueInterpolant> itps = performInterpolation(errorPath, ExplicitValueInterpolant.createInitial());
     timerInterpolation.stop();
 
+    interpolationOffset = -1;
+    int i               = 0;
+    for(ExplicitValueInterpolant itp : itps) {
+      addToPrecisionIncrement(increment, errorPath.get(i).getSecond(), itp);
+
+      if(!itp.isFalse() && !itp.isTrue() && interpolationOffset == -1) {
+        interpolationOffset = i + 1;
+      }
+      i++;
+    }
+    
     return increment;
   }
 
@@ -262,31 +185,16 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    *
    * @param increment the current increment
    * @param currentEdge the current edge for which to add a new variable
-   * @param variableName the name of the variable to add to the increment at the given edge
+   * @param memoryLocation the name of the variable to add to the increment at the given edge
    */
-  private void addToPrecisionIncrement(Multimap<CFANode, MemoryLocation> increment, CFAEdge currentEdge, MemoryLocation variableName) {
-    if(assignments == null ||
-        (assignments.variableExceedsSoftThreshold(variableName.getAsSimpleString()) &&
-            !assignments.variableExceedsHardThreshold(variableName.getAsSimpleString()))) {
-      increment.put(currentEdge.getSuccessor(), variableName);
-    }
-  }
-
-  /**
-   * This method removes variables from the interpolant that belong to the scope of the given function.
-   *
-   * @param currentInterpolant the current interpolant
-   * @param functionName the name of the function for which to remove variables
-   * @return the current interpolant with the respective variables removed
-   */
-  private Map<MemoryLocation, Long> clearInterpolant(Map<MemoryLocation, Long> currentInterpolant, String functionName) {
-    for (Iterator<MemoryLocation> variableNames = currentInterpolant.keySet().iterator(); variableNames.hasNext(); ) {
-      if (variableNames.next().isOnFunctionStack(functionName)) {
-        variableNames.remove();
+  private void addToPrecisionIncrement(Multimap<CFANode, MemoryLocation> increment,
+      CFAEdge currentEdge,
+      ExplicitValueInterpolant itp) {
+    for(MemoryLocation memoryLocation : itp.getMemoryLocations()) {
+      if(assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
+        increment.put(currentEdge.getSuccessor(), memoryLocation);
       }
     }
-
-    return currentInterpolant;
   }
 
   /**
@@ -433,7 +341,114 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     out.println("  number of explicit interpolations:                   " + numberOfInterpolations);
     out.println("  max. time for singe interpolation:                   " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
     out.println("  total time for interpolation:                        " + timerInterpolation);
-    out.println("  total time for assumption closure:                   " + timerAssumptionClosure);
-    out.println("  max. time for assumption closure:                    " + timerAssumptionClosure.getMaxTime().formatAs(TimeUnit.SECONDS));
+  }
+
+  public int getInterpolationOffset() {
+    return interpolationOffset;
+  }
+
+  /**
+   * This class represents a Explict-Value interpolant, itself, just a mere wrapper around a map
+   * from memory locations to values, representing a variable assignment. 
+   */
+  public static class ExplicitValueInterpolant {
+    /**
+     * the variable assignment of the interpolant
+     */
+    private final Map<MemoryLocation, Long> assignment;
+    
+    /**
+     * the interpolant representing "true"
+     */
+    public static final ExplicitValueInterpolant TRUE  = new ExplicitValueInterpolant();
+
+    /**
+     * the interpolant representing "false", i.e. 
+     */
+    public static final ExplicitValueInterpolant FALSE = new ExplicitValueInterpolant((Map<MemoryLocation, Long>)null);
+
+    /**
+     * Contructor for a new, empty interpolant, i.e. the interpolant representing "true" 
+     */
+    private ExplicitValueInterpolant() {
+      assignment = new HashMap<>();
+    }
+
+    /**
+     * Contructor for a new interpolant representing the given variable assignment
+     * 
+     * @param pAssignment the variable assignment to be represented by the interpolant
+     */
+    public ExplicitValueInterpolant(Map<MemoryLocation, Long> pAssignment) {
+      assignment = pAssignment;
+    }
+
+    /**
+     * This method serves as factory method for an initial, i.e. an interpolant representing "true"  
+     * 
+     * @return
+     */
+    private static ExplicitValueInterpolant createInitial() {
+      return new ExplicitValueInterpolant();
+    }
+
+    private Set<MemoryLocation> getMemoryLocations() {
+      return isFalse()
+          ? Collections.<MemoryLocation>emptySet()
+          : Collections.unmodifiableSet(assignment.keySet());
+    }
+
+    /**
+     * The method checks for trueness of the interpolant.
+     * 
+     * @return true, if the interpolant represents "true", else false
+     */
+    private boolean isTrue() {
+      return assignment.isEmpty();
+    }
+
+    /**
+     * The method checks for falseness of the interpolant.
+     * 
+     * @return true, if the interpolant represents "false", else true
+     */
+    private boolean isFalse() {
+      return assignment == null;
+    }
+
+    /**
+     * This method clears memory locations from the assignment that belong to the given function.
+     * 
+     * @param functionName the name of the function for which to remove assignments
+     */
+    private void clearScope(String functionName) {
+      for (Iterator<MemoryLocation> variableNames = assignment.keySet().iterator(); variableNames.hasNext(); ) {
+        if (variableNames.next().isOnFunctionStack(functionName)) {
+          variableNames.remove();
+        }
+      }     
+    }
+
+    /**
+     * This method serves as factory method to create an explicit-value assignment from the interpolant
+     * 
+     * @return an explicit-value assignment that represents the same variable assignment as the interpolant
+     */
+    public ExplicitState createExplicitValueState() {
+      return new ExplicitState(PathCopyingPersistentTreeMap.copyOf(assignment));
+    }
+
+    @Override
+    public String toString() {
+      if(isFalse()) {
+        return "FALSE";
+      }
+      
+      if(isTrue()) {
+        return "TRUE";
+      }
+      
+      return assignment.toString();
+    }
   }
 }

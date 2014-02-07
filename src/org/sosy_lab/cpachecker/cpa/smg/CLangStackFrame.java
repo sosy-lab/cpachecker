@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
  * Represents a C language stack frame
  */
 final public class CLangStackFrame {
-  public static String RETVAL_LABEL = "___cpa_temp_result_var_";
+  static final String RETVAL_LABEL = "___cpa_temp_result_var_";
 
   /**
    * Function to which this stack frame belongs
