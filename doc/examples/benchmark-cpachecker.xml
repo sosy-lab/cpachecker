@@ -38,10 +38,8 @@
     Always use property files as specification
     to guarantee correct interpretation of the results.
     The following will use the file ALL.prp in the same directory as the source file.
-    When using the cloud, they need to be specified with <requiredfiles>, too.
   -->
-  <option name="-spec">${sourcefile_path}/ALL.prp</option>
-  <requiredfiles>../../test/programs/benchmarks/*/ALL.prp</requiredfiles>
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
 
   <!-- For final benchmarks for performance measurement, disable assertions. -->

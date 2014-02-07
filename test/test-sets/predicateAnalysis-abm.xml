@@ -6,16 +6,13 @@
 
   <sourcefiles name="ControlFlowInteger">
     <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-    <option name="-spec">sv-comp</option>
   </sourcefiles>
   <sourcefiles name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
-    <option name="-spec">sv-comp</option>
   </sourcefiles>
   <sourcefiles name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-    <option name="-spec">sv-comp</option>
   </sourcefiles>
   <sourcefiles name="Nested">
     <includesfile>nested.set</includesfile>
@@ -23,6 +20,8 @@
   <sourcefiles name="Linux-Kernel">
     <include>../programs/linux-kernel/*.cil.c</include>
   </sourcefiles>
+
+  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
 
   <rundefinition name="abm">
     <option name="-predicateAnalysis-abm"/>
