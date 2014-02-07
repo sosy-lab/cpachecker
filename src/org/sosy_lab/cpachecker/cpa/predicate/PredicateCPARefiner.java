@@ -330,14 +330,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     PathFormula pathFormula = pfmgr.makeEmptyPathFormula();
     pathFormula = pfmgr.makeAnd(pathFormula, pAllStatesTrace.getFirst().getSecond());
     ARGState last = pAllStatesTrace.get(pAllStatesTrace.size()-2).getFirst();
-    for (Pair<ARGState, CFAEdge> pair : pAllStatesTrace.subList(1, pAllStatesTrace.size()-2)) {
+    for (Pair<ARGState, CFAEdge> pair : pAllStatesTrace.subList(1, pAllStatesTrace.size()-1)) {
       if (PredicateAbstractState.getPredicateState(pair.getFirst()).isAbstractionState()) {
         list.add(pathFormula.getFormula());
         pathFormula = pfmgr.makeEmptyPathFormula(pathFormula);
-      } else {
-        if(PredicateAbstractState.getPredicateState(pair.getFirst()).isAbstractionState()) {
-          System.out.println(pathFormula.getLength());
-        }
       }
       if (pair.getFirst() != last) {
         pathFormula = pfmgr.makeAnd(pathFormula, pair.getSecond());
