@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
@@ -121,6 +122,10 @@ public class ExplicitInterpolator {
       ExplicitValueInterpolant pInputInterpolant,
       Set<String> relevantVariables) throws CPAException, InterruptedException {
     numberOfInterpolations = 0;
+    
+    if(pErrorPath.get(pOffset).getEdgeType() == CFAEdgeType.BlankEdge) {
+      return pInputInterpolant;
+    }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
     ExplicitState initialState      = pInputInterpolant.toExplicitValueState();

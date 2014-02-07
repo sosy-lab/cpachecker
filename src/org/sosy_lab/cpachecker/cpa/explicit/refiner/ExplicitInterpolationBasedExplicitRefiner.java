@@ -195,27 +195,19 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       relevantVariables = new AssumptionClosureCollector().collectVariables(cfaTrace);
     }
     
-    List<ExplicitValueInterpolant> itps = new ArrayList<>(cfaTrace.size());
+    List<ExplicitValueInterpolant> itps = new ArrayList<>(errorPath.size());
 
     for (int i = 0; i < errorPath.size(); i++) {
       shutdownNotifier.shutdownIfNecessary();
-      CFAEdge currentEdge = errorPath.get(i).getSecond();
 
-      if (currentEdge instanceof BlankEdge) {
-        itps.add(interpolant);
-        continue;
-      }
-      
-      else if (currentEdge instanceof CFunctionReturnEdge) {
-        currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
-      }
-      
-      // do interpolation
       interpolant = interpolator.deriveInterpolant(cfaTrace, i, interpolant, relevantVariables);
-      numberOfInterpolations += interpolator.getNumberOfInterpolations();
+      numberOfInterpolations += interpolator.getNumberOfInterpolations();        
 
       // early stop once we are past the first statement that made a path feasible for the first time
       if (interpolant.isFalse()) {
+        for (; i < errorPath.size(); i++) {
+          itps.add(ExplicitValueInterpolant.FALSE);
+        }
         return itps;
       }
 
@@ -224,7 +216,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       if (i > 0 && errorPath.get(i - 1).getSecond().getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
         interpolant.clearScope(errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
       }
-      
+
       itps.add(interpolant);
     }
     
@@ -433,18 +425,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     private static ExplicitValueInterpolant getInitialInterpolant() {
       return new ExplicitValueInterpolant();
     }
-/*
-    private static ExplicitValueInterpolant getTrueInterpolant() {
-      return new ExplicitValueInterpolant();
-    }
 
-    private static ExplicitValueInterpolant getFalseInterpolant() {
-      ExplicitValueInterpolant falseItp = new ExplicitValueInterpolant();
-      falseItp.data = null;
-      
-      return falseItp;
-    }
-*/
     private ExplicitValueInterpolant() {
       data = new HashMap<>();
     }
@@ -452,13 +433,11 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     public ExplicitValueInterpolant(Map<MemoryLocation, Long> pData) {
       data = pData;
     }
-/*
-    private ExplicitValueInterpolant(ExplicitValueInterpolant other) {
-      data = Maps.newHashMap(other.data);
-    }
-*/
+
     private Set<MemoryLocation> getMemoryLocations() {
-      return Collections.unmodifiableSet(data.keySet());
+      return isFalse()
+          ? Collections.<MemoryLocation>emptySet()
+          : Collections.unmodifiableSet(data.keySet());
     }
     
     private boolean isFalse() {
