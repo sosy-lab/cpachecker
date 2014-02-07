@@ -96,7 +96,8 @@ public class CallstackTransferRelation implements TransferRelation {
     case AssumeEdge: {
       CallstackState element = (CallstackState) pElement;
       String successorFunctionName = pCfaEdge.getSuccessor().getFunctionName();
-      if (!successorFunctionName.equals(element.getCurrentFunction())
+      if (!successorFunctionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)
+          && !successorFunctionName.equals(element.getCurrentFunction())
           && pCfaEdge instanceof CFASingleLoopTransformation.ProgramCounterValueAssumeEdge) {
         /*
          * This edge is syntactically reachable, but makes no sense from this
