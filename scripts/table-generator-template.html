@@ -1248,7 +1248,7 @@ def formatOptions(str):
                     .replace('=', '=<wbr/>')
                )
 }}
-{{for lineName in ['tool', 'limit', 'host', 'os', 'system', 'date', 'runset', 'branch', 'options', 'title']}}
+{{for lineName in ['tool', 'limit', 'host', 'os', 'system', 'date', 'runset', 'branch', 'options', 'property', 'title']}}
   {{if lineName in head and head[lineName]}}
   {{py:line = head[lineName]}}
   <tr id="{{line.id}}" class="{{line.id}}">

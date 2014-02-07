@@ -338,9 +338,10 @@ class OutputHandler:
         runSetInfo = "\n\n"
         if runSet.name:
             runSetInfo += runSet.name + "\n"
-        runSetInfo += "Run set {0} of {1} with options: {2}\n\n".format(
+        runSetInfo += "Run set {0} of {1} with options '{2}' and propertyfile '{3}'\n\n".format(
                 runSet.index, len(self.benchmark.runSets),
-                " ".join(runSet.options))
+                " ".join(runSet.options),
+                " ".join(runSet.propertyFiles))
 
         titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
                             "wall time", self.benchmark.columns, True)
@@ -492,6 +493,7 @@ class OutputHandler:
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
         runsElem = Util.getCopyOfXMLElem(self.XMLHeader)
         runsElem.set("options", " ".join(runSet.options))
+        runsElem.set("propertyfiles", " ".join(runSet.propertyFiles))
         if blockname is not None:
             runsElem.set("block", blockname)
             runsElem.set("name", ((runSet.realName + ".") if runSet.realName else "") + blockname)

@@ -634,10 +634,10 @@ def getTableHead(runSetResults, commonFileNamePrefix):
         for key in runSetResult.attributes:
             runSetResult.attributes[key] = Util.prettylist(runSetResult.attributes[key])
 
-    def getRow(rowName, format, collapse=False, onlyIf=None):
+    def getRow(rowName, format, collapse=False, onlyIf=None, default='Unknown'):
         def formatCell(attributes):
             if onlyIf and not onlyIf in attributes:
-                formatStr = 'Unknown'
+                formatStr = default
             else:
                 formatStr = format
             return formatStr.format(**attributes)
@@ -669,6 +669,7 @@ def getTableHead(runSetResults, commonFileNamePrefix):
             'runset':  getRow('Run set', '{name}' if allBenchmarkNamesEqual else '{benchmarkname}.{name}'),
             'branch':  getRow('Branch', '{branch}'),
             'options': getRow('Options', '{options}'),
+            'property':getRow('Propertyfile', '{propertyfiles}', collapse=True, onlyIf='propertyfiles', default=''),
             'title':   titleRow}
 
 
