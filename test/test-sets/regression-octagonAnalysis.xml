@@ -1,18 +1,23 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
-  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+    <option name="-heap">2000M</option>
+    <option name="-setprop">limits.time.cpu=1min</option>
+    <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
 
-  <rundefinition>
+
     <sourcefiles>
       <includesfile>../programs/simple/octagon/octagon.set</includesfile>
     </sourcefiles>
-    <option name="-noout"/>
-    <option name="-octagonAnalysis"/>
-    <option name="-heap">2000M</option>
-    <option name="-setprop">limits.time.cpu=1min</option>
-  </rundefinition>
 
+
+  <rundefinition name="octagonAnalysis">
+    <option name="-octagonAnalysis"/>
+  </rundefinition>
+  <rundefinition name="octagonAnalysis-mergeJoin">
+    <option name="-octagonAnalysis"/>
+    <option name="-setprop">cpa.octagon.merge=join</option>
+  </rundefinition>
   <columns>
     <column title="total">time for CPAchecker</column>
     <column title="cpa time">time for CPA algorithm</column>
