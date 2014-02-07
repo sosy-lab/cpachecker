@@ -528,6 +528,7 @@ public class CFASingleLoopTransformation {
         String functionName = current.getFunctionName();
         if (allNodes.put(functionName, current)) {
           waitlist.addAll(CFAUtils.successorsOf(current).toList());
+          waitlist.addAll(CFAUtils.predecessorsOf(current).toList());
           if (current instanceof FunctionEntryNode) {
             functions.put(functionName, (FunctionEntryNode) current);
           } else if (current == pLoopHead && functionName.equals(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)) {
@@ -535,7 +536,6 @@ public class CFASingleLoopTransformation {
           }
         }
       }
-
       // Remove nodes belonging to unreachable functions
       Set<String> functionsToRemove = new HashSet<>();
       for (String function : allNodes.keys()) {
