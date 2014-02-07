@@ -251,6 +251,7 @@
         <findbugs home="${findbugs.home}"
                 output="xml:withMessages"
                 outputFile="FindBugs.xml"
+                excludeFilter=".settings/FindBugs.exclude.xml"
                 warningsProperty="findbugs.warnings">
             <auxClasspath refid="CPAchecker.classpath" />
             <sourcePath path="${source.dir}" />
@@ -272,6 +273,7 @@
         <findbugs home="${findbugs.home}"
                 output="xml:withMessages"
                 outputFile="FindBugs.diff.xml"
+                excludeFilter=".settings/FindBugs.exclude.xml"
                 warningsProperty="findbugs.newwarnings"
                 baselineBugs="FindBugs.known.xml">
             <auxClasspath refid="CPAchecker.classpath" />
