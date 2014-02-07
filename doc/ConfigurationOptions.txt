@@ -703,10 +703,6 @@ cpa.explicit.refiner.doLazyAbstraction = true
 cpa.explicit.refiner.errorPathOrder = "DEFAULT"
   allowed values: [DEFAULT, ZIGZAG]
 
-# whether or not the obtain a precision from use-definition information
-# instead of interpolation
-cpa.explicit.refiner.generateUseDefBasedPrecision = false
-
 # whether or not to ignore the semantics of loop-leaving-assume-edges during
 # interpolation - this avoids to have loop-counters in the interpolant
 cpa.explicit.refiner.ignoreAssumptionsInLoops = true
