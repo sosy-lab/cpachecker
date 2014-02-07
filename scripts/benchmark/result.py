@@ -89,11 +89,7 @@ def _statusesOfFile(filename):
 
 
 def _statusesOfPropertyFile(propertyFile):
-    assert propertyFile is None or os.path.isfile(propertyFile)
-    
-    if propertyFile is None:
-        # if we have no prpfile, lets use default case: 'every property'
-        return FALSE_SUBSTRINGS.values()
+    assert os.path.isfile(propertyFile)
     
     statuses = []
     with open(propertyFile) as f:
@@ -123,6 +119,11 @@ def getResultCategory(filename, status, propertyFile=None):
     This function return a string
     that shows the relation between status and file.
     '''
+    
+    # Without propertyfile we do not return correct or wrong results, but always UNKNOWN.
+    if propertyFile is None: 
+        return STR_UNKNOWN
+    
     fileStatuses = _statusesOfFile(filename)
     propertiesToCheck = _statusesOfPropertyFile(propertyFile)
 

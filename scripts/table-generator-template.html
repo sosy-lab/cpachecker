@@ -1265,19 +1265,15 @@ def formatOptions(str):
 {{for line in body}}
 <tr><td title="Click here to show source code"><a href="{{line.filePath|url}}">{{line.shortFileName}}</a></td>
   {{for runResult in line.results}}
-  {{py:simpleStatus = 'false' if 'false' in runResult.status else runResult.status}}
-  {{py:cssClasses = [runResult.category]}}
-  {{py:if simpleStatus in ['true', 'false']: cssClasses.append(simpleStatus)}}
-  {{py:cssClasses = ' '.join(cssClasses)}}
   {{for column, value in zip(runResult.columns, runResult.values)}}
   {{if column.title == 'status'}}
     {{if runResult.logFile}}
-    <td class="status {{cssClasses}}" title="Click here to show output of tool"><a href="{{relpath(runResult.logFile, baseDir)|url}}">{{(value or '-').lower()}}</a></td>
+    <td class="status {{runResult.category}}" title="Click here to show output of tool"><a href="{{relpath(runResult.logFile, baseDir)|url}}">{{(value or '-').lower()}}</a></td>
     {{else}}
-    <td class="status {{cssClasses}}">{{(value or '-').lower()}}</td>
+    <td class="status {{runResult.category}}">{{(value or '-').lower()}}</td>
     {{endif}}
   {{else}}
-  <td class="{{cssClasses}}Value">{{value or '-'}}</td>
+  <td class="{{runResult.category}}Value">{{value or '-'}}</td>
   {{endif}}
   {{endfor}}
   {{endfor}}
