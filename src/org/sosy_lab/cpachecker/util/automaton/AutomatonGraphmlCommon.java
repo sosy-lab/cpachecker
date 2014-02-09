@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.automaton;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
@@ -42,6 +43,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 
 public class AutomatonGraphmlCommon {
@@ -53,6 +55,11 @@ public class AutomatonGraphmlCommon {
     INVARIANT("invariant", "node", "invariant", "string"),
     NAMED("named", "node", "namedValue", "string"),
     NODETYPE("nodetype", "node", "nodeType", "string"),
+
+    ISFRONTIERNODE("frontier","node","isFrontierNode","boolean"),
+    ISVIOLATIONNODE("violation","node","isViolationNode","boolean"),
+    ISENTRYNODE("entry","node","isEntryNode","boolean"),
+    ISSINKNODE("sink","node","isSinkNode","boolean"),
 
     SOURCECODELANGUAGE("sourcecodelang", "graph", "sourcecodeLanguage", "string"),
 
@@ -82,6 +89,32 @@ public class AutomatonGraphmlCommon {
     }
   }
 
+  public enum NodeFlag {
+    ISFRONTIER(KeyDef.ISFRONTIERNODE),
+    ISVIOLATION(KeyDef.ISVIOLATIONNODE),
+    ISENTRY(KeyDef.ISENTRYNODE),
+    ISSINKNODE(KeyDef.ISSINKNODE);
+
+    public final KeyDef key;
+
+    private NodeFlag(KeyDef key) {
+      this.key = key;
+    }
+
+    private final static Map<String, NodeFlag> stringToFlagMap = Maps.newHashMap();
+
+    static {
+      for (NodeFlag f: NodeFlag.values()) {
+        stringToFlagMap.put(f.key.id, f);
+      }
+    }
+
+
+    public static NodeFlag getNodeFlagByKey(final String key) {
+      return stringToFlagMap.get(key);
+    }
+  }
+
   public enum GraphType {
     PROGRAMPATH("traces automaton"),
     CONDITION("assumptions automaton");
@@ -100,11 +133,7 @@ public class AutomatonGraphmlCommon {
 
   public enum NodeType {
     ANNOTATION("annotation"),
-    ONPATH("path"),
-    ENTRYNODE("entry"),
-    FRONTIERNODE("frontier"),
-    ERRORNODE("violation"),
-    SINKNODE("sink");
+    ONPATH("path");
 
     public final String text;
 

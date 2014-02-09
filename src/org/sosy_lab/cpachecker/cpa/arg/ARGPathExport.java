@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
 import org.w3c.dom.Element;
 
@@ -138,8 +140,12 @@ public class ARGPathExport {
   private final Map<String, AggregatedTargetNode> targetToSourceMap = Maps.newHashMap();
   private final Map<String, Element> delayedNodes = Maps.newHashMap();
 
-  private void appendNewNode(GraphMlBuilder doc, String nodeId, NodeType nodeType) throws IOException {
-    Element result = doc.createNodeElement(nodeId, nodeType);
+  private void appendNewPathNode(GraphMlBuilder doc, String nodeId, EnumSet<NodeFlag> nodeFlags) throws IOException {
+    Element result = doc.createNodeElement(nodeId, NodeType.ONPATH);
+    for (NodeFlag f: nodeFlags) {
+      doc.addDataElementChild(result, f.key, "true");
+    }
+
     AggregatedTargetNode a = targetToSourceMap.get(nodeId);
     if (a != null && a.targetRepresentedBy.equals(nodeId)) {
       doc.appendToAppendable(result);
@@ -249,6 +255,9 @@ public class ARGPathExport {
     doc.appendNewKeyDef(KeyDef.TOKENS, null);
     doc.appendNewKeyDef(KeyDef.TOKENSNEGATED, "false");
     doc.appendNewKeyDef(KeyDef.NODETYPE, AutomatonGraphmlCommon.defaultNodeType.text);
+    for (NodeFlag f : NodeFlag.values()) {
+      doc.appendNewKeyDef(f.key, "false");
+    }
   }
 
   private String tokensToText(Set<Integer> tokens) {
@@ -349,11 +358,11 @@ public class ARGPathExport {
 
       // Write the state
       String sourceStateNodeId = getStateIdent(s);
-      NodeType sourceNodeType = NodeType.ONPATH;
+      EnumSet<NodeFlag> sourceNodeFlags = EnumSet.noneOf(NodeFlag.class);
       if (sourceStateNodeId.equals(entryStateNodeId)) {
-        sourceNodeType = NodeType.ENTRYNODE;
+        sourceNodeFlags = EnumSet.of(NodeFlag.ISENTRY);
       }
-      appendNewNode(doc, sourceStateNodeId, sourceNodeType);
+      appendNewPathNode(doc, sourceStateNodeId, sourceNodeFlags);
 
       // Process child states
       for (ARGState child : successorFunction.apply(s)) {
@@ -387,7 +396,7 @@ public class ARGPathExport {
 
             assert(!(innerEdge instanceof AssumeEdge));
 
-            appendNewNode(doc, pseudoStateId, NodeType.ONPATH);
+            appendNewPathNode(doc, pseudoStateId, EnumSet.noneOf(NodeFlag.class));
             appendNewEdge(doc, prevStateId, pseudoStateId, innerEdge, null, valueMap);
             prevStateId = pseudoStateId;
           }
@@ -406,7 +415,7 @@ public class ARGPathExport {
             // Child does not belong to the path --> add a branch to the SINK node!
             if (!sinkNodeWritten) {
               sinkNodeWritten = true;
-              appendNewNode(doc, SINK_NODE_ID, NodeType.SINKNODE);
+              appendNewPathNode(doc, SINK_NODE_ID, EnumSet.of(NodeFlag.ISSINKNODE));
             }
             appendNewEdge(doc, prevStateId, SINK_NODE_ID, edgeToNextState, s, valueMap);
           }

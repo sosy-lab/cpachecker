@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -57,6 +58,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Or;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.SubsetMatchEdgeTokens;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -184,7 +186,8 @@ public class AutomatonGraphmlParser {
 
         String sourceStateId = docDat.getAttributeValue(stateTransitionEdge, "source", "Every transition needs a source!");
         String targetStateId = docDat.getAttributeValue(stateTransitionEdge, "target", "Every transition needs a target!");
-        NodeType targetStateType = docDat.getNodeType(targetStateId);
+        Element targetStateNode = docDat.getNodeWithId(targetStateId);
+        EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
 
         List<AutomatonBoolExpr> emptyAssertions = Collections.emptyList();
         List<AutomatonAction> actions = Collections.emptyList();
@@ -213,7 +216,7 @@ public class AutomatonGraphmlParser {
             conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, new AutomatonBoolExpr.MatchCFAEdgeExact(sourceCode));
           }
 
-          if (targetStateId.equalsIgnoreCase(SINK_NODE_ID) || targetStateType == NodeType.SINKNODE) {
+          if (targetStateId.equalsIgnoreCase(SINK_NODE_ID) || targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
             // Transition to the BOTTOM state
             transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, AutomatonInternalState.BOTTOM));
           } else {
@@ -283,15 +286,15 @@ public class AutomatonGraphmlParser {
       // Create states ----
       List<AutomatonInternalState> automatonStates = Lists.newArrayList();
       for (String stateId : docDat.getIdToNodeMap().keySet()) {
-        Node stateNode = docDat.getIdToNodeMap().get(stateId);
-        NodeType nodeType = docDat.getNodeType(stateNode);
+        Element stateNode = docDat.getIdToNodeMap().get(stateId);
+        EnumSet<NodeFlag> nodeFlags = docDat.getNodeFlags(stateNode);
 
         List<AutomatonTransition> transitions = stateTransitions.get(stateId);
         if (transitions == null) {
           transitions = Collections.emptyList();
         }
 
-        if (nodeType == NodeType.ENTRYNODE) {
+        if (nodeFlags.contains(NodeFlag.ISENTRY)) {
           Preconditions.checkArgument(initialStateName == null, "Only one entrynode is supported!");
           initialStateName = stateId;
         }
@@ -367,13 +370,32 @@ public class AutomatonGraphmlParser {
     private final HashMap<String, Optional<String>> defaultDataValues = Maps.newHashMap();
     private final Document doc;
 
-    private Map<String, Node> idToNodeMap = null;
+    private Map<String, Element> idToNodeMap = null;
 
     public GraphMlDocumentData(Document doc) {
       this.doc = doc;
     }
 
-    public Map<String, Node> getIdToNodeMap() {
+    public EnumSet<NodeFlag> getNodeFlags(Element pStateNode) {
+      EnumSet<NodeFlag> result = EnumSet.noneOf(NodeFlag.class);
+
+      NodeList dataChilds = pStateNode.getElementsByTagName(GraphMlTag.DATA.toString());
+
+      for (int i=0; i<dataChilds.getLength(); i++) {
+        Node dataChild = dataChilds.item(i);
+        Node attribute = dataChild.getAttributes().getNamedItem("key");
+        Preconditions.checkNotNull(attribute, "Every data element must have a key attribute!");
+        String key = attribute.getTextContent();
+        NodeFlag flag = NodeFlag.getNodeFlagByKey(key);
+        if (flag != null) {
+          result.add(flag);
+        }
+      }
+
+      return result;
+    }
+
+    public Map<String, Element> getIdToNodeMap() {
       if (idToNodeMap != null) {
         return idToNodeMap;
       }
@@ -381,25 +403,14 @@ public class AutomatonGraphmlParser {
       idToNodeMap = Maps.newHashMap();
 
       NodeList nodes = doc.getElementsByTagName(GraphMlTag.NODE.toString());
-      List<AutomatonInternalState> automatonStates = Lists.newArrayList();
       for (int i=0; i<nodes.getLength(); i++) {
-        Node stateNode = nodes.item(i);
-        NodeType nodeType = getNodeType(stateNode);
+        Element stateNode = (Element) nodes.item(i);
         String stateId = getNodeId(stateNode);
 
         idToNodeMap.put(stateId, stateNode);
       }
 
       return idToNodeMap;
-    }
-
-    public String getAttributeValueWithDefault(Node of, String attributeName, String defaultValue) {
-      Node attribute = of.getAttributes().getNamedItem(attributeName);
-      if (attribute == null) {
-        return defaultValue;
-      } else {
-        return attribute.getTextContent();
-      }
     }
 
     public String getAttributeValue(Node of, String attributeName, String exceptionMessage) {
@@ -436,15 +447,10 @@ public class AutomatonGraphmlParser {
       return getAttributeValue(stateNode, "id", "Every state needs an ID!");
     }
 
-    public Node getNodeWithId(String nodeId) {
-      Node result = getIdToNodeMap().get(nodeId);
+    public Element getNodeWithId(String nodeId) {
+      Element result = getIdToNodeMap().get(nodeId);
       Preconditions.checkNotNull(result, "Node not found. Id: " + nodeId);
       return result;
-    }
-
-    public NodeType getNodeType(String nodeId) {
-      Node node = getNodeWithId(nodeId);
-      return NodeType.fromString(getDataValue(node, KeyDef.NODETYPE, "The type of each node must be specified!"));
     }
 
     public NodeType getNodeType(Node checkDataOnNode) {
