@@ -54,12 +54,15 @@ public class AutomatonGraphmlCommon {
     NAMED("named", "node", "namedValue", "string"),
     NODETYPE("nodetype", "node", "nodeType", "string"),
 
-    ENTRYNODE("entrynode", "graph", "entryNodeId", "string"),
     SOURCECODELANGUAGE("sourcecodelang", "graph", "sourcecodeLanguage", "string"),
 
     SOURCECODE("sourcecode", "edge", "sourcecode", "string"),
     TOKENS("tokens", "edge", "tokenSet", "string"),
-    TOKENSNEGATED("negated", "edge", "tokensNegated", "string");
+    LINECOLS("lineCols", "edge", "lineColSet", "string"),
+    TOKENSNEGATED("negated", "edge", "negativeCase", "string"),
+
+    FUNCTIONENTRY("enterFunctions", "edge", "enterFunction", "string"),
+    FUNCTIONEXIT("returnFrom", "edge", "returnFromFunction", "string");
 
     public final String id;
     public final String keyFor;
@@ -80,8 +83,8 @@ public class AutomatonGraphmlCommon {
   }
 
   public enum GraphType {
-    PROGRAMPATH("path"),
-    CONDITION("condition");
+    PROGRAMPATH("traces automaton"),
+    CONDITION("assumptions automaton");
 
     public final String text;
 
@@ -97,8 +100,11 @@ public class AutomatonGraphmlCommon {
 
   public enum NodeType {
     ANNOTATION("annotation"),
-    ONPATH("pathnode"),
-    SINKNODE("sinknode");
+    ONPATH("path"),
+    ENTRYNODE("entry"),
+    FRONTIERNODE("frontier"),
+    ERRORNODE("violation"),
+    SINKNODE("sink");
 
     public final String text;
 
@@ -110,7 +116,18 @@ public class AutomatonGraphmlCommon {
     public String toString() {
       return text;
     }
+
+    public static NodeType fromString(String nodeTypeString) {
+      for (NodeType t: NodeType.values()) {
+        if (t.text.equalsIgnoreCase(nodeTypeString.trim())) {
+          return t;
+        }
+      }
+      throw new RuntimeException(String.format("String '%s' does not descripe a node type!", nodeTypeString));
+    }
   }
+
+  public static final NodeType defaultNodeType = NodeType.ONPATH;
 
   public enum GraphMlTag {
     NODE("node"),
@@ -192,11 +209,19 @@ public class AutomatonGraphmlCommon {
       return result;
     }
 
-    public void appendNewNode(String nodeId, NodeType nodeType) throws IOException {
+    public Element createNodeElement(String nodeId, NodeType nodeType) throws IOException {
       Element result = createElement(GraphMlTag.NODE);
       result.setAttribute("id", nodeId);
-      result.setAttribute("type", nodeType.toString());
 
+      if (nodeType != defaultNodeType) {
+        addDataElementChild(result, KeyDef.NODETYPE, nodeType.toString());
+      }
+
+      return result;
+    }
+
+    public void appendNewNode(String nodeId, NodeType nodeType) throws IOException {
+      Element result = createNodeElement(nodeId, nodeType);
       appendToAppendable(result);
     }
 
@@ -216,9 +241,8 @@ public class AutomatonGraphmlCommon {
       target.append("<graphml xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://graphml.graphdrawing.org/xmlns\">\n");
     }
 
-    public void appendGraphHeader(GraphType pGraphType, String pEntryStateNodeId, String pSourceLanguage) throws IOException {
-      target.append(String.format("<graph edgedefault=\"directed\">", pEntryStateNodeId));
-      appendDataElement(KeyDef.ENTRYNODE, pEntryStateNodeId);
+    public void appendGraphHeader(GraphType pGraphType, String pSourceLanguage) throws IOException {
+      target.append("<graph edgedefault=\"directed\">");
       appendDataElement(KeyDef.SOURCECODELANGUAGE, pSourceLanguage);
     }
 

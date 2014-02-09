@@ -324,17 +324,6 @@ public class ARGStatistics implements Statistics {
       }
     });
 
-    writeErrorPathFile(errorPathAutomatonGraphmlFile, cexIndex, new Appender() {
-      @Override
-      public void appendTo(Appendable pAppendable) throws IOException {
-        ARGPathExport exporter = new ARGPathExport();
-        exporter.writePath(pAppendable, rootState,
-            ARGUtils.CHILDREN_OF_STATE,
-            Predicates.in(pathElements),
-            isTargetPathEdge);
-      }
-    });
-
     if (counterexample != null) {
       if (counterexample.getTargetPathModel() != null) {
         writeErrorPathFile(errorPathAssignment, cexIndex, counterexample.getTargetPathModel());
@@ -346,6 +335,18 @@ public class ARGStatistics implements Statistics {
         }
       }
     }
+
+    writeErrorPathFile(errorPathAutomatonGraphmlFile, cexIndex, new Appender() {
+      @Override
+      public void appendTo(Appendable pAppendable) throws IOException {
+        ARGPathExport exporter = new ARGPathExport();
+        exporter.writePath(pAppendable, rootState,
+            ARGUtils.CHILDREN_OF_STATE,
+            Predicates.in(pathElements),
+            isTargetPathEdge,
+            counterexample);
+      }
+    });
   }
 
   private Appender createErrorPathWithVariableAssignmentInformation(

@@ -54,6 +54,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.TokenCollector;
+import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -76,6 +78,7 @@ class AutomatonTransferRelation implements TransferRelation {
   Timer assertionsTime = new Timer();
   Timer actionTime = new Timer();
   Timer totalStrengthenTime = new Timer();
+  StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
   public AutomatonTransferRelation(ControlAutomatonCPA pCpa, LogManager pLogger) {
     this.cpa = pCpa;
@@ -93,7 +96,9 @@ class AutomatonTransferRelation implements TransferRelation {
     Preconditions.checkArgument(pElement instanceof AutomatonState);
 
     if (!(pCfaEdge instanceof MultiEdge)) {
-      return getAbstractSuccessors0(pElement, pPrecision, pCfaEdge);
+      Collection<? extends AbstractState> result = getAbstractSuccessors0(pElement, pPrecision, pCfaEdge);
+      automatonSuccessors.setNextValue(result.size());
+      return result;
     }
 
     final List<CFAEdge> edges = ((MultiEdge)pCfaEdge).getEdges();
@@ -108,8 +113,10 @@ class AutomatonTransferRelation implements TransferRelation {
       CFAEdge edge = edges.get(edgeIndex);
       currentSuccessors = getAbstractSuccessors0(currentState, pPrecision, edge);
       if (currentSuccessors.isEmpty()) {
+        automatonSuccessors.setNextValue(0);
         return currentSuccessors; // bottom
       } else if (currentSuccessors.size() == 1) {
+        automatonSuccessors.setNextValue(1);
         currentState = Iterables.getOnlyElement(currentSuccessors);
       } else { // currentSuccessors.size() > 1
         break;
@@ -117,6 +124,7 @@ class AutomatonTransferRelation implements TransferRelation {
     }
 
     if (edgeIndex == edges.size()) {
+      automatonSuccessors.setNextValue(currentSuccessors.size());
       return currentSuccessors;
     }
 
@@ -146,6 +154,8 @@ class AutomatonTransferRelation implements TransferRelation {
       }
 
     }
+
+    automatonSuccessors.setNextValue(results.size());
     return results;
   }
 

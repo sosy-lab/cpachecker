@@ -27,10 +27,10 @@ import java.io.PrintStream;
 
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
-class AutomatonStatistics implements Statistics {
+class AutomatonStatistics extends AbstractStatistics {
 
   private final ControlAutomatonCPA mCpa;
 
@@ -44,21 +44,28 @@ class AutomatonStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result pResult,
-      ReachedSet pReached) {
-
+  public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
     AutomatonTransferRelation trans = mCpa.getTransferRelation();
-    out.println("Number of states:                    " + mCpa.getAutomaton().getNumberOfStates());
-    out.println("Total time for successor computation: " + trans.totalPostTime);
+
+    put(out, 0, "Number of states", mCpa.getAutomaton().getNumberOfStates());
+    put(out, 0, "Total time for successor computation", trans.totalPostTime);
+
     if (trans.totalPostTime.getSumTime().compareTo(TimeSpan.ofMillis(500)) >= 0) {
       // normally automaton is very fast, and time measurements are very imprecise
       // so don't care about very small times
-      out.println("  Time for transition matches:       " + trans.matchTime);
-      out.println("  Time for transition assertions:    " + trans.assertionsTime);
-      out.println("  Time for transition actions:       " + trans.actionTime);
+      put(out, 1, "Time for transition matches", trans.matchTime);
+      put(out, 1, "Time for transition assertions", trans.assertionsTime);
+      put(out, 1, "Time for transition actions", trans.actionTime);
     }
+
     if (trans.totalStrengthenTime.getNumberOfIntervals() > 0) {
-      out.println("Total time for strengthen operator:  " + trans.totalStrengthenTime);
+      put(out, 0, "Total time for strengthen operator", trans.totalStrengthenTime);
     }
+
+    int stateBranchings = trans.automatonSuccessors.getValueCount()
+        - trans.automatonSuccessors.getTimesWithValue(0)
+        - trans.automatonSuccessors.getTimesWithValue(1);
+    put(out, 0, "Automaton transfers with branching", stateBranchings);
+    put(out, 0, "Automaton transfer successors", trans.automatonSuccessors);
   }
 }
