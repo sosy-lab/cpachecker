@@ -68,7 +68,7 @@ public class AutomatonGraphmlCommon {
     LINECOLS("lineCols", "edge", "lineColSet", "string"),
     TOKENSNEGATED("negated", "edge", "negativeCase", "string"),
 
-    FUNCTIONENTRY("enterFunctions", "edge", "enterFunction", "string"),
+    FUNCTIONENTRY("enterFunction", "edge", "enterFunction", "string"),
     FUNCTIONEXIT("returnFrom", "edge", "returnFromFunction", "string");
 
     public final String id;
