@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK
 
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -212,8 +213,17 @@ public class ARGPathExport {
 
   private class WitnessWriter {
     private final Multimap<String, AggregatedTargetNode> sourceToTargetMap = HashMultimap.create();
-    private final Map<String, AggregatedTargetNode> targetToSourceMap = Maps.newHashMap();
+    private final Multimap<String, AggregatedTargetNode> targetToSourceMap = HashMultimap.create();
     private final Map<String, Element> delayedNodes = Maps.newHashMap();
+
+    private boolean isNodeRepresentingOneOf(Collection<AggregatedTargetNode> targets, String nodeId) {
+      for (AggregatedTargetNode t : targets) {
+        if (t.targetRepresentedBy.equals(nodeId)) {
+          return true;
+        }
+      }
+      return false;
+    }
 
     private void appendNewPathNode(GraphMlBuilder doc, String nodeId, EnumSet<NodeFlag> nodeFlags) throws IOException {
       Element result = doc.createNodeElement(nodeId, NodeType.ONPATH);
@@ -221,8 +231,11 @@ public class ARGPathExport {
         doc.addDataElementChild(result, f.key, "true");
       }
 
-      AggregatedTargetNode a = targetToSourceMap.get(nodeId);
-      if (a != null && a.targetRepresentedBy.equals(nodeId)) {
+      // Decide if writing the node should be delayed.
+      // Some nodes might not get referenced by edges later.
+      Collection<AggregatedTargetNode> existingEdgesTo = targetToSourceMap.get(nodeId);
+      // -- A node must always be written if it represents a set of aggregated nodes
+      if (isNodeRepresentingOneOf(existingEdgesTo, nodeId)) {
         doc.appendToAppendable(result);
       } else {
         delayedNodes.put(nodeId, result);
@@ -245,8 +258,11 @@ public class ARGPathExport {
 
       // What edges to "from" exist?
       //    edgesTo(from) = [e | e = (u,c,v) in E, v = from]
-      AggregatedTargetNode aggregationEdge = null;
-      if ((aggregationEdge = targetToSourceMap.get(from)) != null) {
+
+      Collection<AggregatedTargetNode> edgesToTheSourceNode = targetToSourceMap.get(from);
+      if (edgesToTheSourceNode.size() == 1) {
+        AggregatedTargetNode aggregationEdge = edgesToTheSourceNode.iterator().next();
+
         // Does the transition descriptor of TT match (equals) the descriptor of this transition?
         //  edgesTo(from)[1].c == this.c
         if (aggregationEdge.condition.equals(desc)) {
@@ -254,17 +270,17 @@ public class ARGPathExport {
           //  Instead of adding a new transition, modify the points-to information of TT
 
           aggregationEdge.aggregates.add(to);
-          if (targetToSourceMap.put(to, aggregationEdge) != null) {
-            throw new IllegalStateException("Target already described!");
-          }
+          targetToSourceMap.put(to, aggregationEdge);
 
           return;
         }
       }
 
-      // Change "from" if it was aggregated by to another node.
-      aggregationEdge = targetToSourceMap.get(from);
-      if (aggregationEdge != null) {
+      // Switch the source node (from) to the aggregating one
+      // -- only if this is unambiguous
+      edgesToTheSourceNode = targetToSourceMap.get(from);
+      if (edgesToTheSourceNode.size() == 1) {
+        AggregatedTargetNode aggregationEdge = edgesToTheSourceNode.iterator().next();
         from = aggregationEdge.targetRepresentedBy;
       }
 
@@ -331,10 +347,10 @@ public class ARGPathExport {
 
     private void appendKeyDefinitions(GraphMlBuilder doc, GraphType graphType) {
       if (graphType == GraphType.CONDITION) {
-        doc.appendNewKeyDef(KeyDef.ASSUMPTION, null);
         doc.appendNewKeyDef(KeyDef.INVARIANT, null);
         doc.appendNewKeyDef(KeyDef.NAMED, null);
       }
+      doc.appendNewKeyDef(KeyDef.ASSUMPTION, null);
       doc.appendNewKeyDef(KeyDef.SOURCECODE, null);
       doc.appendNewKeyDef(KeyDef.SOURCECODELANGUAGE, null);
       doc.appendNewKeyDef(KeyDef.TOKENS, null);
@@ -343,6 +359,9 @@ public class ARGPathExport {
       for (NodeFlag f : NodeFlag.values()) {
         doc.appendNewKeyDef(f.key, "false");
       }
+
+      doc.appendNewKeyDef(KeyDef.FUNCTIONENTRY, null);
+      doc.appendNewKeyDef(KeyDef.FUNCTIONEXIT, null);
     }
 
     public void writePath(Appendable sb,
@@ -410,6 +429,9 @@ public class ARGPathExport {
         if (sourceStateNodeId.equals(entryStateNodeId)) {
           sourceNodeFlags = EnumSet.of(NodeFlag.ISENTRY);
         }
+        if (s.isTarget()) {
+          sourceNodeFlags.add(NodeFlag.ISVIOLATION);
+        }
         appendNewPathNode(doc, sourceStateNodeId, sourceNodeFlags);
 
         // Process child states
@@ -463,7 +485,8 @@ public class ARGPathExport {
               // Child does not belong to the path --> add a branch to the SINK node!
               if (!sinkNodeWritten) {
                 sinkNodeWritten = true;
-                appendNewPathNode(doc, SINK_NODE_ID, EnumSet.of(NodeFlag.ISSINKNODE));
+                EnumSet<NodeFlag> nodeFlags = EnumSet.of(NodeFlag.ISSINKNODE);
+                appendNewPathNode(doc, SINK_NODE_ID, nodeFlags);
               }
               appendNewEdge(doc, prevStateId, SINK_NODE_ID, edgeToNextState, s, valueMap);
             }
