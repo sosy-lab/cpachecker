@@ -80,7 +80,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   private Pair<CExpression, Number> convertExplicitValueToPair(final CExpression expr, ExplicitValueBase value) {
     // TODO: handle cases other than numeric values
     ExplicitNumericValue numericResult = value.asNumericValue();
-    if(numericResult != null) {
+    if(numericResult != null && expr.getExpressionType() instanceof CSimpleType) {
       CSimpleType type = (CSimpleType) expr.getExpressionType();
       switch(type.getType()) {
         case INT:
@@ -100,7 +100,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       }
     }
     logger.logf(Level.FINE, "Can not handle result of expression %s", numericResult.toString());
-    return null;
+    return Pair.<CExpression, Number> of(expr, null);
   }
 
   @Override
