@@ -445,6 +445,22 @@ cpa.arg.refinements.file = "ARGRefinements.dot"
 # entries/exits
 cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
 
+# Verification witness: Include the considered case of an assume?
+cpa.arg.witness.exportAssumeCaseInfo = true
+
+# Verification witness: Include assumptions (C statements)?
+cpa.arg.witness.exportAssumptions = true
+
+# Verification witness: Include function calls and function returns?
+cpa.arg.witness.exportFunctionCallsAndReturns = true
+
+# Verification witness: Include the sourcecode of the operations?
+cpa.arg.witness.exportSourcecode = true
+
+# Verification witness: Include the token numbers of the operations on the
+# transitions?
+cpa.arg.witness.exportTokenNumbers = true
+
 # signal the analysis to break in case the given number of error state is
 # reached 
 cpa.automaton.breakOnTargetState = 1

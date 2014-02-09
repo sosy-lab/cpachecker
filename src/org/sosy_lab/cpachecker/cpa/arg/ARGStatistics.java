@@ -144,14 +144,19 @@ public class ARGStatistics implements Statistics {
   private boolean dumpErrorPathImmediately = false;
 
   private final ARGCPA cpa;
+  private final Configuration config;
 
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
+  private ARGPathExport witnessExporter = null;
 
   public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
+    this.cpa = cpa;
+    this.config = config;
+
     config.inject(this);
 
-    this.cpa = cpa;
+    witnessExporter = new ARGPathExport(config);
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null) {
       exportARG = false;
@@ -339,8 +344,7 @@ public class ARGStatistics implements Statistics {
     writeErrorPathFile(errorPathAutomatonGraphmlFile, cexIndex, new Appender() {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
-        ARGPathExport exporter = new ARGPathExport();
-        exporter.writePath(pAppendable, rootState,
+        witnessExporter.writePath(pAppendable, rootState,
             ARGUtils.CHILDREN_OF_STATE,
             Predicates.in(pathElements),
             isTargetPathEdge,
