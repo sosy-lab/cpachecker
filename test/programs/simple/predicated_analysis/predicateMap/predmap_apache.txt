@@ -1,0 +1,43 @@
+(set-info :source |printed by MathSAT|)
+(declare-fun |get_tag::t| () Real)
+(define-fun .def_226 () Bool (<= |get_tag::t| (to_real 0)))
+(define-fun .def_227 () Bool (<= (to_real 0) |get_tag::t|))
+(define-fun .def_507 () Bool (<= |get_tag::t| (to_real 1)))
+(define-fun .def_508 () Bool (<= (to_real 1) |get_tag::t|))
+(define-fun .def_719 () Bool (<= |get_tag::t| (to_real 2)))
+(define-fun .def_720 () Bool (<= (to_real 2) |get_tag::t|))
+
+get_tag N34:
+(assert .def_226)
+(assert .def_227)
+(assert .def_507)
+(assert .def_508)
+(assert .def_719)
+(assert .def_720)
+
+get_tag N52:
+(assert false)
+
+get_tag N62:
+(assert .def_507)
+(assert .def_508)
+(assert .def_719)
+(assert .def_720)
+
+get_tag N70:
+(assert .def_507)
+(assert .def_508)
+(assert .def_719)
+(assert .def_720)
+
+get_tag N81:
+(assert .def_507)
+(assert .def_508)
+
+get_tag N86:
+(assert .def_507)
+(assert .def_508)
+
+get_tag N102:
+(assert false)
+

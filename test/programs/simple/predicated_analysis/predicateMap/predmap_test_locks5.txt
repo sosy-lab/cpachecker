@@ -1,0 +1,70 @@
+(set-info :source |printed by MathSAT|)
+(declare-fun |main::p1| () Real)
+(define-fun .def_128 () Bool (<= |main::p1| (to_real 0)))
+(declare-fun |main::p2| () Real)
+(define-fun .def_171 () Bool (<= |main::p2| (to_real 0)))
+(declare-fun |main::p3| () Real)
+(define-fun .def_240 () Bool (<= |main::p3| (to_real 0)))
+(declare-fun |main::p4| () Real)
+(define-fun .def_367 () Bool (<= |main::p4| (to_real 0)))
+(declare-fun |main::p5| () Real)
+(define-fun .def_575 () Bool (<= |main::p5| (to_real 0)))
+
+main N33:
+(assert .def_128)
+
+main N37:
+(assert .def_128)
+(assert .def_171)
+
+main N41:
+(assert .def_128)
+(assert .def_171)
+(assert .def_240)
+
+main N45:
+(assert .def_128)
+(assert .def_171)
+(assert .def_240)
+(assert .def_367)
+
+main N49:
+(assert .def_128)
+(assert .def_171)
+(assert .def_240)
+(assert .def_367)
+(assert .def_575)
+
+main N53:
+(assert .def_171)
+(assert .def_240)
+(assert .def_367)
+(assert .def_575)
+
+main N56:
+(assert false)
+
+main N58:
+(assert .def_240)
+(assert .def_367)
+(assert .def_575)
+
+main N61:
+(assert false)
+
+main N63:
+(assert .def_367)
+(assert .def_575)
+
+main N66:
+(assert false)
+
+main N68:
+(assert .def_575)
+
+main N71:
+(assert false)
+
+main N76:
+(assert false)
+

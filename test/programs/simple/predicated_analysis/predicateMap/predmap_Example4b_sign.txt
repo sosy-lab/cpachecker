@@ -1,0 +1,10 @@
+(set-info :source |printed by MathSAT|)
+(declare-fun |main::y| () Real)
+(define-fun .def_51 () Bool (= |main::y| (to_real 2)))
+
+main N6:
+(assert .def_51)
+
+main N15:
+(assert false)
+

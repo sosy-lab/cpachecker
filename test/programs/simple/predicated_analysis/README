@@ -1,0 +1,29 @@
+Subfolder transformed
+- Contains the transformed programs, written after respective predicated analysis
+
+Subfolder predicate maps
+- Contains the predicates used during predicated analysis
+
+Benchmark programs:
+- Constant Propagation Analysis (Explicit Analysis): programs taken from SV-COMP Benchmark (locks), checks property originally defined by assert
+  * test_locks_5
+  * test_locks_5d
+  * test_locks_12
+  * test_locks_12d
+- Interval Analysis: programs taken from Verisec Benchmark Suite, preprocessed with cil, checks BufferOverflow Property
+  * apache (apache/CVE-2004-0940/get_tag/iter1_prefixLong_arr_ok)
+  * apache2 (apache/CVE-2006-3747/escape_absolute_uri/full_ok)
+  * encode_ie_nosprintf (MADWiFi/CVE-2006-6332/no_sprintf_ok)
+  * gdImageStringFTExSimple (libgd/CVE-2007-04555/gdImageStringFTEx/gd_simp_ok)
+- SIGN Analysis: checks different properties, e.g. Division By Zero, Null Pointer Dereference
+  * demo/demo2: paper example
+  * list_statistics: computes statistical mean, variance of values stored in a list, checks for Division By Zero
+  * harmonic_mean: computes harmonic mean of values stored in a list, checks for Division By Zero
+  *
+- Uninitialized Variables Analysis: programs taken from SV-COMP Benchmark (systemc), checks if uninitialized variables are used (type state)
+  * kundu_uninit_a
+  * kundu_uninit_b
+- Interval Analysis and Sign Analysis: Example*.c test programs
+
+
+

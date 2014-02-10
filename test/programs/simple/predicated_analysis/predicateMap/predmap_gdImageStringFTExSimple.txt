@@ -1,0 +1,73 @@
+(set-info :source |printed by MathSAT|)
+(declare-fun |gdImageStringFTEx::next| () Real)
+(define-fun .def_772 () Bool (<= |gdImageStringFTEx::next| (to_real 2)))
+(define-fun .def_144 () Bool (<= |gdImageStringFTEx::next| (to_real 0)))
+(define-fun .def_773 () Bool (<= (to_real 2) |gdImageStringFTEx::next|))
+(define-fun .def_145 () Bool (<= (to_real 0) |gdImageStringFTEx::next|))
+(declare-fun |gdImageStringFTEx::len| () Real)
+(define-fun .def_655 () Real (+ |gdImageStringFTEx::next| |gdImageStringFTEx::len|))
+(define-fun .def_1103 () Bool (<= .def_655 (to_real 2)))
+(define-fun .def_1104 () Bool (<= (to_real 2) .def_655))
+(define-fun .def_382 () Bool (<= |gdImageStringFTEx::next| (to_real 1)))
+(define-fun .def_1197 () Bool (= |gdImageStringFTEx::next| (to_real 2)))
+(define-fun .def_383 () Bool (<= (to_real 1) |gdImageStringFTEx::next|))
+(define-fun .def_656 () Bool (<= .def_655 (to_real 1)))
+(define-fun .def_657 () Bool (<= (to_real 1) .def_655))
+
+gdTcl_UtfToUniChar N1:
+(assert .def_144)
+(assert .def_145)
+(assert .def_382)
+(assert .def_383)
+
+gdImageStringFTEx N22:
+(assert .def_772)
+(assert .def_144)
+(assert .def_773)
+(assert .def_145)
+(assert .def_382)
+(assert .def_383)
+
+gdImageStringFTEx N29:
+(assert false)
+
+gdImageStringFTEx N42:
+(assert .def_772)
+(assert .def_144)
+(assert .def_773)
+(assert .def_145)
+(assert .def_382)
+(assert .def_383)
+
+gdImageStringFTEx N46:
+(assert .def_1103)
+(assert .def_1104)
+(assert .def_656)
+(assert .def_657)
+
+gdImageStringFTEx N53:
+(assert .def_144)
+(assert .def_145)
+(assert .def_382)
+(assert .def_1197)
+(assert .def_383)
+
+gdImageStringFTEx N56:
+(assert .def_144)
+(assert .def_145)
+(assert .def_382)
+(assert .def_383)
+
+gdImageStringFTEx N60:
+(assert .def_772)
+(assert .def_773)
+(assert false)
+(assert .def_382)
+(assert .def_383)
+
+gdImageStringFTEx N70:
+(assert .def_772)
+(assert .def_773)
+(assert .def_382)
+(assert .def_383)
+
