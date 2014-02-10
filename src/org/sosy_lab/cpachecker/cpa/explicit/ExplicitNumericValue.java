@@ -96,6 +96,15 @@ public class ExplicitNumericValue implements ExplicitValueBase {
   }
 
   @Override
+  public boolean equals(Object other) {
+    if(other instanceof ExplicitNumericValue) {
+      return this.getNumber().equals(((ExplicitNumericValue) other).getNumber());
+    } else {
+      return false;
+    }
+  }
+
+  @Override
   public boolean isNumericValue() {
     return true;
   }
