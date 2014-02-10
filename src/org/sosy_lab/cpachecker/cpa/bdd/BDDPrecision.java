@@ -104,7 +104,7 @@ public class BDDPrecision implements Precision {
   public boolean isDisabled() {
     if (forceTrackingPattern != null) { return false; }
 
-	if (cegarPrecision.isEmpty()) { return true; }
+    if (cegarPrecision.isEmpty()) { return true; }
 
     if (!varClass.isPresent()) { return true; }
 

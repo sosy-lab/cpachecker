@@ -163,13 +163,13 @@ public class CFASingleLoopTransformation {
 
   @Option(name="cfa.transformIntoSingleLoop.subgraphGrowthStrategy",
       description="This option controls the size of the subgraphs referred" +
-      		" to by program counter values. The larger the subgraphs, the" +
-      		" fewer program counter values are required. Possible values are " +
-      		" MULTIPLE_PATHS, SINGLE_PATH and SINGLE_EDGE, where" +
-      		" MULTIPLE_PATHS has the largest subgraphs (and fewest program" +
-      		" counter values) and SINGLE_EDGE has the smallest subgraphs (and" +
-      		" most program counter values). The larger the subgraphs, the" +
-      		" closer the resulting graph will look like the original CFA.")
+          " to by program counter values. The larger the subgraphs, the" +
+          " fewer program counter values are required. Possible values are " +
+          " MULTIPLE_PATHS, SINGLE_PATH and SINGLE_EDGE, where" +
+          " MULTIPLE_PATHS has the largest subgraphs (and fewest program" +
+          " counter values) and SINGLE_EDGE has the smallest subgraphs (and" +
+          " most program counter values). The larger the subgraphs, the" +
+          " closer the resulting graph will look like the original CFA.")
   private AcyclicGraph.AcyclicGrowthStrategies subgraphGrowthStrategy = org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation.AcyclicGraph.AcyclicGrowthStrategies.MULTIPLE_PATHS;
 
   /**

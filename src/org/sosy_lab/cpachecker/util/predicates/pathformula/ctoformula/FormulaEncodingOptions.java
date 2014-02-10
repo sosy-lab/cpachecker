@@ -68,7 +68,7 @@ public class FormulaEncodingOptions {
   private String externModelFunctionName = "__VERIFIER_externModelSatisfied";
 
   @Option(description = "Set of functions that non-deterministically provide new memory on the heap, " +
-  		                  "i.e. they can return either a valid pointer or zero.")
+                        "i.e. they can return either a valid pointer or zero.")
   private Set<String> memoryAllocationFunctions = ImmutableSet.of(
       "malloc", "__kmalloc", "kmalloc"
       );

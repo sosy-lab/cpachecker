@@ -67,8 +67,8 @@ public class ExplicitPrecision implements Precision {
   private int reachedSetThreshold = -1;
 
   @Option(values={"location", "scope"},
-		  description = "whether to track relevant variables only at the exact program location (sharing=location), " +
-		  		"or within their respective (function-/global-) scope (sharing=scoped).")
+      description = "whether to track relevant variables only at the exact program location (sharing=location), " +
+          "or within their respective (function-/global-) scope (sharing=scoped).")
   private String sharing = "scope";
 
   @Option(description = "ignore boolean variables. if this option is used, "
@@ -211,7 +211,7 @@ public class ExplicitPrecision implements Precision {
 
     else {
       throw new InternalError("Wrong value for precison sharing strategy given (was " + sharing + ")," +
-      		"or allowed options out-dated.");
+          "or allowed options out-dated.");
     }
   }
 
