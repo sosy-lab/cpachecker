@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -121,22 +121,23 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     shutdownNotifier = pShutdownNotifier;
     interpolator     = new ExplicitInterpolator(config, logger, shutdownNotifier, cfa);
   }
-  
-  protected List<ExplicitValueInterpolant> performInterpolation(ARGPath errorPath,
+
+  protected Map<ARGState, ExplicitValueInterpolant> performInterpolation(ARGPath errorPath,
       ExplicitValueInterpolant interpolant) throws CPAException, InterruptedException {
 
     List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
-    List<ExplicitValueInterpolant> pathInterpolants = new ArrayList<>(errorPath.size());
+    Map<ARGState, ExplicitValueInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
     for (int i = 0; i < errorPath.size(); i++) {
       shutdownNotifier.shutdownIfNecessary();
 
       interpolant = interpolator.deriveInterpolant(cfaTrace, i, interpolant);
-      numberOfInterpolations += interpolator.getNumberOfInterpolations();        
+      numberOfInterpolations += interpolator.getNumberOfInterpolations();
 
       // stop once interpolant is false
       if (interpolant.isFalse()) {
-        while (i++ < errorPath.size()) {
-          pathInterpolants.add(ExplicitValueInterpolant.FALSE);
+        while (i < errorPath.size()) {
+          pathInterpolants.put(errorPath.get(i).getFirst(), ExplicitValueInterpolant.FALSE);
+          i++;
         }
         return pathInterpolants;
       }
@@ -147,7 +148,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
         interpolant.clearScope(errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
       }
 
-      pathInterpolants.add(interpolant);
+      pathInterpolants.put(errorPath.get(i).getFirst(), interpolant);
     }
 
     return pathInterpolants;
@@ -155,27 +156,27 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
   protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
       throws CPAException, InterruptedException {
-    
+
     assignments = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
         UniqueAssignmentsInPathConditionState.class);
-    
+
     Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
 
     timerInterpolation.start();
-    List<ExplicitValueInterpolant> itps = performInterpolation(errorPath, ExplicitValueInterpolant.createInitial());
+    Map<ARGState, ExplicitValueInterpolant> itps = performInterpolation(errorPath, ExplicitValueInterpolant.createInitial());
     timerInterpolation.stop();
 
     interpolationOffset = -1;
     int i               = 0;
-    for(ExplicitValueInterpolant itp : itps) {
-      addToPrecisionIncrement(increment, errorPath.get(i).getSecond(), itp);
+    for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : itps.entrySet()) {
+      addToPrecisionIncrement(increment, errorPath.get(i).getSecond(), itp.getValue());
 
-      if(!itp.isFalse() && !itp.isTrue() && interpolationOffset == -1) {
+      if(!itp.getValue().isFalse() && !itp.getValue().isTrue() && interpolationOffset == -1) {
         interpolationOffset = i + 1;
       }
       i++;
     }
-    
+
     return increment;
   }
 
@@ -348,26 +349,26 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
   /**
    * This class represents a Explict-Value interpolant, itself, just a mere wrapper around a map
-   * from memory locations to values, representing a variable assignment. 
+   * from memory locations to values, representing a variable assignment.
    */
   public static class ExplicitValueInterpolant {
     /**
      * the variable assignment of the interpolant
      */
     private final Map<MemoryLocation, Long> assignment;
-    
+
     /**
      * the interpolant representing "true"
      */
     public static final ExplicitValueInterpolant TRUE  = new ExplicitValueInterpolant();
 
     /**
-     * the interpolant representing "false", i.e. 
+     * the interpolant representing "false"
      */
     public static final ExplicitValueInterpolant FALSE = new ExplicitValueInterpolant((Map<MemoryLocation, Long>)null);
 
     /**
-     * Contructor for a new, empty interpolant, i.e. the interpolant representing "true" 
+     * Contructor for a new, empty interpolant, i.e. the interpolant representing "true"
      */
     private ExplicitValueInterpolant() {
       assignment = new HashMap<>();
@@ -375,7 +376,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
     /**
      * Contructor for a new interpolant representing the given variable assignment
-     * 
+     *
      * @param pAssignment the variable assignment to be represented by the interpolant
      */
     public ExplicitValueInterpolant(Map<MemoryLocation, Long> pAssignment) {
@@ -383,15 +384,15 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     }
 
     /**
-     * This method serves as factory method for an initial, i.e. an interpolant representing "true"  
-     * 
+     * This method serves as factory method for an initial, i.e. an interpolant representing "true"
+     *
      * @return
      */
-    private static ExplicitValueInterpolant createInitial() {
+    static ExplicitValueInterpolant createInitial() {
       return new ExplicitValueInterpolant();
     }
 
-    private Set<MemoryLocation> getMemoryLocations() {
+    Set<MemoryLocation> getMemoryLocations() {
       return isFalse()
           ? Collections.<MemoryLocation>emptySet()
           : Collections.unmodifiableSet(assignment.keySet());
@@ -399,7 +400,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
     /**
      * The method checks for trueness of the interpolant.
-     * 
+     *
      * @return true, if the interpolant represents "true", else false
      */
     private boolean isTrue() {
@@ -408,16 +409,16 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
     /**
      * The method checks for falseness of the interpolant.
-     * 
+     *
      * @return true, if the interpolant represents "false", else true
      */
-    private boolean isFalse() {
+    boolean isFalse() {
       return assignment == null;
     }
 
     /**
      * This method clears memory locations from the assignment that belong to the given function.
-     * 
+     *
      * @param functionName the name of the function for which to remove assignments
      */
     private void clearScope(String functionName) {
@@ -425,12 +426,12 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
         if (variableNames.next().isOnFunctionStack(functionName)) {
           variableNames.remove();
         }
-      }     
+      }
     }
 
     /**
      * This method serves as factory method to create an explicit-value assignment from the interpolant
-     * 
+     *
      * @return an explicit-value assignment that represents the same variable assignment as the interpolant
      */
     public ExplicitState createExplicitValueState() {
@@ -442,11 +443,11 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       if(isFalse()) {
         return "FALSE";
       }
-      
+
       if(isTrue()) {
         return "TRUE";
       }
-      
+
       return assignment.toString();
     }
   }
