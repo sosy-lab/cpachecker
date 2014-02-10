@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -36,9 +37,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -67,7 +71,14 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private final LogManager logger;
   private final CFA cfa;
 
-  private static class PrecisionBootstrapStatistics extends AbstractStatistics {}
+  private static class PrecisionBootstrapStatistics extends AbstractStatistics {
+    Timer readTime = new Timer();
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      super.printStatistics(pOut, pResult, pReached);
+      pOut.printf("Time for reading initial predicates", readTime);
+    }
+  }
   private final PrecisionBootstrapStatistics statistics = new PrecisionBootstrapStatistics();
 
   public PredicatePrecisionBootstrapper(Configuration config, LogManager logger, CFA cfa,
@@ -95,6 +106,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
       for (Path predicatesFile : predicatesFiles) {
         try {
+          statistics.readTime.start();
           result = result.mergeWith(parser.parsePredicates(predicatesFile));
 
         } catch (IOException e) {
@@ -102,6 +114,9 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
         } catch (PredicateParsingFailedException e) {
           logger.logUserException(Level.WARNING, e, "Could not read predicate map");
+        }
+        finally {
+          statistics.readTime.stop();
         }
       }
     }
