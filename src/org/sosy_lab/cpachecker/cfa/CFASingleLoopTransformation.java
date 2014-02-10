@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -1199,28 +1200,73 @@ public class CFASingleLoopTransformation {
    */
   private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(CFANode pSingleLoopHead) {
     Queue<CFANode> waitlist = new ArrayDeque<>();
+    Deque<FunctionSummaryEdge> emptyStack = new ArrayDeque<>();
+    Queue<Deque<FunctionSummaryEdge>> callstacks = new ArrayDeque<>();
     Set<CFANode> reachableSuccessors = new HashSet<>();
     Set<CFANode> visited = new HashSet<>();
     waitlist.offer(pSingleLoopHead);
-    while (!waitlist.isEmpty()) {
+    callstacks.offer(emptyStack);
+    boolean firstIteration = true;
+    while (!waitlist.isEmpty()){
       CFANode current = waitlist.poll();
-      reachableSuccessors.add(current);
-      for (CFANode successor : CFAUtils.successorsOf(current)) {
+      Deque<FunctionSummaryEdge> callstack = callstacks.poll();
+      if (firstIteration) {
+        firstIteration = false;
+      } else {
+        reachableSuccessors.add(current);
+      }
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
+        Deque<FunctionSummaryEdge> newCallstack = callstack;
+        if (leavingEdge instanceof FunctionCallEdge) {
+          newCallstack = new ArrayDeque<>(newCallstack);
+          newCallstack.push(((FunctionCallEdge) leavingEdge).getSummaryEdge());
+        } else if (leavingEdge instanceof FunctionReturnEdge) {
+          if (newCallstack.isEmpty()) {
+            continue;
+          }
+          newCallstack = new ArrayDeque<>(newCallstack);
+          FunctionSummaryEdge summaryEdge = newCallstack.pop();
+          if (!summaryEdge.equals(((FunctionReturnEdge) leavingEdge).getSummaryEdge())) {
+            continue;
+          }
+        }
+        CFANode successor = leavingEdge.getSuccessor();
         if (visited.add(successor)) {
-          waitlist.add(successor);
+          waitlist.offer(successor);
+          callstacks.offer(newCallstack);
         }
       }
     }
     visited.clear();
-    waitlist.offer(pSingleLoopHead);
+    if (reachableSuccessors.contains(pSingleLoopHead)) {
+      waitlist.offer(pSingleLoopHead);
+      callstacks.offer(emptyStack);
+    }
     Set<CFANode> loopNodes = new HashSet<>();
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
+      Deque<FunctionSummaryEdge> callstack = callstacks.poll();
       if (reachableSuccessors.contains(current)) {
         loopNodes.add(current);
-        for (CFANode predecessor : CFAUtils.predecessorsOf(current)) {
+        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
+          Deque<FunctionSummaryEdge> newCallstack = callstack;
+          if (enteringEdge instanceof FunctionReturnEdge) {
+            newCallstack = new ArrayDeque<>(newCallstack);
+            newCallstack.push(((FunctionReturnEdge) enteringEdge).getSummaryEdge());
+          } else if (enteringEdge instanceof FunctionCallEdge) {
+            if (newCallstack.isEmpty()) {
+              continue;
+            }
+            newCallstack = new ArrayDeque<>(newCallstack);
+            FunctionSummaryEdge summaryEdge = newCallstack.pop();
+            if (!summaryEdge.equals(((FunctionCallEdge) enteringEdge).getSummaryEdge())) {
+              continue;
+            }
+          }
+          CFANode predecessor = enteringEdge.getPredecessor();
           if (visited.add(predecessor)) {
-            waitlist.add(predecessor);
+            waitlist.offer(predecessor);
+            callstacks.offer(newCallstack);
           }
         }
       }
@@ -1529,18 +1575,36 @@ public class CFASingleLoopTransformation {
     private boolean introducesLoop(CFAEdge pEdge) {
       Set<CFANode> visited = new HashSet<>();
       Queue<CFANode> waitlist = new ArrayDeque<>();
+      Queue<Deque<FunctionSummaryEdge>> callstacks = new ArrayDeque<>();
+      callstacks.offer(new ArrayDeque<FunctionSummaryEdge>());
       waitlist.offer(pEdge.getSuccessor());
       while (!waitlist.isEmpty()) {
         CFANode current = waitlist.poll();
         if (current.equals(pEdge.getPredecessor())) {
           return true;
         }
+        Deque<FunctionSummaryEdge> callstack = callstacks.poll();
         if (visited.add(current)) {
           for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
             if (containsEdge(leavingEdge)) {
+              Deque<FunctionSummaryEdge> newCallstack = callstack;
+              if (leavingEdge instanceof FunctionCallEdge) {
+                newCallstack = new ArrayDeque<>(newCallstack);
+                newCallstack.push(((FunctionCallEdge) leavingEdge).getSummaryEdge());
+              } else if (leavingEdge instanceof FunctionReturnEdge) {
+                if (newCallstack.isEmpty()) {
+                  continue;
+                }
+                newCallstack = new ArrayDeque<>(newCallstack);
+                FunctionSummaryEdge summaryEdge = newCallstack.pop();
+                if (!summaryEdge.equals(((FunctionReturnEdge) leavingEdge).getSummaryEdge())) {
+                  continue;
+                }
+              }
               CFANode succ = leavingEdge.getSuccessor();
               if (containsNode(succ)) {
-                waitlist.add(succ);
+                waitlist.offer(succ);
+                callstacks.offer(newCallstack);
               }
             }
           }
