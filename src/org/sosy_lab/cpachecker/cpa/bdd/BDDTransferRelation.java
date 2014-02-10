@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -136,6 +137,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   private final BitvectorManager bvmgr;
   private final NamedRegionManager rmgr;
+  private final MachineModel machineModel;
 
   /** This map contains tuples (int, region[]) for each intEqual-partition. */
   private final Map<Partition, Map<BigInteger, Region[]>> intToRegionsMap = new HashMap<>();
@@ -157,6 +159,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     this.logger = pLogger;
     this.bvmgr = new BitvectorManager(config, rmgr);
     this.rmgr = manager;
+    this.machineModel = cfa.getMachineModel();
 
     assert cfa.getVarClassification().isPresent();
     this.varClass = cfa.getVarClassification().get();
@@ -573,7 +576,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   /** This function returns a bitvector, that represents the expression.
    * The partition chooses the compression of the bitvector. */
   private Region[] evaluateVectorExpression(final Partition partition, final CExpression exp, final int size) {
-    return exp.accept(new BDDVectorCExpressionVisitor(partition, size));
+    boolean compress = (partition != null) && compressIntEqual && varClass.getIntEqualPartitions().contains(partition);
+    return exp.accept(new BDDVectorCExpressionVisitor(
+            functionName, this, bvmgr, intToRegionsMap.get(partition), compress, size, machineModel));
   }
 
   /** This function builds the equality of left and right side and adds it to the environment.
@@ -643,7 +648,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   /** This function returns regions containing bits of a variable.
    * returns regions for positions of a variable, s --> [s@2, s@1, s@0].
    * If the variable is not tracked by the the precision, Null is returned. */
-  private Region[] createPredicates(final String functionName,
+  protected Region[] createPredicates(final String functionName,
       final String varName, final int size) {
     if (precision != null && !precision.isTracking(functionName, varName)) { return null; }
     return createPredicatesWithoutPrecisionCheck(functionName, varName, size);
@@ -713,206 +718,6 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * can be completely different. */
   private Region[] mapIntToRegions(BigInteger num, Partition partition) {
     return intToRegionsMap.get(partition).get(num);
-  }
-
-  /** This Visitor evaluates the visited expression and creates a region for it. */
-  private class BDDVectorCExpressionVisitor
-      extends DefaultCExpressionVisitor<Region[], RuntimeException> {
-
-    private final Partition partition;
-    private final int size;
-    private final boolean compress;
-
-    BDDVectorCExpressionVisitor(@Nullable final Partition partition, final int size) {
-
-      if (partition == null) {
-        // this indicates a simple calculation like if(1==2),
-        // there is no partition, because no vars are used
-        this.partition = null;
-        this.size = bitsize;
-        this.compress = false;
-
-      } else {
-        this.partition = partition;
-        this.size = size;
-        this.compress = compressIntEqual &&
-            varClass.getIntEqualPartitions().contains(partition);
-      }
-    }
-
-    /** This function returns regions containing bits of a variable.
-     * The name of the variable is build from functionName and varName.
-     * If the precision does not allow to track this variable, NULL is returned. */
-    private Region[] makePredicate(CExpression exp) {
-      String var = exp.toASTString();
-      String function = isGlobal(exp) ? null : functionName;
-      return createPredicates(function, var, size);
-    }
-
-    @Override
-    public Region[] visit(CArraySubscriptExpression exp) {
-      return makePredicate(exp);
-    }
-
-    @Override
-    public Region[] visit(CBinaryExpression exp) {
-
-      // for numeral values
-      Region[] operand1;
-      BigInteger val1 = VariableClassification.getNumber(exp.getOperand1());
-      if (compress && val1 != null) {
-        operand1 = mapIntToRegions(val1, partition);
-        assert operand1 != null;
-      } else {
-        operand1 = exp.getOperand1().accept(this);
-      }
-
-      // for numeral values
-      BigInteger val2 = VariableClassification.getNumber(exp.getOperand2());
-      Region[] operand2;
-      if (compress && val2 != null) {
-        operand2 = mapIntToRegions(val2, partition);
-        assert operand2 != null;
-      } else {
-        operand2 = exp.getOperand2().accept(this);
-      }
-
-      if (operand1 == null || operand2 == null) { return null; }
-
-      Region[] returnValue = null;
-      switch (exp.getOperator()) {
-
-      case BINARY_AND:
-        returnValue = bvmgr.makeBinaryAnd(operand1, operand2);
-        break;
-
-      case BINARY_OR:
-        returnValue = bvmgr.makeBinaryOr(operand1, operand2);
-        break;
-
-      case EQUALS:
-        returnValue = bvmgr.makeLogicalEqual(operand1, operand2);
-        break;
-
-      case NOT_EQUALS:
-        returnValue = bvmgr.makeNot(bvmgr.makeLogicalEqual(operand1, operand2));
-        break;
-
-      case BINARY_XOR:
-        returnValue = bvmgr.makeXor(operand1, operand2);
-        break;
-
-      case PLUS:
-        returnValue = bvmgr.makeAdd(operand1, operand2);
-        break;
-
-      case MINUS:
-        returnValue = bvmgr.makeSub(operand1, operand2);
-        break;
-
-      case LESS_THAN:
-        returnValue = bvmgr.makeLess(operand1, operand2);
-        break;
-
-      case LESS_EQUAL: // A<=B <--> !(B<A)
-        returnValue = bvmgr.makeNot(bvmgr.makeLess(operand2, operand1));
-        break;
-
-      case GREATER_THAN: // A>B <--> B<A
-        returnValue = bvmgr.makeLess(operand2, operand1);
-        break;
-
-      case GREATER_EQUAL:// A>=B <--> !(A<B)
-        returnValue = bvmgr.makeNot(bvmgr.makeLess(operand1, operand2));
-        break;
-
-      case MULTIPLY:
-      case DIVIDE:
-      case MODULO:
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-        // a*b, a<<b, etc --> don't know anything
-      }
-      return returnValue;
-    }
-
-    @Override
-    public Region[] visit(CCastExpression exp) {
-      // we ignore casts, because Zero is Zero.
-      return exp.getOperand().accept(this);
-    }
-
-    @Override
-    public Region[] visit(CComplexCastExpression exp) {
-      // TODO complex numbers are not supported for evaluation right now
-      return null;
-    }
-
-    @Override
-    public Region[] visit(CIdExpression exp) {
-      return makePredicate(exp);
-    }
-
-    @Override
-    public Region[] visit(CIntegerLiteralExpression exp) {
-      if (compress) {
-        return mapIntToRegions(exp.getValue(), partition);
-      } else {
-        return bvmgr.makeNumber(exp.getValue(), size);
-      }
-    }
-
-    @Override
-    public Region[] visit(CUnaryExpression exp) {
-
-      // for numeral values
-      BigInteger val = VariableClassification.getNumber(exp);
-      if (compress && val != null) { return mapIntToRegions(val, partition); }
-
-      // for vars
-      Region[] operand = exp.getOperand().accept(this);
-      if (operand == null) { return null; }
-
-      Region[] returnValue = null;
-      switch (exp.getOperator()) {
-      case NOT:
-        returnValue = bvmgr.makeNot(operand);
-        break;
-
-      case PLUS: // +X == X
-        returnValue = operand;
-        break;
-
-      case MINUS: // -X == (0-X)
-        returnValue = bvmgr.makeSub(bvmgr.makeNumber(BigInteger.ZERO, size), operand);
-        break;
-
-      default:
-        // *exp --> don't know anything
-      }
-      return returnValue;
-    }
-
-    @Override
-    public Region[] visit(CPointerExpression exp) {
-
-      // for numeral values
-      BigInteger val = VariableClassification.getNumber(exp);
-      if (compress && val != null) { return mapIntToRegions(val, partition); }
-
-      // for vars
-      Region[] operand = exp.getOperand().accept(this);
-      if (operand == null) { return null; }
-
-
-      // *exp --> don't know anything
-      return null;
-    }
-
-    @Override
-    protected Region[] visitDefault(CExpression pExp) throws RuntimeException {
-      return null;
-    }
   }
 
   /** This Visitor evaluates the visited expression and
