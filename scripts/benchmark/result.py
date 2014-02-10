@@ -38,6 +38,7 @@ CATEGORY_MISSING = 'missing'
 
 STR_TRUE = 'true'
 STR_UNKNOWN = 'unknown'
+STR_FALSE = 'false'
 
 STR_FALSE_LABEL =       'false(label)'
 STR_FALSE_TERMINATION = 'false(termination)'
