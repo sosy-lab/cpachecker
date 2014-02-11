@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -103,6 +104,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SortedSetMultimap;
@@ -312,6 +314,8 @@ public class CFASingleLoopTransformation {
         assert subgraph.containsNode(current) || !visited.contains(current);
         visited.add(current);
 
+        Set<CFANode> newWaitlistNodes = new HashSet<>();
+
         for (CFAEdge edge : CFAUtils.leavingEdges(current).toList()) {
           if (!visitedEdges.add(edge)) {
             continue;
@@ -326,7 +330,7 @@ public class CFASingleLoopTransformation {
                 || next instanceof CFATerminationNode
                 || subgraph.isFurtherGrowthDesired())
               && subgraph.offerEdge(edge)) {
-            waitlist.add(next);
+            newWaitlistNodes.add(next);
           } else {
             /*
              * The cycle is avoided by making the edge leave the subgraph
@@ -337,7 +341,8 @@ public class CFASingleLoopTransformation {
             /*
              * Function call edges should stay with their successor, thus a
              * dummy predecessor is introduced between the original predecessor
-             * and the edge.
+             * and the edge. Also, all other edges of the old predecessor must
+             * be moved to the new predecessor.
              */
             if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
               tmpMap.put(next, next);
@@ -363,6 +368,32 @@ public class CFASingleLoopTransformation {
               int pcToSuccessor = programCounterValueProvider.getPCValueFor(newSuccessor);
               newPredecessorsToPC.put(pcToSuccessor, newPredecessor);
               newSuccessorsToPC.put(pcToSuccessor, newSuccessor);
+              tmpMap.clear();
+
+              newWaitlistNodes.clear();
+              subgraph.abort();
+              // Move the other edges over
+              for (CFAEdge otherEdge : CFAUtils.leavingEdges(current).toList()) {
+                visitedEdges.add(otherEdge);
+                // Replace the edge in the old graph, as there is a new predecessor
+                removeFromNodes(otherEdge);
+                tmpMap.put(fce.getSummaryEdge().getSuccessor(), fce.getSummaryEdge().getSuccessor());
+                replacementEdge = copyCFAEdgeWithNewNodes(otherEdge, replacementEdge.getPredecessor(), otherEdge.getSuccessor(), tmpMap);
+                // The replacement edge is added in place of the old edge
+                addToNodes(replacementEdge);
+                if (isDummyEdge(otherEdge)) {
+                  dummyEdges.remove(otherEdge);
+                  dummyEdges.add(replacementEdge);
+                }
+                // Create the actual edge in the new graph
+                newEdge = copyCFAEdgeWithNewNodes(replacementEdge, globalNewToOld);
+                addToNodes(newEdge);
+                if (newEdge instanceof FunctionCallEdge) {
+                  functionCallEdgesToFix.add((FunctionCallEdge) newEdge);
+                }
+                tmpMap.clear();
+              }
+              break;
             } else {
               /*
                * Other edges should stay with their original predecessor, thus a
@@ -394,6 +425,8 @@ public class CFASingleLoopTransformation {
             tmpMap.clear();
           }
         }
+        subgraph.commit();
+        waitlist.addAll(newWaitlistNodes);
       }
 
       // Copy the subgraph
@@ -411,6 +444,7 @@ public class CFASingleLoopTransformation {
         }
         addToNodes(newEdge);
       }
+      assert Collections.disjoint(newSubgraph, globalNewToOld.keySet());
     }
 
     // Remove trivial dummy subgraphs and other dummy edges
@@ -522,7 +556,7 @@ public class CFASingleLoopTransformation {
               ProgramCounterValueAssignmentEdge programCounterValueAssignmentEdge =
                   (ProgramCounterValueAssignmentEdge) potentialPCValueAssignmentEdge;
               if (programCounterValueAssignmentEdge.getProgramCounterValue() == pcValue) {
-                // Fix the edge
+                // Fix the function summary edge
                 FunctionSummaryEdge newSummaryEdge = (FunctionSummaryEdge) copyCFAEdgeWithNewNodes(oldSummaryEdge, oldSummaryEdge.getPredecessor(), potentialNewSummarySuccessor, globalNewToOld);
                 removeSummaryEdgeFromNodes(oldSummaryEdge);
                 newSummaryEdge.getPredecessor().addLeavingSummaryEdge(newSummaryEdge);
@@ -531,6 +565,14 @@ public class CFASingleLoopTransformation {
                   removeSummaryEdgeFromNodes(oldSummaryEdge);
                 }
                 newSummaryEdge.getSuccessor().addEnteringSummaryEdge(newSummaryEdge);
+                // Fix function summary statement edges
+                for (CFunctionSummaryStatementEdge edge : CFAUtils.leavingEdges(oldSummaryEdge.getPredecessor()).filter(CFunctionSummaryStatementEdge.class)) {
+                  if (edge.getPredecessor() != newSummaryEdge.getPredecessor() || edge.getSuccessor() != newSummaryEdge.getSuccessor()) {
+                    removeFromNodes(edge);
+                    CFAEdge newEdge = copyCFAEdgeWithNewNodes(edge, newSummaryEdge.getPredecessor(), newSummaryEdge.getSuccessor(), globalNewToOld);
+                    addToNodes(newEdge);
+                  }
+                }
                 break;
               }
             }
@@ -557,7 +599,8 @@ public class CFASingleLoopTransformation {
     }
 
     // Build the CFA from the syntactically reachable nodes
-    return buildCFA(start, loopHead, pInputCFA.getMachineModel(), pInputCFA.getLanguage());
+    ImmutableCFA result = buildCFA(start, loopHead, pInputCFA.getMachineModel(), pInputCFA.getLanguage());
+    return result;
   }
 
   /**
@@ -734,6 +777,7 @@ public class CFASingleLoopTransformation {
    * @param pEdge the edge to add.
    */
   private static void addToNodes(CFAEdge pEdge) {
+    CFANode predecessor = pEdge.getPredecessor();
     if (pEdge instanceof FunctionSummaryEdge) {
       FunctionSummaryEdge summaryEdge = (FunctionSummaryEdge) pEdge;
       FunctionSummaryEdge oldSummaryEdge = pEdge.getPredecessor().getLeavingSummaryEdge();
@@ -744,10 +788,15 @@ public class CFASingleLoopTransformation {
       if (oldSummaryEdge != null) {
         removeSummaryEdgeFromNodes(oldSummaryEdge);
       }
-      pEdge.getPredecessor().addLeavingSummaryEdge(summaryEdge);
+      predecessor.addLeavingSummaryEdge(summaryEdge);
       pEdge.getSuccessor().addEnteringSummaryEdge(summaryEdge);
     } else {
-      pEdge.getPredecessor().addLeavingEdge(pEdge);
+      assert predecessor.getNumLeavingEdges() == 0
+          || predecessor.getNumLeavingEdges() <= 1 && pEdge.getEdgeType() == CFAEdgeType.AssumeEdge
+          || predecessor instanceof FunctionExitNode && pEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
+          || predecessor.getLeavingEdge(0).getEdgeType() == CFAEdgeType.FunctionCallEdge && pEdge.getEdgeType() == CFAEdgeType.StatementEdge
+          || predecessor.getLeavingEdge(0).getEdgeType() == CFAEdgeType.StatementEdge && pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge;
+      predecessor.addLeavingEdge(pEdge);
       pEdge.getSuccessor().addEnteringEdge(pEdge);
     }
   }
@@ -1140,6 +1189,10 @@ public class CFASingleLoopTransformation {
       return new CReturnStatementEdge(rawStatement, cReturnStatement.orNull(), lineNumber, pNewPredecessor, (FunctionExitNode) pNewSuccessor);
     case StatementEdge:
       CStatementEdge statementEdge = (CStatementEdge) pEdge;
+      if (statementEdge instanceof CFunctionSummaryStatementEdge) {
+        CFunctionSummaryStatementEdge functionStatementEdge = (CFunctionSummaryStatementEdge) pEdge;
+        return new CFunctionSummaryStatementEdge(rawStatement, statementEdge.getStatement(), lineNumber, pNewPredecessor, pNewSuccessor, functionStatementEdge.getFunctionCall(), functionStatementEdge.getFunctionName());
+      }
       return new CStatementEdge(rawStatement, statementEdge.getStatement(), lineNumber, pNewPredecessor, pNewSuccessor);
     case CallToReturnEdge:
       CFunctionSummaryEdge cFunctionSummaryEdge = (CFunctionSummaryEdge) pEdge;
@@ -1445,6 +1498,16 @@ public class CFASingleLoopTransformation {
     private final Set<CFAEdge> edges = new LinkedHashSet<>();
 
     /**
+     * The set of uncommitted nodes.
+     */
+    private final Set<CFANode> uncommittedNodes = new LinkedHashSet<>();
+
+    /**
+     * The set of uncommitted edges.
+     */
+    private final Set<CFAEdge> uncommittedEdges = new LinkedHashSet<>();
+
+    /**
      * The growth strategy.
      */
     private final AcyclicGrowthStrategy growthStrategy;
@@ -1466,8 +1529,8 @@ public class CFASingleLoopTransformation {
      *
      * @return the nodes of the graph as an unmodifiable set.
      */
-    public Set<CFANode> getNodes() {
-      return Collections.unmodifiableSet(this.nodes);
+    public Iterable<CFANode> getNodes() {
+      return Iterables.concat(Collections.unmodifiableSet(this.nodes), Collections.unmodifiableSet(this.uncommittedNodes));
     }
 
     /**
@@ -1475,8 +1538,8 @@ public class CFASingleLoopTransformation {
      *
      * @return the edges of the graph as an unmodifiable set.
      */
-    public Set<CFAEdge> getEdges() {
-      return Collections.unmodifiableSet(this.edges);
+    public Iterable<CFAEdge> getEdges() {
+      return Iterables.concat(Collections.unmodifiableSet(this.edges), Collections.unmodifiableSet(this.uncommittedEdges));
     }
 
     /**
@@ -1487,7 +1550,7 @@ public class CFASingleLoopTransformation {
      * @{code false} otherwise.
      */
     public boolean containsNode(CFANode pNode) {
-      return this.nodes.contains(pNode);
+      return this.nodes.contains(pNode) || this.uncommittedNodes.contains(pNode);
     }
 
     /**
@@ -1498,7 +1561,7 @@ public class CFASingleLoopTransformation {
      * @{code false} otherwise.
      */
     public boolean containsEdge(CFAEdge pEdge) {
-      return this.edges.contains(pEdge);
+      return this.edges.contains(pEdge) || this.uncommittedEdges.contains(pEdge);
     }
 
     /**
@@ -1525,8 +1588,8 @@ public class CFASingleLoopTransformation {
       if (introducesLoop(pEdge)) {
         return false;
       }
-      this.edges.add(pEdge);
-      this.nodes.add(pEdge.getSuccessor());
+      this.uncommittedEdges.add(pEdge);
+      this.uncommittedNodes.add(pEdge.getSuccessor());
       return true;
     }
 
@@ -1534,9 +1597,20 @@ public class CFASingleLoopTransformation {
       return this.growthStrategy.isFurtherGrowthDesired(this);
     }
 
+    public void commit() {
+      this.nodes.addAll(uncommittedNodes);
+      this.edges.addAll(uncommittedEdges);
+      abort();
+    }
+
+    public void abort() {
+      this.uncommittedNodes.clear();
+      this.uncommittedEdges.clear();
+    }
+
     @Override
     public String toString() {
-      return this.edges.toString();
+      return Iterables.toString(getEdges());
     }
 
     /**
@@ -1547,7 +1621,7 @@ public class CFASingleLoopTransformation {
      * @return {@code true} if adding the edge would introduce a loop to the
      * graph, {@code false} otherwise.
      */
-    private boolean introducesLoop(CFAEdge pEdge) {
+    public boolean introducesLoop(CFAEdge pEdge) {
       Set<CFANode> visited = new HashSet<>();
       Queue<CFANode> waitlist = new ArrayDeque<>();
       Queue<Deque<FunctionSummaryEdge>> callstacks = new ArrayDeque<>();
@@ -1596,6 +1670,7 @@ public class CFASingleLoopTransformation {
      * @return this graph.
      */
     public AcyclicGraph reset(CFANode pNewRootNode) {
+      abort();
       this.edges.clear();
       this.nodes.clear();
       this.nodes.add(pNewRootNode);
