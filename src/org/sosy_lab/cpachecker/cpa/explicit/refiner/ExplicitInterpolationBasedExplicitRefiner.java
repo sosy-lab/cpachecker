@@ -101,7 +101,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private UniqueAssignmentsInPathConditionState assignments = null;
 
   // statistics
-  private int numberOfInterpolations        = 0;
+  private int totalItps        = 0;
   private Timer timerInterpolation          = new Timer();
 
   private final CFA cfa;
@@ -125,13 +125,15 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   protected Map<ARGState, ExplicitValueInterpolant> performInterpolation(ARGPath errorPath,
       ExplicitValueInterpolant interpolant) throws CPAException, InterruptedException {
 
+    interpolationOffset = -1;
+
     List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
     Map<ARGState, ExplicitValueInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
     for (int i = 0; i < errorPath.size(); i++) {
       shutdownNotifier.shutdownIfNecessary();
 
       interpolant = interpolator.deriveInterpolant(cfaTrace, i, interpolant);
-      numberOfInterpolations += interpolator.getNumberOfInterpolations();
+      totalItps   = totalItps + interpolator.getNumberOfInterpolations();
 
       // stop once interpolant is false
       if (interpolant.isFalse()) {
@@ -146,6 +148,10 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       // this is done one iteration after returning from the function, as the special FUNCTION_RETURN_VAR is needed that long
       if (i > 0 && errorPath.get(i - 1).getSecond().getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
         interpolant.clearScope(errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
+      }
+
+      if(!interpolant.isTrivial() && interpolationOffset == -1) {
+        interpolationOffset = i + 1;
       }
 
       pathInterpolants.put(errorPath.get(i).getFirst(), interpolant);
@@ -166,14 +172,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     Map<ARGState, ExplicitValueInterpolant> itps = performInterpolation(errorPath, ExplicitValueInterpolant.createInitial());
     timerInterpolation.stop();
 
-    interpolationOffset = -1;
-    int i               = 0;
+    int i = 0;
     for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : itps.entrySet()) {
       addToPrecisionIncrement(increment, errorPath.get(i).getSecond(), itp.getValue());
-
-      if(!itp.getValue().isFalse() && !itp.getValue().isTrue() && interpolationOffset == -1) {
-        interpolationOffset = i + 1;
-      }
       i++;
     }
 
@@ -338,7 +339,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println("  number of explicit interpolations:                   " + numberOfInterpolations);
+    out.println("  number of explicit interpolations:                   " + totalItps);
     out.println("  max. time for singe interpolation:                   " + timerInterpolation.getMaxTime().formatAs(TimeUnit.SECONDS));
     out.println("  total time for interpolation:                        " + timerInterpolation);
   }
@@ -403,7 +404,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
      *
      * @return true, if the interpolant represents "true", else false
      */
-    private boolean isTrue() {
+    boolean isTrue() {
       return assignment.isEmpty();
     }
 
@@ -414,6 +415,15 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
      */
     boolean isFalse() {
       return assignment == null;
+    }
+
+    /**
+     * The method checks if the interpolant is a trivial one, i.e. if it represents either true or false
+     *
+     * @return true, if the interpolant is trivial, else false
+     */
+    private boolean isTrivial() {
+      return isFalse() || isTrue();
     }
 
     /**
