@@ -41,9 +41,6 @@ public class CHCDomain implements AbstractDomain {
     CHCState crstate1 = (CHCState) state1;
     CHCState crstate2 = (CHCState) state2;
 
-    System.out.println(crstate1.toString());
-    System.out.println(crstate2.toString());
-
     return ConstraintManager.subsumes(crstate1.getConstraint(),crstate2.getConstraint());
   }
 

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.chc;
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -108,7 +109,7 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
     transferRelation = new CHCTransferRelation(logger);
 
     if (!ConstraintManager.init(firingRelation, generalizationOperator, logger)) {
-      System.err.println("CLP interpreter initialization failure.");
+      logger.log(Level.WARNING, "CLP interpreter initialization failure.");
     }
   }
 

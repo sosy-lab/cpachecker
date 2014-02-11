@@ -472,9 +472,6 @@ public class BlockedCFAReducerTest {
       assertCfaIsEmpty(inlinedCfa);
     } while (reducer.applySequenceRule(funct));
 
-    for (ReducedNode n: funct.getAllActiveNodes()) {
-      System.out.println(n.getWrapped().getLineNumber());
-    }
     assertEquals(3, funct.getNumOfActiveNodes());
   }
 

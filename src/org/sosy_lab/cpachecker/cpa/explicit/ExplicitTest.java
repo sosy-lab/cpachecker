@@ -54,8 +54,6 @@ public class ExplicitTest {
       );
 
       TestResults results = run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
-      System.out.println(results.getLog());
-      //System.out.println(results.getCheckerResult().getResult());
       Assert.assertTrue(results.isUnsafe());
   }
   @Test
@@ -69,8 +67,6 @@ public class ExplicitTest {
       );
 
       TestResults results = run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
-      //System.out.println(results.getLog());
-      //System.out.println(results.getCheckerResult().getResult());
       Assert.assertTrue(results.isSafe());
   }
   private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {

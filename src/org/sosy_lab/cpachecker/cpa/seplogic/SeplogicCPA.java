@@ -94,7 +94,7 @@ public class SeplogicCPA implements ConfigurableProgramAnalysis, StatisticsProvi
   private SeplogicCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     PartingstarInterface.prepare(config, logger);
-    transferRelation = new SeplogicTransferRelation(this);
+    transferRelation = new SeplogicTransferRelation(this, logger);
   }
 
   @Override

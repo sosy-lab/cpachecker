@@ -345,10 +345,6 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     if (invTemp == null) { return null; }
 
     logger.log(Level.ALL, "\nChosen invariant template for loop head:\n", invTemp);
-    //diag:
-    System.out.println("Chosen invariant template for loop head:");
-    System.out.println(invTemp);
-    //
 
     TemplateNetwork tnet = buildSimpleLoopNetwork(root, loopHead, error, invTemp, entryFormula, loopFormula, exitFormula);
     return tnet;

@@ -137,21 +137,12 @@ public class AssumptionSet implements Iterable<Assumption> {
    * Diagnostic purposes.
    */
   public boolean add(Assumption a, boolean writeArgs) {
-    System.out.println("Set was:"+this.toString());
-    System.out.println("Adding:"+a.toString());
     Assumption b, c;
     for (int i = 0; i < aset.size(); i++) {
       b = aset.get(i);
-      System.out.println("Strengthening"+b+"by"+a);
       c = a.strengthen(b);
-      if (c != null) {
-        System.out.println("Got"+c);
-      } else {
-        System.out.println("Got null");
-      }
     }
     boolean bl = add(a);
-    System.out.println("Set is now:"+this.toString());
     return bl;
   }
 

@@ -27,10 +27,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -64,8 +66,11 @@ import com.google.common.collect.Iterables;
 @Options(prefix = "cpa.pointerA")
 public class AndersenTransferRelation implements TransferRelation {
 
-  public AndersenTransferRelation(Configuration pConfig) throws InvalidConfigurationException {
+  private final LogManager logger;
+
+  public AndersenTransferRelation(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     pConfig.inject(this);
+    logger = pLogger;
   }
 
   @Override
@@ -276,10 +281,7 @@ public class AndersenTransferRelation implements TransferRelation {
    * <code>cfaEdge</code> was not handled.
    */
   private void printWarning(CFAEdge pCfaEdge) {
-
-    StackTraceElement[] trace = Thread.currentThread().getStackTrace();
-
-    System.err.println("Warning! CFA Edge \"" + pCfaEdge.getRawStatement() + "\" (line: " + pCfaEdge.getLineNumber()
-        + ") not handled. [Method: " + trace[2].toString() + ']');
+    logger.log(Level.WARNING, "Warning! CFA Edge \"" + pCfaEdge.getRawStatement() + "\" (line: " + pCfaEdge.getLineNumber()
+        + ") not handled.");
   }
 }

@@ -30,13 +30,13 @@ import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cpa.seplogic.SeplogicState.SeplogicQueryUnsuccessful;
 
 
@@ -360,16 +360,7 @@ public class PartingstarInterface {
   private void writeToProcess(byte[] data) throws IOException {
     logger.log(Level.FINER, "Query:\n", new String(data));
     psProcess.getOutputStream().write(data);
-    System.err.print(new String(data));
     psProcess.getOutputStream().flush();
-  }
-
-  @SuppressWarnings("unused")
-  private void readFromProcess(byte[] buffer, int len) throws IOException {
-    if (psProcess.getInputStream().read(buffer, 0, len) != len) {
-      throw new IOException("Smaller read");
-    }
-    System.err.print(new String(buffer));
   }
 
   private int readFromProcess() throws IOException {
@@ -377,7 +368,6 @@ public class PartingstarInterface {
     if (read == -1) {
       throw new IOException("EOF?");
     }
-    System.err.print((char) read);
     return read;
   }
 

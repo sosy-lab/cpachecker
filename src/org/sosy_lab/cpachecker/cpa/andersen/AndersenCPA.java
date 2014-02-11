@@ -78,7 +78,7 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithABM {
     config.inject(this);
 
     abstractDomain      = new AndersenDomain();
-    transferRelation    = new AndersenTransferRelation(config);
+    transferRelation    = new AndersenTransferRelation(config, logger);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();

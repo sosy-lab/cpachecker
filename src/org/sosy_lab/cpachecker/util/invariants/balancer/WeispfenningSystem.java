@@ -159,9 +159,6 @@ public class WeispfenningSystem {
         // first one from the left side.
         w = w.eliminateRow(0, j);
       }
-      //diag:
-      System.out.println(w.toString()+"\n\n");
-      //
     }
     return w;
   }

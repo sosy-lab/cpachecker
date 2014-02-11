@@ -112,7 +112,6 @@ public class ReachedSetStrategy extends AbstractStrategy {
             if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
               logger.log(Level.FINE, "Cannot check that result is transitive closure.", "Successor ", succ,
                   "of element ", state, "not covered by result.");
-              System.out.println(AbstractStates.extractLocation(succ).getNodeNumber());// TODO remove
               return false;
             }
           } finally {

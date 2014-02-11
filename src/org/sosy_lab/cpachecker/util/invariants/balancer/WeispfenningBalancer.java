@@ -113,9 +113,6 @@ public class WeispfenningBalancer extends AbstractBalancer {
           j++;
           wsystems.get(j).reinit();
         } else {
-          //diag:
-          System.out.println(asets[n-1].toString());
-          //
           values = tryAssumptionSet(asets[n-1]);
           if (values != null) {
             return values;
