@@ -76,7 +76,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
       super.printStatistics(pOut, pResult, pReached);
-      pOut.print("Time for reading initial predicates\t"+ readTime);
+      pOut.print("Time for reading initial predicates:\t"+ readTime);
     }
   }
   private final PrecisionBootstrapStatistics statistics = new PrecisionBootstrapStatistics();
