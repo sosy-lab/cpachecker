@@ -33,7 +33,6 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -133,6 +132,8 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     private Map<ARGState, ARGState> predecessorRelation = Maps.newHashMap();
 
     private SetMultimap<ARGState, ARGState> successorRelation = LinkedHashMultimap.create();
+    
+    private Map<ARGState, ExplicitValueInterpolant> interpolants;
 
     private Deque<ARGState> itpRoots = new ArrayDeque<>();
 
@@ -162,10 +163,10 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     private void exportItpTree(int refinementCnt, int iteration) {
       StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
       for(Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
-        if(glblItps.containsKey(current.getKey())) {
+        if(interpolants.containsKey(current.getKey())) {
           StringBuilder sb = new StringBuilder();
 
-          sb.append("itp is " + glblItps.get(current.getKey()));
+          sb.append("itp is " + interpolants.get(current.getKey()));
 
           result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + " has itp " + (sb.toString()) + "\"]" + "\n");
           result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
@@ -205,7 +206,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       ARGState current = itpRoots.pop();
       logger.log(Level.FINEST, "taking new root ", current.getStateId(), " from stack");
 
-      if(glblItps.containsKey(predecessorRelation.get(current)) && glblItps.get(predecessorRelation.get(current)).isFalse()) {
+      if(interpolants.containsKey(predecessorRelation.get(current)) && interpolants.get(predecessorRelation.get(current)).isFalse()) {
         logger.log(Level.FINEST, "itp of predecessor ", predecessorRelation.get(current).getStateId(), " is already false ... go ahead");
         return getNextErrorPath();
       }
@@ -239,7 +240,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     }
 
     private ExplicitValueInterpolant getInitialItp(ARGState root) {
-      return glblItps.get(predecessorRelation.get(root));
+      return interpolants.get(predecessorRelation.get(root));
     }
 
     private void updateRefinementRoot(ARGState newRoot) {
@@ -250,6 +251,22 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
     private ARGState getRefinementRoot() {
       return refinementRoot;
+    }
+    
+    private void addInterpolants(Map<ARGState, ExplicitValueInterpolant> newItps) {
+      interpolants.putAll(newItps);
+    }
+    
+    private Multimap<CFANode, MemoryLocation> getPrecisionIncrement() {
+      Multimap<CFANode, MemoryLocation> globalIncrement = HashMultimap.create();
+      
+      for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : interpolants.entrySet()) {
+        for(MemoryLocation memloc : itp.getValue().getMemoryLocations()) {
+          globalIncrement.put(getEdgeFor(itp.getKey()).getSuccessor(), memloc);
+        }
+      }
+
+      return globalIncrement;
     }
   }
 
@@ -271,7 +288,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
     InterpolationTree itpTree = new InterpolationTree(targets);
 
-    glblItps = new HashMap<>();
     int i = 0;
     while(!itpTree.isDone()) {
       i++;
@@ -302,7 +318,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
           }
         }
 
-        glblItps.putAll(itps);
+        itpTree.addInterpolants(itps);
 
         //itpTree.exportItpTree(refinementCalls, i);
         logger.log(Level.FINEST, "itp done");
@@ -311,18 +327,10 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       i++;
     }
 
-    final Multimap<CFANode, MemoryLocation> globalIncrement = HashMultimap.create();
-    for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : glblItps.entrySet()) {
-
-      for(MemoryLocation memloc : itp.getValue().getMemoryLocations()) {
-        globalIncrement.put(itpTree.getEdgeFor(itp.getKey()).getSuccessor(), memloc);
-      }
-    }
-
     // TODO: join precisions for all target states (for all target states "below" refinement root), and refine that prec.
     final Precision precision                 = pReached.getPrecision(pReached.getLastState());
     final ExplicitPrecision originalPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
-    final ExplicitPrecision refinedPrecision  = new ExplicitPrecision(originalPrecision, globalIncrement);
+    final ExplicitPrecision refinedPrecision  = new ExplicitPrecision(originalPrecision, itpTree.getPrecisionIncrement());
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
     if(doLazyAbstraction) {
@@ -410,7 +418,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
   }
 
   private int previousRefinementId = -1;
-  private Map<ARGState, ExplicitValueInterpolant> glblItps;
 
   private boolean isRepeatedRefinementRoot(final ARGState root) {
     final int currentRefinementId = AbstractStates.extractLocation(root).getLineNumber();
