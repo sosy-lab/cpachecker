@@ -404,7 +404,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
      *
      * @return true, if the interpolant represents "true", else false
      */
-    boolean isTrue() {
+    private boolean isTrue() {
       return assignment.isEmpty();
     }
 
@@ -422,7 +422,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
      *
      * @return true, if the interpolant is trivial, else false
      */
-    private boolean isTrivial() {
+    boolean isTrivial() {
       return isFalse() || isTrue();
     }
 

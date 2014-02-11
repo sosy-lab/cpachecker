@@ -153,8 +153,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     pConfig.inject(this);
 
     interpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
-    checker = new ExplictFeasibilityChecker(pLogger, pCfa);
-    lowestCommonAncestor = null;
+    checker               = new ExplictFeasibilityChecker(pLogger, pCfa);
   }
 
   private class InterpolationTree {
@@ -163,6 +162,8 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     private SetMultimap<ARGState, ARGState> successorRelation = LinkedHashMultimap.create();
 
     private Deque<ARGState> itpRoots = new ArrayDeque<>();
+
+    private ARGState refinementRoot = null;
 
     private InterpolationTree(Collection<ARGState> targetStates) {
       Deque<ARGState> todo = new ArrayDeque<>(targetStates);
@@ -242,8 +243,9 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
         errorPath.add(Pair.of(current, current.getEdgeToChild(child)));
 
         if(children.hasNext()) {
-          if(lowestCommonAncestor == null) {
-            lowestCommonAncestor = current;
+          // refinement root may never be lower than the lowest common ancestor
+          if(refinementRoot == null) {
+            refinementRoot = current;
           }
 
           ARGState sibling = children.next();
@@ -266,6 +268,16 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     private ExplicitValueInterpolant getInitialItp(ARGState root) {
       return glblItps.get(predecessorRelation.get(root));
     }
+
+    private void updateRefinementRoot(ARGState newRoot) {
+      if(refinementRoot == null || newRoot.isOlderThan(refinementRoot)) {
+        refinementRoot = newRoot;
+      }
+    }
+
+    private ARGState getRefinementRoot() {
+      return refinementRoot;
+    }
   }
 
 
@@ -274,8 +286,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     logger.log(Level.FINEST, "performing global refinement ...");
     totalTime.start();
     refinementCalls++;
-
-    lowestCommonAncestor = null;
 
     if(isAnyPathFeasible(new ARGReachedSet(pReached), getErrorPaths(getErrorStates(pReached)))) {
       return false;
@@ -307,21 +317,9 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       else {
         Map<ARGState, ExplicitValueInterpolant> itps = interpolatingRefiner.performInterpolation(errorPath, initialItp);
 
-        // TODO: obtain the refinement-root ... the hacky way
-        if(lowestCommonAncestor == null) {
-          for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : itps.entrySet()) {
-            if(!itp.getValue().isFalse() && !itp.getValue().isTrue()) {
-              lowestCommonAncestor = itp.getKey();
-              break;
-            }
-          }
-        }
-        else {
-          for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : itps.entrySet()) {
-            if(!itp.getValue().isFalse() && !itp.getValue().isTrue() && itp.getKey().isOlderThan(lowestCommonAncestor)) {
-              lowestCommonAncestor = itp.getKey();
-              break;
-            }
+        for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : itps.entrySet()) {
+          if(!itp.getValue().isTrivial()) {
+            itpTree.updateRefinementRoot(itp.getKey());
           }
         }
 
@@ -350,11 +348,11 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     ARGReachedSet reached = new ARGReachedSet(pReached);
     if(doLazyAbstraction) {
       // TODO: non-lazy lazy-abstraction
-      if(lowestCommonAncestor.getParents().isEmpty()) {
+      if(itpTree.getRefinementRoot().getParents().isEmpty()) {
         reached.removeSubtree(((ARGState)pReached.getFirstState()).getChildren().iterator().next(), refinedPrecision, ExplicitPrecision.class);
       }
       else {
-        reached.removeSubtree(lowestCommonAncestor, refinedPrecision, ExplicitPrecision.class);
+        reached.removeSubtree(itpTree.getRefinementRoot(), refinedPrecision, ExplicitPrecision.class);
       }
     } else {
       reached.removeSubtree(((ARGState)pReached.getFirstState()).getChildren().iterator().next(), refinedPrecision, ExplicitPrecision.class);
@@ -442,7 +440,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
   private int previousRefinementId = -1;
   private Map<ARGState, ExplicitValueInterpolant> glblItps;
-  private ARGState lowestCommonAncestor;
   private boolean isRepeatedRefinementRoot(final ARGState root) {
     final int currentRefinementId = AbstractStates.extractLocation(root).getLineNumber();
     final boolean result          = (previousRefinementId == currentRefinementId);
