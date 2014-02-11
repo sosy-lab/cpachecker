@@ -350,13 +350,6 @@ public class CFASingleLoopTransformation {
                 dummyEdges.remove(edge);
                 dummyEdges.add(replacementEdge);
               }
-              /*
-               * Create the dummy edge, but do not add it to the nodes, as it
-               * will be replaced by an edge to the loop head anyway
-               *//*
-              CFANode dummy = replacementEdge.getPredecessor();
-              CFAEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), current, dummy, DUMMY_EDGE);
-              dummyEdges.add(dummyEdge);*/
 
               // Create the actual edge in the new graph
               CFAEdge newEdge = copyCFAEdgeWithNewNodes(replacementEdge, globalNewToOld);
@@ -388,13 +381,7 @@ public class CFASingleLoopTransformation {
               subgraph.addEdge(replacementEdge);
 
               if (!(replacementEdge.getSuccessor() instanceof CFATerminationNode)) {
-                /*
-                 * Create the dummy edge, but do not add it to the nodes, as it
-                 * will be replaced by an edge to the loop head anyway
-                 */
                 CFANode dummy = replacementEdge.getSuccessor();
-                CFAEdge dummyEdge = new BlankEdge("", edge.getLineNumber(), dummy, next, DUMMY_EDGE);
-                dummyEdges.add(dummyEdge);
 
                 // Compute the program counter for the replaced edge and map the nodes to it
                 CFANode newPredecessor = getOrCreateNewFromOld(dummy, globalNewToOld);
@@ -724,6 +711,11 @@ public class CFASingleLoopTransformation {
     }
   }
 
+  /**
+   * Removes the given summary edge from its nodes.
+   *
+   * @param pEdge the edge to remove.
+   */
   private static void removeSummaryEdgeFromNodes(FunctionSummaryEdge pEdge) {
     CFANode predecessor = pEdge.getPredecessor();
     if (predecessor.getLeavingSummaryEdge() == pEdge) {
@@ -1103,16 +1095,7 @@ public class CFASingleLoopTransformation {
               pNewPredecessor,
               getOrCreateNewFromOld(oldSummaryEdge.getSuccessor(), pNewToOldMapping),
               pNewToOldMapping);
-      CFANode summaryEdgePredecessor = functionSummaryEdge.getPredecessor();
-      CFANode summaryEdgeSuccessor = functionSummaryEdge.getSuccessor();
-      if (summaryEdgePredecessor.getLeavingSummaryEdge() != null) {
-        summaryEdgePredecessor.removeLeavingSummaryEdge(summaryEdgePredecessor.getLeavingSummaryEdge());
-      }
-      if (summaryEdgeSuccessor.getEnteringSummaryEdge() != null) {
-        summaryEdgeSuccessor.removeEnteringSummaryEdge(summaryEdgeSuccessor.getEnteringSummaryEdge());
-      }
-      functionSummaryEdge.getPredecessor().addLeavingSummaryEdge(functionSummaryEdge);
-      functionSummaryEdge.getSuccessor().addEnteringSummaryEdge(functionSummaryEdge);
+      addToNodes(functionSummaryEdge);
       Optional<CFunctionCall> cFunctionCall = functionCallEdge.getRawAST();
       return new CFunctionCallEdge(rawStatement, lineNumber, pNewPredecessor, (CFunctionEntryNode) pNewSuccessor, cFunctionCall.orNull(), functionSummaryEdge);
     }
@@ -1124,22 +1107,14 @@ public class CFASingleLoopTransformation {
       CFunctionSummaryEdge oldSummaryEdge = functionReturnEdge.getSummaryEdge();
       CFANode functionCallPred = oldSummaryEdge.getPredecessor();
       CFANode functionSummarySucc = oldSummaryEdge.getSuccessor();
+      // If there is a conflicting summary edge, never use the one stored with the function return edge
       if (oldSummaryEdge != functionCallPred.getLeavingSummaryEdge() && functionCallPred.getLeavingSummaryEdge() != null) {
         oldSummaryEdge = (CFunctionSummaryEdge) functionCallPred.getLeavingSummaryEdge();
       } else if (oldSummaryEdge != functionSummarySucc.getEnteringSummaryEdge() && functionSummarySucc.getEnteringSummaryEdge() != null) {
         oldSummaryEdge = (CFunctionSummaryEdge) functionSummarySucc.getEnteringSummaryEdge();
       }
       CFunctionSummaryEdge functionSummaryEdge = (CFunctionSummaryEdge) copyCFAEdgeWithNewNodes(oldSummaryEdge, pNewToOldMapping);
-      CFANode summaryEdgePredecessor = functionSummaryEdge.getPredecessor();
-      CFANode summaryEdgeSuccessor = functionSummaryEdge.getSuccessor();
-      if (summaryEdgePredecessor.getLeavingSummaryEdge() != null) {
-        summaryEdgePredecessor.removeLeavingSummaryEdge(summaryEdgePredecessor.getLeavingSummaryEdge());
-      }
-      if (summaryEdgeSuccessor.getEnteringSummaryEdge() != null) {
-        summaryEdgeSuccessor.removeEnteringSummaryEdge(summaryEdgeSuccessor.getEnteringSummaryEdge());
-      }
-      functionSummaryEdge.getPredecessor().addLeavingSummaryEdge(functionSummaryEdge);
-      functionSummaryEdge.getSuccessor().addEnteringSummaryEdge(functionSummaryEdge);
+      addToNodes(functionSummaryEdge);
       return new CFunctionReturnEdge(lineNumber, (FunctionExitNode) pNewPredecessor, pNewSuccessor, functionSummaryEdge);
     case MultiEdge:
       MultiEdge multiEdge = (MultiEdge) pEdge;
