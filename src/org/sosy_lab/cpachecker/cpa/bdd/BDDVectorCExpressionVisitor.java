@@ -36,12 +36,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import javax.annotation.Nullable;
 import java.math.BigInteger;
-import java.util.Map;
 
 /**
  * This Visitor implements evaluation of simply typed expressions.
@@ -57,29 +55,17 @@ import java.util.Map;
 public class BDDVectorCExpressionVisitor
         extends DefaultCExpressionVisitor<Region[], RuntimeException> {
 
-  //private final ExplicitState state;
-  private final String functionName;
   private final MachineModel machineModel;
   private final BDDTransferRelation transferRelation;
-
-  private final BitvectorManager bvmgr;
-  private final Map<BigInteger, Region[]> intToRegions;
-  private final int size;
-  private final boolean compress;
+  protected final BitvectorManager bvmgr;
 
   /** This Visitor returns the numeral value for an expression.
-   * @param pFunctionName current scope, used only for variable-names
    * @param pMachineModel where to get info about types, for casting and overflows
    */
-  public BDDVectorCExpressionVisitor(final String pFunctionName, final BDDTransferRelation pTransferRelation,
-                                     final BitvectorManager pBVmgr, final Map<BigInteger, Region[]> pIntToRegions,
-                                     final boolean compress, final int size, final MachineModel pMachineModel) {
-    this.functionName = pFunctionName;
+  protected BDDVectorCExpressionVisitor(final BDDTransferRelation pTransferRelation,
+                                     final BitvectorManager pBVmgr, final MachineModel pMachineModel) {
     this.transferRelation = pTransferRelation;
     this.bvmgr = pBVmgr;
-    this.intToRegions = pIntToRegions;
-    this.compress = compress;
-    this.size = size;
     this.machineModel = pMachineModel;
   }
 
@@ -90,18 +76,10 @@ public class BDDVectorCExpressionVisitor
 
   @Override
   public Region[] visit(final CBinaryExpression pE) {
-
     final Region[] lVal = pE.getOperand1().accept(this);
-    if (lVal == null) {
-      return null;
-    }
     final Region[] rVal = pE.getOperand2().accept(this);
-    if (rVal == null) {
-      return null;
-    }
-    Region[] result = calculateBinaryOperation(lVal, rVal, bvmgr, pE, machineModel);
-
-    return result;
+    if (lVal == null || rVal == null) { return null; }
+    return calculateBinaryOperation(lVal, rVal, bvmgr, pE, machineModel);
   }
 
   /**
@@ -222,7 +200,7 @@ public class BDDVectorCExpressionVisitor
     }
   }
 
-  private static Region booleanOperation(final Region[] l, final Region[] r, final BitvectorManager bvmgr,
+  protected static Region booleanOperation(final Region[] l, final Region[] r, final BitvectorManager bvmgr,
                                          final BinaryOperator op, final CType calculationType,
                                          final MachineModel machineModel) {
 
@@ -257,12 +235,12 @@ public class BDDVectorCExpressionVisitor
 
   @Override
   public Region[] visit(CCharLiteralExpression pE) {
-    return bvmgr.makeNumber(pE.getCharacter(), size);
+    return bvmgr.makeNumber(pE.getCharacter(), getSize(pE.getExpressionType()));
   }
 
   @Override
   public Region[] visit(CIntegerLiteralExpression pE) {
-    return bvmgr.makeNumber(pE.asLong(), size);
+    return bvmgr.makeNumber(pE.asLong(), getSize(pE.getExpressionType()));
   }
 
   @Override
@@ -289,33 +267,17 @@ public class BDDVectorCExpressionVisitor
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
       if (enumerator.hasValue()) {
-        return bvmgr.makeNumber(enumerator.getValue(), size);
+        return bvmgr.makeNumber(enumerator.getValue(), getSize(idExp.getExpressionType()));
       } else {
         return null;
       }
     }
 
-    return makePredicate(idExp);
-  }
-
-  /** This function returns regions containing bits of a variable.
-   * The name of the variable is build from functionName and varName.
-   * If the precision does not allow to track this variable, NULL is returned. */
-  protected Region[] makePredicate(CExpression exp) {
-    String var = exp.toASTString();
-    String function = transferRelation.isGlobal(exp) ? null : functionName;
-    return transferRelation.createPredicates(function, var, size);
+    return transferRelation.createPredicate(idExp, getSize(idExp.getExpressionType()));
   }
 
   @Override
   public Region[] visit(final CUnaryExpression unaryExpression) {
-
-    // for numeral values
-    final BigInteger val = VariableClassification.getNumber(unaryExpression);
-    if (compress && val != null) {
-      return intToRegions.get(val);
-    }
-
     final UnaryOperator unaryOperator = unaryExpression.getOperator();
     final CExpression unaryOperand = unaryExpression.getOperand();
 
@@ -334,10 +296,10 @@ public class BDDVectorCExpressionVisitor
         return value;
 
       case MINUS: // -X == (0-X)
-        return bvmgr.makeSub(bvmgr.makeNumber(BigInteger.ZERO, size), value);
+        return bvmgr.makeSub(bvmgr.makeNumber(BigInteger.ZERO, value.length), value);
 
       case NOT:
-        return bvmgr.wrapLast(bvmgr.makeNot(value), size);
+        return bvmgr.wrapLast(bvmgr.makeNot(value), value.length);
 
       case SIZEOF:
         throw new AssertionError("SIZEOF should be handled before!");
@@ -352,8 +314,12 @@ public class BDDVectorCExpressionVisitor
     }
   }
 
-  public Region[] getSizeof(CType pType) {
-    return bvmgr.makeNumber(machineModel.getSizeof(pType), size);
+  private Region[] getSizeof(CType pType) {
+    return bvmgr.makeNumber(machineModel.getSizeof(pType), machineModel.getSizeofInt());
+  }
+
+  private int getSize(CType pType) {
+    return machineModel.getSizeof(pType) * machineModel.getSizeofCharInBits();
   }
 
   /**

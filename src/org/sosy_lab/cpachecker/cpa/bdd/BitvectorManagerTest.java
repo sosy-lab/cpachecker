@@ -32,23 +32,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import java.math.BigInteger;
 
 public class BitvectorManagerTest {
-
-  // we need some dummy-values.
-  private final String functionName = "dummy_function";
-  private final FileLocation loc = new FileLocation(0, "dummy_file", 0, 0, 0);
-
-
-  // constants for C
-  private final int MAX_CHAR = 256;
-  private final int MAX_SHORT = 65536;
-  private final long MAX_INT = 4294967296L;
 
   private Configuration config;
   private StringBuildingLogHandler stringLogHandler;

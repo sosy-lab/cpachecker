@@ -74,12 +74,10 @@ public class BitvectorManager {
   }
 
   /** 1100 --> 0000, 0000 --> 0001 */
-  public Region makeNot(Region... r) {
-    int bitsize = r.length;
-
+  public Region makeNot(Region... regions) {
     Region tmp = rmgr.makeFalse(); // neutral region for OR
-    for (int i = 0; i < bitsize; i++) {
-      tmp = rmgr.makeOr(tmp, r[i]);
+    for (Region r : regions) {
+      tmp = rmgr.makeOr(tmp, r);
     }
     return rmgr.makeNot(tmp);
   }
@@ -236,13 +234,15 @@ public class BitvectorManager {
   }
 
   public Region[] wrapLast(final Region r, final int size) {
-    return toBitsize(size, true, r);
+    return toBitsize(size, false, r);
   }
 
   /** returns a new Array with given length, that is filled with elements from the old regions.
    * If the new size is smaller, front elements are ignored.
    * If the new size is greater, the missing elements are filled as needed to guarantee signedness. */
   public Region[] toBitsize(int bitsize, boolean signed, Region... regions) {
+    assert regions != null: "can not expand NULL";
+
     int min = Math.min(regions.length, bitsize);
     final Region[] newRegions = new Region[bitsize];
 
