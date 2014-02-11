@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -830,11 +831,19 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   private boolean environmentsEqualWithRespectToInterestingVariables(InvariantsState pElement2) {
-    for (String interestingVariable : precision.getInterestingVariables()) {
-      InvariantsFormula<CompoundInterval> left = environment.get(interestingVariable);
-      InvariantsFormula<CompoundInterval> right = pElement2.environment.get(interestingVariable);
-      if (left != right && (left == null || !left.equals(right))) {
-        return false;
+    Set<String> checkedVariables = new HashSet<>();
+    Queue<String> waitlist = new ArrayDeque<>(precision.getInterestingVariables());
+    while (!waitlist.isEmpty()) {
+      String variableName = waitlist.poll();
+      if (checkedVariables.add(variableName)) {
+        InvariantsFormula<CompoundInterval> left = environment.get(variableName);
+        InvariantsFormula<CompoundInterval> right = pElement2.environment.get(variableName);
+        if (left != right && (left == null || !left.equals(right))) {
+          return false;
+        }
+        if (left != null) {
+          waitlist.addAll(left.accept(COLLECT_VARS_VISITOR));
+        }
       }
     }
     return true;
