@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -85,44 +84,21 @@ import com.google.common.io.Files;
 @Options(prefix="cpa.explicit.refiner")
 public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
-  ExplicitInterpolationBasedExplicitRefiner interpolatingRefiner;
-  ExplictFeasibilityChecker checker;
-
-  private final LogManager logger;
-
-  private final ARGCPA argCpa;
-
-  private final ShutdownNotifier shutdownNotifier;
-
-  // statistics
-  private int refinementCalls = 0;
-
-  private final Timer totalTime = new Timer();
-
   @Option(description="whether or not to do lazy-abstraction")
   private boolean doLazyAbstraction = true;
 
   @Option(description="checkForRepeatedRefinements")
   private boolean checkForRepeatedRefinements = true;
 
-  @Option(description="whether or not to stop interpolation, when no increment was obtained from the last error trace that was interpolated")
-  private boolean checkOnEmptyIncrement = false;
-  private int skipOnEmptyIncrement = 0;
+  ExplicitInterpolationBasedExplicitRefiner interpolatingRefiner;
+  ExplictFeasibilityChecker checker;
 
-  @Option(description="perform check on relevance of error path")
-  private boolean checkOnRelevance = false;
-  private int skipOnRelevance = 0;
+  private final LogManager logger;
 
-  @Option(description="perform check, and potential cut-off if incremental precision is found to be enough")
-  private boolean checkOnIncrementalPrec = false;
-  private int skipOnIncrementalPrec = 0;
-
-  @Option(description="the order in which error paths should be refined", toUppercase=true, values={"DEFAULT", "ZIGZAG"})
-  private String errorPathOrder = "DEFAULT";
-
-  private int totalOfTargetsFound = 0;
-  private int totalOfPathsFound = 0;
-  private int totalOfPathsItped = 0;
+  // statistics
+  private int totalRefinements        = 0;
+  private int totalTargetsFound       = 0;
+  private final Timer totalTime       = new Timer();
 
   public static ExplicitGlobalRefiner create(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     final ExplicitCPA explicitCpa = CPAs.retrieveCPA(pCpa, ExplicitCPA.class);
@@ -146,12 +122,9 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       final ARGCPA pArgCpa, final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
 
-    logger = pLogger;
-    argCpa = pArgCpa;
-    shutdownNotifier = pShutdownNotifier;
-
     pConfig.inject(this);
 
+    logger                = pLogger;
     interpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
     checker               = new ExplictFeasibilityChecker(pLogger, pCfa);
   }
@@ -285,12 +258,18 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
   public boolean performRefinement(final ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "performing global refinement ...");
     totalTime.start();
-    refinementCalls++;
+    totalRefinements++;
 
-    if(isAnyPathFeasible(new ARGReachedSet(pReached), getErrorPaths(getErrorStates(pReached)))) {
+    List<ARGState> targets  = getErrorStates(pReached);
+    totalTargetsFound       = totalTargetsFound + targets.size();
+
+    // stop once any feasible counterexample is found
+    if(isAnyPathFeasible(new ARGReachedSet(pReached), getErrorPaths(targets))) {
+      totalTime.stop();
       return false;
     }
-    InterpolationTree itpTree = new InterpolationTree(getErrorStates(pReached));
+
+    InterpolationTree itpTree = new InterpolationTree(targets);
 
     glblItps = new HashMap<>();
     int i = 0;
@@ -418,14 +397,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     return errorPaths;
   }
 
-  private Iterator<ARGPath> getErrorPathIterator(Collection<ARGPath> errorPaths) {
-    if(errorPathOrder.equals("DEFAULT")) {
-      return errorPaths.iterator();
-    } else {
-      return new ZigZagIterator<>(Lists.newArrayList(errorPaths));
-    }
-  }
-
   private List<ARGState> getErrorStates(final ReachedSet pReached) {
     List<ARGState> targets = from(pReached)
         .transform(AbstractStates.toState(ARGState.class))
@@ -440,51 +411,13 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
 
   private int previousRefinementId = -1;
   private Map<ARGState, ExplicitValueInterpolant> glblItps;
+
   private boolean isRepeatedRefinementRoot(final ARGState root) {
     final int currentRefinementId = AbstractStates.extractLocation(root).getLineNumber();
     final boolean result          = (previousRefinementId == currentRefinementId);
     previousRefinementId          = currentRefinementId;
 
     return result && checkForRepeatedRefinements;
-  }
-
-
-  private ARGState getCommonRoot(Collection<ARGPath> pErrorPaths, Set<ARGState> roots, int highestItpPoint) {
-    List<ARGPath> errorPaths = Lists.newArrayList(pErrorPaths);
-
-    ARGPath shortestPath = errorPaths.get(0);
-
-    for(int i = 0; i < shortestPath.size(); i++) {
-      ARGState currentState = shortestPath.get(i).getFirst();
-      if(i == highestItpPoint) {
-        return shortestPath.get(highestItpPoint).getFirst();
-      }
-      for(int j = 0; j < errorPaths.size(); j++) {
-        ARGPath currentPath = errorPaths.get(j);
-        if(!currentState.equals(currentPath.get(i).getFirst())) {
-          return shortestPath.get(i - 1).getFirst();
-        }
-      }
-    }
-
-    assert(false);
-    return null;
-  }
-
-  /**
-   * Do refinement for a set of target states.
-   *
-   * The strategy is to first build the predecessor/successor relations for all
-   * abstraction states on the paths to the target states, and then call
-   * {@link #performRefinementOnSubgraph(ARGState, List, SetMultimap, Map, ReachedSet, List)}
-   * on the root state of the ARG.
-   * @throws InterruptedException
-   * @throws CPAException
-   */
-  private Multimap<CFANode, MemoryLocation> getIncrementForSinglePath(final ARGPath errorPath) throws CPAException, InterruptedException {
-    Multimap<CFANode, MemoryLocation> increment = interpolatingRefiner.determinePrecisionIncrement(errorPath);
-
-    return increment;
   }
 
   @Override
@@ -504,59 +437,11 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
   }
 
   private void printStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached) {
-    if (refinementCalls > 0) {
-      out.println("Total time for global refinement:  " + totalTime);
-      out.println("totalOfTargetsFound:  " + totalOfTargetsFound);
-      out.println("totalOfPathsFound:  " + totalOfPathsFound);
-      out.println("totalOfPathsItped:  " + totalOfPathsItped);
-      out.println("skipOnIncrementalPrec:  " + skipOnIncrementalPrec);
-      out.println("skipOnEmptyIncrement:  " + skipOnEmptyIncrement);
-      out.println("skipOnRelevance:  " + skipOnRelevance);
+    if (totalRefinements > 0) {
+      out.println("Total time for global refinement: " + totalTime);
+      out.println("Total number of targets found:    " + totalTargetsFound);
 
       interpolatingRefiner.printStatistics(out, pResult, pReached);
-    }
-  }
-
-  private class ZigZagIterator<T> implements Iterator<T> {
-
-    private final List<T> errorPath;
-
-    private int headIndex = 0;
-    private int tailIndex = 0;
-    private int currentIndex = 0;
-
-    private boolean pop = false;
-
-    private ZigZagIterator(List<T> pErrorPath) {
-      errorPath = pErrorPath;
-      tailIndex = errorPath.size() - 1;
-    }
-
-    @Override
-    public boolean hasNext() {
-      return headIndex <= tailIndex;
-    }
-
-    @Override
-    public T next() {
-      if(pop) {
-        currentIndex = tailIndex;
-        tailIndex--;
-      }
-
-      else {
-        currentIndex = headIndex;
-        headIndex++;
-      }
-
-      pop = !pop;
-
-      return errorPath.get(currentIndex);
-    }
-
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException("Removing is not supported");
     }
   }
 }
