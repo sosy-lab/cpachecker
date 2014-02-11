@@ -33,6 +33,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -128,149 +129,6 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     checker               = new ExplictFeasibilityChecker(pLogger, pCfa);
   }
 
-  private class InterpolationTree {
-    private Map<ARGState, ARGState> predecessorRelation = Maps.newHashMap();
-
-    private SetMultimap<ARGState, ARGState> successorRelation = LinkedHashMultimap.create();
-    
-    private Map<ARGState, ExplicitValueInterpolant> interpolants;
-
-    private Deque<ARGState> itpRoots = new ArrayDeque<>();
-
-    private ARGState refinementRoot = null;
-
-    private InterpolationTree(Collection<ARGState> targetStates) {
-      Deque<ARGState> todo = new ArrayDeque<>(targetStates);
-
-      while (!todo.isEmpty()) {
-        final ARGState currentState = todo.removeFirst();
-        assert currentState.mayCover();
-
-        if(currentState.getParents().iterator().hasNext()) {
-          ARGState parentState = currentState.getParents().iterator().next();
-          todo.add(parentState);
-          predecessorRelation.put(currentState, parentState);
-          successorRelation.put(parentState, currentState);
-        }
-
-        else if (itpRoots.size() == 0) {
-          logger.log(Level.FINEST, "setting initial itp-root to " + currentState.getStateId());
-          itpRoots.add(currentState);
-        }
-      }
-    }
-
-    private void exportItpTree(int refinementCnt, int iteration) {
-      StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
-      for(Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
-        if(interpolants.containsKey(current.getKey())) {
-          StringBuilder sb = new StringBuilder();
-
-          sb.append("itp is " + interpolants.get(current.getKey()));
-
-          result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + " has itp " + (sb.toString()) + "\"]" + "\n");
-          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
-        }
-
-        else {
-          result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + " has itp NA\"]" + "\n");
-          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
-        }
-
-        if(current.getValue().isTarget()) {
-          result.append(current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]" + "\n");
-        }
-
-        assert(!current.getKey().isTarget());
-      }
-      result.append("}");
-
-      try {
-        Files.write(result.toString(), new File("itpTree_" + refinementCnt + "_" + iteration + ".dot"), Charset.defaultCharset());
-      } catch (IOException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-    }
-
-    private boolean isDone() {
-      return itpRoots.isEmpty();
-    }
-
-    private ARGPath getNextErrorPath() {
-      if(isDone()) {
-        return null;
-      }
-
-      ARGPath errorPath = new ARGPath();
-      ARGState current = itpRoots.pop();
-      logger.log(Level.FINEST, "taking new root ", current.getStateId(), " from stack");
-
-      if(interpolants.containsKey(predecessorRelation.get(current)) && interpolants.get(predecessorRelation.get(current)).isFalse()) {
-        logger.log(Level.FINEST, "itp of predecessor ", predecessorRelation.get(current).getStateId(), " is already false ... go ahead");
-        return getNextErrorPath();
-      }
-
-      while(successorRelation.get(current).iterator().hasNext()) {
-        Iterator<ARGState> children = successorRelation.get(current).iterator();
-        ARGState child = children.next();
-        errorPath.add(Pair.of(current, current.getEdgeToChild(child)));
-
-        if(children.hasNext()) {
-          // refinement root may never be lower than the lowest common ancestor
-          if(refinementRoot == null) {
-            refinementRoot = current;
-          }
-
-          ARGState sibling = children.next();
-          logger.log(Level.FINEST, "\tpush new root ", sibling.getStateId(), " onto stack for parent ", predecessorRelation.get(sibling).getStateId());
-          itpRoots.push(sibling);
-        }
-
-        current = child;
-      }
-
-      return errorPath;
-    }
-
-    public CFAEdge getEdgeFor(ARGState state) {
-      ARGState child = successorRelation.get(state).iterator().next();
-
-      return state.getEdgeToChild(child);
-    }
-
-    private ExplicitValueInterpolant getInitialItp(ARGState root) {
-      return interpolants.get(predecessorRelation.get(root));
-    }
-
-    private void updateRefinementRoot(ARGState newRoot) {
-      if(refinementRoot == null || newRoot.isOlderThan(refinementRoot)) {
-        refinementRoot = newRoot;
-      }
-    }
-
-    private ARGState getRefinementRoot() {
-      return refinementRoot;
-    }
-    
-    private void addInterpolants(Map<ARGState, ExplicitValueInterpolant> newItps) {
-      interpolants.putAll(newItps);
-    }
-    
-    private Multimap<CFANode, MemoryLocation> getPrecisionIncrement() {
-      Multimap<CFANode, MemoryLocation> globalIncrement = HashMultimap.create();
-      
-      for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : interpolants.entrySet()) {
-        for(MemoryLocation memloc : itp.getValue().getMemoryLocations()) {
-          globalIncrement.put(getEdgeFor(itp.getKey()).getSuccessor(), memloc);
-        }
-      }
-
-      return globalIncrement;
-    }
-  }
-
-
   @Override
   public boolean performRefinement(final ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "performing global refinement ...");
@@ -330,7 +188,7 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
     // TODO: join precisions for all target states (for all target states "below" refinement root), and refine that prec.
     final Precision precision                 = pReached.getPrecision(pReached.getLastState());
     final ExplicitPrecision originalPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
-    final ExplicitPrecision refinedPrecision  = new ExplicitPrecision(originalPrecision, itpTree.getPrecisionIncrement());
+    final ExplicitPrecision refinedPrecision  = new ExplicitPrecision(originalPrecision, itpTree.extractPrecisionIncrement());
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
     if(doLazyAbstraction) {
@@ -449,6 +307,228 @@ public class ExplicitGlobalRefiner implements Refiner, StatisticsProvider {
       out.println("Total number of targets found:    " + totalTargetsFound);
 
       interpolatingRefiner.printStatistics(out, pResult, pReached);
+    }
+  }
+  
+  
+
+
+  /**
+   * This class represents an interpolation tree, i.e. a set of states connected through a successor-predecessor-relation.
+   * The tree is built from traversing backwards from error states. It can be used to retrieve paths from the root of the
+   * tree to error states, in a way, that only path not yet excluded by previous path interpolation need to be interpolated.
+   */
+  private class InterpolationTree {
+    /**
+     * the predecessor relation of the states contained in this tree
+     */
+    private Map<ARGState, ARGState> predecessorRelation = Maps.newHashMap();
+    
+    /**
+     * the successor relation of the states contained in this tree
+     */
+    private SetMultimap<ARGState, ARGState> successorRelation = LinkedHashMultimap.create();
+    
+    /**
+     * the mapping from state to the identified interpolants
+     */
+    private Map<ARGState, ExplicitValueInterpolant> interpolants = new HashMap<>();
+
+    /**
+     * the stack of nodes from where to (re)start interpolation
+     */
+    private Deque<ARGState> itpRoots = new ArrayDeque<>();
+
+    /**
+     * the current refinement root
+     */
+    private ARGState refinementRoot = null;
+
+    /**
+     * This method acts as constructor of the interpolation tree.
+     * 
+     * @param targetStates the set of target states from which to build the interpolation tree
+     */
+    private InterpolationTree(Collection<ARGState> targetStates) {
+      Deque<ARGState> todo = new ArrayDeque<>(targetStates);
+
+      while (!todo.isEmpty()) {
+        final ARGState currentState = todo.removeFirst();
+        assert currentState.mayCover();
+
+        if(currentState.getParents().iterator().hasNext()) {
+          ARGState parentState = currentState.getParents().iterator().next();
+          todo.add(parentState);
+          predecessorRelation.put(currentState, parentState);
+          successorRelation.put(parentState, currentState);
+        }
+
+        else if (itpRoots.size() == 0) {
+          logger.log(Level.FINEST, "setting initial itp-root to " + currentState.getStateId());
+          itpRoots.add(currentState);
+        }
+      }
+    }
+
+    /**
+     * The method exports the current representation to a *.dot file.
+     * 
+     * @param refinementCnt the current refinement counter
+     * @param iteration the current iteration of the current refinement
+     * TODO: writes to disk, no good!
+     */
+    private void exportItpTree(int refinementCnt, int iteration) {
+      StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
+      for(Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
+        if(interpolants.containsKey(current.getKey())) {
+          StringBuilder sb = new StringBuilder();
+
+          sb.append("itp is " + interpolants.get(current.getKey()));
+
+          result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + " has itp " + (sb.toString()) + "\"]" + "\n");
+          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
+        }
+
+        else {
+          result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + " has itp NA\"]" + "\n");
+          result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
+        }
+
+        if(current.getValue().isTarget()) {
+          result.append(current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]" + "\n");
+        }
+
+        assert(!current.getKey().isTarget());
+      }
+      result.append("}");
+
+      try {
+        Files.write(result.toString(), new File("itpTree_" + refinementCnt + "_" + iteration + ".dot"), Charset.defaultCharset());
+      } catch (IOException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
+
+    /**
+     * This method checks determines if the interpolation tree is "complete",
+     * i.e. if all relevant states have been interpolated.
+     * 
+     * @return true if the interpolation tree is "complete", else false
+     */
+    private boolean isDone() {
+      return itpRoots.isEmpty();
+    }
+
+    /**
+     * The method returns the next error path for interpolation.
+     * 
+     * @return the next error path, or null, if no further path can be found.
+     * TODO: may return null, no good!
+     */
+    private ARGPath getNextErrorPath() {
+      if(isDone()) {
+        return null;
+      }
+
+      ARGPath errorPath = new ARGPath();
+      ARGState current = itpRoots.pop();
+      logger.log(Level.FINEST, "taking new root ", current.getStateId(), " from stack");
+
+      if(interpolants.containsKey(predecessorRelation.get(current))
+          && interpolants.get(predecessorRelation.get(current)).isFalse()) {
+        logger.log(Level.FINEST, "itp of predecessor ", predecessorRelation.get(current).getStateId(), " is already false ... go ahead");
+        return getNextErrorPath();
+      }
+
+      while(successorRelation.get(current).iterator().hasNext()) {
+        Iterator<ARGState> children = successorRelation.get(current).iterator();
+        ARGState child = children.next();
+        errorPath.add(Pair.of(current, current.getEdgeToChild(child)));
+
+        if(children.hasNext()) {
+          // refinement root may never be lower than the lowest common ancestor
+          if(refinementRoot == null) {
+            refinementRoot = current;
+          }
+
+          ARGState sibling = children.next();
+          logger.log(Level.FINEST, "\tpush new root ", sibling.getStateId(), " onto stack for parent ", predecessorRelation.get(sibling).getStateId());
+          itpRoots.push(sibling);
+        }
+
+        current = child;
+      }
+
+      return errorPath;
+    }
+
+    /**
+     * This method returns a CFA edge from the current state to its next successor.
+     * TODO: always picks first, no good!
+     * 
+     * @param state the state for which to obtain an edge to its successor.
+     * @return the edge to the successor
+     */
+    private CFAEdge getEdgeToSuccessor(ARGState state) {
+      return state.getEdgeToChild(successorRelation.get(state).iterator().next());
+    }
+
+    /**
+     * This method returns the interpolant to be used for interpolation starting at the given state.
+     * 
+     * @param root the state for which to obtain the initial interpolant
+     * @return the initial interpolant for the given state
+     */
+    private ExplicitValueInterpolant getInitialItp(ARGState root) {
+      return interpolants.get(predecessorRelation.get(root));
+    }
+
+    /**
+     * This method updates the refinement root to the given state, if necessary, i.e.,
+     * if is a predecessor of the current one.
+     * 
+     * @param newRoot the refinement root candidate
+     */
+    private void updateRefinementRoot(ARGState newRoot) {
+      if(refinementRoot == null || newRoot.isOlderThan(refinementRoot)) {
+        refinementRoot = newRoot;
+      }
+    }
+
+    /**
+     * This method returns the refinement root.
+     * 
+     * @return the current refinement root
+     */
+    private ARGState getRefinementRoot() {
+      return refinementRoot;
+    }
+
+    /**
+     * THis method updates the mapping from states to interpolants.
+     * 
+     * @param newItps the new mapping to add
+     */
+    private void addInterpolants(Map<ARGState, ExplicitValueInterpolant> newItps) {
+      interpolants.putAll(newItps);
+    }
+    
+    /**
+     * This method extracts the precision increment for the interpolation tree.
+     * 
+     * @return the precision increment
+     */
+    private Multimap<CFANode, MemoryLocation> extractPrecisionIncrement() {
+      Multimap<CFANode, MemoryLocation> globalIncrement = HashMultimap.create();
+      
+      for(Map.Entry<ARGState, ExplicitValueInterpolant> itp : interpolants.entrySet()) {
+        for(MemoryLocation memoryLocation : itp.getValue().getMemoryLocations()) {
+          globalIncrement.put(getEdgeToSuccessor(itp.getKey()).getSuccessor(), memoryLocation);
+        }
+      }
+
+      return globalIncrement;
     }
   }
 }
