@@ -38,10 +38,9 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-abstract class Z3NumeralFormulaManager extends AbstractNumeralFormulaManager<Long> {
+abstract class Z3NumeralFormulaManager extends AbstractNumeralFormulaManager<Long, Long, Long> {
 
   private final long z3context;
-  private final Z3FormulaCreator creator;
   private final Z3FunctionType<RationalFormula> multUfDecl;
   private final Z3FunctionType<RationalFormula> divUfDecl;
   private final Z3FunctionType<RationalFormula> modUfDecl;
@@ -51,17 +50,12 @@ abstract class Z3NumeralFormulaManager extends AbstractNumeralFormulaManager<Lon
           Z3FormulaCreator pCreator,
           Z3FunctionFormulaManager functionManager) {
     super(pCreator);
-    this.creator = pCreator;
     this.z3context = pCreator.getEnv();
     FormulaType<RationalFormula> formulaType = FormulaType.RationalType;
     this.functionManager = functionManager;
     multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
     divUfDecl = functionManager.createFunction(DivUfName, formulaType, formulaType, formulaType);
     modUfDecl = functionManager.createFunction(ModUfName, formulaType, formulaType, formulaType);
-  }
-
-  protected Z3FormulaCreator getCreator() {
-    return creator;
   }
 
   abstract protected long getNumeralType();
@@ -86,7 +80,7 @@ abstract class Z3NumeralFormulaManager extends AbstractNumeralFormulaManager<Lon
   @Override
   protected Long makeVariableImpl(String varName) {
     long type = getNumeralType();
-    return creator.makeVariable(type, varName);
+    return getFormulaCreator().makeVariable(type, varName);
   }
 
   private Long makeUf(FunctionFormulaType<RationalFormula> decl, Long t1, Long t2) {

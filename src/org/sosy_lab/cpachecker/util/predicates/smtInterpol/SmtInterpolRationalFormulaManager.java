@@ -41,22 +41,22 @@ class SmtInterpolRationalFormulaManager extends SmtInterpolNumeralFormulaManager
 
   @Override
   protected Term makeNumberImpl(long i) {
-    return getCreator().getEnv().decimal(BigDecimal.valueOf(i));
+    return getFormulaCreator().getEnv().decimal(BigDecimal.valueOf(i));
   }
 
   @Override
   protected Term makeNumberImpl(BigInteger pI) {
-    return getCreator().getEnv().decimal(new BigDecimal(pI));
+    return getFormulaCreator().getEnv().decimal(new BigDecimal(pI));
   }
 
   @Override
   protected Term makeNumberImpl(String pI) {
-    return getCreator().getEnv().decimal(pI);
+    return getFormulaCreator().getEnv().decimal(pI);
   }
 
   @Override
   protected Term makeVariableImpl(String varName) {
-    Sort t = getCreator().getRealType();
-    return getCreator().makeVariable(t, varName);
+    Sort t = getFormulaCreator().getRealType();
+    return getFormulaCreator().makeVariable(t, varName);
   }
 }

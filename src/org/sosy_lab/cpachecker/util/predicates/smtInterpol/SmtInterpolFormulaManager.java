@@ -53,19 +53,18 @@ import de.uni_freiburg.informatik.ultimate.logic.PrintTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
+class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtInterpolEnvironment> {
 
   private final SmtInterpolEnvironment env;
-  private final SmtInterpolFormulaCreator creator;
 
   private SmtInterpolFormulaManager(
+      SmtInterpolEnvironment env,
       SmtInterpolUnsafeFormulaManager pUnsafeManager,
       SmtInterpolFunctionFormulaManager pFunctionManager,
       SmtInterpolBooleanFormulaManager pBooleanManager,
       SmtInterpolNumeralFormulaManager pNumericManager) {
     super(pUnsafeManager, pFunctionManager, pBooleanManager, pNumericManager, null);
-    this.creator = checkNotNull((SmtInterpolFormulaCreator)getFormulaCreator());
-    this.env = creator.getEnv();
+    this.env = env;
   }
 
   public static SmtInterpolFormulaManager create(Configuration config, LogManager logger,
@@ -88,7 +87,7 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
     } else {
       rationalTheory = new SmtInterpolRationalFormulaManager(creator, functionTheory);
     }
-    return new SmtInterpolFormulaManager(unsafeManager, functionTheory, booleanTheory, rationalTheory);
+    return new SmtInterpolFormulaManager(env, unsafeManager, functionTheory, booleanTheory, rationalTheory);
   }
 
   public SmtInterpolInterpolatingProver createInterpolator() {
@@ -100,7 +99,7 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
   }
 
   BooleanFormula encapsulateBooleanFormula(Term t) {
-    return creator.encapsulate(BooleanFormula.class, t);
+    return getFormulaCreator().encapsulate(BooleanFormula.class, t);
   }
 
   @Override

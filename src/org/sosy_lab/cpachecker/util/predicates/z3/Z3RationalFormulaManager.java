@@ -38,6 +38,6 @@ public class Z3RationalFormulaManager extends Z3NumeralFormulaManager {
 
   @Override
   protected long getNumeralType() {
-    return getCreator().getRealType();
+    return getFormulaCreator().getRealType();
   }
 }

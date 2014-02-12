@@ -90,6 +90,15 @@ final class WrappingRationalFormula<TWrap extends Formula>
   }
 }
 
+final class WrappingIntegerFormula<TWrap extends Formula>
+    extends WrappingFormula<TWrap, IntegerFormula>
+    implements RationalFormula {
+
+  WrappingIntegerFormula(FormulaType<IntegerFormula> type, TWrap pToWrap) {
+    super(type, pToWrap);
+  }
+}
+
 final class WrappingBooleanFormula<TWrap extends Formula>
     extends WrappingFormula<TWrap, BooleanFormula>
     implements BooleanFormula {

@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsa
 
 import com.google.common.primitives.Longs;
 
-class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
+class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Long> {
 
   private final long msatEnv;
   private final Mathsat5FormulaCreator creator;

@@ -38,6 +38,6 @@ public class Z3IntegerFormulaManager extends Z3NumeralFormulaManager {
 
   @Override
   protected long getNumeralType() {
-    return getCreator().getIntegerType();
+    return getFormulaCreator().getIntegerType();
   }
 }

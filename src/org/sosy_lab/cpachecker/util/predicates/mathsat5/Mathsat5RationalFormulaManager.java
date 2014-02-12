@@ -36,14 +36,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNume
 import com.google.common.collect.ImmutableList;
 
 
-class Mathsat5RationalFormulaManager extends AbstractNumeralFormulaManager<Long> {
+class Mathsat5RationalFormulaManager extends AbstractNumeralFormulaManager<Long, Long, Long> {
 
   private final Mathsat5FunctionType<RationalFormula> multUfDecl;
   private final Mathsat5FunctionType<RationalFormula> divUfDecl;
   private final Mathsat5FunctionType<RationalFormula> modUfDecl;
   private final Mathsat5FunctionFormulaManager functionManager;
 
-  private final Mathsat5FormulaCreator creator;
   private final long mathsatEnv;
 
   private final boolean useIntegers;
@@ -54,8 +53,7 @@ class Mathsat5RationalFormulaManager extends AbstractNumeralFormulaManager<Long>
       boolean pUseIntegers) {
     super(pCreator);
 
-    this.creator = pCreator;
-    this.mathsatEnv = creator.getEnv();
+    this.mathsatEnv = pCreator.getEnv();
     this.functionManager = functionManager;
     this.useIntegers = pUseIntegers;
     FormulaType<RationalFormula> formulaType = getFormulaType();
@@ -91,8 +89,8 @@ class Mathsat5RationalFormulaManager extends AbstractNumeralFormulaManager<Long>
 
   @Override
   public Long makeVariableImpl(String var) {
-    long numberType = creator.getRealType();
-    return creator.makeVariable(numberType, var);
+    long numberType = getFormulaCreator().getRealType();
+    return getFormulaCreator().makeVariable(numberType, var);
   }
 
   @Override

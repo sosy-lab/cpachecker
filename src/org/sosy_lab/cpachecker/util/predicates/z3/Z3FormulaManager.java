@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 import com.google.common.base.Preconditions;
 
 @Options(prefix = "cpa.predicate.solver.z3")
-public class Z3FormulaManager extends AbstractFormulaManager<Long> {
+public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
   @Option(description = "simplify formulas when they are asserted in a solver.")
   boolean simplifyFormulas = false;
@@ -55,11 +55,11 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
   private final Z3SmtLogger z3smtLogger;
 
   private Z3FormulaManager(
-      AbstractUnsafeFormulaManager<Long> pUnsafeManager,
-      AbstractFunctionFormulaManager<Long> pFunctionManager,
-      AbstractBooleanFormulaManager<Long> pBooleanManager,
-      AbstractNumeralFormulaManager<Long> pNumericManager,
-      AbstractBitvectorFormulaManager<Long> pBitpreciseManager,
+      AbstractUnsafeFormulaManager<Long, Long, Long> pUnsafeManager,
+      AbstractFunctionFormulaManager<Long, Long, Long> pFunctionManager,
+      AbstractBooleanFormulaManager<Long, Long, Long> pBooleanManager,
+      AbstractNumeralFormulaManager<Long, Long, Long> pNumericManager,
+      AbstractBitvectorFormulaManager<Long, Long, Long> pBitpreciseManager,
       Z3SmtLogger smtLogger, Configuration config) throws InvalidConfigurationException {
 
     super(pUnsafeManager, pFunctionManager, pBooleanManager, pNumericManager, pBitpreciseManager);

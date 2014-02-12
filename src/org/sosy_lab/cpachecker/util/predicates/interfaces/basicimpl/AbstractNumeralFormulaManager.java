@@ -36,12 +36,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager
  * providing a NumericBaseFormulaManager<TFormulaInfo,TFormulaInfo> and implementing 3 methods.
  * @param <TFormulaInfo> the Solver specific type.
  */
-public abstract class AbstractNumeralFormulaManager<TFormulaInfo>
-  extends AbstractBaseFormulaManager<TFormulaInfo>
+public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv>
+  extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
   implements RationalFormulaManager {
 
   protected AbstractNumeralFormulaManager(
-      FormulaCreator<TFormulaInfo> pCreator) {
+      AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
     super(pCreator);
   }
 

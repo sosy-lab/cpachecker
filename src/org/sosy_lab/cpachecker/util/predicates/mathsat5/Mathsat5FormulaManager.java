@@ -58,7 +58,7 @@ import com.google.common.base.Splitter.MapSplitter;
 import com.google.common.collect.ImmutableMap;
 
 @Options(prefix="cpa.predicate.mathsat5")
-public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> implements AutoCloseable {
+public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, Long> implements AutoCloseable {
 
   @Options(prefix="cpa.predicate.mathsat5")
   private static class Mathsat5Settings {
@@ -104,11 +104,11 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> impleme
   private Mathsat5FormulaManager(
       LogManager pLogger,
       long pMathsatConfig,
-      AbstractUnsafeFormulaManager<Long> unsafeManager,
-      AbstractFunctionFormulaManager<Long> pFunctionManager,
-      AbstractBooleanFormulaManager<Long> pBooleanManager,
-      AbstractNumeralFormulaManager<Long> pNumericManager,
-      AbstractBitvectorFormulaManager<Long> pBitpreciseManager,
+      AbstractUnsafeFormulaManager<Long, Long, Long> unsafeManager,
+      AbstractFunctionFormulaManager<Long, Long, Long> pFunctionManager,
+      AbstractBooleanFormulaManager<Long, Long, Long> pBooleanManager,
+      AbstractNumeralFormulaManager<Long, Long, Long> pNumericManager,
+      AbstractBitvectorFormulaManager<Long, Long, Long> pBitpreciseManager,
       Mathsat5Settings pSettings,
       final ShutdownNotifier pShutdownNotifier) {
 

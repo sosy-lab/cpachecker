@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
 
 /**
@@ -86,11 +87,11 @@ public abstract class FormulaType<T extends Formula> {
     }
   };
 
-  public static final FormulaType<NumericFormula.IntegerFormula> IntegerType = new NumeralType<NumericFormula.IntegerFormula>() {
+  public static final FormulaType<IntegerFormula> IntegerType = new NumeralType<IntegerFormula>() {
 
     @Override
-    public Class<NumericFormula.IntegerFormula> getInterfaceType() {
-      return NumericFormula.IntegerFormula.class;
+    public Class<IntegerFormula> getInterfaceType() {
+      return IntegerFormula.class;
     }
 
     @Override

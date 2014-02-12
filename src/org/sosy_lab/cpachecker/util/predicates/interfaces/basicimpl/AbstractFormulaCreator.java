@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
 
 
@@ -72,6 +73,8 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
     AbstractFormula<TFormulaInfo> f;
     if (pClazz == BitvectorFormula.class) {
       f = new BitvectorFormulaImpl<>(pTerm);
+    } else if (pClazz == IntegerFormula.class) {
+      f = new IntegerFormulaImpl<>(pTerm);
     } else if (pClazz == RationalFormula.class) {
       f = new RationalFormulaImpl<>(pTerm);
     } else if (pClazz == BooleanFormula.class) {
@@ -97,5 +100,5 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
     return realType;
   }
 
-  protected abstract TFormulaInfo makeVariable(TType type, String varName) ;
+  public abstract TFormulaInfo makeVariable(TType type, String varName) ;
 }

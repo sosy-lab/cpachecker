@@ -37,19 +37,19 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.Rationa
  * Simplifies building a solver from the specific theories.
  * @param <TFormulaInfo> The solver specific type.
  */
-public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaManager {
+public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implements FormulaManager {
 
-  private final AbstractBooleanFormulaManager<TFormulaInfo> booleanManager;
+  private final AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager;
 
-  private final AbstractNumeralFormulaManager<TFormulaInfo> rationalManager;
+  private final AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv> rationalManager;
 
-  private final AbstractBitvectorFormulaManager<TFormulaInfo> bitvectorManager;
+  private final AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager;
 
-  private final AbstractFunctionFormulaManager<TFormulaInfo> functionManager;
+  private final AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager;
 
   private final FormulaCreator<TFormulaInfo> formulaCreator;
 
-  private final AbstractUnsafeFormulaManager<TFormulaInfo> unsafeManager;
+  private final AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager;
 
   /**
    * Builds a solver from the given theory implementations
@@ -60,11 +60,11 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
    * @param bitvectorManager the bitvector theory
    */
   protected AbstractFormulaManager(
-      AbstractUnsafeFormulaManager<TFormulaInfo> unsafeManager,
-      AbstractFunctionFormulaManager<TFormulaInfo> functionManager,
-      AbstractBooleanFormulaManager<TFormulaInfo> booleanManager,
-      AbstractNumeralFormulaManager<TFormulaInfo> rationalManager,
-      AbstractBitvectorFormulaManager<TFormulaInfo> bitvectorManager) {
+      AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager,
+      AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager,
+      AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager,
+      AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv> rationalManager,
+      AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager) {
     if (functionManager == null || booleanManager == null || unsafeManager == null) {
       throw new IllegalArgumentException("boolean, function and unsafe manager instances have to be valid!");
     }
@@ -117,7 +117,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
     return AbstractFormulaManager.getInterfaceHelper(pInstance);
   }
   @Override
-  public AbstractNumeralFormulaManager<TFormulaInfo> getRationalFormulaManager() {
+  public AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv> getRationalFormulaManager() {
     if (rationalManager == null) {
       throw new UnsupportedOperationException();
     }
@@ -125,12 +125,12 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
   }
 
   @Override
-  public AbstractBooleanFormulaManager<TFormulaInfo> getBooleanFormulaManager() {
+  public AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> getBooleanFormulaManager() {
     return booleanManager;
   }
 
   @Override
-  public AbstractBitvectorFormulaManager<TFormulaInfo> getBitvectorFormulaManager() {
+  public AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> getBitvectorFormulaManager() {
     if (bitvectorManager == null) {
       throw new UnsupportedOperationException();
     }
@@ -138,12 +138,12 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
   }
 
   @Override
-  public AbstractFunctionFormulaManager<TFormulaInfo> getFunctionFormulaManager() {
+  public AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> getFunctionFormulaManager() {
     return functionManager;
   }
 
   @Override
-  public AbstractUnsafeFormulaManager<TFormulaInfo> getUnsafeFormulaManager() {
+  public AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> getUnsafeFormulaManager() {
 
     return unsafeManager;
   }

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.isNumber;
 
+import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumericFormula.RationalFormula;
@@ -36,10 +37,9 @@ import com.google.common.collect.ImmutableList;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 
-abstract class SmtInterpolNumeralFormulaManager extends AbstractNumeralFormulaManager<Term> {
+abstract class SmtInterpolNumeralFormulaManager extends AbstractNumeralFormulaManager<Term, Sort, SmtInterpolEnvironment> {
 
   private final SmtInterpolEnvironment env;
-  private final SmtInterpolFormulaCreator creator;
   private final SmtInterpolFunctionType<RationalFormula> multUfDecl;
   private final SmtInterpolFunctionType<RationalFormula> divUfDecl;
   private final SmtInterpolFunctionType<RationalFormula> modUfDecl;
@@ -49,7 +49,6 @@ abstract class SmtInterpolNumeralFormulaManager extends AbstractNumeralFormulaMa
           SmtInterpolFormulaCreator pCreator,
           SmtInterpolFunctionFormulaManager pFunctionManager) {
     super(pCreator);
-    creator = pCreator;
     env = pCreator.getEnv();
     functionManager = pFunctionManager;
 
@@ -57,11 +56,6 @@ abstract class SmtInterpolNumeralFormulaManager extends AbstractNumeralFormulaMa
     multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
     divUfDecl = functionManager.createFunction(DivUfName, formulaType, formulaType, formulaType);
     modUfDecl = functionManager.createFunction(ModUfName, formulaType, formulaType, formulaType);
-  }
-
-  protected SmtInterpolFormulaCreator getCreator() {
-    // TODO move method to super-class?
-    return creator;
   }
 
   private Term makeUf(FunctionFormulaType<RationalFormula> decl, Term t1, Term t2) {
