@@ -139,6 +139,16 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
   protected abstract String getName(TFormulaInfo pT);
 
   @Override
+  public Formula replaceArgsAndName(Formula f, String newName, Formula[] args) {
+    return encapsulateUnsafe(replaceArgsAndName(getTerm(f), newName, toFormulaInfo(args)));
+  }
+
+  protected TFormulaInfo replaceArgsAndName(TFormulaInfo pTerm, String pNewName, List<TFormulaInfo> newArgs) {
+    TFormulaInfo withNewArgs = replaceArgs(pTerm, newArgs);
+    return replaceName(withNewArgs, pNewName);
+  }
+
+  @Override
   public Formula replaceArgs(Formula pF, Formula[] pArgs) {
     return encapsulateUnsafe(replaceArgs(getTerm(pF), toFormulaInfo(pArgs)));
   }
